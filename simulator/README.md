@@ -31,6 +31,7 @@ python -m qysim.server --scenario tether_untangle     # 或 --scenario random --
 - **開機時電機是上鎖的**，先解鎖（手把 Y / 鍵盤 Space）。
 - 左撥鈕 **A / S / C**：A 姿態平穩（不能橫滾）、S 運動模式（全向、可 360° 翻滾）、C 在模擬器中同 A。
 - 定深（X / H）：鎖住深度，上下波輪改為調整設定深度。
+- LED（Start / L）：0 → 1 → 2 檔。自然光隨深度衰減（約每 10 m 剩 1/e），20 m 以下沒開燈只看得到輪廓；開燈後看得到光錐與被照亮的結構表面。
 - SDK 取得遠端控制權時（`set_remote_control_status("ON")`），手把輸入會被忽略，畫面顯示 SDK REMOTE。
 
 ### USB 手把對照（Xbox 配置；PS 手把按鍵位置相同）
@@ -67,10 +68,28 @@ python -m qysim.server --scenario tether_untangle     # 或 --scenario random --
 | `tether_untangle` | 纜線纏繞脫困 | 開局纜線已繞樁一圈多；判斷方向反繞解開 |
 | `hull_inspection` | 船殼底部檢查 | 從船底下穿過；纜線會卡在船底邊緣 |
 | `wreck_survey` | 沉船調查 | 能見度 4 m、揚沙、桅桿 |
+| `korean_castle` | Korean Castle 沉船調查 | 150 m 貨輪斷成三截躺在 32 m 海床；依 X1 格網編號檢查兩處斷裂面、二號貨艙（艙外）、艉樓窗框；深處要開燈 |
 | `random` | 隨機模式 | 隨機結構物、洋流、能見度、纜長；`--seed` 可重現同一題 |
 
 評分：完成目標得分，碰撞扣分（輕觸 5／重撞 15／嚴重 30），纜線張力過高扣 10；**斷纜或嚴重碰撞 3 次即任務失敗**。
 嚴重碰撞會打壞撞擊點附近的推進器（推力剩 55%），`ego_self_test()` 會回報該電機異常。
+
+### Korean Castle 沉船模型
+
+`cad/korean_castle/Korean_Castle_Display.blend`（依海報推估的示意模型，**非實測、不可用於導航**）。
+船體、附著物與海床轉成網頁模型；模型裡的碰撞網格預先算成 0.3 m 的距離場，ROV 機身、纜線與測距都會真的撞到船體。
+換模型或改碰撞網格時：
+
+```bash
+blender -b --python tools/wreck_blender_export.py -- ../cad/korean_castle/Korean_Castle_Display.blend OUT
+python tools/build_wreck.py OUT            # 產生 qysim/assets/korean_castle_field.npz 與 .json（需要 scipy）
+# 再用 gltf-transform 壓縮 OUT/korean_castle_raw.glb → viewer/models/korean_castle.glb（meshopt）
+```
+
+### 周邊環境
+
+每個情境都會加上沙紋海床與遠處沙丘、礁岩、散落鋼板與管線、隨流擺動的海藻、繞著結構物游的魚群；
+水面有遠方島嶼、離岸風機、其他船隻與航道浮標。這些只是外觀（沒有碰撞），會避開結構物、檢查點與起點附近。網址加 `?noenv` 可關掉。
 
 ## 物理模型摘要
 
@@ -103,7 +122,8 @@ python qysea_sdk_gui_tester.py
 
 ## 回放與展示頁
 
-- `python tools/record_demo.py`：用真正的模擬器跑三段示範飛行（導管架碰撞、纜線纏繞脫困、強流懸停），存成 `viewer/demo_recording.json`。
+- `python tools/record_demo.py`：用真正的模擬器跑四段示範飛行（導管架碰撞、纜線纏繞脫困、強流懸停、Korean Castle 沉船調查），存成 `viewer/demo_recording.json`。
+- `node tools/render_movie.js --ffmpeg <ffmpeg>`：把回放逐格渲染成 MP4（需要 Playwright；先用靜態伺服器開 `viewer/`）。
 - 不開伺服器也能看：`viewer/index.html?replay=demo_recording.json`（需要用任何靜態網頁伺服器開，例如 `python -m http.server`）。
 - `python tools/build_showcase.py` 產生 `docs/showcase/`（GitHub Pages 用）。在 GitHub repo 的 **Settings → Pages** 選 *Deploy from a branch*，分支選這個分支、資料夾選 `/docs`，網址就是 `https://<帳號>.github.io/rov/`。
 - 3D 模型來源與授權見 [`viewer/models/CREDITS.md`](viewer/models/CREDITS.md)（全部 CC0 / MIT）。
@@ -113,5 +133,5 @@ python qysea_sdk_gui_tester.py
 - 通訊協定：[`PROTOCOL.md`](PROTOCOL.md)
 - `qysim/physics.py` 剛體與推進器　`controller.py` 飛控　`rc.py` 遙控器與操控手模式　`world.py` 結構物／碰撞／洋流
   `tether.py` 臍帶纜　`navigation.py` 自動駕駛　`scenarios.py` 情境與評分　`engine.py` 整合＋SDK 語意　`server.py` 服務
-- `viewer/app.js` 駕駛台　`deploy_intro.js` 下水動畫　`pilot_pip.js` 操作員子畫面　`humanoid.js` 人物骨架與 IK　`glb.js` 模型載入
+- `viewer/app.js` 駕駛台　`deploy_intro.js` 下水動畫　`pilot_pip.js` 操作員子畫面　`humanoid.js` 人物骨架與 IK　`environment.js` 周邊環境　`cable.js` 纜線繪製　`glb.js` 模型載入
 - 測試：`python -m unittest discover -s tests`

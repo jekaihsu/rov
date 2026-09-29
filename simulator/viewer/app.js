@@ -1154,19 +1154,20 @@ window.__replay = () => rep && { clip: rep.ci, t: rep.t, dur: clipNow().dur };
 
 /* ═════════════════════════ movie mode: ?replay=…&movie (add &capture for frame-by-frame) ═════════════════════════ */
 const MOVIE = params.has('movie'), CAPTURE = params.has('capture');
-const MOVIE_SPEED = [1, 1.6, 1.8];
+const MOVIE_SPEED = [1, 1.6, 1.8, 2.6];
 // per clip: [start s, camera] in clip time
 const MOVIE_SHOTS = [
   [[0, 'chase'], [9.5, 'cine'], [17, 'chase']],
   [[0, 'cine']],
   [[0, 'cine'], [14, 'chase'], [40, 'cine']],
+  [[0, 'cine'], [16, 'chase'], [78, 'cine'], [100, 'chase']],
 ];
 const movie = { t: 0, phase: 'open', introDone: false, endT: 0, clipShown: -1 };
 if (MOVIE) {
   document.body.classList.add('movie');
   $('optPip').checked = true; $('optLabels').checked = true;
   const card = document.createElement('div'); card.className = 'card'; card.id = 'card';
-  card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>X1 ROV 操作員訓練模擬器</b><span>下水 → 導管架碰撞 → 纜線纏繞脫困 → 強流懸停。畫面中的飛行全部由模擬器即時計算。</span>';
+  card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>X1 ROV 操作員訓練模擬器</b><span>下水 → 導管架碰撞 → 纜線纏繞脫困 → 強流懸停 → 沉船調查。畫面中的飛行全部由模擬器即時計算。</span>';
   vp.appendChild(card);
   const low = document.createElement('div'); low.className = 'lower'; low.id = 'lower'; low.hidden = true;
   low.innerHTML = '<i></i><b></b>'; vp.appendChild(low);
@@ -1190,7 +1191,7 @@ function movieTick(dt) {
     if (movie.clipShown !== rep.ci) { movie.clipShown = rep.ci; low.querySelector('i').textContent = `${rep.ci + 1} / ${rep.data.clips.length}`; low.querySelector('b').textContent = c.title; }
     if (rep.t >= c.dur && rep.ci === rep.data.clips.length - 1) {
       movie.phase = 'end'; movie.endT = movie.t; low.hidden = true;
-      card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>接上手把，自己飛一次</b><span>6 個訓練情境＋隨機模式 · 碰撞、纜線、洋流即時模擬<br>github.com/jekaihsu/rov</span>';
+      card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>接上手把，自己飛一次</b><span>7 個訓練情境＋隨機模式 · 碰撞、纜線、洋流、燈光即時模擬<br>jekaihsu.github.io/rov</span>';
       card.hidden = false;
     }
   }

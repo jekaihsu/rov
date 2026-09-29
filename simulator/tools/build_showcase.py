@@ -24,10 +24,10 @@ PAGES = [
     "app.js", "style.css", "deploy_intro.js", "pilot_pip.js", "humanoid.js", "figures.js", "glb.js", "cable.js", "environment.js",
     "demo_recording.json",
 ]
-MODELS = ["rov.glb", "workboat.glb", "worker.glb", "waternormals.jpg", "CREDITS.md"]
+MODELS = ["rov.glb", "workboat.glb", "worker.glb", "korean_castle.glb", "waternormals.jpg", "CREDITS.md"]
 
 
-def build(out: Path, glb_json: bool, rov_override: Path | None = None) -> None:
+def build(out: Path, glb_json: bool, overrides: dict | None = None) -> None:
     if out.exists():
         shutil.rmtree(out)
     (out / "models").mkdir(parents=True)
@@ -45,8 +45,8 @@ def build(out: Path, glb_json: bool, rov_override: Path | None = None) -> None:
         shutil.copy2(VIEWER / f, out / f)
     for f in MODELS:
         src = VIEWER / "models" / f
-        if f == "rov.glb" and rov_override is not None:
-            src = rov_override
+        if overrides and f in overrides:
+            src = overrides[f]
         if glb_json and f.endswith(".glb"):
             data = {"glb": base64.b64encode(src.read_bytes()).decode("ascii")}
             (out / "models" / (f + ".json")).write_text(json.dumps(data), encoding="ascii")
@@ -60,13 +60,15 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(ROOT.parent / "docs" / "showcase"))
     ap.add_argument("--artifact", default=None, help="also write an artifact bundle (.glb as base64 JSON) here")
-    ap.add_argument("--artifact-rov", default=None,
-                    help="ROV model for the artifact bundle (e.g. a quantized copy without meshopt, "
-                         "in case the host blocks the WebAssembly decoder)")
+    ap.add_argument("--artifact-model", action="append", default=[], metavar="NAME=PATH",
+                    help="replace models/NAME in the artifact bundle, e.g. rov.glb=rov_quantized.glb "
+                         "(copies without meshopt in case the host blocks the WebAssembly decoder, "
+                         "or a lighter wreck to stay under the host's file size limit)")
     args = ap.parse_args()
     build(Path(args.out), glb_json=False)
     if args.artifact:
-        build(Path(args.artifact), glb_json=True, rov_override=Path(args.artifact_rov) if args.artifact_rov else None)
+        overrides = dict((k, Path(v)) for k, v in (a.split("=", 1) for a in args.artifact_model))
+        build(Path(args.artifact), glb_json=True, overrides=overrides)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 """Export the Korean Castle wreck scene for the simulator (run inside Blender 4.x).
 
-    blender -b Korean_Castle_Display.blend --python tools/wreck_blender_export.py -- OUT_DIR
-    (or: python -c "import bpy" style with the bpy module:  python wreck_blender_export.py SRC.blend OUT_DIR)
+    blender -b --python tools/wreck_blender_export.py -- SRC.blend OUT_DIR
+    python tools/wreck_blender_export.py SRC.blend OUT_DIR        # with the bpy module installed
+(the last two arguments are always the source .blend and the output folder)
 
 Writes to OUT_DIR:
     korean_castle_raw.glb   visual collections 01_BOW..05_SEABED (hull, encrustation, seabed)

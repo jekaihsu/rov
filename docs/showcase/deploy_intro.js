@@ -172,12 +172,13 @@ export class DeployIntro {
     if (assets.normals) {
       assets.normals.wrapS = assets.normals.wrapT = THREE.RepeatWrapping;
       this.sun = V(0.45, 0.42, -0.8).normalize();
-      this.water = add(new Water(new THREE.PlaneGeometry(1200, 1200), {
+      this.water = add(new Water(new THREE.PlaneGeometry(5000, 5000), {
         textureWidth: 512, textureHeight: 512, waterNormals: assets.normals, sunDirection: this.sun,
         sunColor: 0xfff1d6, waterColor: 0x0a3347, distortionScale: 1.3, fog: false, alpha: 0.98,
       }));
       this.water.rotation.x = -Math.PI / 2; this.water.position.y = 0.005;
       this.water.material.uniforms.size.value = 1.6;
+      this.water.material.uniforms.distortionScale.value = 1.3;
       this.sky = add(new Sky());
       this.sky.scale.setScalar(900);
       const u = this.sky.material.uniforms;
@@ -476,6 +477,7 @@ export class DeployIntro {
       smooth = 0.12;
     }
     if (!this._camPos) { this._camPos = pos.clone(); this._camLook = look.clone(); }
+    if (pos.y < 0 && this._camPos.y > 0) { this._camPos.copy(pos); this._camLook.copy(look); }   // cut under water, don't drift through the surface
     this._camPos.lerp(pos, smooth); this._camLook.lerp(look, Math.min(1, smooth * 2));
     cam.position.copy(this._camPos);
     cam.lookAt(this._camLook);
