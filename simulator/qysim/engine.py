@@ -85,6 +85,8 @@ class Simulator:
         self.tether = Tether(self.world, np.array(sc.spool_pos, float), gland, sc.tether_length)
         if sc.prewrap:
             self._prewrap(sc.prewrap)
+        # let the cable take its natural shape in the current before the clock starts
+        self.tether.settle(2.0, self.vehicle.s.pos, self.vehicle.s.q)
         self.scorer = sc_mod.Scorer(sc)
         self._prev_buttons = {"record": 0, "photo": 0}
         self.damage_events: list[dict] = []

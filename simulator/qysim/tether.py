@@ -56,11 +56,7 @@ class Tether:
         self.spool = np.asarray(spool_ned, float)
         span = float(np.linalg.norm(rov_gland_ned - self.spool))
         self.length = min(self.p.max_length, length or max(5.0, span * 1.25))
-        n = self.p.segments
-        t = np.linspace(0.0, 1.0, n + 1)[:, None]
-        # lay out with a gentle sag so the cable starts slack
-        self.x = self.spool * (1 - t) + np.asarray(rov_gland_ned, float) * t
-        self.x[:, 2] += np.sin(np.pi * t[:, 0]) * max(0.0, self.length - span) * 0.3
+        self.x = self._bight(self.spool, np.asarray(rov_gland_ned, float), self.length)
         self.v = np.zeros_like(self.x)
         self.auto_payout = True
         self.broken = False
@@ -91,6 +87,58 @@ class Tether:
         self.x = np.stack([np.interp(targets, s, pts[:, k]) for k in range(3)], axis=1)
         self.v = np.zeros_like(self.x)
         self.length = min(self.p.max_length, total * 1.02)
+
+    def _bight(self, a: np.ndarray, b: np.ndarray, length: float) -> np.ndarray:
+        """Nodes along a smooth slack curve of arc length ``length`` from ``a`` to ``b``.
+
+        The excess cable hangs as a bight that sags a little and streams down-current (how a
+        near-neutral umbilical actually lies), instead of being squeezed onto the straight line."""
+        n = self.p.segments
+        mid = 0.5 * (a + b)
+        cur = self.world.current.mean_at(float(mid[2]), self.world.seabed_depth)
+        side = np.array([cur[0], cur[1], 0.0])
+        if np.linalg.norm(side) < 1e-3:                       # slack water: bow out sideways
+            ab = b - a
+            side = np.array([-ab[1], ab[0], 0.0])
+            if np.linalg.norm(side) < 1e-6:
+                side = np.array([0.0, 1.0, 0.0])
+        side /= np.linalg.norm(side)
+        bow = side * 0.8 + np.array([0.0, 0.0, 0.6])          # downstream and a bit deeper
+        bow /= np.linalg.norm(bow)
+        tt = np.linspace(0.0, 1.0, 400)[:, None]
+
+        def curve(h: float) -> np.ndarray:
+            c = mid + bow * h
+            return (1 - tt) ** 2 * a + 2 * (1 - tt) * tt * c + tt ** 2 * b
+
+        def arc(h: float) -> float:
+            return float(np.linalg.norm(np.diff(curve(h), axis=0), axis=1).sum())
+
+        lo, hi = 0.0, max(1.0, length)
+        if arc(0.0) >= length:
+            pts = curve(0.0)
+        else:
+            while arc(hi) < length:
+                hi *= 2
+            for _ in range(40):
+                h = 0.5 * (lo + hi)
+                lo, hi = (h, hi) if arc(h) < length else (lo, h)
+            pts = curve(0.5 * (lo + hi))
+        # keep it out of the seabed and below the surface
+        pts[:, 2] = np.clip(pts[:, 2], 0.0, self.world.seabed_depth - 0.05)
+        seg = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+        s = np.concatenate([[0.0], np.cumsum(seg)])
+        targets = np.linspace(0.0, s[-1], n + 1)
+        return np.stack([np.interp(targets, s, pts[:, k]) for k in range(3)], axis=1)
+
+    def settle(self, seconds: float, rov_pos: np.ndarray, rov_q: np.ndarray, dt: float = 0.01) -> None:
+        """Let the cable relax in the current with the ROV held still (before the run starts)."""
+        auto, self.auto_payout = self.auto_payout, False
+        for _ in range(int(seconds / dt)):
+            self.step(dt, 0.0, rov_pos, rov_q, np.zeros(3))
+        self.auto_payout = auto
+        self.v[:] = 0.0
+        self.events.clear()
 
     def _node_mass(self) -> float:
         l = self.seg_len

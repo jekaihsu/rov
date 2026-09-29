@@ -200,13 +200,15 @@ tetherLine.frustumCulled = false; scene.add(tetherLine);
 const brokenLine = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAXN * 3), 3)),
   new THREE.LineDashedMaterial({ color: 0xff4757, dashSize: .35, gapSize: .25 }));
 brokenLine.frustumCulled = false; brokenLine.visible = false; scene.add(brokenLine);
-const tubeMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+const tubeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .55, metalness: 0 });
+const GLAND_LOCAL = new THREE.Vector3(0, .06, -.38);   // tether.py GLAND_BODY (FRD -0.38, 0, -0.06) in model space
+let tetherTarget = [], tetherDisp = [], tetherInfo = null;
 let tube = null;
 const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff4757 }), 256);
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);
 
-const colLow = new THREE.Color('#9fe6ff'), colWarn = new THREE.Color('#ffb020'), colBreak = new THREE.Color('#ff3040');
+const colLow = new THREE.Color('#e9c534'), colWarn = new THREE.Color('#ffb020'), colBreak = new THREE.Color('#ff3040');
 function tensionColor(T, out) {
   if (T <= WARN_N) return out.copy(colLow).lerp(colWarn, Math.pow(clamp(T / WARN_N, 0, 1), 1.6));
   return out.copy(colWarn).lerp(colBreak, clamp((T - WARN_N) / (BREAK_N - WARN_N), 0, 1) ** .6);
@@ -257,16 +259,9 @@ function updateTether(t) {
     brokenLine.geometry.setDrawRange(0, n); brokenLine.geometry.attributes.position.needsUpdate = true;
     brokenLine.computeLineDistances();
   }
-  // tube
-  if (tube) { scene.remove(tube); tube.geometry.dispose(); tube = null; }
-  if (!t.broken && n >= 2) {
-    const segs = Math.min(600, (n - 1) * 3), rad = 6;
-    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), segs, .028, rad, false);
-    const cnt = geo.attributes.position.count, col = new Float32Array(cnt * 3);
-    for (let v = 0; v < cnt; v++) { tensionColor(Tat(Math.floor(v / (rad + 1)) / segs), _c); col[v * 3] = _c.r; col[v * 3 + 1] = _c.g; col[v * 3 + 2] = _c.b; }
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    tube = new THREE.Mesh(geo, tubeMat); scene.add(tube);
-  }
+  // tube: rebuilt every frame from smoothed nodes (see renderTether)
+  tetherTarget = pts; tetherInfo = t;
+  if (tetherDisp.length !== pts.length) tetherDisp = pts.map((p) => p.clone());
   // contact nodes (client-side proximity; server only reports the count)
   let k = 0;
   if (t.contact_nodes > 0 && W) {
@@ -944,6 +939,32 @@ function resize() {
   renderer.setSize(Math.max(1, r.width), Math.max(1, r.height), false);
   camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
 }
+
+// Smooth the cable like the ROV pose (states arrive at 30 Hz), pin its end to the rendered gland
+// so it never detaches from the vehicle, and draw it as a real-thickness (9.5 mm) cable.
+const _gl = new THREE.Vector3();
+function renderTether(dt) {
+  const t = tetherInfo, n = tetherDisp.length;
+  if (tube) { scene.remove(tube); tube.geometry.dispose(); tube = null; }
+  if (!t || n < 2) return;
+  const a = 1 - Math.exp(-dt * 20);
+  for (let i = 0; i < n; i++) tetherDisp[i].lerp(tetherTarget[i], a);
+  if (!t.broken && target.init) { rovG.updateMatrixWorld(); tetherDisp[n - 1].copy(rovG.localToWorld(_gl.copy(GLAND_LOCAL))); }
+  const lp = tetherLine.geometry.attributes.position.array;
+  for (let i = 0; i < n; i++) { lp[i * 3] = tetherDisp[i].x; lp[i * 3 + 1] = tetherDisp[i].y; lp[i * 3 + 2] = tetherDisp[i].z; }
+  tetherLine.geometry.attributes.position.needsUpdate = true;
+  if (t.broken) return;
+  const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
+  const segs = Math.min(480, (n - 1) * 6), rad = 8;
+  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tetherDisp, false, 'centripetal'), segs, .0065, rad, false);
+  const cnt = geo.attributes.position.count, col = new Float32Array(cnt * 3);
+  for (let v = 0; v < cnt; v++) {
+    const s = Math.floor(v / (rad + 1)) / segs, T = ts + (tr - ts) * s;
+    tensionColor(t.warn ? Math.max(T, WARN_N) : T, _c); col[v * 3] = _c.r; col[v * 3 + 1] = _c.g; col[v * 3 + 2] = _c.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  tube = new THREE.Mesh(geo, tubeMat); scene.add(tube);
+}
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
@@ -954,6 +975,7 @@ function frame(now) {
     const a = 1 - Math.exp(-dt * 20);
     rovG.position.lerp(target.pos, a); rovG.quaternion.slerp(target.q, a);
   }
+  renderTether(dt);
   // rotors
   if (S && rotorOf.length) {
     rotorOf.forEach((r, j) => {
