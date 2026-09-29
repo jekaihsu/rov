@@ -1,0 +1,686 @@
+<title>ROV-01 操控模擬器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: instrument console. Control rack left, live 3D viewport centre, indication rack right; stacks on phones. Single deliberate dark look (subsea control room). */
+:root {
+  --abyss: #061018;        /* viewport water */
+  --rack: #0c1a24;         /* panel surface */
+  --rack-2: #11232f;       /* raised control */
+  --line: #1f3a4a;         /* hairlines */
+  --ink: #d6e4ec;          /* primary text */
+  --ink-dim: #7f99a8;      /* secondary text */
+  --foam: #f2b705;         /* accent: syntactic-foam yellow */
+  --jet: #4fd1ff;          /* thrust / flow */
+  --ok: #3ddc97;
+  --warn: #ff7a4a;
+  --f-display: "Barlow Condensed", "Noto Sans TC", "Arial Narrow", sans-serif;
+  --f-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --f-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--abyss); color: var(--ink); font-family: var(--f-body); font-size: 13px; }
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr; gap: 10px; padding-inline: 16px; padding-block: 10px; box-sizing: border-box; }
+.topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: 20px; letter-spacing: .04em; }
+.brand small { font-family: var(--f-body); font-weight: 400; font-size: 12px; color: var(--ink-dim); margin-left: 8px; letter-spacing: 0; }
+.pill { font-family: var(--f-display); font-weight: 600; letter-spacing: .12em; font-size: 12px; padding: 2px 10px; border-radius: 99px; border: 1px solid currentColor; }
+.pill.run { color: var(--ok); } .pill.stop { color: var(--ink-dim); }
+.topbar .meta { margin-left: auto; font-family: var(--f-data); font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.main { display: grid; grid-template-columns: 272px minmax(0, 1fr) 292px; gap: 10px; min-height: 0; }
+.rack { background: var(--rack); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.rack h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 12px; letter-spacing: .16em; color: var(--ink-dim); text-transform: uppercase; }
+.sec { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.btns.c3 { grid-template-columns: repeat(3, 1fr); }
+.btns.c5 { grid-template-columns: repeat(5, 1fr); }
+button { font-family: var(--f-body); font-size: 12px; color: var(--ink); background: var(--rack-2); border: 1px solid var(--line); border-radius: 4px; padding: 7px 6px; cursor: pointer; }
+button:hover { border-color: var(--ink-dim); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--jet); outline-offset: 1px; }
+button.on { border-color: var(--foam); color: var(--foam); }
+button.big { font-family: var(--f-display); font-weight: 700; letter-spacing: .14em; font-size: 14px; padding: 9px; }
+button.start.on { background: color-mix(in srgb, var(--ok) 18%, var(--rack-2)); border-color: var(--ok); color: var(--ok); }
+button.stop.on { background: color-mix(in srgb, var(--warn) 18%, var(--rack-2)); border-color: var(--warn); color: var(--warn); }
+.tog { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
+.tog input { appearance: none; width: 30px; height: 16px; border-radius: 99px; background: var(--line); position: relative; cursor: pointer; flex: none; margin: 0; }
+.tog input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--ink-dim); transition: left .15s; }
+.tog input:checked { background: color-mix(in srgb, var(--jet) 45%, var(--line)); }
+.tog input:checked::after { left: 16px; background: var(--ink); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+.sl { display: flex; flex-direction: column; gap: 3px; }
+.sl .row span:last-child { font-family: var(--f-data); font-size: 11px; color: var(--foam); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--foam); margin: 0; }
+select { width: 100%; background: var(--rack-2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 6px; font-family: var(--f-body); font-size: 12px; }
+.hint { color: var(--ink-dim); font-size: 11px; line-height: 1.55; }
+kbd { font-family: var(--f-data); font-size: 10px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--ink); }
+
+.viewport { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; min-height: 0; background: radial-gradient(120% 90% at 50% 20%, #0d2a3a 0%, var(--abyss) 70%); }
+.viewport canvas.gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#labels { position: absolute; inset: 0; pointer-events: none; }
+#labels svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lbl { position: absolute; white-space: nowrap; font-size: 12px; font-weight: 500; color: var(--ink); padding: 1px 0; border-bottom: 1px solid var(--ink-dim); text-shadow: 0 1px 3px #000; transform: translateY(-100%); }
+.lbl.foam { color: var(--foam); border-color: var(--foam); }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-dim); font-family: var(--f-data); font-size: 12px; text-align: center; padding: 16px; }
+.sticks { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: space-between; padding-inline: 14px; pointer-events: none; }
+.stick { pointer-events: auto; width: 112px; height: 112px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); background: color-mix(in srgb, var(--abyss) 55%, transparent); position: relative; touch-action: none; }
+.stick::before, .stick::after { content: ""; position: absolute; background: color-mix(in srgb, var(--ink) 15%, transparent); }
+.stick::before { left: 50%; top: 10%; bottom: 10%; width: 1px; }
+.stick::after { top: 50%; left: 10%; right: 10%; height: 1px; }
+.knob { position: absolute; width: 38px; height: 38px; border-radius: 50%; left: 37px; top: 37px; background: color-mix(in srgb, var(--foam) 80%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--foam) 25%, transparent); }
+.stick .cap { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--ink-dim); text-shadow: 0 1px 2px #000; }
+.rotpad { pointer-events: auto; align-self: flex-end; display: grid; grid-template-columns: repeat(3, 30px); gap: 4px; }
+.rotpad button { padding: 4px 0; font-size: 11px; background: color-mix(in srgb, var(--rack-2) 80%, transparent); }
+
+.gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.g { background: var(--rack-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
+.g .k { font-size: 10px; letter-spacing: .08em; color: var(--ink-dim); }
+.g .v { font-family: var(--f-display); font-weight: 600; font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.g .v small { font-family: var(--f-body); font-size: 11px; color: var(--ink-dim); font-weight: 400; margin-left: 3px; }
+#adi { width: 100%; max-width: 100%; aspect-ratio: 2 / 1; display: block; border-radius: 4px; border: 1px solid var(--line); }
+.thr { display: grid; grid-template-columns: 76px 1fr 46px; align-items: center; gap: 8px; font-size: 11px; }
+.thr .nm { color: var(--ink-dim); }
+.thr .rpm { font-family: var(--f-data); text-align: right; font-variant-numeric: tabular-nums; }
+.track { position: relative; height: 8px; background: var(--rack-2); border: 1px solid var(--line); border-radius: 2px; }
+.track::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--ink-dim); }
+.fill { position: absolute; top: 0; bottom: 0; background: var(--jet); }
+#resp { width: 100%; height: 110px; display: block; border: 1px solid var(--line); border-radius: 4px; background: var(--rack-2); }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 10px; color: var(--ink-dim); }
+.legend i { display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 4px; }
+
+@media (max-width: 1100px) {
+  .main { grid-template-columns: 250px minmax(0, 1fr); }
+  .rack.right { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .app { height: auto; }
+  .viewport { height: 70svh; }
+  .rack { overflow: visible; }
+}
+@media (max-width: 720px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .viewport { order: -1; height: 64svh; }
+  .stick { width: 92px; height: 92px; } .knob { left: 27px; top: 27px; }
+  .lbl { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .tog input::after { transition: none; } }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">ROV-01<small>Rev B 操控模擬器 · 6 推進器全向佈局</small></div>
+    <span class="pill stop" id="status">STANDBY</span>
+    <span class="meta" id="fps">— FPS</span>
+  </header>
+
+  <div class="main">
+    <aside class="rack left" aria-label="操控">
+      <div class="sec">
+        <h2>電源</h2>
+        <div class="btns">
+          <button class="big start" id="btnStart">START</button>
+          <button class="big stop on" id="btnStop">STOP</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>操控手感</h2>
+        <div class="btns">
+          <button id="presetSmooth" class="on">絲滑模式</button>
+          <button id="presetRaw">原始直通</button>
+        </div>
+        <div class="sl"><div class="row"><label for="expo">搖桿指數曲線</label><span id="expoV"></span></div><input type="range" id="expo" min="0" max="1" step="0.05" value="0.55"></div>
+        <div class="sl"><div class="row"><label for="slew">加速度限制</label><span id="slewV"></span></div><input type="range" id="slew" min="0.5" max="12" step="0.5" value="2.5"></div>
+        <div class="sl"><label for="esc">電調驅動</label>
+          <select id="esc"><option value="foc" selected>FOC 正弦驅動（平順）</option><option value="bldc">方波驅動 BLHeli（有死區）</option></select>
+        </div>
+        <label class="tog" for="hAtt">姿態保持（放手即穩住）<input type="checkbox" id="hAtt" checked></label>
+        <label class="tog" for="hLevel">自動回正水平<input type="checkbox" id="hLevel" checked></label>
+        <label class="tog" for="hDepth">定深<input type="checkbox" id="hDepth" checked></label>
+        <label class="tog" for="hPos">DVL 位置鎖定<input type="checkbox" id="hPos"></label>
+        <div class="sl"><div class="row"><label for="cur">側向水流</label><span id="curV"></span></div><input type="range" id="cur" min="0" max="3" step="0.1" value="0"></div>
+      </div>
+
+      <div class="sec">
+        <h2>顯示</h2>
+        <div class="grid2">
+          <label class="tog" for="vLabels">標籤<input type="checkbox" id="vLabels" checked></label>
+          <label class="tog" for="vFlow">推力流場<input type="checkbox" id="vFlow" checked></label>
+          <label class="tog" for="vXray">透視<input type="checkbox" id="vXray"></label>
+          <label class="tog" for="vOrbit">自動環繞<input type="checkbox" id="vOrbit"></label>
+        </div>
+        <div class="sl"><div class="row"><label for="explode">爆炸圖</label><span id="explodeV"></span></div><input type="range" id="explode" min="0" max="1" step="0.01" value="0"></div>
+        <div class="sl"><div class="row"><label for="slowmo">螺旋槳慢動作</label><span id="slowmoV"></span></div><input type="range" id="slowmo" min="0.02" max="1" step="0.01" value="0.25"></div>
+      </div>
+
+      <div class="sec">
+        <h2>視角</h2>
+        <div class="btns c5">
+          <button data-cam="q">3/4</button><button data-cam="s">側</button><button data-cam="f">前</button><button data-cam="t">俯</button><button data-cam="b">後</button>
+        </div>
+      </div>
+
+      <p class="hint">鍵盤：<kbd>W</kbd><kbd>S</kbd> 前後 · <kbd>A</kbd><kbd>D</kbd> 橫移 · <kbd>R</kbd><kbd>F</kbd> 升降 · <kbd>Q</kbd><kbd>E</kbd> 轉向 · <kbd>↑</kbd><kbd>↓</kbd> 俯仰 · <kbd>←</kbd><kbd>→</kbd> 橫滾。也支援遊戲手把與畫面搖桿。拖曳畫面可旋轉視角。</p>
+    </aside>
+
+    <section class="viewport" id="vp" aria-label="3D 視圖">
+      <div class="loading" id="loading">載入 3D 模型…</div>
+      <div id="labels"><svg id="leaders"></svg></div>
+      <div class="sticks">
+        <div class="stick" id="stickL" aria-label="左搖桿：前後與轉向"><span class="cap">前後 / 轉向</span><div class="knob"></div></div>
+        <div class="rotpad" aria-label="俯仰與橫滾">
+          <span></span><button data-rot="pitch:1" aria-label="抬頭">▲</button><span></span>
+          <button data-rot="roll:-1" aria-label="左滾">⟲</button><button data-rot="level" aria-label="回正">◎</button><button data-rot="roll:1" aria-label="右滾">⟳</button>
+          <span></span><button data-rot="pitch:-1" aria-label="低頭">▼</button><span></span>
+        </div>
+        <div class="stick" id="stickR" aria-label="右搖桿：升降與橫移"><span class="cap">升降 / 橫移</span><div class="knob"></div></div>
+      </div>
+    </section>
+
+    <aside class="rack right" aria-label="儀表">
+      <div class="sec">
+        <h2>姿態</h2>
+        <canvas id="adi" width="520" height="260"></canvas>
+        <div class="gauges">
+          <div class="g"><div class="k">深度</div><div class="v" id="gDepth">—<small>m</small></div></div>
+          <div class="g"><div class="k">航向</div><div class="v" id="gHdg">—<small>°</small></div></div>
+          <div class="g"><div class="k">俯仰 / 橫滾</div><div class="v" id="gAtt">—</div></div>
+          <div class="g"><div class="k">對水速度</div><div class="v" id="gSpd">—<small>kn</small></div></div>
+          <div class="g"><div class="k">推進功率</div><div class="v" id="gPwr">—<small>W</small></div></div>
+          <div class="g"><div class="k">淨浮力</div><div class="v">+0.3<small>kgf</small></div></div>
+        </div>
+      </div>
+      <div class="sec">
+        <h2>推進器 · 推力與轉速</h2>
+        <div id="thrBars" class="sec"></div>
+      </div>
+      <div class="sec">
+        <h2>前進軸響應（最近 6 秒）</h2>
+        <canvas id="resp" width="560" height="220"></canvas>
+        <div class="legend"><span><i style="background:var(--ink-dim)"></i>搖桿原始</span><span><i style="background:var(--foam)"></i>整形後指令</span><span><i style="background:var(--jet)"></i>實際推力</span></div>
+        <p class="hint">切換「絲滑模式」和「原始直通」，推同一下搖桿，比較三條線的差別：絲滑感來自指令整形、FOC 電調和閉迴路保持，不是來自馬力。</p>
+      </div>
+      <p class="hint">外形依 Blender 重建模型；浮力塊為 Rev B 設計。推力、速度參數取自同級機規格的估計值，僅供概念驗證。</p>
+    </aside>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = (id) => document.getElementById(id);
+const vp = $('vp');
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+
+/* ---------------- renderer / scene ---------------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.domElement.className = 'gl';
+vp.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x061822, 0.16);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 60);
+camera.position.set(1.25, 0.75, 1.35);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.minDistance = 0.5; controls.maxDistance = 6;
+
+scene.add(new THREE.HemisphereLight(0xbfe6ff, 0x0b2230, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(2, 3, 2); scene.add(key);
+const rim = new THREE.DirectionalLight(0x6fd3ff, 1.2); rim.position.set(-2, 1, -2.5); scene.add(rim);
+
+// seabed + marine snow (world moves around the vehicle, vehicle stays at origin)
+const seabed = new THREE.GridHelper(40, 80, 0x2b5a6e, 0x16323f);
+seabed.material.transparent = true; seabed.material.opacity = 0.7;
+scene.add(seabed);
+const SNOW = 900, snowPos = new Float32Array(SNOW * 3);
+for (let i = 0; i < SNOW * 3; i++) snowPos[i] = (Math.random() - 0.5) * 8;
+const snowGeo = new THREE.BufferGeometry(); snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+scene.add(new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0x9fc6d6, size: 0.012, transparent: true, opacity: 0.55, depthWrite: false })));
+
+const rov = new THREE.Group(); scene.add(rov);         // attitude
+const model = new THREE.Group(); rov.add(model);      // centred model
+
+/* ---------------- groups, labels ---------------- */
+const LABEL = {
+  hull: '機殼（成型複合材外殼）', belly: '底部整流罩', buoyP: '左浮力塊 · 合成泡沫 Rev B', buoyS: '右浮力塊 · 合成泡沫 Rev B',
+  housing: '電子艙 Ø150（Rev B 假設）', camF: '前視 4K 相機', camL: '下視 4K 相機', ledP: 'LED 照明（左）', ledS: 'LED 照明（右）',
+  dvlF: '前向 DVL + 雙雷射測距', dvlD: '下向 DVL', nose: '前鼻感測器', top: '頂部 Q 介面 ×4 + 提把', tether: '臍帶纜固定頭', chassis: '底盤縱樑',
+  thrPF: 'T1 左前斜向推進器', thrSF: 'T2 右前斜向推進器', thrPA: 'T3 左後斜向推進器', thrSA: 'T4 右後斜向推進器', thrPL: 'T5 左縱向推進器', thrSL: 'T6 右縱向推進器'
+};
+const THR_IDS = ['thrPF', 'thrSF', 'thrPA', 'thrSA', 'thrPL', 'thrSL'];
+const EXPLODE = {
+  hull: [0, .42, 0], belly: [0, -.3, 0], buoyP: [-.3, .2, 0], buoyS: [.3, .2, 0], housing: [0, 0, 0],
+  camF: [0, .04, .3], camL: [0, -.1, .32], ledP: [-.12, 0, .26], ledS: [.12, 0, .26], dvlF: [0, .16, .34], dvlD: [0, -.36, 0],
+  nose: [0, -.02, .2], top: [0, .66, 0], tether: [0, .05, -.36], chassis: [0, -.18, 0]
+};
+const groups = {};          // id -> { g: Group, center: Vector3 (model space), dir: Vector3, label: el }
+const thrusters = [];       // { id, pos, axis, rotor, localAxis }
+const xrayMats = [];
+
+const labelsEl = $('labels'), leaders = $('leaders');
+
+function loadModel() {
+  new GLTFLoader().load('rov.glb', (gltf) => {
+    const root = gltf.scene;
+    const box = new THREE.Box3().setFromObject(root);
+    const ctr = box.getCenter(new THREE.Vector3());
+    root.position.sub(ctr);
+    model.add(root);
+    model.updateMatrixWorld(true);
+
+    // pick assembly roots: nodes whose grp differs from their parent's
+    const roots = [];
+    root.traverse((o) => {
+      const g = o.userData.grp;
+      if (g && o.parent?.userData.grp !== g) roots.push(o);
+      if (o.userData.role === 'thruster') {
+        thrusters.push({ id: g, pos: new THREE.Vector3(...o.userData.pos).sub(ctr), axis: new THREE.Vector3(...o.userData.axis).normalize() });
+      }
+      if (o.isMesh) {
+        const m = o.material;
+        if (/graphite|yellow molded/i.test(m.name) || o.userData.grp === 'hull' || o.userData.grp === 'belly') { o.material = m.clone(); xrayMats.push(o.material); }
+        if (o.userData.xray) { o.material = m.clone(); o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; }
+      }
+    });
+    for (const r of roots) {
+      const id = r.userData.grp;
+      if (!groups[id]) { const g = new THREE.Group(); model.add(g); groups[id] = { g, box: new THREE.Box3() }; }
+      groups[id].g.attach(r);
+    }
+    model.updateMatrixWorld(true);
+    model.traverse((o) => {
+      if (o.userData.role === 'rotor') {
+        const t = thrusters.find((x) => x.id === o.userData.grp);
+        const wq = o.getWorldQuaternion(new THREE.Quaternion());
+        const la = new THREE.Vector3(...o.userData.axis).applyQuaternion(wq.invert()).normalize();
+        if (t) Object.assign(t, { rotor: o, base: o.quaternion.clone(), localAxis: la, ang: 0 });
+      }
+    });
+    for (const [id, G] of Object.entries(groups)) {
+      G.box.setFromObject(G.g); G.center = G.box.getCenter(new THREE.Vector3());
+      G.center.applyMatrix4(model.matrixWorld.clone().invert());
+      if (EXPLODE[id]) G.dir = new THREE.Vector3(...EXPLODE[id]);
+      else { const d = G.center.clone(); d.y *= .5; G.dir = d.normalize().multiplyScalar(.34); }
+      if (LABEL[id]) {
+        const el = document.createElement('div'); el.className = 'lbl' + (id.startsWith('buoy') ? ' foam' : ''); el.textContent = LABEL[id];
+        labelsEl.appendChild(el); G.label = el;
+      }
+    }
+    thrusters.sort((a, b) => THR_IDS.indexOf(a.id) - THR_IDS.indexOf(b.id));
+    buildAllocation(); buildThrBars(); initFlow();
+    $('loading').hidden = true;
+  }, undefined, () => { $('loading').textContent = '無法載入 rov.glb，請確認模型檔與頁面放在同一個資料夾。'; });
+}
+
+/* ---------------- thrust allocation (6x6 from real thruster geometry) ---------------- */
+// wrench order: [Fx sway, Fy heave, Fz surge, Mx, My, Mz] ; body frame: +X starboard, +Y up, +Z forward
+const CG = new THREE.Vector3(0, -0.035, 0), LREF = 0.25;
+let B = null, P = null, auth = [1, 1, 1, 1, 1, 1], gain = [1, 1, 1, 1, 1, 1];
+const DRAG = [1.6, 1.8, 1.4, 3.0, 3.0, 3.0];
+const VMAX = [2.5 * .514, 1.5 * .514, 4.5 * .514, 1.6, 1.6, 1.6];   // m/s (lateral, vertical, forward per spec class) and rad/s
+function solve(A, b) {
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((r, i) => r[n] / r[i]);
+}
+function buildAllocation() {
+  const n = thrusters.length;
+  B = Array.from({ length: 6 }, () => new Array(n).fill(0));
+  thrusters.forEach((t, j) => {
+    const r = t.pos.clone().sub(CG), m = new THREE.Vector3().crossVectors(r, t.axis).divideScalar(LREF);
+    [t.axis.x, t.axis.y, t.axis.z, m.x, m.y, m.z].forEach((v, i) => (B[i][j] = v));
+  });
+  // P = B^T (B B^T + λI)^-1   (damped pseudo-inverse)
+  const BBt = B.map((ri, i) => B.map((rj, k) => ri.reduce((s, v, q) => s + v * rj[q], 0) + (i === k ? 1e-4 : 0)));
+  P = Array.from({ length: n }, () => new Array(6).fill(0));
+  for (let k = 0; k < 6; k++) {
+    const e = new Array(6).fill(0); e[k] = 1; const y = solve(BBt, e);
+    for (let j = 0; j < n; j++) P[j][k] = B.reduce((s, row, i) => s + row[j] * y[i], 0);
+  }
+  for (let k = 0; k < 6; k++) {
+    const mx = Math.max(...P.map((r) => Math.abs(r[k])));
+    auth[k] = mx > 1e-6 ? 1 / mx : 0;
+    gain[k] = VMAX[k] * DRAG[k];      // full single-axis command -> spec top speed
+  }
+}
+function allocate(w) {
+  const n = thrusters.length, t = new Array(n).fill(0);
+  for (let j = 0; j < n; j++) for (let k = 0; k < 6; k++) t[j] += P[j][k] * w[k] * auth[k];
+  const m = Math.max(1, ...t.map(Math.abs));
+  return t.map((v) => v / m);
+}
+function wrenchOf(t) { // normalised so that full single-axis command = 1 on that axis
+  const w = new Array(6).fill(0);
+  for (let k = 0; k < 6; k++) { let s = 0; for (let j = 0; j < t.length; j++) s += B[k][j] * t[j]; w[k] = auth[k] ? s / auth[k] : 0; }
+  return w;
+}
+
+/* ---------------- UI: thruster bars ---------------- */
+const bars = [];
+function buildThrBars() {
+  const host = $('thrBars');
+  thrusters.forEach((t) => {
+    const row = document.createElement('div'); row.className = 'thr';
+    row.innerHTML = `<span class="nm">${LABEL[t.id].replace(/推進器/, '')}</span><div class="track"><div class="fill"></div></div><span class="rpm">0</span>`;
+    host.appendChild(row); bars.push({ fill: row.querySelector('.fill'), rpm: row.querySelector('.rpm') });
+  });
+}
+
+/* ---------------- thrust flow particles ---------------- */
+const PER = 140; let flow = null, fData = null;
+function initFlow() {
+  const N = PER * thrusters.length;
+  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  fData = Array.from({ length: N }, () => ({ age: 9, v: new THREE.Vector3() }));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  flow = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.02, vertexColors: true, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  flow.frustumCulled = false; model.add(flow);
+}
+const jetCol = new THREE.Color(C('--jet'));
+const acc = new Array(6).fill(0);
+function updateFlow(dt, tAct) {
+  if (!flow) return;
+  const pos = flow.geometry.attributes.position.array, col = flow.geometry.attributes.color.array;
+  const on = $('vFlow').checked;
+  thrusters.forEach((t, j) => {
+    const off = groups[t.id] ? groups[t.id].g.position : new THREE.Vector3();
+    const mag = Math.abs(tAct[j]);
+    acc[j] += on ? mag * 260 * dt : 0;
+    for (let i = j * PER; i < (j + 1) * PER; i++) {
+      const p = fData[i];
+      if (p.age > 1.1 && acc[j] >= 1) {
+        acc[j] -= 1; p.age = 0;
+        const dir = t.axis.clone().multiplyScalar(-Math.sign(tAct[j]) || -1);
+        const jitter = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(.05);
+        const o = t.pos.clone().add(off).add(dir.clone().multiplyScalar(.05)).add(jitter);
+        pos[i * 3] = o.x; pos[i * 3 + 1] = o.y; pos[i * 3 + 2] = o.z;
+        p.v.copy(dir.multiplyScalar(.5 + mag * 1.6)).add(jitter.multiplyScalar(3));
+      }
+      p.age += dt;
+      if (p.age < 1.1) { pos[i * 3] += p.v.x * dt; pos[i * 3 + 1] += p.v.y * dt; pos[i * 3 + 2] += p.v.z * dt; p.v.multiplyScalar(1 - 1.2 * dt); }
+      const a = on ? Math.max(0, 1 - p.age / 1.1) : 0;
+      col[i * 3] = jetCol.r * a; col[i * 3 + 1] = jetCol.g * a; col[i * 3 + 2] = jetCol.b * a;
+    }
+  });
+  flow.geometry.attributes.position.needsUpdate = true; flow.geometry.attributes.color.needsUpdate = true;
+}
+
+/* ---------------- input ---------------- */
+const keys = new Set();
+addEventListener('keydown', (e) => { if (e.target.closest('input,select')) return; keys.add(e.key.toLowerCase()); if (e.key.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => keys.clear());
+const stickVal = { L: [0, 0], R: [0, 0] };
+for (const side of ['L', 'R']) {
+  const el = $('stick' + side), knob = el.querySelector('.knob');
+  let id = null;
+  const set = (e) => {
+    const r = el.getBoundingClientRect(), R = r.width / 2;
+    let x = (e.clientX - r.left - R) / (R * .8), y = -(e.clientY - r.top - R) / (R * .8);
+    const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+    stickVal[side] = [x, y];
+    knob.style.transform = `translate(${x * R * .62}px, ${-y * R * .62}px)`;
+  };
+  el.addEventListener('pointerdown', (e) => { id = e.pointerId; el.setPointerCapture(id); set(e); });
+  el.addEventListener('pointermove', (e) => { if (e.pointerId === id) set(e); });
+  const end = (e) => { if (e.pointerId !== id) return; id = null; stickVal[side] = [0, 0]; knob.style.transform = ''; };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+}
+const rotHold = { pitch: 0, roll: 0 };
+let levelReq = false;
+document.querySelectorAll('[data-rot]').forEach((b) => {
+  const [k, v] = b.dataset.rot.split(':');
+  if (k === 'level') { b.addEventListener('click', () => (levelReq = true)); return; }
+  b.addEventListener('pointerdown', (e) => { b.setPointerCapture(e.pointerId); rotHold[k] = +v; });
+  const up = () => (rotHold[k] = 0); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+});
+function readInput() {
+  const k = (a, b) => (keys.has(a) ? 1 : 0) - (keys.has(b) ? 1 : 0);
+  let c = [k('w', 's'), k('d', 'a'), k('r', 'f'), k('arrowright', 'arrowleft'), k('arrowup', 'arrowdown'), k('e', 'q')];
+  c[0] += stickVal.L[1]; c[5] += stickVal.L[0]; c[2] += stickVal.R[1]; c[1] += stickVal.R[0];
+  c[3] += rotHold.roll; c[4] += rotHold.pitch;
+  const gp = navigator.getGamepads ? [...navigator.getGamepads()].find(Boolean) : null;
+  if (gp) {
+    const dz = (v) => (Math.abs(v) < .08 ? 0 : v);
+    c[0] += -dz(gp.axes[1]); c[5] += dz(gp.axes[0]); c[2] += -dz(gp.axes[3] ?? 0); c[1] += dz(gp.axes[2] ?? 0);
+    c[4] += (gp.buttons[12]?.value || 0) - (gp.buttons[13]?.value || 0); c[3] += (gp.buttons[15]?.value || 0) - (gp.buttons[14]?.value || 0);
+  }
+  return c.map((v) => Math.max(-1, Math.min(1, v)));
+}
+
+/* ---------------- simulation state ---------------- */
+const S = {
+  running: false, pos: new THREE.Vector3(), q: new THREE.Quaternion(), nu: new Array(6).fill(0),
+  cmd: new Array(6).fill(0), tAct: [], hold: { q: new THREE.Quaternion(), y: 0, xz: new THREE.Vector2() }
+};
+const START_DEPTH = 26, SEABED_DEPTH = 30;
+const hist = { raw: [], cmd: [], act: [] }, HN = 360;
+
+function shape(x, e) { return (1 - e) * x + e * x * x * x; }
+function yawOnly(q) {
+  const f = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.atan2(f.x, f.z), 0, 'YXZ'));
+}
+
+function step(dt) {
+  const raw = S.running ? readInput() : new Array(6).fill(0);
+  const e = +$('expo').value, slew = +$('slew').value, smoothESC = $('esc').value === 'foc';
+  // shaped, rate-limited stick commands [surge, sway, heave, roll, pitch, yaw]
+  for (let i = 0; i < 6; i++) {
+    const tgt = shape(raw[i], e), d = tgt - S.cmd[i], lim = slew * dt;
+    S.cmd[i] += Math.max(-lim, Math.min(lim, d));
+  }
+  const c = S.cmd;
+  let w = [c[1], c[2], c[0], -c[4], c[5], -c[3]];     // -> wrench order
+  const qInv = S.q.clone().invert();
+  const wv = new THREE.Vector3(S.nu[0], S.nu[1], S.nu[2]).applyQuaternion(S.q); // world velocity
+
+  // attitude hold
+  // hold target: tracks the vehicle while the pilot rotates it; with "auto level" roll/pitch targets are zero
+  const rpActive = Math.abs(raw[3]) + Math.abs(raw[4]) > 0.02, yawActive = Math.abs(raw[5]) > 0.02;
+  const level = $('hLevel').checked && !rpActive;
+  if (rpActive || yawActive || !$('hAtt').checked) S.hold.q.copy(level ? yawOnly(S.q) : S.q);
+  else if (level) S.hold.q.copy(yawOnly(S.hold.q));
+  if (levelReq) { S.hold.q.copy(yawOnly(S.q)); levelReq = false; }
+  if ($('hAtt').checked && S.running) {
+    const qe = qInv.clone().multiply(S.hold.q); if (qe.w < 0) { qe.x *= -1; qe.y *= -1; qe.z *= -1; qe.w *= -1; }
+    const er = [2 * qe.x, 2 * qe.y, 2 * qe.z];
+    for (let i = 0; i < 3; i++) {
+      const dof = [4, 5, 3][i];                           // Mx<-pitch, My<-yaw, Mz<-roll
+      if (Math.abs(raw[dof]) < 0.02) w[3 + i] += 2.6 * er[i] - 0.9 * S.nu[3 + i];
+    }
+  }
+  // depth hold / DVL position lock (world-frame PD, rotated into body)
+  const fw = new THREE.Vector3();
+  if (Math.abs(raw[2]) > 0.02 || !$('hDepth').checked) S.hold.y = S.pos.y;
+  else if (S.running) fw.y = 2.2 * (S.hold.y - S.pos.y) - 1.6 * wv.y;
+  if (Math.abs(raw[0]) + Math.abs(raw[1]) > 0.02 || !$('hPos').checked) S.hold.xz.set(S.pos.x, S.pos.z);
+  else if (S.running) { fw.x = 1.8 * (S.hold.xz.x - S.pos.x) - 1.6 * wv.x; fw.z = 1.8 * (S.hold.xz.y - S.pos.z) - 1.6 * wv.z; }
+  fw.applyQuaternion(qInv); w[0] += fw.x; w[1] += fw.y; w[2] += fw.z;
+  w = w.map((v) => Math.max(-1.6, Math.min(1.6, v)));
+
+  // allocation -> ESC -> motor
+  const tCmd = B ? allocate(w) : [];
+  if (!S.tAct.length) S.tAct = tCmd.map(() => 0);
+  S.tAct = S.tAct.map((a, j) => {
+    let tg = S.running ? tCmd[j] : 0;
+    if (!smoothESC) { tg = Math.abs(tg) < 0.09 ? 0 : Math.round(tg * 14) / 14; tg *= 1 + (Math.random() - .5) * .07; }
+    const tau = smoothESC ? .06 : .13;
+    return a + (tg - a) * Math.min(1, dt / tau);
+  });
+
+  // dynamics
+  if (B) {
+    const W = wrenchOf(S.tAct);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(qInv);
+    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), up).multiplyScalar(2.2); // CB above CG righting
+    for (let i = 0; i < 6; i++) S.nu[i] += (gain[i] * W[i] - DRAG[i] * S.nu[i]) * dt;
+    S.nu[3] += right.x * dt; S.nu[4] += right.y * dt; S.nu[5] += right.z * dt;
+  }
+  const cur = new THREE.Vector3(+$('cur').value * .514, 0, 0);
+  const vW = new THREE.Vector3(S.nu[0], S.nu[1], S.nu[2]).applyQuaternion(S.q).add(cur);
+  S.pos.addScaledVector(vW, dt);
+  const floorY = START_DEPTH - SEABED_DEPTH + .35;
+  if (S.pos.y < floorY) { S.pos.y = floorY; if (S.nu[1] < 0) S.nu[1] = 0; }
+  if (S.pos.y > START_DEPTH - .2) S.pos.y = START_DEPTH - .2;
+  const om = new THREE.Vector3(S.nu[3], S.nu[4], S.nu[5]), a = om.length() * dt;
+  if (a > 1e-7) S.q.multiply(new THREE.Quaternion().setFromAxisAngle(om.normalize(), a)).normalize();
+
+  // history (surge axis)
+  hist.raw.push(raw[0]); hist.cmd.push(c[0]); hist.act.push(B ? wrenchOf(S.tAct)[2] : 0);
+  for (const k in hist) if (hist[k].length > HN) hist[k].shift();
+  return vW.sub(cur).length();
+}
+
+/* ---------------- drawing helpers ---------------- */
+const adi = $('adi'), actx = adi.getContext('2d');
+function drawADI(pitch, roll, hdg) {
+  const W = adi.width, H = adi.height; actx.save(); actx.clearRect(0, 0, W, H);
+  actx.translate(W / 2, H / 2); actx.rotate(-roll);
+  const py = pitch * (H / 1.2);
+  actx.fillStyle = '#123b52'; actx.fillRect(-W, -H * 2 + py, W * 2, H * 2);
+  actx.fillStyle = '#2a2217'; actx.fillRect(-W, py, W * 2, H * 2);
+  actx.strokeStyle = C('--ink'); actx.lineWidth = 2; actx.beginPath(); actx.moveTo(-W, py); actx.lineTo(W, py); actx.stroke();
+  actx.lineWidth = 1; actx.font = '18px ' + C('--f-data'); actx.fillStyle = C('--ink-dim'); actx.textAlign = 'left';
+  for (let d = -60; d <= 60; d += 15) { if (!d) continue; const y = py - d * Math.PI / 180 * (H / 1.2); actx.beginPath(); actx.moveTo(-30, y); actx.lineTo(30, y); actx.strokeStyle = C('--ink-dim'); actx.stroke(); actx.fillText(d, 36, y + 6); }
+  actx.restore();
+  actx.strokeStyle = C('--foam'); actx.lineWidth = 4; actx.beginPath();
+  actx.moveTo(W / 2 - 90, H / 2); actx.lineTo(W / 2 - 30, H / 2); actx.lineTo(W / 2, H / 2 + 16); actx.lineTo(W / 2 + 30, H / 2); actx.lineTo(W / 2 + 90, H / 2); actx.stroke();
+  actx.fillStyle = C('--ink'); actx.font = '600 22px ' + C('--f-data'); actx.textAlign = 'center';
+  actx.fillText(String(Math.round(hdg)).padStart(3, '0') + '°', W / 2, 30);
+}
+const resp = $('resp'), rctx = resp.getContext('2d');
+function drawResp() {
+  const W = resp.width, H = resp.height; rctx.clearRect(0, 0, W, H);
+  rctx.strokeStyle = C('--line'); rctx.lineWidth = 1;
+  for (const v of [-1, -.5, 0, .5, 1]) { const y = H / 2 - v * (H / 2 - 12); rctx.beginPath(); rctx.moveTo(0, y); rctx.lineTo(W, y); rctx.stroke(); }
+  const line = (arr, col, lw) => {
+    rctx.strokeStyle = col; rctx.lineWidth = lw; rctx.beginPath();
+    arr.forEach((v, i) => { const x = (i + HN - arr.length) / (HN - 1) * W, y = H / 2 - Math.max(-1.1, Math.min(1.1, v)) * (H / 2 - 12); i ? rctx.lineTo(x, y) : rctx.moveTo(x, y); });
+    rctx.stroke();
+  };
+  line(hist.raw, C('--ink-dim'), 2); line(hist.cmd, C('--foam'), 3); line(hist.act, C('--jet'), 3);
+}
+
+/* ---------------- labels with leader lines ---------------- */
+const tmpV = new THREE.Vector3();
+function drawLabels(w, h) {
+  const show = $('vLabels').checked;
+  labelsEl.style.display = show ? '' : 'none';
+  if (!show) return;
+  const items = [];
+  for (const [id, G] of Object.entries(groups)) {
+    if (!G.label || !G.center) continue;
+    tmpV.copy(G.center).add(G.g.position); model.localToWorld(tmpV); tmpV.project(camera);
+    const x = (tmpV.x + 1) / 2 * w, y = (1 - tmpV.y) / 2 * h;
+    items.push({ G, x, y, left: x < w / 2 });
+  }
+  let svg = '';
+  const narrow = w < 560;
+  for (const left of [true, false]) {
+    const side = items.filter((i) => i.left === left).sort((a, b) => a.y - b.y);
+    let lastY = -1e9; const gap = narrow ? 17 : 22;
+    for (const it of side) {
+      let ly = Math.max(it.y - 30, lastY + gap, 22); lastY = ly;
+      const colX = left ? Math.max(8, Math.min(it.x - 60, w * .3)) : Math.min(w - 8, Math.max(it.x + 60, w * .7));
+      const el = it.G.label; el.style.top = ly + 'px';
+      if (left) { el.style.left = ''; el.style.right = (w - colX) + 'px'; } else { el.style.right = ''; el.style.left = colX + 'px'; }
+      const col = el.classList.contains('foam') ? C('--foam') : C('--ink-dim');
+      svg += `<polyline points="${colX},${ly} ${it.x},${it.y}" fill="none" stroke="${col}" stroke-width="1" opacity=".8"/><circle cx="${it.x}" cy="${it.y}" r="2.5" fill="${col}"/>`;
+    }
+  }
+  leaders.innerHTML = svg;
+}
+
+/* ---------------- controls wiring ---------------- */
+const fmt = { expo: (v) => (+v).toFixed(2), slew: (v) => (+v >= 12 ? '關閉' : v + ' /s'), cur: (v) => v + ' kn', explode: (v) => Math.round(v * 100) + '%', slowmo: (v) => (+v).toFixed(2) + '×' };
+for (const k in fmt) { const el = $(k), out = $(k + 'V'); const u = () => (out.textContent = fmt[k](el.value)); el.addEventListener('input', u); u(); }
+function preset(smooth) {
+  $('expo').value = smooth ? .55 : 0; $('slew').value = smooth ? 2.5 : 12; $('esc').value = smooth ? 'foc' : 'bldc';
+  $('hAtt').checked = smooth; $('hDepth').checked = smooth; $('hLevel').checked = smooth;
+  ['expo', 'slew'].forEach((k) => $(k).dispatchEvent(new Event('input')));
+  $('presetSmooth').classList.toggle('on', smooth); $('presetRaw').classList.toggle('on', !smooth);
+}
+$('presetSmooth').onclick = () => preset(true); $('presetRaw').onclick = () => preset(false);
+function power(on) {
+  S.running = on; $('btnStart').classList.toggle('on', on); $('btnStop').classList.toggle('on', !on);
+  const st = $('status'); st.textContent = on ? 'RUNNING' : 'STANDBY'; st.className = 'pill ' + (on ? 'run' : 'stop');
+  S.hold.q.copy(S.q); S.hold.y = S.pos.y;
+}
+$('btnStart').onclick = () => power(true); $('btnStop').onclick = () => power(false);
+$('vXray').onchange = () => xrayMats.forEach((m) => { const x = $('vXray').checked; m.transparent = x; m.opacity = x ? .14 : 1; m.depthWrite = !x; m.needsUpdate = true; });
+const CAMS = { q: [1.25, .75, 1.35], s: [2.1, .15, 0], f: [0, .25, 2.1], t: [0, 2.3, .01], b: [-.6, .7, -2] };
+let camTween = null;
+document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click', () => { camTween = { from: camera.position.clone(), to: new THREE.Vector3(...CAMS[b.dataset.cam]), t: 0 }; }));
+
+/* ---------------- loop ---------------- */
+function resize() {
+  const r = vp.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
+  return r;
+}
+new ResizeObserver(resize).observe(vp);
+let last = performance.now(), fpsT = 0, fpsN = 0, explodeCur = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const spd = step(dt);
+  rov.quaternion.copy(S.q);
+  // world moves around the vehicle
+  seabed.position.set(-(S.pos.x % .5), START_DEPTH - SEABED_DEPTH - S.pos.y, -(S.pos.z % .5));
+  const sp = snowGeo.attributes.position.array, prev = S.prevPos || S.pos.clone(), d = S.pos.clone().sub(prev);
+  for (let i = 0; i < SNOW; i++) for (let k = 0; k < 3; k++) { let v = sp[i * 3 + k] - d.getComponent(k); if (v > 4) v -= 8; if (v < -4) v += 8; sp[i * 3 + k] = v; }
+  snowGeo.attributes.position.needsUpdate = true; S.prevPos = S.pos.clone();
+
+  // explode
+  explodeCur += (+$('explode').value - explodeCur) * Math.min(1, dt * 8);
+  for (const G of Object.values(groups)) if (G.dir) G.g.position.copy(G.dir).multiplyScalar(explodeCur);
+  // rotors
+  const slow = +$('slowmo').value;
+  thrusters.forEach((t, j) => {
+    if (!t.rotor) return; t.ang += (S.tAct[j] || 0) * 380 * slow * dt;
+    t.rotor.quaternion.copy(t.base).multiply(new THREE.Quaternion().setFromAxisAngle(t.localAxis, t.ang));
+  });
+  updateFlow(dt, S.tAct);
+
+  if (camTween) { camTween.t = Math.min(1, camTween.t + dt * 1.6); const k = 1 - Math.pow(1 - camTween.t, 3); camera.position.lerpVectors(camTween.from, camTween.to, k); if (camTween.t >= 1) camTween = null; }
+  controls.autoRotate = $('vOrbit').checked; controls.autoRotateSpeed = 1.2; controls.update();
+  renderer.render(scene, camera);
+  const r = vp.getBoundingClientRect(); drawLabels(r.width, r.height);
+
+  // indication
+  const f = new THREE.Vector3(0, 0, 1).applyQuaternion(S.q), rt = new THREE.Vector3(1, 0, 0).applyQuaternion(S.q), up = new THREE.Vector3(0, 1, 0).applyQuaternion(S.q);
+  const pitch = Math.asin(Math.max(-1, Math.min(1, f.y))), roll = Math.atan2(-rt.y, up.y), hdg = (Math.atan2(f.x, f.z) * 180 / Math.PI + 360) % 360;
+  $('gDepth').firstChild.textContent = (START_DEPTH - S.pos.y).toFixed(2);
+  $('gHdg').firstChild.textContent = String(Math.round(hdg)).padStart(3, '0');
+  $('gAtt').textContent = `${(pitch * 57.3).toFixed(0)}° / ${(roll * 57.3).toFixed(0)}°`;
+  $('gSpd').firstChild.textContent = (spd / .514).toFixed(2);
+  $('gPwr').firstChild.textContent = Math.round(S.tAct.reduce((s, t) => s + Math.pow(Math.abs(t), 1.5) * 300, 0) + (S.running ? 60 : 0));
+  S.tAct.forEach((t, j) => {
+    const b = bars[j]; if (!b) return; const pct = Math.min(1, Math.abs(t)) * 50;
+    b.fill.style.left = t >= 0 ? '50%' : (50 - pct) + '%'; b.fill.style.width = pct + '%';
+    b.fill.style.background = Math.abs(t) > .95 ? C('--warn') : C('--jet');
+    b.rpm.textContent = Math.round(t * 3900);
+  });
+  drawADI(pitch, roll, hdg); drawResp();
+  fpsN++; fpsT += dt; if (fpsT > .5) { $('fps').textContent = `${Math.round(fpsN / fpsT)} FPS · ${(fpsT / fpsN * 1000).toFixed(1)} ms`; fpsN = 0; fpsT = 0; }
+  requestAnimationFrame(frame);
+}
+resize(); loadModel(); requestAnimationFrame(frame);
+</script>
