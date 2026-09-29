@@ -93,6 +93,7 @@ function loadModel() {
     body.remove(placeholder); body.add(holder);
     leds.forEach((l) => l.position.setZ(noseZ));
     matchThrusters();
+    window.__modelLoaded = true;
   }).catch((e) => { console.warn('rov.glb 載入失敗，使用簡化模型', e?.message || e); });
 }
 
@@ -673,7 +674,7 @@ $('btnCur').onclick = () => {
 
 /* ═════════════════════════ camera modes ═════════════════════════ */
 const CAMS = ['chase', 'orbit', 'top', 'onboard'];
-const CAM_NAME = { chase: '追蹤', orbit: '環繞', top: '俯視', onboard: '機載' };
+const CAM_NAME = { chase: '追蹤', orbit: '環繞', top: '俯視', onboard: '機載', cine: '電影' };
 let camMode = CAMS.includes(params.get('cam')) ? params.get('cam') : 'chase', topH = 22;
 function setCam(m) {
   camMode = m;
@@ -695,6 +696,7 @@ renderer.domElement.addEventListener('wheel', (e) => { if (camMode === 'top') { 
 
 const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion(), FLIP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
 let chaseFwd = new THREE.Vector3(0, 0, 1);
+const cine = { a: 0.6, w: 0.14, r: 4.6, h: 1.5 };
 function updateCamera(dt) {
   const p = rovG.position;
   if (camMode === 'chase') {
@@ -705,6 +707,12 @@ function updateCamera(dt) {
     camera.lookAt(_v.copy(p).addScaledVector(chaseFwd, 1.5));
   } else if (camMode === 'orbit') {
     _v.copy(p).sub(controls.target); camera.position.add(_v); controls.target.copy(p); controls.update();
+  } else if (camMode === 'cine') {                    // slow orbit around the vehicle (movie mode)
+    cine.a += dt * cine.w;
+    _v.set(Math.cos(cine.a) * cine.r, cine.h, Math.sin(cine.a) * cine.r).add(p);
+    if (_v.y > -0.6) _v.y = -0.6;
+    camera.position.lerp(_v, 1 - Math.exp(-dt * 1.5));
+    camera.lookAt(p);
   } else if (camMode === 'top') {
     camera.up.set(0, 0, 1);
     camera.position.set(p.x, p.y + topH, p.z); camera.lookAt(p);
@@ -982,6 +990,7 @@ function endIntroUI() {
 }
 async function startIntro() {
   if (!W || !$('optIntro').checked || params.has('nointro')) return;
+  if (MOVIE && movie.introDone) return;
   const assets = await loadIntroAssets();
   introStarts++;
   if (intro) { intro.dispose(); intro = null; }
@@ -1028,6 +1037,16 @@ async function startReplay(url) {
   $('rpPlay').onclick = () => { rep.playing = !rep.playing; $('rpPlay').textContent = rep.playing ? '❚❚' : '▶'; };
   $('rpSeek').oninput = (e) => { if (introActive()) intro.skip(); rep.t = +e.target.value / 1000 * clipNow().dur; rep.endHold = 0; };
   $('rpSpeed').onchange = (e) => { rep.speed = +e.target.value; };
+  // the bar fades out while watching and comes back on any mouse / touch / key activity
+  let idleTimer = 0;
+  const wake = () => {
+    $('replayBar').classList.remove('idle'); clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { if (rep.playing) $('replayBar').classList.add('idle'); }, 2500);
+  };
+  for (const ev of ['pointermove', 'pointerdown', 'touchstart']) vp.addEventListener(ev, wake, { passive: true });
+  addEventListener('keydown', wake);
+  $('rpPlay').addEventListener('click', wake);
+  wake();
   loadClip(0);
 }
 const clipNow = () => rep.data.clips[rep.ci];
@@ -1064,11 +1083,58 @@ function replayTick(dt) {
   const c = clipNow();
   if (rep.t >= c.dur) {
     rep.t = c.dur; rep.endHold += dt;
-    if (rep.endHold > 3) { loadClip((rep.ci + 1) % rep.data.clips.length); return; }
+    if (MOVIE && rep.ci === rep.data.clips.length - 1) { feedReplay(); return; }
+    if (rep.endHold > (MOVIE ? 1.2 : 3)) { loadClip((rep.ci + 1) % rep.data.clips.length); return; }
   }
   feedReplay();
 }
 window.__replay = () => rep && { clip: rep.ci, t: rep.t, dur: clipNow().dur };
+
+/* ═════════════════════════ movie mode: ?replay=…&movie (add &capture for frame-by-frame) ═════════════════════════ */
+const MOVIE = params.has('movie'), CAPTURE = params.has('capture');
+const MOVIE_SPEED = [1, 1.6, 1.8];
+// per clip: [start s, camera] in clip time
+const MOVIE_SHOTS = [
+  [[0, 'chase'], [9.5, 'cine'], [17, 'chase']],
+  [[0, 'cine']],
+  [[0, 'cine'], [14, 'chase'], [40, 'cine']],
+];
+const movie = { t: 0, phase: 'open', introDone: false, endT: 0, clipShown: -1 };
+if (MOVIE) {
+  document.body.classList.add('movie');
+  $('optPip').checked = true; $('optLabels').checked = true;
+  const card = document.createElement('div'); card.className = 'card'; card.id = 'card';
+  card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>X1 ROV 操作員訓練模擬器</b><span>下水 → 導管架碰撞 → 纜線纏繞脫困 → 強流懸停。畫面中的飛行全部由模擬器即時計算。</span>';
+  vp.appendChild(card);
+  const low = document.createElement('div'); low.className = 'lower'; low.id = 'lower'; low.hidden = true;
+  low.innerHTML = '<i></i><b></b>'; vp.appendChild(low);
+}
+function movieTick(dt) {
+  if (!MOVIE || !rep) return;
+  movie.t += dt;
+  const card = $('card'), low = $('lower');
+  if (movie.phase === 'open') {
+    if (movie.t > 3.8) card.hidden = true;
+    if (!introActive() && movie.t > 4) { movie.phase = 'clips'; movie.introDone = true; }
+  }
+  if (movie.phase === 'clips') {
+    const shots = MOVIE_SHOTS[rep.ci] || [[0, 'chase']];
+    let want = shots[0][1];
+    for (const [t0, m] of shots) if (rep.t >= t0) want = m;
+    if (camMode !== want) { if (want === 'cine') cine.a = Math.atan2(camera.position.z - rovG.position.z, camera.position.x - rovG.position.x); setCam(want); }
+    rep.speed = MOVIE_SPEED[rep.ci] || 1;
+    const c = clipNow();
+    low.hidden = !(rep.t < 3.5);
+    if (movie.clipShown !== rep.ci) { movie.clipShown = rep.ci; low.querySelector('i').textContent = `${rep.ci + 1} / ${rep.data.clips.length}`; low.querySelector('b').textContent = c.title; }
+    if (rep.t >= c.dur && rep.ci === rep.data.clips.length - 1) {
+      movie.phase = 'end'; movie.endT = movie.t; low.hidden = true;
+      card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>接上手把，自己飛一次</b><span>6 個訓練情境＋隨機模式 · 碰撞、纜線、洋流即時模擬<br>github.com/jekaihsu/rov</span>';
+      card.hidden = false;
+    }
+  }
+  if (movie.phase === 'end' && movie.t - movie.endT > 5) window.__movieDone = true;
+}
+window.__movieDone = false;
 
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
@@ -1077,6 +1143,7 @@ function frame(now) {
   const dt = Math.min(.25, (now - last) / 1000); last = now;
   // pose (smoothed toward latest state)
   replayTick(dt);
+  movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);
   if (inIntro) { /* the intro poses the ROV and the camera */ }
@@ -1133,10 +1200,15 @@ function frame(now) {
   drawLabels(L, r.width, r.height);
   if (uiDirty && now - uiLast > 110) { uiDirty = false; uiLast = now; updateUI(); }
   fpsN++; fpsT += dt; if (fpsT > .5) { fps = Math.round(fpsN / fpsT); fpsN = 0; fpsT = 0; setTxt('meta', `${fps} FPS${S ? ` · t=${S.t.toFixed(1)} s` : ''}`); }
-  requestAnimationFrame(frame);
+  if (!CAPTURE) requestAnimationFrame(frame);
 }
 
 $('optSticks').onchange = () => ($('sticks').hidden = !$('optSticks').checked);
 if (matchMedia('(max-width: 720px)').matches) $('optLabels').checked = false;
-setCam(camMode); resize(); drawProfile(); loadModel(); connect(); requestAnimationFrame(frame);
+setCam(camMode); resize(); drawProfile(); loadModel(); connect();
+if (CAPTURE) {
+  let vnow = performance.now();
+  last = vnow;
+  window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
+} else requestAnimationFrame(frame);
 window.__viewer = { THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc };
