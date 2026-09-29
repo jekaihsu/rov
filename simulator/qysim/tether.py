@@ -162,7 +162,7 @@ class Tether:
 
         # obstacle contact with friction
         dist, normal, _ = self.world.sdf_many(x, self._cand)
-        pen = p.node_radius - dist
+        pen = np.minimum(p.node_radius - dist, 0.05)     # push out at most 5 cm per substep
         hit = pen > 0
         hit[0] = False
         if not self.broken:

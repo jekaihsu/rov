@@ -92,18 +92,23 @@ class Simulator:
         self._log("scenario", f"載入情境 {sc.name}")
 
     def _prewrap(self, cfg: dict) -> None:
+        """Lay the cable around a pile: spool -> helix (~``turns``) -> ROV, ending on the ROV's side
+        of the pile so the last run never passes through it."""
         pile = next(o for o in self.world.obstacles if o.name == cfg["pile"])
         c = np.asarray(pile.p0, float)
-        r = pile.radius + 0.05
+        r = pile.radius + 0.08
         d = float(cfg.get("depth", 10.0))
         turns = float(cfg.get("turns", 1.0))
         spool = np.asarray(self.scenario.spool_pos, float)
-        a0 = math.atan2(spool[1] - c[1], spool[0] - c[0])
-        pts = [spool, np.array([c[0] + r * 1.4 * math.cos(a0), c[1] + r * 1.4 * math.sin(a0), d - 1.0])]
-        for k in range(1, 49):
-            a = a0 + 2 * math.pi * turns * k / 48
-            pts.append(np.array([c[0] + r * math.cos(a), c[1] + r * math.sin(a), d - 1.0 + 1.0 * k / 48]))
         gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, GLAND_BODY)
+        a0 = math.atan2(spool[1] - c[1], spool[0] - c[0])
+        a1 = math.atan2(gland[1] - c[1], gland[0] - c[0])
+        sweep = 2 * math.pi * math.floor(turns) + (a1 - a0) % (2 * math.pi)
+        pts = [spool, np.array([c[0] + r * 1.5 * math.cos(a0), c[1] + r * 1.5 * math.sin(a0), d - 1.0])]
+        n = 64
+        for k in range(1, n + 1):
+            a = a0 + sweep * k / n
+            pts.append(np.array([c[0] + r * math.cos(a), c[1] + r * math.sin(a), d - 1.0 + 1.0 * k / n]))
         pts.append(gland)
         self.tether.layout(pts)
 
@@ -255,7 +260,8 @@ class Simulator:
                                  "Rov_Ctrl_Limit": "Custom" if self.shaping.custom else "Normal",
                                  "Rov_Operation_Mode": self.operation_mode, "Rov_Ctrl_Mode": ctrl_mode(rc),
                                  "LED": LED_LABEL.get(rc.right_switch, "OFF")},
-            "Sonar_Application_Status": {"Laser_Status": self.dvl_switches.get("microdvl_laser", "OFF"),
+            "Sonar_Application_Status": {"Laser_Status": "ON" if str(self.dvl_switches.get(
+                                             "QYRovParameterManage.microdvl_laser_switch", "OFF")).upper() in ("ON", "TRUE", "1") else "OFF",
                                          "Distance_Lock_Status": "OFF", "Blind_Detect_Status": "OFF",
                                          "Altitude_Lock_Status": "OFF"},
             "Distance": round(dist, 2), "Altitude": round(alt, 2),
@@ -386,7 +392,24 @@ class Simulator:
     def _sdk_QYRovParameterManage__get_rov_sn(self): return ok("X1SIM00001")
 
     # QYRovCalibrationManage
-    def _sdk_QYRovCalibrationManage__check_cal_status(self): return ok("Calibration completed")
+    def _sdk_QYRovCalibrationManage__check_cal_status(self):
+        if getattr(self, "_cal_until", 0.0) > self.t:
+            return ok("Calibration in progress")
+        return ok("Cal Done" if getattr(self, "_cal_started", False) else "Not calibration status")
+
+    def _start_cal(self):
+        self._cal_started, self._cal_until = True, self.t + 5.0
+        return ok()
+
+    _sdk_QYRovCalibrationManage__start_horizontal_gyro_acce_cal = _start_cal
+    _sdk_QYRovCalibrationManage__start_vertical_gyro_acce_cal = _start_cal
+    _sdk_QYRovCalibrationManage__start_horizontal_mag_cal = _start_cal
+    _sdk_QYRovCalibrationManage__start_vertical_mag_cal = _start_cal
+
+    def _sdk_QYRovCalibrationManage__reboot_rov(self):
+        self.rc_physical.rc_lock = self.rc_sdk.rc_lock = 1
+        self._log("sdk", "ROV 重新開機（電機上鎖）")
+        return ok()
 
     # QYRovAddOnsManage
     def _sdk_QYRovAddOnsManage__set_arm_status(self, status, speed=1):
@@ -512,7 +535,9 @@ class Simulator:
         return ok(data={
             "float_up_calibrate": {"status": 0},
             "v_navi": {"running": self.nav.mode == "V_NAVI", "index": self.nav.route_i, "total": len(self.nav.route),
-                       "paused": self.nav.paused},
+                       "paused": self.nav.paused,
+                       "status_msg": ("paused" if self.nav.paused else "running") if self.nav.mode == "V_NAVI"
+                       else ("finished" if self.nav.nav_status == 2 else "idle")},
             "navigation_status": {"nav_status": self.nav.nav_status, "idnum": self.nav.idnum, "distance": dist,
                                   "mode": self.nav.mode}})
 
@@ -639,14 +664,29 @@ class Simulator:
         used = sum(f["size"] for f in self.camera.files) // 1_000_000
         return ok(f"sd_state=SDOK; total=121911 MB; used={used} MB")
 
+    # file indices count from the newest file, as in the SDK docs (index 0 / 1 = newest)
     def _sdk_QYCameraStorageFileManage__get_file_list(self, camera_flag, start_num=0, end_num=5):
-        files = self.camera.files[int(start_num):int(end_num) + 1]
+        files = self.camera.files[::-1][int(start_num):int(end_num) + 1]
         return ok("".join(f["path"] + ";" for f in files))
 
     def _sdk_QYCameraStorageFileManage__get_file_info_list(self, camera_flag, start_num=1, end_num=5):
         import json
-        files = self.camera.files[max(0, int(start_num) - 1):int(end_num)]
-        return ok(json.dumps([{k: f[k] for k in ("path", "name", "size", "time", "create_time")} for f in files]))
+        files = self.camera.files[::-1][max(0, int(start_num) - 1):int(end_num)]
+        return ok(json.dumps([{"path": f["path"], "name": f["name"], "size": str(f["size"]), "time": str(f["time"]),
+                               "create": f["create_time"], "create_time": f["create_time"]} for f in files]))
+
+    # QYCameraSystemManage
+    def _sdk_QYCameraSystemManage__get_camera_time(self, camera_flag): return ok(time.strftime("%Y%m%d%H%M%S"))
+    def _sdk_QYCameraSystemManage__get_camera_version(self, camera_flag): return ok("20260520-SIM")
+
+    def _sdk_QYCameraSystemManage__format_sd(self, camera_flag):
+        self.camera.files = []
+        return ok()
+
+    def _sdk_QYCameraSystemManage__factory_reset(self, camera_flag):
+        self.camera.params = {}
+        self.camera.work_mode = "NORMAL_VIDEO_MODE"
+        return ok()
 
     def _sdk_QYCameraStorageFileManage__get_file_count(self, camera_flag):
         return ok(str(len(self.camera.files)))

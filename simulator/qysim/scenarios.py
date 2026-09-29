@@ -133,9 +133,9 @@ def monopile_current() -> Scenario:
     pile = Cylinder("Monopile M1", (15.0, 0.0, -3.0), (15.0, 0.0, sea + 1.0), 3.0, "monopile")
     stand = (15.0 - 3.0 - 1.5, 0.0, 12.0)
     return Scenario(
-        "monopile_current", "單樁抗流懸停", "直徑 6 m 單樁，2.5 kn 強流。在樁前 1.5 m、深 12 m 處抗流懸停 30 秒，不可碰樁。",
-        seabed_depth=sea, obstacles=[pile], current=CurrentProfile(2.5, 180, 2.2, 185, 1.0, 190, 0.3),
-        visibility_m=10.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=40.0,
+        "monopile_current", "單樁抗流懸停", "直徑 6 m 單樁，1.8 kn 橫流（纜線拖曳會吃掉大半推力）。在樁前 1.5 m、深 12 m 處抗流懸停 30 秒，不可碰樁。",
+        seabed_depth=sea, obstacles=[pile], current=CurrentProfile(1.8, 180, 1.6, 185, 0.8, 190, 0.3),
+        visibility_m=10.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=30.0,
         objectives=[Objective("station_keep", "樁前 12 m 懸停 30 秒", stand, radius=1.0, hold_s=30.0,
                               face_point=(15.0, 0.0, 12.0))])
 
