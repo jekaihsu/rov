@@ -1,0 +1,3 @@
+__pycache__/
+*.pyc
+simulator/**/rov_sandbox_telemetry.log
