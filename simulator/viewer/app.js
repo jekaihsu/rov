@@ -1254,7 +1254,7 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
-  renderer.render(scene, camera);
+  if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
