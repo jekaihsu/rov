@@ -88,6 +88,10 @@ export class PilotPiP {
 
   update(dt, rc = {}) {
     this.t += dt;
+    // the picture is small: 30 fps is plenty and halves its cost on a 60 Hz screen
+    this._acc = (this._acc || 0) + dt;
+    if (this._acc < 1 / 31) return;
+    dt = this._acc; this._acc = 0;
     for (const [key, btn] of [['rc_lock', 'Y'], ['keep_depth', 'X']]) {       // toggles show as a press flash
       if (this.prev[key] !== undefined && this.prev[key] !== rc[key]) this.flash[btn] = 0.35;
       this.prev[key] = rc[key];

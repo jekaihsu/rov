@@ -18,6 +18,7 @@ import { loadGLTF } from './glb.js';
 import { Water } from 'three/addons/objects/Water.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { Humanoid } from './humanoid.js';
+import { Cable } from './cable.js';
 
 const toThree = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 const ease = (t) => t * t * (3 - 2 * t);
@@ -185,8 +186,8 @@ export class DeployIntro {
     }
 
     // tether: real-thickness yellow cable, rebuilt each frame
-    this.tetherMat = M(0xe9c534, { roughness: 0.5, metalness: 0 });
-    this.tetherMesh = null;
+    this.cable = new Cable(M(0xe9c534, { roughness: 0.5, metalness: 0 }), { radius: 0.0065, segments: 160, radial: 6 });
+    add(this.cable.mesh);
 
     this.splash = add(makeParticles(600, 0xf2fbff, 0.1));
     this.spray = add(makeParticles(300, 0xffffff, 0.05));
@@ -375,11 +376,7 @@ export class DeployIntro {
         pts.push(p);
       }
     }
-    if (this.tetherMesh) { this.scene.remove(this.tetherMesh); this.tetherMesh.geometry.dispose(); }
-    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    this.tetherMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.0065, 6, false), this.tetherMat);
-    this.tetherMesh.frustumCulled = false;
-    this.scene.add(this.tetherMesh);
+    this.cable.update(pts);
   }
 
   _emitSplash(at, vel) {
@@ -486,7 +483,7 @@ export class DeployIntro {
 
   dispose() {
     for (const o of this.objects) this.scene.remove(o);
-    if (this.tetherMesh) { this.scene.remove(this.tetherMesh); this.tetherMesh.geometry.dispose(); }
+    this.cable.dispose();
     if (this.water) { this.water.geometry.dispose(); this.water.material.dispose(); }
   }
 }

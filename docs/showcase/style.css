@@ -265,3 +265,11 @@ body.movie .sticks{display:none}
 .lower[hidden]{display:flex!important;opacity:0}
 .lower i{font-style:normal;font-family:var(--f-data);font-size:12px;letter-spacing:.14em;color:var(--foam)}
 .lower b{font-family:var(--f-display);font-size:30px;font-weight:700;color:#fff}
+
+/* phone replay: the on-screen sticks are for touch flying, the pilot picture already shows the pad */
+@media (max-width:720px){
+  body.replaying .sticks{display:none}
+  body.replaying .viewport .pip{top:auto;bottom:84px;right:8px;width:168px;height:107px}
+  body.replaying .viewport .subtitle{left:8px;right:8px;bottom:8px;transform:none;max-width:none;font-size:14px;padding:6px 10px}
+  .viewport .hud.tc{display:none}
+}

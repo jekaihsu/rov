@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { loadGLTF } from './glb.js';
+import { Cable } from './cable.js';
 import { PilotPiP } from './pilot_pip.js';
 
 const $ = (id) => document.getElementById(id);
@@ -207,7 +208,8 @@ brokenLine.frustumCulled = false; brokenLine.visible = false; scene.add(brokenLi
 const tubeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .55, metalness: 0 });
 const GLAND_LOCAL = new THREE.Vector3(0, .06, -.38);   // tether.py GLAND_BODY (FRD -0.38, 0, -0.06) in model space
 let tetherTarget = [], tetherDisp = [], tetherInfo = null;
-let tube = null;
+const cable = new Cable(tubeMat, { radius: .0065, segments: 240, radial: 8, colors: true });
+scene.add(cable.mesh);
 const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff4757 }), 256);
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);
@@ -263,7 +265,7 @@ function updateTether(t) {
     brokenLine.geometry.setDrawRange(0, n); brokenLine.geometry.attributes.position.needsUpdate = true;
     brokenLine.computeLineDistances();
   }
-  // tube: rebuilt every frame from smoothed nodes (see renderTether)
+  // cable: updated in place every frame from smoothed nodes (see renderTether)
   tetherTarget = pts; tetherInfo = t;
   if (tetherDisp.length !== pts.length) tetherDisp = pts.map((p) => p.clone());
   // contact nodes (client-side proximity; server only reports the count)
@@ -959,25 +961,16 @@ function resize() {
 const _gl = new THREE.Vector3();
 function renderTether(dt) {
   const t = tetherInfo, n = tetherDisp.length;
-  if (tube) { scene.remove(tube); tube.geometry.dispose(); tube = null; }
-  if (!t || n < 2) return;
+  if (!t || n < 2) { cable.hide(); return; }
   const a = 1 - Math.exp(-dt * 20);
   for (let i = 0; i < n; i++) tetherDisp[i].lerp(tetherTarget[i], a);
   if (!t.broken && target.init) { rovG.updateMatrixWorld(); tetherDisp[n - 1].copy(rovG.localToWorld(_gl.copy(GLAND_LOCAL))); }
   const lp = tetherLine.geometry.attributes.position.array;
   for (let i = 0; i < n; i++) { lp[i * 3] = tetherDisp[i].x; lp[i * 3 + 1] = tetherDisp[i].y; lp[i * 3 + 2] = tetherDisp[i].z; }
   tetherLine.geometry.attributes.position.needsUpdate = true;
-  if (t.broken) return;
+  if (t.broken) { cable.hide(); return; }
   const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  const segs = Math.min(480, (n - 1) * 6), rad = 8;
-  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tetherDisp, false, 'centripetal'), segs, .0065, rad, false);
-  const cnt = geo.attributes.position.count, col = new Float32Array(cnt * 3);
-  for (let v = 0; v < cnt; v++) {
-    const s = Math.floor(v / (rad + 1)) / segs, T = ts + (tr - ts) * s;
-    tensionColor(t.warn ? Math.max(T, WARN_N) : T, _c); col[v * 3] = _c.r; col[v * 3 + 1] = _c.g; col[v * 3 + 2] = _c.b;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  tube = new THREE.Mesh(geo, tubeMat); scene.add(tube);
+  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, WARN_N) : T, out); });
 }
 
 /* ═════════════════════════ deploy intro + pilot PiP ═════════════════════════ */
@@ -1030,6 +1023,7 @@ async function startReplay(url) {
   let data;
   try { data = await (await fetch(url)).json(); } catch (e) { setConn('stop', '回放檔載入失敗'); return; }
   rep = { data, ci: 0, t: 0, playing: true, speed: 1, endHold: 0 };
+  document.body.classList.add('replaying');
   data.clips.forEach(prepClip);
   $('replayBar').hidden = false;
   $('rpClips').innerHTML = data.clips.map((c, i) => `<button data-i="${i}">${i + 1}. ${c.title}</button>`).join('');
@@ -1151,7 +1145,7 @@ function frame(now) {
     const a = 1 - Math.exp(-dt * 20);
     rovG.position.lerp(target.pos, a); rovG.quaternion.slerp(target.q, a);
   }
-  if (!inIntro) renderTether(dt); else if (tube) { scene.remove(tube); tube.geometry.dispose(); tube = null; tetherLine.visible = false; }
+  if (!inIntro) renderTether(dt); else { cable.hide(); tetherLine.visible = false; }
   // rotors
   if (S && rotorOf.length) {
     rotorOf.forEach((r, j) => {
