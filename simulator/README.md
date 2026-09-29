@@ -33,6 +33,30 @@ python -m qysim.server --scenario tether_untangle     # 或 --scenario random --
 - 定深（X / H）：鎖住深度，上下波輪改為調整設定深度。
 - SDK 取得遠端控制權時（`set_remote_control_status("ON")`），手把輸入會被忽略，畫面顯示 SDK REMOTE。
 
+### USB 手把對照（Xbox 配置；PS 手把按鍵位置相同）
+
+| 手把 | Q-iRC 通道 / 功能 |
+|---|---|
+| 左搖桿 | `left_ud` / `left_lr`（ROV_USA：俯仰 / 轉向） |
+| 右搖桿 | `right_ud` / `right_lr`（ROV_USA：前後 / 橫滾） |
+| LT / RT | 左波輪 `left_wave`（ROV_USA：升降） |
+| LB / RB | 右波輪 `right_wave`（ROV_USA：橫移） |
+| A（按住） | 拍照 `photo` |
+| B（按住） | 錄影 `record` |
+| X | 定深開關 `keep_depth` |
+| Y | 鎖定 / 解鎖 `rc_lock` |
+| Back / View | 切換 A / S / C 模式 |
+| Start / Menu | LED 亮度 |
+
+瀏覽器要先在頁面上按一下手把任一鍵才會偵測到手把（瀏覽器安全限制）。
+沒有手把時可用鍵盤（按鍵說明在左側面板下方），或直接拖動畫面上的搖桿。
+
+### 下水動畫與操作員畫面
+
+- 每次載入情境會先播一段下水動畫：工作船船尾、甲板人員把 ROV 抱起拋出、另一人放纜，入水後滑行到起始點。播放時模擬暫停，按「跳過」或 Esc 可略過。
+- 右上角的操作員子畫面顯示坐在控制台前的操作員，手上的手把會跟著實際搖桿輸入動。
+- 兩者都可以在左側「顯示」區關掉，或網址加 `?nointro`、`?nopip`。
+
 ## 練習情境
 
 | key | 名稱 | 練什麼 |
@@ -66,9 +90,28 @@ python -m qysim.server --scenario tether_untangle     # 或 --scenario random --
 
 > 真的 QYSea SDK（Windows `.pyd`＋授權）屬 QYSEA 授權軟體，**不放進本 repo**。
 
+### 用團隊的 GUI 測試程式
+
+`qysea_sdk_gui_tester.py`（及同目錄程式）使用的 132 個 SDK 方法模擬 SDK 都有。先啟動模擬器，再在另一個視窗：
+
+```bat
+set PYTHONPATH=C:\路徑\rov\simulator\sdk_mock
+python qysea_sdk_gui_tester.py
+```
+
+測試程式連線、解鎖、導航等操作會直接反映在模擬器的 3D 畫面上。
+
+## 回放與展示頁
+
+- `python tools/record_demo.py`：用真正的模擬器跑三段示範飛行（導管架碰撞、纜線纏繞脫困、強流懸停），存成 `viewer/demo_recording.json`。
+- 不開伺服器也能看：`viewer/index.html?replay=demo_recording.json`（需要用任何靜態網頁伺服器開，例如 `python -m http.server`）。
+- `python tools/build_showcase.py` 產生 `docs/showcase/`（GitHub Pages 用）。在 GitHub repo 的 **Settings → Pages** 選 *Deploy from a branch*，分支選這個分支、資料夾選 `/docs`，網址就是 `https://<帳號>.github.io/rov/`。
+- 3D 模型來源與授權見 [`viewer/models/CREDITS.md`](viewer/models/CREDITS.md)（全部 CC0 / MIT）。
+
 ## 協定與程式結構
 
 - 通訊協定：[`PROTOCOL.md`](PROTOCOL.md)
 - `qysim/physics.py` 剛體與推進器　`controller.py` 飛控　`rc.py` 遙控器與操控手模式　`world.py` 結構物／碰撞／洋流
   `tether.py` 臍帶纜　`navigation.py` 自動駕駛　`scenarios.py` 情境與評分　`engine.py` 整合＋SDK 語意　`server.py` 服務
+- `viewer/app.js` 駕駛台　`deploy_intro.js` 下水動畫　`pilot_pip.js` 操作員子畫面　`humanoid.js` 人物骨架與 IK　`glb.js` 模型載入
 - 測試：`python -m unittest discover -s tests`

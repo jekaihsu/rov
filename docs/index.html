@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>X1 ROV 訓練模擬器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one column, subsea control-room palette shared with the cockpit; screenshots carry the page. */
+:root {
+  --abyss: #061018;
+  --rack: #0c1a24;
+  --line: #1f3a4a;
+  --ink: #d6e4ec;
+  --ink-dim: #86a0ae;
+  --foam: #f2b705;
+  --f-display: "Barlow Condensed", "Noto Sans TC", "Arial Narrow", sans-serif;
+  --f-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --f-data: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--abyss); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.65; }
+main { max-width: 980px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 64px; display: flex; flex-direction: column; gap: 40px; }
+.eyebrow { font-family: var(--f-data); font-size: 12px; letter-spacing: .14em; color: var(--foam); text-transform: uppercase; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(40px, 7vw, 68px); line-height: 1; margin: 6px 0 14px; letter-spacing: .01em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 26px; margin: 0 0 8px; letter-spacing: .02em; }
+p { margin: 0; max-width: 65ch; }
+.lead { color: var(--ink-dim); font-size: 18px; }
+.cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+.cta a { font-family: var(--f-display); font-weight: 600; letter-spacing: .08em; font-size: 17px; text-decoration: none; padding: 10px 18px; border-radius: 6px; border: 1px solid var(--foam); color: var(--foam); }
+.cta a.primary { background: var(--foam); color: #111; }
+.cta a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+figure { margin: 0; }
+figure img { width: 100%; max-width: 100%; display: block; border-radius: 8px; border: 1px solid var(--line); }
+figcaption { font-size: 13px; color: var(--ink-dim); margin-top: 8px; }
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.facts div { background: var(--rack); padding: 14px 16px; min-width: 0; }
+.facts b { display: block; font-family: var(--f-data); font-size: 22px; color: var(--foam); font-variant-numeric: tabular-nums; }
+.facts span { font-size: 13px; color: var(--ink-dim); }
+ol { margin: 0; padding-left: 1.3em; max-width: 65ch; }
+code { font-family: var(--f-data); font-size: 14px; background: var(--rack); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+.foot { font-size: 13px; color: var(--ink-dim); border-top: 1px solid var(--line); padding-top: 18px; }
+.foot a, p a { color: var(--foam); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">QYSEA X1 · 操作員訓練</div>
+    <h1>X1 ROV 訓練模擬器</h1>
+    <p class="lead">接上和 Q-iRC 同配置的 USB 手把，在電腦上練習下水、在洋流中飛行、避開樁柱與斜撐、處理纜線纏繞。模擬器也提供和 QYSEA SDK 相同介面的 mock，團隊原本的 SDK 程式不用改就能對著模擬器跑。</p>
+    <div class="cta">
+      <a class="primary" href="showcase/">觀看訓練回放</a>
+      <a href="https://github.com/jekaihsu/rov/tree/claude/rov-redesign-pump-diagram-5apqc5/simulator">原始碼與安裝說明</a>
+    </div>
+  </header>
+
+  <section class="shots" aria-label="畫面">
+    <figure><img src="img/intro-throw.jpg" alt="工作船船尾，甲板人員把 ROV 擺盪拋出，另一人從纜盤放纜" width="1200" height="675"><figcaption>下水動畫：甲板人員擺盪拋出 ROV，另一人放纜。</figcaption></figure>
+    <figure><img src="img/replay-untangle.jpg" alt="駕駛台回放畫面：ROV 繞樁解纜，右上角是操作員手把子畫面" width="1200" height="703"><figcaption>回放「纜線纏繞脫困」：纏繞圈數、卡纜位置和操作員手把即時顯示。</figcaption></figure>
+  </section>
+
+  <section class="facts" aria-label="模擬重點">
+    <div><b>6-DOF</b><span>推進器配置與 X1 相同，拉力依規格擬合</span></div>
+    <div><b>0–2.5 kn</b><span>表層、中層、底層分別設定的洋流與陣風</span></div>
+    <div><b>350 m</b><span>集中質量纜線：張力、卡纜、繞樁圈數、斷纜</span></div>
+    <div><b>6 + 隨機</b><span>訓練情境，含碰撞與纜線張力扣分</span></div>
+  </section>
+
+  <section>
+    <h2>回放裡有什麼</h2>
+    <ol>
+      <li>導管架碰撞：自動導航直線穿越斜撐高度，撞擊後停航倒退脫離。</li>
+      <li>纜線纏繞脫困：開局纜線已繞樁 1.8 圈，反方向繞樁解開。</li>
+      <li>強流中樁前懸停：2.5 kn 橫流下導航到樁前 1.5 m 並保持。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>自己飛</h2>
+    <p>安裝 Python 3.10 以上，Windows 直接雙擊 <code>simulator/START_SIM.bat</code>；其他系統在 <code>simulator</code> 資料夾執行 <code>pip install -r requirements.txt</code> 和 <code>python -m qysim.server</code>。用瀏覽器開 <code>http://127.0.0.1:8080/</code>，插上手把就能飛。詳細步驟見 <a href="https://github.com/jekaihsu/rov/blob/claude/rov-redesign-pump-diagram-5apqc5/simulator/README.md">README</a>。</p>
+  </section>
+
+  <p class="foot">工作船、甲板人員模型來自 OpenGameArt 與 Quaternius（CC0），海面與天空使用 three.js（MIT）。清單見 <a href="showcase/models/CREDITS.md">CREDITS</a>。</p>
+</main>
+</body>
+</html>

@@ -11,7 +11,7 @@
 <div id="main"></div><div id="pip"></div><div id="cap">下水動畫 / 操作員子畫面 測試（?manual=1 由測試程式逐格推進）</div>
 <script type="module">
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadGLTF } from './glb.js';
 import { DeployIntro } from './deploy_intro.js';
 import { PilotPiP } from './pilot_pip.js';
 
@@ -40,12 +40,12 @@ const intro = new DeployIntro(scene, { spool: [-4, 0, 0], start: [0, 0, 3], seab
 const pip = new PilotPiP(document.getElementById('pip'), { mirror: renderer.domElement, human: assets.human });
 
 const rov = new THREE.Group(); scene.add(rov);
-new GLTFLoader().load('rov.glb', (g) => {
+loadGLTF('models/rov.glb', 'rov.glb').then((g) => {
   const root = g.scene;
   const box = new THREE.Box3().setFromObject(root); root.position.sub(box.getCenter(new THREE.Vector3()));
   rov.add(root);
   window.__ready = true;
-}, undefined, () => { rov.add(new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.4, 0.77), new THREE.MeshStandardMaterial({ color: 0xf2b705 }))); window.__ready = true; });
+}).catch(() => { rov.add(new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.4, 0.77), new THREE.MeshStandardMaterial({ color: 0xf2b705 }))); window.__ready = true; });
 intro.play(rov, camera, () => { document.getElementById('cap').textContent = '下水完成 → 交給學員操控'; });
 
 let t = 0;

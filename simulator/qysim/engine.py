@@ -160,6 +160,7 @@ class Simulator:
                     pilot["heave"] = 0.0
                 mode = "A"
 
+        self.last_pilot = pilot                    # final command (pilot or autopilot), for recordings
         self.world.current.step_gust(dt, self.rng)
         v.current_ned = self.world.current.at(self.depth, self.world.seabed_depth)
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading) * self.health
