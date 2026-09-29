@@ -34,7 +34,7 @@ p { margin: 0; max-width: 65ch; }
 .cta a.primary { background: var(--foam); color: #111; }
 .cta a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 figure { margin: 0; }
-figure img { width: 100%; max-width: 100%; display: block; border-radius: 8px; border: 1px solid var(--line); }
+figure img { width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; display: block; border-radius: 8px; border: 1px solid var(--line); }
 figcaption { font-size: 13px; color: var(--ink-dim); margin-top: 8px; }
 .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
