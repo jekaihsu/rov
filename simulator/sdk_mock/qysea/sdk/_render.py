@@ -32,6 +32,7 @@ SAND = np.array([0.62, 0.57, 0.45])
 WATER_SHALLOW = np.array([0.12, 0.45, 0.50])     # RGB
 WATER_DEEP = np.array([0.015, 0.09, 0.15])
 ABSORB = np.array([0.40, 0.10, 0.07])            # per metre, R G B (red dies first)
+EXPOSURE_TARGET, MAX_GAIN = 0.30, 2.5
 FOG_K = 2.5                                      # contrast at visibility_m ~ e^-2.5
 LED_GAIN = {0: 0.0, 1: 0.9, 2: 1.8}
 
@@ -149,7 +150,7 @@ def trace(scene: Scene, origin: np.ndarray, dirs: np.ndarray, tmax: float, steps
 
 # ── shading ───────────────────────────────────────────────────────────────
 def _ambient(depth):
-    return np.clip(np.exp(-np.maximum(depth, 0.0) / 18.0), 0.03, 1.0)
+    return np.clip(np.exp(-np.maximum(depth, 0.0) / 22.0), 0.03, 1.0)
 
 
 def _hash2(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -237,7 +238,7 @@ def render(view: dict, width: int = 640, height: int = 360, internal: tuple = (1
                 pm = P[m]
                 streak = 0.88 + 0.12 * _hash2(np.floor(pm[:, 2] * 2), np.floor((pm[:, 0] + pm[:, 1]) * 2))
                 alb[m] = base[None, :] * streak[:, None]
-        sun = _ambient(P[:, 2]) * (0.30 + 0.70 * np.clip(N @ UP, 0, 1))
+        sun = _ambient(P[:, 2]) * (0.55 + 0.65 * np.clip(N @ UP, 0, 1))
         light = sun
         if led > 0:
             facing = np.clip(-np.einsum("ij,ij->i", N, D[hit]), 0, 1)
@@ -246,6 +247,9 @@ def render(view: dict, width: int = 640, height: int = 360, internal: tuple = (1
         f = np.exp(-FOG_K * th / vis)[:, None]
         col[hit] = c * f + bg[hit] * (1 - f)
 
+    # camera auto-exposure with limited gain: deep water stays dark without the LED
+    luma = float((col @ np.array([0.3, 0.59, 0.11])).mean())
+    col = col * min(MAX_GAIN, max(1.0, EXPOSURE_TARGET / max(luma, 1e-4)))
     img = np.clip(col.reshape(ih, iw, 3)[:, :, ::-1] * 255.0, 0, 255).astype(np.uint8)   # RGB -> BGR
     img = _upscale(img, width, height)
     _particles(img, silt, led, t_now)

@@ -171,3 +171,16 @@ def call(cls: str, method: str, args=(), kwargs=None, on_fail=None):
         return on_fail(e.kind, "408")
     except SimError as e:
         return on_fail(f"SimulatorError: {e}", "500")
+
+
+def fail_none(text, code):
+    return None
+
+
+class Remote:
+    """Base for mock manage classes: ``_call`` forwards to ``<_CLS>.<method>`` on the simulator."""
+
+    _CLS = ""
+
+    def _call(self, method: str, *args, on_fail=None, **kwargs):
+        return call(self._CLS, method, args, kwargs, on_fail)
