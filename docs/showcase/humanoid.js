@@ -23,10 +23,20 @@ function setWorldQuat(bone, qWorld) {
   bone.updateMatrixWorld(true);
 }
 
-/** Rotate ``bone`` so the direction bone->child points from bone towards ``target`` (world). */
-function aim(bone, child, target, weight = 1) {
+// leaf bones have no child to aim with; their length along local +Y (model units)
+const LEAF = { LowerLegL: 1.29, LowerLegR: 1.29, FingersL: 0.2, FingersR: 0.2, Thumb2L: 0.15, Thumb2R: 0.15, Head: 0.5 };
+
+/** World position of the bone's tip (its first child bone, or the end of a leaf bone along local +Y). */
+function tip(bone, out = new THREE.Vector3()) {
+  const child = bone.children.find((c) => c.isBone);
+  if (child) return child.getWorldPosition(out);
+  return bone.localToWorld(out.set(0, LEAF[bone.name] ?? 0.2, 0));
+}
+
+/** Rotate ``bone`` so its tip points from the bone towards ``target`` (world). */
+function aim(bone, target, weight = 1) {
   const p = worldPos(bone, _v1);
-  const cur = worldPos(child, _v2).sub(p).normalize();
+  const cur = tip(bone, _v2).sub(p).normalize();
   const want = _v3.copy(target).sub(p).normalize();
   if (cur.lengthSq() < 1e-8 || want.lengthSq() < 1e-8) return;
   _q1.setFromUnitVectors(cur, want);
@@ -35,11 +45,24 @@ function aim(bone, child, target, weight = 1) {
   setWorldQuat(bone, _q1.multiply(_q2));
 }
 
-/** Analytic two-bone IK: upper->lower->end reaches ``target``; the middle joint bends towards ``pole``. */
-function twoBone(upper, lower, end, target, pole) {
+/** Twist ``bone`` about its own axis so the direction towards ``ref`` (a descendant) lines up with ``want``. */
+function roll(bone, ref, want) {
+  const p = worldPos(bone, new THREE.Vector3());
+  const ax = tip(bone, new THREE.Vector3()).sub(p).normalize();
+  const cur = worldPos(ref, new THREE.Vector3()).sub(p);
+  cur.addScaledVector(ax, -cur.dot(ax));
+  const w = want.clone().addScaledVector(ax, -want.dot(ax));
+  if (cur.lengthSq() < 1e-8 || w.lengthSq() < 1e-8) return;
+  const q = new THREE.Quaternion().setFromUnitVectors(cur.normalize(), w.normalize());
+  bone.getWorldQuaternion(_q2);
+  setWorldQuat(bone, q.multiply(_q2));
+}
+
+/** Analytic two-bone IK: upper->lower->tip reaches ``target``; the middle joint bends towards ``pole``. */
+function twoBone(upper, lower, target, pole) {
   const S = worldPos(upper, new THREE.Vector3());
   const a = S.distanceTo(worldPos(lower, _v4));
-  const b = _v4.distanceTo(worldPos(end, _v1));
+  const b = _v4.distanceTo(tip(lower, _v1));
   const toT = new THREE.Vector3().subVectors(target, S);
   const d = THREE.MathUtils.clamp(toT.length(), Math.abs(a - b) + 1e-3, a + b - 1e-4);
   const n = toT.normalize();
@@ -49,9 +72,8 @@ function twoBone(upper, lower, end, target, pole) {
   p.addScaledVector(n, -p.dot(n));
   if (p.lengthSq() < 1e-8) p.set(0, -1, 0); else p.normalize();
   const elbow = S.clone().addScaledVector(n, x).addScaledVector(p, h);
-  aim(upper, lower, elbow);
-  const reach = S.clone().addScaledVector(n, d);
-  aim(lower, end, reach);
+  aim(upper, elbow);
+  aim(lower, S.clone().addScaledVector(n, d));
 }
 
 export class Humanoid {
@@ -128,6 +150,7 @@ export class Humanoid {
   }
 
   _local(v) { return this.root.localToWorld(_v4.set(v[0] ?? v.x, v[1] ?? v.y, v[2] ?? v.z).clone()); }
+  _dir(v) { return new THREE.Vector3(v[0] ?? v.x, v[1] ?? v.y, v[2] ?? v.z).transformDirection(this.root.matrixWorld); }
 
   update(dt, pose = {}) {
     const b = this.b;
@@ -163,8 +186,7 @@ export class Humanoid {
       const fwd = new THREE.Vector3(0, 0, 1).transformDirection(this.root.matrixWorld);
       const side = right.clone().multiplyScalar(s === 'L' ? 0.12 : -0.12);
       const pole = hip.clone().lerp(foot, 0.5).addScaledVector(fwd, 1.0).add(side);
-      const ankle = b['LowerLeg' + s].children.find((c) => c.isBone) || b['LowerLeg' + s];
-      twoBone(b['UpperLeg' + s], b['LowerLeg' + s], ankle, foot.clone().add(up.clone().multiplyScalar(0.02)), pole);
+      twoBone(b['UpperLeg' + s], b['LowerLeg' + s], foot.clone().add(up.clone().multiplyScalar(0.02)), pole);
       b['Foot' + s].position.copy(b['Foot' + s].parent.worldToLocal(foot.clone()));
       b['Foot' + s].updateMatrixWorld(true);
     }
@@ -178,7 +200,18 @@ export class Humanoid {
       const back = new THREE.Vector3(0, 0, -1).transformDirection(this.root.matrixWorld);
       const pole = pose['elbow' + s] ? this._local(pose['elbow' + s])
         : sh.clone().lerp(T, 0.5).addScaledVector(out, 0.35).addScaledVector(back, 0.25).addScaledVector(up, -0.35);
-      twoBone(b['UpperArm' + s], b['LowerArm' + s], b['Palm' + s], T, pole);
+      twoBone(b['UpperArm' + s], b['LowerArm' + s], T, pole);
+      // hand: fingers point at handAim, thumb side turned towards handUp, fingers curled round
+      // fingerCurl, thumb tip on thumb (all figure-local)
+      const g = pose['grip' + s];
+      if (g) {
+        const palm = b['Palm' + s], mid = b['MiddleHand' + s], fing = b['Fingers' + s];
+        const t1 = b['Thumb1' + s], t2 = b['Thumb2' + s];
+        if (g.aim) aim(palm, this._local(g.aim));
+        if (g.up) roll(palm, t1, this._dir(g.up));
+        if (g.curl) { aim(mid, this._local(g.curl), 0.6); aim(fing, this._local(g.curl)); }
+        if (g.thumb) { aim(t1, this._local(g.thumb)); aim(t2, this._local(g.thumb)); }
+      }
     }
     if (pose.head) {
       const [yaw, pitch] = pose.head;

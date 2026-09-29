@@ -13,8 +13,8 @@ import { Humanoid } from './humanoid.js';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.1, ...o });
 const PILOT_Z = -0.98;                          // pilot sits here facing +Z (the monitor)
-const PAD_LOCAL = V(0, 0.86, 0.27);             // gamepad centre, pilot-local
-const PAD_SCALE = 1.25;
+const PAD_LOCAL = V(0, 0.88, 0.3);             // gamepad centre, pilot-local
+const PAD_SCALE = 1.55;
 
 export class PilotPiP {
   constructor(container, { mirror = null, width = 360, height = 230, human = null } = {}) {
@@ -104,15 +104,26 @@ export class PilotPiP {
     pad.updateMatrixWorld(true);
 
     if (this.pilot) {
-      const grip = (x) => this.pilot.root.worldToLocal(pad.localToWorld(V(x, -0.03, -0.012)));
+      // pad-local points -> pilot-local; pad-local -x is the pilot's left once the pad faces him
+      const P = (x, y, z) => this.pilot.root.worldToLocal(pad.localToWorld(V(x, y, z)));
+      const faceUp = V(0, 0.35, 1).transformDirection(pad.matrixWorld);      // thumb side towards the face / up
+      const cap = (st) => this.pilot.root.worldToLocal(st.localToWorld(V(0, 0, 0.016)));
+      const grip = (sx, stick) => ({
+        aim: P(sx * 0.085, -0.1, -0.035),        // fingers run down along the grip
+        up: [faceUp.x, faceUp.y, faceUp.z],
+        curl: P(sx * 0.07, -0.03, -0.065),       // wrap round the back of the grip
+        thumb: cap(stick),                        // thumb tip on the stick cap
+      });
       this.pilot.update(dt, {
         pelvis: [0, -0.24, -0.06],
         feet: [[0.15, 0.0, 0.4], [-0.15, 0.0, 0.36]],
         bend: 0.18 + u(rc.right_ud) * 0.03,
         lean: -lean * 0.8,
         head: [u(rc.left_lr) * 0.12 + Math.sin(this.t * 0.6) * 0.03, 0.12],
-        handL: grip(-0.06),               // pad-local -x is the pilot's left once the pad faces him
-        handR: grip(0.06),
+        handL: P(-0.1, -0.02, -0.01),         // wrists on the outside of the grips
+        handR: P(0.1, -0.02, -0.01),
+        gripL: grip(-1, this.pad.sticks.L),
+        gripR: grip(1, this.pad.sticks.R),
       });
     }
 
