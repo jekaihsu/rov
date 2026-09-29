@@ -142,6 +142,7 @@ table.map .track { height: 6px; }
 .hud > * { pointer-events: auto; }
 .hud.tl { top: 10px; left: 10px; max-width: 46%; }
 .hud.tc { top: 8px; left: 50%; transform: translateX(-50%); align-items: center; }
+.hud.bc { bottom: 12px; left: 50%; transform: translateX(-50%); align-items: center; }
 .hud.tr { top: 10px; right: 10px; align-items: flex-end; }
 .chips { display: flex; gap: 5px; flex-wrap: wrap; }
 .lock { display: flex; flex-direction: column; padding: 6px 12px; border-radius: 5px; border: 2px solid var(--ok); background: color-mix(in srgb, var(--abyss) 70%, transparent); pointer-events: none; }
@@ -154,9 +155,10 @@ table.map .track { height: 6px; }
 .remote { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 5px 8px; border-radius: 4px; border: 2px solid #c792ff; background: color-mix(in srgb, #c792ff 18%, var(--abyss)); }
 .remote b { font-family: var(--f-display); letter-spacing: .1em; color: #e3c8ff; }
 .remote span { font-size: 11px; color: var(--ink); }
-#tape { width: 300px; max-width: 42vw; height: auto; aspect-ratio: 600 / 56; display: block; }
-.readout { display: flex; gap: 12px; font-size: 11px; color: var(--ink-dim); background: color-mix(in srgb, var(--abyss) 55%, transparent); padding: 2px 10px; border-radius: 4px; flex-wrap: wrap; justify-content: center; }
-.readout b { font-family: var(--f-display); font-size: 20px; color: var(--ink); margin: 0 2px 0 4px; font-variant-numeric: tabular-nums; }
+#tape { width: 240px; max-width: 30vw; height: auto; aspect-ratio: 480 / 60; display: block; }
+.readout { display: flex; flex-direction: column; align-items: flex-start; gap: 0; min-width: 130px; font-size: 11px; color: var(--ink-dim); background: color-mix(in srgb, var(--abyss) 55%, transparent); padding: 2px 10px; border-radius: 4px; flex-wrap: wrap; justify-content: center; }
+.readout span { display: flex; align-items: baseline; width: 100%; }
+.readout b { margin-left: auto !important; font-family: var(--f-display); font-size: 20px; color: var(--ink); margin: 0 2px 0 4px; font-variant-numeric: tabular-nums; }
 .readout i { font-style: normal; }
 #camBtn { background: color-mix(in srgb, var(--rack-2) 85%, transparent); }
 .banner { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); padding: 12px 22px; border-radius: 6px; font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: .08em; text-align: center; pointer-events: none; max-width: 90%; }
@@ -178,7 +180,7 @@ table.map .track { height: 6px; }
 code { font-family: var(--f-data); font-size: 11px; color: var(--foam); }
 
 /* virtual sticks: live controller diagram + touch input */
-.sticks { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: space-between; padding-inline: 12px; pointer-events: none; }
+.sticks { position: absolute; left: 0; right: 0; bottom: 22px; display: flex; justify-content: space-between; padding-inline: 12px; pointer-events: none; }
 .pad { pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .stick { pointer-events: auto; width: 120px; height: 120px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); background: color-mix(in srgb, var(--abyss) 55%, transparent); position: relative; touch-action: none; margin: 16px 44px 0; cursor: grab; }
 .stick::before, .stick::after { content: ""; position: absolute; background: color-mix(in srgb, var(--ink) 16%, transparent); }
@@ -212,7 +214,8 @@ code { font-family: var(--f-data); font-size: 11px; color: var(--foam); }
   .lock b, .lock.locked b { font-size: 18px; }
   .lock span { display: none; }
   #tape { width: 160px; }
-  .hud.tc { top: auto; bottom: 170px; }
+  .hud.bc { bottom: auto; top: 118px; left: auto; right: 8px; transform: none; }
+  .readout { min-width: 104px; }
   .readout b { font-size: 16px; }
   .stick { width: 92px; height: 92px; margin: 16px 30px 0; }
   .knob { width: 30px; height: 30px; margin: -15px 0 0 -15px; }

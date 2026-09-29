@@ -69,6 +69,11 @@ for (const x of [0.12, -0.12]) {
   body.add(l); body.add(l.target); leds.push(l);
 }
 
+// top-view marker: arrow on the ROV pointing along the nose (scaled with view height)
+const topMark = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(0, .9), new THREE.Vector2(.5, -.5), new THREE.Vector2(0, -.2), new THREE.Vector2(-.5, -.5)])),
+  new THREE.MeshBasicMaterial({ color: 0xf2b705, fog: false, transparent: true, opacity: .85, depthTest: false, side: THREE.DoubleSide }));
+topMark.renderOrder = 10; topMark.visible = false; scene.add(topMark);
+
 function loadModel() {
   new GLTFLoader().load('rov.glb', (gltf) => {
     const root = gltf.scene;
@@ -277,7 +282,7 @@ function updateTether(t) {
   const snag = new Set(t.snagged_on || []), wraps = t.wraps || {};
   for (const [name, { mesh }] of obstacleMeshes) {
     const hot = snag.has(name) || Math.abs(wraps[name] || 0) >= .25;
-    mesh.material.emissive.setHex(hot ? 0x801018 : 0x000000);
+    mesh.material.emissive.setHex(hot ? 0x4a0a10 : 0x000000);
   }
   wrapG.clear(); wrapLabels = [];
   for (const [name, turns] of Object.entries(wraps)) {
@@ -314,7 +319,10 @@ const NP = 900, HB = [9, 5, 9];
 const partPos = new Float32Array(NP * 3);
 for (let i = 0; i < NP; i++) for (let k = 0; k < 3; k++) partPos[i * 3 + k] = (Math.random() * 2 - 1) * HB[k];
 const partGeo = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(partPos, 3));
-const particles = new THREE.Points(partGeo, new THREE.PointsMaterial({ color: 0xbfe3ef, size: .045, transparent: true, opacity: .7, depthWrite: false }));
+const dot = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d');
+  const g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.4, 'rgba(255,255,255,.6)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 32, 32); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const particles = new THREE.Points(partGeo, new THREE.PointsMaterial({ color: 0xbfe3ef, size: .035, map: dot, transparent: true, opacity: .8, depthWrite: false }));
 particles.frustumCulled = false; scene.add(particles);
 let partCentre = null;
 function updateParticles(dt, centre) {
@@ -392,7 +400,7 @@ function onState(m) {
   updateRoute(m.nav);
   const ch = m.current_here || [0, 0, 0], cv = P(ch), sp = cv.length();
   if (sp > 1e-3) curArrow.setDirection(cv.clone().normalize());
-  curArrow.setLength(.35 + sp / KNOT * .9, .22, .14);
+  curArrow.setLength(.3 + sp / KNOT * .45, .16, .1);
   curArrow.visible = sp > 1e-3;
   checkEvents(m.events || []);
   uiDirty = true;
@@ -691,7 +699,7 @@ function updateCamera(dt) {
   if (camMode === 'chase') {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion); _f.y = 0;
     if (_f.lengthSq() > 1e-4) chaseFwd.lerp(_f.normalize(), 1 - Math.exp(-dt * 5)).normalize();
-    _v.copy(p).addScaledVector(chaseFwd, -3.0).add(new THREE.Vector3(0, 1.0, 0));
+    _v.copy(p).addScaledVector(chaseFwd, -2.6).add(new THREE.Vector3(0, .85, 0));
     camera.position.lerp(_v, 1 - Math.exp(-dt * 6));
     camera.lookAt(_v.copy(p).addScaledVector(chaseFwd, 1.5));
   } else if (camMode === 'orbit') {
@@ -736,25 +744,25 @@ function drawADI(pitch, roll, hdg) {
   actx.strokeStyle = '#f2b705'; actx.lineWidth = 4; actx.beginPath();
   actx.moveTo(Wd / 2 - 90, H / 2); actx.lineTo(Wd / 2 - 30, H / 2); actx.lineTo(Wd / 2, H / 2 + 16); actx.lineTo(Wd / 2 + 30, H / 2); actx.lineTo(Wd / 2 + 90, H / 2); actx.stroke();
   actx.fillStyle = '#d6e4ec'; actx.font = '600 22px ' + C('--f-data'); actx.textAlign = 'center';
-  actx.fillText(String(Math.round(hdg) % 360).padStart(3, '0') + '°', Wd / 2, 28);
+  actx.textAlign = 'left'; actx.fillText('HDG ' + String(Math.round(hdg) % 360).padStart(3, '0') + '°', 12, 28);
 }
 const tape = $('tape'), tctx = tape.getContext('2d');
 function drawTape(hdg) {
-  const Wd = tape.width, H = tape.height, ppd = 4;
+  const Wd = tape.width, H = tape.height, ppd = 5;
   tctx.clearRect(0, 0, Wd, H);
   tctx.fillStyle = 'rgba(6,16,24,.55)'; tctx.fillRect(0, 0, Wd, H);
-  tctx.strokeStyle = '#d6e4ec'; tctx.fillStyle = '#d6e4ec'; tctx.textAlign = 'center'; tctx.font = '600 20px ' + C('--f-data');
+  tctx.strokeStyle = '#d6e4ec'; tctx.fillStyle = '#d6e4ec'; tctx.textAlign = 'center'; tctx.font = '600 26px ' + C('--f-data');
   const card = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
-  for (let d = Math.floor((hdg - 80) / 5) * 5; d <= hdg + 80; d += 5) {
+  for (let d = Math.floor((hdg - 64) / 5) * 5; d <= hdg + 64; d += 5) {
     const x = Wd / 2 + (d - hdg) * ppd, dd = ((d % 360) + 360) % 360;
     tctx.lineWidth = dd % 30 === 0 ? 2 : 1;
     tctx.beginPath(); tctx.moveTo(x, H); tctx.lineTo(x, H - (dd % 30 === 0 ? 16 : dd % 10 === 0 ? 10 : 6)); tctx.stroke();
-    if (dd % 30 === 0) { tctx.fillStyle = card[dd] ? '#f2b705' : '#d6e4ec'; tctx.fillText(card[dd] || String(dd / 10).padStart(2, '0'), x, 22); }
+    if (dd % 30 === 0) { tctx.fillStyle = card[dd] ? '#f2b705' : '#d6e4ec'; tctx.fillText(card[dd] || String(dd / 10).padStart(2, '0'), x, 24); }
   }
   tctx.fillStyle = '#f2b705'; tctx.beginPath(); tctx.moveTo(Wd / 2 - 9, H); tctx.lineTo(Wd / 2 + 9, H); tctx.lineTo(Wd / 2, H - 14); tctx.fill();
-  tctx.fillStyle = '#061018'; tctx.fillRect(Wd / 2 - 34, 26, 68, 26);
-  tctx.strokeStyle = '#f2b705'; tctx.lineWidth = 1.5; tctx.strokeRect(Wd / 2 - 34, 26, 68, 26);
-  tctx.fillStyle = '#f2b705'; tctx.font = '600 20px ' + C('--f-data'); tctx.fillText(String(Math.round(hdg) % 360).padStart(3, '0'), Wd / 2, 46);
+  tctx.fillStyle = '#061018'; tctx.fillRect(Wd / 2 - 40, 0, 80, 32);
+  tctx.strokeStyle = '#f2b705'; tctx.lineWidth = 2; tctx.strokeRect(Wd / 2 - 40, 1, 80, 31);
+  tctx.fillStyle = '#f2b705'; tctx.font = '600 28px ' + C('--f-data'); tctx.fillText(String(Math.round(hdg) % 360).padStart(3, '0'), Wd / 2, 26);
 }
 
 const prof = $('profile'), pctx = prof.getContext('2d');
@@ -963,6 +971,13 @@ function frame(now) {
   scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, topH * 4);
   surface.visible = camMode !== 'top' || camera.position.y < 0;
   updateParticles(dt, rovG.position);
+  topMark.visible = camMode === 'top';
+  if (topMark.visible) {
+    _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
+    topMark.position.copy(rovG.position).add(new THREE.Vector3(0, .6, 0));
+    topMark.rotation.set(-Math.PI / 2, 0, Math.atan2(-_f.x, -_f.z), 'XYZ');
+    topMark.scale.setScalar(topH / 22);
+  }
   curArrow.position.copy(rovG.position).add(new THREE.Vector3(0, .55, 0));
   // objectives + guide line
   const cur = updateObjectives(now / 1000);
@@ -989,3 +1004,4 @@ function frame(now) {
 $('optSticks').onchange = () => ($('sticks').hidden = !$('optSticks').checked);
 if (matchMedia('(max-width: 720px)').matches) $('optLabels').checked = false;
 setCam(camMode); resize(); drawProfile(); loadModel(); connect(); requestAnimationFrame(frame);
+window.__viewer = { THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc };
