@@ -109,6 +109,7 @@ obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|m
 current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
 scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length}
 spool [n,e,d]         tether spool / deployment point on the surface
+start_pos [n,e,d]     ROV start position (the viewer's deployment intro ends here)
 catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]

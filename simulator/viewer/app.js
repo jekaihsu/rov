@@ -4,6 +4,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { DeployIntro } from './deploy_intro.js';
+import { PilotPiP } from './pilot_pip.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -32,7 +34,7 @@ const scene = new THREE.Scene();
 const waterSurf = new THREE.Color('#1d6378'), waterDeep = new THREE.Color('#04151e'), siltCol = new THREE.Color('#3b3a26');
 scene.background = new THREE.Color('#0a2a38');
 scene.fog = new THREE.Fog(0x0a2a38, 0.3, 12);
-const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 600);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 1500);
 camera.position.set(-3, 1.5, -3);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.minDistance = 0.8; controls.maxDistance = 120; controls.enabled = false;
@@ -120,6 +122,7 @@ const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
 const OB_COL = { pile: 0x6f6a58, monopile: 0x7c6f4f, jacket_leg: 0xb38a3a, brace: 0x9a7c44, mast: 0x5d5d5d, hull: 0x5a2626, wreck: 0x4e4234, wall: 0x5b605a };
 
+let spoolMarker = [];
 function buildWorld() {
   worldG.clear(); obstacleMeshes.clear();
   seabed.position.y = -W.seabed_depth;
@@ -147,9 +150,9 @@ function buildWorld() {
   // spool / deployment point
   const sp = P(W.spool || [0, 0, 0]);
   const drum = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, .7, 20), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: .5 }));
-  drum.rotation.z = Math.PI / 2; drum.position.copy(sp).add(new THREE.Vector3(0, .5, 0)); worldG.add(drum);
+  drum.rotation.z = Math.PI / 2; drum.position.copy(sp).add(new THREE.Vector3(0, .5, 0)); worldG.add(drum); spoolMarker = [drum];
   const deck = new THREE.Mesh(new THREE.BoxGeometry(2.2, .3, 3.2), new THREE.MeshStandardMaterial({ color: 0x8795a0 }));
-  deck.position.copy(sp).add(new THREE.Vector3(0, .1, -.6)); worldG.add(deck);
+  deck.position.copy(sp).add(new THREE.Vector3(0, .1, -.6)); worldG.add(deck); spoolMarker.push(deck);
   buildObjectives(W.objectives || []);
   buildThrBars();
   matchThrusters();
@@ -377,6 +380,7 @@ function onWorld(m) {
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
   $('offline').hidden = true;
+  if (firstOrNew) startIntro();
 }
 
 function onState(m) {
@@ -396,7 +400,7 @@ function onState(m) {
   const ch = m.current_here || [0, 0, 0], cv = P(ch), sp = cv.length();
   if (sp > 1e-3) curArrow.setDirection(cv.clone().normalize());
   curArrow.setLength(.3 + sp / KNOT * .45, .16, .1);
-  curArrow.visible = sp > 1e-3;
+  curArrow.visible = sp > 1e-3 && !introActive();
   checkEvents(m.events || []);
   uiDirty = true;
 }
@@ -965,17 +969,57 @@ function renderTether(dt) {
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   tube = new THREE.Mesh(geo, tubeMat); scene.add(tube);
 }
+
+/* ═════════════════════════ deploy intro + pilot PiP ═════════════════════════ */
+let introAssetsP = null, intro = null, pip = null;
+const loadIntroAssets = () => (introAssetsP ||= DeployIntro.loadAssets('models/'));
+function introActive() { return !!(intro && intro.playing); }
+function endIntroUI() {
+  vp.classList.remove('intro'); $('skipIntro').hidden = true;
+  tetherLine.visible = true;
+}
+async function startIntro() {
+  if (!W || !$('optIntro').checked || params.has('nointro')) return;
+  const assets = await loadIntroAssets();
+  introStarts++;
+  if (intro) { intro.dispose(); intro = null; }
+  intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: W.start_pos || S?.pos || [0, 0, 3], seabed: W.seabed_depth || 30, assets });
+  vp.classList.add('intro'); $('skipIntro').hidden = false;
+  const wasPaused = !!S?.paused;
+  if (!wasPaused) send({ type: 'pause', value: true });
+  intro.play(rovG, camera, () => {
+    endIntroUI();
+    target.init = false;                        // snap back to the simulated pose
+    if (!wasPaused) send({ type: 'pause', value: false });
+  });
+}
+$('skipIntro').onclick = () => intro?.skip();
+let introStarts = 0;
+window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts };
+addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) { e.preventDefault(); intro.skip(); } });
+async function ensurePip() {
+  const on = $('optPip').checked && !params.has('nopip');
+  $('pip').hidden = !on;
+  if (!on || pip) return;
+  const assets = await loadIntroAssets();
+  pip = new PilotPiP($('pip'), { mirror: renderer.domElement, human: assets.human, width: 300, height: 190 });
+}
+$('optPip').addEventListener('change', ensurePip);
+ensurePip();
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   const dt = Math.min(.25, (now - last) / 1000); last = now;
   // pose (smoothed toward latest state)
-  if (target.init) {
+  const inIntro = introActive();
+  if (intro) intro.update(dt);
+  if (inIntro) { /* the intro poses the ROV and the camera */ }
+  else if (target.init) {
     const a = 1 - Math.exp(-dt * 20);
     rovG.position.lerp(target.pos, a); rovG.quaternion.slerp(target.q, a);
   }
-  renderTether(dt);
+  if (!inIntro) renderTether(dt); else if (tube) { scene.remove(tube); tube.geometry.dispose(); tube = null; tetherLine.visible = false; }
   // rotors
   if (S && rotorOf.length) {
     rotorOf.forEach((r, j) => {
@@ -983,7 +1027,7 @@ function frame(now) {
       r.o.quaternion.copy(r.base).multiply(_q.setFromAxisAngle(r.axis, r.ang));
     });
   }
-  updateCamera(dt);
+  if (!inIntro) updateCamera(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   _wc.copy(waterSurf).lerp(waterDeep, clamp(camDepth / 45, 0, 1)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
@@ -992,7 +1036,10 @@ function frame(now) {
   const real = $('optFog').checked && camMode !== 'top';
   scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, topH * 4);
   surface.visible = camMode !== 'top' || camera.position.y < 0;
-  updateParticles(dt, rovG.position);
+  for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
+  objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
+  if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 60; scene.fog.far = 900; }
+  if (!inIntro) updateParticles(dt, rovG.position);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
@@ -1010,6 +1057,7 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   renderer.render(scene, camera);
+  if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
   const L = [];

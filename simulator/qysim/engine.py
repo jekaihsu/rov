@@ -742,7 +742,8 @@ class Simulator:
 
     def world_description(self) -> dict:
         return {**self.world.as_dict(), "scenario": self.scenario.summary(),
-                "spool": list(self.scenario.spool_pos), "catalogue": sc_mod.catalogue(),
+                "spool": list(self.scenario.spool_pos), "start_pos": list(self.scenario.start_pos),
+                "catalogue": sc_mod.catalogue(),
                 "objectives": [o.as_dict() for o in self.scenario.objectives],
                 "thrusters": [{"name": n, "pos": list(p), "axis": list(a)} for n, p, a in THRUSTERS]}
 

@@ -21,11 +21,12 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffe
 renderer.setSize(host.clientWidth, host.clientHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
 host.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87aac2);
 scene.fog = new THREE.Fog(0x6f97ad, 30, 140);
-const camera = new THREE.PerspectiveCamera(55, host.clientWidth / host.clientHeight, 0.05, 500);
+const camera = new THREE.PerspectiveCamera(55, host.clientWidth / host.clientHeight, 0.05, 2000);
 scene.add(new THREE.HemisphereLight(0xdff2ff, 0x1c3342, 1.2));
 const sun = new THREE.DirectionalLight(0xfff3dc, 2.2); sun.position.set(20, 30, 10); sun.castShadow = true; scene.add(sun);
 // sea surface (seen from above and below) + seabed
@@ -34,8 +35,9 @@ sea.rotation.x = -Math.PI / 2; scene.add(sea);
 const bed = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x4a4636 }));
 bed.rotation.x = -Math.PI / 2; bed.position.y = -30; scene.add(bed);
 
-const intro = new DeployIntro(scene, { spool: [-4, 0, 0], start: [0, 0, 3], seabed: 30 });
-const pip = new PilotPiP(document.getElementById('pip'), { mirror: renderer.domElement });
+const assets = await DeployIntro.loadAssets('models/');
+const intro = new DeployIntro(scene, { spool: [-4, 0, 0], start: [0, 0, 3], seabed: 30, assets });
+const pip = new PilotPiP(document.getElementById('pip'), { mirror: renderer.domElement, human: assets.human });
 
 const rov = new THREE.Group(); scene.add(rov);
 new GLTFLoader().load('rov.glb', (g) => {
@@ -57,9 +59,11 @@ function stepOnce(dt) {
   t += dt;
   intro.update(dt);
   const under = camera.position.y < 0;
+  const own = intro.aboveWater(camera);
+  sea.visible = !own;
   scene.background.set(under ? 0x0b3346 : 0x87aac2);
-  scene.fog.color.set(under ? 0x0b3346 : 0x6f97ad);
-  scene.fog.near = under ? 1 : 30; scene.fog.far = under ? 22 : 140;
+  scene.fog.color.set(under ? 0x0b3346 : 0xb9cfdc);
+  scene.fog.near = under ? 1 : 60; scene.fog.far = under ? 22 : 600;
   renderer.render(scene, camera);
   pip.update(dt, rcAt(t));
 }
