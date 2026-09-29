@@ -208,10 +208,12 @@ class Vehicle:
         if not (np.all(np.isfinite(s.vel)) and np.all(np.isfinite(s.omega)) and np.all(np.isfinite(s.q))):
             s.pos, s.q, s.vel, s.omega = saved[0], saved[1], np.zeros(3), np.zeros(3)
             return
-        v_world = q_rot(s.q, s.vel) + self.current_ned
+        # ``vel`` is the body-frame velocity over ground (drag acts on vel - current), so the
+        # current must not be added again here
+        v_world = q_rot(s.q, s.vel)
         s.pos = s.pos + v_world * dt
 
-        # surface and seabed limits
+        # surface and seabed limits (``vel`` is velocity over ground: drop its vertical part)
         if s.pos[2] < 0.0:
             s.pos[2] = 0.0
             if v_world[2] < 0:
@@ -227,4 +229,4 @@ class Vehicle:
         return q_to_euler(self.s.q)
 
     def world_velocity(self) -> np.ndarray:
-        return q_rot(self.s.q, self.s.vel) + self.current_ned
+        return q_rot(self.s.q, self.s.vel)

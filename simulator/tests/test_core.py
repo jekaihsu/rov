@@ -47,6 +47,19 @@ class TestPhysics(unittest.TestCase):
         self.assertLess(abs(math.degrees(pitch)), 2)
 
 
+    def test_floating_on_surface_drifts_with_current(self):
+        # regression: the surface clamp used to add the current to the water-relative velocity
+        # every step, so a surfaced ROV accelerated to ~20 kn
+        v = Vehicle()
+        v.current_ned = np.array([0.0, 1.5 * KNOT, 0.0])
+        v.s.pos = np.array([0.0, 0.0, 0.5])
+        for _ in range(6000):
+            v.step(0.01, np.zeros(6))
+        self.assertAlmostEqual(v.s.pos[2], 0.0, places=3)
+        speed = np.linalg.norm(v.world_velocity()[:2])
+        self.assertAlmostEqual(speed, 1.5 * KNOT, delta=0.05)
+
+
 class TestControl(unittest.TestCase):
     def fly(self, mode, rc_kw, secs, v=None, fc=None, keep_depth=False, op="ROV_USA"):
         v = v or Vehicle()
