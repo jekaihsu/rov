@@ -1,0 +1,93 @@
+{
+ "name": "Korean Castle",
+ "status": "ILLUSTRATIVE_NOT_FOR_NAVIGATION (poster reconstruction, not surveyed)",
+ "loa_m": 149.9,
+ "beam_m": 22.7,
+ "moulded_depth_m": 12.75,
+ "frame": "X bow->stern, Y transverse, Z up; origin at the bow on the seabed",
+ "route": [
+  [
+   6.0,
+   -26.0,
+   8.0
+  ],
+  [
+   65.0,
+   -25.0,
+   9.0
+  ],
+  [
+   128.0,
+   -26.0,
+   11.0
+  ],
+  [
+   172.0,
+   -23.0,
+   13.0
+  ],
+  [
+   174.0,
+   24.0,
+   14.0
+  ],
+  [
+   103.0,
+   26.0,
+   10.0
+  ],
+  [
+   43.0,
+   25.0,
+   9.0
+  ],
+  [
+   -17.0,
+   23.0,
+   11.0
+  ],
+  [
+   -18.0,
+   -24.0,
+   12.0
+  ]
+ ],
+ "grid": {
+  "columns": 15,
+  "column_m": 10.0,
+  "rows": 4,
+  "row_y": [
+   -20,
+   -10,
+   0,
+   10,
+   20
+  ],
+  "sections": {
+   "BOW": [
+    1,
+    5
+   ],
+   "MID": [
+    6,
+    10
+   ],
+   "STERN": [
+    11,
+    15
+   ]
+  }
+ },
+ "collision_bounds": [
+  [
+   -4.24,
+   -14.51,
+   -1.0
+  ],
+  [
+   154.22,
+   16.67,
+   19.71
+  ]
+ ]
+}

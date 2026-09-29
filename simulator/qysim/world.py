@@ -5,11 +5,14 @@ vehicle hull and every tether node can collide with them cheaply:
     Cylinder  finite capsule-like segment (jacket legs, braces, monopiles, bridge piers)
     Box       oriented box, yaw-only rotation (hull, wreck, caisson)
     Wall      vertical half-space with finite extent (quay wall, dam face)
+    FieldMesh arbitrary structure (e.g. a wreck) from a precomputed distance field of its
+              collision meshes (tools/build_wreck.py); thin plates get a small thickness
 The seabed is a horizontal plane at ``World.seabed_depth`` (NED z, metres).
 """
 
 from __future__ import annotations
 
+import functools
 import math
 from dataclasses import dataclass, field
 
@@ -147,6 +150,92 @@ class Wall:
     def as_dict(self):
         return {"type": "wall", "name": self.name, "point": list(self.point), "normal_deg": self.normal_deg,
                 "width": self.width, "top": self.top, "kind": self.kind}
+
+
+@functools.lru_cache(maxsize=4)
+def _load_field(path: str):
+    """Distance field arrays, shared read-only by every FieldMesh that uses the same file."""
+    z = np.load(path)
+    F = z["field"].astype(np.float32) * float(z["quant"])
+    F.setflags(write=False)
+    return F, np.asarray(z["origin"], float), float(z["spacing"])
+
+
+class FieldMesh:
+    """Arbitrary static structure from a precomputed unsigned distance field.
+
+    The field is stored in the structure's own frame (X along the hull, Y across, Z up, origin at
+    the seabed) and placed in the world by ``origin`` (NED of the local origin) and ``heading_deg``
+    (world direction of local +X). Queries are trilinear lookups, so vehicle spheres and tether
+    nodes cost the same as the analytic shapes. Plates are thin: ``thickness`` is added as a skin.
+    """
+
+    def __init__(self, name: str, field_path, origin: tuple, heading_deg: float = 180.0,
+                 kind: str = "wreck", thickness: float = 0.12, model: str | None = None, seabed_depth: float | None = None):
+        self.name, self.kind, self.thickness, self.model = name, kind, float(thickness), model
+        self.F, self.lo, self.h = _load_field(str(field_path))
+        self.shape = np.array(self.F.shape)
+        self.hi = self.lo + self.h * (self.shape - 1)
+        self.origin = np.asarray(origin, float)
+        self.heading_deg = float(heading_deg)
+        a = math.radians(heading_deg)
+        # proper rotation (both frames right-handed): local X -> heading (cos a, sin a, 0),
+        # local Z -> up (0, 0, -1), local Y = Z x X -> (sin a, -cos a, 0)
+        c, s_ = math.cos(a), math.sin(a)
+        self.R = np.array([[c, s_, 0.0], [s_, -c, 0.0], [0.0, 0.0, -1.0]])
+        corners = np.array([[x, y, z] for x in (self.lo[0], self.hi[0]) for y in (self.lo[1], self.hi[1])
+                            for z in (self.lo[2], self.hi[2])])
+        W = corners @ self.R.T + self.origin
+        self._aabb = (W.min(0), W.max(0))
+        self.far = float(self.F.max())
+
+    def to_local(self, X: np.ndarray) -> np.ndarray:
+        return (X - self.origin) @ self.R          # R is orthonormal: inverse = transpose
+
+    def _lookup(self, L: np.ndarray) -> np.ndarray:
+        g = (L - self.lo) / self.h
+        g = np.clip(g, 0.0, self.shape - 1.000001)
+        i = np.floor(g).astype(int)
+        f = g - i
+        F = self.F
+        x0, y0, z0 = i[:, 0], i[:, 1], i[:, 2]
+        fx, fy, fz = f[:, 0], f[:, 1], f[:, 2]
+        c00 = F[x0, y0, z0] * (1 - fx) + F[x0 + 1, y0, z0] * fx
+        c10 = F[x0, y0 + 1, z0] * (1 - fx) + F[x0 + 1, y0 + 1, z0] * fx
+        c01 = F[x0, y0, z0 + 1] * (1 - fx) + F[x0 + 1, y0, z0 + 1] * fx
+        c11 = F[x0, y0 + 1, z0 + 1] * (1 - fx) + F[x0 + 1, y0 + 1, z0 + 1] * fx
+        d = (c00 * (1 - fy) + c10 * fy) * (1 - fz) + (c01 * (1 - fy) + c11 * fy) * fz
+        # outside the grid the field only bounds the distance from below: add the gap to the box
+        gap = np.linalg.norm(np.maximum(self.lo - L, 0) + np.maximum(L - self.hi, 0), axis=1)
+        return d + gap
+
+    def sdf_many(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        L = self.to_local(np.atleast_2d(X))
+        d = self._lookup(L) - self.thickness
+        n_local = np.zeros((len(L), 3))
+        n_local[:, 2] = 1.0
+        near = d < 0.5                        # normals only matter for points about to touch
+        if np.any(near):
+            Ln, e = L[near], 0.5 * self.h
+            grad = np.stack([self._lookup(Ln + off) - self._lookup(Ln - off)
+                             for off in (np.array([e, 0, 0]), np.array([0, e, 0]), np.array([0, 0, e]))], 1)
+            n_local[near] = grad / np.maximum(np.linalg.norm(grad, axis=1), 1e-9)[:, None]
+        return d, n_local @ self.R.T
+
+    def sdf(self, x: np.ndarray) -> tuple[float, np.ndarray]:
+        d, n = self.sdf_many(np.asarray(x, float)[None, :])
+        return float(d[0]), n[0]
+
+    def aabb(self) -> tuple[np.ndarray, np.ndarray]:
+        return self._aabb
+
+    def world_point(self, local) -> np.ndarray:
+        return np.asarray(local, float) @ self.R.T + self.origin
+
+    def as_dict(self):
+        return {"type": "model", "name": self.name, "kind": self.kind, "model": self.model,
+                "origin": self.origin.round(3).tolist(), "heading_deg": self.heading_deg,
+                "bounds_local": [self.lo.round(2).tolist(), self.hi.round(2).tolist()]}
 
 
 @dataclass

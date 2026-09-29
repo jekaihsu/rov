@@ -13,7 +13,12 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .world import Box, Cylinder, CurrentProfile, Wall
+import json
+from pathlib import Path
+
+from .world import Box, Cylinder, CurrentProfile, FieldMesh, Wall
+
+ASSETS = Path(__file__).resolve().parent / "assets"
 
 
 @dataclass
@@ -178,6 +183,41 @@ def wreck_survey() -> Scenario:
         objectives=[Objective("checkpoint", n, p, radius=2.0) for n, p in zip(("艏", "左舷", "艉", "右舷"), pts)])
 
 
+def korean_castle() -> Scenario:
+    """Korean Castle wreck (illustrative poster reconstruction, not a survey): 150 m cargo ship
+    broken in three on a 32 m seabed. Inspection targets use the model's X1 grid cells
+    (C01-C15 every 10 m bow to stern, R01-R04 across)."""
+    sea = 32.0
+    # local frame: X bow->stern, Y across, Z up from the seabed; bow to the west, stern to the east
+    wreck = FieldMesh("Korean Castle", ASSETS / "korean_castle_field.npz", origin=(28.0, -70.0, sea),
+                      heading_deg=90.0, kind="wreck", model="models/korean_castle.glb")
+    W = lambda x, y, z: tuple(float(v) for v in wreck.world_point((x, y, z)).round(2))
+    objs = [
+        Objective("inspect", "X1-BOW-C05 艏段斷裂面（左舷）", W(45.5, -14.8, 6.0), radius=1.6, hold_s=5.0,
+                  face_point=W(45.5, -10.4, 6.0)),
+        Objective("checkpoint", "X1-MID-C07 二號貨艙開口（艙外俯視，勿入艙）", W(61.0, 1.5, 15.0), radius=2.5, hold_s=5.0),
+        Objective("inspect", "X1-STERN-C11 艉段斷裂面（右舷）", W(108.5, 16.8, 7.0), radius=1.6, hold_s=5.0,
+                  face_point=W(108.5, 12.8, 7.0)),
+        Objective("inspect", "X1-STERN-C14 艉樓窗框", W(137.0, 14.0, 12.0), radius=1.6, hold_s=5.0,
+                  face_point=W(137.0, 10.2, 12.0)),
+        Objective("surface", "回投放點上浮", (-2.0, 0.0, 0.5), radius=3.0),
+    ]
+    return Scenario(
+        "korean_castle", "Korean Castle 沉船調查",
+        "150 m 貨輪斷成三截躺在 32 m 海床，船身長滿附著物、貨艙開口朝上。依 X1 格網編號檢查兩處斷裂面、"
+        "二號貨艙與艉樓窗框。不要進入貨艙：纜線很容易卡在艙口圍板。模型為海報推估的示意，非實測。",
+        seabed_depth=sea, obstacles=[wreck], current=CurrentProfile(0.9, 250, 0.6, 260, 0.3, 270, 0.25),
+        visibility_m=10.0, start_pos=(0.0, 0.0, 4.0), start_heading_deg=90.0, spool_pos=(-4.0, 0.0, 0.0),
+        tether_length=90.0, objectives=objs, time_limit_s=1500.0)
+
+
+def korean_castle_route() -> list:
+    """The model's preview ROV route (a lap round the wreck) as world NED waypoints."""
+    meta = json.loads((ASSETS / "korean_castle.json").read_text(encoding="utf-8"))
+    wreck = korean_castle().obstacles[0]
+    return [tuple(float(v) for v in wreck.world_point(p).round(2)) for p in meta["route"]]
+
+
 def random_scenario(seed: int | None = None) -> Scenario:
     rng = np.random.default_rng(seed)
     seed = int(seed if seed is not None else rng.integers(0, 10 ** 6))
@@ -229,6 +269,7 @@ LIBRARY = {
     "tether_untangle": tether_untangle,
     "hull_inspection": hull_inspection,
     "wreck_survey": wreck_survey,
+    "korean_castle": korean_castle,
 }
 
 

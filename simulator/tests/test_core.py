@@ -8,7 +8,7 @@ import numpy as np
 from qysim import scenarios
 from qysim.controller import FlightController
 from qysim.engine import Simulator
-from qysim.physics import KNOT, Vehicle, q_rot
+from qysim.physics import KNOT, Vehicle, q_from_euler, q_rot
 from qysim.rc import RCState, Shaping, pilot_command
 from qysim.tether import GLAND_BODY, Tether
 from qysim.world import Cylinder, World
@@ -276,6 +276,51 @@ class TestSdkFormats(unittest.TestCase):
         sim._damage(0)
         data = sim.sdk_call("QYRovCheckManage", "ego_self_test", [], {})["text"]
         self.assertEqual(data["motor_right_front"], 0)
+
+
+class TestWreck(unittest.TestCase):
+    """Korean Castle: the distance-field wreck collides with the hull and the tether."""
+
+    def test_field_matches_model_frame(self):
+        sc = scenarios.build("korean_castle")
+        wreck = sc.obstacles[0]
+        self.assertAlmostEqual(float(np.linalg.det(wreck.R)), 1.0, places=6)     # no mirroring
+        # just outside the port side of the mid hull the surface is close, far off it is not
+        # (the mid-body plating is at local Y = -9.3 here)
+        d_near, n_near = wreck.sdf(wreck.world_point((75.0, -9.6, 6.0)))
+        d_far, _ = wreck.sdf(wreck.world_point((75.0, -40.0, 6.0)))
+        self.assertLess(d_near, 0.5)
+        self.assertGreater(d_far, 20.0)
+        # the normal points away from the hull (towards local -Y)
+        away = wreck.world_point((75.0, -10.6, 6.0)) - wreck.world_point((75.0, -9.6, 6.0))
+        self.assertGreater(float(np.dot(n_near, away)), 0.5)
+
+    def test_rov_hits_the_hull(self):
+        sim = Simulator("korean_castle", seed=1)
+        wreck = sim.world.obstacles[0]
+        cur = sim.world.current
+        cur.surface_kn = cur.mid_kn = cur.bottom_kn = cur.turbulence = 0.0
+        start = wreck.world_point((75.0, -18.0, 6.0))
+        sim.vehicle.s.pos = start.copy()
+        into = wreck.world_point((75.0, 0.0, 6.0)) - start
+        sim.vehicle.s.q = q_from_euler(0.0, 0.0, math.atan2(into[1], into[0]))
+        sim.controller.reset_holds()                         # hold the new heading, not the scenario's
+        sim.tether.layout([sim.scenario.spool_pos, start])
+        sim.tether.length = 80.0                             # plenty of slack: only the hull stops it
+        sim.rc_physical.rc_lock = 0
+        sim.rc_physical.right_ud = 2000                      # full ahead into the hull
+        for _ in range(1500):
+            sim.step(0.01)
+        names = {e.obstacle for e in sim.world.events}
+        self.assertIn("Korean Castle", names)
+        d, _ = wreck.sdf(sim.vehicle.s.pos)
+        self.assertGreater(d, -0.05)                         # stopped at the plating, not inside it
+
+    def test_route_is_clear_of_the_wreck(self):
+        sim = Simulator("korean_castle", seed=1)
+        wreck = sim.world.obstacles[0]
+        for p in scenarios.korean_castle_route():
+            self.assertGreater(wreck.sdf(np.asarray(p))[0], 5.0)
 
 
 if __name__ == "__main__":

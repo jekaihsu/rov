@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { loadGLTF } from './glb.js';
 import { Cable } from './cable.js';
+import { Environment } from './environment.js';
 import { PilotPiP } from './pilot_pip.js';
 
 const $ = (id) => document.getElementById(id);
@@ -32,22 +33,25 @@ renderer.domElement.className = 'gl';
 vp.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-const waterSurf = new THREE.Color('#1d6378'), waterDeep = new THREE.Color('#04151e'), siltCol = new THREE.Color('#3b3a26');
+const waterSurf = new THREE.Color('#1d6378'), waterDeep = new THREE.Color('#01070b'), siltCol = new THREE.Color('#3b3a26');
 scene.background = new THREE.Color('#0a2a38');
 scene.fog = new THREE.Fog(0x0a2a38, 0.3, 12);
-const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 1500);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 2600);
 camera.position.set(-3, 1.5, -3);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.minDistance = 0.8; controls.maxDistance = 120; controls.enabled = false;
 
-scene.add(new THREE.HemisphereLight(0xa8dcf0, 0x1a2a22, 1.5));
+const hemi = new THREE.HemisphereLight(0xa8dcf0, 0x1a2a22, 1.5); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xdff4ff, 1.6); sun.position.set(20, 60, 10); scene.add(sun);
+// daylight fades with depth (roughly e-folding every 10 m in coastal water): at 30 m the
+// structures are dim blue shapes and the ROV's lights make the difference
+function daylight(depth) { return 0.1 + 0.9 * Math.exp(-Math.max(0, depth) / 10); }
 
 // seabed + grid
 const seabed = new THREE.Group(); scene.add(seabed);
 {
   const g = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshStandardMaterial({ color: 0x4a4636, roughness: 1 }));
-  g.rotation.x = -Math.PI / 2; seabed.add(g);
+  g.rotation.x = -Math.PI / 2; seabed.add(g); seabed.userData.plane = g;
   const grid = new THREE.GridHelper(200, 100, 0x6a7a66, 0x39443a); grid.position.y = 0.02; seabed.add(grid);
   const big = new THREE.GridHelper(800, 40, 0x7d8a70, 0x7d8a70); big.position.y = 0.03; seabed.add(big);
 }
@@ -65,12 +69,48 @@ body.add(placeholder);
 let noseZ = 0.34;
 const rotors = [];            // model rotor nodes {o, base, axis, pos}
 let rotorOf = [];             // physics thruster index → rotor
-const leds = [];
+const leds = [], beams = [];
+// LED lamps: spotlights that light the scene, a visible beam (backscatter in the water) and a glow
+const beamMat = new THREE.ShaderMaterial({
+  uniforms: { uI: { value: 0 }, uColor: { value: new THREE.Color(0xfff2dc) } },
+  vertexShader: `varying float vT; varying vec3 vN; varying vec3 vV;
+    void main() { vT = uv.y; vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform float uI; uniform vec3 uColor; varying float vT; varying vec3 vN; varying vec3 vV;
+    void main() { float along = pow(vT, 2.2);                      // bright at the lamp, fading out
+      float core = 0.35 + 0.65 * pow(abs(dot(vN, vV)), 1.4);         // denser towards the axis, never zero seen end-on
+      gl_FragColor = vec4(uColor * uI * along * core * 0.22, 1.0); }`,
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+});
+const BEAM_LEN = 9, BEAM_HALF = 0.5;                  // m, rad (matches the spot cone)
+const glowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,250,235,1)'); r.addColorStop(0.25, 'rgba(255,240,210,.55)'); r.addColorStop(1, 'rgba(255,230,200,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+})();
 for (const x of [0.12, -0.12]) {
-  const l = new THREE.SpotLight(0xf4f8ff, 0, 25, 0.55, 0.6, 1.2);
+  const l = new THREE.SpotLight(0xfff2dc, 0, 22, BEAM_HALF, 0.55, 1.3);
   l.position.set(x, -0.02, noseZ); l.target.position.set(x * 3, -0.4, 6);
   body.add(l); body.add(l.target); leds.push(l);
+  // cone with its apex at the lamp, opening along the lamp's aim
+  const geo = new THREE.CylinderGeometry(0.03, BEAM_LEN * Math.tan(BEAM_HALF) * 0.85, BEAM_LEN, 32, 1, true);
+  geo.translate(0, -BEAM_LEN / 2, 0);                  // apex (top, uv.y = 1) at the origin, cone along -Y
+  const cone = new THREE.Mesh(geo, beamMat);
+  cone.renderOrder = 5; cone.frustumCulled = false; cone.visible = false;
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xfff4e6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  glow.scale.setScalar(0.35); glow.visible = false;
+  body.add(cone, glow);
+  beams.push({ l, cone, glow });
 }
+function aimBeams() {
+  for (const { l, cone, glow } of beams) {
+    cone.position.copy(l.position); glow.position.copy(l.position).add(new THREE.Vector3(0, 0, 0.03));
+    const dir = l.target.position.clone().sub(l.position).normalize();
+    cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+  }
+}
+aimBeams();
 
 // top-view marker: arrow on the ROV pointing along the nose (scaled with view height)
 const topMark = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(0, .9), new THREE.Vector2(.5, -.5), new THREE.Vector2(0, -.2), new THREE.Vector2(-.5, -.5)])),
@@ -92,7 +132,7 @@ function loadModel() {
       rotors.push({ o, base: o.quaternion.clone(), axis, pos: o.getWorldPosition(new THREE.Vector3()), ang: 0 });
     });
     body.remove(placeholder); body.add(holder);
-    leds.forEach((l) => l.position.setZ(noseZ));
+    leds.forEach((l) => l.position.setZ(noseZ)); aimBeams();
     matchThrusters();
     window.__modelLoaded = true;
   }).catch((e) => { console.warn('rov.glb 載入失敗，使用簡化模型', e?.message || e); });
@@ -124,9 +164,32 @@ const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
 const OB_COL = { pile: 0x6f6a58, monopile: 0x7c6f4f, jacket_leg: 0xb38a3a, brace: 0x9a7c44, mast: 0x5d5d5d, hull: 0x5a2626, wreck: 0x4e4234, wall: 0x5b605a };
 
+// Structures that come as a 3D model (e.g. the Korean Castle wreck): the physics uses a distance
+// field of the collision meshes, the viewer shows the full model. Local frame: X along the hull,
+// Y across, Z up; placed at ``origin`` (NED) with local +X towards ``heading_deg``.
+const modelCache = new Map();
+function placeModel(ob) {
+  const holder = new THREE.Group();
+  const a = ob.heading_deg * DEG;
+  P(ob.origin, holder.position);
+  holder.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a));
+  worldG.add(holder);
+  if (!modelCache.has(ob.model)) modelCache.set(ob.model, loadGLTF(ob.model).catch((e) => { console.warn('model', ob.model, e?.message || e); return null; }));
+  modelCache.get(ob.model).then((g) => {
+    if (!g || holder.parent !== worldG) return;              // world rebuilt meanwhile
+    const m = g.scene.clone(true);
+    m.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = true; o.frustumCulled = true; } });
+    holder.add(m);
+  });
+}
+
 let spoolMarker = [];
+let env = null;
 function buildWorld() {
   worldG.clear(); obstacleMeshes.clear();
+  if (env) env.dispose();
+  env = params.has('noenv') ? null : new Environment(scene, W);
+  seabed.userData.plane.visible = !env;                         // the environment brings its own sand
   seabed.position.y = -W.seabed_depth;
   for (const ob of W.obstacles || []) {
     const mat = new THREE.MeshStandardMaterial({ color: OB_COL[ob.kind] ?? 0x666666, roughness: .85, metalness: .1 });
@@ -147,6 +210,7 @@ function buildWorld() {
       P([ob.point[0], ob.point[1], (ob.top + W.seabed_depth) / 2], mesh.position).addScaledVector(nrm, -th / 2);
       mesh.rotation.y = -a;
     }
+    if (ob.type === 'model') { placeModel(ob); continue; }
     if (mesh) { worldG.add(mesh); obstacleMeshes.set(ob.name, { mesh, ob }); }
   }
   // spool / deployment point
@@ -166,7 +230,7 @@ function buildObjectives(list) {
   list.forEach((o) => {
     const g = new THREE.Group(); P(o.point, g.position);
     const mat = new THREE.MeshBasicMaterial({ color: 0x7f99a8, transparent: true, opacity: .75, depthWrite: false });
-    const wire = new THREE.MeshBasicMaterial({ color: 0x7f99a8, transparent: true, opacity: .18, wireframe: true, depthWrite: false });
+    const wire = new THREE.MeshBasicMaterial({ color: 0x7f99a8, transparent: true, opacity: .07, wireframe: true, depthWrite: false });
     let bill = null;
     const r = Math.max(.3, o.radius || 1);
     if (o.kind === 'checkpoint') {
@@ -863,7 +927,10 @@ function updateUI() {
   if (document.activeElement !== $('opMode')) $('opMode').value = s.operation_mode;
   buildMapTable(s.operation_mode);
   $('btnPause').textContent = s.paused ? '繼續' : '暫停'; $('btnPause').classList.toggle('on', !!s.paused);
-  leds.forEach((l) => (l.intensity = [0, 18, 45][led] || 0));
+  const lv = [0, 0.55, 1][led] || 0;
+  leds.forEach((l) => (l.intensity = lv * 260));                  // candela (physically based lights)
+  beamMat.uniforms.uI.value = lv;
+  for (const b of beams) { b.cone.visible = lv > 0 && camMode !== 'onboard'; b.glow.visible = lv > 0; b.glow.material.opacity = 0.5 + 0.5 * lv; }
 
   // thrusters
   (s.thrust || []).forEach((t, j) => {
@@ -1072,7 +1139,8 @@ function feedReplay() {
   $('rpTime').textContent = `${fmtT(rep.t)} / ${fmtT(c.dur)}`;
 }
 function replayTick(dt) {
-  if (!rep || introActive()) return;          // the clock waits for the deployment intro
+  if (rep && introActive()) { $('rpSub').hidden = true; return; }   // the clock waits for the deployment intro
+  if (!rep) return;
   if (rep.playing) rep.t += dt * rep.speed;
   const c = clipNow();
   if (rep.t >= c.dur) {
@@ -1156,7 +1224,9 @@ function frame(now) {
   if (!inIntro) updateCamera(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
-  _wc.copy(waterSurf).lerp(waterDeep, clamp(camDepth / 45, 0, 1)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
+  const dl = camera.position.y > 0 ? 1 : daylight(camDepth);
+  hemi.intensity = 1.5 * dl; sun.intensity = 1.6 * dl;
+  _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
   scene.background.copy(_wc); scene.fog.color.copy(_wc);
   const vis = (W?.scenario?.visibility_m || 12) * (1 - .75 * clamp(S?.silt || 0, 0, 1));
   const real = $('optFog').checked && camMode !== 'top';
@@ -1164,8 +1234,9 @@ function frame(now) {
   surface.visible = camMode !== 'top' || camera.position.y < 0;
   for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
-  if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 60; scene.fog.far = 900; }
+  if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
+  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);

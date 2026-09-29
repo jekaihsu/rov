@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VIEWER = ROOT / "viewer"
 PAGES = [
-    "app.js", "style.css", "deploy_intro.js", "pilot_pip.js", "humanoid.js", "figures.js", "glb.js", "cable.js",
+    "app.js", "style.css", "deploy_intro.js", "pilot_pip.js", "humanoid.js", "figures.js", "glb.js", "cable.js", "environment.js",
     "demo_recording.json",
 ]
 MODELS = ["rov.glb", "workboat.glb", "worker.glb", "waternormals.jpg", "CREDITS.md"]

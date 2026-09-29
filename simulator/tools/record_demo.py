@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from qysim.engine import Simulator          # noqa: E402
 from qysim.navigation import Waypoint, wrap_pi  # noqa: E402
+from qysim import scenarios as sc_mod          # noqa: E402
 from qysim.server import _json_default       # noqa: E402
 
 CTRL = "QYRovControllerManage"
@@ -211,10 +212,72 @@ def clip_monopile(sim_hz: float, rec_hz: float):
     return sim, frames, script
 
 
+def clip_wreck(sim_hz: float, rec_hz: float):
+    """Korean Castle: descend, lights on, then the four inspection points; climb over the
+    gunwale between them instead of cutting through the hull."""
+    sim = Simulator("korean_castle", seed=2)
+    _take_control(sim)
+    wreck = sim.world.obstacles[0]
+    W = lambda x, y, z: wreck.world_point((x, y, z))
+    frames, script = [], []
+
+    def face(p, q):
+        return math.atan2(q[1] - p[1], q[0] - p[0])
+
+    obs = sim.scenario.objectives
+    legs = [  # (waypoints in local coords, facing point in local coords or None, hold objective index)
+        ([(45.5, -26.0, 8.0), (45.5, -14.8, 6.0)], (45.5, -10.4, 6.0), 0),
+        ([(45.5, -18.0, 16.5), (61.0, 1.5, 15.0)], (61.0, 12.0, 15.0), 1),
+        ([(88.0, 19.0, 16.0), (108.5, 21.0, 9.0), (108.5, 16.8, 7.0)], (108.5, 12.8, 7.0), 2),
+        ([(122.0, 18.0, 12.0), (137.0, 14.0, 12.0)], (137.0, 10.2, 12.0), 3),
+    ]
+    texts = ["往 X1-BOW-C05：左舷艏段斷裂面", "爬升越過舷牆 → X1-MID-C07 二號貨艙（艙外俯視）",
+             "繞到右舷 → X1-STERN-C11 艉段斷裂面", "X1-STERN-C14 艉樓窗框"]
+    sim.nav.speed = 1.1
+    leg, stage, lights = 0, "go", False
+
+    def start_leg(i):
+        pts, fp, _ = legs[i]
+        route = []
+        for k, lp in enumerate(pts):
+            p = W(*lp)
+            nxt = W(*pts[k + 1]) if k + 1 < len(pts) else W(*fp)
+            route.append(Waypoint(float(p[0]), float(p[1]), float(p[2]), face(p, nxt)))
+        sim.nav.route, sim.nav.route_i, sim.nav.mode, sim.nav.nav_status, sim.nav.hold = route, 0, "V_NAVI", 1, None
+        script.append({"t": round(sim.t, 1), "text": texts[i]})
+
+    start_leg(0)
+    t_end = 400.0
+    while sim.t < t_end:
+        if not lights and sim.vehicle.s.pos[2] > 14.0:
+            sim.rc_physical.right_switch = 2
+            lights = True
+            script.append({"t": round(sim.t, 1), "text": f"水深 {sim.vehicle.s.pos[2]:.0f} m，自然光不足 → 開啟 LED（2 檔）"})
+        if stage == "go" and sim.nav.mode == "IDLE":
+            stage, t_hold = "hold", sim.t
+        if stage == "hold":
+            ob = obs[legs[leg][2]]
+            if ob.done or sim.t - t_hold > 25:
+                script.append({"t": round(sim.t, 1), "text": f"{ob.label} ✓" if ob.done else f"{ob.label}（未完成）"})
+                leg += 1
+                if leg >= len(legs):
+                    t_end = min(t_end, sim.t + 6)
+                    stage = "done"
+                else:
+                    start_leg(leg)
+                    stage = "go"
+        sim.step(1 / sim_hz)
+        _slim.sim = sim
+        if len(frames) < sim.t * rec_hz:
+            frames.append(_slim(sim.viewer_state()))
+    return sim, frames, script
+
+
 CLIPS = {
     "jacket": ("導管架碰撞與纜線勾掛", clip_jacket),
     "untangle": ("纜線纏繞脫困", clip_untangle),
     "monopile": ("強流中樁前懸停", clip_monopile),
+    "wreck": ("Korean Castle 沉船調查", clip_wreck),
 }
 
 
