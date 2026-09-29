@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 960" width="1600" height="960" font-family="'Noto Sans CJK SC','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif">
+  <title>ROV-01 推进器布置与推力分配图</title>
+  <defs>
+    <style>
+      .sheet { fill: #fbfbf8; }
+      .frame { fill: none; stroke: #222; stroke-width: 2; }
+      .part { fill: #e6edf2; stroke: #1d2327; stroke-width: 1.6; }
+      .dark { fill: #4a545c; stroke: #1d2327; stroke-width: 1.4; }
+      .acrylic { fill: #d6ecfa; fill-opacity: .6; stroke: #1d5a80; stroke-width: 1.6; }
+      .hdpe { fill: #2f3a42; stroke: #11181c; stroke-width: 1.4; }
+      .foam { fill: #f4c542; fill-opacity: .35; stroke: #8a6a00; stroke-width: 1.4; stroke-dasharray: 6 4; }
+      .hid { stroke: #333; stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+      .cl { stroke: #888; stroke-width: 1; stroke-dasharray: 14 4 2 4; fill: none; }
+      .force { stroke: #c0392b; stroke-width: 3; fill: none; marker-end: url(#ahr); }
+      .jet { stroke: #2d8cc9; stroke-width: 2; stroke-dasharray: 5 4; fill: none; marker-end: url(#ahb); }
+      .axis { stroke: #111; stroke-width: 2; fill: none; marker-end: url(#ahk); }
+      .t { font-size: 13px; fill: #1a1a1a; }
+      .ts { font-size: 11px; fill: #444; }
+      .tl { font-size: 15px; font-weight: 700; fill: #111; }
+      .th { font-size: 14px; font-weight: 700; fill: #111; }
+      .title { font-size: 22px; font-weight: 700; fill: #111; }
+      .grid { stroke: #999; stroke-width: .8; }
+      .pos { fill: #c0392b; font-weight: 700; }
+      .neg { fill: #1f5fa8; font-weight: 700; }
+    </style>
+    <marker id="ahr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#c0392b"/></marker>
+    <marker id="ahb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#2d8cc9"/></marker>
+    <marker id="ahk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#111"/></marker>
+    <!-- horizontal thruster, top view; local +x = direction of positive thrust force -->
+    <g id="thT">
+      <line class="jet" x1="-34" y1="0" x2="-78" y2="0"/>
+      <rect x="-30" y="-25" width="50" height="50" rx="6" class="part"/>
+      <line x1="-18" y1="-25" x2="-18" y2="25" stroke="#1d2327"/>
+      <rect x="-8" y="-7" width="36" height="14" rx="3" class="dark"/>
+      <line class="force" x1="30" y1="0" x2="92" y2="0"/>
+    </g>
+    <!-- CG / CB symbols -->
+    <g id="cg"><circle r="10" fill="#fff" stroke="#111" stroke-width="1.5"/><path d="M0,-10 A10,10 0 0,1 10,0 L0,0 Z M0,10 A10,10 0 0,1 -10,0 L0,0 Z" fill="#111"/></g>
+    <g id="cb"><circle r="10" fill="#fff" stroke="#1f5fa8" stroke-width="1.5"/><path d="M0,-10 A10,10 0 0,1 10,0 L0,0 Z M0,10 A10,10 0 0,1 -10,0 L0,0 Z" fill="#1f5fa8"/></g>
+  </defs>
+
+  <rect class="sheet" x="0" y="0" width="1600" height="960"/>
+  <rect class="frame" x="16" y="16" width="1568" height="928"/>
+  <rect class="frame" x="24" y="24" width="1552" height="912" stroke-width="0.8"/>
+
+  <text class="title" x="48" y="66">ROV-01 · 推进器布置与推力分配图（推进系统图）</text>
+  <text class="ts" x="48" y="88">Thruster layout &amp; allocation · 6 推进器矢量布局（4 水平 45° + 2 垂直）· 5 自由度：前后 / 横移 / 升沉 / 艏摇 / 横滚</text>
+
+  <!-- ===================== TOP VIEW ===================== -->
+  <text class="tl" x="60" y="130">A · 俯视图（上 = 船首）</text>
+
+  <line class="cl" x1="500" y1="160" x2="500" y2="770"/>
+  <line class="cl" x1="220" y1="460" x2="780" y2="460"/>
+
+  <!-- foam (above, dashed) -->
+  <rect class="foam" x="345" y="245" width="95" height="430" rx="8"/>
+  <rect class="foam" x="560" y="245" width="95" height="430" rx="8"/>
+  <!-- frame -->
+  <rect class="hdpe" x="330" y="230" width="12" height="460"/>
+  <rect class="hdpe" x="658" y="230" width="12" height="460"/>
+  <rect class="hdpe" x="342" y="300" width="316" height="10"/>
+  <rect class="hdpe" x="342" y="610" width="316" height="10"/>
+  <!-- electronics tube + dome, battery tube hidden below -->
+  <path class="acrylic" d="M449,262 A51,51 0 0,1 551,262 Z"/>
+  <rect class="acrylic" x="449" y="262" width="102" height="338"/>
+  <rect class="part" x="443" y="600" width="114" height="18"/>
+  <rect class="hid" x="462" y="330" width="76" height="260"/>
+  <text class="ts" x="500" y="390" text-anchor="middle" fill="#1d5a80">电子舱 4″</text>
+  <text class="ts" x="500" y="560" text-anchor="middle">电池舱 3″（下层）</text>
+  <circle cx="500" cy="248" r="9" fill="#1b2a38"/>
+  <text class="ts" x="500" y="200" text-anchor="middle">摄像头</text>
+  <!-- lights -->
+  <rect class="part" x="366" y="214" width="26" height="30" rx="3"/><rect class="part" x="608" y="214" width="26" height="30" rx="3"/>
+  <!-- tether -->
+  <path d="M500,618 C500,680 540,700 560,760" fill="none" stroke="#e67e22" stroke-width="5" stroke-linecap="round"/>
+  <text class="ts" x="568" y="762">脐带缆</text>
+
+  <!-- horizontal thrusters: positive force direction (screen) FL→NE, FR→NW, RL→NW, RR→NE -->
+  <g transform="translate(372,258) rotate(-45)"><use href="#thT"/></g>
+  <g transform="translate(628,258) rotate(-135)"><use href="#thT"/></g>
+  <g transform="translate(372,662) rotate(-135)"><use href="#thT"/></g>
+  <g transform="translate(628,662) rotate(-45)"><use href="#thT"/></g>
+  <text class="tl" x="300" y="310" text-anchor="middle">T2</text><text class="ts" x="300" y="326" text-anchor="middle">左前 FL</text>
+  <text class="tl" x="700" y="310" text-anchor="middle">T1</text><text class="ts" x="700" y="326" text-anchor="middle">右前 FR</text>
+  <text class="tl" x="300" y="740" text-anchor="middle">T4</text><text class="ts" x="300" y="756" text-anchor="middle">左后 RL</text>
+  <text class="tl" x="700" y="740" text-anchor="middle">T3</text><text class="ts" x="700" y="756" text-anchor="middle">右后 RR</text>
+
+  <!-- vertical thrusters (viewed from above) -->
+  <g transform="translate(290,460)">
+    <circle r="32" class="part"/><circle r="12" class="dark"/><circle r="4" fill="#c0392b"/>
+    <text class="tl" x="0" y="54" text-anchor="middle">T5</text><text class="ts" x="0" y="70" text-anchor="middle">左垂直 VL</text>
+  </g>
+  <g transform="translate(710,460)">
+    <circle r="32" class="part"/><circle r="12" class="dark"/><circle r="4" fill="#c0392b"/>
+    <text class="tl" x="0" y="54" text-anchor="middle">T6</text><text class="ts" x="0" y="70" text-anchor="middle">右垂直 VR</text>
+  </g>
+  <rect class="hdpe" x="258" y="452" width="72" height="16"/>
+  <rect class="hdpe" x="670" y="452" width="72" height="16"/>
+  <use href="#cg" x="500" y="460"/>
+
+  <!-- body axes -->
+  <g transform="translate(120,640)">
+    <line class="axis" x1="0" y1="0" x2="0" y2="-70"/><text class="t" x="8" y="-60">X 前进（Surge）</text>
+    <line class="axis" x1="0" y1="0" x2="70" y2="0"/><text class="t" x="20" y="22">Y 右移（Sway）</text>
+    <path class="axis" d="M-28,-6 A30,30 0 0,1 -6,-28"/><text class="ts" x="-70" y="-38">艏摇 Yaw</text>
+    <circle r="5" fill="#111"/><text class="ts" x="-50" y="36">Z 向下（Heave）</text>
+  </g>
+
+  <!-- legend -->
+  <g transform="translate(60,800)">
+    <line class="force" x1="0" y1="10" x2="50" y2="10"/><text class="t" x="60" y="15">正指令时推力方向</text>
+    <line class="jet" x1="220" y1="10" x2="270" y2="10"/><text class="t" x="280" y="15">喷流（水被推出的方向）</text>
+    <use href="#cg" x="490" y="10"/><text class="t" x="508" y="15">重心 CG</text>
+    <use href="#cb" x="600" y="10"/><text class="t" x="618" y="15">浮心 CB</text>
+    <text class="ts" x="0" y="46">水平推进器俯视 45° 安装：4 个推力矢量组合出前后、横移、艏摇 3 个自由度；前后对角两组螺旋桨正/反旋交错，抵消反扭矩。</text>
+    <text class="ts" x="0" y="64">T5/T6 位于重心两侧，同向 = 升沉，反向 = 横滚修正；俯仰不主动控制，靠 CB 在 CG 正上方的扶正力矩保持水平。</text>
+  </g>
+
+  <!-- ===================== FRONT VIEW ===================== -->
+  <text class="tl" x="860" y="130">B · 正视图（从船首看）· 稳性</text>
+  <g transform="translate(1020,340)">
+    <line class="cl" x1="0" y1="-170" x2="0" y2="170"/>
+    <!-- foam -->
+    <rect x="-155" y="-150" width="120" height="50" rx="8" fill="#f4c542" stroke="#8a6a00" stroke-width="1.4"/>
+    <rect x="35" y="-150" width="120" height="50" rx="8" fill="#f4c542" stroke="#8a6a00" stroke-width="1.4"/>
+    <!-- side panels -->
+    <rect class="hdpe" x="-170" y="-150" width="12" height="270"/>
+    <rect class="hdpe" x="158" y="-150" width="12" height="270"/>
+    <!-- tubes -->
+    <circle cx="0" cy="-30" r="51" class="acrylic"/><circle cx="0" cy="-30" r="9" fill="#1b2a38"/>
+    <circle cx="0" cy="68" r="38" fill="#e3e8ec" stroke="#555" stroke-width="1.6"/>
+    <text class="ts" x="0" y="72" text-anchor="middle">电池</text>
+    <!-- vertical thrusters -->
+    <rect x="-240" y="-40" width="56" height="50" rx="6" class="part"/>
+    <rect x="184" y="-40" width="56" height="50" rx="6" class="part"/>
+    <rect class="hdpe" x="-184" y="-22" width="14" height="14"/><rect class="hdpe" x="170" y="-22" width="14" height="14"/>
+    <line class="force" x1="-212" y1="-44" x2="-212" y2="-100"/><line class="force" x1="212" y1="-44" x2="212" y2="-100"/>
+    <line class="jet" x1="-212" y1="14" x2="-212" y2="60"/><line class="jet" x1="212" y1="14" x2="212" y2="60"/>
+    <text class="tl" x="-212" y="84" text-anchor="middle">T5</text><text class="tl" x="212" y="84" text-anchor="middle">T6</text>
+    <!-- skids + ballast -->
+    <rect class="hdpe" x="-170" y="120" width="340" height="12"/>
+    <rect class="dark" x="-150" y="132" width="40" height="16"/><rect class="dark" x="110" y="132" width="40" height="16"/>
+    <!-- CB above CG -->
+    <use href="#cb" x="0" y="-78"/>
+    <use href="#cg" x="0" y="10"/>
+    <line x1="-30" y1="-78" x2="-70" y2="-78" stroke="#1f5fa8"/><line x1="-30" y1="10" x2="-70" y2="10" stroke="#111"/>
+    <line x1="-62" y1="-74" x2="-62" y2="6" stroke="#111" stroke-width="1.2" marker-start="url(#ahk)" marker-end="url(#ahk)"/>
+    <text class="t" x="-150" y="-44">GM ≈</text>
+    <text class="t" x="-150" y="-28">30–50 mm</text>
+    <text class="ts" x="-150" y="-10">越大越稳</text>
+    <text class="ts" x="-150" y="4">越小越灵活</text>
+  </g>
+  <text class="ts" x="860" y="530">浮力块放顶部、电池和配重放底部 → CB 在 CG 正上方 → 横滚/俯仰自动扶正。</text>
+  <text class="ts" x="860" y="548">目标：整机在水中呈微正浮力（约 +0.1–0.3 kg），断电后缓慢上浮，便于回收。</text>
+
+  <!-- ===================== ALLOCATION MATRIX ===================== -->
+  <g transform="translate(860,590)">
+    <text class="tl" x="0" y="0">C · 推力分配矩阵（ArduSub“Vectored”机架，归一化系数）</text>
+    <rect x="0" y="14" width="700" height="210" fill="#fff" stroke="#222" stroke-width="1.2"/>
+    <g class="grid">
+      <line x1="0" y1="44" x2="700" y2="44" stroke="#222"/>
+      <line x1="0" y1="74" x2="700" y2="74"/><line x1="0" y1="104" x2="700" y2="104"/><line x1="0" y1="134" x2="700" y2="134"/>
+      <line x1="0" y1="164" x2="700" y2="164"/><line x1="0" y1="194" x2="700" y2="194"/>
+      <line x1="160" y1="14" x2="160" y2="224"/><line x1="268" y1="14" x2="268" y2="224"/><line x1="376" y1="14" x2="376" y2="224"/>
+      <line x1="484" y1="14" x2="484" y2="224"/><line x1="592" y1="14" x2="592" y2="224"/>
+    </g>
+    <g class="t" text-anchor="middle">
+      <text x="80" y="34" font-weight="700">推进器</text>
+      <text x="214" y="34" font-weight="700">前后 Surge</text><text x="322" y="34" font-weight="700">横移 Sway</text>
+      <text x="430" y="34" font-weight="700">艏摇 Yaw</text><text x="538" y="34" font-weight="700">升沉 Heave</text><text x="646" y="34" font-weight="700">横滚 Roll</text>
+
+      <text x="80" y="64">T1 右前 FR</text><text class="pos" x="214" y="64">+1</text><text class="neg" x="322" y="64">−1</text><text class="pos" x="430" y="64">+1</text><text x="538" y="64">0</text><text x="646" y="64">0</text>
+      <text x="80" y="94">T2 左前 FL</text><text class="pos" x="214" y="94">+1</text><text class="pos" x="322" y="94">+1</text><text class="neg" x="430" y="94">−1</text><text x="538" y="94">0</text><text x="646" y="94">0</text>
+      <text x="80" y="124">T3 右后 RR</text><text class="pos" x="214" y="124">+1</text><text class="pos" x="322" y="124">+1</text><text class="pos" x="430" y="124">+1</text><text x="538" y="124">0</text><text x="646" y="124">0</text>
+      <text x="80" y="154">T4 左后 RL</text><text class="pos" x="214" y="154">+1</text><text class="neg" x="322" y="154">−1</text><text class="neg" x="430" y="154">−1</text><text x="538" y="154">0</text><text x="646" y="154">0</text>
+      <text x="80" y="184">T5 左垂直 VL</text><text x="214" y="184">0</text><text x="322" y="184">0</text><text x="430" y="184">0</text><text class="pos" x="538" y="184">+1</text><text class="neg" x="646" y="184">−1</text>
+      <text x="80" y="214">T6 右垂直 VR</text><text x="214" y="214">0</text><text x="322" y="214">0</text><text x="430" y="214">0</text><text class="pos" x="538" y="214">+1</text><text class="pos" x="646" y="214">+1</text>
+    </g>
+    <text class="ts" x="0" y="246">符号约定：Surge + = 前进，Sway + = 右移，Yaw + = 逆时针（俯视），Heave + = 上浮，Roll + = 右舷上抬。</text>
+    <text class="ts" x="0" y="264">实际电机正反向、桨叶旋向以装机后在 QGroundControl / BlueOS 里逐个“电机测试”确认为准。</text>
+  </g>
+
+  <!-- title block -->
+  <g transform="translate(1300,110)">
+    <rect x="0" y="0" width="260" height="118" fill="#fff" stroke="#222" stroke-width="1.4"/>
+    <line class="grid" x1="0" y1="40" x2="260" y2="40"/><line class="grid" x1="0" y1="80" x2="260" y2="80"/>
+    <line class="grid" x1="130" y1="40" x2="130" y2="118"/>
+    <text x="12" y="27" font-size="15" font-weight="700" fill="#111">ROV-01 小型观测级 ROV</text>
+    <text class="ts" x="10" y="54">图号</text><text class="t" x="10" y="72">ROV-01-A-002</text>
+    <text class="ts" x="140" y="54">版本</text><text class="t" x="140" y="72">Rev A · 概念</text>
+    <text class="ts" x="10" y="94">日期</text><text class="t" x="10" y="111">2026-09-29</text>
+    <text class="ts" x="140" y="94">比例</text><text class="t" x="140" y="111">不按比例 NTS</text>
+  </g>
+</svg>
