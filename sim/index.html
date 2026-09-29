@@ -273,8 +273,33 @@ const xrayMats = [];
 
 const labelsEl = $('labels'), leaders = $('leaders');
 
-function loadModel(srcs = ['rov.json', 'rov.glb']) {
-  new GLTFLoader().load(srcs[0], (gltf) => {
+// rov.json = glTF JSON with the binary buffer inlined as base64. It is rebuilt into a GLB in memory
+// so the loader never has to fetch a data: URI (blocked by the published page's CSP).
+async function jsonToGlb(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(res.status + ' ' + url);
+  const json = await res.json();
+  const b64 = json.buffers[0].uri.split(',')[1];
+  const bin = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+  delete json.buffers[0].uri;
+  const pad = (n) => (n + 3) & ~3;
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(json));
+  const jl = pad(jsonBytes.length), bl = pad(bin.length), total = 12 + 8 + jl + 8 + bl;
+  const out = new ArrayBuffer(total), dv = new DataView(out), u8 = new Uint8Array(out);
+  dv.setUint32(0, 0x46546C67, true); dv.setUint32(4, 2, true); dv.setUint32(8, total, true);
+  dv.setUint32(12, jl, true); dv.setUint32(16, 0x4E4F534A, true); u8.fill(0x20, 20, 20 + jl); u8.set(jsonBytes, 20);
+  dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004E4942, true); u8.set(bin, 28 + jl);
+  return out;
+}
+function loadModel() {
+  const loader = new GLTFLoader();
+  const fail = () => { $('loading').textContent = '無法載入 3D 模型（rov.json / rov.glb），請確認模型檔與頁面放在同一個資料夾。'; };
+  jsonToGlb('rov.json')
+    .then((glb) => loader.parse(glb, '', onModel, fail))
+    .catch(() => loader.load('rov.glb', onModel, undefined, fail));
+}
+function onModel(gltf) {
+  {
     const root = gltf.scene;
     const box = new THREE.Box3().setFromObject(root);
     const ctr = box.getCenter(new THREE.Vector3());
@@ -323,10 +348,7 @@ function loadModel(srcs = ['rov.json', 'rov.glb']) {
     thrusters.sort((a, b) => THR_IDS.indexOf(a.id) - THR_IDS.indexOf(b.id));
     buildAllocation(); buildThrBars(); initFlow();
     $('loading').hidden = true;
-  }, undefined, () => {
-    if (srcs.length > 1) loadModel(srcs.slice(1));
-    else $('loading').textContent = '無法載入 3D 模型（rov.json / rov.glb），請確認模型檔與頁面放在同一個資料夾。';
-  });
+  }
 }
 
 /* ---------------- thrust allocation (6x6 from real thruster geometry) ---------------- */
