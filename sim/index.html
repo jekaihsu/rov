@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>ROV-01 操控模擬器</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,6 +21,7 @@
   --f-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: dark;
 }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { background: var(--abyss); color: var(--ink); font-family: var(--f-body); font-size: 13px; }
 .app { height: 100%; display: grid; grid-template-rows: auto 1fr; gap: 10px; padding-inline: 16px; padding-block: 10px; box-sizing: border-box; }
@@ -593,17 +595,18 @@ function drawLabels(w, h) {
     items.push({ G, x, y, left: x < w / 2 });
   }
   let svg = '';
-  const narrow = w < 560;
+  const gap = w < 560 ? 17 : 22, pad = 10;
   for (const left of [true, false]) {
     const side = items.filter((i) => i.left === left).sort((a, b) => a.y - b.y);
-    let lastY = -1e9; const gap = narrow ? 17 : 22;
+    let lastY = -1e9;
     for (const it of side) {
-      let ly = Math.max(it.y - 30, lastY + gap, 22); lastY = ly;
-      const colX = left ? Math.max(8, Math.min(it.x - 60, w * .3)) : Math.min(w - 8, Math.max(it.x + 60, w * .7));
-      const el = it.G.label; el.style.top = ly + 'px';
-      if (left) { el.style.left = ''; el.style.right = (w - colX) + 'px'; } else { el.style.right = ''; el.style.left = colX + 'px'; }
+      const ly = Math.min(h - (w < 560 ? 120 : 140), Math.max(it.y, lastY + gap, 20)); lastY = ly;
+      const el = it.G.label, lw = el.offsetWidth;
+      el.style.top = ly + 'px';
+      if (left) { el.style.right = ''; el.style.left = pad + 'px'; } else { el.style.left = ''; el.style.right = pad + 'px'; }
+      const ex = left ? pad + lw : w - pad - lw;
       const col = el.classList.contains('foam') ? C('--foam') : C('--ink-dim');
-      svg += `<polyline points="${colX},${ly} ${it.x},${it.y}" fill="none" stroke="${col}" stroke-width="1" opacity=".8"/><circle cx="${it.x}" cy="${it.y}" r="2.5" fill="${col}"/>`;
+      svg += `<polyline points="${ex},${ly} ${ex + (left ? 12 : -12)},${ly} ${it.x},${it.y}" fill="none" stroke="${col}" stroke-width="1" opacity=".75"/><circle cx="${it.x}" cy="${it.y}" r="2.5" fill="${col}"/>`;
     }
   }
   leaders.innerHTML = svg;
@@ -639,8 +642,9 @@ function resize() {
 new ResizeObserver(resize).observe(vp);
 let last = performance.now(), fpsT = 0, fpsN = 0, explodeCur = 0;
 function frame(now) {
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
-  const spd = step(dt);
+  const dt = Math.min(.25, (now - last) / 1000); last = now;
+  let spd = 0;
+  for (let left = dt; left > 1e-6; left -= 1 / 60) spd = step(Math.min(left, 1 / 60));
   rov.quaternion.copy(S.q);
   // world moves around the vehicle
   seabed.position.set(-(S.pos.x % .5), START_DEPTH - SEABED_DEPTH - S.pos.y, -(S.pos.z % .5));
@@ -682,5 +686,6 @@ function frame(now) {
   fpsN++; fpsT += dt; if (fpsT > .5) { $('fps').textContent = `${Math.round(fpsN / fpsT)} FPS · ${(fpsT / fpsN * 1000).toFixed(1)} ms`; fpsN = 0; fpsT = 0; }
   requestAnimationFrame(frame);
 }
+if (matchMedia('(max-width: 720px)').matches) $('vLabels').checked = false;   // labels crowd a phone-sized view
 resize(); loadModel(); requestAnimationFrame(frame);
 </script>
