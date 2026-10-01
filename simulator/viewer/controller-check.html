@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>搖桿輸入檢查 · X1 模擬器</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme: dark; font-family: system-ui, "Microsoft JhengHei", sans-serif; background: #061018; color: #d6e4ec; }
+  * { box-sizing: border-box; }
+  body { max-width: 880px; margin: 0 auto; padding: 24px 18px; line-height: 1.7; }
+  h1 { font-size: 24px; margin: 0; } h2 { font-size: 17px; }
+  a { color: #4fd1ff; } p { margin: 10px 0; }
+  .hint { color: #99afbc; } #status { padding: 12px; border: 1px solid #49616f; }
+  article { margin: 20px 0; padding: 16px; border: 1px solid #1f3a4a; background: #0c1a24; overflow-wrap: anywhere; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 4px; border-bottom: 1px solid #1f3a4a; }
+  td:nth-child(2) { font-family: ui-monospace, monospace; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+  .button { border: 1px solid #49616f; padding: 3px 8px; font-family: ui-monospace, monospace; }
+  .pressed { background: #3ddc97; color: #061018; }
+  button { cursor: pointer; padding: 8px 14px; background: #11232f; color: #d6e4ec; border: 1px solid #49616f; }
+  textarea { width: 100%; height: 170px; margin-top: 12px; background: #0c1a24; color: #d6e4ec; padding: 10px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<h1>搖桿輸入檢查</h1>
+<p><a href="./">返回 X1 模擬器</a></p>
+<p>點一下這個頁面，再按遙控器任一按鍵，推動兩支搖桿及波輪。此頁只讀取輸入，不會控制任何機器。</p>
+<p id="status" role="status">等待瀏覽器偵測裝置…</p>
+<p id="context" class="hint"></p>
+<div id="devices"></div>
+<p class="hint">若一直沒有裝置：在 Windows 按 Win + R，輸入 <code>joy.cpl</code>，確認是否列出遙控器，以及「內容 → 測試」是否有反應。X1 原廠遙控器的 USB／網路連接不等於遊戲手把輸入；本頁只能檢查瀏覽器的遊戲手把介面。</p>
+<button id="reportButton" type="button">產生檢查結果</button>
+<label for="report" class="hint">可複製結果回報</label>
+<textarea id="report" readonly hidden aria-label="搖桿檢查結果"></textarea>
+<script src="controller-check.js"></script>
+</body>
+</html>

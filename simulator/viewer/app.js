@@ -453,6 +453,8 @@ function onWorld(m) {
 
 function onState(m) {
   if (lastT >= 0 && m.t < lastT - 0.5) needResync = true;    // scenario loaded / reset → server RC reset to locked
+  if (m.controller?.generation !== S?.controller?.generation) needResync = true;
+  if (m.controller?.revision !== S?.controller?.revision) needResync = true;
   lastT = m.t;
   S = m; stateCount++;
   if (needResync && !m.remote_control && m.rc) {
@@ -632,12 +634,15 @@ function inputTick() {
   const kb = { left_ud: k('KeyW', 'KeyS'), left_lr: k('KeyD', 'KeyA'), right_ud: k('ArrowUp', 'ArrowDown'), right_lr: k('ArrowRight', 'ArrowLeft'), left_wave: k('KeyE', 'KeyQ'), right_wave: k('KeyC', 'KeyZ') };
   const pad = readPad();
   for (const c of CH) out[c] = clamp(kb[c] + touch[c] + (pad ? pad[c] : 0), -1, 1);
+  if (S?.controller) for (const c of CH) out[c] = clamp(((S.controller.axes[c] ?? 1500) - 1500) / 500, -1, 1);
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage(), js = JSON.stringify(msg), now = performance.now();
   if (js !== lastSent || now - lastSentAt > 450) {
-    if (send({ type: 'rc', rc: msg })) { lastSent = js; lastSentAt = now; }
+    if (send({ type: 'rc', rc: msg, controller_generation: S?.controller?.generation })) { lastSent = js; lastSentAt = now; }
   }
-  $('padInfo').textContent = pad ? `手把：${pad.id.slice(0, 48)}` : '未偵測到手把（按任一手把按鍵喚醒）。';
+  $('padInfo').textContent = S?.controller
+    ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
+    : pad ? `手把：${pad.id.slice(0, 48)}` : '未偵測到手把（按任一手把按鍵喚醒）。';
   drawSticks(msg);
 }
 setInterval(inputTick, 33);

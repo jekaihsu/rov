@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 simulator/**/rov_sandbox_telemetry.log
+.runtime/
+.playwright-cli/
+X1 SDK.zip
+qysea_sdk_tester_share.zip
