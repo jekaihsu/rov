@@ -21,8 +21,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .physics import G, RHO, q_rot, q_conj
+from .physics import G, RHO, q_rot, q_conj, cross3
 from .world import World, Cylinder
+from ._cable_accel import advance as _advance_compiled, advance_batch as _advance_batch
 
 GLAND_BODY = np.array([-0.38, 0.0, -0.06])     # tether strain-relief gland, rear of the hull
 
@@ -46,12 +47,15 @@ class TetherParams:
     node_radius: float = 0.03
     friction: float = 0.6
     substeps: int = 10
+    contact_cache_m: float = 0.01     # max displacement before refreshing local contact planes
+    accelerated: bool = True         # optional Numba kernel; equations match NumPy fallback
 
 
 class Tether:
     def __init__(self, world: World, spool_ned: np.ndarray, rov_gland_ned: np.ndarray,
-                 length: float | None = None, params: TetherParams | None = None):
+                 length: float | None = None, params: TetherParams | None = None, gland_body=None):
         self.p = params or TetherParams()
+        self.gland_body = np.asarray(GLAND_BODY if gland_body is None else gland_body, float)
         self.world = world
         self.spool = np.asarray(spool_ned, float)
         span = float(np.linalg.norm(rov_gland_ned - self.spool))
@@ -150,20 +154,40 @@ class Tether:
              rov_vel_world: np.ndarray) -> np.ndarray:
         """Advance the cable; returns the body-frame wrench [F; M] the tether applies to the ROV."""
         p = self.p
-        gland = rov_pos + q_rot(rov_q, GLAND_BODY)
+        gland = rov_pos + q_rot(rov_q, self.gland_body)
         h = dt / p.substeps
         f_rov = np.zeros(3)
-        self._cur = self.world.current.at_many(self.x[:, 2], self.world.seabed_depth)
+        self._cur = self.world.current.sample_many(self.x, self.world.seabed_depth, t_now)
         self._cand = self.world.near(self.x.min(axis=0), self.x.max(axis=0), 2.0)
-        for _ in range(p.substeps):
-            f_rov = self._substep(h, gland, rov_vel_world)
+        self._contact_anchor = None
+        complete = False
+        if p.accelerated and _advance_batch is not None and p.contact_cache_m > 0:
+            anchor,saved_v = self.x.copy(),self.v.copy()
+            distances,normals,_ = self.world.sdf_many(anchor,self._cand)
+            mass,rest = self._node_mass(),self.seg_len
+            stiffness = min(p.ea/rest,p.k_max)
+            damping = 2*p.damping_ratio*math.sqrt(stiffness*mass)
+            complete,magnitudes,f_rov = _advance_batch(self.x,self.v,self._cur,self.spool,gland,
+                rov_vel_world,self.broken,h,mass,rest,stiffness,damping,p.diameter,p.cd_normal,
+                p.cd_tangent,p.wet_weight_per_m,p.breaking_n,p.substeps,anchor,distances,normals,
+                p.contact_cache_m,p.node_radius,p.friction)
+            if complete:
+                self.tension_spool,self.tension_rov = float(magnitudes[0]),float(magnitudes[-1])
+                self.tension_max = float(magnitudes.max())
+                self._seg_tension = magnitudes
+            else:
+                self.x[:],self.v[:] = anchor,saved_v
+        self.last_batch_complete = bool(complete)
+        if not complete:
+            for _ in range(p.substeps):
+                f_rov = self._substep(h, gland, rov_vel_world)
         self._update_metrics(t_now)
         if self.broken:
             self.force_on_rov = np.zeros(3)
             return np.zeros(6)
         self.force_on_rov = f_rov
         f_body = q_rot(q_conj(rov_q), f_rov)
-        return np.concatenate([f_body, np.cross(GLAND_BODY, f_body)])
+        return np.concatenate([f_body, cross3(self.gland_body, f_body)])
 
     def _substep(self, h: float, gland: np.ndarray, gland_vel: np.ndarray) -> np.ndarray:
         p, x, v = self.p, self.x, self.v
@@ -172,6 +196,17 @@ class Tether:
         l0 = self.seg_len
         k = min(p.ea / l0, p.k_max)
         c = 2 * p.damping_ratio * math.sqrt(k * m)
+
+        if p.accelerated and _advance_compiled is not None:
+            f_mag, force = _advance_compiled(x,v,self._cur,self.spool,gland,gland_vel,self.broken,
+                                             h,m,l0,k,c,p.diameter,p.cd_normal,p.cd_tangent,
+                                             p.wet_weight_per_m,p.breaking_n)
+            self._resolve_contact()
+            self.tension_spool = float(f_mag[0])
+            self.tension_rov = float(f_mag[-1])
+            self.tension_max = float(f_mag.max())
+            self._seg_tension = f_mag
+            return force
 
         # kinematic ends
         x[0], v[0] = self.spool, 0.0
@@ -208,8 +243,28 @@ class Tether:
         v += F / m * h
         x += v * h
 
+        self._resolve_contact()
+        self.tension_spool = float(f_mag[0])
+        self.tension_rov = float(f_mag[-1])
+        self.tension_max = float(f_mag.max())
+        self._seg_tension = f_mag
+        return -f_seg[-1] if not self.broken else np.zeros(3)
+
+    def _resolve_contact(self):
+        p,x,v = self.p,self.x,self.v
+        n = p.segments
+
         # obstacle contact with friction
-        dist, normal, _ = self.world.sdf_many(x, self._cand)
+        # Retain every force-integration substep. Static contact geometry changes
+        # little within a 10 ms tick: use a local tangent plane until any node
+        # moves 1 cm, then refresh. Flat seabeds remain exact; curved proxies are
+        # approximated over a distance below the 3 cm cable collision radius.
+        if (self._contact_anchor is None or p.contact_cache_m <= 0 or
+                np.max(np.sum((x-self._contact_anchor)**2,axis=1)) > p.contact_cache_m**2):
+            self._contact_anchor = x.copy()
+            self._contact_dist, self._contact_normal, _ = self.world.sdf_many(x, self._cand)
+        normal = self._contact_normal
+        dist = self._contact_dist + np.einsum('ij,ij->i',x-self._contact_anchor,normal)
         pen = np.minimum(p.node_radius - dist, 0.05)     # push out at most 5 cm per substep
         hit = pen > 0
         hit[0] = False
@@ -224,12 +279,6 @@ class Tether:
             vt_n = np.linalg.norm(vt_vec, axis=1)
             reduce = np.clip(1.0 - p.friction * (np.abs(into) + 0.05) / np.maximum(vt_n, 1e-6), 0.0, 1.0)
             v[hit] = v[hit] - vt_vec + vt_vec * reduce[:, None]
-
-        self.tension_spool = float(f_mag[0])
-        self.tension_rov = float(f_mag[-1])
-        self.tension_max = float(f_mag.max())
-        self._seg_tension = f_mag
-        return -f_seg[-1] if not self.broken else np.zeros(3)
 
     def _update_metrics(self, t_now: float) -> None:
         p = self.p
@@ -251,7 +300,7 @@ class Tether:
         """Net turns of cable around each (near-vertical) cylinder, from the cable's winding angle."""
         out = {}
         for ob in self.world.obstacles:
-            if not isinstance(ob, Cylinder):
+            if not isinstance(ob, Cylinder) or ob.kind == "habitat":
                 continue
             a, b = np.asarray(ob.p0, float), np.asarray(ob.p1, float)
             axis = b - a

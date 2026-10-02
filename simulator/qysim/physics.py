@@ -6,8 +6,9 @@ Frames
 
 The thruster layout is the X1-class vectored layout measured from the Blender
 reconstruction: four diagonal thrusters tilted in 3-D plus two longitudinal ones.
-Top speeds are matched to the X1 datasheet (forward 4.5 kn, lateral 2.5 kn,
-vertical 1.5 kn) by fitting quadratic drag to the allocation's real authority.
+Nominal independent-axis speeds use X1 datasheet targets (forward 4.5 kn,
+lateral 2.5 kn, vertical 1.5 kn) to fit drag. Coupled free-body speeds can differ;
+these fits are not experimental validation of complete vehicle motion.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import math
 from dataclasses import dataclass, field
 
 import numpy as np
+from .vehicles import X1_THRUSTERS, get_vehicle_definition
 
 KNOT = 0.514444
 RHO = 1025.0
@@ -39,8 +41,25 @@ def q_conj(q: np.ndarray) -> np.ndarray:
 
 
 def q_rot(q: np.ndarray, v: np.ndarray) -> np.ndarray:
-    """Rotate vector v by quaternion q."""
-    return q_mul(q_mul(q, np.array([0.0, *v])), q_conj(q))[1:]
+    """Rotate one 3-vector: expanded q * (0,v) * conjugate(q).
+
+    Avoids temporary four-vectors in this per-vehicle/per-collision hot path.
+    Keeps the original behavior for non-unit quaternions as well.
+    """
+    w, x, y, z = q
+    vx, vy, vz = v
+    dot = x*vx + y*vy + z*vz
+    scale = w*w - x*x - y*y - z*z
+    return np.array([scale*vx + 2*(x*dot + w*(y*vz-z*vy)),
+                     scale*vy + 2*(y*dot + w*(z*vx-x*vz)),
+                     scale*vz + 2*(z*dot + w*(x*vy-y*vx))])
+
+
+def cross3(a, b):
+    """Cross product specialized to single 3-vectors, with no broadcast setup."""
+    ax, ay, az = a
+    bx, by, bz = b
+    return np.array([ay*bz-az*by, az*bx-ax*bz, ax*by-ay*bx])
 
 
 def q_from_axis_angle(axis: np.ndarray, angle: float) -> np.ndarray:
@@ -77,15 +96,7 @@ def q_to_euler(q: np.ndarray) -> tuple[float, float, float]:
 # ── thruster layout (body FRD, metres, relative to CG) ────────────────────
 # Measured from the X1 Blender reconstruction (Blender: -Y fwd, +X stbd, +Z up;
 # CG assumed 170 mm above the skid plane). Axis = direction of positive thrust.
-THRUSTERS = [
-    # name,        position (x, y, z),        axis (x, y, z)
-    ("T1 PORT_FRONT", (0.250, -0.193, 0.032), (0.32, -0.54, -0.78)),
-    ("T2 STBD_FRONT", (0.250, 0.193, 0.032), (0.32, 0.54, -0.78)),
-    ("T3 PORT_AFT", (-0.251, -0.171, -0.035), (-0.28, -0.48, 0.83)),
-    ("T4 STBD_AFT", (-0.251, 0.171, -0.035), (-0.28, 0.48, 0.83)),
-    ("T5 PORT_LONG", (-0.061, -0.205, 0.068), (-1.0, 0.0, 0.0)),
-    ("T6 STBD_LONG", (-0.061, 0.205, 0.068), (-1.0, 0.0, 0.0)),
-]
+THRUSTERS = list(X1_THRUSTERS)  # Legacy imports remain compatible.
 
 
 @dataclass
@@ -102,15 +113,31 @@ class VehicleParams:
     linear_drag: tuple = (8.0, 12.0, 15.0, 1.0, 1.0, 1.0)
 
 
-def allocation_matrix() -> np.ndarray:
+def allocation_matrix(thrusters=None) -> np.ndarray:
     """B (6 x n): columns are the body wrench [F; M] of one unit-thrust thruster."""
     cols = []
-    for _, pos, axis in THRUSTERS:
+    for _, pos, axis in (THRUSTERS if thrusters is None else thrusters):
         d = np.asarray(axis, float)
         d /= np.linalg.norm(d)
         r = np.asarray(pos, float)
-        cols.append(np.concatenate([d, np.cross(r, d)]))
+        cols.append(np.concatenate([d, cross3(r, d)]))
     return np.array(cols).T
+
+
+def coriolis_wrench(mass, added_mass, inertia, velocity, omega, relative_velocity=None):
+    """Return -C_RB(nu)nu - C_A(nu_r)nu_r for diagonal inertia at CG.
+
+    ``inertia`` includes rotational added inertia; irrotational current has no
+    angular component. With still water this wrench performs zero work. See
+    Fossen's marine-craft model; translational added mass must be inside the
+    cross product, and its paired angular coupling must not be omitted.
+    """
+    velocity, omega = np.asarray(velocity), np.asarray(omega)
+    relative = velocity if relative_velocity is None else np.asarray(relative_velocity)
+    added_momentum = np.asarray(added_mass) * relative
+    force = -mass * cross3(omega, velocity) - cross3(omega, added_momentum)
+    moment = -cross3(omega, np.asarray(inertia) * omega) - cross3(relative, added_momentum)
+    return np.concatenate((force, moment))
 
 
 @dataclass
@@ -127,11 +154,21 @@ class Vehicle:
     """Thruster-driven 6-DOF body. Call ``step(dt, thrust_cmd)`` with per-thruster
     commands in [-1, 1]."""
 
-    def __init__(self, params: VehicleParams | None = None):
-        self.p = params or VehicleParams()
-        self.B = allocation_matrix()
-        self.B_pinv = np.linalg.pinv(self.B)
-        self.s = VehicleState()
+    def __init__(self, params: VehicleParams | None = None, *, model_id="x1", definition=None):
+        self.definition = definition or get_vehicle_definition(model_id)
+        self.model_id = self.definition.id
+        self.thrusters = self.definition.thrusters
+        self.capabilities = self.definition.capabilities
+        self.p = params or VehicleParams(**self.definition.params)
+        self.B = allocation_matrix(self.thrusters)
+        # Optimize only independently controlled axes. Falcon cannot cancel
+        # horizontal-thrust roll/pitch moments; asking the inverse to do so
+        # would unnecessarily sacrifice attainable surge/sway authority.
+        axes = ("surge", "sway", "heave", "roll", "pitch", "yaw")
+        controlled = [i for i, axis in enumerate(axes) if axis in self.capabilities]
+        self.B_pinv = np.zeros((len(self.thrusters), 6))
+        self.B_pinv[:, controlled] = np.linalg.pinv(self.B[controlled, :])
+        self.s = VehicleState(thrust=np.zeros(len(self.thrusters)))
         self.current_ned = np.zeros(3)      # water current, world m/s
         self.seabed_depth = 30.0            # m
         m = self.p.mass
@@ -152,10 +189,15 @@ class Vehicle:
         """Largest achievable force/torque along each wrench axis (thrusters saturated)."""
         out = np.zeros(6)
         for k in range(6):
+            if ("surge", "sway", "heave", "roll", "pitch", "yaw")[k] not in self.capabilities:
+                continue
             e = np.zeros(6)
             e[k] = 1.0
             t = self.B_pinv @ e
-            t = t / np.max(np.abs(t))
+            peak = np.max(np.abs(t))
+            if peak < 1e-9:
+                continue
+            t = t / peak
             out[k] = (self.B @ t)[k] * self.p.thruster_max
         return out
 
@@ -190,14 +232,18 @@ class Vehicle:
         F_buoy = up_body * p.net_buoyancy
         weight = p.mass * G
         r_cb = np.array([0.0, 0.0, -p.gm])                   # CB above CG in body frame
-        M_right = np.cross(r_cb, up_body * (weight + p.net_buoyancy))
+        M_right = cross3(r_cb, up_body * (weight + p.net_buoyancy))
 
         F_tot = F + F_drag + F_buoy
-        # Coriolis-lite: keep velocities consistent while rotating
-        F_tot -= self.M * np.cross(s.omega, s.vel)
+        inertial = coriolis_wrench(p.mass, p.added_mass, self.I, s.vel, s.omega, v_rel)
+        F_tot += inertial[:3]
+        # The locally frozen NED current still rotates in body coordinates:
+        # M_A * d(v_c_body)/dt = -M_A * (omega x v_c_body).
+        # Spatial/time derivatives of the flow field are not supplied here.
+        F_tot -= np.asarray(p.added_mass) * cross3(s.omega, current_body)
         s.accel = F_tot / self.M
         s.vel = s.vel + s.accel * dt
-        M_tot = Mt + M_drag + M_right - np.cross(s.omega, self.I * s.omega)
+        M_tot = Mt + M_drag + M_right + inertial[3:]
         s.omega = s.omega + M_tot / self.I * dt
 
         # integrate attitude and position

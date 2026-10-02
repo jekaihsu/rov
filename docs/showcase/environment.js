@@ -1,4 +1,4 @@
-// Surroundings for every scenario (visual only, no physics):
+// Shared server habitat; older recordings fall back to decorative surroundings.
 //   under water  seabed relief with sand ripples, rock outcrops, scattered steel debris,
 //                kelp that sways with the current, fish schools circling the structures
 //   on the surface  coastline and islands on the horizon, other vessels, navigation buoys and a
@@ -73,7 +73,9 @@ function fishGeometry() {
   body.scale(0.55, 0.8, 2.2);
   const tail = new THREE.ConeGeometry(0.05, 0.1, 4);
   tail.rotateX(Math.PI / 2); tail.scale(0.25, 1.2, 1); tail.translate(0, 0, -0.17);
-  const merged = mergeGeometries([body, tail]);
+  const fin = new THREE.ConeGeometry(.035, .085, 3);
+  fin.scale(.2, 1, 1); fin.translate(0, .065, -.02);
+  const merged = mergeGeometries([body, tail, fin]);
   return merged;
 }
 
@@ -90,7 +92,43 @@ function mergeGeometries(list) {                                   // positions 
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   out.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  for (const g of new Set([...geos, ...list])) g.dispose();
   return out;
+}
+
+function coralGeometry(variant) {
+  if (variant === 0) {
+    const g = new THREE.SphereGeometry(.56, 12, 8); g.scale(1, .8, 1); g.translate(0, .44, 0); return g;
+  }
+  const branches = [];
+  const up = new THREE.Vector3(0, 1, 0);
+  const stem = (a, b, radius) => {
+    const direction = b.clone().sub(a);
+    const g = new THREE.CylinderGeometry(radius*.65, radius, direction.length(), 5);
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, direction.clone().normalize()));
+    g.translate(...a.clone().add(b).multiplyScalar(.5).toArray()); branches.push(g);
+  };
+  stem(new THREE.Vector3(), new THREE.Vector3(0,.65,0), .12);
+  for (let i = 0; i < 7; i++) {
+    const a = i * 2.39996, h = .35 + i * .065;
+    const from = new THREE.Vector3(0, h*.6, 0);
+    const to = new THREE.Vector3(Math.cos(a)*.45, h, Math.sin(a)*.45);
+    stem(from, to, .06);
+    stem(to, to.clone().add(new THREE.Vector3(.06*Math.sin(a), .21, .06*Math.cos(a))), .04);
+  }
+  return mergeGeometries(branches);
+}
+
+function seastarGeometry() {
+  const shape = new THREE.Shape();
+  for (let i = 0; i < 10; i++) {
+    const a = i*Math.PI/5, r = i % 2 ? .32 : 1;
+    const x = Math.cos(a)*r, y = Math.sin(a)*r;
+    if (i === 0) shape.moveTo(x,y); else shape.lineTo(x,y);
+  }
+  shape.closePath();
+  const g = new THREE.ExtrudeGeometry(shape, {depth:.11, bevelEnabled:true, bevelThickness:.06, bevelSize:.06, bevelSegments:1, steps:1});
+  g.rotateX(-Math.PI/2); g.translate(0,.03,0); return g;
 }
 
 /** Kelp blade material: the vertex shader bends each blade with height, time and the current. */
@@ -118,6 +156,10 @@ export class Environment {
     this.group.name = 'environment';
     scene.add(this.group);
     this.t = 0;
+    this.world = world;
+    // Stable server identities, separate from draw buckets / instance ordering.
+    // Read only at photo capture; no raycasts or observation work in update().
+    this.observationTargets = [];
     this.uniforms = { uTime: { value: 0 }, uFlow: { value: new THREE.Vector3() } };
     const key = `${world.scenario?.key || 'x'}:${world.scenario?.seed ?? ''}`;
     const R = rng(key);
@@ -127,10 +169,15 @@ export class Environment {
     this.spool = P(world.spool || [0, 0, 0]).setY(0);
     this._footprints(world);
     this._terrain();
-    this._rocks(R);
-    this._debris(R);
-    this._kelp(R);
-    this._fish(R, world);
+    if (world.habitat) {
+      this._habitat(world.habitat);
+      this._sharedFish(world.habitat.fish_schools || []);
+    } else {
+      this._rocks(R);
+      this._debris(R);
+      this._kelp(R);
+      this._fish(R, world);
+    }
     this._surface(R);
   }
 
@@ -175,6 +222,41 @@ export class Environment {
 
   // ── under water ───────────────────────────────────────────────────────
   _terrain() {
+    if (this.world.terrain) {
+      const t = this.world.terrain, [nn, ne] = t.size;
+      const pos = [], indices = [], uv = [];
+      for (let n=0; n<nn; n++) for(let e=0; e<ne; e++) {
+        pos.push(-(t.origin[1]+e*t.spacing), -t.depths[n][e], t.origin[0]+n*t.spacing);
+        uv.push(n*t.spacing/6,e*t.spacing/6);
+      }
+      for(let n=0;n<nn-1;n++) for(let e=0;e<ne-1;e++) {
+        const a=n*ne+e,b=a+ne,c=a+1,d=b+1;
+        indices.push(a,c,b,c,d,b);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+      geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(indices); geo.computeVertexNormals();
+      const material = M(0xffffff,{map:sandTexture(),roughness:1});
+      const terrain = new THREE.Mesh(geo,material);
+      terrain.userData.paintable=true;terrain.receiveShadow=true; this.group.add(terrain);
+      // Extend clamped edge depths, matching the server's out-of-grid sampling.
+      const edge = (points, outward) => {
+        const vertices=[], triangles=[], tex=[];
+        points.forEach(([n,e],i)=>{
+          const base=new THREE.Vector3(-(t.origin[1]+e*t.spacing),-t.depths[n][e],t.origin[0]+n*t.spacing);
+          vertices.push(...base.toArray(),...base.clone().add(outward).toArray());tex.push(i,0,i,100);
+          if(i<points.length-1){const k=i*2;triangles.push(k,k+1,k+2,k+1,k+3,k+2);}
+        });
+        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+        g.setAttribute('uv',new THREE.Float32BufferAttribute(tex,2));g.setIndex(triangles);g.computeVertexNormals();
+        const m=new THREE.Mesh(g,material);m.userData.paintable=true;m.material.side=THREE.DoubleSide;this.group.add(m);
+      };
+      edge(Array.from({length:ne},(_,e)=>[0,e]),new THREE.Vector3(0,0,-600));
+      edge(Array.from({length:ne},(_,e)=>[nn-1,e]),new THREE.Vector3(0,0,600));
+      edge(Array.from({length:nn},(_,n)=>[n,0]),new THREE.Vector3(600,0,0));
+      edge(Array.from({length:nn},(_,n)=>[n,ne-1]),new THREE.Vector3(-600,0,0));
+      return;
+    }
     // flat where the physics seabed is (the operating area), rising into dunes and banks beyond
     const size = 1400, seg = 140;
     const g = new THREE.PlaneGeometry(size, size, seg, seg);
@@ -191,8 +273,66 @@ export class Environment {
     const tex = sandTexture(); tex.repeat.set(size / 6, size / 6);
     const terrain = new THREE.Mesh(g, M(0xffffff, { map: tex, roughness: 1 }));
     terrain.position.set(this.centre.x, this.seabedY, this.centre.z);
-    terrain.receiveShadow = true;
+    terrain.receiveShadow = true;terrain.userData.paintable=true;
     this.group.add(terrain);
+  }
+
+  _habitat(habitat) {
+    const buckets = new Map();
+    for (const entity of habitat.entities || []) {
+      const key = `${entity.kind}:${entity.variant}`;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(entity);
+    }
+    const matrix = new THREE.Matrix4(), rotation = new THREE.Quaternion();
+    for (const entities of buckets.values()) {
+      const {kind,variant} = entities[0]; let geo, mat;
+      if (kind === 'coral') {
+        geo = coralGeometry(variant);
+        mat = M([0x94765b,0x98785e,0x8a7c58][variant],{roughness:.94});
+      } else if (kind === 'seastar') {
+        geo = seastarGeometry(); mat=M([0xaf7148,0x927650,0x765e55][variant]);
+      } else if (kind === 'rock') {
+        geo=rockGeometry(variant*17.3); geo.translate(0,.48,0); mat=M(0x676354);
+      } else {
+        geo=new THREE.PlaneGeometry(kind==='seagrass'?.07:.18,1,1,7);geo.translate(0,.5,0);
+        mat=kelpMaterial(this.uniforms);
+        mat.color.set(kind==='seagrass'?0x53683d:0x5e643a);
+      }
+      const mesh = new THREE.InstancedMesh(geo,mat,entities.length);
+      mesh.userData.observationEntities = entities.map(e=>({entity_id:e.id,category:e.kind}));
+      if(kind==='kelp'||kind==='seagrass') mesh.userData.observationBend = this.uniforms;
+      for (let i=0;i<entities.length;i++) {
+        const item=entities[i], p=P(item.pos);
+        rotation.setFromAxisAngle(new THREE.Vector3(0,1,0),-item.yaw*Math.PI/180);
+        const scale = new THREE.Vector3(item.scale,item.scale,item.scale);
+        if(kind==='kelp') scale.y*=2.3;
+        if(kind==='seagrass') scale.y*=.55;
+        matrix.compose(p,rotation,scale);mesh.setMatrixAt(i,matrix);
+        if(['coral','seastar','kelp','seagrass'].includes(kind))
+          this.observationTargets.push({entity_id:item.id,category:kind,mesh,instanceIds:[i]});
+      }
+      mesh.instanceMatrix.needsUpdate=true;
+      mesh.receiveShadow=true;mesh.castShadow=kind==='rock'||kind==='coral';
+      // Animated vertex displacement extends outside the unbent grass bounds.
+      if(kind==='kelp'||kind==='seagrass')mesh.frustumCulled=false;
+      else mesh.computeBoundingSphere();
+      this.group.add(mesh);
+    }
+  }
+
+  _sharedFish(schools) {
+    this.sharedSchools=[];
+    const geo=fishGeometry();
+    for(const school of schools) {
+      const R=rng(school.id+':'+this.world.world_seed);
+      const fish=Array.from({length:school.count},()=>({offset:new THREE.Vector3((R()-.5)*2.1,(R()-.5)*.8,(R()-.5)*2.1),phase:R()*Math.PI*2,scale:.65+R()*.75}));
+      const mesh=new THREE.InstancedMesh(geo,M([0x9caaa1,0x8d9784,0x94919e][school.variant],{metalness:.25,roughness:.45}),school.count);
+      mesh.userData.observationEntities=fish.map(()=>({entity_id:school.id,category:'fish_school'}));
+      this.observationTargets.push({entity_id:school.id,category:'fish_school',mesh,instanceIds:fish.map((_,i)=>i)});
+      mesh.frustumCulled=false;this.group.add(mesh);
+      this.sharedSchools.push({id:school.id,mesh,fish,pos:P(school.pos),target:P(school.pos),vel:new THREE.Vector3(0,0,.3)});
+    }
   }
 
   _rocks(R) {
@@ -353,8 +493,8 @@ export class Environment {
   }
 
   // ── per frame ─────────────────────────────────────────────────────────
-  update(dt, camera, flow = null) {
-    this.t += dt;
+  update(dt, camera, flow = null, state = null) {
+    this.t = Number.isFinite(state?.t) ? state.t : this.t + dt;
     const t = this.t;
     this.uniforms.uTime.value = t;
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
@@ -368,6 +508,22 @@ export class Environment {
     }
     // fish: each circles its school centre with its own radius, height and speed; tails wag
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
+    const schools = state?.environment?.fish_schools || [];
+    for(const school of this.sharedSchools || []) {
+      const live=schools.find(x=>x.id===school.id);
+      if(live){school.target.copy(P(live.pos));school.vel.copy(P(live.vel));}
+      school.pos.lerp(school.target,1-Math.exp(-dt*12));
+      school.mesh.visible=school.pos.distanceTo(camera.position)<55;
+      if(!school.mesh.visible)continue;
+      const heading=Math.atan2(school.vel.x,school.vel.z);
+      school.fish.forEach((f,i)=>{
+        p.copy(school.pos).add(f.offset);
+        p.y+=Math.sin(t*1.7+f.phase)*.12;
+        q.setFromEuler(e.set(0,heading+Math.sin(t*6+f.phase)*.07,Math.sin(t*5+f.phase)*.04));
+        s.setScalar(f.scale);m4.compose(p,q,s);school.mesh.setMatrixAt(i,m4);
+      });
+      school.mesh.instanceMatrix.needsUpdate=true;
+    }
     for (const sc of this.schools || []) {
       if (sc.c.distanceTo(camera.position) > 60) continue;         // out of sight: skip the work
       sc.fish.forEach((f, i) => {
@@ -385,6 +541,9 @@ export class Environment {
 
   dispose() {
     this.scene.remove(this.group);
-    this.group.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); } });
+    const geometries=new Set(),materials=new Set(),textures=new Set();
+    this.group.traverse((o)=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material]))materials.add(m);});
+    for(const m of materials){for(const value of Object.values(m))if(value?.isTexture)textures.add(value);m.dispose();}
+    for(const g of geometries)g.dispose();for(const t of textures)t.dispose();
   }
 }

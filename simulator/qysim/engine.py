@@ -24,6 +24,8 @@ from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether
 from .world import World
+from .mission_modes import MissionRun, ensure_mission
+from .expedition import ensure_expedition
 
 MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
     "motor_left_front": 0, "motor_right_front": 1, "motor_left_rear": 2,
@@ -50,30 +52,41 @@ class CameraState:
 
 
 class Simulator:
-    def __init__(self, scenario: str = "open_water", seed: int | None = None, rate_hz: float = 100.0):
+    def __init__(self, scenario: str = "open_water", seed: int | None = None, rate_hz: float = 100.0,
+                 model_id: str = "x1", vehicle_id: str = "default", shared_world=None):
         self.dt = 1.0 / rate_hz
-        self.rng = np.random.default_rng(seed)
-        self.load_scenario(scenario, seed)
+        self.model_id = model_id
+        self.vehicle_id = vehicle_id
+        self.appearance = {"sticker": "none"}
+        self.load_scenario(scenario, seed, shared_world=shared_world)
 
     # ── setup ─────────────────────────────────────────────────────────────
-    def load_scenario(self, key: str, seed: int | None = None) -> None:
+    def load_scenario(self, key: str, seed: int | None = None, *, shared_world=None) -> None:
+        mission_mode = getattr(getattr(getattr(self, "world", None), "mission_run", None), "mode", "scenario_training")
         sc = sc_mod.build(key, seed)
+        self.rng = np.random.default_rng(sc.seed)
+        self.current_rng = np.random.default_rng(sc.seed)
         self.scenario = sc
         self.t = 0.0
         self.paused = False
-        self.world = World(sc.seabed_depth)
-        self.world.obstacles = list(sc.obstacles)
-        self.world.current = sc.current
+        self.world = shared_world if shared_world is not None else World(sc.seabed_depth)
+        if shared_world is None:
+            self.world.obstacles = list(sc.obstacles)
+            self.world.current = sc.current
+            clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
+            self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
         self.geo = GeoFrame()
-        self.vehicle = Vehicle()
+        self.vehicle = Vehicle(model_id=self.model_id)
         self.vehicle.seabed_depth = sc.seabed_depth
         self.vehicle.s.pos = np.array(sc.start_pos, float)
         self.vehicle.s.q = q_from_euler(0.0, 0.0, math.radians(sc.start_heading_deg))
-        self.health = np.ones(len(THRUSTERS))
+        self.health = np.ones(len(self.vehicle.thrusters))
         self.controller = FlightController(self.vehicle)
         self.nav = Navigator(self.geo)
         self.rc_physical = RCState()
         self.rc_sdk = RCState()
+        self.input_latched = False
+        self.control_generation = getattr(self, "control_generation", 0) + 1
         self.remote_control = False
         self.operation_mode = "ROV_USA"
         self.shaping = Shaping()
@@ -81,8 +94,9 @@ class Simulator:
         self.battery = 100.0
         self.dvl_switches: dict = {}
         self.arm = "close"
-        gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, GLAND_BODY)
+        gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, np.asarray(self.vehicle.definition.gland_body))
         self.tether = Tether(self.world, np.array(sc.spool_pos, float), gland, sc.tether_length)
+        self.tether.gland_body = np.asarray(self.vehicle.definition.gland_body)
         if sc.prewrap:
             self._prewrap(sc.prewrap)
         # let the cable take its natural shape in the current before the clock starts
@@ -91,6 +105,11 @@ class Simulator:
         self._prev_buttons = {"record": 0, "photo": 0}
         self.damage_events: list[dict] = []
         self.log: list[dict] = []
+        self.tool_wrench = np.zeros(6)
+        from .operations import VehicleOperations
+        self.operations = VehicleOperations(self)
+        if not hasattr(self.world, "mission_run"):
+            self.world.mission_run = MissionRun(self, mission_mode)
         self._log("scenario", f"載入情境 {sc.name}")
 
     def _prewrap(self, cfg: dict) -> None:
@@ -136,7 +155,7 @@ class Simulator:
         return self.geo.to_geo(p[0], p[1])
 
     # ── main step ─────────────────────────────────────────────────────────
-    def step(self, dt: float | None = None) -> None:
+    def step(self, dt: float | None = None, *, update_world: bool = True) -> None:
         if self.paused:
             return
         dt = dt or self.dt
@@ -161,20 +180,33 @@ class Simulator:
                 mode = "A"
 
         self.last_pilot = pilot                    # final command (pilot or autopilot), for recordings
-        self.world.current.step_gust(dt, self.rng)
-        v.current_ned = self.world.current.at(self.depth, self.world.seabed_depth)
+        if update_world:
+            self.world.current.step_gust(dt, self.current_rng)
+        v.current_ned = self.world.current.sample(s.pos, self.world.seabed_depth, self.t)
+        operation_wrench = self.operations.step(dt)
+        keep_depth = keep_depth or self.operations.altitude is not None
+        v.seabed_depth = self.world.depth_at(s.pos)
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading) * self.health
         w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
         n_events = len(self.world.events)
-        w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega)
-        v.step(dt, thr, w_tether + w_contact)
-        self.world.step(dt)
+        w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
+                                               vehicle_id=self.vehicle_id,
+                                               hull_spheres=[(centre, self.vehicle.definition.hull_radius)
+                                                             for centre in self.vehicle.definition.hull_centres])
+        v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
+        if update_world:
+            self.world.step(dt, vehicles=[{"id": self.vehicle_id, "pos": s.pos, "vel": v.world_velocity()}])
+            from .operations import step_objects
+            step_objects(self.world, dt, self.t)
         self._damage(n_events)
 
         load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max
         self.battery = max(0.0, self.battery - dt * (0.004 + 0.05 * load ** 1.5))
         self.t += dt
         self.scorer.update(dt, self)
+        ensure_mission(self).update(self, dt)
+        if self.world.mission_run.mode == "expedition":
+            ensure_expedition(self).update(self, dt)
 
     def _buttons(self, rc: RCState) -> None:
         for name in ("record", "photo"):
@@ -196,13 +228,15 @@ class Simulator:
     def _damage(self, first_new: int) -> None:
         """A severe impact damages the thruster nearest the impact point (55% of remaining thrust)."""
         for ev in self.world.events[first_new:]:
+            if getattr(ev, "vehicle_id", "default") != self.vehicle_id:
+                continue
             if ev.severity != "severe":
                 continue
             zone = ev.where.split("-")[0]
             side = ev.where.split("-")[1] if "-" in ev.where else ("stbd" if self.rng.random() < 0.5 else "port")
-            idx = self._ZONE_THRUSTER[(zone, side)]
+            idx = min(self._ZONE_THRUSTER[(zone, side)], len(self.health) - 1)
             self.health[idx] = max(0.2, self.health[idx] * 0.55)
-            name = THRUSTERS[idx][0]
+            name = self.vehicle.thrusters[idx][0]
             self.damage_events.append({"t": ev.t, "thruster": name, "health": round(float(self.health[idx]), 2)})
             self._log("damage", f"{name} 受損，推力剩 {self.health[idx] * 100:.0f}%")
 
@@ -221,6 +255,7 @@ class Simulator:
 
     def _take_photo(self) -> dict:
         f = self._new_file("SING", "JPG")
+        ensure_mission(self).photo(self)
         self._log("photo", f"拍照 {f['name']} @ {self.depth:.1f} m")
         return f
 
@@ -417,6 +452,7 @@ class Simulator:
     # QYRovAddOnsManage
     def _sdk_QYRovAddOnsManage__set_arm_status(self, status, speed=1):
         self.arm = str(status)
+        self.operations.grip_target = 1.0 if str(status).lower() == "open" else 0.0
         return ok()
 
     # QYRovCheckManage
@@ -428,7 +464,7 @@ class Simulator:
                 "battery_l_status": 1 if self.battery > 5 else 0, "battery_r_status": 1 if self.battery > 5 else 0,
                 "bat_leak_l": 1, "bat_leak_r": 1}
         for fname, idx in MOTOR_FIELDS.items():
-            data[fname] = 1 if self.health[idx] > 0.6 else 0
+            data[fname] = 1 if idx < len(self.health) and self.health[idx] > 0.6 else 0
         return {"status": "ok", "status_code": "200", "text": data}
 
     # QYSDKInfoManage
@@ -716,6 +752,15 @@ class Simulator:
         rc = self.rc
         cur = self.vehicle.current_ned
         return {
+            "vehicle_id": self.vehicle_id, "model_id": self.model_id,
+            "appearance": dict(self.appearance),
+            "paint_marks": list(self.world.paint_marks),
+            "input_latched": self.input_latched, "control_generation": self.control_generation,
+            "vehicle": self.vehicle.definition.public(),
+            "environment": self.world.environment_state(),
+            "operations": self.operations.state(),
+            "mission": ensure_mission(self).state(self),
+            "expedition": ensure_expedition(self).state(self) if ensure_mission(self).mode == "expedition" else None,
             "t": round(self.t, 2), "paused": self.paused,
             "pos": [round(float(x), 3) for x in s.pos], "q": [round(float(x), 5) for x in s.q],
             "euler": [round(math.degrees(roll), 1), round(math.degrees(pitch), 1), round(math.degrees(yaw) % 360, 1)],
@@ -731,22 +776,25 @@ class Simulator:
             "current_here": [round(float(x), 3) for x in cur],
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
             "tether": self.tether.state(),
-            "events": [e.__dict__ for e in self.world.events[-12:]],
+            "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
             "damage": self.damage_events[-6:],
-            "silt": round(self.world.silt, 2),
+            "silt": round(self.world.silt_at(s.pos), 2),
             "nav": {"mode": self.nav.mode, "nav_status": self.nav.nav_status, "vccm": self.nav.vccm_status,
                     "route": [[w.n, w.e, w.depth] for w in self.nav.route][:400], "route_i": self.nav.route_i,
                     "target": None if self.nav.target is None else [self.nav.target.n, self.nav.target.e, self.nav.target.depth]},
-            "score": self.scorer.as_dict(),
+            "score": ensure_mission(self).score_state(self),
             "log": self.log[-8:],
         }
 
     def world_description(self) -> dict:
+        from .vehicles import VEHICLE_DEFINITIONS
         return {**self.world.as_dict(), "scenario": self.scenario.summary(),
                 "spool": list(self.scenario.spool_pos), "start_pos": list(self.scenario.start_pos),
                 "catalogue": sc_mod.catalogue(),
                 "objectives": [o.as_dict() for o in self.scenario.objectives],
-                "thrusters": [{"name": n, "pos": list(p), "axis": list(a)} for n, p, a in THRUSTERS]}
+                "vehicle": self.vehicle.definition.public(),
+                "vehicle_catalogue": [definition.public() for definition in VEHICLE_DEFINITIONS.values()],
+                "thrusters": [{"name": n, "pos": list(p), "axis": list(a)} for n, p, a in self.vehicle.thrusters]}
 
     # ── viewer commands ───────────────────────────────────────────────────
     def apply_viewer_rc(self, msg: dict) -> None:
@@ -754,4 +802,4 @@ class Simulator:
             if k in ("left_ud", "left_lr", "right_ud", "right_lr", "left_wave", "right_wave"):
                 self.rc_physical.set_channel(k, val)
             elif k in ("rc_lock", "keep_depth", "record", "photo", "left_switch", "right_switch"):
-                setattr(self.rc_physical, k, int(val))
+                setattr(self.rc_physical, k, max(0, min(2, int(val))) if k.endswith("switch") else int(bool(val)))

@@ -228,6 +228,17 @@ code { font-family: var(--f-data); font-size: 11px; color: var(--foam); }
 
 /* pilot picture-in-picture + deploy intro */
 .viewport .pip{position:absolute;right:12px;top:56px;width:300px;height:190px;border:1px solid rgba(159,227,255,.35);border-radius:8px;overflow:hidden;background:#000;box-shadow:0 6px 24px rgba(0,0,0,.45);z-index:4;pointer-events:none}
+.viewport .pip[hidden]{display:none!important}
+#closePip{position:absolute;right:4px;top:4px;z-index:2;pointer-events:auto;font-size:20px;line-height:24px;width:32px;height:32px;padding:0;background:#12222ee8}
+.mission-tools input:not([type=checkbox]):not([type=range]),.mission-tools select{min-width:0;width:100%;box-sizing:border-box}
+.mission-tools input:not([type=checkbox]):not([type=range]){padding:6px;background:#0d1b24;color:#d3e6ef;border:1px solid #304651;border-radius:3px}
+.mission-tools label{display:block;margin-top:8px;font-size:12px}
+.mission-tools details{border-top:1px solid #263c48;margin-top:10px;padding-top:8px}
+.mission-tools summary{cursor:pointer;font-size:13px;padding:4px 0}
+.mission-tools button{white-space:nowrap}
+.mission-tools .btns{margin-top:8px}
+.mission-tools .c2{grid-template-columns:1fr 1fr}
+.mission-tools #operationNotice{color:#f2cb77;min-height:1em}
 .viewport .pip::after{content:'操作員';position:absolute;left:8px;top:6px;font:600 11px/1 system-ui,sans-serif;color:#cfefff;background:rgba(0,0,0,.45);padding:3px 6px;border-radius:4px}
 .viewport .skip{position:absolute;right:12px;bottom:16px;z-index:6;background:rgba(10,20,28,.72);color:#e8f6ff;border:1px solid rgba(159,227,255,.5);border-radius:18px;padding:8px 14px;font:600 13px system-ui,sans-serif;cursor:pointer}
 .viewport .skip:hover{background:rgba(20,40,56,.9)}

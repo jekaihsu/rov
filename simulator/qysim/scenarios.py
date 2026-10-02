@@ -57,11 +57,12 @@ class Scenario:
     objectives: list = field(default_factory=list)
     time_limit_s: float = 900.0
     seed: int | None = None
+    biome: str = "temperate"
 
     def summary(self) -> dict:
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
-                "tether_length": self.tether_length}
+                "tether_length": self.tether_length, "biome": self.biome}
 
 
 # ── site builders ──────────────────────────────────────────────────────────
@@ -262,6 +263,41 @@ def random_scenario(seed: int | None = None) -> Scenario:
         objectives=objs, time_limit_s=1200, seed=seed)
 
 
+def coral_reef() -> Scenario:
+    return Scenario("coral_reef", "珊瑚礁生態觀察", "沿珊瑚礁觀測帶拍攝珊瑚與魚群，保持離底距離，避免接觸生物。",
+                    seabed_depth=14, biome="reef", visibility_m=18,
+                    current=CurrentProfile(.55, 60, .35, 75, .12, 90, .12),
+                    start_pos=(0, 0, 3), tether_length=70,
+                    objectives=[Objective("inspect", "礁區西側觀測", (16, -12, 9), 2.5, hold_s=8),
+                                Objective("inspect", "礁區東側魚群調查", (35, 12, 9), 2.5, hold_s=8),
+                                Objective("surface", "回到投放區", (-2, 0, .5), 3)])
+
+
+def seagrass_meadow() -> Scenario:
+    return Scenario("seagrass_meadow", "海草床低干擾調查", "淺水海草床與沙地，緩速離底航行；近底推進器會揚起局部泥沙。",
+                    seabed_depth=9, biome="seagrass", visibility_m=12,
+                    current=CurrentProfile(.4, 110, .3, 100, .10, 95, .15),
+                    start_pos=(0, 0, 2), tether_length=60,
+                    objectives=[Objective("inspect", "海草床樣區 A", (14, -9, 6), 2, hold_s=8),
+                                Objective("inspect", "海星與沙地樣區 B", (32, 8, 6), 2, hold_s=8),
+                                Objective("surface", "返回投放區", (-2, 0, .5), 3)])
+
+
+def harbor_inspection() -> Scenario:
+    sea = 18.
+    return Scenario("harbor_inspection", "港灣協作巡檢", "在港樁與碼頭邊分工巡檢，留意橫流、纜線與低能見度。",
+                    seabed_depth=sea, biome="harbor", visibility_m=7,
+                    obstacles=[Wall("Quay", (42, 0, 0), 180, 70, -2),
+                               Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
+                               Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)],
+                    current=CurrentProfile(.8, 90, .55, 95, .15, 110, .2),
+                    start_pos=(0, 0, 3), tether_length=75,
+                    objectives=[Objective("inspect", "港樁 A", (18, -10, 8), 1.5, hold_s=6, face_point=(21,-10,8)),
+                                Objective("inspect", "港樁 B", (18, 10, 8), 1.5, hold_s=6, face_point=(21,10,8)),
+                                Objective("inspect", "碼頭壁面", (39, 0, 10), 1.5, hold_s=6, face_point=(42,0,10)),
+                                Objective("surface", "返回投放區", (-2, 0, .5), 3)])
+
+
 LIBRARY = {
     "open_water": open_water,
     "jacket_inspection": jacket_inspection,
@@ -270,6 +306,9 @@ LIBRARY = {
     "hull_inspection": hull_inspection,
     "wreck_survey": wreck_survey,
     "korean_castle": korean_castle,
+    "coral_reef": coral_reef,
+    "seagrass_meadow": seagrass_meadow,
+    "harbor_inspection": harbor_inspection,
 }
 
 
@@ -278,7 +317,9 @@ def build(key: str, seed: int | None = None) -> Scenario:
         return random_scenario(seed)
     if key not in LIBRARY:
         raise KeyError(f"unknown scenario {key!r}; choose from {sorted(LIBRARY)} or 'random'")
-    return LIBRARY[key]()
+    scenario = LIBRARY[key]()
+    scenario.seed = int(seed) if seed is not None else 0
+    return scenario
 
 
 def catalogue() -> list[dict]:
@@ -309,10 +350,13 @@ class Scorer:
         self.elapsed += dt
         # impacts
         for ev in sim.world.events[self.seen_events:]:
+            if ev.vehicle_id not in (getattr(sim, "vehicle_id", "default"), "default"):
+                continue
             self.penalties.append({"t": ev.t, "reason": f"碰撞 {ev.obstacle}（{ev.severity} {ev.speed} m/s）",
                                    "points": PENALTY[ev.severity]})
         self.seen_events = len(sim.world.events)
-        if sum(1 for e in sim.world.events if e.severity == "severe") >= 3:
+        if sum(1 for e in sim.world.events if e.severity == "severe" and
+               e.vehicle_id in (getattr(sim, "vehicle_id", "default"), "default")) >= 3:
             self.failed = "嚴重碰撞 3 次"
         # tether
         tt = sim.tether

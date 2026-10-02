@@ -1,0 +1,12 @@
+"AppBuild"
+{
+  "AppID" "REPLACE_WITH_APP_ID"
+  "Desc" "ROV Simulator Windows test build"
+  "BuildOutput" "./logs/"
+  "ContentRoot" "../out/ROV Simulator-win32-x64/"
+  "Preview" "1"
+  "Depots"
+  {
+    "REPLACE_WITH_DEPOT_ID" "depot_build.vdf"
+  }
+}

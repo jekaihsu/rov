@@ -1,0 +1,26 @@
+{
+  "name": "rov-simulator",
+  "productName": "ROV Simulator",
+  "version": "0.2.0",
+  "description": "Cooperative underwater ROV training simulator",
+  "author": "ROV Simulator contributors",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "vendor": "node vendor.cjs",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "config": {
+    "forge": "./forge.config.cjs"
+  },
+  "dependencies": {
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "8.0.1",
+    "@electron-forge/maker-zip": "8.0.1",
+    "electron": "44.5.1"
+  }
+}

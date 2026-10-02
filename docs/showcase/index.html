@@ -4,16 +4,14 @@
 <script>window.QYSIM_REPLAY = "demo_recording.json";</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>X1 ROV 訓練駕駛台</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<title>ROV 模擬器 0.3 · 協作潛航</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="menu.css">
 </head>
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand">QYSEA X1<small>ROV 操作訓練模擬器 · 駕駛台</small></div>
+    <div class="brand">ROV 模擬器<small>協作潛航 · 操作訓練</small></div>
     <span class="pill stop" id="conn">離線</span>
     <span class="scn" id="scnName">—</span>
     <span class="meta" id="meta">— FPS</span>
@@ -23,7 +21,7 @@
     <!-- ───────────── left rack: training / current / controller ───────────── -->
     <aside class="rack left" aria-label="訓練與控制">
       <div class="sec">
-        <h2>訓練情境</h2>
+        <h2>任務</h2>
         <div class="row gap">
           <select id="scnSel" aria-label="情境"><option value="">（等待連線…）</option></select>
           <input id="seed" type="number" placeholder="種子" aria-label="隨機種子" class="seed">
@@ -47,7 +45,7 @@
       <div class="sec">
         <h2>洋流剖面</h2>
         <canvas id="profile" width="560" height="250" aria-label="洋流深度剖面"></canvas>
-        <details class="cur">
+        <details class="cur menu-only-settings">
           <summary>覆寫洋流</summary>
           <div class="grid2" id="curSliders"></div>
           <div class="sl"><div class="row"><label for="c_turbulence">紊流</label><span id="c_turbulenceV"></span></div><input type="range" id="c_turbulence" min="0" max="1" step="0.05" value="0.15"></div>
@@ -72,12 +70,13 @@
           <button id="bPhoto" title="P / 手把 A（按住）">拍照</button>
           <button id="bRec" title="R / 手把 B（按住）">錄影</button>
         </div>
-        <div class="sl"><div class="row"><label for="kbGain">鍵盤推桿幅度（Shift = 100%）</label><span id="kbGainV"></span></div><input type="range" id="kbGain" min="0.2" max="1" step="0.05" value="0.6"></div>
+        <div class="sl menu-only-settings"><div class="row"><label for="kbGain">鍵盤推桿幅度（Shift = 100%）</label><span id="kbGainV"></span></div><input type="range" id="kbGain" min="0.2" max="1" step="0.05" value="0.6"></div>
         <div class="hint" id="padInfo">未偵測到手把（按任一手把按鍵喚醒）。</div>
+        <a class="hint" href="controller-check.html" target="_blank" rel="noopener">檢查搖桿輸入（裝置、軸值、按鍵）</a>
         <p class="hint keys"><kbd>W</kbd><kbd>S</kbd> 左上下 · <kbd>A</kbd><kbd>D</kbd> 左左右 · <kbd>↑</kbd><kbd>↓</kbd> 右上下 · <kbd>←</kbd><kbd>→</kbd> 右左右 · <kbd>Q</kbd><kbd>E</kbd> 左滾輪 · <kbd>Z</kbd><kbd>C</kbd> 右滾輪 · <kbd>Space</kbd> 鎖/解鎖 · <kbd>H</kbd> 定深 · <kbd>P</kbd> 拍照 · <kbd>R</kbd> 錄影 · <kbd>M</kbd> 模式 · <kbd>L</kbd> LED · <kbd>V</kbd> 視角</p>
       </div>
 
-      <div class="sec">
+      <div class="sec menu-only-settings">
         <h2>顯示</h2>
         <div class="grid2">
           <label class="tog" for="optFog">真實能見度<input type="checkbox" id="optFog" checked></label>
@@ -85,7 +84,7 @@
           <label class="tog" for="optLabels">場景標籤<input type="checkbox" id="optLabels" checked></label>
           <label class="tog" for="optSticks">畫面搖桿<input type="checkbox" id="optSticks" checked></label>
           <label class="tog" for="optIntro">下水動畫<input type="checkbox" id="optIntro" checked></label>
-          <label class="tog" for="optPip">操作員畫面<input type="checkbox" id="optPip" checked></label>
+          <label class="tog" for="optPip">操作員畫面<input type="checkbox" id="optPip"></label>
         </div>
       </div>
     </aside>
@@ -125,7 +124,7 @@
         <button id="camBtn" title="V 切換視角">視角：追蹤</button>
       </div>
 
-      <div class="pip" id="pip" hidden></div>
+      <div class="pip" id="pip" hidden><button id="closePip" aria-label="關閉操作員畫面" title="關閉操作員畫面">×</button></div>
       <div class="replay" id="replayBar" hidden>
         <div class="rp-clips" id="rpClips"></div>
         <div class="rp-row">
@@ -223,10 +222,10 @@ python -m qysim.server --scenario jacket_inspection</pre>
 
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/"
 } }
 </script>
-<script type="module" src="app.js"></script>
+<script type="module" src="boot.js"></script>
 </body>
 </html>

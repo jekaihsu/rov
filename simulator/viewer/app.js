@@ -8,6 +8,21 @@ import { loadGLTF } from './glb.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
 import { PilotPiP } from './pilot_pip.js';
+import { createVehicleModel } from './vehicle_models.js';
+import { Fleet } from './fleet.js';
+import { installCockpit } from './cockpit.js';
+import { applyVehicleSticker } from './vehicle_stickers.js';
+import { installSurfacePaint } from './surface_paint.js';
+import {updateRenderQuality,renderQualityInfo} from './render_quality.js';
+import {installMissionPanel} from './mission_panel.js';
+import {installCollectionPanel} from './collection_panel.js';
+import {installExpeditionClient} from './expedition_client.js';
+import {installExpeditionPanel} from './expedition_panel.js';
+import {inspectObservation} from './observation_camera.js';
+import {installPilotGuide} from './pilot_guide.js';
+import {drawROVAttitude} from './attitude_indicator.js';
+import { applyUnderwaterLighting } from './underwater_lighting.js';
+import { readReplay } from './replay_store.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -25,7 +40,7 @@ const Q = (q, out = new THREE.Quaternion()) => out.set(-q[2], -q[3], q[1], q[0])
 
 /* ═════════════════════════ renderer / scene ═════════════════════════ */
 const vp = $('vp');
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -64,6 +79,10 @@ surface.rotation.x = -Math.PI / 2; scene.add(surface);
 /* ═════════════════════════ ROV ═════════════════════════ */
 const rovG = new THREE.Group(); scene.add(rovG);            // posed from state
 const body = new THREE.Group(); rovG.add(body);             // model in body frame (three-mapped FRD)
+const lightRig = new THREE.Group(); rovG.add(lightRig);
+const fleet = new Fleet(scene);
+let activeModel = null, modelGeneration = 0, activeModelId = null;
+const cameraAnchor = new THREE.Vector3(0, .03, .4);
 const placeholder = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.6), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: .6 }));
 body.add(placeholder);
 let noseZ = 0.34;
@@ -92,7 +111,7 @@ const glowTex = (() => {
 for (const x of [0.12, -0.12]) {
   const l = new THREE.SpotLight(0xfff2dc, 0, 22, BEAM_HALF, 0.55, 1.3);
   l.position.set(x, -0.02, noseZ); l.target.position.set(x * 3, -0.4, 6);
-  body.add(l); body.add(l.target); leds.push(l);
+  lightRig.add(l); lightRig.add(l.target); leds.push(l);
   // cone with its apex at the lamp, opening along the lamp's aim
   const geo = new THREE.CylinderGeometry(0.03, BEAM_LEN * Math.tan(BEAM_HALF) * 0.85, BEAM_LEN, 32, 1, true);
   geo.translate(0, -BEAM_LEN / 2, 0);                  // apex (top, uv.y = 1) at the origin, cone along -Y
@@ -100,7 +119,7 @@ for (const x of [0.12, -0.12]) {
   cone.renderOrder = 5; cone.frustumCulled = false; cone.visible = false;
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xfff4e6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   glow.scale.setScalar(0.35); glow.visible = false;
-  body.add(cone, glow);
+  lightRig.add(cone, glow);
   beams.push({ l, cone, glow });
 }
 function aimBeams() {
@@ -117,29 +136,28 @@ const topMark = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THRE
   new THREE.MeshBasicMaterial({ color: 0xf2b705, fog: false, transparent: true, opacity: .85, depthTest: false, side: THREE.DoubleSide }));
 topMark.renderOrder = 10; topMark.visible = false; scene.add(topMark);
 
-function loadModel() {
-  loadGLTF('models/rov.glb', 'rov.glb').then((gltf) => {
-    const root = gltf.scene;
-    const box = new THREE.Box3().setFromObject(root);
-    const ctr = box.getCenter(new THREE.Vector3());
-    const holder = new THREE.Group(); holder.add(root); root.position.sub(ctr);
-    holder.updateMatrixWorld(true);
-    noseZ = box.max.z - ctr.z;
-    root.traverse((o) => {
-      if (o.userData.role !== 'rotor') return;
-      const wq = o.getWorldQuaternion(new THREE.Quaternion());
-      const axis = new THREE.Vector3(...(o.userData.axis || [0, 0, 1])).applyQuaternion(wq.clone().invert()).normalize();
-      rotors.push({ o, base: o.quaternion.clone(), axis, pos: o.getWorldPosition(new THREE.Vector3()), ang: 0 });
-    });
-    body.remove(placeholder); body.add(holder);
-    leds.forEach((l) => l.position.setZ(noseZ)); aimBeams();
-    matchThrusters();
-    window.__modelLoaded = true;
-  }).catch((e) => { console.warn('rov.glb 載入失敗，使用簡化模型', e?.message || e); });
+function loadModel(definition = W?.vehicle || {id:'x1',model:'models/rov.glb'}) {
+  if(activeModelId === definition.id)return;
+  activeModelId = definition.id; const generation = ++modelGeneration;
+  window.__modelLoaded=false;window.__loadedModelId=null;
+  createVehicleModel(definition).then(model => {
+    if(generation !== modelGeneration){model.dispose();return;}
+    if(activeModel){body.remove(activeModel.root);activeModel.dispose();}
+    activeModel=model;body.remove(placeholder);body.add(model.root);model.model.visible=camMode!=='onboard';
+    applyVehicleSticker(model,S?.appearance?.sticker||'none');
+    rotors.splice(0,rotors.length,...model.rotors);
+    rotorOf=rotors.slice().sort((a,b)=>a.thrusterIndex-b.thrusterIndex);
+    if(definition.camera_body)P(definition.camera_body,cameraAnchor);
+    if(definition.gland_body)P(definition.gland_body,GLAND_LOCAL);
+    noseZ=cameraAnchor.z;
+    leds.forEach((light,i)=>{if(definition.lamp_body?.[i])P(definition.lamp_body[i],light.position);light.target.position.copy(light.position).add(new THREE.Vector3(0,-.3,6));});
+    aimBeams();window.__modelLoaded=!model.loadError;window.__loadedModelId=definition.id;
+  }).catch(error=>{activeModelId=null;console.error('機型載入失敗',error);});
 }
 
 // Map each physics thruster to the GLB rotor nearest in model space (names in the GLB are L/R-swapped).
 function matchThrusters() {
+  if(activeModel){rotorOf=activeModel.rotors.slice().sort((a,b)=>a.thrusterIndex-b.thrusterIndex);return;}
   const th = W?.thrusters; if (!th || !rotors.length) return;
   const pp = th.map((t) => new THREE.Vector3(-t.pos[1], -t.pos[2], t.pos[0]));
   const mP = pp.reduce((a, v) => a.add(v), new THREE.Vector3()).divideScalar(pp.length);
@@ -178,7 +196,7 @@ function placeModel(ob) {
   modelCache.get(ob.model).then((g) => {
     if (!g || holder.parent !== worldG) return;              // world rebuilt meanwhile
     const m = g.scene.clone(true);
-    m.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = true; o.frustumCulled = true; } });
+    m.traverse((o) => { if (o.isMesh) { o.userData.paintable=true; o.castShadow = false; o.receiveShadow = true; o.frustumCulled = true; } });
     holder.add(m);
   });
 }
@@ -186,12 +204,17 @@ function placeModel(ob) {
 let spoolMarker = [];
 let env = null;
 function buildWorld() {
+  surfacePaint.update(null);
+  for(const ring of wrapG.children){ring.geometry.dispose();ring.material.dispose();}wrapG.clear();
+  fleet.reset(W);
   worldG.clear(); obstacleMeshes.clear();
   if (env) env.dispose();
   env = params.has('noenv') ? null : new Environment(scene, W);
   seabed.userData.plane.visible = !env;                         // the environment brings its own sand
+  seabed.userData.plane.userData.paintable=true;
   seabed.position.y = -W.seabed_depth;
   for (const ob of W.obstacles || []) {
+    if(ob.kind === 'habitat')continue;
     const mat = new THREE.MeshStandardMaterial({ color: OB_COL[ob.kind] ?? 0x666666, roughness: .85, metalness: .1 });
     let mesh;
     if (ob.type === 'cylinder') {
@@ -211,7 +234,7 @@ function buildWorld() {
       mesh.rotation.y = -a;
     }
     if (ob.type === 'model') { placeModel(ob); continue; }
-    if (mesh) { worldG.add(mesh); obstacleMeshes.set(ob.name, { mesh, ob }); }
+    if (mesh) { mesh.userData.paintable=true; worldG.add(mesh); obstacleMeshes.set(ob.name, { mesh, ob }); }
   }
   // spool / deployment point
   const sp = P(W.spool || [0, 0, 0]);
@@ -226,6 +249,7 @@ function buildWorld() {
 }
 
 function buildObjectives(list) {
+  const geometries=new Set(),materials=new Set();objG.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
   objG.clear(); objMarkers = [];
   list.forEach((o) => {
     const g = new THREE.Group(); P(o.point, g.position);
@@ -349,7 +373,7 @@ function updateTether(t) {
     const hot = snag.has(name) || Math.abs(wraps[name] || 0) >= .25;
     mesh.material.emissive.setHex(hot ? 0x4a0a10 : 0x000000);
   }
-  wrapG.clear(); wrapLabels = [];
+  for(const ring of wrapG.children)ring.visible=false;wrapLabels = [];
   for (const [name, turns] of Object.entries(wraps)) {
     const e = obstacleMeshes.get(name); if (!e || Math.abs(turns) < .05) continue;
     const ob = e.ob; let best = null, bd = 1e9;
@@ -359,8 +383,10 @@ function updateTether(t) {
     if (ob.type === 'cylinder') {
       const a = P(ob.p0), b = P(ob.p1), ax = b.clone().sub(a).normalize();
       const c = a.clone().addScaledVector(ax, at.clone().sub(a).dot(ax));
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(ob.radius + .1, .05, 8, 40), new THREE.MeshBasicMaterial({ color: 0xff4757, fog: false }));
-      ring.position.copy(c); ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ax); wrapG.add(ring);
+      let ring=wrapG.children.find(mesh=>mesh.name===name);
+      if(!ring){ring=new THREE.Mesh(new THREE.TorusGeometry(ob.radius + .1, .05, 8, 40),new THREE.MeshBasicMaterial({color:0xff4757,fog:false}));ring.name=name;wrapG.add(ring);}
+      ring.visible=true;
+      ring.position.copy(c); ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ax);
       at.copy(c).add(new THREE.Vector3(0, .6, 0));
     }
     wrapLabels.push({ id: 'wrap:' + name, text: `纏繞 ${name} ${turns > 0 ? '↻' : '↺'} ${Math.abs(turns).toFixed(2)} 圈`, pos: at, cls: 'bad' });
@@ -411,9 +437,35 @@ function updateParticles(dt, centre) {
 
 /* ═════════════════════════ networking ═════════════════════════ */
 const params = new URLSearchParams(location.search);
-const WS_URL = params.get('ws') || `ws://${location.hostname || '127.0.0.1'}:8765`;
+const REPLAY = params.get('replay') || document.documentElement.dataset.replay || window.QYSIM_REPLAY || null;
+let menuSettings={};try{menuSettings=JSON.parse(localStorage.getItem('rov.menuSettings')||'{}');}catch{}
+for(const [id,key]of [['optSticks','sticks'],['optFog','fog'],['optLabels','labels'],['optIntro','intro']])if(typeof menuSettings[key]==='boolean')$(id).checked=menuSettings[key];
+const preferredPad=params.get('pad')||'auto';
+let launchScene=params.get('scenario');
+let launchControl=params.get('control');
+let launchSticker=params.get('sticker');
+let launchMission=params.get('mission'),missionSignature='';
+const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
 let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
 let W = null, S = null, stateCount = 0;
+let session = null, inputSequence = 0;
+let collectionOpen=false;
+const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
+const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
+  notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
+  capture:()=>new Promise((resolve,reject)=>{
+    if(!S||!W){reject(Error('連線後才能拍照。'));return;}
+    renderer.render(scene,camera);
+    const targets=engineeringPhotoTargets();
+    const evidence=inspectObservation({scene,camera,environment:env,state:S,world:W,camMode,targets});
+    const view=camMode;
+    renderer.domElement.toBlob(blob=>resolve({blob,evidence,view}),'image/png');
+  })});
+const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
+const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
+const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
+const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
+const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
 $('offUrl').textContent = WS_URL;
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
@@ -422,10 +474,19 @@ function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
   try { ws = new WebSocket(WS_URL); } catch (e) { scheduleRetry(); return; }
-  ws.onopen = () => { wsOpen = true; retry = 0; needResync = true; setConn('wait', '已連線 · 等待資料'); lastSent = ''; };
+  ws.onopen = () => {
+    wsOpen = true; retry = 0; needResync = true; session=null;inputSequence=0;
+    setConn('wait', '已連線 · 等待資料'); lastSent = '';
+    let token;try{token=sessionStorage.getItem(`rov.session:${WS_URL}:${cockpit.room}`);}catch{}
+    send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model});
+  };
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
-    if (m.type === 'world') onWorld(m); else if (m.type === 'state') onState(m);
+    if (m.type === 'world' && session) onWorld(m); else if (m.type === 'state' && session) onState(m);
+    else if(m.type === 'session'){
+      session=m;needResync=true;try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
+      for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
+    }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}
   };
   ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); $('offline').hidden = false; scheduleRetry(); };
   ws.onerror = () => { };
@@ -441,22 +502,38 @@ setInterval(() => {
 }, 250);
 
 function onWorld(m) {
+  if(launchScene&&!REPLAY){const chosen=launchScene;launchScene=null;const seed=Number(params.get('seed')||42);if(session?.is_host&&(m.scenario?.key!==chosen||m.scenario?.seed!==seed)){send({type:'scenario',key:chosen,seed});return;}}
+  if(launchControl&&!REPLAY){send({type:'operation_mode',value:launchControl});launchControl=null;}
+  if(launchSticker!==null&&!REPLAY){send({type:'operation',action:'appearance',sticker:launchSticker});launchSticker=null;}
+  if(launchMission&&!REPLAY){if(session?.is_host)send({type:'operation',action:'mission_mode',mode:launchMission});launchMission=null;}
   const firstOrNew = !W || W.scenario?.key !== m.scenario?.key || W.scenario?.seed !== m.scenario?.seed;
   W = m;
+  loadModel(m.vehicle);
   buildWorld();
+  missionSignature='';
   $('scnName').textContent = m.scenario?.name || '—';
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
   $('offline').hidden = true;
-  if (firstOrNew) startIntro();
+  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) startIntro();
 }
 
 function onState(m) {
+  if(m.model_id !== S?.model_id)needResync=true;
+  if(m.control_generation !== S?.control_generation)needResync=true;
   if (lastT >= 0 && m.t < lastT - 0.5) needResync = true;    // scenario loaded / reset → server RC reset to locked
   if (m.controller?.generation !== S?.controller?.generation) needResync = true;
   if (m.controller?.revision !== S?.controller?.revision) needResync = true;
   lastT = m.t;
   S = m; stateCount++;
+  if(session && m.room){session.is_host=m.room.host_id===session.player_id;for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!session.is_host;}
+  fleet.ingest(m);cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
+  applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
+  missionPanel.update(m);
+  expeditionPanel.update(m);photoClient.update(m);
+  pilotGuide.update(m);
+  if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
+  if(m.model_id&&m.model_id!==activeModelId){const def=W?.vehicle_catalogue?.find(d=>d.id===m.model_id);if(def)loadModel(def);}
   if (needResync && !m.remote_control && m.rc) {
     rc.rc_lock = m.rc.rc_lock; rc.keep_depth = m.rc.keep_depth; rc.left_switch = m.rc.left_switch; rc.right_switch = m.rc.right_switch;
     needResync = false;
@@ -475,6 +552,16 @@ function onState(m) {
   uiDirty = true;
 }
 const target = { pos: new THREE.Vector3(), q: new THREE.Quaternion(), init: false };
+
+function expeditionObjectives(state){
+  return [...(state.expedition?.active?.steps||[]).filter(step=>step.point&&!step.completed).map(step=>({...step,kind:'inspect',done:step.completed})),
+    ...(state.expedition?.markers||[]).filter(marker=>marker.point||marker.pos).map(marker=>({...marker,id:'discovery:'+marker.entity_id,point:marker.point||marker.pos,kind:'checkpoint',radius:.35}))];
+}
+function engineeringPhotoTargets(){
+  const id=S?.expedition?.active?.id;
+  const needed=new Set((S?.expedition?.active?.steps||[]).filter(step=>step.role==='photo'&&!step.completed).map(step=>step.entity_id));
+  return (S?.operations?.objects||[]).filter(object=>id&&object.task_id===id&&needed.has(object.id)).map(object=>({entity_id:object.id,category:'engineering',mesh:fleet.objects.get(object.id)})).filter(item=>item.mesh);
+}
 
 function updateRoute(nav) {
   const r = nav?.route || [];
@@ -535,6 +622,7 @@ const cycleLed = () => { rc.right_switch = (rc.right_switch + 1) % 3; };
 const FLIGHT = new Set(['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyQ', 'KeyE', 'KeyZ', 'KeyC', 'Space', 'KeyH', 'KeyP', 'KeyR', 'KeyM', 'KeyL', 'KeyV']);
 const isText = (el) => el && (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['range', 'checkbox'].includes(el.type)));
 addEventListener('keydown', (e) => {
+  if(collectionOpen)return;
   if (isText(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.code.startsWith('Shift')) keys.add(e.code);
   if (!FLIGHT.has(e.code)) return;
@@ -559,6 +647,15 @@ addEventListener('keyup', (e) => {
   if (FLIGHT.has(e.code) && !isText(e.target)) e.preventDefault();
 });
 addEventListener('blur', () => { keys.clear(); hold.photo.delete('kb'); hold.record.delete('kb'); });
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){needResync=true;return;}
+  keys.clear();hold.photo.clear();hold.record.clear();rc.rc_lock=1;
+  if(session && !S?.controller){const stopped={...rcMessage(),rc_lock:1,photo:0,record:0};CH.forEach(c=>stopped[c]=1500);send({type:'rc',rc:stopped,seq:++inputSequence});}
+});
+function stopForCollection(){
+  keys.clear();hold.photo.clear();hold.record.clear();CH.forEach(c=>{touch[c]=0;out[c]=0;});rc.rc_lock=1;
+  if(session)send({type:'rc',rc:{...rcMessage(),photo:0,record:0},seq:++inputSequence,controller_generation:S?.controller?.generation});
+}
 
 // on-screen sticks and wheels
 function bindStick(el, chUD, chLR) {
@@ -600,7 +697,7 @@ addEventListener('gamepadconnected', (e) => { padName = e.gamepad.id; });
 addEventListener('gamepaddisconnected', () => { padName = ''; });
 
 function readPad() {
-  const gp = navigator.getGamepads ? [...navigator.getGamepads()].find((g) => g && g.connected) : null;
+  const gp = preferredPad==='keyboard'?null:navigator.getGamepads ? [...navigator.getGamepads()].find((g) => g && g.connected && (preferredPad==='auto'||String(g.index)===preferredPad)) : null;
   if (!gp) { padPrev = []; hold.photo.delete('pad'); hold.record.delete('pad'); return null; }
   const b = (i) => gp.buttons[i] ? (gp.buttons[i].value || (gp.buttons[i].pressed ? 1 : 0)) : 0;
   const pr = (i) => !!gp.buttons[i]?.pressed;
@@ -619,12 +716,13 @@ function readPad() {
   };
 }
 
-let lastSent = '', lastSentAt = 0;
+let lastSent = '', lastSentAt = 0, photoPressed=false;
 function rcMessage() {
   const m = {};
-  for (const c of CH) m[c] = Math.round(1500 + 500 * out[c]);
+  for (const c of CH) m[c] = cockpit.armMode ? 1500 : Math.round(1500 + 500 * out[c]);
   m.rc_lock = rc.rc_lock; m.keep_depth = rc.keep_depth; m.left_switch = rc.left_switch; m.right_switch = rc.right_switch;
-  m.photo = hold.photo.size ? 1 : 0; m.record = hold.record.size ? 1 : 0;
+  m.photo = 0; m.record = collectionOpen?0:hold.record.size ? 1 : 0;
+  if(collectionOpen){CH.forEach(c=>m[c]=1500);m.rc_lock=1;}
   return m;
 }
 function inputTick() {
@@ -632,13 +730,15 @@ function inputTick() {
   const g = shift ? 1 : +$('kbGain').value;
   const k = (a, b) => ((keys.has(a) ? 1 : 0) - (keys.has(b) ? 1 : 0)) * g;
   const kb = { left_ud: k('KeyW', 'KeyS'), left_lr: k('KeyD', 'KeyA'), right_ud: k('ArrowUp', 'ArrowDown'), right_lr: k('ArrowRight', 'ArrowLeft'), left_wave: k('KeyE', 'KeyQ'), right_wave: k('KeyC', 'KeyZ') };
-  const pad = readPad();
+  const pad = collectionOpen?null:readPad();
+  const pressed=!collectionOpen&&hold.photo.size>0;
+  if(pressed&&!photoPressed&&!REPLAY)photoClient.takePhoto();photoPressed=pressed;
   for (const c of CH) out[c] = clamp(kb[c] + touch[c] + (pad ? pad[c] : 0), -1, 1);
   if (S?.controller) for (const c of CH) out[c] = clamp(((S.controller.axes[c] ?? 1500) - 1500) / 500, -1, 1);
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage(), js = JSON.stringify(msg), now = performance.now();
-  if (js !== lastSent || now - lastSentAt > 450) {
-    if (send({ type: 'rc', rc: msg, controller_generation: S?.controller?.generation })) { lastSent = js; lastSentAt = now; }
+  if (!document.hidden && (js !== lastSent || now - lastSentAt > 200)) {
+    if (session && !needResync && send({ type: 'rc', rc: msg, seq:++inputSequence, controller_generation: S?.controller?.generation })) { lastSent = js; lastSentAt = now; }
   }
   $('padInfo').textContent = S?.controller
     ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
@@ -696,7 +796,7 @@ function fillCatalogue(select) {
   if (select && W.scenario.seed != null) $('seed').value = W.scenario.seed;
   syncSeed();
 }
-function syncSeed() { $('seed').disabled = $('scnSel').value !== 'random'; }
+function syncSeed() { $('seed').disabled = false; }
 $('scnSel').onchange = () => {
   syncSeed();
   const c = (W?.catalogue || []).find((x) => x.key === $('scnSel').value);
@@ -705,7 +805,7 @@ $('scnSel').onchange = () => {
 $('btnLoad').onclick = () => {
   const key = $('scnSel').value; if (!key) return;
   const msg = { type: 'scenario', key };
-  if (key === 'random' && $('seed').value !== '') msg.seed = +$('seed').value;
+  if ($('seed').value !== '') msg.seed = +$('seed').value;
   send(msg);
 };
 $('btnReset').onclick = () => send({ type: 'reset' });
@@ -759,7 +859,9 @@ function setCam(m) {
     controls.target.copy(rovG.position); controls.update();
   }
   $('xhair').hidden = m !== 'onboard';
-  body.visible = m !== 'onboard';
+  body.visible = true;
+  placeholder.visible = m !== 'onboard';
+  if(activeModel)activeModel.model.visible = m !== 'onboard';
 }
 function cycleCam() { setCam(CAMS[(CAMS.indexOf(camMode) + 1) % CAMS.length]); }
 $('camBtn').onclick = cycleCam;
@@ -788,7 +890,7 @@ function updateCamera(dt) {
     camera.up.set(0, 0, 1);
     camera.position.set(p.x, p.y + topH, p.z); camera.lookAt(p);
   } else {
-    camera.position.set(0, .03, noseZ + .04).applyQuaternion(rovG.quaternion).add(p);
+    camera.position.copy(cameraAnchor).applyQuaternion(rovG.quaternion).add(p);
     camera.quaternion.copy(rovG.quaternion).multiply(FLIP);
   }
 }
@@ -810,21 +912,9 @@ function drawLabels(list, w, h) {
 }
 
 /* ═════════════════════════ instruments ═════════════════════════ */
-const adi = $('adi'), actx = adi.getContext('2d');
+const adi = $('adi');
 function drawADI(pitch, roll, hdg) {
-  const Wd = adi.width, H = adi.height; actx.save(); actx.clearRect(0, 0, Wd, H);
-  actx.translate(Wd / 2, H / 2); actx.rotate(-roll);
-  const k = H / 1.2, py = pitch * k;
-  actx.fillStyle = '#123b52'; actx.fillRect(-Wd, -H * 2 + py, Wd * 2, H * 2);
-  actx.fillStyle = '#2a2217'; actx.fillRect(-Wd, py, Wd * 2, H * 2);
-  actx.strokeStyle = '#d6e4ec'; actx.lineWidth = 2; actx.beginPath(); actx.moveTo(-Wd, py); actx.lineTo(Wd, py); actx.stroke();
-  actx.lineWidth = 1; actx.font = '18px ' + C('--f-data'); actx.fillStyle = '#7f99a8'; actx.textAlign = 'left';
-  for (let d = -60; d <= 60; d += 15) { if (!d) continue; const y = py - d * DEG * k; actx.beginPath(); actx.moveTo(-30, y); actx.lineTo(30, y); actx.strokeStyle = '#7f99a8'; actx.stroke(); actx.fillText(d, 36, y + 6); }
-  actx.restore();
-  actx.strokeStyle = '#f2b705'; actx.lineWidth = 4; actx.beginPath();
-  actx.moveTo(Wd / 2 - 90, H / 2); actx.lineTo(Wd / 2 - 30, H / 2); actx.lineTo(Wd / 2, H / 2 + 16); actx.lineTo(Wd / 2 + 30, H / 2); actx.lineTo(Wd / 2 + 90, H / 2); actx.stroke();
-  actx.fillStyle = '#d6e4ec'; actx.font = '600 22px ' + C('--f-data'); actx.textAlign = 'center';
-  actx.textAlign = 'left'; actx.fillText('HDG ' + String(Math.round(hdg) % 360).padStart(3, '0') + '°', 12, 28);
+  drawROVAttitude(adi,{pitch:pitch/DEG,roll:roll/DEG,heading:hdg});
 }
 const tape = $('tape'), tctx = tape.getContext('2d');
 function drawTape(hdg) {
@@ -923,7 +1013,7 @@ function updateUI() {
   lk.querySelector('span').textContent = s.locked ? '按 Space / 手把 Y 解鎖' : '推進器可動作 · Space 上鎖';
   const hm = $('hMode'); hm.textContent = `${s.ctrl_mode} 模式`; hm.className = 'chip ' + (s.ctrl_mode === 'A' ? '' : s.ctrl_mode === 'S' ? 'on' : 'warn');
   const hh = $('hHold'); hh.textContent = s.keep_depth ? `定深 ${s.depth_hold != null ? s.depth_hold.toFixed(1) + ' m' : '開'}` : '定深 關'; hh.className = 'chip ' + (s.keep_depth ? 'on' : 'dim');
-  setTxt('hOp', s.operation_mode);
+  setTxt('hOp', s.operation_mode==='UAV_CHN'?'ROV 雙桿':s.operation_mode);
   const led = s.rc?.right_switch || 0; $('hLed').hidden = !led; setTxt('hLed', `LED ${led}`);
   $('hRec').hidden = !s.recording;
   $('hPaused').hidden = !s.paused;
@@ -1006,8 +1096,9 @@ function updateUI() {
 }
 
 function updateObjectives(time) {
-  const objs = S?.score?.objectives; if (!objs) return null;
-  const ci = S.score.current_index; let cur = null;
+  const objs = S?.mission?.mode==='expedition'?expeditionObjectives(S):S?.score?.objectives; if (!objs) return null;
+  let ci = S?.mission?.mode==='expedition'?0:S.score.current_index;let cur = null;
+  if(S.mission?.mode==='inspection_coop'){let distance=Infinity;ci=-1;objMarkers.forEach((m,i)=>{if(objs[i]?.done)return;const d=m.g.position.distanceToSquared(rovG.position);if(d<distance){distance=d;ci=i;}});}
   objMarkers.forEach((m, i) => {
     const o = objs[i] || m.o, isCur = i === ci && !o.done;
     const col = o.done ? 0x3ddc97 : isCur ? 0xf2b705 : 0x7f99a8;
@@ -1076,29 +1167,34 @@ addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) {
 async function ensurePip() {
   const on = $('optPip').checked && !params.has('nopip');
   $('pip').hidden = !on;
-  if (!on || pip) return;
+  if (!on || pip || ensurePip.loading) return;
+  ensurePip.loading=true;
   const assets = await loadIntroAssets();
   pip = new PilotPiP($('pip'), { mirror: renderer.domElement, human: assets.human, width: 300, height: 190 });
+  ensurePip.loading=false;
+  $('pip').hidden = !$('optPip').checked || params.has('nopip');
 }
-$('optPip').addEventListener('change', ensurePip);
+try{$('optPip').checked=localStorage.getItem('rov.operatorVisible')==='true';}catch{$('optPip').checked=false;}
+function togglePip(){try{localStorage.setItem('rov.operatorVisible',String($('optPip').checked));}catch{}ensurePip();}
+$('optPip').addEventListener('change', togglePip);
+$('closePip').onclick=()=>{$('optPip').checked=false;togglePip();};
 ensurePip();
 /* ═════════════════════════ replay (recorded demo flights, no server) ═════════════════════════ */
-const REPLAY = params.get('replay') || document.documentElement.dataset.replay || window.QYSIM_REPLAY || null;
 let rep = null;
 function prepClip(c) {
   let r = null;                                 // the recorder stores the route only when it changes
   for (const f of c.frames) { if ('route' in f.nav) r = f.nav.route; else f.nav.route = r; }
-  c.dur = (c.frames.length - 1) / rep.data.hz;
+  c.dur = Math.max(.01,c.frames.at(-1).t-c.frames[0].t);
 }
 async function startReplay(url) {
   setConn('wait', '載入回放…'); $('offline').hidden = true;
   let data;
-  try { data = await (await fetch(url)).json(); } catch (e) { setConn('stop', '回放檔載入失敗'); return; }
+  try { data = url.startsWith('local:')?await readReplay(url.slice(6)):await (await fetch(url)).json(); } catch (e) { setConn('stop', '回放檔載入失敗');cockpit.message({message:e.message}); return; }
   rep = { data, ci: 0, t: 0, playing: true, speed: 1, endHold: 0 };
   document.body.classList.add('replaying');
   data.clips.forEach(prepClip);
   $('replayBar').hidden = false;
-  $('rpClips').innerHTML = data.clips.map((c, i) => `<button data-i="${i}">${i + 1}. ${c.title}</button>`).join('');
+  $('rpClips').innerHTML = data.clips.map((c, i) => `<button data-i="${i}">${i + 1}. ${esc(c.title)}</button>`).join('');
   $('rpClips').onclick = (e) => { const i = e.target.dataset?.i; if (i != null) loadClip(+i); };
   $('rpPlay').onclick = () => { rep.playing = !rep.playing; $('rpPlay').textContent = rep.playing ? '❚❚' : '▶'; };
   $('rpSeek').oninput = (e) => { if (introActive()) intro.skip(); rep.t = +e.target.value / 1000 * clipNow().dur; rep.endHold = 0; };
@@ -1125,8 +1221,9 @@ function loadClip(i) {
 }
 const lerpA = (a, b, k) => a.map((v, i) => (typeof v === 'number' && typeof b[i] === 'number' ? v + (b[i] - v) * k : v));
 function feedReplay() {
-  const c = clipNow(), fr = c.frames, x = rep.t * rep.data.hz;
-  const i = Math.min(fr.length - 1, Math.floor(x)), j = Math.min(fr.length - 1, i + 1), k = Math.min(1, x - i);
+  const c = clipNow(), fr = c.frames, time=fr[0].t+rep.t;
+  let lo=0,hi=fr.length-1;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(fr[mid].t<=time)lo=mid;else hi=mid-1;}
+  const i=lo,j=Math.min(fr.length-1,i+1),k=Math.max(0,Math.min(1,(time-fr[i].t)/Math.max(.001,fr[j].t-fr[i].t)));
   const a = fr[i], b = fr[j];
   const s = { ...a, type: 'state', paused: false };
   s.t = a.t + (b.t - a.t) * k;
@@ -1170,9 +1267,9 @@ const MOVIE_SHOTS = [
 const movie = { t: 0, phase: 'open', introDone: false, endT: 0, clipShown: -1 };
 if (MOVIE) {
   document.body.classList.add('movie');
-  $('optPip').checked = true; $('optLabels').checked = true;
+  $('optLabels').checked = true;
   const card = document.createElement('div'); card.className = 'card'; card.id = 'card';
-  card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>X1 ROV 操作員訓練模擬器</b><span>下水 → 導管架碰撞 → 纜線纏繞脫困 → 強流懸停 → 沉船調查。畫面中的飛行全部由模擬器即時計算。</span>';
+  card.innerHTML = '<i>ROV SIMULATOR · OPERATOR TRAINING</i><b>ROV 操作員訓練模擬器</b><span>下水 → 導管架碰撞 → 纜線纏繞脫困 → 強流懸停 → 沉船調查。畫面中的飛行全部由模擬器即時計算。</span>';
   vp.appendChild(card);
   const low = document.createElement('div'); low.className = 'lower'; low.id = 'lower'; low.hidden = true;
   low.innerHTML = '<i></i><b></b>'; vp.appendChild(low);
@@ -1196,7 +1293,7 @@ function movieTick(dt) {
     if (movie.clipShown !== rep.ci) { movie.clipShown = rep.ci; low.querySelector('i').textContent = `${rep.ci + 1} / ${rep.data.clips.length}`; low.querySelector('b').textContent = c.title; }
     if (rep.t >= c.dur && rep.ci === rep.data.clips.length - 1) {
       movie.phase = 'end'; movie.endT = movie.t; low.hidden = true;
-      card.innerHTML = '<i>QYSEA X1 · OPERATOR TRAINING</i><b>接上手把，自己飛一次</b><span>7 個訓練情境＋隨機模式 · 碰撞、纜線、洋流、燈光即時模擬<br>jekaihsu.github.io/rov</span>';
+    card.innerHTML = '<i>ROV SIMULATOR · OPERATOR TRAINING</i><b>接上手把，自己飛一次</b><span>協作探索與巡檢 · 碰撞、纜線、洋流、燈光即時模擬</span>';
       card.hidden = false;
     }
   }
@@ -1208,7 +1305,9 @@ new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
-  const dt = Math.min(.25, (now - last) / 1000); last = now;
+  const frameSeconds=Math.max(0,(now-last)/1000);
+  const dt = Math.min(.25, frameSeconds); last = now;
+  updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
   // pose (smoothed toward latest state)
   replayTick(dt);
   movieTick(dt);
@@ -1230,8 +1329,9 @@ function frame(now) {
   if (!inIntro) updateCamera(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
-  const dl = camera.position.y > 0 ? 1 : daylight(camDepth);
-  hemi.intensity = 1.5 * dl; sun.intensity = 1.6 * dl;
+  hemi.intensity = 1.5; sun.intensity = 1.6;
+  applyUnderwaterLighting(scene);
+  fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
   scene.background.copy(_wc); scene.fog.color.copy(_wc);
   const vis = (W?.scenario?.visibility_m || 12) * (1 - .75 * clamp(S?.silt || 0, 0, 1));
@@ -1242,7 +1342,7 @@ function frame(now) {
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
-  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null);
+  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, S);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
@@ -1270,7 +1370,7 @@ function frame(now) {
   for (const n of S?.tether?.snagged_on || []) { const e = obstacleMeshes.get(n); if (e && !wrapLabels.some((w) => w.id === 'wrap:' + n)) { const p = e.mesh.position.clone(); if (e.ob.type === 'cylinder') p.y = rovG.position.y + 1; L.push({ id: 'snag:' + n, text: `卡纜：${n}`, pos: p, cls: 'bad' }); } }
   drawLabels(L, r.width, r.height);
   if (uiDirty && now - uiLast > 110) { uiDirty = false; uiLast = now; updateUI(); }
-  fpsN++; fpsT += dt; if (fpsT > .5) { fps = Math.round(fpsN / fpsT); fpsN = 0; fpsT = 0; setTxt('meta', `${fps} FPS${S ? ` · t=${S.t.toFixed(1)} s` : ''}`); }
+  fpsN++; fpsT += frameSeconds; if (fpsT > .5) { fps = Math.round(fpsN / fpsT); fpsN = 0; fpsT = 0; const quality=renderQualityInfo(renderer);setTxt('meta', `${fps} FPS${quality?.mode==='auto'?` · 自動 ${quality.scale}%`:''}${S ? ` · t=${S.t.toFixed(1)} s` : ''}`);$('meta').title=quality?.hardwareRenderer||''; }
   if (!CAPTURE) requestAnimationFrame(frame);
 }
 
@@ -1282,4 +1382,5 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc };
+window.__viewer = { THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});

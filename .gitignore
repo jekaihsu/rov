@@ -5,3 +5,14 @@ simulator/**/rov_sandbox_telemetry.log
 .playwright-cli/
 X1 SDK.zip
 qysea_sdk_tester_share.zip
+node_modules/
+.pytest_cache/
+.venv/
+*.log
+*.blend1
+simulator/output/
+simulator/desktop/backend/
+simulator/desktop/out/
+simulator/desktop/steam/logs/
+.env
+.env.local

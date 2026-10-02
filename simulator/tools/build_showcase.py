@@ -23,14 +23,17 @@ VIEWER = ROOT / "viewer"
 PAGES = [
     "app.js", "style.css", "deploy_intro.js", "pilot_pip.js", "humanoid.js", "figures.js", "glb.js", "cable.js", "environment.js",
     "demo_recording.json",
+    "cockpit.js", "fleet.js", "vehicle_models.js", "underwater_lighting.js", "replay_store.js", "vehicle_stickers.js", "surface_paint.js", "render_quality.js", "mission_panel.js", "pilot_guide.js", "attitude_indicator.js",
+    "model-preview.html",
+    "boot.js", "main_menu.js", "menu.css", "scene_previews.json",
+    "collection_store.js", "collection_panel.js", "collection.css", "expedition_client.js", "expedition_panel.js", "observation_camera.js",
 ]
 MODELS = ["rov.glb", "workboat.glb", "worker.glb", "korean_castle.glb", "waternormals.jpg", "CREDITS.md"]
+MODELS += ["bluerov2_heavy.glb", "falcon.glb"]
 
 
 def build(out: Path, glb_json: bool, overrides: dict | None = None) -> None:
-    if out.exists():
-        shutil.rmtree(out)
-    (out / "models").mkdir(parents=True)
+    (out / "models").mkdir(parents=True, exist_ok=True)
     html = (VIEWER / "index.html").read_text(encoding="utf-8")
     html = html.replace("<html lang=", '<html data-replay="demo_recording.json" lang=', 1)
     assert 'data-replay=' in html, "index.html must start with <html lang=...>"
@@ -43,6 +46,7 @@ def build(out: Path, glb_json: bool, overrides: dict | None = None) -> None:
     (out / "index.html").write_text(html, encoding="utf-8")
     for f in PAGES:
         shutil.copy2(VIEWER / f, out / f)
+    shutil.copytree(VIEWER / "vendor", out / "vendor", dirs_exist_ok=True)
     for f in MODELS:
         src = VIEWER / "models" / f
         if overrides and f in overrides:

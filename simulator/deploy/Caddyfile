@@ -1,0 +1,8 @@
+{$ROV_DOMAIN} {
+    handle /ws {
+        reverse_proxy simulator:8765
+    }
+    handle {
+        reverse_proxy simulator:8080
+    }
+}

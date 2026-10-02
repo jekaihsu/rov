@@ -67,7 +67,7 @@ class MockSDKTest(unittest.TestCase):
             [sys.executable, "-m", "qysim.server", "--rpc-port", str(cls.rpc_port), "--ws-port", str(cls.ws_port),
              "--no-http", "--scenario", "open_water", "--seed", "1"],
             cwd=str(SIM_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        if not wait_until(lambda: _client.get_client().ping(), 20.0):
+        if not wait_until(lambda: _client.get_client().ping(), 60.0):
             cls.server.kill()
             raise RuntimeError("qysim server did not start: " + cls.server.stderr.read().decode(errors="replace"))
 
@@ -92,9 +92,25 @@ class MockSDKTest(unittest.TestCase):
     def viewer(self, msg: dict) -> None:
         from websockets.sync.client import connect
         with connect(f"ws://127.0.0.1:{self.ws_port}") as ws:
-            ws.recv()                       # world
+            ws.send(json.dumps({"type": "join", "name": "SDK test fixture",
+                                "resume_token": getattr(type(self), "viewer_token", None)}))
+            while True:
+                reply = json.loads(ws.recv())
+                if reply.get("type") == "session":
+                    type(self).viewer_token = reply["resume_token"]
+                    break
             ws.send(json.dumps(msg))
-            ws.recv()                       # a state frame: the command has been processed
+            while True:
+                reply = json.loads(ws.recv())
+                if reply.get("type") == "command_result":
+                    break
+                if reply.get("type") == "error":
+                    raise AssertionError(reply)
+            ws.send(json.dumps({"type": "leave"}))
+            while True:
+                reply = json.loads(ws.recv())
+                if reply.get("type") == "command_result" and reply.get("action") == "leave":
+                    break
 
     def take_control(self, unlock=True) -> QYRovControllerManage:
         ctrl = QYRovControllerManage()

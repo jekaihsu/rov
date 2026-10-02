@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>X1 ROV 訓練模擬器</title>
+<title>ROV 協作潛航模擬器</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
@@ -50,25 +50,26 @@ code { font-family: var(--f-data); font-size: 14px; background: var(--rack); bor
 <body>
 <main>
   <header>
-    <div class="eyebrow">QYSEA X1 · 操作員訓練</div>
-    <h1>X1 ROV 訓練模擬器</h1>
-    <p class="lead">接上和 Q-iRC 同配置的 USB 手把，在電腦上練習下水、在洋流中飛行、避開樁柱與斜撐、處理纜線纏繞，以及在深水沉船旁開燈檢查。模擬器也提供和 QYSEA SDK 相同介面的 mock，團隊原本的 SDK 程式不用改就能對著模擬器跑。</p>
+    <div class="eyebrow">ROV 模擬器 · 操作員訓練</div>
+    <h1>ROV 協作潛航模擬器</h1>
+    <p class="lead">接上 USB 手把，與其他操作員各自駕駛 ROV，一起練習巡檢、機械臂回收、洋流中操控與海洋生態觀察。模擬器保留既有 SDK 相容介面，可延續團隊的操作程式。</p>
     <div class="cta">
       <a class="primary" href="showcase/">觀看訓練回放</a>
+      <a href="showcase/model-preview.html?model=falcon">檢視 Falcon 3D 模型</a>
       <a href="https://github.com/jekaihsu/rov/tree/claude/rov-redesign-pump-diagram-5apqc5/simulator">原始碼與安裝說明</a>
     </div>
   </header>
 
   <section class="shots" aria-label="畫面">
-    <figure><img src="img/intro-throw.jpg" alt="工作船船尾，甲板人員把 ROV 拋出船外，另一人從纜盤放纜，遠方是島嶼" width="1200" height="675"><figcaption>下水動畫：甲板人員把 ROV 拋出船尾，另一人放纜。</figcaption></figure>
-    <figure><img src="img/wreck-lights.jpg" alt="水深 26 m，ROV 開燈照亮 Korean Castle 沉船的斷裂面，右下角是操作員手把子畫面" width="1200" height="675"><figcaption>Korean Castle 沉船：水深 26 m 開燈檢查艏段斷裂面。</figcaption></figure>
+    <figure><img src="img/falcon-hangar.png" alt="新版 Falcon 的三維模型，含白色側板、黄色外殼及可動機械臂" width="1920" height="1080"><figcaption>依原廠照片重建的 Falcon，可切換視角、操作關節與夾爪；尚非原廠 CAD 精確複製。</figcaption></figure>
+    <figure><img src="img/falcon-cockpit.png" alt="Falcon 在珊瑚礁場景中的操作畫面，操作員小視窗已關閉" width="1920" height="1080"><figcaption>Falcon 實際駕駛畫面：房間、換機、巡檢與機械臂控制。</figcaption></figure>
   </section>
 
   <section class="facts" aria-label="模擬重點">
-    <div><b>6-DOF</b><span>推進器配置與 X1 相同，拉力依規格擬合</span></div>
+    <div><b>1–4 人</b><span>共享房間，各自操控一台 ROV</span></div>
     <div><b>0–2.5 kn</b><span>表層、中層、底層分別設定的洋流與陣風</span></div>
     <div><b>350 m</b><span>集中質量纜線：張力、卡纜、繞樁圈數、斷纜</span></div>
-    <div><b>7 + 隨機</b><span>訓練情境，含碰撞與纜線張力扣分</span></div>
+    <div><b>珊瑚礁／海草床</b><span>依固定種子生成海底生態與魚群</span></div>
   </section>
 
   <section>

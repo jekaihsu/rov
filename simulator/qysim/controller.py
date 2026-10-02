@@ -48,10 +48,13 @@ class FlightController:
         if locked:
             self.reset_holds()
             self.last_wrench = np.zeros(6)
-            return np.zeros(6)
+            return np.zeros(len(self.v.thrusters))
 
         roll, pitch, yaw = q_to_euler(s.q)
         c = {k: float(cmd.get(k, 0.0)) for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+        for axis in c:
+            if axis not in self.v.capabilities:
+                c[axis] = 0.0
         if mode != "S":
             c["roll"] = 0.0
         rot_active = {k: abs(c[k]) > ACTIVE for k in ("roll", "pitch", "yaw")}
@@ -97,10 +100,17 @@ class FlightController:
             heave_world = g.depth_p * (self.depth_hold - s.pos[2]) - g.depth_d * vz
         else:
             self.depth_hold = None
-        if mode == "S":
+        if mode == "S" and not keep_depth:
             force[2] += heave_world               # body-frame heave in sport mode
         else:
-            force += q_rot(q_conj(s.q), np.array([0.0, 0.0, heave_world]))
+            # A depth controller commands world-vertical FORCE, even in sport
+            # mode. Rotate newtons, not normalised axis demands: the vehicle's
+            # surge/sway/heave authority differs, so rotating the latter would
+            # introduce a spurious horizontal force when the body is tilted.
+            vertical_newtons = heave_world * self.v.authority[2]
+            body_force = q_rot(q_conj(s.q), np.array([0.0, 0.0, vertical_newtons]))
+            force += np.divide(body_force, self.v.authority[:3],
+                               out=np.zeros(3), where=self.v.authority[:3] > 1e-9)
 
         wrench = np.clip(np.concatenate([force, torque]), -1.5, 1.5)
         self.last_wrench = wrench

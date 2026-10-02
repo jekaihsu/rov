@@ -34,7 +34,7 @@ class Cylinder:
     def sdf(self, x: np.ndarray) -> tuple[float, np.ndarray]:
         a, b = np.asarray(self.p0, float), np.asarray(self.p1, float)
         ab = b - a
-        t = np.clip(np.dot(x - a, ab) / np.dot(ab, ab), 0.0, 1.0)
+        t = np.clip(np.dot(x - a, ab) / max(float(np.dot(ab, ab)), 1e-12), 0.0, 1.0)
         c = a + t * ab
         d = x - c
         n = np.linalg.norm(d)
@@ -48,10 +48,11 @@ class Cylinder:
     def sdf_many(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         a, b = np.asarray(self.p0, float), np.asarray(self.p1, float)
         ab = b - a
-        t = np.clip(((X - a) @ ab) / np.dot(ab, ab), 0.0, 1.0)
+        t = np.clip(((X - a) @ ab) / max(float(np.dot(ab, ab)), 1e-12), 0.0, 1.0)
         d = X - (a + t[:, None] * ab)
         n = np.linalg.norm(d, axis=1)
         normal = d / np.maximum(n, 1e-9)[:, None]
+        normal[n < 1e-9] = [1.0, 0.0, 0.0]
         return n - self.radius, normal
 
     def as_dict(self):
@@ -291,6 +292,24 @@ class CurrentProfile:
         v = self.mean_at(depth, seabed)
         return v + self._gust * self.turbulence * max(0.05, float(np.linalg.norm(v)))
 
+    def sample_many(self, positions: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
+        """Continuous local flow approximation, shared by vehicle, cable and ecology.
+
+        Smooth horizontal shear is bounded to 18% of the local mean speed; it is
+        not an obstacle-resolving CFD solver. Zero mean/turbulence stays still.
+        """
+        p = np.atleast_2d(np.asarray(positions, float))
+        v = self.at_many(p[:, 2], seabed)
+        phase = p[:, 0] * .035 + p[:, 1] * .027 + t * .045
+        speed = np.linalg.norm(v, axis=1)
+        shear = speed * .18 * np.sin(phase)
+        v[:, 0] += shear * np.cos(p[:, 1] * .04)
+        v[:, 1] += shear * np.sin(p[:, 0] * .04)
+        return v
+
+    def sample(self, position: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
+        return self.sample_many(np.asarray(position)[None, :], seabed, t)[0]
+
     def as_dict(self):
         return {k: getattr(self, k) for k in ("surface_kn", "surface_dir", "mid_kn", "mid_dir",
                                               "bottom_kn", "bottom_dir", "turbulence")}
@@ -312,11 +331,15 @@ class ContactEvent:
     speed: float             # m/s normal impact speed
     severity: str            # touch / hard / severe
     where: str               # body location label
+    vehicle_id: str = "default"
 
 
 class World:
     def __init__(self, seabed_depth: float = 30.0):
         self.seabed_depth = seabed_depth
+        self.paint_marks: list[dict] = []
+        self.paint_serial = 0
+        self.paint_last_at: dict[str, float] = {}
         self.obstacles: list = []
         self.current = CurrentProfile()
         self.k_contact = 25000.0      # N/m
@@ -325,11 +348,46 @@ class World:
         self._in_contact: set = set()
         self.events: list[ContactEvent] = []
         self.silt = 0.0               # 0..1 seabed silt cloud (visibility)
+        self._contacts_by_vehicle: dict = {}
+        self.world_seed = 0
+        self.biome = "temperate"
+        self.terrain = None
+        self.habitat_entities = []
+        self.fish_schools = []
+        self.silt_clouds = []
+        self.time = 0.0
+        self._ecology_accumulator = 0.0
+        self._silt_last: dict = {}
+
+    def configure_habitat(self, biome: str, seed: int, keep_clear=()) -> None:
+        from .ecology import SeabedTerrain, create_habitat
+        self.world_seed, self.biome = int(seed), biome
+        self.obstacles = [o for o in self.obstacles if o.kind != "habitat"]
+        relief = 1.4 if biome == "reef" else .5 if biome == "seagrass" else 0.0
+        self.terrain = SeabedTerrain(self.seabed_depth, self.world_seed, relief)
+        self.habitat_entities, self.fish_schools = create_habitat(self, biome, self.world_seed, keep_clear)
+        self._obstacle_bounds = None
+
+    def seabed_at(self, position: np.ndarray) -> float:
+        if self.terrain is None:
+            return self.seabed_depth
+        return float(self.terrain.sample_many(np.asarray(position)[None, :])[0][0])
+
+    depth_at = seabed_at
 
     # ── queries ───────────────────────────────────────────────────────────
     def sdf(self, x: np.ndarray) -> tuple[float, np.ndarray, str]:
-        best, n_best, name = self.seabed_depth - x[2], WORLD_UP.copy(), "seabed"
-        for ob in self.obstacles:
+        if self.terrain is None or not self.terrain.relief:
+            best, n_best = self.seabed_depth - x[2], WORLD_UP.copy()
+        else:
+            depth, normal = self.terrain.sample_many(np.asarray(x)[None, :])
+            best, n_best = float((depth[0] - x[2]) * -normal[0, 2]), normal[0]
+        name = "seabed"
+        a, b = self._bounds()
+        gaps = np.maximum(a - x, 0) + np.maximum(x - b, 0)
+        candidates = np.flatnonzero(np.linalg.norm(gaps, axis=1) <= max(0., best))
+        for i in candidates:
+            ob = self.obstacles[i]
             d, n = ob.sdf(x)
             if d < best:
                 best, n_best, name = d, n, ob.name
@@ -349,15 +407,18 @@ class World:
 
     # ── vehicle contact ───────────────────────────────────────────────────
     def vehicle_contact(self, t: float, pos: np.ndarray, q: np.ndarray, vel_body: np.ndarray,
-                        omega: np.ndarray) -> np.ndarray:
+                        omega: np.ndarray, vehicle_id: str = "default", hull_spheres=None) -> np.ndarray:
         """Penalty contact wrench (body frame [F; M]) for the hull sphere proxy; logs impacts."""
         from .physics import q_conj
         q_inv = q_conj(q)
-        centres_b = _HULL_C
+        centres_b = _HULL_C if hull_spheres is None else np.array([c for c, _ in hull_spheres], float)
+        radii = _HULL_R if hull_spheres is None else np.array([r for _, r in hull_spheres], float)
+        previous = self._contacts_by_vehicle.get(vehicle_id, set())
         centres_w = pos + np.array([q_rot(q, c) for c in centres_b])
-        cand = self.near(pos - 0.6, pos + 0.6, 0.3)
+        extent = float(np.max(np.linalg.norm(centres_b, axis=1) + radii))
+        cand = self.near(pos - extent, pos + extent, 0.3)
         dist, normal_w, idx = self.sdf_many(centres_w, cand)
-        pen = np.minimum(_HULL_R - dist, 0.3)            # cap: never fling the vehicle
+        pen = np.minimum(radii - dist, 0.3)            # cap: never fling the vehicle
         wrench = np.zeros(6)
         touching = set()
         for k in np.nonzero(pen > 0)[0]:
@@ -375,36 +436,73 @@ class World:
             F = f_n * n_body + f_t
             wrench[:3] += F
             wrench[3:] += np.cross(c_body, F)
-            if key not in self._in_contact and name not in {kk[1] for kk in self._in_contact}:
+            if key not in previous and name not in {kk[1] for kk in previous}:
                 speed = max(0.0, -vn)
-                last = next((e for e in reversed(self.events) if e.obstacle == name), None)
+                last = next((e for e in reversed(self.events) if e.obstacle == name and e.vehicle_id == vehicle_id), None)
                 if speed < 0.3 and last is not None and t - last.t < 0.3:
                     continue
                 sev = "severe" if speed > 0.8 else "hard" if speed > 0.3 else "touch"
                 where = ("front" if c_body[0] > 0.2 else "rear" if c_body[0] < -0.2 else "mid") + \
                         ("-stbd" if c_body[1] > 0.1 else "-port" if c_body[1] < -0.1 else "")
-                self.events.append(ContactEvent(round(t, 2), name, round(speed, 2), sev, where))
+                self.events.append(ContactEvent(round(t, 2), name, round(speed, 2), sev, where, vehicle_id))
                 if name == "seabed":
                     self.silt = min(1.0, self.silt + 0.3 + speed)
+                    self.emit_silt(pos, .3 + speed, vehicle_id)
         self._in_contact = touching
+        self._contacts_by_vehicle[vehicle_id] = touching
         return wrench
 
+    def _bounds(self):
+        cached = getattr(self, "_obstacle_bounds", None)
+        if cached is None or len(cached[0]) != len(self.obstacles):
+            bounds = [ob.aabb() for ob in self.obstacles]
+            cached = (np.array([b[0] for b in bounds]).reshape(-1, 3),
+                      np.array([b[1] for b in bounds]).reshape(-1, 3))
+            self._obstacle_bounds = cached
+            self._cylinder_mask = np.array([isinstance(ob, Cylinder) for ob in self.obstacles], bool)
+            self._cylinder_a = np.array([ob.p0 if isinstance(ob, Cylinder) else (0,0,0) for ob in self.obstacles], float).reshape(-1,3)
+            b = np.array([ob.p1 if isinstance(ob, Cylinder) else (0,0,0) for ob in self.obstacles], float).reshape(-1,3)
+            self._cylinder_ab = b - self._cylinder_a
+            self._cylinder_den = np.maximum(np.sum(self._cylinder_ab**2,axis=1),1e-12)
+            self._cylinder_r = np.array([ob.radius if isinstance(ob, Cylinder) else 0 for ob in self.obstacles])
+        return cached
+
     def near(self, lo: np.ndarray, hi: np.ndarray, margin: float = 1.0) -> list[int]:
-        """Indices of obstacles whose bounding box overlaps [lo, hi] grown by ``margin``."""
-        out = []
-        for i, ob in enumerate(self.obstacles):
-            a, b = ob.aabb()
-            if np.all(a <= hi + margin) and np.all(b >= lo - margin):
-                out.append(i)
-        return out
+        """Vectorised cached broad phase for obstacles overlapping the grown box."""
+        cached = self._bounds()
+        a, b = cached
+        return np.flatnonzero(np.all(a <= hi + margin, axis=1) & np.all(b >= lo - margin, axis=1)).tolist()
 
     def sdf_many(self, X: np.ndarray, candidates: list[int] | None = None
                  ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Vectorised nearest-surface query for many points. Returns (dist, normal, obstacle index; -1 = seabed)."""
-        dist = self.seabed_depth - X[:, 2]
-        normal = np.tile(WORLD_UP, (len(X), 1))
+        if self.terrain is None or not self.terrain.relief:
+            dist = self.seabed_depth - X[:, 2]
+            normal = np.tile(WORLD_UP, (len(X), 1))
+        else:
+            depth, normal = self.terrain.sample_many(X)
+            dist = (depth - X[:, 2]) * -normal[:, 2]
         idx = np.full(len(X), -1)
-        for i in (range(len(self.obstacles)) if candidates is None else candidates):
+        self._bounds()
+        ids = np.arange(len(self.obstacles)) if candidates is None else np.asarray(candidates,dtype=int)
+        cylinders = ids[self._cylinder_mask[ids]]
+        if len(cylinders):
+            # Evaluate all capsule contacts in one NumPy batch, including zero-length spheres.
+            a, ab = self._cylinder_a[cylinders], self._cylinder_ab[cylinders]
+            relative = X[:,None,:] - a[None,:,:]
+            projection = np.einsum('nki,ki->nk',relative,ab) / self._cylinder_den[cylinders]
+            projection = np.maximum(0.,np.minimum(1.,projection))
+            delta = relative - projection[:,:,None]*ab[None,:,:]
+            lengths = np.sqrt(np.einsum('nki,nki->nk',delta,delta))
+            distances = lengths-self._cylinder_r[cylinders]
+            choice = np.argmin(distances,axis=1)
+            rows = np.arange(len(X))
+            closest = distances[rows,choice]
+            hit = closest < dist
+            n = delta[rows,choice] / np.maximum(lengths[rows,choice,None],1e-9)
+            n[lengths[rows,choice] < 1e-9] = [1.,0.,0.]
+            dist[hit], normal[hit], idx[hit] = closest[hit], n[hit], cylinders[choice[hit]]
+        for i in ids[~self._cylinder_mask[ids]]:
             ob = self.obstacles[i]
             d, n = ob.sdf_many(X)
             closer = d < dist
@@ -413,9 +511,51 @@ class World:
             idx[closer] = i
         return dist, normal, idx
 
-    def step(self, dt: float) -> None:
+    def emit_silt(self, position, strength: float, source: str = "default") -> None:
+        if self.time - self._silt_last.get(source, -100) < .35:
+            return
+        self._silt_last[source] = self.time
+        self.silt_clouds.append({"pos": np.asarray(position, float).copy(), "strength": min(1.0, strength),
+                                 "radius": .8, "age": 0.0, "source": source})
+        self.silt_clouds = self.silt_clouds[-24:]
+
+    def silt_at(self, position) -> float:
+        p = np.asarray(position, float)
+        return min(1.0, sum(c["strength"] * math.exp(-float(np.dot(p-c["pos"], p-c["pos"])) /
+                                                     max(.1, 2*c["radius"]**2)) for c in self.silt_clouds))
+
+    def environment_state(self) -> dict:
+        return {"fish_schools": [{"id": s["id"], "pos": s["pos"].round(4).tolist(),
+                                  "vel": s["vel"].round(4).tolist()} for s in self.fish_schools],
+                "silt_clouds": [{**c, "pos": c["pos"].round(3).tolist()} for c in self.silt_clouds]}
+
+    def step(self, dt: float, vehicles=None) -> None:
+        from .ecology import step_schools
+        self.time += dt
         self.silt = max(0.0, self.silt - dt / 25.0)
+        vehicles = vehicles or []
+        self._ecology_accumulator += dt
+        if self._ecology_accumulator + 1e-9 >= .1:
+            elapsed, self._ecology_accumulator = self._ecology_accumulator, 0.0
+            step_schools(self, elapsed, vehicles)
+            for c in self.silt_clouds:
+                c["pos"] += self.current.sample(c["pos"], self.seabed_depth, self.time) * elapsed
+                c["pos"][2] = min(self.seabed_at(c["pos"]), c["pos"][2] + .025 * elapsed)
+                c["radius"] += .09 * elapsed
+                c["strength"] *= math.exp(-elapsed / 9)
+                c["age"] += elapsed
+            self.silt_clouds = [c for c in self.silt_clouds if c["strength"] > .015 and c["age"] < 35]
+            for vehicle in vehicles:
+                p = np.asarray(vehicle["pos"], float)
+                thrust = float(vehicle.get("thrust", 0))
+                if self.seabed_at(p) - p[2] < 1.7 and thrust > .15:
+                    self.emit_silt(p, thrust * .4, str(vehicle.get("id", "default")))
 
     def as_dict(self) -> dict:
         return {"seabed_depth": self.seabed_depth, "obstacles": [o.as_dict() for o in self.obstacles],
-                "current": self.current.as_dict()}
+                "current": self.current.as_dict(), "world_seed": self.world_seed, "generation_version": 1,
+                "biome": self.biome, "terrain": self.terrain.as_dict() if self.terrain is not None else None,
+                "habitat": {"entities": self.habitat_entities,
+                            "fish_schools": [{"id": s["id"], "pos": s["pos"].round(4).tolist(),
+                                              "count": s["count"], "phase": s["phase"], "variant": s["variant"]}
+                                             for s in self.fish_schools]}}
