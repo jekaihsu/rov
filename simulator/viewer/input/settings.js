@@ -23,6 +23,7 @@ const STRINGS = {
   unknown: "未知裝置，請先完成對應精靈",
 };
 export function installSettings(settings, save, haptics, setMode) {
+  const featureActions = new Map();
   const button = document.createElement("button");
   button.textContent = STRINGS.title;
   button.id = "inputSettingsButton";
@@ -117,13 +118,19 @@ export function installSettings(settings, save, haptics, setMode) {
   element("summary", STRINGS.bind, bindings);
   const rows = element("div", "", bindings);
   function renderBindings() {
+    for (const [name, action] of featureActions) settings.bindings[name] ??= action.binding ?? "";
     rows.replaceChildren();
     for (const [name, binding] of Object.entries(settings.bindings)) {
-      const row = element("label", name, rows);
+      const row = element("label", featureActions.get(name)?.label || name, rows);
       const input = element("input", "", row);
       input.dataset.binding = name;
       input.value = Array.isArray(binding) ? binding.join(",") : binding;
       input.onchange = function rebind() {
+        if (featureActions.has(name) && !input.value.trim()) {
+          settings.bindings[name] = "";
+          save();
+          return;
+        }
         const parts = input.value.split(",").map((p) => p.trim());
         if (!parts.every((p) => /^-?[ab]\d+~?$/.test(p))) return;
         settings.bindings[name] = parts.length > 1 ? parts.slice(0, 2) : parts[0];
@@ -265,5 +272,9 @@ export function installSettings(settings, save, haptics, setMode) {
     } else return;
     lastNavigation = performance.now();
   }
-  return { update, open: () => root.open, selected: () => (select.value === "auto" ? "" : select.value) };
+  function registerActions(definitions) {
+    for (const [name, action] of Object.entries(definitions)) featureActions.set(name, action);
+    renderBindings();
+  }
+  return { registerActions, update, open: () => root.open, selected: () => (select.value === "auto" ? "" : select.value) };
 }

@@ -10,14 +10,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', default='/tmp/t03-evidence')
     parser.add_argument('--runs', type=int, default=7)
+    parser.add_argument('--presentation', choices=['real', 'assisted'], default='assisted')
+    parser.add_argument('--only', choices=['before', 'after', 'both'], default='both')
     args = parser.parse_args()
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=['--enable-unsafe-swiftshader'])
         for name, port, ws in [('before', 8093, 8793), ('after', 8092, 8792)]:
+            if args.only != 'both' and name != args.only:
+                continue
             page = browser.new_page(viewport={'width': 1600, 'height': 900})
-            url = f'http://127.0.0.1:{port}/?ws=ws://127.0.0.1:{ws}&play=1&nointro&room=latency&cam=onboard'
+            url = (f'http://127.0.0.1:{port}/?ws=ws://127.0.0.1:{ws}&play=1&nointro'
+                   f'&room=latency&cam=onboard&presentation={args.presentation}')
             page.goto(url)
             page.wait_for_function('window.__viewer?.S?.vehicle_id', timeout=180000)
             values = []
@@ -65,6 +70,7 @@ def main():
                 })""", neutral)
                 if rows['latency'] is None:
                     raise RuntimeError(f'{name} trial {trial+1}: no movement within 5s')
+                rows['neutral'] = neutral
                 values.append(rows['latency'])
                 (output / f'{name}-{trial+1}.json').write_text(json.dumps(rows))
                 print(name, 'trial', trial+1, 'latency_ms_20mm', rows['latency'], flush=True)

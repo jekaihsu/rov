@@ -134,9 +134,11 @@ export class StateBuffer {
     this.frames.sort((a, b) => a.t - b.t);
     if (this.frames.length > 90) this.frames.shift();
   }
-  sample(now = performance.now() / 1000, local = false) {
+  sample(now = performance.now() / 1000, local = false, delayOverride = null) {
     if (this.offset === null) return null;
-    const delay = local ? 0 : clamp(2 * this.interval + 2 * this.jitter, .04, .25);
+    // Assisted view may look ahead half a packet; real mode supplies a positive delay override.
+    const delay = delayOverride ?? (local ? -Math.min(.025, this.interval / 2) :
+      clamp(2 * this.interval + 2 * this.jitter, .04, .25));
     const desired = now - this.offset - delay;
     // Never rewind when the adaptive delay increases.
     this.time = Math.max(this.time ?? desired, desired);
@@ -165,18 +167,22 @@ export class StateBuffer {
 }
 
 // Keep render-state selection and scene pose updates out of the shared app loop.
-export function createRenderState({P, Q, rovG, fleet, updateTether}) {
+export function createRenderState({P, Q, rovG, fleet, updateTether, params = new URLSearchParams()}) {
+  const assisted = params.get('presentation') === 'assisted';
+  // Provisional generic video latency from the research report, not a vehicle-specific measurement.
+  const configuredDelay = Number(params.get('videoDelayMs') ?? 150);
+  const videoDelay = clamp(Number.isFinite(configuredDelay) ? configuredDelay : 150, 0, 1000) / 1000;
   const remote = new StateBuffer();
   const local = new StateBuffer();
   let state = null;
-  function ingest(snapshot, replay) {
+  function ingest(snapshot, replay, now) {
     if (replay) return;
-    remote.push(snapshot);
-    local.push(snapshot);
+    remote.push(snapshot, now);
+    local.push(snapshot, now);
   }
-  function update(snapshot, replay) {
-    state = replay ? snapshot : remote.sample();
-    const own = replay ? snapshot : local.sample(undefined, true);
+  function update(snapshot, replay, now) {
+    state = replay ? snapshot : remote.sample(now, false, assisted ? null : videoDelay);
+    const own = replay ? snapshot : assisted ? local.sample(now, true) : state;
     if (own) {
       P(own.pos, rovG.position);
       Q(own.q, rovG.quaternion);

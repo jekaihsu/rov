@@ -18,13 +18,28 @@ with sync_playwright() as playwright:
       const rig = createCameraRig({camera, controls, rovG,
         renderer:{domElement:document.createElement('canvas')}, params:new URLSearchParams(),
         getAnchor:()=>new THREE.Vector3(0,0,.3), getObstacles:()=>[], onMode(){}});
+      if (rig.mode!=='onboard') throw Error('real default must be onboard');
+      rovG.rotation.z=.5;
+      for (let i=0;i<144;i++) rig.update(1/144);
+      const physical=rovG.quaternion.clone().multiply(new THREE.Quaternion(0,1,0,0));
+      if(camera.quaternion.angleTo(physical)>.001) throw Error('real default must retain roll');
+      const actions={};
+      rig.bindInput({registerActions(definitions){Object.assign(actions,definitions);}});
+      if(actions.cameraGimbal.keys.includes('KeyG')) throw Error('profile key conflict');
+      actions.cameraGimbal.run();
       for (const mode of ['chase','top','orbit','cine','onboard']) {
         rig.setMode(mode);
         for (let i=0;i<144;i++) rig.update(1/144);
         if (![...camera.position.toArray(),...camera.quaternion.toArray()].every(Number.isFinite))
           throw Error('nonfinite '+mode);
       }
-      rovG.rotation.z=.5;
+      rig.setMode('orbit');
+      for (let i=0;i<144;i++) rig.update(1/144);
+      const beforeOrbit=camera.position.clone();
+      actions.cameraOrbitX.run(.6,.1);
+      for (let i=0;i<144;i++) rig.update(1/144);
+      if(camera.position.distanceTo(beforeOrbit)<.01) throw Error('orbit action');
+      rig.setMode('onboard');
       for (let i=0;i<144;i++) rig.update(1/144);
       const up = new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);
       if (Math.abs(up.x)>.001) throw Error('gimbal roll');
@@ -33,7 +48,7 @@ with sync_playwright() as playwright:
       if (Math.abs(camera.quaternion.y-1)>.001) throw Error('physical pose');
       restore();
       if (camera.quaternion.angleTo(saved)>.001) throw Error('restore');
-      return 'Five camera modes, finite poses, gimbal roll lock and physical capture restore passed';
+      return 'Real onboard default, input actions, orbit, gimbal and physical capture restore passed';
     }''')
     print(result)
     browser.close()

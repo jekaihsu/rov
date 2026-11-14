@@ -1,6 +1,10 @@
 // Camera springs, virtual gimbal, physical photo pose and timed shot transitions.
 import * as THREE from 'three';
-const STRINGS = {chase: '追蹤', orbit: '環繞', top: '俯視', onboard: '機載', cine: '電影'};
+const STRINGS = {
+  chase: '追蹤', orbit: '環繞', top: '俯視', onboard: '機載', cine: '電影',
+  gimbal: '雲台／硬連結', pitchUp: '雲台抬頭', pitchDown: '雲台低頭',
+  orbitX: '環繞鏡頭水平', orbitY: '環繞鏡頭垂直'
+};
 const MODES = ['chase', 'orbit', 'top', 'onboard'];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export function spring(value, velocity, goal, omega, dt) {
@@ -11,9 +15,9 @@ export function spring(value, velocity, goal, omega, dt) {
 }
 export function createCameraRig({camera, controls, rovG, renderer, params, getAnchor, getObstacles, onMode}) {
   const FLIP = new THREE.Quaternion(0, 1, 0, 0);
-  let mode = MODES.includes(params.get('cam')) ? params.get('cam') : 'chase';
+  let mode = MODES.includes(params.get('cam')) ? params.get('cam') : 'onboard';
   let ready = false, transition = 1, yaw = 0, height = 22, zoom = 22;
-  let gimbal = params.get('gimbal') !== '0', pitch = 0, pitchGoal = 0;
+  let gimbal = params.get('gimbal') === '1', pitch = 0, pitchGoal = 0;
   const cine = {a: .6, w: .14, r: 4.6, h: 1.5};
   const velocity = new THREE.Vector3(), previous = new THREE.Vector3();
   const angularVelocity = new THREE.Vector3();
@@ -21,17 +25,52 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
   controls.object = goal;
   controls.enableDamping = false;
   renderer.domElement.addEventListener('wheel', wheel, {passive: false});
-  window.addEventListener('keydown', keydown);
   function wheel(e) {
     if (mode !== 'top') return;
     zoom = clamp(zoom * Math.exp(e.deltaY * .001), 4, 150);
     e.preventDefault();
   }
-  function keydown(e) {
-    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-    if (e.code === 'KeyG') gimbal = !gimbal;
-    if (e.code === 'BracketLeft') pitchGoal = clamp(pitchGoal - .08, -.65, .65);
-    if (e.code === 'BracketRight') pitchGoal = clamp(pitchGoal + .08, -.65, .65);
+  function bindInput(input) {
+    function orbit(axis, value, dt) {
+      const offset = goal.position.clone().sub(controls.target);
+      const spherical = new THREE.Spherical().setFromVector3(offset);
+      if (axis === 'x') spherical.theta -= value * dt * 1.6;
+      else spherical.phi = clamp(spherical.phi + value * dt * 1.6, .15, Math.PI - .15);
+      goal.position.copy(controls.target).add(offset.setFromSpherical(spherical));
+    }
+    input.registerActions({
+      cameraGimbal: {
+        label: STRINGS.gimbal,
+        keys: ['KeyB'],
+        run() {
+          gimbal = !gimbal;
+        }
+      },
+      cameraPitchUp: {
+        label: STRINGS.pitchUp,
+        keys: ['BracketRight'],
+        run() {
+          pitchGoal = clamp(pitchGoal + .08, -.65, .65);
+        }
+      },
+      cameraPitchDown: {
+        label: STRINGS.pitchDown,
+        keys: ['BracketLeft'],
+        run() {
+          pitchGoal = clamp(pitchGoal - .08, -.65, .65);
+        }
+      },
+      cameraOrbitX: {
+        label: STRINGS.orbitX, binding: 'a2', continuous: true, consume: ['right_lr'],
+        enabled: () => mode === 'orbit',
+        run: (value, dt) => orbit('x', value, dt)
+      },
+      cameraOrbitY: {
+        label: STRINGS.orbitY, binding: 'a3', continuous: true, consume: ['right_ud'],
+        enabled: () => mode === 'orbit',
+        run: (value, dt) => orbit('y', value, dt)
+      }
+    });
   }
   function setMode(next) {
     if (!Object.hasOwn(STRINGS, next)) return;
@@ -154,6 +193,7 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
     setMode,
     update,
     physicalCapture,
+    bindInput,
     cycle() {
       setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
     }

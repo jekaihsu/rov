@@ -1,0 +1,30 @@
+{
+  "previousMs": 27.40000000037253,
+  "optimizedMs": 1,
+  "previousUpdates": 240,
+  "optimizedUpdates": 2,
+  "finalUpdates": 4,
+  "geometryChanged": true,
+  "peersDisposed": true,
+  "bufferFrames": {
+    "vehicles": 3,
+    "frames": 600,
+    "meanMs": 1.479500000004967,
+    "medianMs": 1.300000000745058,
+    "p95Ms": 2.5
+  },
+  "adaptiveResolution": {
+    "initial": 768,
+    "reduced": 640,
+    "low": 50,
+    "suspended": 50,
+    "recovered": 75,
+    "unchanged": true,
+    "cssUnchanged": true,
+    "floor": 50,
+    "ceiling": 75,
+    "hardwareTier": "software",
+    "hardwareRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "hardwareLabel": "\u8edf\u9ad4\u7e6a\u5716"
+  }
+}

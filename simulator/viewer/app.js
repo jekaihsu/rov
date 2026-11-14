@@ -454,7 +454,7 @@ let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
 let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
-const renderState = createRenderState({P, Q, rovG, fleet, updateTether});
+const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params});
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
@@ -621,7 +621,7 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen, camera: () => cycleCam(), tick: () => inputTick(),
+const input = installInput({blocked: () => collectionOpen, camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
@@ -771,6 +771,7 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
     placeholder.visible = m !== 'onboard';
     if (activeModel) activeModel.model.visible = m !== 'onboard';
   }});
+cameraRig.bindInput(input);
 let camMode = cameraRig.mode;
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
