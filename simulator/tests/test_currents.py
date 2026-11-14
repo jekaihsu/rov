@@ -547,5 +547,46 @@ class ViewerFlowFieldTests(unittest.TestCase):
         self.assertEqual(room.state()["flow_field"]["seq"], first["seq"] + 1)
 
 
+class ScenarioCurrentTests(unittest.TestCase):
+    """Gap 9: scenario currents are realistic assumptions."""
+
+    def test_turbulence_intensities_are_in_the_measured_range(self):
+        from qysim import scenarios
+        for key in scenarios.LIBRARY:
+            with self.subTest(key=key):
+                current = scenarios.build(key).current
+                if key == "tutorial_pool":
+                    self.assertEqual(current.turbulence, 0)
+                else:
+                    self.assertGreaterEqual(current.turbulence, 0.05)
+                    self.assertLessEqual(current.turbulence, 0.15)
+
+    def test_deep_wreck_has_a_weak_current(self):
+        from qysim import scenarios
+        current = scenarios.build("incident_wreck").current
+        speeds = [current.surface_kn, current.mid_kn, current.bottom_kn]
+        self.assertGreater(min(speeds), 0.1)
+        self.assertLess(max(speeds), 1.0)
+
+    def test_tidal_scenarios_start_at_peak_and_support_slack_start(self):
+        from qysim.engine import Simulator
+        sim = Simulator("monopile_current")
+        self.assertAlmostEqual(sim.world.current.tide_info()["factor"], 1.0, delta=0.01)
+        sim.world.current.set_tide_start("slack_before_flood")
+        self.assertLess(np.linalg.norm(sim.world.current.mean_at(12.0, sim.world.seabed_depth)), 0.01)
+
+    def test_random_currents_follow_a_sea_type(self):
+        from qysim import scenarios
+        for seed in range(20):
+            current = scenarios.build("random", seed).current
+            self.assertLessEqual(current.surface_kn, 3.0)
+            self.assertLessEqual(abs(current.bottom_dir - current.surface_dir), 30.0 + 1e-9)
+            self.assertGreaterEqual(current.turbulence, 0.05)
+            self.assertLessEqual(current.turbulence, 0.15)
+            self.assertIsNotNone(current.tide)
+        a, b = scenarios.build("random", 5).current, scenarios.build("random", 5).current
+        self.assertEqual(a.as_dict(), b.as_dict())
+
+
 if __name__ == "__main__":
     unittest.main()
