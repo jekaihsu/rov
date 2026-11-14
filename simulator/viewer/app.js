@@ -127,6 +127,7 @@ for (const x of [0.12, -0.12]) {
   const geo = new THREE.CylinderGeometry(0.03, BEAM_LEN * Math.tan(BEAM_HALF) * 0.85, BEAM_LEN, 32, 1, true);
   geo.translate(0, -BEAM_LEN / 2, 0);                  // apex (top, uv.y = 1) at the origin, cone along -Y
   const cone = new THREE.Mesh(geo, beamMat);
+  cone.userData.legacyBeam = true;  // fx/water_optics.js draws the scattered beam itself in the optics tiers
   cone.renderOrder = 5; cone.frustumCulled = false; cone.visible = false;
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xfff4e6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   glow.scale.setScalar(0.35); glow.visible = false;

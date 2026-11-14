@@ -1,0 +1,98 @@
+{
+  "reef": {
+    "scenario": "coral_reef",
+    "eye_ned": [
+      5.41,
+      -7.48,
+      12.48
+    ],
+    "heading_deg": 10.6,
+    "pitch_deg": -12.0,
+    "lamp_level": 0,
+    "visibility_m": 18,
+    "seconds_per_frame": 1.875,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 75803
+  },
+  "seagrass": {
+    "scenario": "seagrass_meadow",
+    "eye_ned": [
+      11.38,
+      -5.18,
+      7.6
+    ],
+    "heading_deg": 10.6,
+    "pitch_deg": -12.0,
+    "lamp_level": 0,
+    "visibility_m": 12,
+    "seconds_per_frame": 2.035,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 65448
+  },
+  "harbour": {
+    "scenario": "harbor_inspection",
+    "eye_ned": [
+      18.35,
+      -10.4,
+      8.0
+    ],
+    "heading_deg": 8.6,
+    "pitch_deg": -10.6,
+    "lamp_level": 1,
+    "visibility_m": 7,
+    "seconds_per_frame": 6.204,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 47843
+  },
+  "wreck-lit-1": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      16.0,
+      0.0,
+      25.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -6.0,
+    "lamp_level": 1,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 21.211,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 93848
+  },
+  "wreck-lit-2": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      16.0,
+      0.0,
+      25.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -6.0,
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 21.941,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 84952
+  },
+  "wreck-dark": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      16.0,
+      0.0,
+      25.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -6.0,
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 23.698,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 30158
+  }
+}

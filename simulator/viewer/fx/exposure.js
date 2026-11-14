@@ -1,0 +1,236 @@
+// Camera auto-exposure on the GPU: meter the linear scene image (centre-weighted log-average luminance),
+// adapt towards the target with a lag like a real camera's exposure loop, and scale the image before the
+// single tone-mapping step in OutputPass. No pixels are read back to the CPU.
+// Convergence time, metering weights and the gain range are assumptions (the research report has no
+// measured exposure behaviour for the vehicle camera); see fx/README.md.
+import * as THREE from 'three';
+import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
+import { WATER_COMMON, shareWaterUniforms } from './water_optics.js';
+
+export const EXPOSURE = Object.freeze({
+  key: 0.18,          // mid-grey the meter aims for, before ACES
+  minimum: 0.3,       // strongest darkening (bright shallow water, sun-lit sand)
+  maximum: 400.0,     // most gain the camera adds in the dark (beyond this the image just gets darker)
+  tau: 0.35,          // seconds, first-order lag in stops
+  maxStep: 0.25       // longest frame step the adaptation accepts, seconds
+});
+// The adapted log exposure (1x1 texture) for shaders that must not be exposed: unlit helpers and markers.
+export const exposureUniforms = { tCameraExposure: { value: null } };
+const neutralMaterials = new Map();
+const EXPOSURE_GAIN = 'exp(-texelFetch(tCameraExposure, ivec2(0, 0), 0).r)';
+const NEUTRAL_VERTEX = `
+  vec4 neutralLocal = vec4(transformed, 1.0);
+  #ifdef USE_INSTANCING
+  neutralLocal = instanceMatrix * neutralLocal;
+  #endif
+  vNeutralWorld = (modelMatrix * neutralLocal).xyz;
+  #include <project_vertex>`;
+// With fog, the helper fades along the same water path as everything else (towards the water colour of its
+// own direction, not one flat fog colour); without fog it simply keeps its designed screen brightness.
+const NEUTRAL_WATER = `
+  #ifdef USE_FOG
+  {
+    vec3 neutralOrigin;
+    vec3 neutralDir;
+    float neutralLength = waterSegment(cameraPosition, vNeutralWorld, neutralOrigin, neutralDir);
+    gl_FragColor.rgb = gl_FragColor.rgb * ${EXPOSURE_GAIN} * exp(-uWaterC * neutralLength) +
+      waterInscatter(neutralOrigin, neutralDir, neutralLength) +
+      lampInscatter(neutralOrigin, neutralDir, neutralLength);
+  }
+  #else
+  gl_FragColor.rgb *= ${EXPOSURE_GAIN};
+  #endif`;
+const NEUTRAL_PLAIN = `
+  gl_FragColor.rgb *= ${EXPOSURE_GAIN};
+  #include <tonemapping_fragment>`;
+
+function compileNeutralShader(shader) {
+  shader.uniforms.tCameraExposure = exposureUniforms.tCameraExposure;
+  const header = 'uniform sampler2D tCameraExposure;\n';
+  const placed = shader.vertexShader.includes('#include <project_vertex>') &&
+    shader.fragmentShader.includes('#include <fog_fragment>');
+  if (!placed) {
+    shader.fragmentShader = header + shader.fragmentShader.replace('#include <tonemapping_fragment>', NEUTRAL_PLAIN);
+    return;
+  }
+  shareWaterUniforms(shader.uniforms);
+  shader.vertexShader = 'varying vec3 vNeutralWorld;\n' +
+    shader.vertexShader.replace('#include <project_vertex>', NEUTRAL_VERTEX);
+  shader.fragmentShader = header + 'varying vec3 vNeutralWorld;\n' + WATER_COMMON +
+    shader.fragmentShader.replace('#include <fog_fragment>', NEUTRAL_WATER);
+}
+
+// Unlit materials (training markers, lines, flow particles, lamp glows) keep their designed brightness on
+// screen: they are divided by the camera exposure that the image is about to be multiplied with.
+export function neutraliseExposure(material) {
+  if (neutralMaterials.has(material)) return;
+  const previous = material.onBeforeCompile;
+  const key = material.customProgramCacheKey;
+  neutralMaterials.set(material, { previous, key });
+  material.onBeforeCompile = function compileNeutral(shader, renderer) {
+    previous.call(this, shader, renderer);
+    compileNeutralShader(shader);
+  };
+  const oldKey = key.bind(material);
+  material.customProgramCacheKey = function neutralProgramKey() {
+    return oldKey() + '|exposure-neutral-v3';
+  };
+  material.needsUpdate = true;
+}
+
+// Back to the materials' own shaders (legacy look or pipeline disposal).
+export function restoreExposureNeutral() {
+  for (const [material, original] of neutralMaterials) {
+    material.onBeforeCompile = original.previous;
+    material.customProgramCacheKey = original.key;
+    material.needsUpdate = true;
+  }
+  neutralMaterials.clear();
+}
+
+const METER_WIDTH = 32;
+const METER_HEIGHT = 18;
+
+const VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }`;
+
+// Each meter texel averages 4x4 bilinear taps of its footprint in log luminance, weighted towards the centre.
+const METER = /* glsl */ `
+  uniform sampler2D tDiffuse;
+  uniform vec2 uCell;
+  varying vec2 vUv;
+  void main() {
+    float sum = 0.0;
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 4; x++) {
+        vec2 offset = (vec2(float(x), float(y)) - 1.5) * uCell * 0.25;
+        vec3 c = texture2D(tDiffuse, vUv + offset).rgb;
+        sum += log(max(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-5));
+      }
+    }
+    float weight = 1.0 - 0.7 * smoothstep(0.15, 0.75, length((vUv - 0.5) * vec2(1.0, 0.8)) * 1.6);
+    gl_FragColor = vec4(sum / 16.0 * weight, weight, 0.0, 1.0);
+  }`;
+
+// One texel: log exposure, moved towards the metered target by the elapsed time.
+const ADAPT = /* glsl */ `
+  uniform sampler2D tMeter;
+  uniform sampler2D tPrevious;
+  uniform float uStep;
+  uniform float uReset;
+  uniform vec3 uRange;
+  varying vec2 vUv;
+  void main() {
+    float logSum = 0.0;
+    float weights = 0.0;
+    for (int y = 0; y < ${METER_HEIGHT}; y++) {
+      for (int x = 0; x < ${METER_WIDTH}; x++) {
+        vec2 m = texelFetch(tMeter, ivec2(x, y), 0).rg;
+        logSum += m.r;
+        weights += m.g;
+      }
+    }
+    float average = logSum / max(weights, 1e-4);
+    float target = clamp(log(uRange.x) - average, log(uRange.y), log(uRange.z));
+    float previous = texelFetch(tPrevious, ivec2(0, 0), 0).r;
+    float next = uReset > 0.5 ? target : previous + (target - previous) * uStep;
+    gl_FragColor = vec4(next, target, average, 1.0);
+  }`;
+
+const APPLY = /* glsl */ `
+  uniform sampler2D tDiffuse;
+  uniform sampler2D tExposure;
+  varying vec2 vUv;
+  void main() {
+    vec4 c = texture2D(tDiffuse, vUv);
+    gl_FragColor = vec4(c.rgb * exp(texelFetch(tExposure, ivec2(0, 0), 0).r), c.a);
+  }`;
+
+function target(width, height, type = THREE.HalfFloatType) {
+  return new THREE.WebGLRenderTarget(width, height, {
+    type, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
+    depthBuffer: false
+  });
+}
+
+export class AutoExposurePass extends Pass {
+  constructor() {
+    super();
+    this.meter = target(METER_WIDTH, METER_HEIGHT);
+    this.history = [target(1, 1, THREE.FloatType), target(1, 1, THREE.FloatType)];
+    this.current = 0;
+    this.reset = true;
+    this.lastTime = null;
+    this.meterMaterial = new THREE.ShaderMaterial({
+      uniforms: { tDiffuse: { value: null }, uCell: { value: new THREE.Vector2(1 / METER_WIDTH, 1 / METER_HEIGHT) } },
+      vertexShader: VERTEX, fragmentShader: METER, depthTest: false, depthWrite: false
+    });
+    this.adaptMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        tMeter: { value: this.meter.texture }, tPrevious: { value: null }, uStep: { value: 1 },
+        uReset: { value: 1 }, uRange: { value: new THREE.Vector3(EXPOSURE.key, EXPOSURE.minimum, EXPOSURE.maximum) }
+      },
+      vertexShader: VERTEX, fragmentShader: ADAPT, depthTest: false, depthWrite: false
+    });
+    this.applyMaterial = new THREE.ShaderMaterial({
+      uniforms: { tDiffuse: { value: null }, tExposure: { value: null } },
+      vertexShader: VERTEX, fragmentShader: APPLY, depthTest: false, depthWrite: false
+    });
+    this.quad = new FullScreenQuad(null);
+  }
+
+  // Seconds since the previous metered frame, from the wall clock; capped so a stall does not jump.
+  frameStep() {
+    const now = performance.now() / 1000;
+    const seconds = this.lastTime === null ? 0 : Math.min(EXPOSURE.maxStep, Math.max(0, now - this.lastTime));
+    this.lastTime = now;
+    return 1 - Math.exp(-seconds / EXPOSURE.tau);
+  }
+
+  render(renderer, writeBuffer, readBuffer) {
+    this.meterMaterial.uniforms.tDiffuse.value = readBuffer.texture;
+    this.quad.material = this.meterMaterial;
+    renderer.setRenderTarget(this.meter);
+    this.quad.render(renderer);
+    const previous = this.history[this.current];
+    const next = this.history[1 - this.current];
+    this.adaptMaterial.uniforms.tPrevious.value = previous.texture;
+    this.adaptMaterial.uniforms.uStep.value = this.frameStep();
+    this.adaptMaterial.uniforms.uReset.value = this.reset ? 1 : 0;
+    this.quad.material = this.adaptMaterial;
+    renderer.setRenderTarget(next);
+    this.quad.render(renderer);
+    this.current = 1 - this.current;
+    this.reset = false;
+    exposureUniforms.tCameraExposure.value = next.texture;
+    this.applyMaterial.uniforms.tDiffuse.value = readBuffer.texture;
+    this.applyMaterial.uniforms.tExposure.value = next.texture;
+    this.quad.material = this.applyMaterial;
+    renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+    if (this.clear) renderer.clear();
+    this.quad.render(renderer);
+  }
+
+  // Diagnostics for tools only (synchronous GPU read): current exposure, target and metered log luminance.
+  read(renderer) {
+    const pixel = new Float32Array(4);
+    renderer.readRenderTargetPixels(this.history[this.current], 0, 0, 1, 1, pixel);
+    const value = Array.from(pixel);
+    return { exposure: Math.exp(value[0]), target: Math.exp(value[1]), meteredLuminance: Math.exp(value[2]) };
+  }
+
+  dispose() {
+    this.meter.dispose();
+    this.history.forEach(function disposeTarget(item) {
+      item.dispose();
+    });
+    this.meterMaterial.dispose();
+    this.adaptMaterial.dispose();
+    this.applyMaterial.dispose();
+    this.quad.dispose();
+  }
+}

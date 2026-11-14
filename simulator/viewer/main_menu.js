@@ -8,6 +8,7 @@ import {applyVehicleSticker,STICKERS} from './vehicle_stickers.js';
 import {configureRenderQuality,updateRenderQuality,renderQualityInfo} from './render_quality.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installFidelityPanel} from './fidelity_panel.js';
+import './fx/beautify.js';
 import {CONTROL_LAYOUTS, controlLayout, rememberControlLayout} from './control_layout.js';
 const query=new URLSearchParams(location.search),$=id=>document.getElementById(id);
 const read=(key,fallback)=>{try{return localStorage.getItem(key)||fallback;}catch{return fallback;}};

@@ -3,9 +3,9 @@
 import * as THREE from 'three';
 const scenes = new WeakMap();
 
-export function updateReflections(scene, mode) {
+export function updateReflections(scene, mode, off = false) {
   let data = scenes.get(scene);
-  const enabled = ['high', 'ultra'].includes(mode);
+  const enabled = !off && ['high', 'ultra'].includes(mode);
   if (!data && !enabled) return;
   if (!data) {
     const faces = [];

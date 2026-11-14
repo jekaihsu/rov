@@ -1,1 +1,0 @@
-Menu flow passed: /workspace/rov/simulator/output/menu-validation

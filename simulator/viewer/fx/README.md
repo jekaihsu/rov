@@ -1,62 +1,141 @@
-# Scene optics and camera integration
+# Underwater optics (`simulator/viewer/fx/`)
 
-`installUnderwaterPipeline(renderer)` is idempotent. It returns null in low quality
-until a higher quality is selected, leaving renderer.render entirely untouched. Its screen render hook covers
-normal frames, `render_movie.js`, recordings and synchronous photo rendering.
-Offscreen targets bypass the composer; recursive composer renders bypass the hook.
-The composer is allocated only when a screen effect is requested and tracks actual
-drawing-buffer dimensions, including automatic resolution changes.
+The screen pipeline structure (an `EffectComposer` that only exists in the optics tiers, the `setCameraPass`
+hook, quality tiers, offscreen bypass) comes from the first T07 pull request (#26, branch
+`task/T07-visuals`). The light model, exposure, background, surface and particles were reworked after its
+review: the lit wreck rendered almost black, the water above the horizon was a hard black band and the
+lamp-lit seabed blew out. This document describes the reworked version.
 
-Real mode is the default. `?beautify=1`, or
-`renderer.userData.underwaterPipeline.setEnhancements(true)`, enables a subtle
-vignette, provisional shallow caustics and sun shafts. `false` disables all three. Scene absorption
-and lamp backscatter remain in real mode; disabling beauty does not clear water.
-The existing fog/visibility training aid remains independent.
+## What a frame does (medium, high, ultra, and auto until it falls back)
 
-T14b may call `setCameraPass(pass)` to insert its pass after scene rendering and
-before scene finishing and `OutputPass`. The caller owns the pass and should
-update its camera-dependent uniforms and `enabled` flag for onboard/observer
-views. Replace/remove it with `setCameraPass(null)`, then dispose it at the caller.
-Pass input/output is linear light; OutputPass owns ACES/output transfer. Do not
-add a second tone-map pass. No lens distortion, sensor noise, latency, droplets or
-codec artifacts are added here, to avoid competing camera implementations.
+1. `underwater_lighting.js` patches every `MeshStandardMaterial` once (`onBeforeCompile`, program key
+   `water-optics-v3`):
+   - **daylight** (directional, hemisphere, ambient and the high-tier reflection cube) is multiplied by
+     `exp(-Kd * depth)` per channel at the shaded point: the surface -> object leg;
+   - **lamps** (every `SpotLight` in the scene) keep three's inverse-square and cone falloff and are
+     multiplied by `exp(-c * lampDistance)`: the lamp -> object leg;
+   - three's fog is replaced by `waterApply`: the object -> camera leg `color * exp(-c * L)` plus daylight
+     scattered into that segment (closed form, below) plus lamp backscatter (8 samples along the ray).
+2. `water_optics.js` updates one set of shared uniforms per frame (`waterUniforms`), draws a full-screen
+   **water background** that evaluates the same in-scatter integral for an infinite ray in each pixel's
+   direction, and turns the lamps into physical lamps while optics are on (decay 2, no cut-off distance,
+   soft 120° beam). The legacy values are restored when the look falls back.
+3. `surface.js` shades the surface from below: Snell's window (critical angle for n = 1.333) with moving
+   normals, total internal reflection of the water below outside it, then the same water path to the camera.
+4. `suspension.js` draws instanced marine snow in a 4 m box around the camera, lit by the lamps (inverse
+   square, beam, extinction both ways) and faint daylight. Particles are point-like (about 0.3 % of the
+   frame width, from real footage), slightly larger and softer right at the lens. Silt puffs are not drawn
+   here (the silt module owns them).
+5. `pipeline.js` renders: scene (linear HDR, half float) -> `AutoExposurePass` -> camera pass (optional,
+   T14b) -> beautify finish (vignette, only when enabled) -> `OutputPass`. `OutputPass` is the only tone
+   mapping (ACES) and output transfer; `renderer.toneMappingExposure` is held at 1 while composing.
 
-Quality API accepts `performance` (existing name) / `low`, `medium`, `high`,
-`ultra`, and `auto`. The existing menu is unchanged in this task; `?quality=low`
-and `?quality=ultra` are aliases available at launch. Low keeps the existing
-lighting/fog shader and has no extra draw calls or composer targets. Medium,
-high and ultra use 384, 1024 and 2048 GPU instanced near-field particles.
-Automatic quality first suppresses screen post-processing on a slow sample;
-subsequent slow samples lower resolution. Camera passes are also suppressed in
-low/automatic fallback, so T14b must account for this quality contract.
+### The water model (`water_model.js`, pure functions, tested by `tests/test_water_optics.mjs`)
 
-RGB extinction and scattering coefficients, particle dimensions/density and
-caustic patterns are visualization assumptions, not measured water-type or
-vehicle specifications. Sunlight travels from surface to object; lamp light
-travels lamp-to-object; both return to the camera through wavelength-dependent
-extinction. Distinct scatter and extinction coefficients are an approximation,
-not an implementation claim of the research paper's calibrated image model.
+Per channel R, G, B (about 620 / 540 / 470 nm):
 
-Observation eligibility is still computed by projection, range and raycasts in
-`observation_camera.js` and backend geometry. These modules never read pixels or
-change target geometry. The existing visibility eligibility estimate is retained.
+| Symbol | Meaning | Source in the frame |
+|---|---|---|
+| `c` | beam attenuation, direct signal (lamp -> object, object -> camera) | green: `4.8 / visibility`; red adds pure-water absorption |
+| `b` | scattering, drives in-scatter and backscatter | 80 % of the non-water part of `c` |
+| `Kd` | diffuse attenuation of daylight going down | `1.1 a + 0.15 b` |
 
-The underwater surface uses an analytic Snell window with moving normals. Reflection
-is approximated by local water colour, without an extra scene reflection render.
+`visibility` is `scene.fog.far / 1.35`, i.e. the value the app already derives from the scenario and silt;
+the existing "real visibility" toggle therefore still works. Water colour at infinity looking with vertical
+component `u` from depth `z` is `b * E(z) / (c - Kd u)` with `E(z) = exp(-Kd z)`. Distant objects tend to
+exactly this colour, so there is no seam at the horizon, and looking up is brighter than looking down.
 
-Remaining T07 work before acceptance: surface-crossing
-transition coordination with T14b and full app camera
-capture/performance on an integrated GPU. Current screenshot fixtures freeze the
-world and use shared Environment/material modules; they are not driving proof.
+Red leaves first: in 10 m visibility daylight red is below 3 % at 10 m while green is still above 10 %
+(test). Lamp light travels lamp -> object -> camera, so near objects in the lamps keep their colour at any
+depth while daylit objects lose red with depth plus distance, as described in
+`docs/reference/real-rov-research.md` ("色彩沿整條光路流失").
 
-Silt particles use the authoritative silt state; near-surface wake bubbles use
-propeller thrust and vehicle depth. Their lifetime/density is provisional.
+### Exposure (`exposure.js`)
 
-High/ultra use a small procedural, dim underwater reflection cube. No external
-asset or npm dependency is added; the existing three.js MIT license covers addons.
+The scene is metered on the GPU (32 x 18 grid, centre-weighted log-average luminance), the log exposure
+moves towards `key / average` with a first-order lag (`tau` 0.35 s, symmetric in stops) and is clamped to
+`[0.3, 400]`. The upper clamp is the camera's maximum gain: at 25-32 m with the lamps off the image stays
+dark and objects read as silhouettes against slightly brighter water. No pixel is read back for rendering
+(`state.exposure()` is a synchronous diagnostic for tools only).
 
-High/ultra also add millimetre-scale procedural surface-normal detail; no
-collision meshes or observation target geometry changes.
+Unlit helpers (`MeshBasicMaterial`, lines, points, sprites: objective markers, the flow particles, lamp
+glows) are divided by the same exposure (`neutraliseExposure`), so they keep their designed screen
+brightness instead of washing out when the camera gains up in deep water. Three's fog colour for those
+materials is set to the horizontal water colour during the render.
 
-Sun shafts are an optional shallow billboard scattering approximation; they
-fade over depth and do not claim volumetric occlusion or measured water optics.
+## Assumptions (not measurements)
+
+Everything numeric here is a visualization assumption; nothing is X1 data. Mark it as such in reviews.
+
+- Pure-water absorption `[0.33, 0.06, 0.02] /m`, scattering share 0.8, particulate absorption spectrum
+  `[0.6, 1, 1.7]`, `Kd = 1.1 a + 0.15 b`: textbook orders of magnitude, no water-type table was available.
+- `visibility = 4.8 / c` (about 1 % contrast threshold), shared with the silt module.
+- `LAMP_SCALE = 0.03`: two lamps at full power give about overcast surface daylight at 2 m. Research only
+  gives "several thousand lumens, 120-160° beams"; the lamp-to-daylight ratio is a choice that makes deep
+  wreck work lamp-dominated, as observed footage is.
+- Daylight in-scatter phase 0.07 and lamp backscatter phase 0.00025, with the near-lamp `1/d²` limited at
+  0.5 m: tuned on the review shots so that 10 m visibility shows a veil but keeps a lit hull at 2-3 m
+  readable, and harbour water (7 m) is clearly murkier.
+- Exposure key 0.18, range 0.3-400, lag 0.35 s, centre weighting: the research report has no measured
+  auto-exposure or gain behaviour.
+- Particle sizes, density (scaled by `b`) and drift; sun shaft and caustic patterns. Size and the order of
+  the visible count follow `research_notes/洋流與波浪對ROV作業/real_dive_footage.md` (§8 target 12), not X1.
+
+## Quality tiers and cost
+
+- `low` / `performance`: `installUnderwaterPipeline` returns `null` at start-up and the renderer is not
+  wrapped; the original single-coefficient depth shader (`legacy_lighting.js`) is used. No composer, no
+  extra draw calls, no particles.
+- `auto`: starts with optics; the first slow sample sets `effectsSuppressed`, which switches the frame back
+  to the legacy look (materials recompile once, lamps get their legacy falloff back); later slow samples
+  lower the resolution as before.
+- `medium` / `high` / `ultra`: optics; 1024 / 2048 / 4096 particles in a 4 m box; high and ultra add the small
+  procedural reflection cube and millimetre normal detail (from #26).
+
+## Fidelity
+
+Beautify (`fx/beautify.js`) is the fidelity item `waterBeautify` (toggle, `exceedsReal`, off in `real`,
+on in `assisted`; `?beautify=1|0` overrides it for one session). It adds faint sun shafts in shallow water,
+caustics on upward-facing surfaces and a vignette. With it off, nothing but the real-mode optics remains.
+`state.setEnhancements(v)` from #26 now just sets the fidelity item.
+
+## Hooks for other modules
+
+### Camera pass (T14b)
+
+`renderer.userData.underwaterPipeline.setCameraPass(pass)` inserts a pass after auto-exposure and before
+the beautify finish and `OutputPass`. Its input and output are linear and already exposed (the sensor gain
+has been applied), so sensor noise added there scales like real gain noise. Do not tone-map. The caller
+owns and disposes the pass; `setCameraPass(null)` removes it. The pass is not used in low / fallback.
+
+### Extra participating medium (silt, feat/silt)
+
+```js
+import { addMediumContributor } from './fx/pipeline.js';   // also exported by fx/water_optics.js
+const remove = addMediumContributor(function siltAtCamera({ scene, camera, water }) {
+  return { extinction: 1.2, scattering: [1.0, 0.95, 0.8] };   // 1/m, number or [r, g, b]; or null
+});
+```
+
+Called once per optics frame. `extinction` adds to the beam attenuation `c` of every light path (so
+visibility drops as `4.8 / c`); `scattering` adds to `b`, i.e. to the daylight in-scatter, the water
+colour at infinity and the lamp backscatter (per channel gives coloured backscatter, e.g. brown silt); the
+absorbed remainder `extinction - scattering` also dims daylight going down. The model is homogeneous: the
+values are taken as uniform along every ray, so pass the concentration sampled at the camera. Localised
+puffs remain the silt module's own geometry. The app's existing silt term (`fog.far` and the slight
+absorption tint from `state.silt`) still applies; when the silt module contributes the same sediment it
+should take that term over to avoid counting it twice.
+
+## Observation photos
+
+Eligibility is still computed by projection, range and raycasts in `observation_camera.js` and the backend;
+nothing here reads pixels or moves vertices. The water background, surface (optics material), shafts and
+particles carry `userData.observationIgnore`; the background and particles are also non-opaque by the
+observation rules. `fogLimit` reads `scene.fog`, which the pipeline only changes for the duration of a
+render and restores.
+
+## Review tool
+
+`python tools/browser_underwater_shots.py` (or through `run_browser_checks.py`) builds one-frame replays of
+fixed vehicle poses from the real simulator and captures them in the real viewer; see
+`docs/design/underwater-visuals/README.md`.
