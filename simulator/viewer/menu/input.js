@@ -1,20 +1,23 @@
-// Adapt standard gamepads into menu actions; replace this reader when the shared input layer lands.
+// Adapt shared T02 device snapshots into frontend navigation actions.
+import { pollMenuDevices } from "./devices.js";
+import { deviceFamily } from "../input/glyphs.js";
 export function readMenuPad() {
-  const pad = [...(navigator.getGamepads?.() || [])].find((pad) => pad?.connected);
+  const { pad, snapshot } = pollMenuDevices();
+  if (document.getElementById("inputSettings")?.open) return null;
   if (!pad) return null;
-  const pressed = (index) => Boolean(pad.buttons[index]?.pressed);
+  const pressed = (index) => (snapshot.buttons[index] || 0) > 0.5;
   return {
-    up: pressed(12) || pad.axes[1] < -0.6,
-    down: pressed(13) || pad.axes[1] > 0.6,
-    left: pressed(14) || pad.axes[0] < -0.6,
-    right: pressed(15) || pad.axes[0] > 0.6,
+    up: pressed(12) || snapshot.axes[1] < -0.6,
+    down: pressed(13) || snapshot.axes[1] > 0.6,
+    left: pressed(14) || snapshot.axes[0] < -0.6,
+    right: pressed(15) || snapshot.axes[0] > 0.6,
     start: pressed(9),
     confirm: pressed(0),
     back: pressed(1),
     previous: pressed(4),
     next: pressed(5),
-    rotate: pad.axes[2] || 0,
-    family: /054c|playstation|dualsense/i.test(pad.id) ? "playstation" : "standard",
+    rotate: snapshot.axes[2] || 0,
+    family: deviceFamily(pad.id),
   };
 }
 
@@ -33,13 +36,18 @@ export function installMenuInput(root, back, tab) {
   }
   function change(direction) {
     const node = document.activeElement;
+    if (node?.type === "range") {
+      node.stepUp(direction);
+      node.dispatchEvent(new Event("input"));
+      return;
+    }
     if (node?.tagName !== "SELECT") return move(direction);
     node.selectedIndex = (node.selectedIndex + direction + node.length) % node.length;
     node.dispatchEvent(new Event("change"));
   }
   function confirm() {
     const node = document.activeElement;
-    if (node?.tagName !== "INPUT" || node.type === "checkbox") {
+    if (node?.tagName !== "INPUT" || ["checkbox", "range"].includes(node.type)) {
       node?.click();
       return;
     }

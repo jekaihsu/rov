@@ -1,3 +1,4 @@
+import { CAMPAIGN_MENU_STRINGS } from "../story/campaign.js";
 // Assemble launch preferences and maintain the live underwater preview.
 import { installFlow } from "./flow.js";
 import * as THREE from "three";
@@ -157,7 +158,9 @@ const modeDescriptions = {
   inspection_coop: "最多三人分工巡檢；靠近站點、穩定懸停後拍照，在 12 分鐘內完成三站。",
   scenario_training: "依照所選場景的既有訓練目標、時間與評分規則進行。",
 };
-$("menuMode").value = query.get("mission") || read("rov.mission", "expedition");
+$("menuMode").prepend(new Option(CAMPAIGN_MENU_STRINGS.title, "campaign"));
+modeDescriptions.campaign = CAMPAIGN_MENU_STRINGS.brief;
+$("menuMode").value = query.get("mission") || read("rov.mission", "campaign");
 if (!$("menuMode").value) $("menuMode").value = "expedition";
 $("menuMode").onchange = () => {
   $("modeBrief").textContent = modeDescriptions[$("menuMode").value] + " 加入既有房間時以房主設定為準。";
@@ -349,7 +352,13 @@ async function selectScene() {
   ready();
 }
 document.querySelectorAll("[data-vehicle]").forEach((b) => (b.onclick = () => selectModel(b.dataset.vehicle)));
-$("menuScene").onchange = selectScene;
+$("menuScene").onchange = function selectIndependentScene() {
+  if ($("menuMode").value === "campaign") {
+    $("menuMode").value = "expedition";
+    $("menuMode").onchange();
+  }
+  selectScene();
+};
 stickerSelect.onchange = () => applyVehicleSticker(model, stickerSelect.value);
 let padSignature = "";
 function pads() {

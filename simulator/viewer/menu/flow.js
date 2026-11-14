@@ -1,4 +1,7 @@
 // Compose one focused screen per launch step while retaining the established form contract.
+import { installAudio, installAudioSettings } from "../audio/engine.js";
+import { installMenuControls } from "./devices.js";
+import { CAMPAIGN_MENU_STRINGS } from "../story/campaign.js";
 import { installMenuInput } from "./input.js";
 const STRINGS = {
   title: "深藍之下，開始探索。",
@@ -26,7 +29,14 @@ const STRINGS = {
   ],
   loading: "正在準備場景與載具，請稍候…",
   ready: "出航檢查",
-  audio: "音訊模組尚未接入。",
+  specs: "以下是模擬器暫定參數，不是真機實測規格；緊湊型資料待實測。",
+  pending: "未分級",
+  training: "訓練情境 / 練習重點",
+  checklist: "潛前確認：檢查纜線與連線、確認洋流與能見度；入水及人員離開後才解鎖，回收前先上鎖。",
+  unknown: "待實測",
+  no: "無",
+  yes: "有",
+
   language: "繁體中文",
   room: "加入前尚無房內玩家；連線後以房主海域與任務為準。",
   quitHelp: "瀏覽器請關閉分頁以離開。",
@@ -93,7 +103,8 @@ export function installFlow(menu) {
   const modes = document.createElement("div");
   modes.className = "menu-cards";
   for (const [index, option] of [...$("menuMode").options].entries()) {
-    button(modes, `${STRINGS.modes[index]} — ${STRINGS.tips[index]}`, () => {
+    button(modes, option.value === "campaign" ? `${CAMPAIGN_MENU_STRINGS.title} — ${CAMPAIGN_MENU_STRINGS.brief}`
+      : `${STRINGS.modes[index - 1]} — ${STRINGS.tips[index - 1]}`, () => {
       $("menuMode").value = option.value;
       $("menuMode").dispatchEvent(new Event("change"));
       show("vehicle");
@@ -102,14 +113,14 @@ export function installFlow(menu) {
   mode.append(modes);
   const training = document.createElement("details");
   const trainingTitle = document.createElement("summary");
-  trainingTitle.textContent = "訓練情境 / 難度與練習重點";
+  trainingTitle.textContent = STRINGS.training;
   training.append(trainingTitle);
   mode.append(training);
   fetch("scene_previews.json")
     .then((response) => response.json())
     .then(function trainingScenarios(entries) {
       for (const [index, entry] of entries.entries()) {
-        button(training, `${index < 3 ? "入門" : "進階"} · ${entry.name} · ${entry.brief}`, () => {
+        button(training, `${STRINGS.pending} · ${entry.name} · ${entry.brief}`, () => {
           $("menuMode").value = "scenario_training";
           $("menuScene").value = entry.key;
           $("menuScene").dispatchEvent(new Event("change"));
@@ -121,29 +132,23 @@ export function installFlow(menu) {
   vehicle.append(sections[2]);
   const specs = document.createElement("div");
   specs.className = "vehicle-specs";
-  specs.textContent = "5 / 8 / 6 推進器 · 作業 / 全向 / 緊湊";
+
   vehicle.append(specs);
   const specsData = {
-    falcon: [60, 5, 1.5, true, [85, 65, 40]],
-    bluerov2_heavy: [13.5, 8, 1.5, false, [65, 90, 80]],
-    x1: [null, 6, null, false, [50, 75, 90]],
+    falcon: [60, 5, 1.5, true],
+    bluerov2_heavy: [13.5, 8, 1.5, false],
+    x1: [null, 6, null, false],
   };
   function updateSpecs() {
     const id = document.querySelector("[data-vehicle][aria-pressed=true]")?.dataset.vehicle || "falcon";
-    const [mass, count, speed, arm, bars] = specsData[id];
+    const [mass, count, speed, arm] = specsData[id];
     specs.replaceChildren();
     const values = document.createElement("p");
     values.textContent = `${mass ?? "—"} kg · ${count} 推進器 · ${speed ?? "—"} m/s · 機械臂 ${arm ? "有" : "無"}`;
     specs.append(values);
-    ["作業能力", "全向控制", "緊湊程度"].forEach(function capability(label, index) {
-      const row = document.createElement("label");
-      row.textContent = label;
-      const meter = document.createElement("meter");
-      meter.max = 100;
-      meter.value = bars[index];
-      row.append(meter);
-      specs.append(row);
-    });
+    const note = document.createElement("small");
+    note.textContent = STRINGS.specs;
+    specs.append(note);
   }
   new MutationObserver(updateSpecs).observe(vehicle, {
     subtree: true,
@@ -171,6 +176,9 @@ export function installFlow(menu) {
   const brief = screen("brief", STRINGS.brief);
   const summary = document.createElement("p");
   brief.append(summary);
+  const checklist = document.createElement("p");
+  checklist.textContent = STRINGS.checklist;
+  brief.append(checklist);
   const multiplayer = screen("multiplayer", STRINGS.multiplayer);
   sections[4].open = true;
   multiplayer.append(sections[4]);
@@ -193,7 +201,9 @@ export function installFlow(menu) {
   panels[0].append(sections[0]);
   sections[5].open = true;
   panels[1].append(sections[5]);
-  panels[2].textContent = STRINGS.audio;
+  installMenuControls(panels[1]);
+  installAudioSettings(installAudio(), panels[2]);
+  panels[2].querySelector("details").open = true;
   panels[4].textContent = STRINGS.language;
   for (const id of ["menuPip", "menuIntro", "menuSticks", "menuFog", "menuLabels"]) {
     panels[3].append($(id).closest("label"));
