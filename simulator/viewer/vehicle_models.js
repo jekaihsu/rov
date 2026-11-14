@@ -1,6 +1,6 @@
 // Vehicle visuals use Three coordinates (-starboard, -down, forward), metres.
 import * as THREE from 'three';
-import { trainingAssets, vehicleAsset } from './asset_config.js';
+import { trainingAssets, vehicleAsset, vehicleAssets } from './asset_config.js';
 import { loadGLTF } from './glb.js';
 
 const point = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
@@ -121,13 +121,14 @@ export async function createVehicleModel(definition='x1', options={}) {
   const id=typeof definition==='string'?definition:definition.id || 'x1';
   const def={...(defaults[id] || defaults.x1),...(typeof definition==='object'?definition:{})};
   const root=new THREE.Group(); root.name=`Vehicle ${id}`;
-  const original = options.training ?? trainingAssets;
+  const original = (options.training ?? trainingAssets) || !vehicleAssets[id];
   if (!original) def.model = vehicleAsset(id, options.lod ?? 0);
   let model, loadError=null;
   try { model=(await loadGLTF(def.model)).scene; }
   catch(e) { loadError=e; console.warn(`Vehicle model ${id} unavailable; using fallback`,e); model=fallback(id); }
   // Preserve the legacy X1 centring convention; fleet GLBs are authored about CG.
   if(original && id==='x1') { const box=new THREE.Box3().setFromObject(model); model.position.sub(box.getCenter(new THREE.Vector3())); }
+  root.userData.assetLoadError = loadError?.message || null;
   root.add(model); root.updateMatrixWorld(true);
   const rotors=[];
   model.traverse((o) => {

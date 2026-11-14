@@ -21,15 +21,15 @@ Run from repository root:
 
 Outputs: `cad/bluerov2_heavy.blend`, `cad/falcon.blend`, and matching `simulator/viewer/models/*.glb`. The reproducible source is `build_vehicle_fleet.py`, with physical definitions in `simulator/qysim/vehicles.py`. No manufacturer logos or downloaded proprietary CAD are included. Coordinates originate at the defined centre of gravity; GLB +Z is forward and +Y is up. `thruster_index` extras provide stable rotor-to-motor mapping. The visual dimensions are approximations and should be refined against approved orthographic references before claiming replica fidelity.
 
-## T11a original shipping fleet
+## T11a opt-in observation prototype
 
-`build_original_vehicles.py` is the editable source for Observation ROV, Work ROV
-and Open-frame ROV. All geometry and 128² surface maps are authored procedurally
-here, without external references or manufacturer styling. Muted copper ceramic,
-sage foam, titanium framing and black elastomer are shared engineering materials.
-These are clean industrial approximations, not photogrammetry or certified hardware.
+`build_original_vehicles.py` is the editable Blender source for one original
+Observation ROV. No photographs, manufacturer CAD or external textures were used.
+The previous work/open-frame drafts have been withdrawn pending acceptance of
+this first vehicle. Existing training assets remain the default in all distributions.
+Use `?assets=generic&model=x1` explicitly to inspect the prototype.
 
-Build from the repository root with Blender 4.3.2, Node 22,
+Build from repository root with Blender 4.3.2, Node 22,
 `@gltf-transform/cli` 4.4.0 and KTX-Software 4.4.2 (`toktx`) on PATH:
 
 ```sh
@@ -37,19 +37,34 @@ python simulator/tools/build_assets.py
 python simulator/tools/build_assets.py --check
 ```
 
-The pipeline exports three decimated LODs, encodes embedded maps as KTX2 UASTC,
+The pipeline exports three LODs, encodes embedded 2048² surface maps as KTX2 UASTC,
 then applies meshopt. Temporary uncompressed exports stay in `.runtime/assets`.
-`assets-report.json` records triangle counts, bytes and conservative RGBA8 GPU
-texture memory including mipmaps (actual block compression is smaller).
-Textures are 128², intentionally below the 2K ceiling. All five PBR channels are embedded. AO is a subtle procedural surface mask rather than
-a baked cavity map. Wear, fouling,
-flexible hoses, scan-derived detail and photoreal texture work remain future art work.
+Blender's texture multiplication does not preserve tint in glTF, so the pipeline
+restores authored linear material factors from exported material extras before
+compression. Roughness and AO share an ORM image; metalness is the authored
+material scalar. `assets-report.json` reads actual KTX2 dimensions and reports
+triangles, file bytes and conservative RGBA8 GPU texture memory including mipmaps.
+Texture memory is per asset instance without cross-LOD deduplication.
 
-Default visuals use the original fleet; `?assets=training` preserves the old assets.
-Physics/SDK IDs remain unchanged. The selected visual does not change collision,
-mass, motor allocation or capabilities. Collision JSON is generated directly from
-backend hull spheres. The preview supports LOD, wireframe, material channels and
-collision overlays. Rotor extras retain backend indices; the work arm retains the
-existing four-joint binding. Camera and lamp pivot nodes are authored for articulation.
-The current runtime continues to use existing camera/light controls and LOD0;
-LOD1/2 are available through the model API and inspector.
+The observation prototype includes segmented buoyancy cassettes, retaining straps,
+fasteners, lifting handles, end-cap bolts, wet-mate connectors and harnesses,
+thruster lips/stators/rotors, panel seams and an original service plate. These are
+engineering assumptions for a generic vehicle, not measured X1 details. Materials
+use procedural machining grain, scratches and seam masks; AO is not a baked cavity
+map and wear is not physically validated. Artistic acceptance remains with review.
+
+Per `docs/reference/real-rov-research.md`, visual fidelity must not imply a validated
+physical twin. X1-specific geometry/coefficients remain provisional; the own-data
+directory cited by AGENTS.md is absent from this checkout. No physical, camera FOV,
+latency, lighting photometry, controller or SDK parameters change here. Existing
+FRD motor anchors and collision spheres are retained exactly. Third-person captures
+are a training/asset-inspection aid, not the real pilot's view.
+
+KTX2 uses the caller's existing renderer via `configureAssetRenderer`; no probe
+WebGL context is created. The vendor manifest explicitly includes the runtime
+Basis JS/WASM files. Both showcase formats include the new modules and assets.
+
+The preview offers LOD, wireframe, PBR channels, collision spheres and camera/lamp
+pivot controls. Runtime still uses LOD0. Reproduce side-by-side captures and actual
+in-game loading checks with `CHROME_PATH=/path/to/chrome python
+simulator/tools/browser_assets.py`; default Chrome is used if CHROME_PATH is unset.

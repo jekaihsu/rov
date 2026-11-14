@@ -1,68 +1,26 @@
 {
-  "models_total_bytes": 15322468,
+  "models_total_bytes": 17812288,
   "assets": [
     {
       "asset": "observation-lod0.glb",
-      "triangles": 15180,
-      "bytes": 103528,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
+      "triangles": 43512,
+      "bytes": 1167424,
+      "texture_gpu_rgba8_bytes_with_mips": 67108860,
+      "max_texture": 2048
     },
     {
       "asset": "observation-lod1.glb",
-      "triangles": 8302,
-      "bytes": 113600,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
+      "triangles": 26085,
+      "bytes": 1179336,
+      "texture_gpu_rgba8_bytes_with_mips": 67108860,
+      "max_texture": 2048
     },
     {
       "asset": "observation-lod2.glb",
-      "triangles": 3734,
-      "bytes": 90380,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
-    },
-    {
-      "asset": "work-lod0.glb",
-      "triangles": 15780,
-      "bytes": 126048,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
-    },
-    {
-      "asset": "work-lod1.glb",
-      "triangles": 8624,
-      "bytes": 141544,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
-    },
-    {
-      "asset": "work-lod2.glb",
-      "triangles": 3874,
-      "bytes": 108268,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
-    },
-    {
-      "asset": "openframe-lod0.glb",
-      "triangles": 18288,
-      "bytes": 101960,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
-    },
-    {
-      "asset": "openframe-lod1.glb",
-      "triangles": 10004,
-      "bytes": 112628,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
-    },
-    {
-      "asset": "openframe-lod2.glb",
-      "triangles": 4504,
-      "bytes": 91604,
-      "texture_gpu_rgba8_bytes_with_mips": 1310700,
-      "max_texture": 128
+      "triangles": 14506,
+      "bytes": 1132620,
+      "texture_gpu_rgba8_bytes_with_mips": 67108860,
+      "max_texture": 2048
     }
   ]
 }

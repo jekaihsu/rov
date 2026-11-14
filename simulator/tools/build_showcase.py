@@ -43,6 +43,8 @@ def pages() -> list[Path]:
 
 MODELS = ["rov.glb", "workboat.glb", "worker.glb", "korean_castle.glb", "waternormals.jpg", "CREDITS.md"]
 MODELS += ["bluerov2_heavy.glb", "falcon.glb"]
+MODELS += [f"observation-lod{lod}.glb" for lod in range(3)]
+MODELS += ["observation-collision.json", "assets-report.json"]
 
 
 def build(out: Path, glb_json: bool, overrides: dict | None = None) -> None:

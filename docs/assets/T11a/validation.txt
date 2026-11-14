@@ -1,0 +1,180 @@
+$ cd simulator && python -m unittest discover -s tests
+........................................s.........................................Executing <Task pending name='Task-2' coro=<TestWebSocket.test_two_clients_join_control_and_reconnect() running at /workspace/rov/simulator/tests/test_multiplayer.py:232> wait_for=<_GatheringFuture pending cb=[Task.task_wakeup()] created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/tasks.py:712> cb=[_run_until_complete_cb() at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py:181] created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.533 seconds
+Executing <Task pending name='Task-10' coro=<Server.conn_handler() running at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/websockets/asyncio/server.py:376> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py:448> created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/websockets/asyncio/server.py:406> took 0.407 seconds
+................Executing <Task finished name='Task-29' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.500 seconds
+.Executing <Task finished name='Task-34' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.512 seconds
+.Executing <Task finished name='Task-39' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.484 seconds
+.Executing <Task finished name='Task-44' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.521 seconds
+.Executing <Task finished name='Task-49' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.495 seconds
+.Executing <Task finished name='Task-54' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.506 seconds
+.Executing <Task finished name='Task-59' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.433 seconds
+.............................
+----------------------------------------------------------------------
+Ran 133 tests in 186.862s
+
+OK (skipped=1)
+PROLOGUE REAL INPUT COMPLETED: ["welcome", "unlock", "move", "move_前", "move_後", "move_右", "move_左", "move_下", "move_上", "depth_line", "depth", "light_line", "light", "photo_line", "photo", "end"]
+wrote /tmp/tmpi45ygzw8/False (27.0 MB)
+wrote /tmp/tmpi45ygzw8/True (32.9 MB)
+
+$ node --test simulator/tests/*.mjs && node simulator/desktop/test_collection_store.cjs
+✔ radial deadzone preserves direction and saturates diagonally (14.893139ms)
+✔ curve preserves neutral, supports inversion and bounds output (0.365837ms)
+✔ bindings handle signed axes, trigger buttons and absent HOTAS controls (0.500473ms)
+✔ standard, database and custom mappings use explicit paths (0.78795ms)
+✔ active device follows movement, explicit selection, hot unplug (6.209375ms)
+✔ haptics ignores unsupported devices and respects strength (0.382112ms)
+✔ legacy RC omits auxiliary fields until an assist object is advertised (0.599242ms)
+✔ HUD consumes semantic directions without polling a device (0.503701ms)
+✔ motor output has bounded gain, increasing pitch and reverse timbre (1.869668ms)
+✔ depth darkens ambience with finite bounded cutoff (0.167128ms)
+✔ edges fire once and initial or rewound snapshots stay silent (0.542294ms)
+✔ warning, completion and control edges preserve severity without repeated beeps (1.512643ms)
+✔ forward estimate follows NED heading and ignores obstacles behind (4.71947ms)
+✔ cylinder and wall estimates respect geometry and height (0.432345ms)
+Hardware hints, privacy fallback, viewport budget, measured FPS recovery and recording suspension passed.
+✔ simulator/tests/test_render_quality.mjs (89.784933ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 265.152464
+Collection storage passed: serialized writes, reopen, covers, export/import, collisions, validation and failed-write rollback.
+
+$ cd simulator && python -m unittest discover -s tests -p test_original_assets.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.256s
+
+OK
+wrote /tmp/tmp0uqlp5h4/False (27.0 MB)
+wrote /tmp/tmp0uqlp5h4/True (32.9 MB)
+
+$ python simulator/tools/vendor_manifest.py --check
+Three.js manifest: 18 files
+
+$ python simulator/tools/build_assets.py --check
+{
+  "models_total_bytes": 17812288,
+  "assets": [
+    {
+      "asset": "observation-lod0.glb",
+      "triangles": 43512,
+      "bytes": 1167424,
+      "texture_gpu_rgba8_bytes_with_mips": 67108860,
+      "max_texture": 2048
+    },
+    {
+      "asset": "observation-lod1.glb",
+      "triangles": 26085,
+      "bytes": 1179336,
+      "texture_gpu_rgba8_bytes_with_mips": 67108860,
+      "max_texture": 2048
+    },
+    {
+      "asset": "observation-lod2.glb",
+      "triangles": 14506,
+      "bytes": 1132620,
+      "texture_gpu_rgba8_bytes_with_mips": 67108860,
+      "max_texture": 2048
+    }
+  ]
+}
+
+$ CHROME_PATH=/workspace/chrome/opt/google/chrome/chrome python simulator/tools/browser_assets.py
+{
+  "status": "passed",
+  "lod_wireframe_channels_collision": "passed",
+  "game_training_six_rotors_no_fallback": "passed",
+  "game_generic_six_rotors_no_fallback": "passed",
+  "page_errors": []
+}
+
+$ PATH=/workspace/bin:$PATH python tools/browser_menu_smoke.py (cwd: simulator)
+Menu flow passed: /workspace/rov/simulator/output/menu-validation
+
+$ PATH=/workspace/bin:$PATH python simulator/tools/browser_smoke.py (fresh server)
+Connecting browser 1
+CONSOLE Failed to load resource: the server responded with a status of 404 (File not found)
+Connecting browser 2
+Connecting browser 3
+CONSOLE Failed to load resource: the server responded with a status of 404 (File not found)
+Traceback (most recent call last):
+  File "/workspace/rov/simulator/tools/browser_smoke.py", line 60, in <module>
+    if __name__=='__main__':run()
+                            ^^^^^
+  File "/workspace/rov/simulator/tools/browser_smoke.py", line 41, in run
+    main.click('#flightDrawer')
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/sync_api/_generated.py", line 11065, in click
+    self._sync(
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_page.py", line 887, in click
+    return await self._main_frame._click(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_frame.py", line 593, in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 76, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 632, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Page.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("#flightDrawer")
+    - locator resolved to <button id="flightDrawer">工程 Tab</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <div id="offline" class="offline">…</div> intercepts pointer events
+    - retrying click action
+    - waiting 20ms
+    - waiting for element to be visible, enabled and stable
+
+
+$ PATH=/workspace/bin:$PATH python tools/browser_smoke.py (cwd: /workspace/rov-main/simulator; origin/main 87b1ff9)
+Connecting browser 1
+CONSOLE Failed to load resource: the server responded with a status of 404 (File not found)
+Connecting browser 2
+Connecting browser 3
+Traceback (most recent call last):
+  File "/workspace/rov-main/simulator/tools/browser_smoke.py", line 60, in <module>
+    if __name__=='__main__':run()
+                            ^^^^^
+  File "/workspace/rov-main/simulator/tools/browser_smoke.py", line 35, in run
+    main.locator('#closePip').click()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/sync_api/_generated.py", line 17876, in click
+    self._sync(
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_locator.py", line 165, in click
+    return await self._frame._click(self._selector, strict=True, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_frame.py", line 593, in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 76, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 632, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("#closePip")
+    - locator resolved to <button id="closePip" title="關閉操作員畫面" aria-label="關閉操作員畫面">×</button>
+  - attempting click action
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+
+
+Syntax check: all viewer JS (excluding vendor) and desktop CJS via node --check: exit 0
+git diff --check: exit 0
+No existing test was modified, deleted or relaxed.

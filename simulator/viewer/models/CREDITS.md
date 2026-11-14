@@ -14,17 +14,21 @@ Water and sky shaders: `three/addons/objects/Water.js` and `Sky.js` (three.js, M
 
 An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime` reference directory. It is not included here or in the desktop distribution.
 
-## Original shipping vehicles (T11a)
+## Original observation prototype (T11a)
 
-| Files | Source / author | License / provenance | Processing |
+| Files | Source / author | Provenance | Processing |
 |---|---|---|---|
-| `observation-lod{0,1,2}.glb` | Project original, `cad/build_original_vehicles.py` | Original project work; no external asset | Blender geometry/maps, Basis UASTC, meshopt |
-| `work-lod{0,1,2}.glb` | Project original, same script | Original project work; no external asset | Same; articulated sampling arm |
-| `openframe-lod{0,1,2}.glb` | Project original, same script | Original project work; no external asset | Same |
+| `observation-lod{0,1,2}.glb` | Project original, `cad/build_original_vehicles.py` | No external asset or visual reference | Blender geometry and 2K maps, Basis UASTC, meshopt |
 
-No external assets were added for T11a. Existing training assets and their provenance
-above are retained. Generic visuals retain legacy physics IDs solely for protocol
-compatibility; they are not depictions of the corresponding manufacturer vehicles.
+This is an opt-in generic prototype awaiting artistic acceptance. The earlier
+work/open-frame drafts were withdrawn. Existing training models remain default.
+The protocol ID is retained for compatibility; the generic prototype is not a
+manufacturer depiction. No external assets were added. KTX2Loader and its utility modules are from pinned Three.js r160 (MIT).
+Basis Universal transcoder JS/WASM are distributed with Three.js r160 under Apache-2.0;
+the upstream README and full license ship in `vendor/three/examples/jsm/libs/basis/`.
+These are runtime code dependencies, not external art assets. Build tools: glTF Transform
+(MIT), KTX-Software (Apache-2.0).
+
 ### Input mapping data
 `../input/controller-db.json` is a compact conversion of the Linux records from
 [SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), retrieved 2026-11-14.

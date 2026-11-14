@@ -2,17 +2,18 @@
 // * meshopt-compressed models (models/rov.glb) need the decoder
 // * hosts that refuse to serve .glb (e.g. claude.ai artifacts) get a sibling "<name>.glb.json"
 //   ({"glb": "<base64>"}, written by tools/build_showcase.py) which is decoded in memory
-import { WebGLRenderer } from 'three';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
-const probe = new WebGLRenderer();
 const basis = new KTX2Loader().setTranscoderPath('./vendor/three/examples/jsm/libs/basis/');
-basis.detectSupport(probe);
-probe.dispose();
-probe.forceContextLoss();
-const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).setKTX2Loader(basis);
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+
+/** Configure KTX2 using the caller's existing rendering context, never create a probe context. */
+export function configureAssetRenderer(renderer) {
+  basis.detectSupport(renderer);
+  loader.setKTX2Loader(basis);
+}
 const isGlb = (buf) => buf.byteLength > 12 && new TextDecoder().decode(new Uint8Array(buf, 0, 4)) === 'glTF';
 
 async function fetchGlb(url) {

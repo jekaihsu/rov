@@ -31,9 +31,13 @@ export function installInspector(select, getModel) {
   const wire = document.createElement('button');
   wire.textContent = STRINGS.wire;
   panel.append(wire);
-  wire.onclick = () => getModel().model.traverse(o => {
-    if (o.isMesh) o.material.wireframe = !o.material.wireframe;
-  });
+  let wireframe = false;
+  wire.onclick = () => {
+    wireframe = !wireframe;
+    getModel().model.traverse(o => {
+      if (o.isMesh) o.material.wireframe = wireframe;
+    });
+  };
   const channel = document.createElement('select');
   STRINGS.channels.forEach((name, i) => channel.add(new Option(name, i)));
   panel.append(channel);
@@ -44,6 +48,7 @@ export function installInspector(select, getModel) {
     const pbr = o.userData.pbr;
     const maps = [null, pbr.map, pbr.normalMap, pbr.roughnessMap, pbr.metalnessMap, pbr.aoMap];
     o.material = +channel.value ? new THREE.MeshBasicMaterial({map:maps[+channel.value]}) : pbr;
+    o.material.wireframe = wireframe;
   });
   const proxy = document.createElement('button');
   proxy.textContent = STRINGS.proxy;
@@ -55,7 +60,9 @@ export function installInspector(select, getModel) {
       existing.visible = !existing.visible;
       return;
     }
-    const slug = vehicleAssets[model.definition.id].slug;
+    const asset = vehicleAssets[model.definition.id];
+    if (!asset) return;
+    const slug = asset.slug;
     const data = await (await fetch(`models/${slug}-collision.json`)).json();
     const group = new THREE.Group();
     group.name = 'collision';

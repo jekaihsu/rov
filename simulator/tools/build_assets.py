@@ -9,7 +9,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 MODELS = ROOT / 'simulator/viewer/models'
-FLEET = {'x1': 'observation', 'falcon': 'work', 'bluerov2_heavy': 'openframe'}
+FLEET = {'x1': 'observation'}
 sys.path.insert(0, str(ROOT / 'simulator'))
 from qysim.vehicles import VEHICLE_DEFINITIONS
 
@@ -18,6 +18,21 @@ def document(path):
     data = path.read_bytes()
     length = struct.unpack_from('<I', data, 12)[0]
     return json.loads(data[20:20 + length])
+
+
+def restore_material_factors(path):
+    """Blender cannot export a texture multiply node; preserve the authored linear tint explicitly."""
+    raw = path.read_bytes()
+    old_length = struct.unpack_from('<I', raw, 12)[0]
+    doc = document(path)
+    for material in doc['materials']:
+        tint = material['extras']['original_base_color']
+        material['pbrMetallicRoughness']['baseColorFactor'] = tint
+    encoded = json.dumps(doc, separators=(',', ':')).encode()
+    encoded += b' ' * (-len(encoded) % 4)
+    tail = raw[20 + old_length:]
+    header = struct.pack('<III', 0x46546C67, 2, 20 + len(encoded) + len(tail))
+    path.write_bytes(header + struct.pack('<II', len(encoded), 0x4E4F534A) + encoded + tail)
 
 
 def report():
@@ -75,6 +90,7 @@ def main():
             (MODELS / f'{slug}-collision.json').write_text(json.dumps(proxy, indent=2) + '\n')
             for lod in range(3):
                 raw = ROOT / f'.runtime/assets/{slug}-lod{lod}.glb'
+                restore_material_factors(raw)
                 basis = raw.with_suffix('.basis.glb')
                 subprocess.run([transform, 'uastc', str(raw), str(basis)], check=True)
                 subprocess.run([transform, 'meshopt', str(basis), str(MODELS / raw.name)], check=True)

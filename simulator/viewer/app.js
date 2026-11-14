@@ -1,3 +1,4 @@
+import { configureAssetRenderer } from './glb.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -46,6 +47,7 @@ const Q = (q, out = new THREE.Quaternion()) => out.set(-q[2], -q[3], q[1], q[0])
 /* ═════════════════════════ renderer / scene ═════════════════════════ */
 const vp = $('vp');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
+configureAssetRenderer(renderer);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;

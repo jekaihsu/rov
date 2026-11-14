@@ -1,3 +1,4 @@
+import { configureAssetRenderer } from './glb.js';
 import { trainingAssets, vehicleAssets } from './asset_config.js';
 import {installAudio, installAudioSettings} from './audio/engine.js';
 import * as THREE from 'three';
@@ -52,6 +53,7 @@ const scene=new THREE.Scene();scene.background=new THREE.Color('#0c3342');scene.
 scene.add(new THREE.HemisphereLight(0xc9eeff,0x29362b,2));
 for(const [pos,power,color]of [[[3,7,6],3,0xffffff],[[-4,2,-1],2,0x64c4dc]]){const light=new THREE.DirectionalLight(color,power);light.position.set(...pos);scene.add(light);}
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;menu.prepend(renderer.domElement);
+configureAssetRenderer(renderer);
 function qualityStatus(){const info=renderQualityInfo(renderer);$('menuHardware').textContent=info?.hardwareLabel?`${info.hardwareLabel} · ${info.hardwareReason}`:'依畫面效能調整';$('menuQualityState').textContent=`目前渲染比例 ${info?.scale||100}% · ROV 開發版 0.3`;}
 configureRenderQuality(renderer,$('menuQuality').value);qualityStatus();$('menuQuality').onchange=()=>{configureRenderQuality(renderer,$('menuQuality').value);qualityStatus();try{localStorage.setItem('rov.quality',$('menuQuality').value);}catch{}window.rovDesktop?.rememberQuality($('menuQuality').value);};setInterval(qualityStatus,1000);
 const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.02,5000);

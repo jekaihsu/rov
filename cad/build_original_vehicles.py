@@ -18,47 +18,74 @@ def point(p):
     return (-p[1], -p[0], -p[2])
 
 
+TEXTURES = {}
+
+
+def surface_map(channel):
+    """Shared 2K original maps: machining grain, fine scratches and sealed panel seams."""
+    import numpy as np
+    if channel in TEXTURES:
+        return TEXTURES[channel]
+    size = 2048
+    y, x = np.mgrid[:size, :size]
+    seams = ((x % 512 < 4) | (y % 512 < 4)).astype(np.float32)
+    scratches = ((x * 13 + y * 7) % 997 < 2).astype(np.float32)
+    grain = .008 * np.sin(y * .8) + .005 * np.sin(x * .17 + y * .3)
+    pixels = np.ones((size, size, 4), dtype=np.float32)
+    if channel == 'Base Color':
+        value = .85 + grain - seams * .24 - scratches * .07
+        pixels[:, :, :3] = value[:, :, None]
+    elif channel == 'Normal':
+        pixels[:, :, 0] = .5 + grain
+        pixels[:, :, 1] = .5 - seams * .08
+        pixels[:, :, 2] = 1
+    else:
+        value = .65 + grain + scratches * .12 if channel == 'Roughness' else 1 - seams * .25
+        pixels[:, :, :3] = value[:, :, None]
+    image = bpy.data.images.new('Original 2K ' + channel, width=size, height=size)
+    if channel != 'Base Color':
+        image.colorspace_settings.name = 'Non-Color'
+    image.pixels.foreach_set(pixels.ravel())
+    image.pack()
+    TEXTURES[channel] = image
+    return image
+
+
 def material(name, color, metal, rough):
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = (*color, 1)
+    mat['original_base_color'] = list(color) + [1]
     mat.use_nodes = True
-    shader = mat.node_tree.nodes.get('Principled BSDF')
-    shader.inputs['Base Color'].default_value = (*color, 1)
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    shader = nodes.get('Principled BSDF')
     shader.inputs['Metallic'].default_value = metal
     shader.inputs['Roughness'].default_value = rough
-    nodes = mat.node_tree.nodes
-    for channel in ['Base Color', 'Roughness', 'Normal', 'Metallic', 'Occlusion']:
-        image = bpy.data.images.new(name + channel, width=128, height=128)
-        pixels = []
-        for y in range(128):
-            for x in range(128):
-                grain = ((x * 73 + y * 151) % 31) / 3100
-                if channel == 'Base Color':
-                    rgb = tuple(max(0, c - grain) for c in color)
-                elif channel == 'Normal':
-                    rgb = (.5 + grain, .5, 1)
-                else:
-                    value = metal if channel == 'Metallic' else 1 - grain if channel == 'Occlusion' else rough + grain
-                    rgb = (value,) * 3
-                pixels.extend((*rgb, 1))
-        image.pixels[:] = pixels
-        image.pack()
+    for channel in ['Base Color', 'Roughness', 'Normal', 'Occlusion']:
         texture = nodes.new('ShaderNodeTexImage')
-        texture.image = image
-        if channel != 'Base Color':
-            image.colorspace_settings.name = 'Non-Color'
+        texture.image = surface_map(channel)
         if channel == 'Occlusion':
-            group = bpy.data.node_groups.new('glTF Material Output', 'ShaderNodeTree')
-            group.interface.new_socket(name='Occlusion', in_out='INPUT', socket_type='NodeSocketFloat')
+            group = bpy.data.node_groups.get('glTF Material Output')
+            if group is None:
+                group = bpy.data.node_groups.new('glTF Material Output', 'ShaderNodeTree')
+                group.interface.new_socket(name='Occlusion', in_out='INPUT', socket_type='NodeSocketFloat')
             output = nodes.new('ShaderNodeGroup')
             output.node_tree = group
-            mat.node_tree.links.new(texture.outputs['Color'], output.inputs['Occlusion'])
+            links.new(texture.outputs['Color'], output.inputs['Occlusion'])
         elif channel == 'Normal':
             normal = nodes.new('ShaderNodeNormalMap')
-            mat.node_tree.links.new(texture.outputs['Color'], normal.inputs['Color'])
-            mat.node_tree.links.new(normal.outputs['Normal'], shader.inputs[channel])
+            normal.inputs['Strength'].default_value = .25
+            links.new(texture.outputs['Color'], normal.inputs['Color'])
+            links.new(normal.outputs['Normal'], shader.inputs[channel])
+        elif channel == 'Base Color':
+            tint = nodes.new('ShaderNodeMixRGB')
+            tint.blend_type = 'MULTIPLY'
+            tint.inputs[0].default_value = 1
+            tint.inputs[2].default_value = (*color, 1)
+            links.new(texture.outputs['Color'], tint.inputs[1])
+            links.new(tint.outputs['Color'], shader.inputs[channel])
         else:
-            mat.node_tree.links.new(texture.outputs['Color'], shader.inputs[channel])
+            links.new(texture.outputs['Color'], shader.inputs[channel])
     return mat
 
 
@@ -137,6 +164,19 @@ def build(identifier, slug):
         duct.name = 'Duct'
         duct.data.materials.append(dark)
         duct.parent = mount
+        for offset in [-.025, .025]:
+            bpy.ops.mesh.primitive_torus_add(major_radius=.052, minor_radius=.004,
+                                            major_segments=40, minor_segments=8)
+            rim = bpy.context.object
+            rim.name = 'Duct lip'
+            rim.parent = mount
+            rim.location = (0, 0, offset)
+            rim.data.materials.append(steel)
+        for j in range(4):
+            angle = j * math.tau / 4
+            support = box('Motor stator', (.03 * math.cos(angle), .03 * math.sin(angle), -.02),
+                          (.045, .006, .008), steel, mount)
+            support.rotation_euler.z = angle
         rotor = empty('Rotor', (0, 0, 0), mount)
         rotor['role'] = 'rotor'
         rotor['thruster_index'] = i
@@ -169,6 +209,8 @@ def build(identifier, slug):
             jaw = empty(name, (sign * .03, -.075, 0), parent)
             box('Grip finger', (0, -.04, 0), (.015, .08, .025), steel, jaw)
         empty('arm_tip', (0, -.12, 0), parent)
+    if identifier == 'x1':
+        add_observation_detail(steel, foam, dark, shell)
     out = ROOT / '.runtime/assets'
     out.mkdir(parents=True, exist_ok=True)
     for lod, ratio in enumerate([1, .55, .25]):
@@ -180,5 +222,71 @@ def build(identifier, slug):
                                   export_extras=True, export_apply=True)
 
 
-for identifier, slug in [('x1', 'observation'), ('falcon', 'work'), ('bluerov2_heavy', 'openframe')]:
+def cable(name, points, radius, mat):
+    curve = bpy.data.curves.new(name, 'CURVE')
+    curve.dimensions = '3D'
+    curve.resolution_u = 12
+    curve.bevel_depth = radius
+    curve.bevel_resolution = 3
+    spline = curve.splines.new('BEZIER')
+    spline.bezier_points.add(len(points) - 1)
+    for point_node, position in zip(spline.bezier_points, points):
+        point_node.co = position
+        point_node.handle_left_type = 'AUTO'
+        point_node.handle_right_type = 'AUTO'
+    obj = bpy.data.objects.new(name, curve)
+    bpy.context.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    return obj
+
+
+def add_observation_detail(steel, foam, dark, shell):
+    # Split buoyancy cassettes with retaining bands and recessed fasteners.
+    for x in [-.088, .088]:
+        for y in [-.15, .02, .16]:
+            box('Cassette retention strap', (x, y, .247), (.125, .012, .008), steel)
+            for dx in [-.047, .047]:
+                cylinder('Recessed socket screw', (x + dx, y, .253), .006, .004, (0, 0, 1), dark)
+        box('Cassette seam', (x, -.065, .243), (.122, .004, .005), dark)
+    for x in [-.16, .16]:
+        cable('Insulated lifting handle', [(x, -.13, .12), (x, -.08, .30), (x, .10, .30),
+                                          (x, .15, .12)], .012, dark)
+        for y in [-.22, .22]:
+            box('Corner gusset', (x, y, -.10), (.05, .07, .065), shell)
+            for z in [-.12, -.08]:
+                cylinder('Frame fastener', (x, y, z), .005, .055, (1, 0, 0), steel)
+    # Pressure vessel saddles, bolted end caps, wet-mate electrical connectors.
+    for y in [-.20, .12]:
+        box('Vessel saddle', (0, y, -.055), (.16, .035, .03), shell)
+        for i in range(10):
+            angle = i * math.tau / 10
+            cylinder('End cap bolt', (.071 * math.cos(angle), y - .02, .02 + .071 * math.sin(angle)),
+                     .005, .012, (0, 1, 0), steel)
+    for x in [-.04, 0, .04]:
+        cylinder('Bulkhead connector', (x, .23, .015), .014, .04, (0, 1, 0), steel)
+        cylinder('Connector strain relief', (x, .256, .015), .010, .025, (0, 1, 0), dark)
+        cable('Wet mate harness', [(x, .27, .015), (x, .30, -.03), (x + .06, .18, -.07),
+                                   (x + .06, -.06, -.06)], .004, dark)
+    gland = point(VEHICLE_DEFINITIONS['x1'].gland_body)
+    cable('Tether strain relief', [gland, (gland[0], gland[1] + .03, gland[2] + .06),
+                                   (.04, .28, .14)], .009, dark)
+    for x in [-.12, .12]:
+        cable('Lamp electrical harness', [(x, -.36, -.02), (x, -.28, .01), (x, -.15, -.05)], .004, dark)
+    for y in [-.08, .08]:
+        box('Fairing panel joint', (0, y, .153), (.20, .003, .004), dark)
+        for x in [-.08, .08]:
+            cylinder('Panel quarter-turn fastener', (x, y, .157), .004, .006, (0, 0, 1), steel)
+    # Original maintenance plate, converted to mesh so no font dependency ships.
+    box('Service plate', (0, -.02, .157), (.12, .055, .003), steel)
+    bpy.ops.object.text_add(location=(-.05, -.03, .160))
+    label = bpy.context.object
+    label.name = 'Original service engraving'
+    label.data.body = 'OBS / 01'
+    label.data.size = .016
+    label.data.extrude = .00015
+    label.data.materials.append(dark)
+    bpy.ops.object.convert(target='MESH')
+
+
+for identifier, slug in [('x1', 'observation')]:
     build(identifier, slug)
