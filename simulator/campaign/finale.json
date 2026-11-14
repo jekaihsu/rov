@@ -243,6 +243,13 @@
       "text_key": "closing"
     },
     {
+      "id": "crew_wrap",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "text_key": "crew_wrap",
+      "voice": null
+    },
+    {
       "id": "save",
       "type": "checkpoint"
     }
@@ -270,7 +277,8 @@
       "partial_tender": "人和機器都值得等下一趟。飯我留著，明天再把空白補上。",
       "full": "三處都對上了：加裝的壓艙座擋住排水，修補紀錄卻被抽走。不是一句「天氣不好」就能帶過。把完整證據交出去。",
       "full_tender": "原來我們那幾張慢慢拍的照片，真有用。好，收線，回家。",
-      "closing": "潮間帶工作隊的日誌到這裡。留白就寫留白，查到的就負責說清楚。"
+      "closing": "潮間帶工作隊的日誌到這裡。留白就寫留白，查到的就負責說清楚。",
+      "crew_wrap": "收工。潮間帶工作隊又活過一季。下回水池見。"
     }
   }
 }

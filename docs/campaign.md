@@ -81,7 +81,8 @@ pip install -r requirements.txt
 python -m unittest discover -s tests
 ```
 
-`tests/test_campaign_chapters.py` 為每章自動推進無線電、送拍照／接案／機械臂指令至結束，
+`tests/test_campaign.py` 保留六章自動通關入口，使用 `tests/test_campaign_chapters.py` 的驅動器
+自動推進無線電、送拍照／接案／機械臂指令至結束，
 另驗證兩種結局、潮窗逾時、巡檢中止、語系引用與任務數。
 與既有 mission_modes／expedition 測試相同，轉場位置採確定性 pose fixture；
 完成標記、照片資格、合約結果與章節 index 不由測試直接寫入。

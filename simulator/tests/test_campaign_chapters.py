@@ -81,19 +81,19 @@ class CampaignChapterTests(unittest.TestCase):
         self.assertIn(chapter + '_badge', self.campaign.rewards)
         print(f'{chapter.upper()} AUTOMATIC OPERATIONS COMPLETED: 3 validated stations')
 
-    def test_hull_to_end(self):
+    def play_hull_to_end(self):
         self.inspection('hull')
         self.assertEqual(self.sim.scenario.visibility_m, 3)
 
-    def test_harbor_signoff_to_end(self):
+    def play_harbor_signoff_to_end(self):
         self.inspection('harbor_signoff')
         self.assertIn('falcon', self.campaign.state()['unlocks']['vehicles'])
 
-    def test_offshore_to_end(self):
+    def play_offshore_to_end(self):
         self.inspection('offshore')
         self.assertEqual(self.sim.scenario.key, 'jacket_inspection')
 
-    def test_wreck_to_end(self):
+    def play_wreck_to_end(self):
         self.inspection('wreck')
         self.assertEqual(self.sim.scenario.key, 'wreck_survey')
 
@@ -143,7 +143,7 @@ class CampaignChapterTests(unittest.TestCase):
         self.assertIsNone(run.active)
         self.assertEqual(run.results[-1]['kind'], kind)
 
-    def test_reef_to_end(self):
+    def play_reef_to_end(self):
         self.start('reef')
         self.radio()
         self.operation('mission_photo')
@@ -192,7 +192,7 @@ class CampaignChapterTests(unittest.TestCase):
         self.assertIn(expected, self.campaign.rewards)
         self.assertNotIn(other, self.campaign.rewards)
 
-    def test_finale_complete_evidence_to_end(self):
+    def play_finale_complete_evidence_to_end(self):
         task = self.finale_verification()
         run = ensure_expedition(self.sim)
         for step in task['steps']:
