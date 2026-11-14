@@ -218,6 +218,9 @@ class SimHost:
                             continue
                         if self.should_step_room(room):
                             room.step(dt)
+                            if room.campaign.environment_changed:
+                                self.world_version += 1
+                                room.campaign.environment_changed = False
                 except Exception:
                     traceback.print_exc()
             nxt += dt
@@ -480,6 +483,11 @@ class SimHost:
         elif t == "model":
             room.select_model(sim.vehicle_id, str(msg.get("model_id", "x1")))
             self.world_version += 1
+        elif t == "operation" and str(msg.get("action", "")).startswith("campaign_"):
+            result = room.campaign.command(msg, player)
+            if result["ok"] and msg.get("action") == "campaign_start":
+                self.world_version += 1
+            return {"type": "operation_result", **result}
         elif t == "operation":
             return {"type": "operation_result", **sim.operations.command(msg)}
         elif t == "payout":

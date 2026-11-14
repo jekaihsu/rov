@@ -1,4 +1,6 @@
+import {installAudio, installAudioSettings} from './audio/engine.js';
 import * as THREE from 'three';
+import {CAMPAIGN_MENU_STRINGS} from './story/campaign.js';
 import {Environment} from './environment.js';
 import {createVehicleModel} from './vehicle_models.js';
 import {loadGLTF} from './glb.js';
@@ -25,7 +27,15 @@ $('launchForm').prepend(performanceSection);performanceSection.append(document.q
 const launchFooter=document.createElement('div');launchFooter.className='menu-launch-footer';$('startDive').setAttribute('form','launchForm');launchFooter.append($('menuStatus'),$('startDive'));menu.append(launchFooter);
 const modeSection=document.createElement('section');modeSection.innerHTML='<h2>遊玩模式</h2><label for="menuMode">任務</label><select id="menuMode"><option value="expedition">海洋探索與工程 · 1～3 人自由接案</option><option value="free_explore">自由探索 · 無時間壓力</option><option value="inspection_coop">協作巡檢 · 三站穩定拍照</option><option value="scenario_training">場景訓練 · 原場景目標與評分</option></select><p id="modeBrief" class="menu-help"></p><button id="menuCollection" type="button">我的照片、圖鑑與工程紀錄</button>';
 performanceSection.after(modeSection);const modeDescriptions={expedition:'探索海域、拍攝生物與自由接案。回收及部署需 Falcon 機械臂；首版工程海域為珊瑚礁、海草床與港灣。',free_explore:'自由操控、練習機械臂與噴漆，不計時也不扣分。',inspection_coop:'最多三人分工巡檢；靠近站點、穩定懸停後拍照，在 12 分鐘內完成三站。',scenario_training:'依照所選場景的既有訓練目標、時間與評分規則進行。'};
-$('menuMode').value=query.get('mission')||read('rov.mission','expedition');if(!$('menuMode').value)$('menuMode').value='expedition';$('menuMode').onchange=()=>{$('modeBrief').textContent=modeDescriptions[$('menuMode').value]+' 加入既有房間時以房主設定為準。';};$('menuMode').onchange();
+const campaignOption = new Option(CAMPAIGN_MENU_STRINGS.title, 'campaign');
+$('menuMode').prepend(campaignOption);
+modeDescriptions.campaign = CAMPAIGN_MENU_STRINGS.brief;
+$('menuMode').value = query.get('mission') || read('rov.mission', 'campaign');
+if (!$('menuMode').value) $('menuMode').value = 'expedition';
+$('menuMode').onchange = function describeMissionMode() {
+  $('modeBrief').textContent = modeDescriptions[$('menuMode').value] + ' 加入既有房間時以房主設定為準。';
+};
+$('menuMode').onchange();
 const collectionPanel=installCollectionPanel({});$('menuCollection').onclick=()=>collectionPanel.open();
 const stickerLabel=document.createElement('label');stickerLabel.htmlFor='menuSticker';stickerLabel.textContent='機身貼紙';
 const stickerSelect=document.createElement('select');stickerSelect.id='menuSticker';stickerSelect.append(...Object.entries(STICKERS).map(([id,label])=>new Option(label,id)));$('modelDescription').after(stickerLabel,stickerSelect);stickerSelect.value=query.get('sticker')||read('rov.sticker','none');
@@ -71,7 +81,14 @@ async function selectScene(){
   if(nearby?.pos){anchor.copy(P(nearby.pos));anchor.y+=1.5;}
   model?.root.position.copy(anchor);readyScene=true;ready();
 }
-document.querySelectorAll('[data-vehicle]').forEach(b=>b.onclick=()=>selectModel(b.dataset.vehicle));$('menuScene').onchange=selectScene;
+document.querySelectorAll('[data-vehicle]').forEach(b=>b.onclick=()=>selectModel(b.dataset.vehicle));
+$('menuScene').onchange = function selectIndependentScene() {
+  if ($('menuMode').value === 'campaign') {
+    $('menuMode').value = 'expedition';
+    $('menuMode').onchange();
+  }
+  selectScene();
+};
 stickerSelect.onchange=()=>applyVehicleSticker(model,stickerSelect.value);
 let padSignature='';function pads(){const list=[...(navigator.getGamepads?.()||[])].filter(g=>g?.connected),signature=list.map(g=>g.index+g.id).join('|');if(signature===padSignature)return;padSignature=signature;const value=$('menuPad').value;while($('menuPad').options.length>2)$('menuPad').remove(2);for(const g of list){const option=new Option(g.id,String(g.index));$('menuPad').add(option);}$('menuPad').value=[...$('menuPad').options].some(o=>o.value===value)?value:'auto';$('menuPadInfo').textContent=list.length?`已偵測 ${list.length} 支手柄`:'未偵測到手柄，仍可使用鍵盤。';}
 const padTimer=setInterval(pads,500);addEventListener('gamepadconnected',pads);addEventListener('gamepaddisconnected',pads);
@@ -98,3 +115,5 @@ let last=performance.now(),elapsed=0;function frame(now){const seconds=(now-last
 window.__menu={get model(){return selected;},get stickerMeshes(){return model?.stickerGroup?.children.length||0;},get scene(){return $('menuScene').value;},get ready(){return readyModel&&readyScene;},renderer};
 addEventListener('pagehide',()=>clearInterval(padTimer));
 try{scenes=await(await fetch('scene_previews.json')).json();const preferred=['coral_reef','seagrass_meadow','harbor_inspection'];scenes.sort((a,b)=>(preferred.includes(a.key)?preferred.indexOf(a.key):99)-(preferred.includes(b.key)?preferred.indexOf(b.key):99));$('menuScene').replaceChildren(...scenes.map(s=>new Option(s.name,s.key)));$('menuScene').value=query.get('scenario')||'coral_reef';if(!$('menuScene').value)$('menuScene').selectedIndex=0;await selectScene();await selectModel(selected);}catch(error){$('menuStatus').textContent='開場預覽載入失敗，請重新整理。';console.error(error);}
+
+installAudioSettings(installAudio(), document.querySelector('#launchForm'));
