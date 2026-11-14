@@ -19,7 +19,7 @@ class InstructorTests(unittest.TestCase):
 
     def test_injections_restore_and_record(self):
         sim = self.room.primary
-        for kind in ('thruster', 'battery', 'current', 'visibility'):
+        for kind in ('thruster', 'battery', 'current', 'visibility', 'freeze'):
             with self.subTest(kind=kind):
                 old = (sim.health.copy(), sim.battery, sim.world.current.surface_kn,
                        sim.scenario.visibility_m, sim.paused)

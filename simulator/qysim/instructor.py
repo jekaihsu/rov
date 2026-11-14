@@ -44,8 +44,6 @@ class Instructor:
         kind = msg['kind']
         vid = msg.get('vehicle_id', 'v1')
         sim = self.room.vehicles[vid]
-        if kind == 'freeze' and vid == 'v1':
-            raise ValueError('primary vehicle freeze is unavailable; use room pause')
         strength = float(msg.get('strength', 1))
         duration = float(msg.get('duration', 10))
         if not math.isfinite(strength) or not 0 <= strength <= 1:

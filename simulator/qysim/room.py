@@ -185,7 +185,9 @@ class Room:
 
     def step(self, dt):
         base = self.primary
-        if base.paused:
+        primary_frozen = any(e['kind'] == 'freeze' and e['vehicle_id'] == 'v1'
+                             for e in self.instructor.active)
+        if base.paused and not primary_frozen:
             return
         world = base.world
         self.instructor.update(dt)

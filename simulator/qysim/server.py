@@ -197,7 +197,7 @@ class SimHost:
         if room is not self.room:
             return True
         sim = room.primary
-        return bool(room.players or self.qirc_enabled or self.rpc_connections or
+        return bool(room.instructor.supervised or room.players or self.qirc_enabled or self.rpc_connections or
                     sim.remote_control or sim.nav.mode != "IDLE" or sim.nav.hold is not None or
                     sim.camera.recording_since is not None)
 
@@ -219,7 +219,10 @@ class SimHost:
                             del self.rooms[room_id]
                             continue
                         if self.should_step_room(room):
+                            override_count = len(room.instructor.active)
                             room.step(dt)
+                            if len(room.instructor.active) != override_count:
+                                self.world_version += 1
                             if room.campaign.environment_changed:
                                 self.world_version += 1
                                 room.campaign.environment_changed = False

@@ -258,7 +258,7 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
   Current strength maps to 0..4 knots in all layers, retaining their directions.
   Visibility retains at least 0.1 m. Overrides restore saved values on expiry.
   Overlapping overrides of the same kind/scope are rejected.
-  Freeze uses simulator pause; primary-vehicle freeze is currently rejected (use room pause).
+  Freeze uses the individual simulator pause while the room override clock keeps advancing.
 * `action:"pause", value:true|false`; `action:"reset"`; `action:"scenario", key:"..."`.
   Reset archives assessment evidence and clears overrides.
 * `action:"return", vehicle_id:"v1"` redeploys the model locked at its normal start.
