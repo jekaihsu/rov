@@ -1,5 +1,10 @@
 """Instructor authorization, physical override expiry and assessment evidence tests."""
+import math
 import unittest
+
+import numpy as np
+
+from qysim.physics import KNOT
 from qysim.engine import Simulator
 from qysim.room import Room
 from qysim.instructor import Instructor, statistics, PHASES, MAX_REPORTS, MAX_SAMPLES_PER_VEHICLE
@@ -38,7 +43,10 @@ class InstructorTests(unittest.TestCase):
                 elif kind == 'battery':
                     self.assertLess(sim.battery, old[1])
                 elif kind == 'current':
-                    self.assertEqual(sim.world.current.surface_kn, 2)
+                    # The profile is ramped, not overwritten: the configured layers stay and the
+                    # injection heads for strength x 4 kn at the surface.
+                    self.assertEqual(sim.world.current.surface_kn, old[2])
+                    self.assertAlmostEqual(sim.world.current.target_surface_knots(), 2)
                 elif kind == 'visibility':
                     self.assertLess(sim.scenario.visibility_m, old[3])
                 else:
@@ -51,6 +59,64 @@ class InstructorTests(unittest.TestCase):
                 self.assertEqual(sim.paused, old[4])
                 self.assertEqual(self.instructor.events[-1]['kind'], kind)
                 self.assertIn('restored_at', self.instructor.events[-1])
+
+    def test_current_injection_scales_profile_with_ramp_and_rotation(self):
+        sim = self.room.primary
+        current = sim.world.current
+        seabed = sim.world.seabed_depth
+        depths = [0.0, seabed / 2, seabed - 2.0]
+        before = current.mean_many(depths, seabed)
+        speeds = np.linalg.norm(before, axis=1)
+        self.instructor.inject({'kind': 'current', 'duration': 200, 'strength': .5, 'ramp_s': 60,
+                                'rotate_deg': 90})
+        self.assertAlmostEqual(current.surface_knots(), current.surface_kn, places=6)
+        seen = []
+        for _ in range(60):
+            current.step_gust(1.0)
+            self.instructor.update(1.0)
+            seen.append(current.surface_knots())
+        self.assertTrue(all(b >= a - 1e-9 for a, b in zip(seen, seen[1:])))
+        self.assertLess(max(np.diff(seen)), 2 * (2 - current.surface_kn) / 60 * 1.6)
+        self.assertGreater(seen[29], current.surface_kn + 0.3 * (2 - current.surface_kn))
+        self.assertLess(seen[29], current.surface_kn + 0.7 * (2 - current.surface_kn))
+        self.assertAlmostEqual(seen[-1], 2.0, places=6)
+        after = current.mean_many(depths, seabed)
+        np.testing.assert_allclose(np.linalg.norm(after, axis=1) / np.linalg.norm(after[0]),
+                                   speeds / speeds[0], rtol=1e-9)
+        heading = lambda v: math.degrees(math.atan2(v[1], v[0]))
+        self.assertAlmostEqual((heading(after[0]) - heading(before[0])) % 360, 90, places=6)
+        for _ in range(141):
+            current.step_gust(1.0)
+            self.instructor.update(1.0)
+        self.assertFalse(self.instructor.active)          # expired at 200 s, now ramping back
+        self.assertGreater(current.surface_knots(), current.surface_kn + 0.01)
+        for _ in range(60):
+            current.step_gust(1.0)
+        np.testing.assert_allclose(current.mean_many(depths, seabed), before, atol=1e-12)
+
+    def test_current_injection_into_still_water_and_limits(self):
+        sim = self.room.primary
+        current = sim.world.current
+        current.surface_kn = current.mid_kn = current.bottom_kn = 0.0
+        self.instructor.inject({'kind': 'current', 'duration': 100, 'strength': 1, 'ramp_s': 30})
+        for _ in range(31):
+            current.step_gust(1.0)
+        self.assertAlmostEqual(current.surface_knots(), 4.0, places=6)
+        mid = np.linalg.norm(current.mean_at(sim.world.seabed_depth / 2, sim.world.seabed_depth))
+        self.assertAlmostEqual(mid / KNOT, 3.2, places=6)
+        self.instructor.finish()
+        for bad in ({'ramp_s': 5}, {'ramp_s': 600}, {'rotate_deg': 270}, {'ramp_s': float('nan')}):
+            with self.subTest(bad=bad):
+                room = Room(Simulator())
+                with self.assertRaises(ValueError):
+                    room.instructor.inject({'kind': 'current', 'duration': 10, **bad})
+
+    def test_host_current_override_limits(self):
+        host = SimHost(self.room.primary)
+        sim = host.room.primary
+        host.handle_viewer({'type': 'current', 'surface_kn': 50, 'turbulence': 3})
+        self.assertEqual(sim.world.current.surface_kn, 5.0)
+        self.assertEqual(sim.world.current.turbulence, 0.3)
 
     def test_report_and_statistics(self):
         self.assertEqual(statistics([0, 2], 1)['outside_fraction'], .5)
@@ -161,6 +227,11 @@ class InstructorTests(unittest.TestCase):
 
         length = sim.tether.length
         self.assertIsNone(send({'type': 'payout', 'metres': 2}))
+        # Payout is a reel command now, not an instant length jump: the target is set at once and
+        # the deployed length grows at the tender feed rate while the simulation runs.
+        self.assertAlmostEqual(sim.tether.reel.target, length + 2)
+        for _ in range(20):
+            sim.tether.step(.01, 0, sim.vehicle.s.pos, sim.vehicle.s.q, np.zeros(3))
         self.assertGreater(sim.tether.length, length)
         self.assertIsNone(send({'type': 'auto_payout', 'value': False}))
         self.assertFalse(sim.tether.auto_payout)

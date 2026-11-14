@@ -17,6 +17,7 @@ import asyncio
 import functools
 import http.server
 import json
+import math
 import os
 import re
 import secrets
@@ -30,7 +31,9 @@ from pathlib import Path
 import numpy as np
 
 from .engine import Simulator
+from .flow import TIDE_STARTS, Tide
 from .rc import CHANNELS
+from .reel import MODES as REEL_MODES
 from .qirc import QircControls
 from .room import Room
 
@@ -553,7 +556,10 @@ class SimHost:
                 sim._buttons(sim.rc_physical)
         elif t == "scenario":
             seed = msg.get("seed")
+            tide_start = parse_tide_start(msg)
             room.reset(msg.get("key", "open_water"), int(seed) if seed not in (None, "") else None)
+            if tide_start is not None and room.primary.world.current.tide is not None:
+                room.primary.world.current.set_tide_start(tide_start)
             self.world_version += 1
             if room is self.room:
                 self.controller_controls.reset()
@@ -585,6 +591,11 @@ class SimHost:
             sim.tether.payout(max(-100.0, min(100.0, metres)))
         elif t == "auto_payout":
             sim.tether.auto_payout = bool(msg.get("value", True))
+        elif t == "reel":
+            command = str(msg.get("command", ""))
+            if command not in REEL_MODES:
+                raise ValueError(f"Unknown reel command: {command}")
+            sim.tether.reel_command(command)
         elif t == "operation_mode":
             sim.sdk_call("QYRovParameterManage", "set_rov_controller_operation", [msg.get("value", "ROV_USA")], {})
         elif t == "current":
@@ -595,10 +606,22 @@ class SimHost:
                     value = float(msg[k])
                     if not np.isfinite(value):
                         raise ValueError("Current must be finite")
-                    limit = 360.0 if k.endswith("dir") else 3.0 if k == "turbulence" else 10.0
+                    limit = 360.0 if k.endswith("dir") else MAX_HOST_TURBULENCE if k == "turbulence" else MAX_HOST_KNOTS
                     changes[k] = max(0.0, min(limit, value))
+            tide = msg.get("tide", cur.tide) if "tide" in msg else cur.tide
+            if "tide" in msg and tide is not None:
+                if not isinstance(tide, dict):
+                    raise ValueError("tide must be an object or null")
+                tide = Tide.from_dict(tide)
+            tide_start = parse_tide_start(msg)
+            if tide_start is not None and tide is None:
+                raise ValueError("tide_start needs a tide")
             for key, value in changes.items():
                 setattr(cur, key, value)
+            if "tide" in msg:
+                cur.tide = tide
+            if tide_start is not None:
+                cur.set_tide_start(tide_start)
             self.world_version += 1
         elif t == "shaping":
             for k in ("throttle_curvature", "throttle_limit", "rotate_curvature", "rotate_limit"):
@@ -611,6 +634,24 @@ class SimHost:
             return {"type": "command_result", "action": t, "ok": True}
         return None
 
+
+def parse_tide_start(msg: dict):
+    """Optional time-of-tide selector: one of flow.TIDE_STARTS or finite hours after peak flood."""
+    if "tide_start" not in msg:
+        return None
+    value = msg["tide_start"]
+    if isinstance(value, str) and value in TIDE_STARTS:
+        return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) \
+            and -13 <= value <= 13:
+        return float(value)
+    raise ValueError("tide_start must be a tide stage or hours after peak flood")
+
+
+# Host current overrides: turbulence intensity above ~0.3 is not observed at tidal sites (notes §4).
+MAX_HOST_TURBULENCE = 0.3
+# Per-layer host override limit (knots); stronger than any training scenario (assumed).
+MAX_HOST_KNOTS = 5.0
 
 # Optional flight-assist metadata carried inside an RC packet (see PROTOCOL.md).
 ASSIST_FIELDS = ("assist", "profile")

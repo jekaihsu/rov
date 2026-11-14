@@ -2,6 +2,7 @@
 // No screenshot is generated here: capture the renderer immediately afterwards,
 // before any animation/update, so matrices and the image describe the same view.
 import * as THREE from 'three';
+import {kelpFlowAt,kelpStir} from './kelp_flow.js';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const NED=p=>[p.z,-p.x,-p.y];
@@ -29,10 +30,12 @@ function bentProxy(mesh,index){
   const u=mesh.userData.observationBend, local=new THREE.Matrix4();mesh.getMatrixAt(index,local);
   const geo=mesh.geometry.clone(), pos=geo.attributes.position;
   const phase=local.elements[12]*.37+local.elements[14]*.53;
+  const flow=u.uFlowGrid?kelpFlowAt(u,local.elements[12],local.elements[14]):u.uFlow.value;
+  const stir=u.uFlowGrid?kelpStir(flow):1;
   for(let i=0;i<pos.count;i++){
-    const h=pos.getY(i),sway=Math.sin(u.uTime.value*.9+phase+h*.6)*.35+Math.sin(u.uTime.value*1.7+phase*2.1)*.12;
+    const h=pos.getY(i),sway=(Math.sin(u.uTime.value*.9+phase+h*.6)*.35+Math.sin(u.uTime.value*1.7+phase*2.1)*.12)*stir;
     const bend=h*h*1.1;
-    pos.setXYZ(i,pos.getX(i)+(u.uFlow.value.x*1.2+sway)*bend,h,pos.getZ(i)+(u.uFlow.value.z*1.2+sway*.6)*bend);
+    pos.setXYZ(i,pos.getX(i)+(flow.x*1.2+sway)*bend,h,pos.getZ(i)+(flow.z*1.2+sway*.6)*bend);
   }
   geo.computeBoundingBox();geo.computeBoundingSphere();
   const proxy=new THREE.Mesh(geo,mesh.material);proxy.matrixAutoUpdate=false;

@@ -66,7 +66,7 @@ def step_objects(world, dt, t):
         if ob["held_by"] is not None or ob.get("anchored"):
             continue
         pos, vel = ob["pos"], ob["vel"]
-        current = world.current.sample(pos, world.seabed_depth, t) if hasattr(world.current, "sample") else world.current.at(pos[2], world.seabed_depth)
+        current = world.current_at(pos, t)
         relative = vel - current
         force = -3. * relative * np.linalg.norm(relative)
         force[2] += (ob["mass"] - ob["buoyancy_kg"]) * G

@@ -98,7 +98,7 @@ def step_schools(world, dt, vehicles):
         angle = world.time * .06 + phase
         target = school["home"] + np.array([math.cos(angle)*5, math.sin(angle)*5, math.sin(angle*.7)*.6])
         desired = (target - p) * .25
-        desired += world.current.sample(p, world.seabed_depth, world.time) * .35
+        desired += world.current_at(p, world.time) * .35
         for vehicle in vehicles:
             away = p - np.asarray(vehicle["pos"], float)
             distance = np.linalg.norm(away)

@@ -116,8 +116,7 @@ class Room:
                                       for other in self.vehicles.values() if other is not sim):
                 delta = candidate - sim.vehicle.s.pos
                 sim.vehicle.s.pos[:] = candidate
-                sim.tether.x[:] += delta
-                sim.tether.x[0] = sim.tether.spool
+                sim.tether.translate(delta)
                 return
 
     def select_model(self, vehicle_id, model_id):
@@ -239,6 +238,7 @@ class Room:
             self._snapshot_at = time.monotonic()
         state = dict(next(s for s in self._snapshot if s["id"] == selected.vehicle_id))
         state["campaign"] = self.campaign.state()
+        state["flow_field"] = selected.flow_field_state()
         state["vehicles"] = self._snapshot
         state["tick"] = self.tick
         state["room"] = {"id": self.id, "host_id": self.host_id, "capacity": self.capacity,

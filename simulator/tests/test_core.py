@@ -122,7 +122,13 @@ class TestCollisionAndCurrent(unittest.TestCase):
         w.current.surface_kn, w.current.mid_kn, w.current.bottom_kn = 2.0, 1.0, 0.5
         self.assertAlmostEqual(np.linalg.norm(w.current.mean_at(0, 30)) / KNOT, 2.0, places=3)
         self.assertAlmostEqual(np.linalg.norm(w.current.mean_at(15, 30)) / KNOT, 1.0, places=3)
-        self.assertLess(np.linalg.norm(w.current.mean_at(29.9, 30)) / KNOT, 0.1)
+        # Near the bed the speed now follows the log law u(h) ~ ln(h / z0) (it used to fall linearly
+        # to zero over the last metre): 0.1 m above rippled sand (z0 = 6 mm) keeps 45 % of the
+        # bottom-layer speed defined 3 m above the bed.
+        outer = 0.5 + (1.0 - 0.5) * 0.1 / 15.0                 # layer interpolation at 29.9 m
+        expected = outer * math.log(0.1 / 0.006) / math.log(3.0 / 0.006)
+        self.assertAlmostEqual(np.linalg.norm(w.current.mean_at(29.9, 30)) / KNOT, expected, places=3)
+        self.assertEqual(np.linalg.norm(w.current.mean_at(30.0, 30)), 0.0)
 
 
 class TestTether(unittest.TestCase):

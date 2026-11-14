@@ -15,11 +15,11 @@ and how far can a camera see through it":
   a soft bed add a smaller contact source.
 * Transport: mass-conserving Gaussian puffs in three grain classes (fine sand 200 um,
   coarse silt 63 um, fine silt 15 um). Each puff settles at its class settling velocity
-  (Soulsby 1997, which reduces to Stokes for silt), is advected by ``CurrentProfile.sample``
-  (log law in the last metre above the bed), spreads as ``sigma**2 += 2 * K * dt`` (K: still
-  water + current shear + decaying thruster wake) and loses mass only by deposition at the bed
-  (flux ``ws * C_bed``) or by leaving the area around the vehicles. Every kilogram is booked
-  in ``emitted = suspended + deposited + removed``.
+  (Soulsby 1997, which reduces to Stokes for silt), is advected by ``World.current_at_many``
+  (the full local flow, with its terrain-aware log-law bed layer and structure wakes), spreads
+  as ``sigma**2 += 2 * K * dt`` (K: still water + current shear + decaying thruster wake) and
+  loses mass only by deposition at the bed (flux ``ws * C_bed``) or by leaving the area around
+  the vehicles. Every kilogram is booked in ``emitted = suspended + deposited + removed``.
 * Optics: concentration ``C`` in mg/L (= g/m3) at any point, with an optional near-bed
   turbid (nepheloid) layer per scenario; beam attenuation ``c = 4.8 / visibility_m + k * C``
   with ``k = 0.5 m2/g`` and visibility ``4.8 / c`` (Zaneveld & Pegau 2003).
@@ -80,7 +80,6 @@ CONTACT_IMPACT_KG = 0.03
 CONTACT_SLIDE_KG_S = 0.02
 TETHER_SLIDE_KG_S = 0.002
 
-BED_ROUGHNESS_M = 0.005        # log-law roughness length for near-bed puff advection (provisional)
 _JET_SAMPLES = np.geomspace(0.05, 12.0, 28)
 _FOOTPRINT_S = np.linspace(0.0, 1.0, 13)
 _TWO_PI_32 = (2.0 * math.pi) ** 1.5
@@ -449,17 +448,13 @@ class SiltField:
         self._retire(vehicle_positions)
 
     def near_bed_flow(self) -> np.ndarray:
-        """Current carrying each puff. Within a metre of the bed the world's linear boundary layer is
-        replaced by a log law, u(h) = u(1 m) * ln(h / z0) / ln(1 m / z0), so near-bed silt still drifts."""
+        """Current carrying each puff: the world's full local flow (``World.current_at_many``).
+
+        That flow already includes the terrain-aware log-law bed layer (biome roughness), the
+        turbulence field and structure wakes/shelter, so silt drifts with the same water that
+        pushes the vehicle and tether. Puffs at or below the bed get zero flow."""
         world = self.world
-        bed = world.seabed_at_many(self.pos)
-        height = bed - self.pos[:, 2]
-        probe = self.pos.copy()
-        probe[:, 2] = np.minimum(self.pos[:, 2], bed - 1.0)
-        flow = world.current.sample_many(probe, world.seabed_depth, world.time)
-        z0 = BED_ROUGHNESS_M
-        factor = np.clip(np.log(np.maximum(height, z0) / z0) / math.log(1.0 / z0), 0.0, 1.0)
-        return flow * factor[:, None]
+        return world.current_at_many(self.pos, world.time)
 
     def _retire(self, vehicle_positions) -> None:
         peak = self.peak_mg_l()
