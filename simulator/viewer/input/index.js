@@ -1,5 +1,6 @@
 // Own keyboard, touch and gamepad input; app retains transport and simulator authority guards.
 import { CHANNELS as CH, PRESETS, BUTTONS, bindingValue, radial, curve } from "./actions.js";
+import {createFeatureActions} from "./feature_actions.js";
 import { createDevices } from "./devices.js";
 import { createHaptics } from "./haptics.js";
 import { installSettings } from "./settings.js";
@@ -16,6 +17,8 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   settings.custom ||= {};
   settings.bindings = { ...PRESETS.current, ...BUTTONS, ...settings.bindings };
   settings.channels ||= {};
+  const features = createFeatureActions((name, fallback) => settings.bindings[name] ?? fallback);
+  let featureTime = performance.now();
   const devices = createDevices(database, settings.custom);
   let frame = { devices: [], pad: null };
   let previous = {};
@@ -83,6 +86,11 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     if (isText(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
     document.dispatchEvent(new CustomEvent("rov-input-device", { detail: "" }));
     if (e.code.startsWith("Shift")) keys.add(e.code);
+    if (features.key(e)) {
+      e.preventDefault();
+      tick();
+      return;
+    }
     if (!FLIGHT.has(e.code)) return;
     e.preventDefault();
     if (e.repeat) return;
@@ -246,6 +254,9 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   });
   const panel = installSettings(settings, save, haptics, setMode);
   function readPad() {
+    const now = performance.now();
+    const featureDt = Math.min(.25, (now - featureTime) / 1000);
+    featureTime = now;
     hudActions = {};
     frame = devices.poll(panel.selected() || preferred());
     panel.update(frame);
@@ -257,6 +268,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       previous.settings = true;
     } else previous.settings = false;
     if (!frame.pad || !frame.snapshot.known || blocked() || panel.open()) {
+      features.sample(null, 0);
       previous = { settings: previous.settings };
       hold.photo.delete("pad");
       hold.record.delete("pad");
@@ -275,6 +287,8 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     const actions = Object.fromEntries(
       Object.entries(settings.bindings).map(([k, b]) => [k, bindingValue(b, snapshot)]),
     );
+    const consumed = features.sample(snapshot, featureDt);
+    for (const channel of consumed) actions[channel] = 0;
     hudActions = actions;
     const handlers = {
       lock: toggleLock,
@@ -347,6 +361,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       pulse: haptics.pulse,
     };
   }
+  function registerActions(definitions) {
+    features.register(definitions);
+    panel.registerActions(definitions);
+  }
   return {
     rc,
     hold,
@@ -361,5 +379,6 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     haptics,
     feedback,
     hudState,
+    registerActions,
   };
 }
