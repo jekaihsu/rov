@@ -75,6 +75,8 @@ class Simulator:
             self.world.current = sc.current
             clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
+            self.world.configure_silt(sc_mod.silt_seabed_type(sc.biome, sc.seabed_type), sc.bnl_height_m, sc.bnl_mg_l)
+            self.world.visibility_m = sc.visibility_m
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
         self.vehicle.seabed_depth = sc.seabed_depth
@@ -160,6 +162,7 @@ class Simulator:
             return
         dt = dt or self.dt
         v, s = self.vehicle, self.vehicle.s
+        self.world.visibility_m = self.scenario.visibility_m
         rc = self.rc
         locked = rc.rc_lock == 1 or self.tether.broken
         mode = ctrl_mode(rc)
@@ -201,7 +204,7 @@ class Simulator:
                                                              for centre in self.vehicle.definition.hull_centres])
         v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
         if update_world:
-            self.world.step(dt, vehicles=[{"id": self.vehicle_id, "pos": s.pos, "vel": v.world_velocity()}])
+            self.world.step(dt, vehicles=[self.world_source()])
             from .operations import step_objects
             step_objects(self.world, dt, self.t)
         self._damage(n_events)
@@ -213,6 +216,30 @@ class Simulator:
         ensure_mission(self).update(self, dt)
         if self.world.mission_run.mode == "expedition":
             ensure_expedition(self).update(self, dt)
+
+    def camera_turbidity(self) -> dict:
+        """Suspended sediment and black-target visibility at the onboard camera (optional state field)."""
+        s = self.vehicle.s
+        point = s.pos + q_rot(s.q, np.asarray(self.vehicle.definition.camera_body, float))
+        concentration = self.world.silt_concentration_at(point)
+        visibility = self.world.visibility_at(point, self.scenario.visibility_m)
+        return {"mg_l": round(concentration, 3), "visibility_m": round(visibility, 3),
+                "c": round(4.8 / visibility, 4)}
+
+    def world_source(self) -> dict:
+        """This vehicle as seen by ``World.step``: pose, mean thrust and per-thruster jets for silt."""
+        v, s = self.vehicle, self.vehicle.s
+        jets = []
+        for (_, pos_body, axis_body), thrust in zip(v.thrusters, s.thrust):
+            axis = np.asarray(axis_body, float)
+            axis = axis / np.linalg.norm(axis)
+            outlet = s.pos + q_rot(s.q, np.asarray(pos_body, float))
+            # Water leaves opposite to the force the thruster puts on the vehicle.
+            jet = -math.copysign(1.0, float(thrust)) * q_rot(s.q, axis)
+            jets.append((outlet, jet, abs(float(thrust))))
+        return {"id": self.vehicle_id, "pos": s.pos, "vel": v.world_velocity(),
+                "thrust": float(np.mean(np.abs(s.thrust)) / v.p.thruster_max), "jets": jets,
+                "tether": (self.tether.x, self.tether.v, self.tether.p.node_radius)}
 
     def _buttons(self, rc: RCState) -> None:
         for name in ("record", "photo"):
@@ -787,6 +814,7 @@ class Simulator:
             "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
             "damage": self.damage_events[-6:],
             "silt": round(self.world.silt_at(s.pos), 2),
+            "turbidity": self.camera_turbidity(),
             "nav": {"mode": self.nav.mode, "nav_status": self.nav.nav_status, "vccm": self.nav.vccm_status,
                     "route": [[w.n, w.e, w.depth] for w in self.nav.route][:400], "route_i": self.nav.route_i,
                     "target": None if self.nav.target is None else [self.nav.target.n, self.nav.target.e, self.nav.target.depth]},

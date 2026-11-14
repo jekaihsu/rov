@@ -16,6 +16,7 @@ import numpy as np
 import json
 from pathlib import Path
 
+from .silt import seabed_type_for as silt_seabed_type
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, Wall
 
 ASSETS = Path(__file__).resolve().parent / "assets"
@@ -63,11 +64,17 @@ class Scenario:
     time_limit_s: float = 900.0
     seed: int | None = None
     biome: str = "temperate"
+    # Sediment and near-bed turbid layer (silt.py). Provisional site values, not measurements.
+    seabed_type: str | None = None      # fluff / mud / silt / sand / gravel / rock; None: from biome
+    bnl_height_m: float = 0.0           # e-folding height of the near-bed turbid layer
+    bnl_mg_l: float = 0.0               # extra suspended sediment at the bed, mg/L
 
     def summary(self) -> dict:
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
-                "tether_length": self.tether_length, "biome": self.biome}
+                "tether_length": self.tether_length, "biome": self.biome,
+                "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
+                "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l}
 
 
 # ── site builders ──────────────────────────────────────────────────────────

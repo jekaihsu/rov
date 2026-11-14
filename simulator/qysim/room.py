@@ -197,9 +197,7 @@ class Room:
         self._vehicle_contacts()
         for sim in self.vehicles.values():
             sim.step(dt, update_world=False)
-        world.step(dt, vehicles=[{"id": vid, "pos": sim.vehicle.s.pos, "vel": sim.vehicle.world_velocity(),
-                                 "thrust": float(np.mean(np.abs(sim.vehicle.s.thrust)) / sim.vehicle.p.thruster_max)}
-                                 for vid, sim in self.vehicles.items()])
+        world.step(dt, vehicles=[sim.world_source() for sim in self.vehicles.values()])
         from .operations import step_objects
         step_objects(world, dt, base.t)
         self.tick += 1
