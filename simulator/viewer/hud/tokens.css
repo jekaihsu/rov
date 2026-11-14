@@ -12,6 +12,18 @@
   --radius: 10px;
   --space: 8px;
 
+  /* Flight HUD ink: thin lines and text straight on the picture, no filled panels. */
+  --hud-ink: #eaf4f7;
+  --hud-ink-dim: rgba(234, 244, 247, .6);
+  --hud-ink-faint: rgba(234, 244, 247, .32);
+  --hud-accent: #5fe0d0;
+  --hud-hairline: rgba(190, 230, 240, .22);
+  --hud-glass: rgba(4, 14, 20, .3);
+  --hud-shadow: 0 0 3px rgba(0, 0, 0, .75), 0 1px 1px rgba(0, 0, 0, .6);
+  --osd-shadow: 0 0 3px rgba(0, 0, 0, .9), 0 1px 0 rgba(0, 0, 0, .8);
+  --f-hud: Inter, "Noto Sans TC", system-ui, sans-serif;
+  --f-osd: "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
   /* Stacking scale, lowest to highest. Every overlay takes its z-index from this list; literal z-index
      values elsewhere are rejected by simulator/tests/test_overlay_scale.mjs. Layers that hold only
      read-outs keep pointer-events: none so they never intercept a control underneath them.

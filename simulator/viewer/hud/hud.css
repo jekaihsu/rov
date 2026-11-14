@@ -1,4 +1,6 @@
-/* Full viewport flight instruments and the preserved engineering drawer. */
+/* Full viewport flight instruments and the preserved engineering drawer.
+   Line instrument (body[data-hud-style=line]): thin lines and text on the picture, no filled boxes.
+   The camera OSD style lives in hud/osd.css; this file hides the line instruments while it is active. */
 body .app { padding: 0; height: 100svh; display: block; }
 body .main { display: block; height: 100%; }
 body .viewport { position: absolute; inset: 0; height: 100svh; min-height: 0; border: 0; border-radius: 0; }
@@ -11,88 +13,183 @@ body .rack { display: none; }
 #engineering .topbar { display: flex; flex-wrap: wrap; }
 #engineering .menu-only-settings { display: block !important; }
 #engineering[hidden] { display: none; }
-body .hud.tl { top: 12%; left: auto; right: 4%; max-width: 30%; align-items: flex-end; }
-body .hud.tr { top: auto; bottom: 4%; right: 4%; }
-body .hud.tc { top: 4%; }
-body .hud.bc { bottom: 4%; }
-body .readout { flex-direction: row; gap: 24px; background: var(--panel); padding: 8px 16px; }
-body .readout span { width: auto; gap: 8px; }
-body .readout b { font-size: 30px; }
-body .lock, body .lock.locked { border: 1px solid var(--line); background: var(--panel); animation: none; }
-body .lock b, body .lock.locked b { font-size: 14px; }
-body .lock span, #hOp, #hMode { display: none; }
 .sticks[hidden] { display: none; }
-.flight { position: absolute; color: var(--text); font: 12px Inter,system-ui,sans-serif;
-  font-variant-numeric: tabular-nums; pointer-events: none; }
-.flight b { font-size: 30px; font-weight: 500; }
-#flightDepth { left: 4%; top: 38%; border-left: 2px dashed var(--accent); padding: 16px; }
-#flightAttitude { right: 4%; top: 40%; width: 160px; }
-#flightMission { left: 4%; top: 4%; max-width: 27%; }
-#flightMapBox { left: 4%; bottom: 4%; pointer-events: auto; }
-#flightMap { display: block; width: 168px; height: 144px; background: var(--panel); border-radius: var(--radius); }
-#flightTools { right: 4%; bottom: 10%; pointer-events: auto; display: flex; gap: 8px; }
-#flightWarning { top: 24%; left: 50%; transform: translateX(-50%); color: var(--warn); }
+
+/* ── Shared ink ─────────────────────────────────────────────────────────── */
+.flight { position: absolute; color: var(--hud-ink); font: 12px var(--f-hud);
+  font-variant-numeric: tabular-nums; pointer-events: none; text-shadow: var(--hud-shadow); }
+.flight b { font-weight: 600; }
+body .hud { text-shadow: var(--hud-shadow); font-family: var(--f-hud); }
+
+/* ── Status, top right: lock state as text, then preset / control mode / depth hold ── */
+body .hud.tl { top: 4%; left: auto; right: 4%; max-width: 28%; align-items: flex-end; gap: 10px; }
+body .lock, body .lock.locked { border: 0; background: none; padding: 0; animation: none; align-items: flex-end;
+  text-align: right; }
+body .lock b { font: 600 14px var(--f-hud); letter-spacing: .08em; color: var(--go); }
+body .lock.locked b { font-size: 20px; letter-spacing: .12em; color: var(--warn); }
+body .lock span { display: none; }
+body .lock.locked span { display: block; margin-top: 4px; font-size: 13px; color: var(--hud-ink-dim); }
+body .lock:not(.locked) { opacity: .85; }
+body .hud.tl .chips { justify-content: flex-end; gap: 4px 16px; }
+body .hud.tl .chip { font: 400 14px var(--f-hud); letter-spacing: .02em; padding: 0; border: 0; border-radius: 0;
+  background: none; color: var(--hud-ink-dim); }
+body .hud.tl .chip.on { color: var(--hud-accent); }
+body .hud.tl .chip.warn, body .hud.tl .chip.nav { color: var(--warn); }
+body .hud.tl .chip.rec { color: var(--danger); }
+#flightFidelity { order: -3; color: var(--hud-accent) !important; }
+#hMode { order: -2; }
+#hHold { order: -1; }
+#hOp, #hLed { display: none; }
+#flightAssistStatus[hidden] { display: none; }
+#flightAssistStatus[data-tone=pending] { color: var(--hud-ink-faint) !important; }
+#flightAssistStatus[data-tone=warn] { color: var(--warn) !important; }
+#flightAssistStatus[data-tone=ok] { color: var(--go) !important; }
+
+/* ── Heading tape, top centre ──────────────────────────────────────────── */
+body .hud.tc { top: 3%; gap: 2px; }
+#flightHeading { font: 600 26px/1 var(--f-hud); font-variant-numeric: tabular-nums; color: var(--hud-ink); }
+body #tape { width: min(560px, 34vw); max-width: none; height: 50px; aspect-ratio: auto; }
+
+/* ── Objective, top left ───────────────────────────────────────────────── */
+#flightMission { left: 4%; top: 4%; max-width: 27%; font-size: 14px; color: var(--hud-ink-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Depth ladder, left ────────────────────────────────────────────────── */
+#flightDepth { left: 4%; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
+#flightLadder { display: block; width: 56px; height: min(42vh, 420px); }
+#flightDepth .depth-text { display: flex; flex-direction: column; gap: 2px; }
+#flightDepth small { font-size: 13px; color: var(--hud-ink-dim); letter-spacing: .08em; }
+#flightDepth small:first-child { font-size: 12px; letter-spacing: .16em; }
+#flightDepth small.warn, #flightDepth small.warn span { color: var(--warn); }
+#flightDepth b { font-size: 40px; line-height: 1.05; }
+#flightDepth u { text-decoration: none; font-size: 16px; color: var(--hud-ink-dim); margin-left: 6px; }
+
+/* ── Attitude reference, centre ────────────────────────────────────────── */
+#flightAttitude { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(680px, 46vw);
+  height: min(300px, 34vh); }
+#flightADI { display: block; width: 100%; height: 100%; }
+#flightRange { left: 50%; top: calc(50% + min(150px, 17vh) + 8px); transform: translateX(-50%);
+  font-size: 15px; color: var(--warn); }
+#flightRange:not(:empty)::before { content: ''; display: inline-block; width: 22px; height: 1px; margin-right: 8px;
+  vertical-align: middle; background: currentColor; }
+#flightRange[data-level=danger] { color: var(--danger); }
+
+/* ── Bottom telemetry: label over number, no panel ─────────────────────── */
+body .hud.bc { bottom: 4%; }
+body .readout { flex-direction: row; flex-wrap: nowrap; gap: 48px; min-width: 0; padding: 0; background: none;
+  border-radius: 0; color: var(--hud-ink-dim); }
+body .readout span { display: grid; grid-template-columns: auto auto; align-items: baseline; justify-content: center;
+  column-gap: 6px; width: auto; font-size: 14px; white-space: nowrap; }
+body .readout i { grid-column: 1 / -1; justify-self: center; font-size: 12px; letter-spacing: .16em;
+  color: var(--hud-ink-dim); }
+body .readout b { margin: 0 !important; font: 600 28px/1.1 var(--f-hud); font-variant-numeric: tabular-nums;
+  color: var(--hud-ink); }
+body .readout span.warn b, body .readout span.warn i { color: var(--warn); }
+
+/* ── Minimap, bottom left: thin-line circle ────────────────────────────── */
+#flightMapBox { left: 4%; bottom: 4%; pointer-events: auto; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; }
+#flightMap { display: block; width: 150px; height: 150px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(4, 14, 20, .22), rgba(4, 14, 20, .08) 92%, transparent); }
+#flightMapMode { background: none; border: 0; padding: 2px 6px; font: 12px var(--f-hud); color: var(--hud-ink-dim);
+  text-shadow: var(--hud-shadow); }
+#flightMapMode:hover { color: var(--hud-ink); }
+
+/* ── Tools, bottom right: outline icons that fade when idle ────────────── */
+#flightTools { right: 4%; bottom: 4%; pointer-events: auto; display: flex; gap: 8px; opacity: .45;
+  transition: opacity 180ms ease-out; }
+#flightTools:hover, #flightTools:focus-within, #flightTools.controller-visible { opacity: 1; }
+#flightTools button { width: 40px; height: 40px; padding: 8px; background: rgba(4, 14, 20, .18);
+  border: 1px solid var(--hud-hairline); border-radius: 10px; color: var(--hud-ink); }
+#flightTools button:hover { border-color: var(--hud-ink-dim); }
+#flightTools svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .6)); }
+#flightController { left: 50%; top: calc(3% + 92px); transform: translateX(-50%); color: var(--hud-ink-dim); }
+
+/* ── Warnings: three levels, centre above, text with hairlines ─────────── */
+#flightWarning { top: 24%; left: 50%; transform: translateX(-50%); font-size: 18px; font-weight: 600;
+  letter-spacing: .06em; color: var(--warn); }
+#flightWarning:not(:empty) { padding: 6px 18px; border-block: 1px solid currentColor; }
+#flightWarning[data-level=danger] { color: var(--danger); }
+#flightWarning[data-level=info] { color: var(--hud-accent); font-weight: 500; }
 body.hud-danger .viewport { box-shadow: inset 0 0 70px var(--danger); }
-#flightPeek { top: 22%; left: 4%; width: min(360px,75vw); padding: 24px; background: var(--panel);
-  backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: var(--radius);
-  opacity: 0; transform: translateY(8px); transition: opacity 180ms ease-out,transform 180ms ease-out; }
+body.hud-danger #vp::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 70px var(--danger); z-index: var(--z-hud-alert); }
+body.hud-hidden #vp::after { display: none; }
+
+/* ── Peek cards: translucent glass, hairline border ────────────────────── */
+#flightPeek { top: 20%; left: 4%; width: min(360px, 75vw); max-height: 65%; overflow: hidden; padding: 18px 20px;
+  background: var(--hud-glass); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--hud-hairline); border-radius: 14px; text-shadow: none;
+  opacity: 0; transform: translateY(8px); transition: opacity 180ms ease-out, transform 180ms ease-out; }
 #flightPeek.visible { opacity: 1; transform: none; }
-#flightPeek p { white-space: pre-line; line-height: 1.8; }
+/* An open card sits where the depth ladder and map are; they step back instead of showing through. */
+#flightDepth, #flightMapBox { transition: opacity 180ms ease-out; }
+body.hud-peek #flightDepth, body.hud-peek #flightMapBox { opacity: .12; }
+#flightPeek strong { display: block; font-size: 12px; font-weight: 600; letter-spacing: .16em;
+  color: var(--hud-accent); }
+#flightPeek p { margin: 10px 0 0; white-space: pre-line; line-height: 1.8; font-size: 13px; color: var(--hud-ink); }
+#flightPeek canvas { display: block; width: min(240px, 100%); aspect-ratio: 1; margin: 8px auto 0; }
+
+/* ── Object labels in the picture (range to target) ────────────────────── */
+body[data-hud-style] #labels .lbl { background: none; border: 0; padding: 0 0 0 30px; font: 14px var(--f-hud);
+  font-variant-numeric: tabular-nums; color: var(--hud-ink); text-shadow: var(--hud-shadow); }
+body[data-hud-style] #labels .lbl::before { content: ''; position: absolute; left: 2px; top: 50%; width: 22px;
+  height: 1px; background: var(--hud-ink-dim); }
+body[data-hud-style] #labels .lbl.obj { color: var(--hud-ink); }
+body[data-hud-style] #labels .lbl.bad { color: var(--danger); }
+
+/* ── Density, hiding and modes ─────────────────────────────────────────── */
 body.hud-minimal #flightMapBox, body.hud-minimal #flightAttitude { display: none; }
+body[data-hud-style=line]:not(.hud-minimal) #xhair { display: none; }
 body.hud-hidden .hud, body.hud-hidden .flight, body.hud-hidden #labels { visibility: hidden; }
 body.hud-hidden #flightTools { visibility: visible; }
 body .viewport.intro .flight { opacity: 0; }
-@media (max-width: 720px) {
-  #flightMission { max-width: 48%; }
-  #flightAttitude { width: 100px; }
-  #flightMap { width: 112px; height: 96px; }
-  body .readout { gap: 8px; }
-  body .readout b, .flight b { font-size: 22px; }
-  body .hud.bc { top: auto; right: auto; left: 50%; bottom: 22%; transform: translateX(-50%); }
-  #flightTools { bottom: 4%; }
-}
-@media (prefers-reduced-motion: reduce) { #flightPeek { transition: none; } }
-#flightRange { left: 50%; top: 60%; transform: translateX(-50%); border-bottom: 3px solid currentColor; }
-#flightController { right: 4%; top: 5%; }
+body.movie .flight { display: none; }
+body.replaying .hud.bc { bottom: 96px; }
+body.replaying #flightMapBox { bottom: 120px; }
+body.replaying #flightTools { bottom: 120px; }
+#flightRange, #flightController { white-space: nowrap; }
+body .hud.tr { top: auto; bottom: 4%; right: 4%; }
+
 #engineering { transition: opacity 180ms ease-out; }
 #engineering .rack { max-height: none; }
 #engineering .rack .sec { flex-shrink: 0; }
 #engineering #adi { min-height: 120px; }
-#flightPeek canvas { width: 100%; }
-#flightWarning[data-level=danger] { color: var(--danger); }
-#flightWarning[data-level=info] { color: var(--accent); }
-@media (prefers-reduced-motion: reduce) { #engineering { transition: none; } }
 .in-game #engineering #scnSel, .in-game #engineering #seed, .in-game #engineering #btnLoad,
 .in-game #engineering #opMode, .in-game #engineering label[for=opMode] { display: inline-block; }
 #engineering > button { position: sticky; top: 0; z-index: var(--z-raised); margin-bottom: 16px; }
-body.movie .flight { display: none; }
-body.replaying .hud.bc { bottom: 96px; }
-#flightMission { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#flightPeek { max-height: 65%; overflow: hidden; }
+
 @media (max-width: 720px) {
+  #flightMission { max-width: 48%; }
+  #flightAttitude { left: auto; right: 4%; top: 36%; transform: none; width: 42vw; height: 20vh; }
+  #flightLadder { height: 30vh; width: 44px; }
+  #flightDepth b { font-size: 24px; }
+  #flightDepth small { font-size: 11px; }
+  #flightMap { width: 100px; height: 100px; }
+  body #tape { width: 60vw; }
+  #flightHeading { font-size: 20px; }
+  body .readout { gap: 14px; }
+  body .readout b { font-size: 18px; }
+  body .readout span { font-size: 11px; }
+  body .readout i { font-size: 10px; letter-spacing: .08em; }
+  body .hud.tl { top: 3%; max-width: 50%; }
+  body .lock.locked b { font-size: 16px; }
+  body .hud.tl .chip { font-size: 12px; }
+  body .hud.bc { top: auto; right: auto; left: 50%; bottom: 22%; transform: translateX(-50%); }
+  #flightTools { bottom: 4%; }
   body.replaying .hud.bc { bottom: 180px; left: 136px; right: 64px; transform: none; }
   body.replaying #flightTools { bottom: 130px; flex-direction: column; }
 }
-body.hud-danger #vp::after { content: ''; position: absolute; inset: 0; pointer-events: none;
-  box-shadow: inset 0 0 70px var(--danger); z-index: var(--z-hud-alert); }
-body.hud-hidden #vp::after { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  #flightPeek, #engineering, #flightTools, #flightDepth, #flightMapBox { transition: none; }
+}
 
 /* Decorative HUD surfaces never intercept playback controls. */
 body .hud, body .hud > * { pointer-events: none; }
 body .hud button, body .hud input, body .hud select { pointer-events: auto; }
 body.replaying #replayBar { pointer-events: auto; }
 body.replaying #replayBar.idle { pointer-events: none; }
-body.replaying #flightMapBox { bottom: 120px; }
-body.replaying #flightTools { bottom: 120px; }
-#flightTools { opacity: .45; transition: opacity 180ms ease-out; }
-#flightTools:hover, #flightTools:focus-within, #flightTools.controller-visible { opacity: 1; }
-#flightTools button { width: 40px; height: 40px; padding: 8px; }
-#flightTools svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; }
-body .lock.locked { border-color: var(--warn); color: var(--warn); padding: 12px 16px; }
-body .lock.locked b { font-size: 22px; }
-body .lock.locked span { display: block; font-size: 13px; color: var(--text); }
-body .lock:not(.locked) { padding: 4px 8px; opacity: .7; }
-@media (prefers-reduced-motion: reduce) { #flightTools { transition: none; } }
 
 /* Stacking: every layer takes its z-index from the scale in tokens.css. */
 body .hud, .flight { z-index: var(--z-hud); }
@@ -100,12 +197,6 @@ body .hud, .flight { z-index: var(--z-hud); }
 #flightTools { z-index: var(--z-controls); }
 .banner { z-index: var(--z-banner); }
 .sticks { z-index: var(--z-controls); }
-
-/* Assist status beside the mode pill: dashed while the request waits, amber when the simulator is not flying it. */
-#flightAssistStatus[hidden] { display: none; }
-#flightAssistStatus[data-tone=pending] { color: var(--text-dim); border-style: dashed; }
-#flightAssistStatus[data-tone=warn] { color: var(--warn); border-color: var(--warn); }
-#flightAssistStatus[data-tone=ok] { color: var(--go); border-color: var(--go); }
 
 /* The controller diagnostic page is not part of the replay showcase build; replays need no controller. */
 body.replaying #controllerCheck { display: none; }
