@@ -1,14 +1,15 @@
 """Check camera actions through the live T02 layer, including context and thrust ownership."""
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(playwright, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width': 1280, 'height': 720})
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.add_init_script("""window.fakePads=[];
       Object.defineProperty(navigator,'getGamepads',{value:()=>window.fakePads});""")
-    page.goto('http://127.0.0.1:8092/?play=1&nointro&ws=ws://127.0.0.1:8792&room=camera-actions')
+    page.goto(f'{http_base(8092)}/?play=1&nointro&ws={ws_base(8792)}&room=camera-actions')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')
     # Isolate action routing from software GPU stalls; this is not a latency benchmark.
     page.evaluate('window.__skipRender=true')

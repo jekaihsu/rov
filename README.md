@@ -25,8 +25,11 @@ python tools/sync_version.py --check
 python tools/build_showcase.py
 ```
 
-瀏覽器測試需安裝 `playwright` 與 Chrome，啟動 `python -m qysim.server --http-port 8092 --ws-port 8792`，
-再執行 `python tools/browser_smoke.py` 與 `python tools/browser_menu_smoke.py`。
+瀏覽器測試需安裝 `playwright` 與 Chromium／Chrome。`python tools/run_browser_checks.py` 會自行在空閒埠啟動伺服器、
+依序執行 smoke 腳本並列出通過／失敗表（可指定腳本名稱，例如 `python tools/run_browser_checks.py browser_smoke browser_menu_smoke`；
+`--list` 列出全部）。也可手動啟動 `python -m qysim.server --http-port 8092 --ws-port 8792` 後單獨執行 `python tools/browser_smoke.py`。
+環境變數：`ROV_CHROMIUM`（瀏覽器執行檔絕對路徑）、`ROV_HTTP_PORT`／`ROV_WS_PORT`（伺服器埠）、
+`ROV_BROWSER_TIMEOUT_SCALE`（慢機器放大逾時倍數），詳見 `tools/_browser.py`。
 桌面版：`cd simulator/desktop && npm ci && npm run vendor`。
 
 ## 目錄

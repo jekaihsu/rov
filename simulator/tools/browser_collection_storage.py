@@ -6,14 +6,15 @@ covered by the independent observation/end-to-end browser test.
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base
 out=Path(__file__).resolve().parents[1]/'output'/'collection-validation'
 out.mkdir(parents=True,exist_ok=True)
 fixture=json.loads((out/'desktop-export-fixture.json').read_text(encoding='utf8'))
 with sync_playwright() as p:
-    browser=p.chromium.launch(channel='chrome',headless=True,args=['--enable-unsafe-swiftshader'])
+    browser=launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
     page=browser.new_page(viewport={'width':1366,'height':768},accept_downloads=True)
     errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
-    page.goto('http://127.0.0.1:8094/')
+    page.goto(f'{http_base(8094)}/')
     page.wait_for_function('window.__menu?.ready',timeout=90000)
     result=page.evaluate("""async archive=>{
       const store=await import('./collection_store.js');

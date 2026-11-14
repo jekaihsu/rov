@@ -2,22 +2,23 @@
 import base64
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'audio-validation'
 OUT.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width': 1600, 'height': 900})
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    page.goto('http://127.0.0.1:8093/?ws=ws://127.0.0.1:8793&nointro')
+    page.goto(f"{http_base(8093, 'ROV_BEFORE_HTTP_PORT')}/?ws={ws_base(8793, 'ROV_BEFORE_WS_PORT')}&nointro")
     page.wait_for_selector('#launchForm')
     page.screenshot(path=str(OUT / 'before.png'))
-    page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&nointro')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&nointro')
     page.wait_for_selector('#launchForm')
     page.get_by_text('音效', exact=True).click()
     page.screenshot(path=str(OUT / 'after.png'))
-    page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&nointro&room=audio')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&play=1&nointro&room=audio')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')
     assert page.evaluate("import('./audio/engine.js').then(m => !m.installAudio().ctx)")
     page.locator('canvas.gl').click(position={'x': 20, 'y': 20})
@@ -61,7 +62,7 @@ with sync_playwright() as p:
     page.wait_for_function('window.audioClip', timeout=45000)
     (OUT / 'audio-30s.webm').write_bytes(base64.b64decode(page.evaluate('window.audioClip')))
     assert not errors, errors
-    page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&nointro&mute')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&play=1&nointro&mute')
     page.wait_for_function('window.__viewer?.S')
     page.locator('canvas.gl').click(position={'x': 20, 'y': 20})
     assert page.evaluate("import('./audio/engine.js').then(m => !m.installAudio().ctx)")

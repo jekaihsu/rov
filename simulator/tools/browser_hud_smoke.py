@@ -1,8 +1,8 @@
 """Verify full-frame HUD geometry, peek lifecycle and the preserved engineering drawer."""
 import argparse
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--screenshots', action='store_true')
@@ -11,8 +11,7 @@ args = parser.parse_args()
 OUT = Path(__file__).resolve().parents[1] / 'output' / 't04'
 OUT.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),
-                                headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width': 1280, 'height': 720})
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
@@ -30,7 +29,7 @@ with sync_playwright() as p:
           function frame() { updateFlightHUD(S,W,1/60); requestAnimationFrame(frame); }
           frame();
         """))
-    page.goto('http://127.0.0.1:8092/?play=1&nointro&ws=ws://127.0.0.1:8792&room=hudcheck', wait_until='domcontentloaded')
+    page.goto(f'{http_base(8092)}/?play=1&nointro&ws={ws_base(8792)}&room=hudcheck', wait_until='domcontentloaded')
     page.wait_for_function('window.__viewer?.S && document.querySelector("#flightCable")')
     assert page.locator('#engineering').is_hidden()
     assert page.locator('#sticks').is_hidden()
