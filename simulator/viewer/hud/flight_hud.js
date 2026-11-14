@@ -335,6 +335,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   card.classList.toggle('visible', active >= 0 || density === 2);
   const index = active < 0 ? 1 : active;
   card.querySelector('strong').textContent = STRINGS.cards[index];
+  card.dataset.card = String(index);
   const sources = [
     ['brief', 'objs', 'missionStatus'], ['thrBars', 'tState', 'tRov', 'gBat', 'damage'], ['activeRoomName'], [],
   ];

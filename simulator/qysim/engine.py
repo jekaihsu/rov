@@ -23,6 +23,7 @@ from .navigation import GeoFrame, Navigator, wrap_pi
 from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether
+from .tether_ops import TetherOperations, cable_view
 from .world import World
 from .mission_modes import MissionRun, ensure_mission
 from .expedition import ensure_expedition
@@ -101,6 +102,7 @@ class Simulator:
             self._prewrap(sc.prewrap)
         # let the cable take its natural shape in the current before the clock starts
         self.tether.settle(2.0, self.vehicle.s.pos, self.vehicle.s.q)
+        self.tether_ops = TetherOperations(self.world)
         self.scorer = sc_mod.Scorer(sc)
         self._prev_buttons = {"record": 0, "photo": 0}
         self.damage_events: list[dict] = []
@@ -199,6 +201,7 @@ class Simulator:
                                                vehicle_id=self.vehicle_id,
                                                hull_spheres=[(centre, self.vehicle.definition.hull_radius)
                                                              for centre in self.vehicle.definition.hull_centres])
+        w_tether[5] += self.tether_ops.step(dt, cable_view(self.tether), s.pos, self.yaw)
         v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
         if update_world:
             self.world.step(dt, vehicles=[{"id": self.vehicle_id, "pos": s.pos, "vel": v.world_velocity()}])
@@ -784,6 +787,7 @@ class Simulator:
             "current_here": [round(float(x), 3) for x in cur],
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
             "tether": self.tether.state(),
+            "tether_ops": self.tether_ops.state(),
             "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
             "damage": self.damage_events[-6:],
             "silt": round(self.world.silt_at(s.pos), 2),

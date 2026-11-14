@@ -1,6 +1,7 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
+import { updateTetherOperations } from './tether/operations.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -1191,6 +1192,7 @@ function frame(now) {
   // pose (smoothed toward latest state)
   replayTick(dt);
   updateFlightHUD(renderState.display(S), W, dt, input.hudState());
+  updateTetherOperations(S);
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);

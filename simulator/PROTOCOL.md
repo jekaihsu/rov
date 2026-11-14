@@ -368,3 +368,25 @@ reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are av
 This draft does **not** yet implement tether snags, sensor or video faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.
+
+## Optional `state.tether_ops` (T21)
+
+Older clients may ignore this object; absent means no cable operations feedback.
+`turns` is unwrapped net vehicle yaw since scenario reset (provisional proxy for twist;
+not a measured material cable twist). `torque_nm` is the restoring body yaw moment the
+simulator applies: zero within ±2 turns, then 0.4 Nm per turn beyond that, capped at 8 Nm
+(provisional training parameters, not vehicle specifications).
+`events` is a rolling list of 20 `{id, code, metres?}` radio messages; codes are
+`length` (5 m bucket changes in either direction), `tension`, `structure`, `twist`, `snag`, `released`.
+`snag` is null or `{name, returned, tightening}`. Tightening accumulates excess
+load exposure above 250 N; it increases the procedural score penalty.
+`result` is null or `{score, peak_n, elapsed, returned, correct}` for the last episode.
+High scores require facing and returning to the cable point before reducing winding;
+peak tension and elapsed seconds reduce the score. Broken cables score zero.
+`slack_seconds` counts excess paid length over direct span >10 m; `taut_seconds`
+counts exposure above 250 N. These thresholds are provisional training assumptions.
+Existing `payout` and `auto_payout` commands remain unchanged and allow the controlling
+player to manage the spool manually. No additional multiplayer permission is granted.
+`discipline_score` (0–100) deducts one point per excess-slack second and two per
+high-tension second. `twist` radio events trigger when net rotation first exceeds two turns.
+Clump weights and a separately authorized multiplayer tether-hand role are not yet supported.
