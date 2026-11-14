@@ -97,4 +97,5 @@ with sync_playwright() as p:
             page.screenshot(path=str(OUT / f'replay-{width}x{height}.png'), timeout=120000)
     assert not errors, errors
     browser.close()
-print('HUD geometry, tap timeout, hold/release, D-pad adapter, hiding drawer persistence and real replay play/pause clicks passed.')
+print('HUD geometry, tap timeout, hold/release, D-pad adapter, hiding drawer persistence '
+      'and real replay play/pause clicks passed.')
