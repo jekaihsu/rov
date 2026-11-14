@@ -1,5 +1,6 @@
 // Adjust only pixel workload; physics, controls and canvas CSS size stay fixed.
 const profiles=new WeakMap();
+let lastMode=null;
 const positive=value=>Number.isFinite(Number(value))&&Number(value)>0?Number(value):null;
 const clean=value=>typeof value==='string'?value.replace(/[\u0000-\u001f]/g,' ').trim().slice(0,256):'';
 
@@ -52,6 +53,7 @@ export function configureRenderQuality(renderer,mode='auto'){
   const limits=mode==='auto'?bounds(renderer,hardware):{ceiling:Math.min(dpr,mode==='high'?2:1),floor:Math.min(dpr,.6)};
   const ratio=mode==='auto'?Math.min(limits.ceiling,hardware.initialRatio):mode==='performance'?Math.min(dpr,.75):limits.ceiling;
   const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3};
+  lastMode=mode;
   profiles.set(renderer,state);renderer.shadowMap.enabled=mode==='high';renderer.setPixelRatio(ratio);
   return state;
 }
@@ -77,4 +79,21 @@ export function renderQualityInfo(renderer){
   const s=profiles.get(renderer);return s?{mode:s.mode,scale:Math.round(s.ratio*100),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
     hardwareLabel:s.hardware.label,hardwareReason:s.hardware.reason,hardwareTier:s.hardware.tier,hardwareRenderer:s.hardware.renderer,
     hardwareProfile:{initialRatio:s.hardware.initialRatio,floor:s.floor,ceiling:s.ceiling,pixelBudget:s.hardware.pixelBudget,entryLevel:s.hardware.entryLevel}}:null;
+}
+
+// Texture tier for large assets (e.g. the work boat): the full-resolution "high" files only when the user chose
+// the "high" quality mode; every other mode, including the default "auto", loads the standard files.
+// Without an explicit mode it uses the last configured mode, else the same URL / stored choice the menus use.
+export function assetTextureTier(mode = lastMode ?? storedQualityMode()) {
+  return mode === 'high' ? 'high' : 'standard';
+}
+
+function storedQualityMode() {
+  const fromUrl = new URLSearchParams(globalThis.location?.search || '').get('quality');
+  if (fromUrl) return fromUrl;
+  try {
+    return globalThis.localStorage?.getItem('rov.quality') || 'auto';
+  } catch {
+    return 'auto';
+  }
 }

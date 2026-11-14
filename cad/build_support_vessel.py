@@ -13,6 +13,10 @@ Units are metres. Boat coordinates used below: x to port, s forward from the tra
 waterline. Blender (Z up) gets (x, L/2 - s, z); after the glTF Y-up conversion three.js sees the stern at
 -Z, the bow at +Z, port at +X and the waterline at y = 0. The root node carries extras (deckY, sternZ,
 transomY, ...) that simulator/viewer/deploy_intro.js reads; the node "TetherDrum" spins about its local X.
+The A-frame, its rams, the sheave block and the lifting hook are separate nodes so the launch intro can luff
+the frame and lower the vehicle on the lifting wire (see build_a_frame). Detail levels: "LOD0" (full), "LOD1"
+and "LOD2" (decimated copies, switch distances in the root extras "lodDistances"), plus a hidden closed
+"CollisionProxy" mesh (extras proxy = "collision") for collision and occlusion queries.
 """
 import argparse
 import math
@@ -738,40 +742,168 @@ def build_deck_fittings(parts):
     parts.add('dark', kit.sweep(chain, radius=0.016, seg=6))
 
 
-def build_a_frame(parts):
-    """Stern A-frame (stowed upright, slightly outboard) with rams and a sheave block."""
-    apex_s = -0.3
-    apex_z = 3.05
+A_HINGE_S = 0.32
+A_HINGE_Z = DECK_Z + 0.2
+A_APEX_S = -0.3
+A_APEX_Z = 3.05
+
+
+class LocalParts(Parts):
+    """Parts given in boat coordinates but stored relative to a node origin (and optional node rotation)."""
+
+    def __init__(self, materials, prefix, origin, rotation=None):
+        super().__init__(materials, prefix)
+        matrix = Matrix.Translation(-Vector(origin))
+        if rotation is not None:
+            matrix = rotation.inverted().to_matrix().to_4x4() @ matrix
+        self.matrix = matrix
+
+    def add(self, key, bm, tile=1.0):
+        bm.transform(self.matrix)
+        super().add(key, bm, tile)
+
+
+def make_node(name, collection, parent, location, rotation=None):
+    """Empty node (glTF node without mesh); ``location`` is relative to ``parent``."""
+    node = bpy.data.objects.new(name, None)
+    collection.objects.link(node)
+    node.parent = parent
+    node.location = Vector(location)
+    if rotation is not None:
+        node.rotation_mode = 'QUATERNION'
+        node.rotation_quaternion = rotation
+    return node
+
+
+def build_a_frame(parts, materials, collection, parent):
+    """Luffing stern A-frame with hydraulic rams, a sheave block and a lifting hook, as separate nodes.
+
+    Nodes for deploy_intro.js: "AFrame" pivots about its local X at the deck hinges (rotation 0 = the stowed
+    pose, apex 0.3 m aft of the transom); "LiftBlock" hangs from the beam centre and is counter-rotated to stay
+    plumb; "SheaveBottom" is where the lifting wire leaves the block; "LiftHook" is moved along the wire;
+    "AFrameRam_P/S" have their origin on the deck lug and their local +Y (glTF) along the ram, to be re-aimed
+    and stretched towards "RamAttach_P/S" (children of AFrame).
+    """
+    apex_s = A_APEX_S
+    apex_z = A_APEX_Z
+    hinge = B(0, A_HINGE_S, A_HINGE_Z)
+    frame = LocalParts(materials, 'AFrame', hinge)
+    shackle = B(0, apex_s, apex_z - 0.3)
+    block = LocalParts(materials, 'LiftBlock', shackle)
+    hook_at = B(0, apex_s, apex_z - 0.7)
+    hook = LocalParts(materials, 'LiftHook', hook_at)
+    frame_node = make_node('AFrame', collection, parent, hinge)
+    block_node = make_node('LiftBlock', collection, frame_node, shackle - hinge)
+    make_node('SheaveBottom', collection, block_node, B(0, apex_s, apex_z - 0.62) - shackle)
+    objects = []
     for x in (-1.5, 1.5):
-        parts.add('yellow', kit.box((0.26, 0.42, 0.04), center=B(x, 0.32, DECK_Z + 0.02), bevel=0.008))
+        parts.add('yellow', kit.box((0.26, 0.42, 0.04), center=B(x, A_HINGE_S, DECK_Z + 0.02), bevel=0.008))
         for dx in (-0.09, 0.09):
             plate = kit.extrude([(-0.16, 0.0), (0.16, 0.0), (0.06, 0.24), (-0.06, 0.24)], 0.025,
-                                center=B(x + dx, 0.32, DECK_Z + 0.04), rot=kit.rot_x(math.pi / 2) @ kit.rot_y(
+                                center=B(x + dx, A_HINGE_S, DECK_Z + 0.04), rot=kit.rot_x(math.pi / 2) @ kit.rot_y(
                                     math.pi / 2))
             parts.add('yellow', plate)
-        parts.add('steel', kit.cylinder(B(x - 0.11, 0.32, DECK_Z + 0.2), B(x + 0.11, 0.32, DECK_Z + 0.2), 0.035))
-        parts.add('yellow', kit.beam(B(x, 0.32, DECK_Z + 0.2), B(x * 0.97, apex_s, apex_z), 0.13, 0.13,
+        parts.add('steel', kit.cylinder(B(x - 0.11, A_HINGE_S, A_HINGE_Z), B(x + 0.11, A_HINGE_S, A_HINGE_Z), 0.035))
+        frame.add('yellow', kit.beam(B(x, A_HINGE_S, A_HINGE_Z), B(x * 0.97, apex_s, apex_z), 0.13, 0.13,
                                      bevel=0.01), tile=1.0)
         # hydraulic ram: barrel from a deck lug, chrome rod into the leg
         base = B(x, 1.05, DECK_Z + 0.12)
-        attach = B(x * 0.985, 0.32 + (apex_s - 0.32) * 0.42, DECK_Z + 0.2 + (apex_z - DECK_Z - 0.2) * 0.42)
+        attach = B(x * 0.985, A_HINGE_S + (apex_s - A_HINGE_S) * 0.42, A_HINGE_Z + (apex_z - A_HINGE_Z) * 0.42)
+        side = 'P' if x > 0 else 'S'
+        direction = (attach - base).normalized()
+        turn = Vector((0, 0, 1)).rotation_difference(direction)
+        ram = LocalParts(materials, f'AFrameRam_{side}', base, turn)
         mid = base.lerp(attach, 0.58)
-        parts.add('grey', kit.cylinder(base, mid, 0.055, seg=14))
-        parts.add('steel', kit.cylinder(mid, attach, 0.026, seg=10))
+        ram.add('grey', kit.cylinder(base, mid, 0.055, seg=14))
+        ram.add('steel', kit.cylinder(mid, attach, 0.026, seg=10))
+        ram_node = make_node(f'AFrameRam_{side}', collection, parent, base, turn)
+        objects += ram.build(collection, ram_node)
+        make_node(f'RamAttach_{side}', collection, frame_node, attach - hinge)
         parts.add('yellow', kit.box((0.14, 0.16, 0.14), center=B(x, 1.05, DECK_Z + 0.07)))
-    parts.add('yellow', kit.beam(B(-1.55, apex_s, apex_z), B(1.55, apex_s, apex_z), 0.16, 0.16, bevel=0.012), 1.0)
+    frame.add('yellow', kit.beam(B(-1.55, apex_s, apex_z), B(1.55, apex_s, apex_z), 0.16, 0.16, bevel=0.012), 1.0)
     for x in (-1.46, 1.46):
-        parts.add('yellow', kit.box((0.2, 0.2, 0.2), center=B(x, apex_s, apex_z), bevel=0.01))
-    # padeye, shackle and sheave block hanging from the beam centre
-    parts.add('yellow', kit.extrude([(-0.06, 0), (0.06, 0), (0.04, 0.1), (-0.04, 0.1)], 0.03,
+        frame.add('yellow', kit.box((0.2, 0.2, 0.2), center=B(x, apex_s, apex_z), bevel=0.01))
+    # padeye on the beam; shackle and sheave block hanging from it; hook on the lifting wire
+    frame.add('yellow', kit.extrude([(-0.06, 0), (0.06, 0), (0.04, 0.1), (-0.04, 0.1)], 0.03,
                                     center=B(0, apex_s, apex_z - 0.16), rot=kit.rot_x(math.pi)))
-    parts.add('steel', kit.torus(0.04, 0.011, seg=12, ring_seg=6, center=B(0, apex_s, apex_z - 0.3), axis=(1, 0, 0)))
+    block.add('steel', kit.torus(0.04, 0.011, seg=12, ring_seg=6, center=shackle, axis=(1, 0, 0)))
     for dx in (-0.035, 0.035):
         cheek = kit.cylinder(B(dx - 0.008, apex_s, apex_z - 0.5), B(dx + 0.008, apex_s, apex_z - 0.5), 0.13, seg=24)
-        parts.add('orange', cheek)
-    parts.add('steel', kit.cylinder(B(-0.03, apex_s, apex_z - 0.5), B(0.03, apex_s, apex_z - 0.5), 0.1, seg=24))
-    parts.add('steel', kit.torus(0.06, 0.016, seg=14, ring_seg=6, center=B(0, apex_s, apex_z - 0.7),
-                                 axis=(1, 0, 0), arc=4.5))
+        block.add('orange', cheek)
+    block.add('steel', kit.cylinder(B(-0.03, apex_s, apex_z - 0.5), B(0.03, apex_s, apex_z - 0.5), 0.1, seg=24))
+    hook.add('orange', kit.box((0.05, 0.05, 0.08), center=hook_at + Vector((0, 0, 0.07)), bevel=0.01))
+    hook.add('steel', kit.torus(0.06, 0.016, seg=14, ring_seg=6, center=hook_at, axis=(1, 0, 0), arc=4.5))
+    hook_node = make_node('LiftHook', collection, parent, hook_at)
+    objects += frame.build(collection, frame_node)
+    objects += block.build(collection, block_node)
+    objects += hook.build(collection, hook_node)
+    return objects
+
+
+# LOD levels: (decimate ratio, switch distance in metres, materials left out at that level)
+LOD_LEVELS = (
+    (0.4, 35.0, ()),
+    (0.12, 90.0, ('rope', 'tape', 'lamp_red', 'lamp_green', 'lamp_white', 'lamp_status', 'screen', 'zinc', 'tether',
+                  'decal', 'tyre', 'bronze', 'dark')),
+)
+
+
+def build_lods(collection, root, objects, materials):
+    """LOD1/LOD2 groups: decimated, flattened copies of every LOD0 mesh (fine details dropped at LOD2)."""
+    bpy.context.view_layer.update()
+    skip_names = {key: materials[key].name for key in materials}
+    lod_objects = []
+    for level, (ratio, distance, skip) in enumerate(LOD_LEVELS, start=1):
+        group = make_node(f'LOD{level}', collection, root, (0, 0, 0))
+        group['lodDistance'] = distance
+        left_out = {skip_names[key] for key in skip}
+        for ob in objects:
+            if ob.type != 'MESH' or ob.data.materials[0].name in left_out:
+                continue
+            copy = bpy.data.objects.new(f'{ob.name}_LOD{level}', ob.data.copy())
+            collection.objects.link(copy)
+            copy.parent = group
+            copy.matrix_basis = ob.matrix_world.copy()
+            modifier = copy.modifiers.new('decimate', 'DECIMATE')
+            modifier.ratio = ratio
+            modifier.use_collapse_triangulate = True
+            lod_objects.append(copy)
+    return lod_objects
+
+
+def build_collision_proxy(collection, root):
+    """Closed low-poly hull + wheelhouse block for collision / occlusion queries (hidden in the viewer)."""
+    bm = bmesh.new()
+    rings = []
+    for t in (0.0, 0.2, 0.45, 0.7, 0.85, 0.95, 1.0):
+        half = section(min(t, 0.995))
+        keel = half[0]
+        chine = half[NB]
+        sheer = half[-1]
+        s = t * L
+        ring = [B(0, s, keel[1]), B(chine[0], s, chine[1]), B(sheer[0], s, sheer[1]),
+                B(-sheer[0], s, sheer[1]), B(-chine[0], s, chine[1])]
+        rings.append([bm.verts.new(p) for p in ring])
+    for ra, rb in zip(rings, rings[1:]):
+        for i in range(5):
+            j = (i + 1) % 5
+            bm.faces.new((ra[i], ra[j], rb[j], rb[i]))
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    house = kit.box((2.56, 3.3, 2.05), center=B(0, 6.95, DECK_Z + 1.02))
+    mapping = {v: bm.verts.new(v.co) for v in house.verts}
+    for f in house.faces:
+        bm.faces.new([mapping[v] for v in f.verts])
+    house.free()
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new('CollisionProxy')
+    bm.to_mesh(mesh)
+    bm.free()
+    proxy = bpy.data.objects.new('CollisionProxy', mesh)
+    collection.objects.link(proxy)
+    proxy.parent = root
+    proxy['proxy'] = 'collision'
+    return proxy
 
 
 def build_winch(parts, drum_parts):
@@ -1055,24 +1187,28 @@ def build(out_glb, texture_dir):
     materials = build_materials(tex)
     root = bpy.data.objects.new('SupportVessel', None)
     collection.objects.link(root)
+    lod0 = make_node('LOD0', collection, root, (0, 0, 0))
+    lod0['lodDistance'] = 0.0
     parts = Parts(materials, 'Vessel')
     drum_parts = Parts(materials, 'Drum')
     build_hull(parts)
     build_wheelhouse(parts)
     build_rails(parts)
     build_deck_fittings(parts)
-    build_a_frame(parts)
+    objects = build_a_frame(parts, materials, collection, lod0)
     drum_axis, tether_exit = build_winch(parts, drum_parts)
     build_control_cabinet(parts)
     build_pilot_station(parts)
     build_fenders_tyres_ladder(parts)
     build_underwater(parts)
-    objects = parts.build(collection, root)
+    objects += parts.build(collection, lod0)
     drum = bpy.data.objects.new('TetherDrum', None)
     collection.objects.link(drum)
-    drum.parent = root
+    drum.parent = lod0
     drum.location = drum_axis
     objects += drum_parts.build(collection, drum)
+    lod_objects = build_lods(collection, root, objects, materials)
+    build_collision_proxy(collection, root)
     exit_node = bpy.data.objects.new('TetherExit', None)
     collection.objects.link(exit_node)
     exit_node.parent = root
@@ -1087,10 +1223,11 @@ def build(out_glb, texture_dir):
     root['length'] = L
     root['beam'] = 2 * 1.95
     root['generator'] = 'cad/build_support_vessel.py'
+    root['lodDistances'] = [0.0] + [level[1] for level in LOD_LEVELS]
     tris = kit.triangle_count(objects)
     raw = kit.export_glb(out_glb)
     kit.patch_material_factors(raw, list(materials.values()))
-    print(f'support vessel: {tris} triangles, {len(objects)} meshes -> {raw}')
+    print(f'support vessel: LOD0 {tris} triangles, {len(objects)} meshes (+{len(lod_objects)} LOD meshes) -> {raw}')
     return tris
 
 

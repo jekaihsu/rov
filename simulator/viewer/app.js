@@ -1030,6 +1030,7 @@ async function startIntro() {
   introStarts++;
   if (intro) { intro.dispose(); intro = null; }
   intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: W.start_pos || S?.pos || [0, 0, 3], seabed: W.seabed_depth || 30, assets });
+  intro.showVehicle(() => activeModel?.model);       // the onboard view hides the hull; the intro shows it
   vp.classList.add('intro'); $('skipIntro').hidden = false;
   const wasPaused = !!S?.paused;
   if (!wasPaused) send({ type: 'pause', value: true });
