@@ -27,7 +27,7 @@ def material(name, color, metal, rough):
     shader.inputs['Metallic'].default_value = metal
     shader.inputs['Roughness'].default_value = rough
     nodes = mat.node_tree.nodes
-    for channel in ['Base Color', 'Roughness', 'Normal']:
+    for channel in ['Base Color', 'Roughness', 'Normal', 'Metallic', 'Occlusion']:
         image = bpy.data.images.new(name + channel, width=128, height=128)
         pixels = []
         for y in range(128):
@@ -38,7 +38,8 @@ def material(name, color, metal, rough):
                 elif channel == 'Normal':
                     rgb = (.5 + grain, .5, 1)
                 else:
-                    rgb = (rough + grain,) * 3
+                    value = metal if channel == 'Metallic' else 1 - grain if channel == 'Occlusion' else rough + grain
+                    rgb = (value,) * 3
                 pixels.extend((*rgb, 1))
         image.pixels[:] = pixels
         image.pack()
@@ -46,7 +47,13 @@ def material(name, color, metal, rough):
         texture.image = image
         if channel != 'Base Color':
             image.colorspace_settings.name = 'Non-Color'
-        if channel == 'Normal':
+        if channel == 'Occlusion':
+            group = bpy.data.node_groups.new('glTF Material Output', 'ShaderNodeTree')
+            group.interface.new_socket(name='Occlusion', in_out='INPUT', socket_type='NodeSocketFloat')
+            output = nodes.new('ShaderNodeGroup')
+            output.node_tree = group
+            mat.node_tree.links.new(texture.outputs['Color'], output.inputs['Occlusion'])
+        elif channel == 'Normal':
             normal = nodes.new('ShaderNodeNormalMap')
             mat.node_tree.links.new(texture.outputs['Color'], normal.inputs['Color'])
             mat.node_tree.links.new(normal.outputs['Normal'], shader.inputs[channel])
@@ -74,8 +81,8 @@ def cylinder(name, pos, radius, depth, axis, mat, parent=None):
     bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=radius, depth=depth, location=pos)
     obj = bpy.context.object
     obj.name = name
-    obj.rotation_quaternion = Vector(axis).to_track_quat('Z', 'Y')
     obj.rotation_mode = 'QUATERNION'
+    obj.rotation_quaternion = Vector(axis).to_track_quat('Z', 'Y')
     obj.data.materials.append(mat)
     obj.parent = parent
     for face in obj.data.polygons:

@@ -1,7 +1,6 @@
 """Build the original fleet with Blender, Basis and meshopt; enforce shipping budgets."""
 import argparse
 import json
-import os
 from pathlib import Path
 import shutil
 import struct
@@ -35,13 +34,22 @@ def report():
             assert 'EXT_meshopt_compression' in doc['extensionsUsed'], path
             assert 'KHR_texture_basisu' in doc['extensionsUsed'], path
             texture_bytes = 0
+            max_texture = 0
+            raw = path.read_bytes()
+            json_length = struct.unpack_from('<I', raw, 12)[0]
+            binary_start = 28 + json_length
             for image in doc.get('images', []):
                 view = doc['bufferViews'][image['bufferView']]
-                # All authored maps are 128 square, RGBA8 worst-case fallback incl. mips.
-                texture_bytes += 128 * 128 * 4 * 4 // 3
+                offset = binary_start + view.get('byteOffset', 0)
+                width, height = struct.unpack_from('<II', raw, offset + 20)
+                levels = struct.unpack_from('<I', raw, offset + 40)[0]
+                max_texture = max(max_texture, width, height)
+                assert max_texture <= 2048, path
+                texture_bytes += sum(max(1, width >> level) * max(1, height >> level) * 4
+                                     for level in range(levels))
             counts.append(triangles)
             rows.append({'asset': path.name, 'triangles': triangles, 'bytes': path.stat().st_size,
-                         'texture_gpu_rgba8_bytes_with_mips': texture_bytes, 'max_texture': 128})
+                         'texture_gpu_rgba8_bytes_with_mips': texture_bytes, 'max_texture': max_texture})
         assert counts[0] > counts[1] > counts[2], counts
     total = sum(p.stat().st_size for p in MODELS.glob('*.glb'))
     assert total <= 120 * 1024 * 1024

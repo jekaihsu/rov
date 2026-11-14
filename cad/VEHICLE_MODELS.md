@@ -41,8 +41,8 @@ The pipeline exports three decimated LODs, encodes embedded maps as KTX2 UASTC,
 then applies meshopt. Temporary uncompressed exports stay in `.runtime/assets`.
 `assets-report.json` records triangle counts, bytes and conservative RGBA8 GPU
 texture memory including mipmaps (actual block compression is smaller).
-Textures are 128², intentionally below the 2K ceiling. Metalness is a PBR scalar;
-AO is currently geometric lighting rather than a baked cavity map. Wear, fouling,
+Textures are 128², intentionally below the 2K ceiling. All five PBR channels are embedded. AO is a subtle procedural surface mask rather than
+a baked cavity map. Wear, fouling,
 flexible hoses, scan-derived detail and photoreal texture work remain future art work.
 
 Default visuals use the original fleet; `?assets=training` preserves the old assets.

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {vehicleAssets} from './asset_config.js';
 const STRINGS = {
   wire:'Wireframe', proxy:'Collision proxy', camera:'Camera tilt', lamp:'Lamp tilt',
-  channels:['PBR','Base color','Normal','Roughness'],
+  channels:['PBR','Base color','Normal','Roughness','Metalness','AO'],
 };
 export function installInspector(select, getModel) {
   const panel = document.createElement('div');
@@ -42,7 +42,7 @@ export function installInspector(select, getModel) {
     o.userData.pbr ??= o.material;
     if (o.material !== o.userData.pbr) o.material.dispose();
     const pbr = o.userData.pbr;
-    const maps = [null, pbr.map, pbr.normalMap, pbr.roughnessMap];
+    const maps = [null, pbr.map, pbr.normalMap, pbr.roughnessMap, pbr.metalnessMap, pbr.aoMap];
     o.material = +channel.value ? new THREE.MeshBasicMaterial({map:maps[+channel.value]}) : pbr;
   });
   const proxy = document.createElement('button');
