@@ -5,10 +5,10 @@ scenario (and the random generator's structure kinds), and each vertex is checke
 shapes:
 
 * every underwater vertex of a solid or attached part lies inside the obstacles or at most SCENE_TOLERANCE
-  outside them (nothing visible that the vehicle or tether could pass through), on the medium and low tiers;
+  outside them (nothing visible that the vehicle or tether could pass through), on all three tiers;
 * every exposed collider surface (underwater, above the seabed, not buried in another shape) has a solid visual
-  surface within COVER_TOLERANCE (no invisible collision bulk), on the medium tier (the low tier packs fewer,
-  larger armour rocks);
+  surface within COVER_TOLERANCE (no invisible collision bulk), on the high tier (medium and low pack fewer,
+  larger armour rocks and leave gaps of up to about 0.4 m in the rock crowns);
 * every structure obstacle is drawn by some part.
 
 The ship-hull test points also compare the Python and JavaScript hull distance functions. Requires Node 18.19+;
@@ -160,7 +160,7 @@ class SceneConsistencyTest(unittest.TestCase):
         cls.worlds = scenario_worlds()
         payload = json.dumps({k: m for k, (_, m) in cls.worlds.items()})
         cls.tiers = {}
-        for detail in ("medium", "low"):
+        for detail in ("high", "medium", "low"):
             run = subprocess.run([NODE, str(ROOT / "tools" / "scene_manifest.mjs")], input=payload, text=True,
                                  capture_output=True, timeout=300, cwd=ROOT,
                                  env={**os.environ, "SCENE_DETAIL": detail})
@@ -169,7 +169,7 @@ class SceneConsistencyTest(unittest.TestCase):
             manifest = json.loads(run.stdout)
             cls.tolerance = manifest["tolerance"]
             cls.tiers[detail] = manifest["worlds"]
-        cls.parts = cls.tiers["medium"]
+        cls.parts = cls.tiers["high"]
 
     def structure_obstacles(self, world):
         return [o for o in world.obstacles if o.kind != "habitat" and o.as_dict()["type"] != "model"]

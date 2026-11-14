@@ -26,8 +26,8 @@ const BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', '
   'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast']);
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
-  low: {radial: 12, rockDetail: 0, lumps: 0, hullX: 48, hullZ: 10},
-  medium: {radial: 20, rockDetail: 0, lumps: 60, hullX: 96, hullZ: 16},
+  low: {radial: 12, rockDetail: -1, lumps: 0, hullX: 48, hullZ: 10},
+  medium: {radial: 16, rockDetail: -1, lumps: 60, hullX: 64, hullZ: 12},
   high: {radial: 28, rockDetail: 0, lumps: 90, hullX: 140, hullZ: 22},
 };
 
@@ -109,7 +109,8 @@ const rockCache = new Map();
 function unitRock(seed, detail) {
   const key = `${seed}:${detail}`;
   if (rockCache.has(key)) return rockCache.get(key);
-  const g = new THREE.IcosahedronGeometry(1, detail);
+  // detail -1: an octahedron (8 faces) for distant armour on the low and medium tiers
+  const g = detail < 0 ? new THREE.OctahedronGeometry(1, 0) : new THREE.IcosahedronGeometry(1, detail);
   const p = g.attributes.position;
   const v = new THREE.Vector3();
   let maxR = 0;
@@ -412,7 +413,7 @@ function rockArmour(set, colliders, kind) {
     const axis = b.clone().sub(a).normalize();
     const side = new THREE.Vector3().crossVectors(axis, UP).normalize();
     // the armour crown: rows of rocks along the capsule, each touching the collision envelope from inside
-    const base = set.detailName === 'low' ? 0.75 : 0.62;
+    const base = set.detailName === 'high' ? 0.62 : 0.75;
     const step = base * Math.min(1, ob.radius / 0.95);
     const bury = P(ob.p0).lerp(P(ob.p1), 0.5).y - set.seabedY;
     const reach = Math.acos(Math.max(-1, Math.min(1, bury / ob.radius)));
