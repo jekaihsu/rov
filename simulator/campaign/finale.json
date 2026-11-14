@@ -1,0 +1,13 @@
+{
+  "id": "finale",
+  "title": "終章｜夜間回收",
+  "scenario": "open_water",
+  "mode": "free_explore",
+  "requires": "wreck",
+  "placeholder": true,
+  "outline": "在潮汐窗口回收證物；調查完整度決定真相是否公開。",
+  "nodes": [],
+  "strings": {
+    "zh-TW": {}
+  }
+}
