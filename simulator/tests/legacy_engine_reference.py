@@ -60,7 +60,8 @@ class LegacySimulator(Simulator):
         self.last_pilot = pilot                    # final command (pilot or autopilot), for recordings
         if update_world:
             self.world.current.step_gust(dt, self.current_rng)
-        v.current_ned = self.world.current.sample(s.pos, self.world.seabed_depth, self.t)
+        v.current_ned = self._sample_flow(s)
+        v.current_accel_ned = self._flow_accel.update(v.current_ned, dt)
         operation_wrench = self.operations.step(dt)
         keep_depth = keep_depth or self.operations.altitude is not None
         v.seabed_depth = self.world.depth_at(s.pos)

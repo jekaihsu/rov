@@ -11,6 +11,10 @@ import numpy as np
 
 PHASES = ('descent', 'transit', 'hover', 'orbit', 'dock')
 DEFAULT_LIMITS = {'path': 2., 'heading': 15., 'depth': 1., 'hover': 1., 'distance': 1., 'speed': .3}
+# Instructor current injection: strength 0..1 maps to a 0..4 kn surface speed reached over a
+# raised-cosine ramp (30..120 s, default 60 s), keeping the profile shape. Provisional values.
+CURRENT_MAX_KN = 4.0
+CURRENT_RAMP_S = 60.0
 # Evidence is sampled at 1 Hz, so this keeps the most recent hour of each vehicle's run.
 # Older samples are dropped first; a report then covers only the retained window.
 MAX_SAMPLES_PER_VEHICLE = 3600
@@ -79,6 +83,12 @@ class Instructor:
             raise ValueError('unsupported physical override')
         if kind in SENSOR_FAULTS and sim.sensors.ideal:
             raise ValueError('sensor faults need the realistic sensor layer')
+        ramp_s = float(msg.get('ramp_s', CURRENT_RAMP_S))
+        rotate_deg = float(msg.get('rotate_deg', 0))
+        if kind == 'current' and (not math.isfinite(ramp_s) or not 30 <= ramp_s <= 120):
+            raise ValueError('ramp_s must be 30..120 seconds')
+        if kind == 'current' and (not math.isfinite(rotate_deg) or not -180 <= rotate_deg <= 180):
+            raise ValueError('rotate_deg must be -180..180')
         scope = 'room' if kind in ('current', 'visibility') else vid
         if any(e['scope'] == scope and e['kind'] == kind for e in self.active):
             raise ValueError('overlapping override')
@@ -95,7 +105,9 @@ class Instructor:
         elif kind == 'visibility':
             event['original'] = sim.scenario.visibility_m
         elif kind == 'current':
-            event['original'] = deepcopy(sim.world.current)
+            event['original'] = None
+            event['ramp_s'], event['rotate_deg'] = ramp_s, rotate_deg
+            sim.world.current.inject(strength * CURRENT_MAX_KN, ramp_s, rotate_deg)
         elif kind == 'comms_loss':
             event['original'] = dict(sim.link.config)
             self.configure_loss(sim, msg)
@@ -175,10 +187,7 @@ class Instructor:
             for vehicle in self.room.vehicles.values():
                 vehicle.scenario.visibility_m = max(.1, event['original'] * (1 - strength))
         elif kind == 'current':
-            current = sim.world.current
-            current.surface_kn = strength * 4
-            current.mid_kn = strength * 4
-            current.bottom_kn = strength * 4
+            pass                                    # the profile ramps itself (CurrentProfile.inject)
         elif kind == 'freeze':
             sim.paused = True
         elif kind in SENSOR_FAULTS:
@@ -199,7 +208,7 @@ class Instructor:
             for vehicle in self.room.vehicles.values():
                 vehicle.scenario.visibility_m = event['original']
         elif kind == 'current':
-            sim.world.current.__dict__.update(deepcopy(event['original'].__dict__))
+            sim.world.current.release(event.get('ramp_s', CURRENT_RAMP_S))
         elif kind == 'freeze':
             sim.paused = event['original']
         elif kind in SENSOR_FAULTS:

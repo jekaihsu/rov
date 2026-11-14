@@ -156,13 +156,13 @@ The browser sends:
 | message | effect |
 |---|---|
 | `{"type":"rc","rc":{"left_ud":1500,...,"rc_lock":0,"keep_depth":1,"left_switch":1,"right_switch":0,"record":0,"photo":0}}` | physical RC state (any subset of keys). Channels are PWM 1000–2000 (1500 centre, `>1500` = up/right). Buttons are levels: `rc_lock` 1=locked, `record`/`photo` 1=pressed. `left_switch` 0/1/2 = A/S/C, `right_switch` 0/1/2 = LED. Send at ~30 Hz while input changes and at least every 0.5 s. |
-| `{"type":"scenario","key":"random","seed":123}` | load a scenario (`seed` optional) |
+| `{"type":"scenario","key":"random","seed":123}` | load a scenario (`seed` optional; optional `tide_start` selects the time of tide when the scenario has a tide, see "Ocean current model") |
 | `{"type":"reset"}` | restart the current scenario |
 | `{"type":"pause","value":true}` | pause / resume |
 | `{"type":"payout","metres":5}` | pay out (+) / recover (−) tether |
 | `{"type":"auto_payout","value":false}` | toggle automatic payout |
 | `{"type":"operation_mode","value":"ROV_JPN"}` | ROV_USA/JPN/CHN, UAV_USA/JPN/CHN |
-| `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north) |
+| `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north). Speeds are clamped to 0–5 kn, `turbulence` (streamwise turbulence intensity σu/U) to 0–0.3 |
 | `{"type":"shaping","throttle_curvature":60,"throttle_limit":100,"rotate_curvature":60,"rotate_limit":100}` | stick curves |
 | `{"type":"remote_release"}` | force SDK remote control OFF (give control back to the physical RC) |
 
@@ -196,6 +196,8 @@ remote_control   bool (SDK has control; physical RC ignored)
 operation_mode   str      ctrl_mode "A"/"S"/"C"   locked bool   keep_depth bool   depth_hold m|null
 battery %        (always 100 for tether-powered vehicles; see `power`)   recording bool   photos int
 current_here [n,e,d] m/s at the ROV     current_kn
+flow_field {seq, t, origin [n,e,d], step [m,m,m], size [nx,ny,nz], cm_s [...], tide?}   (optional, see
+           "Ocean current model"; top level only, not inside `vehicles`)
 tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tension_max (N),
         warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout}
 events [{t, obstacle, speed, severity: touch|hard|severe, where}]   (last 12 impacts)
@@ -304,7 +306,9 @@ seabed_depth m
 obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast}
           | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
           | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall} ]              (vertical face; extends from `top` down to the seabed)
-current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
+current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence, tide?}
+                      (turbulence = streamwise intensity σu/U; optional tide object only when the scenario
+                      has one; see "Ocean current model" below)
 scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length,
           biome, seabed_type, bnl_height_m, bnl_mg_l}       (the last three optional, see §4a)
 spool [n,e,d]         tether spool / deployment point on the surface
@@ -496,8 +500,12 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
   default 10), `index` (thruster index, default 0).
   Thruster strength reduces existing health; battery strength reduces existing charge.
   Current and visibility affect the **whole room** through existing current/scene parameters.
-  Current strength maps to 0..4 knots in all layers, retaining their directions.
-  Visibility retains at least 0.1 m. Overrides restore saved values on expiry.
+  Current strength maps to a 0..4 kn **surface** speed: the existing layer profile is multiplied (its
+  shape, shear and bed layer are kept; still water ramps in a 1 : 0.8 : 0.4 profile) and the change
+  follows a raised-cosine ramp. Optional `ramp_s` (30..120 s, default 60) sets the ramp time and
+  optional `rotate_deg` (-180..180, default 0) turns all layers over the ramp like a turning tide.
+  On expiry or cancel the profile ramps back over the same time.
+  Visibility retains at least 0.1 m. Other overrides restore saved values on expiry.
   Overlapping overrides of the same kind/scope are rejected.
   Optional `cancel_start` (finite simulation timestamp) instead restores and ends the active
   injection matching `kind`, `vehicle_id` and its exact `start`; other overrides are untouched.
@@ -556,3 +564,72 @@ reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are av
 This draft does **not** yet implement tether snags, sensor faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.
+
+## Ocean current model
+
+The host is authoritative for the water flow; the viewer only displays it. `current_here` (§3) is the
+full local flow at the vehicle. The ambient flow is the three-layer mean profile plus turbulence:
+
+* **Turbulence** is a smooth, anisotropic, spatially varying field (`qysim/flow.py`,
+  `TurbulenceField`): σu = `turbulence` × local mean speed, cross-stream and vertical σ in the ratio
+  1 : 0.7 : 0.5 (Islay 1 : 0.75 : 0.55). Its integral length is about half the water depth (2–15 m), and
+  it is advected with the depth-averaged current, so the integral time is ≈ 0.92 L/U and points one
+  length scale apart are correlated by ≈ 0.4. It advances once per tick and its time derivative does
+  not depend on the step size. All values are provisional simulator assumptions (see
+  `docs/reference/current-validation.md`).
+* **Near-bed profile**: the bottom layer value applies at 0.1 × depth (1–3 m) above the bed; below it the
+  speed follows the log law ln(h/z0)/ln(h_ref/z0) (it used to fall linearly over the last metre).
+  `World.current_at` measures h from the local terrain (reef and seagrass relief), with z0 from the
+  biome (assumed bed types, Soulsby 1990 values: harbour mud 0.02 cm, temperate/seagrass rippled sand
+  0.6 cm, reef rock 3 cm; gravel 0.3 cm). Optional `CurrentProfile.z0` overrides it.
+* **Tide** (optional `current.tide`; absent = steady profile, today's behaviour). The layer speeds and
+  directions are the flood flow at factor 1. Fields (all optional):
+  `kind` `"rectilinear"`|`"rotary"`, `m2` (0–2, default 1) and `m2_phase_deg`, `s2` (0–1, default 0)
+  and `s2_phase_deg`, `flood_dir` (rotate the profile so the surface floods toward it), `ebb_dir`
+  (default reversed), `ebb_ratio` (0–2, default 1), `minor_ratio` (rotary, 0–1), `residual` (−1..1,
+  non-tidal part of the factor), `time_scale` (default 1 = real time; >1 only for classroom
+  demonstrations) and `start`: `"peak_flood"` (default), `"slack_before_ebb"`, `"peak_ebb"`,
+  `"slack_before_flood"` or hours after peak flood. Factor = m2·cos(ωM2·τ+φ) + s2·cos(ωS2·τ+φ) +
+  residual with the 12.42 h M2 period; a rectilinear factor below zero is ebb; a rotary tide adds
+  `minor_ratio`·(sine terms) across the flood axis, turning clockwise, and never reaches slack.
+  A pure M2 tide reproduces the NOAA Table 4A slack windows (≈ 23.8 min below 0.1 kn at a 1 kn
+  maximum, ≈ 5.9 min at 4 kn).
+* **Time-of-tide selector**: `{"type":"scenario",...,"tide_start":"slack_before_flood"}` (or hours,
+  −13..13) starts a tidal scenario at that stage; host `current` messages also accept
+  `"tide":{...}` (replace; `null` removes it) and `"tide_start"`. Invalid values are rejected with
+  `invalid_command` and change nothing. Scenarios without a tide ignore `tide_start` on load.
+* The former 18 % travelling sine "local flow" pattern (fixed 1 m/s drift toward 37.6°, independent of
+  the real current) was removed; spatial variation now comes from the turbulence field.
+* **Structures** (`StructureFlow`): around every non-habitat cylinder (piles, monopiles, jacket legs,
+  braces, masts; any orientation, using the flow normal to the axis) the host adds a potential-flow
+  doublet (stagnation upstream, up to 2U at the shoulders), a Gaussian wake (centreline deficit
+  1/(1 + x/3D): ≈ 40 % at 5 D, ≈ 13 % at 20 D, ignored past 40 D) and alternating transverse
+  vortex shedding at St = 0.2 (period D / 0.2U, ≈ 30 s for a 6 m pile in 1 m/s, ≈ 6 s for a
+  1.2 m leg). Boxes (hulls, caissons) and wreck meshes get a lee shelter (−70 % right behind,
+  decaying over three body sizes) and an upstream blocking zone (−50 %); walls block the normal
+  component and slow the flow in a 2 m wall layer. Flow is zero inside solids. These are
+  provisional engineering approximations, not CFD.
+* **Fluid acceleration**: the vehicle feels (displaced mass + added mass) × dv_c/dt and each tether
+  node ρ·A·l·(2 a_normal + a_axial) (Ca = 1 normal, as MoorDyn). dv_c/dt is the finite-difference
+  rate of the sampled flow along the path, low-passed (50 ms) and clipped at 3 m/s²; a neutral body
+  therefore follows an oscillating flow with amplitude ratio ≈ 1, and steady flow is unchanged.
+* **Hull sampling**: the engine samples the flow at the CG and six hull points (bow, stern, port,
+  starboard, top, bottom); differences from the CG flow add a linearised drag force and torque, so
+  wake edges and shear yaw or pitch the vehicle. Uniform flow gives exactly the old result.
+  `current_here` stays the CG value.
+* `World.current_at(point, t)` / `World.current_at_many(points, t)` return this **full local flow**
+  (ambient + structures); the vehicle, tether nodes, silt, fish and work objects use it.
+* `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` keep their signatures and return
+  the **ambient** flow only (no structures, nominal seabed). `t` is accepted for compatibility; the field is evaluated at the
+  profile clock that `step_gust(dt)` advances once per tick.
+* **Viewer cues** (`state.flow_field`, optional): the host samples `World.current_at_many` on a
+  5 × 5 × 2 grid around the selected vehicle (6 m spacing; the two levels 3 m above and below it,
+  kept inside the water column) every 0.5 s of simulation time. `cm_s` holds integer cm/s,
+  `[n, e, d]` per point, in index order `((i·ny + j)·nz + k)` with i along north, j east, k down.
+  `seq` increases with every new grid; the same grid repeats in the states in between (about
+  600 bytes, ≈ 5 % of a state). `tide` is `{factor, stage: flood|ebb|slack, minutes_to_slack}` when
+  the scenario has a tide (`minutes_to_slack` is null for rotary tides). Viewers interpolate it
+  trilinearly (clamped at the edges) and blend successive grids over 0.5 s
+  (`viewer/flow_field.js`); drifting particles and kelp/seagrass sway use it, so they move with the
+  same gusts, tide and wakes that push the vehicle. Clients that ignore it keep working; hosts
+  that do not send it leave the viewer on its mean-profile fallback.

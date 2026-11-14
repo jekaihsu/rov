@@ -21,9 +21,10 @@ import numpy as np
 from . import scenarios as sc_mod
 from .controller import FlightController
 from .navigation import GeoFrame, Navigator, wrap_pi
-from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_rot
+from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_matrix, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether
+from .flow import FlowAccelerometer
 from .world import World
 from .sensors import SensorConfig, SensorSuite
 from .mission_modes import MissionRun, ensure_mission
@@ -37,6 +38,22 @@ MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
     "motor_right_rear": 3, "motor_left_middle": 4, "motor_right_middle": 5,
 }
 LED_LABEL = {0: "OFF", 1: "1", 2: "2"}
+
+
+# Flow grid sent to the viewer (state.flow_field): 5 x 5 x 2 points, 6 m apart, centred on the
+# vehicle (two levels 3 m above and below it), refreshed every 0.5 s of simulation time, in cm/s.
+FLOW_GRID_SIZE = (5, 5, 2)
+FLOW_GRID_STEP = (6.0, 6.0, 6.0)
+FLOW_GRID_PERIOD_S = 0.5
+
+
+def hull_flow_points(definition) -> np.ndarray:
+    """Body points where the flow is sampled: hull extremes along x plus port/starboard and top/bottom."""
+    centres = np.array(definition.hull_centres, float)
+    r = float(definition.hull_radius)
+    xs = centres[:, 0]
+    return np.array([[xs.max() + r, 0.0, 0.0], [xs.min() - r, 0.0, 0.0],
+                     [0.0, r, 0.0], [0.0, -r, 0.0], [0.0, 0.0, -r], [0.0, 0.0, r]])
 
 
 def ok(text="Success", code="200", **extra) -> dict:
@@ -113,12 +130,17 @@ class Simulator:
         if shared_world is None:
             self.world.obstacles = list(sc.obstacles)
             self.world.current = sc.current
+            self.world.current.reseed(sc.seed or 0)
             clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
             self.world.configure_silt(sc_mod.silt_seabed_type(sc.biome, sc.seabed_type), sc.bnl_height_m, sc.bnl_mg_l)
             self.world.visibility_m = sc.visibility_m
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
+        self._flow_accel = FlowAccelerometer()
+        self._flow_points = hull_flow_points(self.vehicle.definition)
+        self._flow_grid = None
+        self._flow_grid_seq = getattr(self, "_flow_grid_seq", 0)
         self.vehicle.seabed_depth = sc.seabed_depth
         self.vehicle.s.pos = np.array(sc.start_pos, float)
         self.vehicle.s.q = q_from_euler(0.0, 0.0, math.radians(sc.start_heading_deg))
@@ -252,7 +274,8 @@ class Simulator:
         self.last_pilot = pilot                    # final command (pilot or autopilot), for recordings
         if update_world:
             self.world.current.step_gust(dt, self.current_rng)
-        v.current_ned = self.world.current.sample(s.pos, self.world.seabed_depth, self.t)
+        v.current_ned = self._sample_flow(s)
+        v.current_accel_ned = self._flow_accel.update(v.current_ned, dt)
         operation_wrench = self.operations.step(dt)
         keep_depth = keep_depth or self.operations.altitude is not None
         v.seabed_depth = self.world.depth_at(s.pos)
@@ -308,6 +331,14 @@ class Simulator:
 
     def world_source(self) -> dict:
         return vehicle_world_source(self)
+
+    def _sample_flow(self, s) -> np.ndarray:
+        """Local flow at the CG plus hull points (uneven flow gives torque, see Vehicle)."""
+        body = self._flow_points
+        world = s.pos + body @ q_matrix(s.q).T
+        flows = self.world.current_at_many(np.vstack([s.pos, world]), self.t)
+        self.vehicle.current_points = (body, flows[1:])
+        return flows[0]
 
     def _buttons(self, rc: RCState) -> None:
         for name in ("record", "photo"):
@@ -910,6 +941,33 @@ class Simulator:
             "thermal": self.thermal.state(),
             "leak": {"detected": bool(self.leak)},
         }
+
+    def flow_field_state(self) -> dict:
+        """Compact flow sample around the vehicle for viewer particles and kelp (optional state field).
+
+        The same ``World.current_at_many`` the physics uses, on a coarse grid, cached for
+        ``FLOW_GRID_PERIOD_S``; viewers interpolate in space and blend between refreshes.
+        """
+        grid = self._flow_grid
+        if grid is not None and 0.0 <= self.t - grid["t"] < FLOW_GRID_PERIOD_S - 1e-9:
+            return grid
+        size, step = np.array(FLOW_GRID_SIZE), np.array(FLOW_GRID_STEP)
+        pos = self.vehicle.s.pos
+        origin = pos - step * (size - 1) / 2
+        top = max(0.0, self.world.seabed_depth - step[2] * (size[2] - 1) - 0.5)
+        origin[2] = min(max(pos[2] - step[2] * (size[2] - 1) / 2, 0.0), top)
+        axes = [origin[k] + step[k] * np.arange(size[k]) for k in range(3)]
+        points = np.stack(np.meshgrid(*axes, indexing="ij"), axis=-1).reshape(-1, 3)
+        flow = self.world.current_at_many(points, self.t)
+        self._flow_grid_seq += 1
+        grid = {"seq": self._flow_grid_seq, "t": round(self.t, 2), "origin": np.round(origin, 2).tolist(),
+                "step": step.tolist(), "size": size.tolist(),
+                "cm_s": np.rint(flow * 100).astype(int).ravel().tolist()}
+        tide = self.world.current.tide_info()
+        if tide is not None:
+            grid["tide"] = tide
+        self._flow_grid = grid
+        return grid
 
     def world_description(self) -> dict:
         from .vehicles import VEHICLE_DEFINITIONS

@@ -23,6 +23,7 @@ import numpy as np
 
 from .vehicles import X1_PARAMETERS, X1_TETHER_PARAMETERS
 from .physics import G, RHO, q_rot, q_conj, cross3
+from .flow import FlowAccelerometer
 from .world import World, Cylinder
 from ._cable_accel import advance as _advance_compiled, advance_batch as _advance_batch
 
@@ -158,7 +159,8 @@ class Tether:
         gland = rov_pos + q_rot(rov_q, self.gland_body)
         h = dt / p.substeps
         f_rov = np.zeros(3)
-        self._cur = self.world.current.sample_many(self.x, self.world.seabed_depth, t_now)
+        self._cur = self.world.current_at_many(self.x, t_now)
+        self._fluid_inertia(dt)
         self._cand = self.world.near(self.x.min(axis=0), self.x.max(axis=0), 2.0)
         self._contact_anchor = None
         complete = False
@@ -189,6 +191,26 @@ class Tether:
         self.force_on_rov = f_rov
         f_body = q_rot(q_conj(rov_q), f_rov)
         return np.concatenate([f_body, cross3(self.gland_body, f_body)])
+
+    def _fluid_inertia(self, dt: float) -> None:
+        """Morison inertia of accelerating water on each node (Ca = 1 normal, 0 axial, as MoorDyn).
+
+        Force rho*A*l*((1 + Ca) a_n + a_t) is applied as a velocity increment before the force
+        integration; the end nodes are kinematic and unaffected.
+        """
+        if not hasattr(self, "_flow_accel"):
+            self._flow_accel = FlowAccelerometer()
+        accel = self._flow_accel.update(self._cur, dt)
+        if not np.any(accel):
+            return
+        tang = np.zeros_like(self.x)
+        tang[1:-1] = self.x[2:] - self.x[:-2]
+        tang /= np.maximum(np.linalg.norm(tang, axis=1), 1e-9)[:, None]
+        a_t = np.einsum("ij,ij->i", accel, tang)[:, None] * tang
+        a_n = accel - a_t
+        volume = math.pi * (self.p.diameter / 2) ** 2 * self.seg_len
+        force = RHO * volume * (2.0 * a_n + a_t)
+        self.v[1:-1] += force[1:-1] / self._node_mass() * dt
 
     def _substep(self, h: float, gland: np.ndarray, gland_vel: np.ndarray) -> np.ndarray:
         p, x, v = self.p, self.x, self.v

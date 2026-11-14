@@ -15,6 +15,7 @@ import { DeployIntro } from './deploy_intro.js';
 import { loadGLTF } from './glb.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
+import { createFlowField } from './flow_field.js';
 import { PilotPiP } from './pilot_pip.js';
 import { createVehicleModel } from './vehicle_models.js';
 import { Fleet } from './fleet.js';
@@ -431,14 +432,20 @@ const dot = (() => { const c = document.createElement('canvas'); c.width = c.hei
 const particles = new THREE.Points(partGeo, new THREE.PointsMaterial({ color: 0xbfe3ef, size: .035, map: dot, transparent: true, opacity: .8, depthWrite: false }));
 particles.frustumCulled = false; scene.add(particles);
 let partCentre = null;
+const flowField = createFlowField(), partFlow = [0, 0, 0];
+function particleFlow(x, y, z) {      // host flow grid (NED) when available, else the mean profile
+  const v = flowField.sample(z, -x, -y, performance.now(), partFlow);
+  if (v) return v;
+  const m = currentAt(-y); partFlow[0] = m[0]; partFlow[1] = m[1]; partFlow[2] = 0; return partFlow;
+}
 function updateParticles(dt, centre) {
   particles.visible = $('optFlow').checked;
   if (!particles.visible) return;
   if (!partCentre) partCentre = centre.clone();
   for (let i = 0; i < NP; i++) {
     const j = i * 3; let x = partPos[j], y = partPos[j + 1], z = partPos[j + 2];
-    const depth = -y; const v = currentAt(depth);
-    x += -v[1] * dt; z += v[0] * dt; y += (Math.sin(i * 12.9 + x) * .02) * dt;
+    const v = particleFlow(x, y, z);
+    x += -v[1] * dt; z += v[0] * dt; y += (Math.sin(i * 12.9 + x) * .02 - v[2]) * dt;
     // keep inside a box around the camera target (world-fixed particles, wrapped)
     const dx = x - centre.x, dy = y - centre.y, dz = z - centre.z;
     if (dx > HB[0]) x -= 2 * HB[0]; else if (dx < -HB[0]) x += 2 * HB[0];
@@ -547,6 +554,7 @@ function onState(m) {
   if (m.controller?.generation !== S?.controller?.generation) needResync = true;
   if (m.controller?.revision !== S?.controller?.revision) needResync = true;
   lastT = m.t;
+  flowField.ingest(m.flow_field, performance.now());
   S = m; stateCount++;
   renderState.ingest(m, rep);
   if(session && m.room){session.is_host=m.room.host_id===session.player_id;for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!session.is_host;}
@@ -1212,7 +1220,7 @@ function frame(now) {
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
-  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S);
+  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
