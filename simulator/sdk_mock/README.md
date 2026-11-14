@@ -47,3 +47,10 @@ You can also put a `qysea` symlink or copy of `sdk_mock/qysea` next to the tool.
 - `qysea.sdk.service` / `qysea.sdk.lib` exist only so vendor-style imports succeed.
 
 Tests: `cd simulator && python -m unittest tests.test_sdk_mock -v`
+
+## Automation examples
+
+See [SDK / AI examples](../examples/README.md) for deterministic stepping, CSV logs
+and six runnable demonstrations. Existing manage methods remain the vendor-compatible
+surface. Env, local transport binding, ideal ranges, mission evaluation and fixed seeds
+are simulator extensions, unavailable through the vendor SDK on hardware.
