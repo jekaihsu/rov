@@ -162,6 +162,13 @@ The browser sends:
 | `{"type":"shaping","throttle_curvature":60,"throttle_limit":100,"rotate_curvature":60,"rotate_limit":100}` | stick curves |
 | `{"type":"remote_release"}` | force SDK remote control OFF (give control back to the physical RC) |
 
+Input-layer RC clients also send optional `assist` (0 manual, 1 velocity, 2 position assist) and
+`profile` (`cine`, `normal`, `sport`). Omitted values retain the legacy manual/normal semantics.
+The viewer defaults to `assist:2`, `profile:"normal"`. Clients MUST omit both fields unless
+the received `state.assist` is an object.
+Legacy hosts reject string-valued RC fields, including `profile`; the input layer does not modify
+physical PWM channel meanings.
+
 Stick meaning depends on `operation_mode` (see `qysim/rc.py`); the viewer only sends raw channels.
 
 ## 3. State object (`type: "state"`)

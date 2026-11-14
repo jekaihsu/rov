@@ -43,10 +43,10 @@ with sync_playwright() as p:
     page.wait_for_function('!document.querySelector("#flightPeek").classList.contains("visible")')
     mapping = page.evaluate('''async()=>{
       const {readHUDButtons} = await import('/hud/flight_hud.js');
-      Object.defineProperty(navigator, 'getGamepads', {configurable:true, value:()=>[{
-        mapping:'standard', buttons:Array.from({length:16}, (_, i)=>({pressed:i===12||i===15}))
-      }]});
-      try { return readHUDButtons(); } finally { delete navigator.getGamepads; }
+      Object.defineProperty(navigator, 'getGamepads', {configurable:true, value:()=>{
+        throw Error('HUD must consume actions without polling devices');
+      }});
+      try { return readHUDButtons({up:1, right:1}); } finally { delete navigator.getGamepads; }
     }''')
     assert mapping == [True, False, True, False], mapping
     page.click('#flightHide')
