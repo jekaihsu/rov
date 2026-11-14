@@ -1,0 +1,162 @@
+{
+  "reef": {
+    "scenario": "coral_reef",
+    "eye_ned": [
+      5.41,
+      -7.48,
+      12.48
+    ],
+    "heading_deg": 10.6,
+    "pitch_deg": -12.0,
+    "lamp_level": 0,
+    "visibility_m": 18,
+    "seconds_per_frame": 1.127,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 32.44751284843014,
+      "target": 32.336042040825575,
+      "meteredLuminance": 0.005865785087490505
+    },
+    "bytes": 115674
+  },
+  "seagrass": {
+    "scenario": "seagrass_meadow",
+    "eye_ned": [
+      11.38,
+      -5.18,
+      7.6
+    ],
+    "heading_deg": 10.6,
+    "pitch_deg": -12.0,
+    "lamp_level": 0,
+    "visibility_m": 12,
+    "seconds_per_frame": 1.312,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 27.45872750022182,
+      "target": 27.43832256602727,
+      "meteredLuminance": 0.007552028160649416
+    },
+    "bytes": 79878
+  },
+  "harbour": {
+    "scenario": "harbor_inspection",
+    "eye_ned": [
+      18.35,
+      -10.4,
+      8.0
+    ],
+    "heading_deg": 8.6,
+    "pitch_deg": -10.6,
+    "lamp_level": 1,
+    "visibility_m": 7,
+    "seconds_per_frame": 1.689,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 36.54822327040554,
+      "target": 36.62270599139609,
+      "meteredLuminance": 0.004843412124216171
+    },
+    "bytes": 63135
+  },
+  "wreck-lit-1": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      16.0,
+      0.0,
+      25.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -6.0,
+    "lamp_level": 1,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 15.348,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 68.20848624136802,
+      "target": 67.78995141621843,
+      "meteredLuminance": 0.001878208779380766
+    },
+    "bytes": 162705
+  },
+  "wreck-lit-2": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      16.0,
+      0.0,
+      25.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -6.0,
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 12.596,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 47.61396209282834,
+      "target": 46.96924504290776,
+      "meteredLuminance": 0.003302939001826912
+    },
+    "bytes": 167530
+  },
+  "wreck-dark": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      16.0,
+      0.0,
+      25.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -6.0,
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 6.611,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 9.748331202453468e-05
+    },
+    "bytes": 56888
+  },
+  "silt-lamps-full": {
+    "scenario": "incident_silt",
+    "eye_ned": [
+      8.0,
+      0.0,
+      11.55
+    ],
+    "heading_deg": 0.1,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 3,
+    "seconds_per_frame": 4.755,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 6.243095989786193,
+      "target": 6.069378877744177,
+      "meteredLuminance": 0.07692792522226793
+    },
+    "bytes": 35626
+  },
+  "silt-lamps-off": {
+    "scenario": "incident_silt",
+    "eye_ned": [
+      8.0,
+      0.0,
+      11.55
+    ],
+    "heading_deg": 0.1,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 3,
+    "seconds_per_frame": 2.121,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 3.137206638284192e-05
+    },
+    "bytes": 38081
+  }
+}
