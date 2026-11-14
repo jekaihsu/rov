@@ -236,5 +236,27 @@ class ValidationTargetTests(unittest.TestCase):
         self.assertEqual(Simulator("open_water", 1).world.silt_field.background_mg_l([[0, 0, 29.9]])[0], 0.0)
 
 
+class IncidentSiltTests(unittest.TestCase):
+    def fly(self, channel, value, seconds):
+        sim = Simulator("incident_silt", 1)
+        sim.rc_physical.rc_lock = 0
+        setattr(sim.rc_physical, channel, value)
+        worst = sim.camera_turbidity()["visibility_m"]
+        for _ in range(int(seconds / 0.01)):
+            sim.step(0.01)
+            worst = min(worst, sim.camera_turbidity()["visibility_m"])
+        return sim, worst
+
+    def test_take_off_thrust_creates_the_silt_out(self):
+        sim, idle = self.fly("left_wave", 1500, 1.0)
+        self.assertEqual(sim.world.silt_field.emitted, 0.0)
+        self.assertGreater(idle, 1.5)
+        self.assertEqual(sim.scenario.visibility_m, 3)
+        self.assertEqual(sim.world.silt_field.seabed_type, "fluff")
+        sim, worst = self.fly("left_wave", 1900, 1.0)
+        self.assertLess(worst, 0.3)
+        self.assertGreater(sim.world.silt_field.emitted, 0.05)
+
+
 if __name__ == "__main__":
     unittest.main()

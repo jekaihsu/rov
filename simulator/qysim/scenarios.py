@@ -328,7 +328,8 @@ def tutorial_pool() -> Scenario:
 INCIDENT_STRINGS = {
     "incident_jacket": ("事故演練｜導管架內受困", "強潮流中止巡檢，沿西側出口撤離；人手與信標壓力見講評腳本。"),
     "incident_wreck": ("事故演練｜沉船勾纏", "不要硬拉；沿纜線回卡點，反向解纏再回收。繞樁代替殘骸細線。"),
-    "incident_silt": ("險情演練｜揚沙迷航", "低能見度下沿纜線回出發點；目前最低能見度為 1 m，並非完全黑屏。"),
+    "incident_silt": ("險情演練｜揚沙迷航",
+                      "停在鬆軟泥底上；起飛的推進水流會揚起泥沙，畫面可能全黑。沿纜線回出發點，考慮先調暗燈光。"),
     "incident_compass": ("險情演練｜鋼構羅盤失準", "演練通報：航向讀數不可信，退出定向，依目視與纜線撤離。未改寫羅盤讀數。"),
     "incident_current": ("險情演練｜流速超限", "無法維持站位時中止，沿回收路線撤離；流速為演練設定，非機型能力值。"),
     "exit": "沿纜線離開危險區",
@@ -365,8 +366,10 @@ def incident_wreck() -> Scenario:
 def incident_silt() -> Scenario:
     name, brief = INCIDENT_STRINGS["incident_silt"]
     return Scenario(
-        "incident_silt", name, brief, seabed_depth=12, visibility_m=1,
-        start_pos=(8, 0, 10), spool_pos=(0, 0, 0), tether_length=20,
+        # The vehicle rests on a soft fluff bed: the silt-out comes from the pilot's own thrust.
+        "incident_silt", name, brief, seabed_depth=12, visibility_m=3,
+        seabed_type="fluff", bnl_height_m=1.0, bnl_mg_l=2.0,
+        start_pos=(8, 0, 11.75), spool_pos=(0, 0, 0), tether_length=20,
         objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (4, 0, 6)),
                     Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=2)],
         time_limit_s=240)
