@@ -1,0 +1,53 @@
+name: Frontend
+# Free-plan budget: run only on ready (non-draft) PRs that touch viewer/desktop code.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "simulator/viewer/**"
+      - "simulator/desktop/**"
+      - "simulator/tests/**.mjs"
+      - "simulator/tests/test_vendor_manifest.py"
+      - "simulator/tools/vendor*"
+      - "simulator/tools/sync_version.py"
+      - "simulator/tools/check_changed_js.py"
+      - "VERSION"
+      - ".github/workflows/frontend.yml"
+  workflow_dispatch:
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  frontend:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check viewer and desktop sources
+        run: |
+          set -e
+          for f in $(find simulator/viewer -name '*.js' -not -path '*/vendor/*') simulator/desktop/*.cjs; do
+            node --check "$f"
+          done
+      - name: Node tests
+        run: |
+          set -e
+          node --test simulator/tests/*.mjs
+          node simulator/desktop/test_collection_store.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s simulator/tests -p test_vendor_manifest.py
+      - run: python simulator/tools/vendor_manifest.py --check
+      - run: python simulator/tools/sync_version.py --check
+      - name: Check added JavaScript lines
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch origin "$BASE_SHA"
+          python simulator/tools/check_changed_js.py "$BASE_SHA"

@@ -19,6 +19,11 @@ from pathlib import Path
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, Wall
 
 ASSETS = Path(__file__).resolve().parent / "assets"
+STRINGS = {
+    "pool_name": "室內測試水池",
+    "pool_brief": "潮間帶工作隊的首次操控練習。",
+    "pool_walls": ("池北壁", "池南壁", "池東壁", "池西壁"),
+}
 
 
 @dataclass
@@ -298,7 +303,19 @@ def harbor_inspection() -> Scenario:
                                 Objective("surface", "返回投放區", (-2, 0, .5), 3)])
 
 
+def tutorial_pool() -> Scenario:
+    """Calm indoor commissioning pool, using the unchanged vehicle dynamics."""
+    return Scenario("tutorial_pool", STRINGS["pool_name"], STRINGS["pool_brief"],
+                    seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35,
+                    current=CurrentProfile(0, 0, 0, 0, 0, 0, 0),
+                    obstacles=[Wall(STRINGS["pool_walls"][0], (12, 0, 0), 180, 24, 0),
+                               Wall(STRINGS["pool_walls"][1], (-12, 0, 0), 0, 24, 0),
+                               Wall(STRINGS["pool_walls"][2], (0, 12, 0), 270, 24, 0),
+                               Wall(STRINGS["pool_walls"][3], (0, -12, 0), 90, 24, 0)])
+
+
 LIBRARY = {
+    "tutorial_pool": tutorial_pool,
     "open_water": open_water,
     "jacket_inspection": jacket_inspection,
     "monopile_current": monopile_current,

@@ -16,3 +16,4 @@ simulator/desktop/out/
 simulator/desktop/steam/logs/
 .env
 .env.local
+docs/showcase/
