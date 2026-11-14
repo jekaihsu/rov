@@ -1,3 +1,5 @@
+import { createRenderState, sampleSnapshots } from './state_buffer.js';
+import { createCameraRig } from './camera_rig.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -452,6 +454,7 @@ let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
 let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
+const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params});
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
@@ -460,11 +463,13 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
+    const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
     const targets=engineeringPhotoTargets();
     const evidence=inspectObservation({scene,camera,environment:env,state:S,world:W,camMode,targets});
     const view=camMode;
     renderer.domElement.toBlob(blob=>resolve({blob,evidence,view}),'image/png');
+    restoreCamera();
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
@@ -533,8 +538,9 @@ function onState(m) {
   if (m.controller?.revision !== S?.controller?.revision) needResync = true;
   lastT = m.t;
   S = m; stateCount++;
+  renderState.ingest(m, rep);
   if(session && m.room){session.is_host=m.room.host_id===session.player_id;for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!session.is_host;}
-  fleet.ingest(m);cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
+  cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
   missionPanel.update(m);
   campaignPanel.update(m);
@@ -615,7 +621,7 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen, camera: () => cycleCam(), tick: () => inputTick(),
+const input = installInput({blocked: () => collectionOpen, camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
@@ -756,56 +762,22 @@ $('btnCur').onclick = () => {
 };
 
 /* ═════════════════════════ camera modes ═════════════════════════ */
-const CAMS = ['chase', 'orbit', 'top', 'onboard'];
-const CAM_NAME = { chase: '追蹤', orbit: '環繞', top: '俯視', onboard: '機載', cine: '電影' };
-let camMode = CAMS.includes(params.get('cam')) ? params.get('cam') : 'chase', topH = 22;
-function setCam(m) {
-  camMode = m;
-  $('camBtn').textContent = `視角：${CAM_NAME[m]}（V）`;
-  controls.enabled = m === 'orbit';
-  camera.up.set(0, 1, 0);
-  camera.fov = m === 'onboard' ? 70 : 55; camera.updateProjectionMatrix();
-  if (m === 'orbit') {
-    const f = new THREE.Vector3(0, 0, 1).applyQuaternion(rovG.quaternion); f.y = 0; f.normalize();
-    camera.position.copy(rovG.position).addScaledVector(f, -3.5).add(new THREE.Vector3(1.2, 1.6, 0));
-    controls.target.copy(rovG.position); controls.update();
-  }
-  $('xhair').hidden = m !== 'onboard';
-  body.visible = true;
-  placeholder.visible = m !== 'onboard';
-  if(activeModel)activeModel.model.visible = m !== 'onboard';
-}
-function cycleCam() { setCam(CAMS[(CAMS.indexOf(camMode) + 1) % CAMS.length]); }
-$('camBtn').onclick = cycleCam;
-renderer.domElement.addEventListener('wheel', (e) => { if (camMode === 'top') { topH = clamp(topH * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 4, 150); e.preventDefault(); } }, { passive: false });
-
-const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion(), FLIP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
-let chaseFwd = new THREE.Vector3(0, 0, 1);
-const cine = { a: 0.6, w: 0.14, r: 4.6, h: 1.5 };
-function updateCamera(dt) {
-  const p = rovG.position;
-  if (camMode === 'chase') {
-    _f.set(0, 0, 1).applyQuaternion(rovG.quaternion); _f.y = 0;
-    if (_f.lengthSq() > 1e-4) chaseFwd.lerp(_f.normalize(), 1 - Math.exp(-dt * 5)).normalize();
-    _v.copy(p).addScaledVector(chaseFwd, -2.6).add(new THREE.Vector3(0, .85, 0));
-    camera.position.lerp(_v, 1 - Math.exp(-dt * 6));
-    camera.lookAt(_v.copy(p).addScaledVector(chaseFwd, 1.5));
-  } else if (camMode === 'orbit') {
-    _v.copy(p).sub(controls.target); camera.position.add(_v); controls.target.copy(p); controls.update();
-  } else if (camMode === 'cine') {                    // slow orbit around the vehicle (movie mode)
-    cine.a += dt * cine.w;
-    _v.set(Math.cos(cine.a) * cine.r, cine.h, Math.sin(cine.a) * cine.r).add(p);
-    if (_v.y > -0.6) _v.y = -0.6;
-    camera.position.lerp(_v, 1 - Math.exp(-dt * 1.5));
-    camera.lookAt(p);
-  } else if (camMode === 'top') {
-    camera.up.set(0, 0, 1);
-    camera.position.set(p.x, p.y + topH, p.z); camera.lookAt(p);
-  } else {
-    camera.position.copy(cameraAnchor).applyQuaternion(rovG.quaternion).add(p);
-    camera.quaternion.copy(rovG.quaternion).multiply(FLIP);
-  }
-}
+const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, params,
+  getAnchor: () => cameraAnchor, getObstacles: () => [seabed, ...Array.from(obstacleMeshes.values(), v => v.mesh)],
+  onMode(m, name) {
+    camMode = m;
+    $('camBtn').textContent = `視角：${name}（V）`;
+    $('xhair').hidden = m !== 'onboard';
+    placeholder.visible = m !== 'onboard';
+    if (activeModel) activeModel.model.visible = m !== 'onboard';
+  }});
+cameraRig.bindInput(input);
+let camMode = cameraRig.mode;
+const cine = cameraRig.cine;
+const setCam = m => cameraRig.setMode(m);
+const updateCamera = dt => cameraRig.update(dt);
+$('camBtn').onclick = () => cameraRig.cycle();
+const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion();
 
 /* ═════════════════════════ labels ═════════════════════════ */
 const labelEls = new Map();
@@ -1037,8 +1009,7 @@ const _gl = new THREE.Vector3();
 function renderTether(dt) {
   const t = tetherInfo, n = tetherDisp.length;
   if (!t || n < 2) { cable.hide(); return; }
-  const a = 1 - Math.exp(-dt * 20);
-  for (let i = 0; i < n; i++) tetherDisp[i].lerp(tetherTarget[i], a);
+  for (let i = 0; i < n; i++) tetherDisp[i].copy(tetherTarget[i]);
   if (!t.broken && target.init) { rovG.updateMatrixWorld(); tetherDisp[n - 1].copy(rovG.localToWorld(_gl.copy(GLAND_LOCAL))); }
   const lp = tetherLine.geometry.attributes.position.array;
   for (let i = 0; i < n; i++) { lp[i * 3] = tetherDisp[i].x; lp[i * 3 + 1] = tetherDisp[i].y; lp[i * 3 + 2] = tetherDisp[i].z; }
@@ -1131,20 +1102,9 @@ function loadClip(i) {
   onWorld({ ...c.world, type: 'world' });
   feedReplay();
 }
-const lerpA = (a, b, k) => a.map((v, i) => (typeof v === 'number' && typeof b[i] === 'number' ? v + (b[i] - v) * k : v));
 function feedReplay() {
-  const c = clipNow(), fr = c.frames, time=fr[0].t+rep.t;
-  let lo=0,hi=fr.length-1;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(fr[mid].t<=time)lo=mid;else hi=mid-1;}
-  const i=lo,j=Math.min(fr.length-1,i+1),k=Math.max(0,Math.min(1,(time-fr[i].t)/Math.max(.001,fr[j].t-fr[i].t)));
-  const a = fr[i], b = fr[j];
-  const s = { ...a, type: 'state', paused: false };
-  s.t = a.t + (b.t - a.t) * k;
-  s.pos = lerpA(a.pos, b.pos, k);
-  const dot = a.q.reduce((acc, v, n) => acc + v * b.q[n], 0), bq = dot < 0 ? b.q.map((v) => -v) : b.q;
-  const q = a.q.map((v, n) => v + (bq[n] - v) * k), nq = Math.hypot(...q);
-  s.q = q.map((v) => v / nq);
-  s.euler = a.euler.map((v, n) => (Math.abs(b.euler[n] - v) > 180 ? v : v + (b.euler[n] - v) * k));
-  if (a.tether.nodes.length === b.tether.nodes.length) s.tether = { ...a.tether, nodes: a.tether.nodes.map((nd, m) => lerpA(nd, b.tether.nodes[m], k)) };
+  const c = clipNow(), fr = c.frames, time = fr[0].t + rep.t;
+  const s = { ...sampleSnapshots(fr, time), type: 'state', paused: false };
   onState(s);
   const line = [...c.script].reverse().find((l) => l.t <= s.t + 0.05);
   const show = !!line && s.t - line.t < 7 && !introActive();
@@ -1232,8 +1192,7 @@ function frame(now) {
   if (intro) intro.update(dt);
   if (inIntro) { /* the intro poses the ROV and the camera */ }
   else if (target.init) {
-    const a = 1 - Math.exp(-dt * 20);
-    rovG.position.lerp(target.pos, a); rovG.quaternion.slerp(target.q, a);
+    renderState.update(S, rep);
   }
   if (!inIntro) renderTether(dt); else { cable.hide(); tetherLine.visible = false; }
   // rotors
@@ -1253,19 +1212,19 @@ function frame(now) {
   scene.background.copy(_wc); scene.fog.color.copy(_wc);
   const vis = (W?.scenario?.visibility_m || 12) * (1 - .75 * clamp(S?.silt || 0, 0, 1));
   const real = $('optFog').checked && camMode !== 'top';
-  scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, topH * 4);
+  scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, cameraRig.topH * 4);
   surface.visible = camMode !== 'top' || camera.position.y < 0;
   for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
-  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, S);
+  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
     topMark.position.copy(rovG.position).add(new THREE.Vector3(0, .6, 0));
     topMark.rotation.set(-Math.PI / 2, 0, Math.atan2(-_f.x, -_f.z), 'XYZ');
-    topMark.scale.setScalar(topH / 22);
+    topMark.scale.setScalar(cameraRig.topH / 22);
   }
   curArrow.position.copy(rovG.position).add(new THREE.Vector3(0, .55, 0));
   // objectives + guide line
