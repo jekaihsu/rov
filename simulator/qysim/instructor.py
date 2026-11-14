@@ -16,6 +16,8 @@ DEFAULT_LIMITS = {'path': 2., 'heading': 15., 'depth': 1., 'hover': 1., 'distanc
 MAX_SAMPLES_PER_VEHICLE = 3600
 # Archived reports carry their full trajectory. Only the newest ones are kept.
 MAX_REPORTS = 16
+# Sensor faults act on the vehicle's sensor layer (qysim/sensors.py), never on physics truth.
+SENSOR_FAULTS = ('compass', 'depth_sensor', 'dvl', 'altimeter')
 
 
 def statistics(values, tolerance):
@@ -68,8 +70,10 @@ class Instructor:
             raise ValueError('strength must be 0..1')
         if not math.isfinite(duration) or not 0 < duration <= 3600:
             raise ValueError('duration must be 0..3600 seconds')
-        if kind not in ('thruster', 'battery', 'current', 'visibility', 'freeze'):
+        if kind not in ('thruster', 'battery', 'current', 'visibility', 'freeze') + SENSOR_FAULTS:
             raise ValueError('unsupported physical override')
+        if kind in SENSOR_FAULTS and sim.sensors.ideal:
+            raise ValueError('sensor faults need the realistic sensor layer')
         scope = 'room' if kind in ('current', 'visibility') else vid
         if any(e['scope'] == scope and e['kind'] == kind for e in self.active):
             raise ValueError('overlapping override')
@@ -87,6 +91,8 @@ class Instructor:
             event['original'] = sim.scenario.visibility_m
         elif kind == 'current':
             event['original'] = deepcopy(sim.world.current)
+        elif kind in SENSOR_FAULTS:
+            event['original'] = None
         else:
             event['original'] = sim.paused
         event['controls'] = sim.rc.as_dict()
@@ -114,6 +120,8 @@ class Instructor:
             current.bottom_kn = strength * 4
         elif kind == 'freeze':
             sim.paused = True
+        elif kind in SENSOR_FAULTS:
+            sim.sensors.set_fault(kind, strength)
 
     def restore(self, event):
         sim = self.room.vehicles.get(event['vehicle_id'])
@@ -131,6 +139,8 @@ class Instructor:
             sim.world.current.__dict__.update(deepcopy(event['original'].__dict__))
         elif kind == 'freeze':
             sim.paused = event['original']
+        elif kind in SENSOR_FAULTS:
+            sim.sensors.clear_fault(kind)
         self.events.append({'kind': kind, 'vehicle_id': event['vehicle_id'], 'restored_at': self.clock})
 
     def update(self, dt):

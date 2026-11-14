@@ -5,6 +5,7 @@ export const STRINGS = {
   target: '學員載具', kind: '注入種類', strength: '強度 0–1', duration: '持續時間 · s', index: '推進器索引',
   inject: '注入故障', thruster: '推進器推力下降', battery: '電量下降', current: '全房洋流突變',
   visibility: '全房能見度下降', freeze: '凍結載具', end: '提前結束', active: '執行中', timeline: '事件時間軸',
+  compass: '羅盤偏差', depth_sensor: '深度計漂移', dvl: 'DVL 失鎖', altimeter: '高度計異常',
   emptyEvents: '尚無注入事件', emptyFleet: '連線後顯示房間內的學員載具', emptyActive: '目前沒有執行中的注入',
   offline: '未連線 · 資料未更新', connecting: '連線中…', connected: '即時連線', stale: '資料停更 · 請重新連線',
   rejected: '操作未完成', success: '操作已完成', missing: '—', seconds: 's', metres: 'm', knots: 'kn', newtons: 'N',

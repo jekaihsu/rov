@@ -157,7 +157,8 @@ target.addEventListener('change', function selection() {
   refreshReport();
 });
 const injection = el('form', '', faults, 'injection');
-const kind = select('kind', ['thruster', 'battery', 'current', 'visibility', 'freeze'], injection);
+const kind = select('kind', ['thruster', 'battery', 'current', 'visibility', 'freeze',
+  'compass', 'depth_sensor', 'dvl', 'altimeter'], injection);
 const inputs = el('div', '', injection, 'fields');
 const strength = field('strength', '.5', inputs, 'number', 0, 1, .05);
 const duration = field('duration', '30', inputs, 'number', .1, 3600);

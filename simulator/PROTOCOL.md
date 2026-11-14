@@ -373,6 +373,12 @@ required. Credentials are not echoed. A pilot connection cannot become an instru
 An authenticated instructor connection accepts only `type:"instructor"` messages:
 
 * `action:"inject"`, `kind:"thruster"|"battery"|"current"|"visibility"|"freeze"`,
+  or a sensor fault `kind:"compass"|"depth_sensor"|"dvl"|"altimeter"` (realistic sensor layer only;
+  rejected with `ValueError` when the host runs ideal sensors). Sensor faults change only what the
+  vehicle measures: `compass` adds up to 60 deg of deviation (strength x 60) treated as a strong
+  anomaly, `depth_sensor` drifts the reading by strength x 0.02 m/s and snaps back on expiry, `dvl`
+  forces loss of bottom lock, `altimeter` makes each ping a false short echo or a dropout with
+  probability = strength.
   optional `vehicle_id:"v1"`, `strength:0..1` (default 1), `duration` (0 < seconds <= 3600,
   default 10), `index` (thruster index, default 0).
   Thruster strength reduces existing health; battery strength reduces existing charge.
