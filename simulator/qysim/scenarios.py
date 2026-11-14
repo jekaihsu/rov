@@ -314,7 +314,83 @@ def tutorial_pool() -> Scenario:
                                Wall(STRINGS["pool_walls"][3], (0, -12, 0), 90, 24, 0)])
 
 
+# Incident exercises use existing contacts, cable wrapping and scoring only.
+INCIDENT_STRINGS = {
+    "incident_jacket": ("事故演練｜導管架內受困", "強潮流中止巡檢，沿西側出口撤離；人手與信標壓力見講評腳本。"),
+    "incident_wreck": ("事故演練｜沉船勾纏", "不要硬拉；沿纜線回卡點，反向解纏再回收。繞樁代替殘骸細線。"),
+    "incident_silt": ("險情演練｜揚沙迷航", "低能見度下沿纜線回出發點；目前最低能見度為 1 m，並非完全黑屏。"),
+    "incident_compass": ("險情演練｜鋼構羅盤失準", "演練通報：航向讀數不可信，退出定向，依目視與纜線撤離。未改寫羅盤讀數。"),
+    "incident_current": ("險情演練｜流速超限", "無法維持站位時中止，沿回收路線撤離；流速為演練設定，非機型能力值。"),
+    "exit": "沿纜線離開危險區",
+    "return": "回投放點回收",
+    "untangle": "反向繞卡點解纏",
+}
+
+
+def incident_jacket() -> Scenario:
+    name, brief = INCIDENT_STRINGS["incident_jacket"]
+    return Scenario(
+        "incident_jacket", name, brief, seabed_depth=32,
+        obstacles=jacket(0, 0, 32, prefix="Training"),
+        current=CurrentProfile(2, 90, 1.8, 90, 1, 90, .2),
+        start_pos=(0, 0, 12), spool_pos=(-12, 0, 0), tether_length=40,
+        objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (-8, 0, 12)),
+                    Objective("surface", INCIDENT_STRINGS["return"], (-12, 0, .5), radius=3)],
+        time_limit_s=240)
+
+
+def incident_wreck() -> Scenario:
+    name, brief = INCIDENT_STRINGS["incident_wreck"]
+    snag = Cylinder("Training snag", (8, 0, 118), (8, 0, 135), .6, "pile")
+    return Scenario(
+        "incident_wreck", name, brief, seabed_depth=138, visibility_m=4,
+        obstacles=[Box("Training wreck", (20, 0, 134), (6, 3, 3), 0, "wreck"), snag],
+        start_pos=(8, 2.8, 128), spool_pos=(0, 0, 0), tether_length=160,
+        prewrap={"pile": "Training snag", "turns": 1.25, "depth": 128},
+        objectives=[Objective("untangle", INCIDENT_STRINGS["untangle"], target="Training snag"),
+                    Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=3)],
+        time_limit_s=600)
+
+
+def incident_silt() -> Scenario:
+    name, brief = INCIDENT_STRINGS["incident_silt"]
+    return Scenario(
+        "incident_silt", name, brief, seabed_depth=12, visibility_m=1,
+        start_pos=(8, 0, 10), spool_pos=(0, 0, 0), tether_length=20,
+        objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (4, 0, 6)),
+                    Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=2)],
+        time_limit_s=240)
+
+
+def incident_compass() -> Scenario:
+    name, brief = INCIDENT_STRINGS["incident_compass"]
+    return Scenario(
+        "incident_compass", name, brief, seabed_depth=20, visibility_m=6,
+        obstacles=[Box("Training steel", (12, 0, 10), (2, 6, 8), 0, "hull")],
+        start_pos=(7, 0, 10), spool_pos=(0, 0, 0), tether_length=25,
+        objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (3, 0, 10)),
+                    Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=2)],
+        time_limit_s=240)
+
+
+def incident_current() -> Scenario:
+    name, brief = INCIDENT_STRINGS["incident_current"]
+    return Scenario(
+        "incident_current", name, brief, seabed_depth=20, visibility_m=8,
+        current=CurrentProfile(3, 90, 3, 90, 2, 90, .2),
+        start_pos=(6, 0, 8), spool_pos=(0, 0, 0), tether_length=25,
+        objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (2, 0, 8)),
+                    Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=3)],
+        time_limit_s=180)
+
+
 LIBRARY = {
+    "incident_jacket": incident_jacket,
+    "incident_wreck": incident_wreck,
+    "incident_silt": incident_silt,
+    "incident_compass": incident_compass,
+    "incident_current": incident_current,
+
     "tutorial_pool": tutorial_pool,
     "open_water": open_water,
     "jacket_inspection": jacket_inspection,

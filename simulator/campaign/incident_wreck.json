@@ -1,0 +1,96 @@
+{
+  "id": "incident_wreck",
+  "title": "事故訓練｜沉船勾纏",
+  "scenario": "incident_wreck",
+  "mode": "scenario_training",
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "brief"
+    },
+    {
+      "id": "objective",
+      "type": "objective",
+      "text_key": "objective"
+    },
+    {
+      "id": "poll",
+      "type": "wait",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      }
+    },
+    {
+      "id": "failed",
+      "type": "branch",
+      "condition": {
+        "path": "score.failed",
+        "op": "gt",
+        "value": ""
+      },
+      "target": "failure"
+    },
+    {
+      "id": "finished",
+      "type": "branch",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "target": "success"
+    },
+    {
+      "id": "repeat",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "poll"
+    },
+    {
+      "id": "failure",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "failure"
+    },
+    {
+      "id": "after_failure",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "debrief"
+    },
+    {
+      "id": "success",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "success"
+    },
+    {
+      "id": "debrief",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "debrief"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "speaker": "訓練督導",
+      "brief": "深處纜線已纏住殘骸卡點。先評估，不要從水面硬拉；能動就沿纜線回卡點，反向繞開再回收。",
+      "objective": "依序完成撤離與回收。評分：檢查點完成率，碰撞與纜線過張力扣分。失敗：斷纜、三次嚴重碰撞或逾時。",
+      "success": "撤離完成。請檢視分數、碰撞與最大纜線張力。",
+      "failure": "演練失敗：請檢視斷纜、碰撞或逾時原因，重試時提前中止。",
+      "debrief": "研究中的湖泊沉船案：2014 年約 134 m 深處纏到測深銅線，拉纜反而收緊，三四小時後切纜棄置。2021 年以聲納找到，2022 年由另一台載具掛回收纜、潛水員割斷纏線後回收。正確程序是先評估，能動就沿纜線回卡點；只有確信不會收緊才從水面拉。此演練用既有繞樁模型代替細線，並非重現銅線打結。"
+    }
+  }
+}
