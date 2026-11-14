@@ -4,6 +4,7 @@ import {createFeatureActions} from "./feature_actions.js";
 import { createDevices } from "./devices.js";
 import { createHaptics } from "./haptics.js";
 import { installSettings } from "./settings.js";
+import { getFidelity } from "../fidelity.js";
 const database = await fetch(new URL("./controller-db.json", import.meta.url)).then((r) => r.json());
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const desktopSettings = await window.rovDesktop?.readInput?.();
@@ -33,7 +34,22 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     else document.getElementById("sticks").style.visibility = "visible";
   });
   const haptics = createHaptics(() => frame.pad, settings);
-  const rc = { rc_lock: 1, keep_depth: 0, left_switch: 0, right_switch: 0, assist: 2, profile: "normal" };
+  // Assist level and flight profile belong to the fidelity profile; rc mirrors it for the transport.
+  const fidelity = getFidelity();
+  const rc = { rc_lock: 1, keep_depth: 0, left_switch: 0, right_switch: 0 };
+  function mirrorFidelity() {
+    rc.assist = fidelity.get("assistLevel");
+    rc.profile = fidelity.get("flightProfile");
+  }
+  mirrorFidelity();
+  fidelity.subscribe(mirrorFidelity);
+  function cycleAssist() {
+    fidelity.set("assistLevel", (rc.assist + 1) % 3);
+  }
+  function cycleProfile() {
+    const profiles = ["cine", "normal", "sport"];
+    fidelity.set("flightProfile", profiles[(profiles.indexOf(rc.profile) + 1) % 3]);
+  }
   const hold = { photo: new Set(), record: new Set() };
   const keys = new Set();
   const touch = Object.fromEntries(CH.map((c) => [c, 0]));
@@ -109,10 +125,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
         cycleLed();
         break;
       case "KeyF":
-        rc.assist = (rc.assist + 1) % 3;
+        cycleAssist();
         break;
       case "KeyG":
-        rc.profile = ["cine", "normal", "sport"][(["cine", "normal", "sport"].indexOf(rc.profile) + 1) % 3];
+        cycleProfile();
         break;
       case "KeyV":
         camera();
@@ -297,12 +313,8 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       light: cycleLed,
       camera,
       arm,
-      assist: () => {
-        rc.assist = (rc.assist + 1) % 3;
-      },
-      profile: () => {
-        rc.profile = ["cine", "normal", "sport"][(["cine", "normal", "sport"].indexOf(rc.profile) + 1) % 3];
-      },
+      assist: cycleAssist,
+      profile: cycleProfile,
     };
     for (const [name, handler] of Object.entries(handlers)) {
       if (actions[name] > 0.5 && !(previous[name] > 0.5)) handler();

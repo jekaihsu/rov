@@ -13,11 +13,33 @@ export function spring(value, velocity, goal, omega, dt) {
   const decay = Math.exp(-omega * dt);
   return [goal + (error + c * dt) * decay, (velocity - omega * c * dt) * decay];
 }
-export function createCameraRig({camera, controls, rovG, renderer, params, getAnchor, getObstacles, onMode}) {
+// Stand-in for harnesses that pass only URL parameters; the app always supplies the fidelity store.
+// This module is loaded as a data URL by unit tests, so it cannot import fidelity.js itself.
+function parameterFidelity(params) {
+  const values = {cameraView: params?.get('cam'), gimbal: params?.get('gimbal') === '1', thirdPerson: true};
+  const listeners = [];
+  return {
+    get(id) {
+      return values[id];
+    },
+    set(id, value) {
+      values[id] = value;
+      for (const listener of listeners) listener();
+    },
+    subscribe(listener) {
+      listeners.push(listener);
+    }
+  };
+}
+export function createCameraRig({camera, controls, rovG, renderer, params, getAnchor, getObstacles, onMode,
+  fidelity = parameterFidelity(params)}) {
   const FLIP = new THREE.Quaternion(0, 1, 0, 0);
-  let mode = MODES.includes(params.get('cam')) ? params.get('cam') : 'onboard';
+  // The fidelity profile owns the default view, third-person permission and gimbal; URL parameters feed it.
+  let thirdPerson = fidelity.get('thirdPerson');
+  let mode = MODES.includes(fidelity.get('cameraView')) ? fidelity.get('cameraView') : 'onboard';
+  if (!thirdPerson) mode = 'onboard';
   let ready = false, transition = 1, yaw = 0, height = 22, zoom = 22;
-  let gimbal = params.get('gimbal') === '1', pitch = 0, pitchGoal = 0;
+  let gimbal = fidelity.get('gimbal'), pitch = 0, pitchGoal = 0;
   const cine = {a: .6, w: .14, r: 4.6, h: 1.5};
   const velocity = new THREE.Vector3(), previous = new THREE.Vector3();
   const angularVelocity = new THREE.Vector3();
@@ -43,7 +65,7 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
         label: STRINGS.gimbal,
         keys: ['KeyB'],
         run() {
-          gimbal = !gimbal;
+          fidelity.set('gimbal', !gimbal);
         }
       },
       cameraPitchUp: {
@@ -86,6 +108,15 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
     }
     onMode(mode, STRINGS[mode]);
   }
+  function allowedModes() {
+    return thirdPerson ? MODES : ['onboard'];
+  }
+  function applyFidelity() {
+    gimbal = fidelity.get('gimbal');
+    thirdPerson = fidelity.get('thirdPerson');
+    if (!thirdPerson && MODES.includes(mode) && mode !== 'onboard') setMode('onboard');
+  }
+  fidelity.subscribe(applyFidelity);
   function update(dt) {
     const p = rovG.position;
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(rovG.quaternion);
@@ -195,7 +226,8 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
     physicalCapture,
     bindInput,
     cycle() {
-      setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
+      const modes = allowedModes();
+      setMode(modes[(modes.indexOf(mode) + 1) % modes.length]);
     }
   };
 }
