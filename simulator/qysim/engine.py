@@ -108,6 +108,8 @@ class Simulator:
         self.tool_wrench = np.zeros(6)
         from .operations import VehicleOperations
         self.operations = VehicleOperations(self)
+        from .procedure import Procedure
+        self.procedure = Procedure(self)
         if not hasattr(self.world, "mission_run"):
             self.world.mission_run = MissionRun(self, mission_mode)
         self._log("scenario", f"載入情境 {sc.name}")
@@ -160,6 +162,9 @@ class Simulator:
             return
         dt = dt or self.dt
         v, s = self.vehicle, self.vehicle.s
+        self.procedure.step(dt)
+        if self.procedure.deck_step(dt):
+            return
         rc = self.rc
         locked = rc.rc_lock == 1 or self.tether.broken
         mode = ctrl_mode(rc)
@@ -760,6 +765,7 @@ class Simulator:
         cur = self.vehicle.current_ned
         return {
             "vehicle_id": self.vehicle_id, "model_id": self.model_id,
+            "procedure": self.procedure.state(),
             "appearance": dict(self.appearance),
             "paint_marks": list(self.world.paint_marks),
             "input_latched": self.input_latched, "control_generation": self.control_generation,
@@ -790,7 +796,7 @@ class Simulator:
             "nav": {"mode": self.nav.mode, "nav_status": self.nav.nav_status, "vccm": self.nav.vccm_status,
                     "route": [[w.n, w.e, w.depth] for w in self.nav.route][:400], "route_i": self.nav.route_i,
                     "target": None if self.nav.target is None else [self.nav.target.n, self.nav.target.e, self.nav.target.depth]},
-            "score": ensure_mission(self).score_state(self),
+            "score": self.procedure.score(ensure_mission(self).score_state(self)),
             "log": self.log[-8:],
         }
 

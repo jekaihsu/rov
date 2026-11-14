@@ -1,0 +1,51 @@
+$ python -m unittest discover -s tests
+........................................s.........................................Executing <Task pending name='Task-2' coro=<TestWebSocket.test_two_clients_join_control_and_reconnect() running at /workspace/rov/simulator/tests/test_multiplayer.py:232> wait_for=<_GatheringFuture pending cb=[Task.task_wakeup()] created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/tasks.py:712> cb=[_run_until_complete_cb() at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py:181] created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.357 seconds
+Executing <Task pending name='Task-10' coro=<Server.conn_handler() running at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/websockets/asyncio/server.py:376> wait_for=<Future pending cb=[Task.task_wakeup()] created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py:448> created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/websockets/asyncio/server.py:406> took 0.229 seconds
+......................Executing <Task finished name='Task-29' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.290 seconds
+.Executing <Task finished name='Task-34' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.296 seconds
+.Executing <Task finished name='Task-39' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.296 seconds
+.Executing <Task finished name='Task-44' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.355 seconds
+.Executing <Task finished name='Task-49' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.350 seconds
+.Executing <Task finished name='Task-54' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.242 seconds
+.Executing <Task finished name='Task-59' coro=<TestControllerOwnership.asyncSetUp() done, defined at /workspace/rov/simulator/tests/test_qirc.py:85> result=None created at /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:100> took 0.208 seconds
+.............................
+----------------------------------------------------------------------
+Ran 139 tests in 130.599s
+
+OK (skipped=1)
+PROLOGUE REAL INPUT COMPLETED: ["predive_brief", "welcome", "unlock", "move", "move_前", "move_後", "move_右", "move_左", "move_下", "move_上", "depth_line", "depth", "light_line", "light", "photo_line", "photo", "end"]
+
+$ python -m unittest discover -s tests -p test_procedure.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 3.094s
+
+OK
+
+$ python tools/browser_menu_smoke.py
+Menu flow passed: /workspace/rov/simulator/output/menu-validation
+
+$ python tools/browser_procedure_smoke.py
+Checklist opened
+Confirmed check 1
+Confirmed check 2
+Confirmed check 3
+Confirmed check 4
+Confirmed check 5
+Confirmed check 6
+Confirmed check 7
+Motor tested 1
+Motor tested 2
+Motor tested 3
+Motor tested 4
+Motor tested 5
+Motor tested 6
+Motor tested 7
+Motor tested 8
+Confirmed check 8
+Confirmed check 9
+Confirmed check 10
+Full checklist, 8 motor pulses, water gate, recovery, rinse, inspection and log export passed.
+
+$ python tools/browser_procedure_compat.py
+Quick-launch animation, skip and ?nointro compatibility passed.
