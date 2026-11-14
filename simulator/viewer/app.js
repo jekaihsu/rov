@@ -1305,7 +1305,9 @@ window.__movieDone = false;
 
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
-const audio = installAudio({getCamera: () => camera, getMode: () => camMode});
+const audio = installAudio({
+  getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
+});
 installAudioSettings(audio, document.querySelector('.rack.left'));
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {

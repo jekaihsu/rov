@@ -20,7 +20,7 @@ with sync_playwright() as p:
     page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&nointro&room=audio')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')
     assert page.evaluate("import('./audio/engine.js').then(m => !m.installAudio().ctx)")
-    page.locator('#conn').click()
+    page.locator('canvas.gl').click(position={'x': 20, 'y': 20})
     page.wait_for_function("import('./audio/engine.js').then(m => m.installAudio().ctx?.state === 'running')")
     page.evaluate('''async () => {
       const engine = (await import('./audio/engine.js')).installAudio();
@@ -63,7 +63,7 @@ with sync_playwright() as p:
     assert not errors, errors
     page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&nointro&mute')
     page.wait_for_function('window.__viewer?.S')
-    page.locator('#conn').click()
+    page.locator('canvas.gl').click(position={'x': 20, 'y': 20})
     assert page.evaluate("import('./audio/engine.js').then(m => !m.installAudio().ctx)")
     browser.close()
     print(f'Audio smoke passed: gesture, nonzero waveform (peak={peak:.4f}), mute, no page errors; {OUT}')

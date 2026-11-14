@@ -1,7 +1,7 @@
 // Synthesized vehicle, environment and feedback buses with gesture-safe browser lifecycle.
 import {clamp, motorParameters, depthCutoff, detectEvents} from './mapping.js';
 const STRINGS = {title: '音效', master: '主音量', vehicle: '載具', environment: '環境',
-  ui: '介面', warning: '警告', mute: '靜音（M）'};
+  ui: '介面', warning: '警告', mute: '靜音'};
 const DEFAULTS = {master: 0.65, vehicle: 0.7, environment: 0.5, ui: 0.55, warning: 0.65, mute: false};
 const KEY = 'rov.audio';
 let sharedEngine;
@@ -26,12 +26,7 @@ class AudioEngine {
     this.peers = new Map();
     this.nextLife = 0;
     document.addEventListener('pointerdown', () => this.start());
-    document.addEventListener('keydown', event => {
-      this.start();
-      if (event.code === 'KeyM' && !event.repeat && !event.target.closest('input,textarea,select')) {
-        this.set('mute', !this.settings.mute);
-      }
-    });
+    document.addEventListener('keydown', () => this.start());
     document.addEventListener('visibilitychange', () => this.mix());
     document.addEventListener('focusin', event => {
       if (event.target.matches('button,select,input,summary')) this.cue('move');
@@ -123,18 +118,29 @@ class AudioEngine {
     this.smooth(motor.level.gain, parameters.gain * scale);
     this.smooth(motor.noise.level.gain, parameters.gain * scale * 0.7);
   }
+  isPaused() {
+    return !!(this.state?.paused || this.options.isPaused?.());
+  }
   mix() {
     if (!this.ctx) return;
-    const silent = this.settings.mute || this.forcedMute || document.hidden || this.state?.paused;
-    this.smooth(this.master.gain, silent ? 0 : clamp(this.settings.master));
-    for (const [key, bus] of Object.entries(this.buses)) this.smooth(bus.gain, clamp(this.settings[key]));
+    const silent = this.settings.mute || this.forcedMute || document.hidden || this.isPaused();
+    const targets = {master: silent ? 0 : clamp(this.settings.master)};
+    for (const key of Object.keys(this.buses)) targets[key] = clamp(this.settings[key]);
+    for (const [key, value] of Object.entries(targets)) {
+      if (this.mixTargets?.[key] === value) continue;
+      const gain = key === 'master' ? this.master.gain : this.buses[key].gain;
+      this.smooth(gain, value);
+    }
+    this.mixTargets = targets;
   }
   cue(kind) {
-    if (!this.ctx || this.ctx.state !== 'running' || document.hidden || this.state?.paused) return;
+    if (!this.ctx || this.ctx.state !== 'running' || document.hidden || this.isPaused()) return;
     const severity = {touch: 1, hard: 2, severe: 3, warn: 2, broken: 3}[kind];
     if (['touch', 'hard', 'severe', 'photos'].includes(kind)) this.impact(severity || 0.5);
-    const notes = kind === 'life' ? [180 + Math.random() * 140] : kind === 'complete' ? [390, 490, 590] : [severity ? 320 - severity * 45
-      : kind === 'move' ? 420 : kind === 'back' ? 300 : kind === 'photos' ? 900 : 540];
+    const frequency = severity ? 320 - severity * 45
+      : kind === 'move' ? 420 : kind === 'back' ? 300 : kind === 'photos' ? 900 : 540;
+    const notes = kind === 'life' ? [180 + Math.random() * 140]
+      : kind === 'complete' ? [390, 490, 590] : [frequency];
     for (const [index, frequency] of notes.entries()) {
       const at = this.ctx.currentTime + index * 0.14;
       const oscillator = this.ctx.createOscillator();
@@ -169,7 +175,11 @@ class AudioEngine {
     this.previous = state;
     this.state = state;
     if (!this.ctx || !state) return;
-    this.mix();
+    const paused = this.isPaused();
+    if (paused !== this.paused) {
+      this.paused = paused;
+      this.mix();
+    }
     for (const event of events) {
       const toggle = event === 'locked' || event === 'keep_depth';
       this.cue(toggle ? (state[event] ? 'confirm' : 'back') : event);
@@ -185,7 +195,7 @@ class AudioEngine {
     this.smooth(this.water.level.gain, 0.15 * (1 - Math.exp(-Math.max(0, depth) / 1.5)));
     this.smooth(this.waves.level.gain, 0.22 * Math.exp(-Math.max(0, depth) / 1.5));
     this.smooth(this.flow.level.gain, clamp(Math.hypot(...(state.current_here || [])) / 2) * 0.22);
-    if (this.ctx.currentTime > this.nextLife && !state.paused) {
+    if (this.ctx.currentTime > this.nextLife && !this.isPaused()) {
       this.nextLife = this.ctx.currentTime + 14 + Math.random() * 25;
       this.cue('life');
     }
