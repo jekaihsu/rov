@@ -51,19 +51,31 @@ class CameraState:
     counter: int = 1
 
 
+def _body_to_world(q: np.ndarray) -> np.ndarray:
+    """Rotation matrix of the body->world quaternion [w, x, y, z]."""
+    w, x, y, z = (float(v) for v in q)
+    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+                     [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+                     [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
+
+
 def vehicle_world_source(sim) -> dict:
     """A vehicle as seen by ``World.step``: pose, mean thrust and per-thruster jets for the silt model."""
     v, s = sim.vehicle, sim.vehicle.s
-    jets = []
-    for (_, pos_body, axis_body), thrust in zip(v.thrusters, s.thrust):
-        axis = np.asarray(axis_body, float)
-        axis = axis / np.linalg.norm(axis)
-        outlet = s.pos + q_rot(s.q, np.asarray(pos_body, float))
-        # Water leaves opposite to the force the thruster puts on the vehicle.
-        jet = -math.copysign(1.0, float(thrust)) * q_rot(s.q, axis)
-        jets.append((outlet, jet, abs(float(thrust))))
+    layout = getattr(v, "_jet_layout", None)
+    if layout is None:
+        positions = np.array([pos for _, pos, _ in v.thrusters], float)
+        axes = np.array([axis for _, _, axis in v.thrusters], float)
+        layout = (positions, axes / np.linalg.norm(axes, axis=1)[:, None])
+        v._jet_layout = layout
+    rotation = _body_to_world(s.q)
+    outlets = s.pos + layout[0] @ rotation.T
+    # Water leaves opposite to the force the thruster puts on the vehicle.
+    jets = -np.where(s.thrust < 0, -1.0, 1.0)[:, None] * (layout[1] @ rotation.T)
+    magnitude = np.abs(s.thrust)
     source = {"id": sim.vehicle_id, "pos": s.pos, "vel": v.world_velocity(),
-              "thrust": float(np.mean(np.abs(s.thrust)) / v.p.thruster_max), "jets": jets}
+              "thrust": float(np.mean(magnitude) / v.p.thruster_max),
+              "jets": list(zip(outlets, jets, magnitude.tolist()))}
     tether = getattr(sim, "tether", None)
     if tether is not None:
         source["tether"] = (tether.x, tether.v, tether.p.node_radius)
