@@ -20,9 +20,11 @@ def main():
     parser.add_argument('--ticks', type=int, default=180)
     parser.add_argument('--warmup', type=int, default=120)
     parser.add_argument('--profile', action='store_true')
+    parser.add_argument('--players', type=int, choices=(1, 2, 3), default=3)
+    parser.add_argument('--scenario', default='coral_reef')
     args = parser.parse_args()
-    room = Room(Simulator('coral_reef', seed=42), 'benchmark')
-    for model in ('x1', 'bluerov2_heavy', 'falcon'):
+    room = Room(Simulator(args.scenario, seed=42), 'benchmark')
+    for model in ('x1', 'bluerov2_heavy', 'falcon')[:args.players]:
         player = room.join(model, model_id=model)
         sim = room.vehicles[player.vehicle_id]
         sim.rc_physical.rc_lock = 0
@@ -46,10 +48,10 @@ def main():
         stream = io.StringIO()
         pstats.Stats(profiler, stream=stream).sort_stats('cumulative').print_stats(30)
         print(stream.getvalue())
-    result = dict(scenario='coral_reef', seed=42, players=3, ticks=args.ticks,
-        warmup=args.warmup, profiled=args.profile, wall_mean_ms=float(np.mean(durations)),
+    result = dict(scenario=args.scenario, seed=42, players=args.players, ticks=args.ticks,
+        warmup=args.warmup, profiled=args.profile, realtime_factor=.01/(np.mean(durations)/1000), wall_mean_ms=float(np.mean(durations)),
         wall_p95_ms=float(np.percentile(durations,95)), cpu_mean_ms=float(np.mean(cpu_durations)),
-        batch_fraction=batches/(3*args.ticks),
+        batch_fraction=batches/(args.players*args.ticks),
         positions={key:sim.vehicle.s.pos.tolist() for key,sim in room.vehicles.items()},
         tether_forces={key:sim.tether.force_on_rov.tolist() for key,sim in room.vehicles.items()})
     output = Path(args.output)
