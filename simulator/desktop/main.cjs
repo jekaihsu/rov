@@ -95,9 +95,6 @@ app.whenReady().then(async()=>{
       fs.writeFileSync(windowFile, JSON.stringify(value));
     }
   });
-  window.webContents.on('dom-ready', () => {
-    window.webContents.executeJavaScript(fs.readFileSync(path.join(__dirname, 'input_guard.js'), 'utf8'));
-  });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', (event, url) => {
     if (!url.startsWith(origin + '/')) event.preventDefault();
