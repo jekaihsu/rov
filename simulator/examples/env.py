@@ -8,13 +8,18 @@ from qysim.engine import Simulator
 from qysim.physics import q_rot
 from qysim.rc import CHANNELS
 
+STRINGS = {
+    "ticks": "ticks must be a positive integer",
+    "action": "action must contain six finite PWM values in [1000, 2000]",
+}
+
 
 class Env:
     """One action lasts ticks * 0.01 s. Observations are independent snapshots."""
 
     def __init__(self, scenario="open_water", seed=1, ticks=10):
         if not isinstance(ticks, int) or ticks < 1:
-            raise ValueError("ticks must be a positive integer")
+            raise ValueError(STRINGS["ticks"])
         self.scenario = scenario
         self.ticks = ticks
         self.reset(seed)
@@ -38,7 +43,7 @@ class Env:
     def step(self, action):
         values = np.asarray(action, dtype=float)
         if values.shape != (6,) or not np.all(np.isfinite(values)) or np.any((values < 1000) | (values > 2000)):
-            raise ValueError("action must contain six finite PWM values in [1000, 2000]")
+            raise ValueError(STRINGS["action"])
         self.sim.apply_viewer_rc(dict(zip(CHANNELS, values)))
         return self.advance(values.tolist())
 
