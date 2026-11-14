@@ -103,6 +103,7 @@ export function installVision({send, canvas, getContext}) {
     mark.hidden = true;
   }
   let tracked = [];
+  let shown = false;
   let last = -Infinity;
   let busy = false;
   function clear(ctx) {
@@ -130,20 +131,28 @@ export function installVision({send, canvas, getContext}) {
       busy = false;
     }
   }
-  api.update = function update(now) {
-    ensureButtons();
-    const context = getContext();
-    context.targets = [...context.targets, ...(api.extraTargets || [])];
-    const rect = canvas.getBoundingClientRect();
-    overlay.width = rect.width;
-    overlay.height = rect.height;
+  // Resizing a canvas reallocates it, so only do it when the viewport actually changed.
+  function fit(rect) {
+    if (overlay.width !== Math.round(rect.width)) overlay.width = rect.width;
+    if (overlay.height !== Math.round(rect.height)) overlay.height = rect.height;
     overlay.style.left = `${rect.left}px`;
     overlay.style.top = `${rect.top}px`;
+  }
+  // Per frame. While the overlay is off nothing is projected or redrawn, so it costs the frame nothing.
+  api.update = function update(now) {
+    ensureButtons();
     const ctx = overlay.getContext('2d');
-    if (!api.enabled || context.camMode !== 'onboard') {
-      clear(ctx);
+    const context = api.enabled ? getContext() : null;
+    if (!context || context.camMode !== 'onboard') {
+      if (shown) clear(ctx);
+      shown = false;
       return;
     }
+    shown = true;
+    context.targets = [...context.targets, ...(api.extraTargets || [])];
+    const rect = canvas.getBoundingClientRect();
+    fit(rect);
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
     if (!busy && now - last >= 1000 / hz) infer(context, now);
     tracked = api.detections.map(function smooth(detection) {
       const previous = tracked.find(item => detection.entity_id && item.entity_id === detection.entity_id);
