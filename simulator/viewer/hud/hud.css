@@ -1,0 +1,68 @@
+/* Full viewport flight instruments and the preserved engineering drawer. */
+body .app { padding: 0; height: 100svh; display: block; }
+body .main { display: block; height: 100%; }
+body .viewport { position: absolute; inset: 0; height: 100svh; min-height: 0; border: 0; border-radius: 0; }
+body .topbar { display: none; }
+body .rack { display: none; }
+#engineering { position: fixed; inset: 4% 4% 4% auto; width: min(740px,92vw); z-index: 12;
+  overflow: auto; background: var(--panel); backdrop-filter: blur(14px); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 24px; color: var(--text); }
+#engineering .rack { display: flex; overflow: visible; width: 100%; }
+#engineering .topbar { display: flex; flex-wrap: wrap; }
+#engineering .menu-only-settings { display: block !important; }
+#engineering[hidden] { display: none; }
+body .hud.tl { top: 12%; left: auto; right: 4%; max-width: 30%; align-items: flex-end; }
+body .hud.tr { top: auto; bottom: 4%; right: 4%; }
+body .hud.tc { top: 4%; }
+body .hud.bc { bottom: 4%; }
+body .readout { flex-direction: row; gap: 24px; background: var(--panel); padding: 8px 16px; }
+body .readout span { width: auto; gap: 8px; }
+body .readout b { font-size: 30px; }
+body .lock, body .lock.locked { border: 1px solid var(--line); background: var(--panel); animation: none; }
+body .lock b, body .lock.locked b { font-size: 14px; }
+body .lock span, #hOp, #hMode { display: none; }
+body .sticks { display: none !important; }
+body.hud-touch .sticks { display: flex !important; }
+.flight { position: absolute; color: var(--text); font: 12px Inter,system-ui,sans-serif;
+  font-variant-numeric: tabular-nums; pointer-events: none; }
+.flight b { font-size: 30px; font-weight: 500; }
+#flightDepth { left: 4%; top: 38%; border-left: 2px dashed var(--accent); padding: 16px; }
+#flightAttitude { right: 4%; top: 40%; width: 160px; }
+#flightMission { left: 4%; top: 4%; max-width: 27%; }
+#flightMapBox { left: 4%; bottom: 4%; pointer-events: auto; }
+#flightMap { display: block; width: 168px; height: 144px; background: var(--panel); border-radius: var(--radius); }
+#flightTools { right: 4%; bottom: 10%; pointer-events: auto; display: flex; gap: 8px; }
+#flightWarning { top: 24%; left: 50%; transform: translateX(-50%); color: var(--warn); }
+body.hud-danger .viewport { box-shadow: inset 0 0 70px var(--danger); }
+#flightPeek { top: 22%; left: 4%; width: min(360px,75vw); padding: 24px; background: var(--panel);
+  backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: var(--radius);
+  opacity: 0; transform: translateY(8px); transition: opacity 180ms ease-out,transform 180ms ease-out; }
+#flightPeek.visible { opacity: 1; transform: none; }
+#flightPeek p { white-space: pre-line; line-height: 1.8; }
+body.hud-minimal #flightMapBox, body.hud-minimal #flightAttitude { display: none; }
+body.hud-hidden .hud, body.hud-hidden .flight, body.hud-hidden #labels { visibility: hidden; }
+body.hud-hidden #flightTools { visibility: visible; }
+body .viewport.intro .flight { opacity: 0; }
+@media (max-width: 720px) {
+  #flightMission { max-width: 48%; }
+  #flightAttitude { width: 100px; }
+  #flightMap { width: 112px; height: 96px; }
+  body .readout { gap: 8px; }
+  body .readout b, .flight b { font-size: 22px; }
+  body .hud.bc { top: auto; right: auto; left: 50%; bottom: 22%; transform: translateX(-50%); }
+  #flightTools { bottom: 4%; }
+}
+@media (prefers-reduced-motion: reduce) { #flightPeek { transition: none; } }
+#flightRange { left: 50%; top: 60%; transform: translateX(-50%); border-bottom: 3px solid currentColor; }
+#flightController { right: 4%; top: 5%; }
+#engineering { transition: opacity 180ms ease-out; }
+#engineering .rack { max-height: none; }
+#engineering .rack .sec { flex-shrink: 0; }
+#engineering #adi { min-height: 120px; }
+#flightPeek canvas { width: 100%; }
+#flightWarning[data-level=danger] { color: var(--danger); }
+#flightWarning[data-level=info] { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { #engineering { transition: none; } }
+.in-game #engineering #scnSel, .in-game #engineering #seed, .in-game #engineering #btnLoad,
+.in-game #engineering #opMode, .in-game #engineering label[for=opMode] { display: inline-block; }
+#engineering > button { position: sticky; top: 0; z-index: 2; margin-bottom: 16px; }

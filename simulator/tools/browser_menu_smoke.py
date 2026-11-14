@@ -1,10 +1,11 @@
 """Verify setup precedes connection, preview choices apply, and play stays clear."""
 import json
 from pathlib import Path
+from shutil import which
 from playwright.sync_api import sync_playwright
 out=Path(__file__).resolve().parents[1]/'output'/'menu-validation';out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
-    browser=p.chromium.launch(channel='chrome',headless=True,args=['--enable-unsafe-swiftshader'])
+    browser=p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True,args=['--enable-unsafe-swiftshader'])
     page=browser.new_page(viewport={'width':1920,'height':1080})
     sockets=[];errors=[]
     page.on('websocket',lambda ws:sockets.append(ws.url))
@@ -30,6 +31,7 @@ with sync_playwright() as p:
     for id in ['vehicleSelect','serverAddress','roomCode','opMode','scnSel','quality']:
         assert not page.locator('#'+id).is_visible(),id
     page.screenshot(path=str(out/'game.png'))
+    page.click('#flightDrawer')
     page.click('#returnMenu');page.wait_for_function('window.__menu?.ready')
     assert 'play=' not in page.url
     assert not errors,errors
