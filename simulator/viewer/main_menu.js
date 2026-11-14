@@ -2,6 +2,7 @@ import {installAudio, installAudioSettings} from './audio/engine.js';
 import * as THREE from 'three';
 import {CAMPAIGN_MENU_STRINGS} from './story/campaign.js';
 import {Environment} from './environment.js';
+import {buildStructures} from './structures.js';
 import {createVehicleModel} from './vehicle_models.js';
 import {loadGLTF} from './glb.js';
 import {applyVehicleSticker,STICKERS} from './vehicle_stickers.js';
@@ -79,11 +80,11 @@ async function selectScene(){
   structures.traverse(o=>{o.geometry?.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());});structures.clear();
   anchor.copy(P(world.start_pos||[0,0,0]));anchor.y=-world.seabed_depth+1.4;
   $('sceneBrief').textContent=entry.brief;$('previewScene').textContent=entry.name;
+  structures.add(buildStructures(world,{detail:'low'}).group);
   for(const ob of world.obstacles||[]){
     if(ob.kind==='habitat')continue;
     let mesh;
-    if(ob.type==='cylinder'){const a=P(ob.p0),b=P(ob.p1);mesh=new THREE.Mesh(new THREE.CylinderGeometry(ob.radius,ob.radius,a.distanceTo(b),12),new THREE.MeshStandardMaterial({color:0x647474,roughness:.9}));mesh.position.copy(a).lerp(b,.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.sub(a).normalize());}
-    else if(ob.type==='box'){mesh=new THREE.Mesh(new THREE.BoxGeometry(ob.half[1]*2,ob.half[2]*2,ob.half[0]*2),new THREE.MeshStandardMaterial({color:0x53686c}));mesh.position.copy(P(ob.center));mesh.rotation.y=-ob.yaw_deg*Math.PI/180;}
+    if(ob.type!=='model'){/* drawn by buildStructures() above */}
     else if(ob.type==='model'){loadGLTF(ob.model).then(g=>{if(ticket!==sceneTicket)return;const m=g.scene;m.position.copy(P(ob.origin));m.rotation.y=Math.atan2(-Math.cos(ob.heading_deg*Math.PI/180),-Math.sin(ob.heading_deg*Math.PI/180));structures.add(m);}).catch(()=>{});}
     if(mesh)structures.add(mesh);
   }

@@ -1,16 +1,19 @@
 // Shared server habitat; older recordings fall back to decorative surroundings.
-//   under water  seabed relief with sand ripples, rock outcrops, scattered steel debris,
-//                kelp that sways with the current, fish schools circling the structures
+//   under water  seabed with a per-site material (seabed.js), rock outcrops, scattered steel debris,
+//                kelp that sways with the current, fish schools circling the structures, kelp and
+//                anemones on structures; marine meshes come from marine_registry.js
 //   on the surface  coastline and islands on the horizon, other vessels, navigation buoys and a
 //                row of offshore wind turbines
 // Everything is placed from a seeded random generator (same layout every time for a scenario)
 // and kept clear of the structures, objectives and the start area, because the ROV can fly
 // through these props: they must never sit where the training happens.
 //
-//   const env = new Environment(scene, world /* the simulator's world message */);
+//   const env = new Environment(scene, world /* the simulator's world message */, {detail: 'low'|'medium'|'high'});
 //   each frame: env.update(dt, camera, currentVec3 /* three-space water velocity */)
 //   env.dispose()
 import * as THREE from 'three';
+import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
+import {seabedMaterial, siteProfile} from './seabed.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.05, ...o });
@@ -35,24 +38,6 @@ function noise3(x, y, z) {
   return r;
 }
 
-function sandTexture() {
-  const c = document.createElement('canvas'); c.width = c.height = 256;
-  const g = c.getContext('2d');
-  g.fillStyle = '#6d6650'; g.fillRect(0, 0, 256, 256);
-  for (let y = 0; y < 256; y++) {                                  // ripples: wavy dark/light bands
-    for (let x = 0; x < 256; x += 2) {
-      const r = Math.sin((y + Math.sin(x * 0.05) * 6) * 0.35) * 0.5 + 0.5;
-      const n = hash3(x, y, 1) * 0.25;
-      const l = 0.82 + 0.28 * r + n * 0.4;
-      g.fillStyle = `rgb(${Math.round(109 * l)},${Math.round(102 * l)},${Math.round(80 * l)})`;
-      g.fillRect(x, y, 2, 1);
-    }
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
 function rockGeometry(seed, detail = 2) {
   const g = new THREE.IcosahedronGeometry(1, detail);
   const p = g.attributes.position, v = new THREE.Vector3();
@@ -65,70 +50,6 @@ function rockGeometry(seed, detail = 2) {
   }
   g.computeVertexNormals();
   return g;
-}
-
-function fishGeometry() {
-  // a simple streamlined body (nose +Z) with a tail fin; ~0.3 m long
-  const body = new THREE.SphereGeometry(0.06, 10, 6);
-  body.scale(0.55, 0.8, 2.2);
-  const tail = new THREE.ConeGeometry(0.05, 0.1, 4);
-  tail.rotateX(Math.PI / 2); tail.scale(0.25, 1.2, 1); tail.translate(0, 0, -0.17);
-  const fin = new THREE.ConeGeometry(.035, .085, 3);
-  fin.scale(.2, 1, 1); fin.translate(0, .065, -.02);
-  const merged = mergeGeometries([body, tail, fin]);
-  return merged;
-}
-
-function mergeGeometries(list) {                                   // positions + normals only
-  const geos = list.map((g) => (g.index ? g.toNonIndexed() : g));
-  let n = 0; for (const g of geos) n += g.attributes.position.count;
-  const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3);
-  let o = 0;
-  for (const g of geos) {
-    g.computeVertexNormals();
-    pos.set(g.attributes.position.array, o * 3); nrm.set(g.attributes.normal.array, o * 3);
-    o += g.attributes.position.count;
-  }
-  const out = new THREE.BufferGeometry();
-  out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  out.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
-  for (const g of new Set([...geos, ...list])) g.dispose();
-  return out;
-}
-
-function coralGeometry(variant) {
-  if (variant === 0) {
-    const g = new THREE.SphereGeometry(.56, 12, 8); g.scale(1, .8, 1); g.translate(0, .44, 0); return g;
-  }
-  const branches = [];
-  const up = new THREE.Vector3(0, 1, 0);
-  const stem = (a, b, radius) => {
-    const direction = b.clone().sub(a);
-    const g = new THREE.CylinderGeometry(radius*.65, radius, direction.length(), 5);
-    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, direction.clone().normalize()));
-    g.translate(...a.clone().add(b).multiplyScalar(.5).toArray()); branches.push(g);
-  };
-  stem(new THREE.Vector3(), new THREE.Vector3(0,.65,0), .12);
-  for (let i = 0; i < 7; i++) {
-    const a = i * 2.39996, h = .35 + i * .065;
-    const from = new THREE.Vector3(0, h*.6, 0);
-    const to = new THREE.Vector3(Math.cos(a)*.45, h, Math.sin(a)*.45);
-    stem(from, to, .06);
-    stem(to, to.clone().add(new THREE.Vector3(.06*Math.sin(a), .21, .06*Math.cos(a))), .04);
-  }
-  return mergeGeometries(branches);
-}
-
-function seastarGeometry() {
-  const shape = new THREE.Shape();
-  for (let i = 0; i < 10; i++) {
-    const a = i*Math.PI/5, r = i % 2 ? .32 : 1;
-    const x = Math.cos(a)*r, y = Math.sin(a)*r;
-    if (i === 0) shape.moveTo(x,y); else shape.lineTo(x,y);
-  }
-  shape.closePath();
-  const g = new THREE.ExtrudeGeometry(shape, {depth:.11, bevelEnabled:true, bevelThickness:.06, bevelSize:.06, bevelSegments:1, steps:1});
-  g.rotateX(-Math.PI/2); g.translate(0,.03,0); return g;
 }
 
 /** Kelp blade material: the vertex shader bends each blade with height, time and the current. */
@@ -150,7 +71,7 @@ function kelpMaterial(uniforms) {
 }
 
 export class Environment {
-  constructor(scene, world) {
+  constructor(scene, world, options = {}) {
     this.scene = scene;
     this.group = new THREE.Group();
     this.group.name = 'environment';
@@ -178,7 +99,62 @@ export class Environment {
       this._kelp(R);
       this._fish(R, world);
     }
+    this._structureLife(world, options.detail || 'medium');
     this._surface(R);
+  }
+
+  // ── sessile life on structures: kelp in the top metres, anemones deeper (registry kinds, no collision) ──
+  _structureLife(world, detail) {
+    const counts = {low: [0, 0], medium: [26, 10], high: [48, 22]}[detail] || [26, 10];
+    const hosts = (world.obstacles || []).filter((ob) => ob.type === 'cylinder' &&
+      ['jacket_leg', 'pile', 'monopile', 'transition_piece'].includes(ob.kind));
+    if (!hosts.length || !counts[0]) return;
+    const R = rng(`life:${world.scenario?.key || 'x'}`);
+    const kelp = [];
+    const anemones = [];
+    for (const ob of hosts) {
+      const a = P(ob.p0), b = P(ob.p1);
+      const dir = b.clone().sub(a).normalize();
+      const length = a.distanceTo(b);
+      for (let i = 0; i < counts[0] + counts[1]; i++) {
+        const t = R();
+        const p = a.clone().addScaledVector(dir, t * length);
+        const depth = -p.y;
+        const angle = R() * Math.PI * 2;
+        const out = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+        p.addScaledVector(out, ob.radius + 0.01);
+        if (i < counts[0] && depth > 0.8 && depth < 7) kelp.push({p, out, s: .5 + R() * .9, yaw: R() * 6.28});
+        else if (i >= counts[0] && depth > 14 && depth < this.world.seabed_depth - 1) {
+          anemones.push({p, out, s: .07 + R() * .08});
+        }
+      }
+    }
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    if (kelp.length) {
+      const mesh = new THREE.InstancedMesh(marineGeometry('kelp'), kelpMaterial(this.uniforms), kelp.length);
+      mesh.material.color.set(0x5e6236);
+      kelp.forEach((k, i) => {
+        q.setFromAxisAngle(up, k.yaw);
+        m4.compose(k.p, q, new THREE.Vector3(1, k.s * 1.6, 1));
+        mesh.setMatrixAt(i, m4);
+      });
+      mesh.frustumCulled = false;
+      mesh.userData.structureLife = 'kelp';
+      upgradeMarineMesh(mesh, 'kelp', 0).catch(() => false);
+      this.group.add(mesh);
+    }
+    if (anemones.length) {
+      const mesh = new THREE.InstancedMesh(marineGeometry('anemone'), M(0xe4dccb, { roughness: .9 }), anemones.length);
+      anemones.forEach((k, i) => {
+        q.setFromUnitVectors(up, k.out);
+        m4.compose(k.p, q, new THREE.Vector3(k.s, k.s, k.s));
+        mesh.setMatrixAt(i, m4);
+      });
+      mesh.computeBoundingSphere();
+      mesh.userData.structureLife = 'anemone';
+      upgradeMarineMesh(mesh, 'anemone', 0).catch(() => false);
+      this.group.add(mesh);
+    }
   }
 
   // ── keep-clear areas (horizontal, three x/z) ───────────────────────────
@@ -191,6 +167,7 @@ export class Environment {
       if (ob.type === 'cylinder') { add(P(ob.p0), ob.radius + 12); add(P(ob.p1), ob.radius + 12); add(P(ob.p0).lerp(P(ob.p1), 0.5), ob.radius + 12); }
       else if (ob.type === 'box') add(P(ob.center), Math.hypot(ob.half[0], ob.half[1]) + 12);
       else if (ob.type === 'wall') add(P(ob.point), ob.width / 2 + 12);
+      else if (ob.type === 'ship_hull') add(P(ob.center), ob.length / 2 + 12);
       else if (ob.type === 'model') {
         const a = ob.heading_deg * Math.PI / 180, [lo, hi] = ob.bounds_local;
         F.push({ obb: { o: P(ob.origin), a, lo, hi, m: 14 } });
@@ -236,7 +213,7 @@ export class Environment {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
       geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(indices); geo.computeVertexNormals();
-      const material = M(0xffffff,{map:sandTexture(),roughness:1});
+      const material = seabedMaterial(siteProfile(this.world));
       const terrain = new THREE.Mesh(geo,material);
       terrain.userData.paintable=true;terrain.receiveShadow=true; this.group.add(terrain);
       // Extend clamped edge depths, matching the server's out-of-grid sampling.
@@ -270,8 +247,7 @@ export class Environment {
       p.setY(i, Math.max(h, 0.005));
     }
     g.computeVertexNormals();
-    const tex = sandTexture(); tex.repeat.set(size / 6, size / 6);
-    const terrain = new THREE.Mesh(g, M(0xffffff, { map: tex, roughness: 1 }));
+    const terrain = new THREE.Mesh(g, seabedMaterial(siteProfile(this.world)));
     terrain.position.set(this.centre.x, this.seabedY, this.centre.z);
     terrain.receiveShadow = true;terrain.userData.paintable=true;
     this.group.add(terrain);
@@ -288,18 +264,19 @@ export class Environment {
     for (const entities of buckets.values()) {
       const {kind,variant} = entities[0]; let geo, mat;
       if (kind === 'coral') {
-        geo = coralGeometry(variant);
+        geo = marineGeometry('coral', variant);
         mat = M([0x94765b,0x98785e,0x8a7c58][variant],{roughness:.94});
       } else if (kind === 'seastar') {
-        geo = seastarGeometry(); mat=M([0xaf7148,0x927650,0x765e55][variant]);
+        geo = marineGeometry('seastar', variant); mat=M([0xaf7148,0x927650,0x765e55][variant]);
       } else if (kind === 'rock') {
         geo=rockGeometry(variant*17.3); geo.translate(0,.48,0); mat=M(0x676354);
       } else {
-        geo=new THREE.PlaneGeometry(kind==='seagrass'?.07:.18,1,1,7);geo.translate(0,.5,0);
+        geo=marineGeometry(kind, variant);
         mat=kelpMaterial(this.uniforms);
         mat.color.set(kind==='seagrass'?0x53683d:0x5e643a);
       }
       const mesh = new THREE.InstancedMesh(geo,mat,entities.length);
+      if(kind!=='rock')upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
       mesh.userData.observationEntities = entities.map(e=>({entity_id:e.id,category:e.kind}));
       if(kind==='kelp'||kind==='seagrass') mesh.userData.observationBend = this.uniforms;
       for (let i=0;i<entities.length;i++) {
@@ -323,7 +300,7 @@ export class Environment {
 
   _sharedFish(schools) {
     this.sharedSchools=[];
-    const geo=fishGeometry();
+    const geo=marineGeometry('fish');
     for(const school of schools) {
       const R=rng(school.id+':'+this.world.world_seed);
       const fish=Array.from({length:school.count},()=>({offset:new THREE.Vector3((R()-.5)*2.1,(R()-.5)*.8,(R()-.5)*2.1),phase:R()*Math.PI*2,scale:.65+R()*.75}));
@@ -408,7 +385,7 @@ export class Environment {
       else if (ob.type === 'box') centres.push(P(ob.center).add(new THREE.Vector3(0, ob.half[2] + 3, 0)));
     }
     while (centres.length < 3) { const s = this._spot(R, 30, 80); if (!s) break; s.y = this.seabedY * 0.5; centres.push(s); }
-    const geo = fishGeometry();
+    const geo = marineGeometry('fish');
     this.schools = [];
     for (const c of centres.slice(0, 4)) {
       const n = 36 + Math.floor(R() * 30);

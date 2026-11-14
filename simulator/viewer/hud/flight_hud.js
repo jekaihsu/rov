@@ -204,7 +204,8 @@ function drawMap(canvas, s, w) {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate((ob.yaw_deg || 0) * Math.PI / 180);
-      ctx.strokeRect(-ob.half[1] * 5, -ob.half[0] * 5, ob.half[1] * 10, ob.half[0] * 10);
+      const half = ob.half || [ob.length / 2, ob.beam / 2];   // ship_hull: footprint from length and beam
+      ctx.strokeRect(-half[1] * 5, -half[0] * 5, half[1] * 10, half[0] * 10);
       ctx.restore();
     }
     if (ob.type === 'wall') {

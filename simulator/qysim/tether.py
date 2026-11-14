@@ -24,6 +24,7 @@ import numpy as np
 from .vehicles import X1_PARAMETERS, X1_TETHER_PARAMETERS
 from .physics import G, RHO, q_rot, q_conj, cross3
 from .world import World, Cylinder
+from .site_dressing import APPURTENANCE_KINDS
 from ._cable_accel import advance as _advance_compiled, advance_batch as _advance_batch
 
 GLAND_BODY = np.array(X1_PARAMETERS["gland_body"]["value"])     # tether strain-relief gland, rear of the hull
@@ -301,7 +302,7 @@ class Tether:
         """Net turns of cable around each (near-vertical) cylinder, from the cable's winding angle."""
         out = {}
         for ob in self.world.obstacles:
-            if not isinstance(ob, Cylinder) or ob.kind == "habitat":
+            if not isinstance(ob, Cylinder) or ob.kind == "habitat" or ob.kind in APPURTENANCE_KINDS:
                 continue
             a, b = np.asarray(ob.p0, float), np.asarray(ob.p1, float)
             axis = b - a

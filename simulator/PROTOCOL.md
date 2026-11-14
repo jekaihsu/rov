@@ -211,9 +211,12 @@ log [{t, kind, text}]   (last 8 lines, Traditional Chinese)
 
 ```text
 seabed_depth m
-obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast}
-          | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
-          | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall} ]              (vertical face; extends from `top` down to the seabed)
+obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast|...}
+          | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck|...}      (hx along heading yaw_deg)
+          | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall|quay}          (vertical face; extends from `top` down to the seabed)
+          | {type:"ship_hull", name, center [n,e,d], yaw_deg, length, beam, draft, top, kind: hull}   (optional, see below)
+          | {type:"model", ...} ]
+seabed_props [{type, collider, pos [n,e,d], size [l,w,h], yaw_deg}]   optional: seabed items taller than 0.2 m
 current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
 scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length}
 spool [n,e,d]         tether spool / deployment point on the surface
@@ -222,6 +225,26 @@ catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
+
+Structure details (optional, added with the dressed inspection sites). Clients that only know the three
+original shapes keep working: details are ordinary `cylinder`/`box` obstacles, and `kind` values they do not
+know can be drawn with a default colour.
+
+* Detail kinds on `cylinder`: `anode`, `anode_strap` (jacket legs), `transition_piece`, `boat_landing`, `j_tube`,
+  `cable_protection`, `scour_rock` (buried horizontal capsules forming the rock berm round a monopile),
+  `fender`, `bollard`, `toe_rock` (quays), `debris_pipe`, `bilge_keel`, `shaft`, `propeller` (ship hulls).
+  On `box`: `mudmat`, `ladder`, `tyre`, `debris_block`, `deck`, `rudder`. Wrap counts (`tether.wraps`) only
+  count primary members (`pile`, `monopile`, `jacket_leg`, `brace`, `mast`), not these fittings.
+* `wall` with `kind:"quay"` is a harbour quay (concrete face); other walls (e.g. the training pool) keep `wall`.
+* `ship_hull` replaces the old hull `box` in the hull scenarios: a flat-bottomed hull with round bilges, a bow
+  taper with raked stem and a counter stern over the propeller aperture. `center` is midships on the waterline,
+  `yaw_deg` the bow heading, `top` the deck (negative = above water). The exact proportions and the signed
+  distance are in `qysim/world.py` (`ship_hull_params`, `ship_hull_local_sdf`) and mirrored in
+  `viewer/structure_sdf.js`. The propeller, rudder and bilge keels are separate obstacles named
+  `<hull name> propeller ...`, `<hull name> rudder`, `<hull name> bilge keel ...`.
+* `seabed_props` lists, as plain data, the collision shapes on the seabed that rise more than 0.2 m (scour and
+  toe rock, mud mats, tyres, blocks, pipes, cable protection, habitat boulders): `type`, `collider` (obstacle
+  name), `pos` (footprint centre on the seabed), `size` (length, width, height above the seabed) and `yaw_deg`.
 
 ### Optional flight assistance
 
