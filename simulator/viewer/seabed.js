@@ -164,14 +164,6 @@ function shaderPatch(profile, maps) {
       // ripple field read along a 0.35 rad rotated grid (and a second 1.95 rad grid on high): no visible tiling
       const mat2 SEA_ROT_A = mat2(0.9394, -0.3429, 0.3429, 0.9394);
       const mat2 SEA_ROT_B = mat2(-0.3702, -0.9290, 0.9290, -0.3702);
-      float seaRipple(vec2 p, float mixer) {
-        float a = texture2D(uField, SEA_ROT_A * p * 0.16).r;
-        #if SEA_QUALITY >= 2
-        return mix(a, texture2D(uField, SEA_ROT_B * p * 0.083).r, mixer);
-        #else
-        return a;
-        #endif
-      }
       ` + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
       vec2 seaP = vSeaPos.xz;
@@ -212,18 +204,7 @@ function shaderPatch(profile, maps) {
       #ifdef SEA_TILES
       seaCol = texture2D(uTiles, seaP * 0.5).rgb;
       #endif
-      diffuseColor.rgb *= seaCol;
-      float seaBump = uRipple * (1.0 - mudW * 0.7) * (1.0 - uTileFloor);`)
-      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-      #if SEA_QUALITY >= 2
-      {
-        float e = 0.06;
-        float hx = (seaRipple(seaP + vec2(e, 0.0), seaMix) - seaR) * 2.0;
-        float hz = (seaRipple(seaP + vec2(0.0, e), seaMix) - seaR) * 2.0;
-        vec3 tilt = vec3(-hx, 0.0, -hz) * 0.9 * seaBump;
-        normal = normalize(normal + (viewMatrix * vec4(tilt, 0.0)).xyz);
-      }
-      #endif`);
+      diffuseColor.rgb *= seaCol;`);
   };
 }
 
@@ -232,8 +213,8 @@ const QUALITY = {low: 0, medium: 1, high: 2};
 /**
  * Seabed material for a profile name from siteProfile(). ``detail`` (low / medium / high) sets the shader cost:
  * low reads one texture (cost of the old single sand texture); medium two (a baked smooth-noise texture for
- * mud, gravel and rock patches, and the ripple field); high adds a second ripple scale, the gravel texture and
- * ripple shading of the normal (six reads). No procedural noise is evaluated per pixel.
+ * mud, gravel and rock patches, and the ripple field); high adds a second ripple scale and the gravel texture
+ * (four reads). Ripples are shading only (no normal perturbation). No procedural noise is evaluated per pixel.
  */
 export function seabedMaterial(name, detail = 'medium') {
   const profile = PROFILES[name] || PROFILES.offshore;

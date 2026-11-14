@@ -167,7 +167,14 @@ function foulingShader(params, textures) {
   };
   return function onBeforeCompile(shader) {
     Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = 'varying vec3 vFoulPos;\nvarying vec3 vFoulNormal;\n' + shader.vertexShader.replace(
+    // depth bands are smooth over metres: evaluated per vertex, interpolated, so the fragment stage stays cheap
+    shader.vertexShader = `varying vec3 vFoulPos;
+      varying vec3 vFoulNormal;
+      varying vec4 vFoulBand;    // shallow, deep, wet, growth cover
+      varying vec2 vFoulPaint;   // boot top, topside
+      uniform vec3 uCover;
+      uniform float uHasBoot;
+      ` + shader.vertexShader.replace(
       '#include <project_vertex>', `vec4 foulWorld = vec4(transformed, 1.0);
       vec3 foulNormal = objectNormal;
       #ifdef USE_INSTANCING
@@ -176,11 +183,22 @@ function foulingShader(params, textures) {
       #endif
       vFoulPos = (modelMatrix * foulWorld).xyz;
       vFoulNormal = normalize(mat3(modelMatrix) * foulNormal);
+      {
+        float depth = -vFoulPos.y;
+        float band0 = 1.0 - smoothstep(6.0, 10.0, depth);
+        float band2 = smoothstep(18.0, 22.0, depth);
+        float wet = smoothstep(-0.6, 0.4, depth);
+        float cover = (uCover.x * band0 + uCover.y * (1.0 - band0 - band2) + uCover.z * band2) * wet;
+        vFoulBand = vec4(band0, band2, wet, cover);
+        vFoulPaint = uHasBoot * vec2((1.0 - smoothstep(0.4, 0.6, depth)) * smoothstep(-1.2, -1.0, depth),
+          1.0 - smoothstep(-1.25, -1.15, depth));
+      }
       #include <project_vertex>`);
     shader.fragmentShader = `varying vec3 vFoulPos;
       varying vec3 vFoulNormal;
+      varying vec4 vFoulBand;
+      varying vec2 vFoulPaint;
       uniform sampler2D uFouling;
-      uniform vec3 uCover;
       uniform float uSplash;
       uniform vec3 uCoat;
       uniform vec3 uBoot;
@@ -193,7 +211,6 @@ function foulingShader(params, textures) {
       }
       ` + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       {
-        float depth = -vFoulPos.y;
         vec3 coarse = foulSample(0.13);
         #if FOUL_QUALITY >= 2
         vec3 fineN = abs(vFoulNormal);
@@ -204,11 +221,11 @@ function foulingShader(params, textures) {
         vec3 fine = coarse.gbr;
         #endif
         float clump = clamp(fine.r * 0.6 + coarse.r * 0.8, 0.0, 1.0);
-        float band0 = 1.0 - smoothstep(6.0, 10.0, depth);
-        float band2 = smoothstep(18.0, 22.0, depth);
+        float band0 = vFoulBand.x;
+        float band2 = vFoulBand.y;
         float band1 = 1.0 - band0 - band2;
-        float wet = smoothstep(-0.6, 0.4, depth);
-        float cover = (uCover.x * band0 + uCover.y * band1 + uCover.z * band2) * wet;
+        float wet = vFoulBand.z;
+        float cover = vFoulBand.w;
         vec3 mussel = mix(vec3(0.05, 0.06, 0.07), vec3(0.2, 0.22, 0.12), coarse.g * 0.5 + fine.g * 0.3);
         vec3 barnacle = mix(vec3(0.62, 0.6, 0.54), vec3(0.42, 0.4, 0.33), fine.r);
         vec3 soft = mix(vec3(0.55, 0.5, 0.45), vec3(0.85, 0.82, 0.78), fine.g);
@@ -219,10 +236,8 @@ function foulingShader(params, textures) {
         float splash = (1.0 - wet) * uSplash;
         vec3 rust = vec3(0.36, 0.19, 0.09);
         diffuseColor.rgb = mix(diffuseColor.rgb, rust, splash * clamp(fine.b * 2.0 + coarse.r * 0.5, 0.0, 1.0));
-        float boot = uHasBoot * (1.0 - smoothstep(0.4, 0.6, depth)) * smoothstep(-1.2, -1.0, depth);
-        diffuseColor.rgb = mix(diffuseColor.rgb, uBoot, boot);
-        float topside = uHasBoot * (1.0 - smoothstep(-1.25, -1.15, depth));
-        diffuseColor.rgb = mix(diffuseColor.rgb, uCoat, topside);
+        diffuseColor.rgb = mix(diffuseColor.rgb, uBoot, vFoulPaint.x);
+        diffuseColor.rgb = mix(diffuseColor.rgb, uCoat, vFoulPaint.y);
         float coatAbove = (1.0 - uHasBoot) * (1.0 - wet);
         diffuseColor.rgb = mix(diffuseColor.rgb, uCoat * (0.8 + 0.3 * coarse.r), coatAbove * (1.0 - splash * fine.b));
       }`);
@@ -249,7 +264,7 @@ export function structureMaterial(kind, detail = 'medium') {
   } else {
     material.onBeforeCompile = foulingShader(params, textures);
     material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};
-    material.customProgramCacheKey = () => `structure-fouling-v2-${material.defines.FOUL_QUALITY}`;
+    material.customProgramCacheKey = () => `structure-fouling-v3-${material.defines.FOUL_QUALITY}`;
   }
   material.userData.structureKind = kind;
   return material;

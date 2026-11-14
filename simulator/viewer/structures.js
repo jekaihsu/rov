@@ -28,7 +28,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
   low: {radial: 12, rockDetail: 0, lumps: 0, hullX: 48, hullZ: 10},
   medium: {radial: 20, rockDetail: 0, lumps: 60, hullX: 96, hullZ: 16},
-  high: {radial: 28, rockDetail: 0, lumps: 120, hullX: 140, hullZ: 22},
+  high: {radial: 28, rockDetail: 0, lumps: 90, hullX: 140, hullZ: 22},
 };
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
