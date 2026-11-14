@@ -11,7 +11,7 @@ if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_DATA){
 }
 const { createSteam } = require('./steam_service.cjs');
 const displaySettings = require('./window_settings.cjs');
-if (!app.requestSingleInstanceLock()) app.quit();
+if (!app.requestSingleInstanceLock()) app.exit(0);
 app.on('second-instance', () => {
   const existing = BrowserWindow.getAllWindows()[0];
   existing?.restore();
@@ -99,10 +99,20 @@ app.whenReady().then(async()=>{
   window.webContents.on('will-navigate', (event, url) => {
     if (!url.startsWith(origin + '/')) event.preventDefault();
   });
+  const viewerRoot = app.isPackaged ? path.join(root, 'rov-sim', '_internal', 'viewer') :
+    path.join(root, 'viewer');
+  const inlineHashes = [];
+  for (const filename of ['index.html', 'model-preview.html']) {
+    const html = fs.readFileSync(path.join(viewerRoot, filename), 'utf8');
+    for (const match of html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+      const hash = require('node:crypto').createHash('sha256').update(match[1]).digest('base64');
+      inlineHashes.push(`'sha256-${hash}'`);
+    }
+  }
   window.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     if (!details.url.startsWith(origin + '/')) return callback({});
     callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+      `default-src 'self'; script-src 'self' ${inlineHashes.join(' ')}; style-src 'self' 'unsafe-inline'; ` +
       "img-src 'self' data: blob:; connect-src 'self' ws: wss: https:; " +
       "worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-src 'none'"
     ] } });
