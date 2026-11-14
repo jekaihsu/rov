@@ -1,15 +1,328 @@
 {
   "id": "wreck",
   "title": "第四章｜沉船",
-  "scenario": "open_water",
-  "mode": "free_explore",
+  "scenario": "wreck_survey",
+  "mode": "inspection_coop",
   "category": "story",
   "order": 70,
   "requires": "reef",
-  "placeholder": true,
-  "outline": "貨輪殘骸內的額外壓艙物與失蹤的維修紀錄。",
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "restart",
+      "type": "checkpoint"
+    },
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "brief"
+    },
+    {
+      "id": "task_1",
+      "type": "objective",
+      "text_key": "task_1"
+    },
+    {
+      "id": "task_1_brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_1_brief"
+    },
+    {
+      "id": "task_1_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "task_1_cable"
+    },
+    {
+      "id": "task_1_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "task_1_poll.hint"
+    },
+    {
+      "id": "task_1_broken",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": true
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_1_expired",
+      "type": "branch",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "expired"
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_1_checked",
+      "type": "branch",
+      "condition": {
+        "path": "mission.targets.0.completed",
+        "op": "eq",
+        "value": true
+      },
+      "target": "task_1_report"
+    },
+    {
+      "id": "task_1_repeat",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "task_1_poll"
+    },
+    {
+      "id": "task_1_report",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_1_report"
+    },
+    {
+      "id": "task_2",
+      "type": "objective",
+      "text_key": "task_2"
+    },
+    {
+      "id": "task_2_brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_2_brief"
+    },
+    {
+      "id": "task_2_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "task_2_cable"
+    },
+    {
+      "id": "task_2_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "task_2_poll.hint"
+    },
+    {
+      "id": "task_2_broken",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": true
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_2_expired",
+      "type": "branch",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "expired"
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_2_checked",
+      "type": "branch",
+      "condition": {
+        "path": "mission.targets.1.completed",
+        "op": "eq",
+        "value": true
+      },
+      "target": "task_2_report"
+    },
+    {
+      "id": "task_2_repeat",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "task_2_poll"
+    },
+    {
+      "id": "task_2_report",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_2_report"
+    },
+    {
+      "id": "task_3",
+      "type": "objective",
+      "text_key": "task_3"
+    },
+    {
+      "id": "task_3_brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_3_brief"
+    },
+    {
+      "id": "task_3_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "task_3_cable"
+    },
+    {
+      "id": "task_3_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "task_3_poll.hint"
+    },
+    {
+      "id": "task_3_broken",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": true
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_3_expired",
+      "type": "branch",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "expired"
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_3_checked",
+      "type": "branch",
+      "condition": {
+        "path": "mission.targets.2.completed",
+        "op": "eq",
+        "value": true
+      },
+      "target": "task_3_report"
+    },
+    {
+      "id": "task_3_repeat",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "task_3_poll"
+    },
+    {
+      "id": "task_3_report",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_3_report"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "done"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "wreck_badge"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "skip_abort",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "end"
+    },
+    {
+      "id": "abort",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "abort"
+    },
+    {
+      "id": "abort_goal",
+      "type": "objective",
+      "text_key": "abort_goal"
+    },
+    {
+      "id": "abort_hold",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "lt",
+        "value": -1
+      },
+      "hint_key": "abort_hold.hint"
+    },
+    {
+      "id": "end",
+      "type": "checkpoint"
+    }
+  ],
   "strings": {
-    "zh-TW": {}
+    "zh-TW": {
+      "supervisor": "林督導",
+      "tender": "阿禾",
+      "brief": "研究站影像裡有一段舊貨輪殘骸。我們叫它「折潮」案，不是船名。先查外側，艙內不進。",
+      "task_1": "作業一｜艏部基準：完成第一站",
+      "task_1_brief": "下到測站深度，別直衝海床。暗處先認輪廓，推進器別對著泥。",
+      "task_1_cable": "桅桿在上面也會勾線。我盯著來路，你慢一點。",
+      "task_1_poll.hint": "依 HUD 到艏部站，穩定三秒拍照。場景海床三十公尺，禁止往三十二公尺下鑽。",
+      "task_1_report": "這裡的固定座和舊裝載圖不一致。先標成疑點，別急著下結論。",
+      "task_2": "作業二｜側面比對：完成第二站",
+      "task_2_brief": "換面走外圍。近鋼構別只信航向，拿剛才的輪廓核對。",
+      "task_2_cable": "又想抄近路了吧？我這條線可穿不過船。",
+      "task_2_poll.hint": "繞外側到第二站，穩定拍照；看不清先停，保留與結構的距離。",
+      "task_2_report": "固定座旁有修補痕。額外壓艙物若擋住排水，兩件事可能有關。只是可能。",
+      "task_3": "作業三｜艉部交叉查證：完成第三站",
+      "task_3_brief": "最後一站對照破口。抓手不撬船板，我們只取影像。",
+      "task_3_cable": "潮要換了。拍不清就另排一趟，我寧可多煮一次飯。",
+      "task_3_poll.hint": "完成第三站穩定拍照。留意張力與碰撞，別為拍照把纜線壓上殘骸。",
+      "task_3_report": "交叉照片齊了。研究站找到一只封存紀錄匣，已轉運到港內暫存區。",
+      "done": "紀錄匣能不能把修補和裝載改動接起來，還要驗。今晚回港，趁潮窗把它接上來。",
+      "abort": "停工。這趟不交合格報告。從章節面板重開本章，先確認退路和剩餘時間。",
+      "abort_goal": "本趟中止：從章節面板重開本章；不計完成、不發獎勵。",
+      "abort_hold.hint": "從章節面板重開本章。"
+    }
   }
 }
