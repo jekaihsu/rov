@@ -16,6 +16,20 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width': 1280, 'height': 720})
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
+    if not args.screenshots:
+        # Isolate HUD timing from software WebGL and WebSocket leases. --screenshots uses the live game.
+        page.route('**/boot.js', lambda route: route.fulfill(content_type='text/javascript', body="""
+          import {updateFlightHUD} from '/hud/flight_hud.js';
+          const S = {pos:[0,0,2], euler:[0,0,0], speed_kn:0, battery:100,
+            vehicle_id:'self', vehicles:[], tether:{length:30,nodes:[[0,0,0],[0,0,2]]},
+            score:{current_index:0,objectives:[{label:'Checkpoint',progress:0}]}};
+          const W = {seabed_depth:25, obstacles:[], objectives:[]};
+          document.documentElement.classList.add('in-game');
+          document.getElementById('offline').hidden = true;
+          window.__viewer = {S,W};
+          function frame() { updateFlightHUD(S,W,1/60); requestAnimationFrame(frame); }
+          frame();
+        """))
     page.goto('http://127.0.0.1:8092/?play=1&nointro&ws=ws://127.0.0.1:8792&room=hudcheck', wait_until='domcontentloaded')
     page.wait_for_function('window.__viewer?.S && document.querySelector("#flightCable")')
     assert page.locator('#engineering').is_hidden()
@@ -62,4 +76,4 @@ with sync_playwright() as p:
     assert page.locator('#engineering').is_hidden()
     assert not errors, errors
     browser.close()
-print('HUD geometry, tap timeout, hold/release, drawer persistence passed.')
+print('HUD geometry, tap timeout, hold/release, D-pad adapter, hiding and drawer persistence passed.')
