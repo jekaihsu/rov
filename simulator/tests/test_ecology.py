@@ -101,8 +101,13 @@ class HabitatTests(unittest.TestCase):
         for _ in range(20):
             w.step(.1)
         self.assertGreater(np.linalg.norm(w.silt_clouds[0]["pos"][:2]), .5)
+        # Puffs no longer fade on a timer: the cloud drifts off the spot (mass is kept, see test_silt)
+        # and is retired once it leaves the area around every vehicle.
         for _ in range(400):
-            w.step(.1)
+            w.step(.1, vehicles=[{"id": "alpha", "pos": np.zeros(3)}])
+        self.assertLess(w.silt_at([0, 0, 10]), .01)
+        w.silt_field.params["range_m"] = 15.0
+        w.step(.1, vehicles=[{"id": "alpha", "pos": np.zeros(3)}])
         self.assertFalse(w.silt_clouds)
 
     def test_local_current_is_continuous_and_batch_consistent(self):

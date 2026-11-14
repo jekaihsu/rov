@@ -12,6 +12,7 @@ package forwards to it over a local socket.
 from __future__ import annotations
 
 import math
+import os
 import time
 from dataclasses import dataclass, field
 
@@ -24,8 +25,12 @@ from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether
 from .world import World
+from .sensors import SensorConfig, SensorSuite
 from .mission_modes import MissionRun, ensure_mission
 from .expedition import ensure_expedition
+from .comms import CommsLink
+from .power import PowerSystem
+from .thermal import ThermalModel
 
 MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
     "motor_left_front": 0, "motor_right_front": 1, "motor_left_rear": 2,
@@ -51,10 +56,45 @@ class CameraState:
     counter: int = 1
 
 
+def _body_to_world(q: np.ndarray) -> np.ndarray:
+    """Rotation matrix of the body->world quaternion [w, x, y, z]."""
+    w, x, y, z = (float(v) for v in q)
+    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+                     [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+                     [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
+
+
+def vehicle_world_source(sim) -> dict:
+    """A vehicle as seen by ``World.step``: pose, mean thrust and per-thruster jets for the silt model."""
+    v, s = sim.vehicle, sim.vehicle.s
+    layout = getattr(v, "_jet_layout", None)
+    if layout is None:
+        positions = np.array([pos for _, pos, _ in v.thrusters], float)
+        axes = np.array([axis for _, _, axis in v.thrusters], float)
+        layout = (positions, axes / np.linalg.norm(axes, axis=1)[:, None])
+        v._jet_layout = layout
+    rotation = _body_to_world(s.q)
+    outlets = s.pos + layout[0] @ rotation.T
+    # Water leaves opposite to the force the thruster puts on the vehicle.
+    jets = -np.where(s.thrust < 0, -1.0, 1.0)[:, None] * (layout[1] @ rotation.T)
+    magnitude = np.abs(s.thrust)
+    source = {"id": sim.vehicle_id, "pos": s.pos, "vel": v.world_velocity(),
+              "thrust": float(np.mean(magnitude) / v.p.thruster_max),
+              "jets": list(zip(outlets, jets, magnitude.tolist()))}
+    tether = getattr(sim, "tether", None)
+    if tether is not None:
+        source["tether"] = (tether.x, tether.v, tether.p.node_radius)
+    return source
+
+
 class Simulator:
     def __init__(self, scenario: str = "open_water", seed: int | None = None, rate_hz: float = 100.0,
-                 model_id: str = "x1", vehicle_id: str = "default", shared_world=None):
+                 model_id: str = "x1", vehicle_id: str = "default", shared_world=None,
+                 sensor_config: SensorConfig | None = None):
         self.dt = 1.0 / rate_hz
+        # Realistic sensors are the default; QYSIM_SENSORS=ideal restores perfect, truth-valued sensors.
+        ideal = os.environ.get("QYSIM_SENSORS", "").strip().lower() == "ideal"
+        self.sensor_config = sensor_config or SensorConfig(ideal=ideal)
         self.model_id = model_id
         self.vehicle_id = vehicle_id
         self.appearance = {"sticker": "none"}
@@ -75,6 +115,8 @@ class Simulator:
             self.world.current = sc.current
             clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
+            self.world.configure_silt(sc_mod.silt_seabed_type(sc.biome, sc.seabed_type), sc.bnl_height_m, sc.bnl_mg_l)
+            self.world.visibility_m = sc.visibility_m
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
         self.vehicle.seabed_depth = sc.seabed_depth
@@ -92,6 +134,12 @@ class Simulator:
         self.shaping = Shaping()
         self.camera = CameraState()
         self.battery = 100.0
+        self.link = CommsLink(getattr(sc, "link", None))
+        self.power = PowerSystem(self.model_id)
+        self.thermal = ThermalModel(len(self.vehicle.thrusters), float(sc.start_pos[2]))
+        self._thermal_warnings = set()
+        self.leak = False
+        self.on_deck = False
         self.dvl_switches: dict = {}
         self.arm = "close"
         gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, np.asarray(self.vehicle.definition.gland_body))
@@ -108,6 +156,7 @@ class Simulator:
         self.tool_wrench = np.zeros(6)
         from .operations import VehicleOperations
         self.operations = VehicleOperations(self)
+        self.sensors = SensorSuite(self, self.sensor_config)
         if not hasattr(self.world, "mission_run"):
             self.world.mission_run = MissionRun(self, mission_mode)
         self._log("scenario", f"載入情境 {sc.name}")
@@ -143,6 +192,11 @@ class Simulator:
         return self.rc_sdk if self.remote_control else self.rc_physical
 
     @property
+    def battery_percent(self) -> float:
+        """Legacy battery reading. Tether-powered vehicles have no battery and always report 100."""
+        return 100.0 if self.power.tether else self.battery
+
+    @property
     def yaw(self) -> float:
         return self.vehicle.euler[2]
 
@@ -160,7 +214,11 @@ class Simulator:
             return
         dt = dt or self.dt
         v, s = self.vehicle, self.vehicle.s
-        rc = self.rc
+        self.world.visibility_m = self.scenario.visibility_m
+        self.link.step(self, dt)
+        measured = self.sensors.step(dt, self)     # None with ideal sensors: consumers read truth as before
+        # The simulated vehicle link decides which command actually reaches the vehicle.
+        rc = self.link.command_rc(self.rc)
         locked = rc.rc_lock == 1 or self.tether.broken
         mode = ctrl_mode(rc)
         pilot = pilot_command(rc, self.operation_mode, self.shaping)
@@ -169,8 +227,18 @@ class Simulator:
 
         heading = None
         assist = 0 if self.remote_control else rc.assist
-        if not locked and (self.nav.mode != "IDLE" or self.nav.hold is not None):
-            out = self.nav.step(dt, s.pos, self.yaw, v.world_velocity(), pilot, v.p.vmax[0])
+        failsafe = self.link.failsafe_command(self)
+        if failsafe is not None:
+            locked, mode, assist, keep_depth = False, "A", 0, True
+            pilot = {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+            pilot["heave"] = failsafe["heave"]
+            if failsafe["depth"] is not None:
+                self.controller.depth_hold = failsafe["depth"]
+        elif not locked and (self.nav.mode != "IDLE" or self.nav.hold is not None):
+            if measured is None:
+                out = self.nav.step(dt, s.pos, self.yaw, v.world_velocity(), pilot, v.p.vmax[0])
+            else:
+                out = self.nav.step(dt, measured.pos, measured.yaw, measured.vel_world, pilot, v.p.vmax[0])
             if out is not None:
                 assist = 0
                 pilot = {**{k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}, **out.cmd}
@@ -191,8 +259,11 @@ class Simulator:
         # Provisional simulated bottom-lock window, not a calibrated sensor model.
         altitude = v.seabed_depth - s.pos[2]
         dvl_valid = bool(0.1 <= altitude <= 100.0 and np.all(np.isfinite(v.world_velocity())))
+        if measured is not None:
+            dvl_valid = measured.dvl_valid
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist,
-                                     rc.profile, dvl_valid=dvl_valid) * self.health
+                                     rc.profile, dvl_valid=dvl_valid, measured=measured) * self.health
+        thr = self.power.apply(self, thr, rc)
         w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
         n_events = len(self.world.events)
         w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
@@ -201,18 +272,42 @@ class Simulator:
                                                              for centre in self.vehicle.definition.hull_centres])
         v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
         if update_world:
-            self.world.step(dt, vehicles=[{"id": self.vehicle_id, "pos": s.pos, "vel": v.world_velocity()}])
+            self.world.step(dt, vehicles=[self.world_source()])
             from .operations import step_objects
             step_objects(self.world, dt, self.t)
         self._damage(n_events)
+        self._thermal(dt)
 
-        load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max
-        self.battery = max(0.0, self.battery - dt * (0.004 + 0.05 * load ** 1.5))
+        if not self.power.tether:
+            load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max
+            self.battery = max(0.0, self.battery - dt * (0.004 + 0.05 * load ** 1.5))
         self.t += dt
         self.scorer.update(dt, self)
         ensure_mission(self).update(self, dt)
         if self.world.mission_run.mode == "expedition":
             ensure_expedition(self).update(self, dt)
+
+    _THERMAL_TEXT = {"dry_run": "馬達離水運轉超過 30 秒", "motor_hot": "馬達溫度過高",
+                     "electronics_hot": "電子艙溫度過高"}
+
+    def _thermal(self, dt: float) -> None:
+        self.thermal.step(self, dt)
+        warnings = set(self.thermal.warnings())
+        for code in sorted(warnings - self._thermal_warnings):
+            self._log("thermal", self._THERMAL_TEXT[code])
+        self._thermal_warnings = warnings
+
+    def camera_turbidity(self) -> dict:
+        """Suspended sediment and black-target visibility at the onboard camera (optional state field)."""
+        s = self.vehicle.s
+        point = s.pos + q_rot(s.q, np.asarray(self.vehicle.definition.camera_body, float))
+        concentration = self.world.silt_concentration_at(point)
+        visibility = self.world.visibility_at(point, self.scenario.visibility_m)
+        return {"mg_l": round(concentration, 3), "visibility_m": round(visibility, 3),
+                "c": round(4.8 / visibility, 4)}
+
+    def world_source(self) -> dict:
+        return vehicle_world_source(self)
 
     def _buttons(self, rc: RCState) -> None:
         for name in ("record", "photo"):
@@ -279,22 +374,19 @@ class Simulator:
 
     # ── telemetry in SDK formats ───────────────────────────────────────────
     def sdk_status(self) -> dict:
-        roll, pitch, yaw = self.vehicle.euler
+        roll, pitch, yaw = self.sensors.attitude(self)
         rc = self.rc
-        s = self.vehicle.s
-        fwd = q_rot(s.q, np.array([1.0, 0, 0]))
-        down = q_rot(s.q, np.array([0, 0, 1.0]))
-        dist = self.world.raycast(s.pos + fwd * 0.4, fwd, 50.0)
-        alt = self.world.raycast(s.pos + down * 0.2, down, 100.0)
-        vb = s.vel
+        dist, alt = self.sensors.sdk_ranges(self)
+        vb = self.sensors.dvl_body_velocity(self)
+        depth = self.sensors.depth(self)
         dvl = lambda p: {f"{p}_Xspeed": round(float(vb[0]), 3), f"{p}_Yspeed": round(float(vb[1]), 3),
                          f"{p}_Zspeed": round(float(vb[2]), 3), f"{p}_Altitude": round(alt, 2)}
-        bat = int(round(self.battery))
+        bat = int(round(self.battery_percent))
         return {
             "status": "ok", "status_code": "", "text": "Success",
             "Battery": f"Left: {bat}, Right: {bat}",
             "Temp": int(round(26 - 0.15 * self.depth)),
-            "Depth": round(self.depth, 2),
+            "Depth": round(depth, 2),
             "Compass": int(round(math.degrees(yaw) % 360)),
             "Rov_Attitude_Angle": {"Pitch": int(round(math.degrees(pitch))), "Yaw": int(round(math.degrees(yaw) % 360)),
                                    "Roll": int(round(math.degrees(roll)))},
@@ -314,7 +406,7 @@ class Simulator:
                 "SL_Status", "DL_AL_Status", "DL_SL_Status", "AL_SL_Status", "Laser_Status", "Laser_DL_Status",
                 "Laser_AL_Status", "Laser_DL_AL_Status", "Image_Sonar_Status", "QCamera_Status", "pH_Sensor_Status",
                 "Salt_Sensorr_Status", "NTU_Sensor_Status", "Do_Sensor_Status", "OPSS_Status", "Metal_Detector_Status")}
-                                  | {"DVL_Status": "OnLine"},
+                                  | {"DVL_Status": "OnLine" if self.sensors.dvl_online(self) else "OffLine"},
             "A50DVL": {f"A50DVL_{k}": "" for k in ("Xspeed", "Yspeed", "Zspeed", "Altitude")},
             "QDVL": dvl("QDVL"),
             "MicroDVL": dvl("MicroDVL"),
@@ -326,7 +418,8 @@ class Simulator:
 
     def hf_status(self, which: str) -> dict:
         s = self.vehicle.s
-        roll, pitch, yaw = self.vehicle.euler
+        roll, pitch, yaw = self.sensors.attitude(self)
+        depth = self.sensors.depth(self)
         ts = int(time.time() * 1000)
         if which == "50hz":
             specific = s.accel - q_rot(np.array([s.q[0], -s.q[1], -s.q[2], -s.q[3]]), np.array([0, 0, 9.81]))
@@ -334,16 +427,17 @@ class Simulator:
                 "timestamp": ts,
                 "acceleration": {k: round(float(val), 2) for k, val in zip("xyz", specific)},
                 "gyroscope": {k: round(math.degrees(float(val)), 2) for k, val in zip("xyz", s.omega)},
-                "quaternion": {k: float(val) for k, val in zip("wxyz", s.q)},
-                "depth": int(round(self.depth * 100))}}
-        lat, lng = self.latlng()
+                "quaternion": {k: float(val) for k, val in zip("wxyz", self.sensors.quaternion(self))},
+                "depth": int(round(depth * 100))}}
+        lat, lng = self.sensors.latlng(self)
+        body_velocity = self.sensors.dvl_body_velocity(self)
         return {"status": "ok", "status_code": "", "type": "10hz", "data": {
             "timestamp": ts,
-            "velocity": {k: int(round(float(val) * 100)) for k, val in zip("xyz", s.vel)},
+            "velocity": {k: int(round(float(val) * 100)) for k, val in zip("xyz", body_velocity)},
             "longitude": lng, "latitude": lat,
             "attitude": {"pitch": round(math.degrees(pitch), 2), "roll": round(math.degrees(roll), 2),
                          "yaw": round(math.degrees(yaw) % 360, 2)},
-            "depth": int(round(self.depth * 100))}}
+            "depth": int(round(depth * 100))}}
 
     # ── SDK dispatch ──────────────────────────────────────────────────────
     def sdk_call(self, cls: str, method: str, args: list, kwargs: dict):
@@ -428,7 +522,7 @@ class Simulator:
     _sdk_QYRovParameterManage__set_V6P_laser_switch = _v6p_only
 
     def _sdk_QYRovParameterManage__set_rov_posture_original(self):
-        _, _, yaw = self.vehicle.euler
+        _, _, yaw = self.sensors.attitude(self)
         self.controller.q_hold = q_from_euler(0.0, 0.0, yaw)
         return ok()
 
@@ -464,11 +558,14 @@ class Simulator:
 
     # QYRovCheckManage
     def _sdk_QYRovCheckManage__ego_self_test(self):
-        data = {"temp": 31, "humi": 22, "mos_temp": 38, "exit_upper": 0, "exit_lower": 0,
+        # Housing and motor-driver temperatures come from the thermal model; leak 1 means dry.
+        data = {"temp": int(round(self.thermal.housing_c)), "humi": 22,
+                "mos_temp": int(round(self.thermal.mos_reading_c)), "exit_upper": 0, "exit_lower": 0,
                 "network_5v": 1, "network_3v3": 1, "network_switch": 1, "network_plc": 1, "network_current": 1,
-                "spi_flash_comm": 1, "spi_flash_ctrl": 1, "leak": 1, "led_left": 1, "led_right": 1,
+                "spi_flash_comm": 1, "spi_flash_ctrl": 1, "leak": 0 if self.leak else 1, "led_left": 1, "led_right": 1,
                 "press": 1, "mag": 1, "six_axis": 1, "temp_humi_temp": 1, "temp_humi_humi": 1, "temp_humi_mos": 1,
-                "battery_l_status": 1 if self.battery > 5 else 0, "battery_r_status": 1 if self.battery > 5 else 0,
+                "battery_l_status": 1 if self.battery_percent > 5 else 0,
+                "battery_r_status": 1 if self.battery_percent > 5 else 0,
                 "bat_leak_l": 1, "bat_leak_r": 1}
         for fname, idx in MOTOR_FIELDS.items():
             data[fname] = 1 if idx < len(self.health) and self.health[idx] > 0.6 else 0
@@ -499,50 +596,65 @@ class Simulator:
             return err("Please pass in the correct parameters", "400", lat=0, lng=0, yaw=0)
         if self.nav.mode != "IDLE":
             return err("ROV busy", "202", lat=0, lng=0, yaw=0)
-        self.nav.init_dr(self.vehicle.s.pos, lat, lng)
-        la, ln = self.latlng()
+        self.nav.init_dr(self.sensors.position(self), lat, lng)
+        la, ln = self.sensors.latlng(self)
         return {"status": "ok", "status_code": "100", "text": "", "lat": la, "lng": ln,
-                "yaw": round(math.degrees(self.yaw) % 360, 2)}
+                "yaw": round(math.degrees(self.sensors.heading(self)) % 360, 2)}
 
     def _sdk_QYRovNavigationManage__get_navigation_status(self):
         base = {"lat": 0, "lng": 0, "yaw": 0, "dr_ver": 1, "auto_move_status": 0, "auto_move_lm": None}
         if not self.nav.dr_initialized:
             return {"status": "error", "status_code": "201", "text": "Position not initialized", **base}
-        la, ln = self.latlng()
+        la, ln = self.sensors.latlng(self)
         ams = {"H_NAVI": 1, "V_NAVI": 2}.get(self.nav.mode, 0)
         lm = None
         if self.nav.mode == "V_NAVI":
             lm = {"index": self.nav.route_i, "total": len(self.nav.route), **self.nav.v_params}
         return {"status": "ok", "status_code": "100", "text": "", "lat": la, "lng": ln,
-                "yaw": round(math.degrees(self.yaw) % 360, 2), "dr_ver": 1,
+                "yaw": round(math.degrees(self.sensors.heading(self)) % 360, 2), "dr_ver": 1,
                 "auto_move_status": ams, "auto_move_lm": lm}
+
+    def _sdk_power(self) -> dict:
+        """Battery models keep the original three keys. Tether models report type "tether", legacy
+        battery_cap_1/2 = 100 for old clients, and optional supply fields."""
+        bat = int(self.battery_percent)
+        power = {"type": "tether" if self.power.tether else "battery", "battery_cap_1": bat, "battery_cap_2": bat}
+        if self.power.tether:
+            state = self.power.state(self)
+            power.update({key: state[key] for key in ("available_w", "demand_w", "limited", "tripped")})
+        return power
 
     def _sdk_QYRovNavigationManage__get_rov_data(self, req_types=None):
         types = req_types or ["rov", "gps", "dvl", "uqps", "micro_dvl", "usbl"]
-        roll, pitch, yaw = self.vehicle.euler
-        la, ln = self.latlng()
-        s = self.vehicle.s
-        alt = self.world.raycast(s.pos, q_rot(s.q, np.array([0, 0, 1.0])), 100.0)
-        wv = self.vehicle.world_velocity()
+        roll, pitch, yaw = self.sensors.attitude(self)
+        la, ln = self.sensors.latlng(self)
+        alt = self.sensors.nav_altitude(self)
+        wv = self.sensors.world_velocity(self)
+        pos = self.sensors.position(self)
         data = {}
         if "rov" in types:
-            data["rov"] = {"depth": round(self.depth, 2), "temperature": round(26 - 0.15 * self.depth, 1),
+            data["rov"] = {"depth": round(self.sensors.depth(self), 2),
+                           "temperature": round(26 - 0.15 * self.depth, 1),
                            "altitude": round(alt, 2), "yaw": round(math.degrees(yaw) % 360, 2),
                            "pitch": round(math.degrees(pitch), 2), "roll": round(math.degrees(roll), 2),
-                           **{k: float(v) for k, v in zip("wxyz", s.q)},
-                           "endurance": round(self.battery / 100 * 5000, 0),
-                           "power": {"type": "battery", "battery_cap_1": int(self.battery), "battery_cap_2": int(self.battery)}}
+                           **{k: float(v) for k, v in zip("wxyz", self.sensors.quaternion(self))},
+                           "endurance": round(self.battery_percent / 100 * 5000, 0),
+                           "power": self._sdk_power()}
         if "gps" in types:
+            la, ln = self.latlng()
             online = self.depth < 0.3
             data["gps"] = {"online": online, "lat": la if online else 0.0, "lng": ln if online else 0.0, "alt": 0.0,
                            "hdop": 0.9 if online else 99.0, "status": 1 if online else 0,
                            "time": int(time.time() * 1000), "satellite_num": 14 if online else 0}
         if "dvl" in types:
+            la, ln = self.sensors.latlng(self)
             data["dvl"] = {"online": True, "lat": la, "lng": ln, "alt": round(alt, 2),
-                           "x": round(float(s.pos[0]), 2), "y": round(float(s.pos[1]), 2),
+                           "x": round(float(pos[0]), 2), "y": round(float(pos[1]), 2),
                            "vx": round(float(wv[0]), 3), "vy": round(float(wv[1]), 3), "mileage": 0.0,
                            "accuracy": 0.5, "position_valid": self.nav.dr_initialized,
                            "beams": {f"d{i}": round(alt / math.cos(math.radians(22.5)), 2) for i in range(1, 5)}}
+            if not self.sensors.ideal:
+                data["dvl"].update(self.sensors.sdk_dvl_extras(self))
         for k in ("uqps", "micro_dvl", "usbl"):
             if k in types:
                 data[k] = {"online": False}
@@ -619,7 +731,7 @@ class Simulator:
             return err("ROV locked")
         if ctrl_mode(self.rc) != "A":
             return err("Mode not A")
-        if self.battery < 10:
+        if self.battery_percent < 10:
             return err("Battery low")
         if np.any(self.health < 0.6):
             return err("Motor error")
@@ -779,7 +891,7 @@ class Simulator:
             "ctrl_mode": ctrl_mode(rc), "locked": bool(rc.rc_lock), "keep_depth": bool(rc.keep_depth),
             "assist": self.controller.assist_state(),
             "depth_hold": None if self.controller.depth_hold is None else round(self.controller.depth_hold, 2),
-            "battery": round(self.battery, 1), "recording": self.camera.recording_since is not None,
+            "battery": round(self.battery_percent, 1), "power": self.power.state(self), "recording": self.camera.recording_since is not None,
             "photos": sum(1 for f in self.camera.files if f["name"].endswith("JPG")),
             "current_here": [round(float(x), 3) for x in cur],
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
@@ -787,11 +899,16 @@ class Simulator:
             "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
             "damage": self.damage_events[-6:],
             "silt": round(self.world.silt_at(s.pos), 2),
+            "turbidity": self.camera_turbidity(),
+            "sensors": self.sensors.state(self),
             "nav": {"mode": self.nav.mode, "nav_status": self.nav.nav_status, "vccm": self.nav.vccm_status,
                     "route": [[w.n, w.e, w.depth] for w in self.nav.route][:400], "route_i": self.nav.route_i,
                     "target": None if self.nav.target is None else [self.nav.target.n, self.nav.target.e, self.nav.target.depth]},
             "score": ensure_mission(self).score_state(self),
             "log": self.log[-8:],
+            "link": self.link.state(),
+            "thermal": self.thermal.state(),
+            "leak": {"detected": bool(self.leak)},
         }
 
     def world_description(self) -> dict:

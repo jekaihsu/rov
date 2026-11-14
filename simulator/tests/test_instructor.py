@@ -177,3 +177,46 @@ class InstructorTests(unittest.TestCase):
                 reply = send({'type': 'operation', 'action': action})
                 self.assertEqual(reply['type'], 'operation_result')
                 self.assertNotEqual(reply.get('code'), 'instructor_override')
+
+
+class ConsoleExtensionTests(unittest.TestCase):
+    def test_cancel_restores_each_kind_without_touching_other_events(self):
+        for kind in ('thruster', 'battery', 'current', 'visibility', 'freeze'):
+            with self.subTest(kind=kind):
+                room = Room(Simulator())
+                instructor = room.instructor
+                sim = room.primary
+                before = (sim.health.tolist(), sim.battery, sim.world.current.surface_kn,
+                          sim.scenario.visibility_m, sim.paused)
+                instructor.inject({'kind': kind, 'strength': .5, 'duration': 60})
+                other = 'battery' if kind != 'battery' else 'thruster'
+                instructor.inject({'kind': other, 'strength': 0, 'duration': 60})
+                instructor.inject({'kind': kind, 'cancel_start': 0})
+                self.assertEqual([e['kind'] for e in instructor.active], [other])
+                self.assertEqual((sim.health.tolist(), sim.battery, sim.world.current.surface_kn,
+                                  sim.scenario.visibility_m, sim.paused), before)
+                self.assertIn('restored_at', instructor.events[-1])
+                with self.assertRaises(ValueError):
+                    instructor.inject({'kind': kind, 'cancel_start': 0})
+
+    def test_cancel_rejects_stale_and_invalid_identity(self):
+        instructor = Room(Simulator()).instructor
+        instructor.inject({'kind': 'battery'})
+        for start in (1, True, '0', float('nan')):
+            with self.assertRaises(ValueError):
+                instructor.inject({'kind': 'battery', 'cancel_start': start})
+        self.assertEqual(len(instructor.active), 1)
+
+    def test_supervision_is_optional_additive_public_snapshot(self):
+        instructor = Room(Simulator()).instructor
+        instructor.inject({'kind': 'thruster', 'index': 2})
+        report = instructor.report('v1')
+        supervision = report['supervision']
+        self.assertEqual(supervision['phase'], 'descent')
+        self.assertEqual(supervision['active'][0]['index'], 2)
+        self.assertNotIn('original', supervision['active'][0])
+        self.assertNotIn('controls', supervision['active'][0])
+        self.assertIn('obstacles', supervision['world'])
+        supervision['active'][0]['strength'] = 0
+        self.assertEqual(instructor.active[0]['strength'], 1)
+        self.assertEqual(set(report['matrix']), set(PHASES))

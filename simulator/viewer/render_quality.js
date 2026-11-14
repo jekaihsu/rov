@@ -1,5 +1,6 @@
 // Adjust only pixel workload; physics, controls and canvas CSS size stay fixed.
 const profiles=new WeakMap();
+let lastMode=null;
 const positive=value=>Number.isFinite(Number(value))&&Number(value)>0?Number(value):null;
 const clean=value=>typeof value==='string'?value.replace(/[\u0000-\u001f]/g,' ').trim().slice(0,256):'';
 
@@ -56,6 +57,7 @@ export function configureRenderQuality(renderer,mode='auto'){
   // Automatic quality on software GL starts without screen effects (underwater optics); there is no frame budget.
   const effectsSuppressed=mode==='auto'&&hardware.tier==='software';
   const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3,effectsSuppressed};
+  lastMode=mode;
   profiles.set(renderer,state);renderer.shadowMap.enabled=['high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
   return state;
 }
@@ -87,4 +89,21 @@ export function renderQualityInfo(renderer){
 // Internal scene consumers avoid allocating a diagnostic object for every frame.
 export function renderQualityState(renderer) {
   return profiles.get(renderer);
+}
+
+// Texture tier for large assets (e.g. the work boat): the full-resolution "high" files only when the user chose
+// the "high" quality mode; every other mode, including the default "auto", loads the standard files.
+// Without an explicit mode it uses the last configured mode, else the same URL / stored choice the menus use.
+export function assetTextureTier(mode = lastMode ?? storedQualityMode()) {
+  return mode === 'high' ? 'high' : 'standard';
+}
+
+function storedQualityMode() {
+  const fromUrl = new URLSearchParams(globalThis.location?.search || '').get('quality');
+  if (fromUrl) return fromUrl;
+  try {
+    return globalThis.localStorage?.getItem('rov.quality') || 'auto';
+  } catch {
+    return 'auto';
+  }
 }

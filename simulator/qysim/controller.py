@@ -69,34 +69,39 @@ class FlightController:
             "yaw_rate_limit": math.degrees(self.v.p.wmax[2] * yaw),
         }
 
-    def assist_force(self, dt, c, mode, keep_depth):
+    def assist_force(self, dt, c, mode, keep_depth, measured=None):
         """Ground velocity PI in a heading-aligned (A/C) or body (S) frame.
 
         The reference is a critically damped, acceleration/jerk bounded filter.
         Conditional integration and bounded integrators prevent allocation windup.
+        ``measured`` (a sensors.SensorFrame) supplies attitude, ground velocity and position estimates;
+        ``None`` reads physics truth, the pre-sensor-layer behaviour.
         """
         v = self.v
+        q_now = v.s.q if measured is None else measured.q
+        ground_velocity = v.world_velocity() if measured is None else measured.vel_world
+        position = v.s.pos if measured is None else measured.pos
         speed, accel, jerk, _, exponent = PROFILES[self.profile]
         limits = np.asarray(v.p.vmax) * speed
         amax = v.authority[:3] / v.M * accel
-        frame = v.s.q if mode == "S" else q_from_euler(0, 0, q_to_euler(v.s.q)[2])
+        frame = q_now if mode == "S" else q_from_euler(0, 0, q_to_euler(q_now)[2])
         if self.control_frame is not None:
             rotation = q_mul(q_conj(frame), self.control_frame)
             self.velocity_integral = q_rot(rotation, self.velocity_integral)
             self.velocity_target = q_rot(rotation, self.velocity_target)
             self.acceleration = q_rot(rotation, self.acceleration)
         self.control_frame = frame.copy()
-        velocity = q_rot(q_conj(frame), v.world_velocity())
+        velocity = q_rot(q_conj(frame), ground_velocity)
         sticks = np.array([c["surge"], c["sway"], -c["heave"]])
         target = np.sign(sticks) * np.abs(sticks) ** exponent * limits
         active = np.any(np.abs(sticks) > ACTIVE)
         if active or self.assist_level != 2:
             self.position_hold = None
             self.position_integral[:] = 0
-        elif self.position_hold is None and np.linalg.norm(v.world_velocity()) < 0.05:
-            self.position_hold = v.s.pos.copy()
+        elif self.position_hold is None and np.linalg.norm(ground_velocity) < 0.05:
+            self.position_hold = position.copy()
         if self.position_hold is not None:
-            error = self.position_hold - v.s.pos
+            error = self.position_hold - position
             if keep_depth:
                 error[2] = 0
             if not self.limited:
@@ -124,24 +129,29 @@ class FlightController:
             world_force[2] = 0
             newtons = q_rot(q_conj(frame), world_force)
             self.velocity_integral[2] = 0
-        force = q_rot(q_conj(v.s.q), q_rot(frame, newtons))
+        force = q_rot(q_conj(q_now), q_rot(frame, newtons))
         force = np.divide(force, v.authority[:3], out=np.zeros(3), where=v.authority[:3] > 1e-9)
         return force, old_integral
 
-    def reset_holds(self) -> None:
-        self.q_hold = self.v.s.q.copy()
+    def reset_holds(self, q_now: np.ndarray | None = None) -> None:
+        self.q_hold = (self.v.s.q if q_now is None else q_now).copy()
         self.depth_hold = None
         self.reset_assist()
 
     def update(self, dt: float, cmd: dict, mode: str, locked: bool, keep_depth: bool,
                heading_target: float | None = None, assist: int = 0, profile: str = "normal",
-               dvl_valid: bool = True) -> np.ndarray:
-        """Return thruster commands in [-1, 1]. ``cmd`` holds surge/sway/heave/roll/pitch/yaw."""
+               dvl_valid: bool = True, measured=None) -> np.ndarray:
+        """Return thruster commands in [-1, 1]. ``cmd`` holds surge/sway/heave/roll/pitch/yaw.
+
+        ``measured`` is the sensor layer's frame. Heading, depth and position hold then servo on estimates,
+        so sensor errors move the real vehicle. ``None`` reads truth exactly as before the layer existed.
+        """
         s = self.v.s
+        q_now = s.q if measured is None else measured.q
         if not dvl_valid:
             assist = 0
         if locked:
-            self.reset_holds()
+            self.reset_holds(q_now)
             self.profile = profile if profile in PROFILES else "normal"
             self.last_wrench = np.zeros(6)
             return np.zeros(len(self.v.thrusters))
@@ -153,7 +163,7 @@ class FlightController:
         if not assist:
             self.reset_assist()
             self.profile = profile if profile in PROFILES else "normal"
-        roll, pitch, yaw = q_to_euler(s.q)
+        roll, pitch, yaw = q_to_euler(q_now)
         c = {k: float(cmd.get(k, 0.0)) for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
         for axis in c:
             if axis not in self.v.capabilities:
@@ -165,7 +175,7 @@ class FlightController:
         # ── attitude hold target ────────────────────────────────────────────
         if mode == "S":
             if any(rot_active.values()):
-                self.q_hold = s.q.copy()
+                self.q_hold = q_now.copy()
         else:
             _, hp, hy = q_to_euler(self.q_hold)
             if rot_active["pitch"]:
@@ -176,7 +186,7 @@ class FlightController:
                 hy = heading_target
             self.q_hold = q_from_euler(0.0, hp, hy)
 
-        q_err = q_mul(q_conj(s.q), self.q_hold)
+        q_err = q_mul(q_conj(q_now), self.q_hold)
         if q_err[0] < 0:
             q_err = -q_err
         err = 2.0 * q_err[1:]                     # body-frame rotation vector to target
@@ -200,12 +210,13 @@ class FlightController:
         force = np.array([c["surge"], c["sway"], 0.0])
         heave_world = -c["heave"]                 # NED: +down
         if keep_depth:
+            depth = s.pos[2] if measured is None else measured.depth
             if self.depth_hold is None:
-                self.depth_hold = float(s.pos[2])
+                self.depth_hold = float(depth)
             self.depth_hold += heave_world * g.depth_rate * dt
             self.depth_hold = max(0.0, min(self.v.seabed_depth - 0.3, self.depth_hold))
-            vz = self.v.world_velocity()[2]
-            heave_world = g.depth_p * (self.depth_hold - s.pos[2]) - g.depth_d * vz
+            vz = self.v.world_velocity()[2] if measured is None else measured.vz
+            heave_world = g.depth_p * (self.depth_hold - depth) - g.depth_d * vz
         else:
             self.depth_hold = None
         if mode == "S" and not keep_depth:
@@ -216,15 +227,15 @@ class FlightController:
             # surge/sway/heave authority differs, so rotating the latter would
             # introduce a spurious horizontal force when the body is tilted.
             vertical_newtons = heave_world * self.v.authority[2]
-            body_force = q_rot(q_conj(s.q), np.array([0.0, 0.0, vertical_newtons]))
+            body_force = q_rot(q_conj(q_now), np.array([0.0, 0.0, vertical_newtons]))
             force += np.divide(body_force, self.v.authority[:3],
                                out=np.zeros(3), where=self.v.authority[:3] > 1e-9)
 
         if assist:
-            assisted, old_integral = self.assist_force(dt, c, mode, keep_depth)
+            assisted, old_integral = self.assist_force(dt, c, mode, keep_depth, measured)
             if keep_depth:
                 vertical_newtons = heave_world * self.v.authority[2]
-                depth_force = q_rot(q_conj(s.q), np.array([0.0, 0.0, vertical_newtons]))
+                depth_force = q_rot(q_conj(q_now), np.array([0.0, 0.0, vertical_newtons]))
                 assisted += np.divide(depth_force, self.v.authority[:3],
                                       out=np.zeros(3), where=self.v.authority[:3] > 1e-9)
             force = np.clip(assisted, -1.0, 1.0)

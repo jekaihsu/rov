@@ -1,6 +1,7 @@
 // Picture-in-picture "pilot at the console": a seated operator (Quaternius CC0 rig, IK hands on
-// the grips) holding a gamepad whose sticks, triggers, bumpers and face buttons follow the live
-// RC input, in front of a monitor that mirrors the main 3D view (flight-simulator style).
+// the grips) at the operator station of pilot_station.js, holding a gamepad whose sticks, triggers,
+// bumpers and face buttons follow the live RC input, in front of a monitor that mirrors the main
+// 3D view (flight-simulator style).
 // The camera alternates between an over-the-shoulder shot (gamepad + monitor) and a front
 // three-quarter shot (face + hands).
 //
@@ -9,9 +10,9 @@
 import * as THREE from 'three';
 import { makeGamepad, makePerson, POSES, applyPose } from './figures.js';
 import { Humanoid } from './humanoid.js';
+import { buildPilotStation } from './pilot_station.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.1, ...o });
 const PILOT_Z = -0.98;                          // pilot sits here facing +Z (the monitor)
 const PAD_LOCAL = V(0, 0.88, 0.3);             // gamepad centre, pilot-local
 const PAD_SCALE = 1.55;
@@ -40,27 +41,12 @@ export class PilotPiP {
     const rim = new THREE.DirectionalLight(0x8fb8ff, 0.8); rim.position.set(1.5, 1.8, 1.5); scene.add(rim);
     this.screenLight = new THREE.PointLight(0x5fc8ff, 0.7, 2.5); this.screenLight.position.set(0, 1.25, 0.4); scene.add(this.screenLight);
 
-    // control room: floor, back wall, console desk, monitor on a stand, chair
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), M(0x1c2227, { roughness: 0.95 }));
-    floor.rotation.x = -Math.PI / 2; scene.add(floor);
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(8, 3), M(0x1a2630)); wall.position.set(0, 1.5, 1.6); wall.rotation.y = Math.PI; scene.add(wall);
-    const desk = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.05, 0.75), M(0x2d353d, { roughness: 0.6 }));
-    desk.position.set(0, 0.74, 0.35); scene.add(desk);
-    for (const x of [-0.8, 0.8]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.72, 0.6), M(0x20262b)); leg.position.set(x, 0.36, 0.35); scene.add(leg); }
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.28, 0.07), M(0x15181b)); stand.position.set(0, 0.9, 0.55); scene.add(stand);
+    // operator station (pilot_station.js): desk, monitors, topside case, chair; the main monitor mirrors the view
     this.screenCanvas = document.createElement('canvas');
     this.screenCanvas.width = 480; this.screenCanvas.height = 270;
     this.screenTex = new THREE.CanvasTexture(this.screenCanvas);
     this.screenTex.colorSpace = THREE.SRGBColorSpace;
-    const monitor = new THREE.Mesh(new THREE.PlaneGeometry(0.96, 0.54), new THREE.MeshBasicMaterial({ map: this.screenTex, toneMapped: false }));
-    monitor.position.set(0, 1.3, 0.5); monitor.rotation.y = Math.PI; scene.add(monitor);
-    const bezel = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.58, 0.03), M(0x0e1013)); bezel.position.set(0, 1.3, 0.52); scene.add(bezel);
-    // topside unit + tether box on the desk for context
-    const box = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.26), M(0xe8b400, { roughness: 0.4 })); box.position.set(0.58, 0.84, 0.45); scene.add(box);
-    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.02, 0.26), M(0x2a2a2a)); lid.position.set(0.58, 0.92, 0.45); scene.add(lid);
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.48), M(0x23292f)); seat.position.set(0, 0.45, PILOT_Z + 0.02); scene.add(seat);
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.62, 0.06), M(0x23292f)); back.position.set(0, 0.82, PILOT_Z - 0.26); back.rotation.x = 0.1; scene.add(back);
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4), M(0x111418)); post.position.set(0, 0.22, PILOT_Z); scene.add(post);
+    this.station = buildPilotStation(scene, { pilotZ: PILOT_Z, screenTexture: this.screenTex });
 
     // pilot
     if (human) {
@@ -142,6 +128,7 @@ export class PilotPiP {
       this.screenTex.needsUpdate = true;
     }
     this.screenLight.intensity = 0.7 + Math.sin(this.t * 13) * 0.05;
+    this.station.update(this.t, rc);
 
     // camera: over-the-shoulder (pad + monitor) <-> front three-quarter (face + hands), 9 s each
     const phase = (this.t % 18) < 9 ? 0 : 1;
