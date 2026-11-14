@@ -15,57 +15,89 @@ export function slerp(a, b, k) {
   return q.map(v => v / length);
 }
 
-function blend(a, b, k, key = '') {
-  if (a == null || b == null) return a;
-  if (key === 'q' && Array.isArray(a)) return slerp(a, b, k);
-  if (Array.isArray(a)) {
-    if (a.length !== b.length) return a;
-    return a.map((v, i) => blend(v, b[i], k, key));
+function vector(a, b, k) {
+  return a?.map((v, i) => v + ((b?.[i] ?? v) - v) * k);
+}
+
+function pose(a, b, k, extra = 0, previous = null) {
+  const result = {...a};
+  result.pos = vector(a.pos, b?.pos, k);
+  if (a.vel) result.vel = vector(a.vel, b?.vel, k);
+  if (a.q) result.q = b?.q ? slerp(a.q, b.q, k) : a.q.slice();
+  if (extra && a.pos && a.vel) {
+    let velocity = a.vel;
+    if (a.q) {
+      const [w, x, y, z] = a.q;
+      const [vx, vy, vz] = velocity;
+      velocity = [
+        (1 - 2 * (y * y + z * z)) * vx + 2 * (x * y - w * z) * vy + 2 * (x * z + w * y) * vz,
+        2 * (x * y + w * z) * vx + (1 - 2 * (x * x + z * z)) * vy + 2 * (y * z - w * x) * vz,
+        2 * (x * z - w * y) * vx + 2 * (y * z + w * x) * vy + (1 - 2 * (x * x + y * y)) * vz
+      ];
+    }
+    result.pos = a.pos.map((v, i) => v + velocity[i] * extra);
   }
-  if (typeof a === 'object') {
-    if (a.id !== b.id) return a;
-    return Object.fromEntries(Object.keys(a).map(name => [name, blend(a[name], b[name], k, name)]));
+  if (extra && a.q && previous?.q && a.t > previous.t) {
+    const dot = Math.abs(previous.q.reduce((sum, v, i) => sum + v * a.q[i], 0));
+    const angle = 2 * Math.acos(clamp(dot, -1, 1));
+    const fraction = Math.min(extra / (a.t - previous.t), angle > 1e-9 ? extra * 8 / angle : 0);
+    result.q = slerp(previous.q, a.q, 1 + fraction);
   }
-  if (typeof a === 'number' && ['pos', 'nodes', 't', 'vel'].includes(key)) return a + (b - a) * k;
-  return a;
+  if (a.tether) {
+    const nodes = a.tether.nodes;
+    const next = b?.tether?.nodes;
+    result.tether = {...a.tether, nodes: nodes?.map((v, i) =>
+      vector(v, nodes.length === next?.length ? next[i] : v, k))};
+  }
+  return result;
+}
+
+function entities(a = [], b = [], k, extra, previous = []) {
+  const targets = new Map(b.map(v => [v.id ?? v.vehicle_id, v]));
+  const history = new Map(previous.map(v => [v.id ?? v.vehicle_id, v]));
+  return a.map(v => pose(v, targets.get(v.id ?? v.vehicle_id), k, extra,
+    history.get(v.id ?? v.vehicle_id)));
+}
+
+function renderFields(a, b, k, time, extra = 0, previous = null) {
+  const result = pose(a, b, k, extra, previous);
+  result.t = a.paused ? a.t : time;
+  if (a.vehicles) {
+    const history = previous?.vehicles?.map(v => ({...v, t: previous.t}));
+    result.vehicles = entities(a.vehicles.map(v => ({...v, t: a.t})), b?.vehicles, k, extra, history);
+  }
+  if (a.operations?.objects) {
+    result.operations = {...a.operations,
+      objects: entities(a.operations.objects, b?.operations?.objects, k, extra)};
+  }
+  if (a.environment?.fish_schools) {
+    result.environment = {...a.environment,
+      fish_schools: entities(a.environment.fish_schools, b?.environment?.fish_schools, k, extra)};
+  }
+  return result;
 }
 
 export function sampleSnapshots(frames, time) {
   if (!frames.length) return null;
-  if (time <= frames[0].t) return {...frames[0], t: time};
-  for (let i = 1; i < frames.length; i++) {
-    if (frames[i].t >= time) {
-      const a = frames[i - 1], b = frames[i];
-      return blend(a, b, (time - a.t) / Math.max(.00001, b.t - a.t));
-    }
+  if (time <= frames[0].t) return renderFields(frames[0], null, 0, time);
+  let lo = 0;
+  let hi = frames.length - 1;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (frames[mid].t < time) lo = mid;
+    else hi = mid - 1;
   }
-  const last = frames.at(-1);
-  const extra = last.paused ? 0 : Math.min(.1, Math.max(0, time - last.t));
-  const result = structuredClone(last);
-  function predict(value) {
-    if (!value || typeof value !== 'object') return;
-    if (value.pos && value.vel) {
-      let velocity = value.vel;
-      if (value.q) {
-        const [w, x, y, z] = value.q;
-        const [vx, vy, vz] = velocity;
-        velocity = [
-          (1 - 2 * (y * y + z * z)) * vx + 2 * (x * y - w * z) * vy + 2 * (x * z + w * y) * vz,
-          2 * (x * y + w * z) * vx + (1 - 2 * (x * x + z * z)) * vy + 2 * (y * z - w * x) * vz,
-          2 * (x * z - w * y) * vx + 2 * (y * z + w * x) * vy + (1 - 2 * (x * x + y * y)) * vz
-        ];
-      }
-      value.pos = value.pos.map((v, i) => v + velocity[i] * extra);
-    }
-    for (const [key, child] of Object.entries(value)) if (key !== 'pos') predict(child);
-  }
-  predict(result);
-  result.t = last.paused ? last.t : time;
-  return result;
+  const a = frames[lo];
+  const b = frames[lo + 1];
+  if (b) return renderFields(a, b, (time - a.t) / Math.max(.00001, b.t - a.t), time);
+  const extra = a.paused ? 0 : Math.min(.1, Math.max(0, time - a.t));
+  return renderFields(a, null, 0, time, extra, frames[lo - 1]);
 }
 
 export class StateBuffer {
-  constructor() { this.reset(); }
+  constructor() {
+    this.reset();
+  }
   reset() {
     this.frames = [];
     this.offset = null;
@@ -74,6 +106,7 @@ export class StateBuffer {
     this.time = null;
     this.arrival = null;
     this.output = null;
+    this.recoveryUntil = 0;
     this.sampledAt = null;
   }
   push(state, now = performance.now() / 1000) {
@@ -84,6 +117,7 @@ export class StateBuffer {
     if (!latest || state.t > latest.t) {
       if (latest) {
         const gap = state.t - latest.t;
+        if (now - this.arrival > .15) this.recoveryUntil = now + .5;
         this.interval += .1 * (Math.min(.15, gap) - this.interval);
         this.jitter += .1 * (Math.abs(now - this.arrival - gap) - this.jitter);
       }
@@ -108,19 +142,55 @@ export class StateBuffer {
     this.time = Math.max(this.time ?? desired, desired);
     const result = sampleSnapshots(this.frames, this.time);
     const step = Math.max(0, now - (this.sampledAt ?? now));
-    function limit(value, previous) {
-      if (!value || !previous || typeof value !== 'object') return;
-      if (value.id !== previous.id) return;
-      if (value.pos && previous.pos) {
-        const distance = Math.hypot(...value.pos.map((v, i) => v - previous.pos[i]));
-        const k = distance > 0 ? Math.min(1, 8 * step / distance) : 1;
-        value.pos = value.pos.map((v, i) => previous.pos[i] + (v - previous.pos[i]) * k);
-      }
-      for (const key of Object.keys(value)) if (key !== 'pos') limit(value[key], previous[key]);
+    function limitPose(value, previous) {
+      if (!value?.pos || !previous?.pos) return;
+      const distance = Math.hypot(...value.pos.map((v, i) => v - previous.pos[i]));
+      const k = distance > 0 ? Math.min(1, 8 * step / distance) : 1;
+      value.pos = value.pos.map((v, i) => previous.pos[i] + (v - previous.pos[i]) * k);
     }
-    if (this.output) limit(result, this.output);
-    this.output = structuredClone(result);
+    function limitEntities(values = [], previous = []) {
+      const history = new Map(previous.map(v => [v.id ?? v.vehicle_id, v]));
+      for (const value of values) limitPose(value, history.get(value.id ?? value.vehicle_id));
+    }
+    if (this.output && now < this.recoveryUntil) {
+      limitPose(result, this.output);
+      limitEntities(result.vehicles, this.output.vehicles);
+      limitEntities(result.operations?.objects, this.output.operations?.objects);
+      limitEntities(result.environment?.fish_schools, this.output.environment?.fish_schools);
+    }
+    this.output = result;
     this.sampledAt = now;
     return result;
   }
+}
+
+// Keep render-state selection and scene pose updates out of the shared app loop.
+export function createRenderState({P, Q, rovG, fleet, updateTether}) {
+  const remote = new StateBuffer();
+  const local = new StateBuffer();
+  let state = null;
+  function ingest(snapshot, replay) {
+    if (replay) return;
+    remote.push(snapshot);
+    local.push(snapshot);
+  }
+  function update(snapshot, replay) {
+    state = replay ? snapshot : remote.sample();
+    const own = replay ? snapshot : local.sample(undefined, true);
+    if (own) {
+      P(own.pos, rovG.position);
+      Q(own.q, rovG.quaternion);
+    }
+    if (state) {
+      fleet.ingest(state);
+      updateTether(state.tether || {});
+    }
+  }
+  return {
+    ingest,
+    update,
+    get state() {
+      return state;
+    }
+  };
 }

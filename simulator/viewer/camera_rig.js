@@ -139,8 +139,23 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
       camera.fov = 70;
       camera.updateProjectionMatrix();
     }
-    return function restore() { camera.copy(saved); };
+    return function restore() {
+      camera.copy(saved);
+    };
   }
-  return {get mode() { return mode; }, get topH() { return height; }, cine, setMode, update, physicalCapture,
-    cycle() { setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]); }};
+  return {
+    get mode() {
+      return mode;
+    },
+    get topH() {
+      return height;
+    },
+    cine,
+    setMode,
+    update,
+    physicalCapture,
+    cycle() {
+      setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
+    }
+  };
 }

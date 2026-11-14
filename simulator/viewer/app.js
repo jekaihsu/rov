@@ -1,4 +1,4 @@
-import { StateBuffer, sampleSnapshots } from './state_buffer.js';
+import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
 // X1 ROV training viewer / pilot console.
@@ -450,9 +450,7 @@ let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
 let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
-const stateBuffer = new StateBuffer();
-const localBuffer = new StateBuffer();
-let renderState = null;
+const renderState = createRenderState({P, Q, rovG, fleet, updateTether});
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
@@ -534,7 +532,7 @@ function onState(m) {
   if (m.controller?.revision !== S?.controller?.revision) needResync = true;
   lastT = m.t;
   S = m; stateCount++;
-  if (!rep) { stateBuffer.push(m); localBuffer.push(m); }
+  renderState.ingest(m, rep);
   if(session && m.room){session.is_host=m.room.host_id===session.player_id;for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!session.is_host;}
   cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
@@ -1278,16 +1276,7 @@ function frame(now) {
   if (intro) intro.update(dt);
   if (inIntro) { /* the intro poses the ROV and the camera */ }
   else if (target.init) {
-    renderState = rep ? S : stateBuffer.sample(now / 1000);
-    const localState = rep ? S : localBuffer.sample(now / 1000, true);
-    if (localState) {
-      P(localState.pos, rovG.position);
-      Q(localState.q, rovG.quaternion);
-    }
-    if (renderState) {
-      fleet.ingest(renderState);
-      updateTether(renderState.tether || {});
-    }
+    renderState.update(S, rep);
   }
   if (!inIntro) renderTether(dt); else { cable.hide(); tetherLine.visible = false; }
   // rotors
@@ -1313,7 +1302,7 @@ function frame(now) {
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
-  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState || S);
+  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
