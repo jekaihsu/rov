@@ -6,9 +6,9 @@ import { createFeatureActions } from "../viewer/input/feature_actions.js";
 import { bindingRow, createResolver, defaultPadBindings } from "../viewer/input/bindings.js";
 
 const VIEWER = new URL("../viewer/", import.meta.url);
-// The only modules allowed to poll devices: the input layer itself, the pre-game menu (it runs before the
-// input layer exists) and the standalone controller diagnostic page.
-const DEVICE_READERS = new Set(["input/devices.js", "main_menu.js", "controller-check.js"]);
+// The only modules allowed to poll devices: the input layer itself and the standalone controller diagnostic
+// page. The launch and pause menus (menu/navigator.js) poll through input/devices.js.
+const DEVICE_READERS = new Set(["input/devices.js", "controller-check.js"]);
 
 async function sources(directory = "") {
   const found = [];

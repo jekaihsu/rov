@@ -4,6 +4,7 @@ from pathlib import Path
 from PIL import Image, ImageStat
 from playwright.sync_api import sync_playwright
 from _browser import launch, http_base, ws_base
+from _menu import launch_from_menu
 
 out=Path(__file__).resolve().parents[1]/'output'/'mission-validation'
 out.mkdir(parents=True,exist_ok=True)
@@ -69,8 +70,7 @@ with sync_playwright() as p:
     page.click('#returnMenu')
     page.wait_for_selector('#launchMenu')
     assert 'replay=' not in page.url and 'play=1' not in page.url
-    page.locator('#menuIntro').evaluate('(el)=>{el.checked=false;el.dispatchEvent(new Event("change",{bubbles:true}));}')
-    page.click('#startDive')
+    launch_from_menu(page)
     page.wait_for_function('window.__viewer?.S?.vehicle_id && !window.__replay?.()')
     assert 'replay=' not in page.url
     assert not errors,errors

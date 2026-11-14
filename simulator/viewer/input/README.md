@@ -21,11 +21,15 @@ actions reports `enabled()`. On-screen hints (engineering drawer, pilot guide, H
 from the same table.
 
 Defaults (standard mapping): A photo, B record (hold), X depth hold, Y lock, View tap A/S/C mode, View
-hold engineering drawer, Menu light, L3 camera view, R3 tap assist level, R3 hold flight profile, D-pad
+hold engineering drawer, Menu tap light, Menu hold pause menu, L3 camera view, R3 tap assist level, R3 hold flight profile, D-pad
 peek cards (up mission, left systems, right map, down keys), LB/RB and LT/RT wheels, View + Menu settings.
 Keyboard: F assist (F sprays instead while surface paint is on), G profile, B gimbal, `[` `]` camera
-pitch, Tab drawer, 1–4 peek cards, Enter confirms dialogue. During dialogue A confirms and holding B skips
+pitch, Tab drawer, Esc pause menu, 1–4 peek cards, Enter confirms dialogue. During dialogue A confirms and holding B skips
 the tutorial; neither reaches photo or record.
+
+Menu context (launch menu, pause menu, settings): D-pad or arrow keys and the left stick move focus, A / Enter
+confirms, B / Esc goes back, LB / RB or Q / E switch tabs, the right stick turns the hangar turntable. These rows are
+fixed (not rebindable) and are read by `../menu/navigator.js`.
 
 Assist level and flight profile belong to the fidelity profile (`../fidelity.js`); the `real` preset starts
 at assist 0. Both RC fields are omitted until telemetry advertises an assist object. Selecting the drone

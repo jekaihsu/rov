@@ -45,6 +45,7 @@ import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
+import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
 
@@ -650,11 +651,13 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen, camera: () => cameraRig.cycle(), tick: () => inputTick(),
+const input = installInput({blocked: () => collectionOpen || pauseMenuOpen(),
+  camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}

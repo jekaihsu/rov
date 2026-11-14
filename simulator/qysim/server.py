@@ -332,6 +332,8 @@ class SimHost:
                                 else:
                                     room.disconnect(player, generation)
                             reply = {"type": "command_result", "action": "leave", "ok": True}
+                        elif msg.get("type") == "room_query":
+                            reply = self.room_info(msg)
                         elif msg.get("type") == "join":
                             reply = self.join_viewer(ws, msg)
                             room, player, _ = self.sessions[ws]
@@ -475,6 +477,23 @@ class SimHost:
         self.bridges[key] = {"ws": ws, "last_input": time.monotonic()}
         self.sessions[ws] = (room, player, player.generation)
         return {"type": "controller_session", "vehicle_id": player.vehicle_id, "generation": player.generation}
+
+    def room_info(self, msg):
+        """Read-only room summary for a launch menu that has not joined; never creates the room."""
+        room_id = str(msg.get("room_id", "training"))
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", room_id):
+            raise ValueError("房間代碼須為 1–32 個英數字、底線或連字號")
+        room = self.rooms.get(room_id)
+        reply = {"type": "room_info", "room_id": room_id, "exists": room is not None,
+                 "capacity": Room.capacity, "players": []}
+        if room is None:
+            return reply
+        reply["scenario"] = room.primary.scenario.key
+        reply["mission"] = getattr(getattr(room.primary.world, "mission_run", None), "mode", None)
+        reply["players"] = [{"name": p.name, "model_id": room.vehicles[p.vehicle_id].model_id,
+                             "connected": p.connected, "host": p.id == room.host_id}
+                            for p in room.players.values()]
+        return reply
 
     def join_viewer(self, ws, msg):
         from .vehicles import get_vehicle_definition

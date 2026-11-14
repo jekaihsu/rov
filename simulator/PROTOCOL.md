@@ -54,6 +54,12 @@ Other vehicle commands from §2 apply only to the sender's seat. Errors are
 (see the instructor section); `controller_only` rejects any non-RC message from an attached
 controller bridge connection.
 Clients which do not join can observe the default room but cannot issue commands.
+A client that has not joined may send the optional, read-only
+`{"type":"room_query","room_id":"training"}` (used by the launch menu's multiplayer screen). The reply is
+`{"type":"room_info","room_id":"training","exists":true,"capacity":3,"scenario":"open_water","mission":"free_explore",
+"players":[{"name":"Pilot","model_id":"x1","connected":true,"host":true}]}`; `scenario` and `mission` are omitted
+when `exists` is false. The query never creates a room and never returns resume tokens. Older servers answer it with
+`join_required`.
 
 To use a USB controller on a remote pilot's computer, download a pairing JSON
 with `url`, `room_id` and `resume_token` from the pilot interface, then run
