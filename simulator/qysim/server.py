@@ -595,7 +595,7 @@ class SimHost:
                     value = float(msg[k])
                     if not np.isfinite(value):
                         raise ValueError("Current must be finite")
-                    limit = 360.0 if k.endswith("dir") else 3.0 if k == "turbulence" else 10.0
+                    limit = 360.0 if k.endswith("dir") else MAX_HOST_TURBULENCE if k == "turbulence" else 10.0
                     changes[k] = max(0.0, min(limit, value))
             for key, value in changes.items():
                 setattr(cur, key, value)
@@ -611,6 +611,9 @@ class SimHost:
             return {"type": "command_result", "action": t, "ok": True}
         return None
 
+
+# Host current overrides: turbulence intensity above ~0.3 is not observed at tidal sites (notes §4).
+MAX_HOST_TURBULENCE = 0.3
 
 # Optional flight-assist metadata carried inside an RC packet (see PROTOCOL.md).
 ASSIST_FIELDS = ("assist", "profile")

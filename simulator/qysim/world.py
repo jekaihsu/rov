@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from .flow import TurbulenceField, turbulence_length, turbulence_vectors
 from .physics import KNOT, q_rot
 
 WORLD_UP = np.array([0.0, 0.0, -1.0])
@@ -241,74 +242,124 @@ class FieldMesh:
 
 @dataclass
 class CurrentProfile:
-    """Depth-varying current. Speeds in knots, directions in degrees the water flows toward."""
+    """Depth-varying current. Speeds in knots, directions in degrees the water flows toward.
+
+    The ambient flow is the three-layer mean profile plus a smooth, anisotropic, spatially
+    varying turbulence field (``flow.TurbulenceField``). Call ``step_gust`` exactly once per
+    simulation tick: it advances the turbulence (advected with the depth-averaged current). All
+    sampling methods read that state, so every consumer in a tick sees the same flow.
+
+    Compatibility: ``sample``/``sample_many(positions, seabed, t)`` keep their signatures; ``t``
+    is accepted but the field is evaluated at the profile clock that ``step_gust`` advances.
+    """
     surface_kn: float = 0.0
     surface_dir: float = 90.0
     mid_kn: float = 0.0
     mid_dir: float = 90.0
     bottom_kn: float = 0.0
     bottom_dir: float = 90.0
-    turbulence: float = 0.15          # gust std-dev as a fraction of the local speed
-    gust_tau: float = 6.0             # s, gust correlation time
-    _gust: np.ndarray = field(default_factory=lambda: np.zeros(3), repr=False)
+    turbulence: float = 0.10          # streamwise turbulence intensity sigma_u / U (assumed default)
+    gust_tau: float = 6.0             # legacy field, no longer used (integral time is now ~L/U)
+    length_scale: float | None = None  # turbulence integral length (m); None = from water depth
+    seed: int = 0
+    _clock: float = field(default=0.0, repr=False)
+    _turb: object = field(default=None, repr=False)
+    _seabed_hint: float = field(default=30.0, repr=False)
+    _layer_cache: object = field(default=None, repr=False)
 
+    # ── layers and mean profile ───────────────────────────────────────────
     def layer(self, which: str) -> np.ndarray:
         kn, d = {"surface": (self.surface_kn, self.surface_dir), "mid": (self.mid_kn, self.mid_dir),
                  "bottom": (self.bottom_kn, self.bottom_dir)}[which]
         a = math.radians(d)
         return np.array([math.cos(a), math.sin(a), 0.0]) * kn * KNOT
 
-    def mean_at(self, depth: float, seabed: float) -> np.ndarray:
-        s, m, b = self.layer("surface"), self.layer("mid"), self.layer("bottom")
-        mid_d = seabed / 2
-        if depth <= mid_d:
-            t = depth / max(mid_d, 1e-6)
-            v = s * (1 - t) + m * t
-        else:
-            t = (depth - mid_d) / max(seabed - mid_d, 1e-6)
-            v = m * (1 - t) + b * t
+    def _layers(self) -> np.ndarray:
+        """(3, 3) layer vectors (surface, mid, bottom) in effect now (cached per input values)."""
+        key = (self.surface_kn, self.surface_dir, self.mid_kn, self.mid_dir, self.bottom_kn, self.bottom_dir)
+        if self._layer_cache is None or self._layer_cache[0] != key:
+            layers = np.array([self.layer("surface"), self.layer("mid"), self.layer("bottom")])
+            self._layer_cache = (key, layers)
+        return self._layer_cache[1]
+
+    def mean_many(self, depths, seabed: float) -> np.ndarray:
+        """Mean (turbulence-free) current at depths below the surface, NED m/s, shape (N, 3)."""
+        layers = self._layers()
+        z = np.asarray(depths, float)
+        knots = (0.0, seabed / 2, seabed)
+        v = np.empty((len(z), 3))
+        for k in range(3):
+            v[:, k] = np.interp(z, knots, layers[:, k])
         # boundary layer: current dies off in the last metre above the seabed
-        above = seabed - depth
-        if above < 1.0:
-            v = v * max(0.0, above)
+        v *= np.clip(seabed - z, 0.0, 1.0)[:, None]
         return v
 
-    def step_gust(self, dt: float, rng: np.random.Generator) -> None:
-        k = dt / self.gust_tau
-        self._gust += -self._gust * k + math.sqrt(2 * k) * rng.standard_normal(3) * np.array([1, 1, 0.3])
+    def mean_at(self, depth: float, seabed: float) -> np.ndarray:
+        return self.mean_many([depth], seabed)[0]
 
-    def at_many(self, depths: np.ndarray, seabed: float) -> np.ndarray:
-        s, m, b = self.layer("surface"), self.layer("mid"), self.layer("bottom")
-        z = np.clip(np.asarray(depths, float), 0.0, seabed)
-        mid_d = seabed / 2
-        t1 = np.clip(z / max(mid_d, 1e-6), 0, 1)[:, None]
-        t2 = np.clip((z - mid_d) / max(seabed - mid_d, 1e-6), 0, 1)[:, None]
-        v = np.where((z <= mid_d)[:, None], s * (1 - t1) + m * t1, m * (1 - t2) + b * t2)
-        v = v * np.clip(seabed - z, 0.0, 1.0)[:, None]
-        speed = np.maximum(0.05, np.linalg.norm(v, axis=1))[:, None]
-        return v + self._gust * self.turbulence * speed
+    def depth_average(self, seabed: float | None = None) -> np.ndarray:
+        """Depth-averaged mean current (advects the turbulence)."""
+        s, m, b = self._layers()
+        return (s + 2 * m + b) / 4
 
-    def at(self, depth: float, seabed: float) -> np.ndarray:
-        v = self.mean_at(depth, seabed)
-        return v + self._gust * self.turbulence * max(0.05, float(np.linalg.norm(v)))
+    # ── turbulence ────────────────────────────────────────────────────────
+    def reseed(self, seed: int) -> None:
+        """Choose the turbulence realisation (scenario seed); resets the turbulence state."""
+        self.seed = int(seed)
+        self._turb = None
 
+    def _field(self) -> TurbulenceField:
+        if self._turb is None:
+            self._turb = TurbulenceField(self.seed)
+        return self._turb
+
+    def turbulence_scales(self, seabed: float | None = None) -> tuple[float, float]:
+        """(integral length L in m, model length ell in m) for this water depth."""
+        seabed = self._seabed_hint if seabed is None else seabed
+        L = float(self.length_scale) if self.length_scale else turbulence_length(seabed)
+        return L, L * TurbulenceField.SCALE
+
+    def step_gust(self, dt: float, rng: np.random.Generator | None = None) -> None:
+        """Advance the flow state by ``dt`` (once per tick). ``rng`` is accepted for compatibility."""
+        before = self.depth_average()
+        self._clock += dt
+        after = self.depth_average()
+        advect = 0.5 * (before + after)
+        _, ell = self.turbulence_scales()
+        self._field().advance(dt, advect, ell, self.turbulence * float(np.linalg.norm(advect)))
+
+    def fluctuation_many(self, positions: np.ndarray, mean: np.ndarray, seabed: float) -> np.ndarray:
+        """Turbulent velocity at points given their local mean flow (zero if turbulence is 0)."""
+        if self.turbulence <= 0:
+            return np.zeros_like(mean)
+        _, ell = self.turbulence_scales(seabed)
+        unit = self._field().unit(positions, ell)
+        fallback = self.layer("surface")
+        norm = float(np.linalg.norm(fallback))
+        fallback = fallback / norm if norm > 1e-9 else np.array([1.0, 0.0, 0.0])
+        return turbulence_vectors(unit, mean, self.turbulence, positions[:, 2], fallback)
+
+    # ── sampling ──────────────────────────────────────────────────────────
     def sample_many(self, positions: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
-        """Continuous local flow approximation, shared by vehicle, cable and ecology.
+        """Ambient flow (mean profile + turbulence) at NED points, shared by vehicle, cable and ecology.
 
-        Smooth horizontal shear is bounded to 18% of the local mean speed; it is
-        not an obstacle-resolving CFD solver. Zero mean/turbulence stays still.
+        Not obstacle-resolving; ``World.current_at_many`` adds structure effects.
         """
         p = np.atleast_2d(np.asarray(positions, float))
-        v = self.at_many(p[:, 2], seabed)
-        phase = p[:, 0] * .035 + p[:, 1] * .027 + t * .045
-        speed = np.linalg.norm(v, axis=1)
-        shear = speed * .18 * np.sin(phase)
-        v[:, 0] += shear * np.cos(p[:, 1] * .04)
-        v[:, 1] += shear * np.sin(p[:, 0] * .04)
-        return v
+        self._seabed_hint = float(seabed)
+        mean = self.mean_many(p[:, 2], seabed)
+        return mean + self.fluctuation_many(p, mean, seabed)
 
     def sample(self, position: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
         return self.sample_many(np.asarray(position)[None, :], seabed, t)[0]
+
+    def at_many(self, depths: np.ndarray, seabed: float) -> np.ndarray:
+        """Legacy: ambient flow on the vertical through the origin."""
+        z = np.asarray(depths, float)
+        return self.sample_many(np.stack([np.zeros_like(z), np.zeros_like(z), z], axis=1), seabed)
+
+    def at(self, depth: float, seabed: float) -> np.ndarray:
+        return self.at_many(np.array([depth], float), seabed)[0]
 
     def as_dict(self):
         return {k: getattr(self, k) for k in ("surface_kn", "surface_dir", "mid_kn", "mid_dir",

@@ -161,7 +161,7 @@ The browser sends:
 | `{"type":"payout","metres":5}` | pay out (+) / recover (−) tether |
 | `{"type":"auto_payout","value":false}` | toggle automatic payout |
 | `{"type":"operation_mode","value":"ROV_JPN"}` | ROV_USA/JPN/CHN, UAV_USA/JPN/CHN |
-| `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north) |
+| `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north). Speeds are clamped to 0–10 kn, `turbulence` (streamwise turbulence intensity σu/U) to 0–0.3 |
 | `{"type":"shaping","throttle_curvature":60,"throttle_limit":100,"rotate_curvature":60,"rotate_limit":100}` | stick curves |
 | `{"type":"remote_release"}` | force SDK remote control OFF (give control back to the physical RC) |
 
@@ -215,6 +215,7 @@ obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|m
           | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
           | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall} ]              (vertical face; extends from `top` down to the seabed)
 current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
+                      (turbulence = streamwise intensity σu/U; see "Ocean current model" below)
 scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length}
 spool [n,e,d]         tether spool / deployment point on the surface
 start_pos [n,e,d]     ROV start position (the viewer's deployment intro ends here)
@@ -378,3 +379,19 @@ reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are av
 This draft does **not** yet implement tether snags, sensor or video faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.
+
+## Ocean current model
+
+The host is authoritative for the water flow; the viewer only displays it. `current_here` (§3) is the
+full local flow at the vehicle. The ambient flow is the three-layer mean profile plus turbulence:
+
+* **Turbulence** is a smooth, anisotropic, spatially varying field (`qysim/flow.py`,
+  `TurbulenceField`): σu = `turbulence` × local mean speed, cross-stream and vertical σ in the ratio
+  1 : 0.7 : 0.5 (Islay 1 : 0.75 : 0.55). Its integral length is about half the water depth (2–15 m), and
+  it is advected with the depth-averaged current, so the integral time is ≈ 0.92 L/U and points one
+  length scale apart are correlated by ≈ 0.4. It advances once per tick and its time derivative does
+  not depend on the step size. All values are provisional simulator assumptions (see
+  `docs/reference/current-validation.md`).
+* Backend consumers call `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` (ambient
+  flow); the signatures are unchanged. `t` is accepted for compatibility; the field is evaluated at the
+  profile clock that `step_gust(dt)` advances once per tick.
