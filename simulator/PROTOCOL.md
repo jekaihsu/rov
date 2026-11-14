@@ -207,6 +207,43 @@ score {score 0..100, elapsed, failed "", finished, current_index,
 log [{t, kind, text}]   (last 8 lines, Traditional Chinese)
 ```
 
+### Optional `link`: simulated vehicle communications link
+
+`state.link` (and each fleet entry) describes the *simulated* tether link between topside and
+the vehicle. It is a training fault model and is separate from the simulator's own network
+watchdog (0.6 s input timeout, latch and resync described above), which is unchanged.
+Clients that ignore the field behave exactly as before. The link is `healthy` unless a scenario
+(`Scenario.link`, server-side) or an instructor injection changes it; nothing degrades on its own.
+
+```text
+link {state: healthy|degraded|lost, phase: connected|lost|reconnecting, cause: comms|power|null,
+      quality 0..1, video_lag_s, video_frozen bool, artefact 0..1, telemetry_hz number|null,
+      failsafe_action: disarm|depth_hold|surface, failsafe: null|disarm|depth_hold|surface,
+      failsafe_in s|null, reconnect_in s|null, rearm_required bool}
+```
+
+* `degraded`: commands still reach the vehicle. `video_lag_s` grows toward a cap (5 s at full
+  severity), `video_frozen` is true during periodic freeze episodes (about 5 s every 20 s at full
+  severity), `artefact` is the compression-artefact level and `telemetry_hz` the reduced telemetry
+  rate (`null` means unchanged).
+* `lost` (`phase:"lost"`): no command reaches the vehicle; it keeps executing the last command
+  it received. After `failsafe_delay_s` (default 3 s) it applies `failsafe_action`: `disarm`
+  (default; the same latched lock as the network failsafe, `input_latched` and a new
+  `control_generation`), `depth_hold` (holds the depth at the moment of the failsafe) or
+  `surface` (ascends through the depth-hold loop). Video is frozen and telemetry stops
+  (`telemetry_hz: 0`). A loss caused by a power trip disarms immediately.
+* `reconnecting`: the link has been restored and the modem re-establishes for `reconnect_s`
+  (default 30 s); `state` is still `lost`. Afterwards the vehicle is locked again and
+  `rearm_required` stays true until the pilot sends a locked packet and then an unlocked one.
+  A `depth_hold`/`surface` failsafe keeps running until that re-arm.
+
+Viewer presentation: `video_lag_s` is added to the video delay, a frozen link holds the last
+rendered picture (onboard camera) and the last vehicle pose, and onboard telemetry read-outs are
+released at `telemetry_hz`. Defaults are provisional (an open-source sub autopilot's failsafe
+options and 3 s pilot-input timeout, a ~30 s reconnect figure from an earlier vehicle's vendor FAQ,
+field reports of 4–5 s lag and 5 s/20 s freezes; sources in
+`research_notes/感測器_揚沙_通訊/comms_and_power.md`); none are X1 measurements. SDK RPC telemetry is not affected by the simulated link.
+
 ## 4. World object (`type: "world"`)
 
 ```text

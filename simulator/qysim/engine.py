@@ -26,6 +26,7 @@ from .tether import GLAND_BODY, Tether
 from .world import World
 from .mission_modes import MissionRun, ensure_mission
 from .expedition import ensure_expedition
+from .comms import CommsLink
 
 MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
     "motor_left_front": 0, "motor_right_front": 1, "motor_left_rear": 2,
@@ -92,6 +93,7 @@ class Simulator:
         self.shaping = Shaping()
         self.camera = CameraState()
         self.battery = 100.0
+        self.link = CommsLink(getattr(sc, "link", None))
         self.dvl_switches: dict = {}
         self.arm = "close"
         gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, np.asarray(self.vehicle.definition.gland_body))
@@ -160,7 +162,9 @@ class Simulator:
             return
         dt = dt or self.dt
         v, s = self.vehicle, self.vehicle.s
-        rc = self.rc
+        self.link.step(self, dt)
+        # The simulated vehicle link decides which command actually reaches the vehicle.
+        rc = self.link.command_rc(self.rc)
         locked = rc.rc_lock == 1 or self.tether.broken
         mode = ctrl_mode(rc)
         pilot = pilot_command(rc, self.operation_mode, self.shaping)
@@ -169,7 +173,14 @@ class Simulator:
 
         heading = None
         assist = 0 if self.remote_control else rc.assist
-        if not locked and (self.nav.mode != "IDLE" or self.nav.hold is not None):
+        failsafe = self.link.failsafe_command(self)
+        if failsafe is not None:
+            locked, mode, assist, keep_depth = False, "A", 0, True
+            pilot = {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+            pilot["heave"] = failsafe["heave"]
+            if failsafe["depth"] is not None:
+                self.controller.depth_hold = failsafe["depth"]
+        elif not locked and (self.nav.mode != "IDLE" or self.nav.hold is not None):
             out = self.nav.step(dt, s.pos, self.yaw, v.world_velocity(), pilot, v.p.vmax[0])
             if out is not None:
                 assist = 0
@@ -792,6 +803,7 @@ class Simulator:
                     "target": None if self.nav.target is None else [self.nav.target.n, self.nav.target.e, self.nav.target.depth]},
             "score": ensure_mission(self).score_state(self),
             "log": self.log[-8:],
+            "link": self.link.state(),
         }
 
     def world_description(self) -> dict:
