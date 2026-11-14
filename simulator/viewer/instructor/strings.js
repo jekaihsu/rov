@@ -1,0 +1,30 @@
+/* Centralized instructor copy; server-supplied names remain data, never HTML. */
+export const STRINGS = {
+  title: '教官台', subtitle: '訓練監督 / INSTRUCTOR CONSOLE', room: '房間', code: '教官碼', connect: '連線',
+  fleet: '01 / 學員監測', map: '02 / 作業海域', faults: '03 / 故障注入', assessment: '04 / 即時考核',
+  target: '學員載具', kind: '注入種類', strength: '強度 0–1', duration: '持續時間 · s', index: '推進器索引',
+  inject: '注入故障', thruster: '推進器推力下降', battery: '電量下降', current: '全房洋流突變',
+  visibility: '全房能見度下降', freeze: '凍結載具', end: '提前結束', active: '執行中', timeline: '事件時間軸',
+  emptyEvents: '尚無注入事件', emptyFleet: '連線後顯示房間內的學員載具', emptyActive: '目前沒有執行中的注入',
+  offline: '未連線 · 資料未更新', connecting: '連線中…', connected: '即時連線', stale: '資料停更 · 請重新連線',
+  rejected: '操作未完成', success: '操作已完成', missing: '—', seconds: 's', metres: 'm', knots: 'kn', newtons: 'N',
+  locked: '已鎖定', unlocked: '已解鎖', paused: '已暫停', normal: '正常', caution: '注意', danger: '危險',
+  depth: '深度', speed: '對水速度', attitude: '橫滾 / 俯仰 / 航向', tether: '纜長 / 張力', health: '推進器健康',
+  task: '任務步驟', complete: '任務完成', failed: '任務失敗', idle: '自由操作', batteryLevel: '電量',
+  mapHelp: '北向上 · 滾輪縮放 / 拖曳平移', zoomIn: '放大', zoomOut: '縮小', fit: '全域',
+  legend: '實線：纜線　虛線：航跡　圓環：目標　灰線：結構物', north: 'N', east: 'E',
+  report: '更新報告', json: '下載 JSON', csv: '軌跡 CSV', html: '可列印 HTML',
+  provisional: '門檻暫定 · 未取樣不評級 · 評分每 2 秒更新', noReport: '等待考核取樣',
+  descent: '下潛', transit: '轉場', hover: '懸停', orbit: '繞行', dock: '對接',
+  speedError: '速度誤差', path: '航線偏差', heading: '航向誤差', distance: '距離偏差', still: '無流', flow: '有流',
+  green: '綠 · 正常', yellow: '黃 · 注意', red: '紅 · 超限', ungraded: '未取樣',
+  metricHelp: 'RMS / 最小 / 最大 / 超限時間', reference: '考核參考值', apply: '套用參考值',
+  phase: '全房考核階段', targetNorth: '目標北向 · m', targetEast: '目標東向 · m',
+  targetDepth: '目標深度 · m', targetHeading: '目標航向 · °', controls: '房間與載具控制',
+  pause: '暫停全房', resume: '繼續全房', reset: '重置並封存', return: '移回起點',
+  confirmReset: '重置全房並封存目前報告？', confirmReturn: '將所選載具鎖定並移回起點？',
+  restored: '已恢復', control_response: '學員操作回應', roomScope: '全房', reportTime: '模擬時間',
+  legacy: '伺服器未提供注入監測資料', validation: '請檢查數值範圍', disconnected: '學員離線',
+};
+export const PHASES = ['descent', 'transit', 'hover', 'orbit', 'dock'];
+export const METRICS = ['path', 'heading', 'depth', 'hover', 'distance', 'speed'];
