@@ -424,6 +424,10 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   decaying over three body sizes) and an upstream blocking zone (−50 %); walls block the normal
   component and slow the flow in a 2 m wall layer. Flow is zero inside solids. These are
   provisional engineering approximations, not CFD.
+* **Fluid acceleration**: the vehicle feels (displaced mass + added mass) × dv_c/dt and each tether
+  node ρ·A·l·(2 a_normal + a_axial) (Ca = 1 normal, as MoorDyn). dv_c/dt is the finite-difference
+  rate of the sampled flow along the path, low-passed (50 ms) and clipped at 3 m/s²; a neutral body
+  therefore follows an oscillating flow with amplitude ratio ≈ 1, and steady flow is unchanged.
 * `World.current_at(point, t)` / `World.current_at_many(points, t)` return this **full local flow**
   (ambient + structures); the vehicle, tether nodes, silt, fish and work objects use it.
 * `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` keep their signatures and return

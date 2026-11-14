@@ -23,6 +23,7 @@ from .navigation import GeoFrame, Navigator, wrap_pi
 from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether
+from .flow import FlowAccelerometer
 from .world import World
 from .mission_modes import MissionRun, ensure_mission
 from .expedition import ensure_expedition
@@ -78,6 +79,7 @@ class Simulator:
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
+        self._flow_accel = FlowAccelerometer()
         self.vehicle.seabed_depth = sc.seabed_depth
         self.vehicle.s.pos = np.array(sc.start_pos, float)
         self.vehicle.s.q = q_from_euler(0.0, 0.0, math.radians(sc.start_heading_deg))
@@ -186,6 +188,7 @@ class Simulator:
         if update_world:
             self.world.current.step_gust(dt, self.current_rng)
         v.current_ned = self.world.current_at(s.pos, self.t)
+        v.current_accel_ned = self._flow_accel.update(v.current_ned, dt)
         operation_wrench = self.operations.step(dt)
         keep_depth = keep_depth or self.operations.altitude is not None
         v.seabed_depth = self.world.depth_at(s.pos)

@@ -24,9 +24,37 @@ M2_PERIOD_S = 12.4206012 * 3600.0    # principal lunar semidiurnal constituent
 S2_PERIOD_S = 12.0 * 3600.0          # principal solar semidiurnal constituent
 TIDE_STARTS = ("peak_flood", "slack_before_ebb", "peak_ebb", "slack_before_flood")
 STROUHAL = 0.2                       # high-Re circular cylinder (assumed constant)
+# Fluid acceleration fed to the inertia terms is clipped to this magnitude (m/s^2). Natural
+# currents and gusts stay far below it; it only guards instant host overrides.
+MAX_FLUID_ACCEL = 3.0
+FLUID_ACCEL_TAU = 0.05               # s, low-pass on the finite-difference flow acceleration
 
 # streamwise : cross-stream : vertical turbulence ratios (Islay 1 : 0.75 : 0.55, open channel 0.71/0.55)
 COMPONENT_RATIOS = np.array([1.0, 0.7, 0.5])
+
+
+class FlowAccelerometer:
+    """Filtered, bounded finite-difference acceleration of sampled flow velocities (per point).
+
+    The turbulence and structure fields are smooth, so the difference quotient converges as dt
+    shrinks; the low-pass and the clip only remove artefacts of instant external overrides.
+    """
+
+    def __init__(self):
+        self.previous = None
+        self.value = None
+
+    def update(self, velocities: np.ndarray, dt: float) -> np.ndarray:
+        v = np.array(velocities, float)
+        if self.previous is None or self.previous.shape != v.shape or dt <= 0:
+            self.previous, self.value = v, np.zeros_like(v)
+            return self.value
+        raw = (v - self.previous) / dt
+        self.value = self.value + (raw - self.value) * min(1.0, dt / FLUID_ACCEL_TAU)
+        norm = np.linalg.norm(self.value, axis=-1, keepdims=True)
+        self.value = self.value * np.minimum(1.0, MAX_FLUID_ACCEL / np.maximum(norm, 1e-12))
+        self.previous = v
+        return self.value
 
 
 def smoothstep(x):

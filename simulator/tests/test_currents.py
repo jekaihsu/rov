@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 
-from qysim.flow import M2_PERIOD_S, Tide, TurbulenceField
+from qysim.flow import FlowAccelerometer, M2_PERIOD_S, Tide, TurbulenceField
 from qysim.physics import KNOT
 from qysim.world import Box, CurrentProfile, Cylinder, Wall, World
 
@@ -331,6 +331,88 @@ class StructureFlowTests(unittest.TestCase):
         self.assertLess(per_call, 0.004)            # 41 tether nodes among 24 jacket members
         open_water = Simulator("open_water")
         self.assertTrue(open_water.world.structure_flow().empty)
+
+
+class FluidAccelerationTests(unittest.TestCase):
+    """Gap 4: (displaced + added mass) x flow acceleration on the vehicle and tether nodes."""
+
+    @staticmethod
+    def oscillate(use_accel, period=6.0, amplitude=0.3, seconds=30.0, dt=0.01):
+        from qysim.physics import Vehicle
+        vehicle = Vehicle()
+        vehicle.p.net_buoyancy = 0.0                      # neutral body
+        vehicle.seabed_depth = 30.0
+        vehicle.s.pos = np.array([0.0, 0.0, 10.0])
+        omega = 2 * math.pi / period
+        velocity = []
+        for i in range(int(seconds / dt)):
+            t = i * dt
+            vehicle.current_ned = np.array([amplitude * math.sin(omega * t), 0.0, 0.0])
+            if use_accel:
+                vehicle.current_accel_ned = np.array([amplitude * omega * math.cos(omega * t), 0.0, 0.0])
+            vehicle.step(dt, np.zeros(len(vehicle.thrusters)))
+            velocity.append(vehicle.world_velocity()[0])
+        tail = np.array(velocity[len(velocity) // 2:])
+        return (tail.max() - tail.min()) / (2 * amplitude)
+
+    def test_neutral_body_follows_oscillating_flow(self):
+        with_inertia = self.oscillate(True)
+        drag_only = self.oscillate(False)
+        self.assertAlmostEqual(with_inertia, 1.0, delta=0.03)
+        self.assertLess(drag_only, with_inertia - 0.05)
+
+    def test_steady_flow_has_no_fluid_acceleration(self):
+        from qysim.engine import Simulator
+        sim = Simulator("open_water")
+        sim.world.current.turbulence = 0.0
+        for _ in range(200):
+            sim.step(0.01)
+        self.assertEqual(float(np.abs(sim.vehicle.current_accel_ned).max()), 0.0)
+        # settling nodes drift through the (sheared) profile: only round-off level accelerations
+        self.assertLess(float(np.abs(sim.tether._flow_accel.value).max()), 1e-6)
+
+    def test_accelerometer_is_step_size_independent_and_bounded(self):
+        estimates = []
+        for dt in (0.01, 0.001):
+            meter = FlowAccelerometer()
+            for i in range(int(round(2.0 / dt)) + 1):
+                value = meter.update(np.array([[0.5 * math.sin(2 * math.pi * i * dt / 4.0), 0.0, 0.0]]), dt)
+            estimates.append(float(value[0, 0]))
+        self.assertAlmostEqual(estimates[0], estimates[1], delta=0.02 * abs(estimates[1]) + 1e-3)
+        meter = FlowAccelerometer()
+        meter.update(np.zeros((1, 3)), 0.01)
+        for _ in range(20):
+            jump = meter.update(np.array([[5.0, 0.0, 0.0]]), 0.01)
+        self.assertLessEqual(float(np.linalg.norm(jump)), 3.0 + 1e-9)
+
+    def test_tether_nodes_follow_oscillating_water(self):
+        from qysim.tether import Tether, TetherParams
+        amplitudes = []
+        for inertia in (True, False):
+            world = World(30.0)
+            clock = {"t": 0.0}
+
+            def flow(points, t=None, clock=clock):
+                u = 0.3 * math.sin(2 * math.pi * clock["t"] / 4.0)
+                return np.tile([0.0, u, 0.0], (len(points), 1))
+
+            world.current_at_many = flow
+            tether = Tether(world, np.zeros(3), np.array([0.0, 0.0, 20.0]), 30.0,
+                            TetherParams(accelerated=False))
+            tether.auto_payout = False
+            if not inertia:
+                tether._flow_accel = type("Off", (), {"update": lambda self, v, dt: np.zeros_like(v)})()
+            mid = []
+            for i in range(800):
+                clock["t"] = i * 0.01
+                tether.step(0.01, clock["t"], np.array([0.0, 0.0, 20.0]), np.array([1.0, 0, 0, 0]), np.zeros(3))
+                mid.append(tether.v[len(tether.v) // 2, 1])
+            tail = np.array(mid[400:])
+            amplitudes.append((tail.max() - tail.min()) / 0.6)
+        # The provisional cable is heavier than the water it displaces and its ends are held, so
+        # it follows less than a neutral body; the inertia term must still bring it clearly closer.
+        self.assertGreater(amplitudes[0], amplitudes[1] + 0.05)
+        self.assertGreater(amplitudes[0], 0.6)
 
 
 if __name__ == "__main__":

@@ -173,6 +173,8 @@ class Vehicle:
         self.B_pinv[:, controlled] = np.linalg.pinv(self.B[controlled, :])
         self.s = VehicleState(thrust=np.zeros(len(self.thrusters)))
         self.current_ned = np.zeros(3)      # water current, world m/s
+        self.current_accel_ned = np.zeros(3)  # water acceleration along the path, world m/s^2
+        self.current_points = None          # optional (body points (k,3), world currents (k,3))
         self.seabed_depth = 30.0            # m
         m = self.p.mass
         self.M = np.array([m + a for a in self.p.added_mass])
@@ -248,8 +250,12 @@ class Vehicle:
         F_tot += inertial[:3]
         # The locally frozen NED current still rotates in body coordinates:
         # M_A * d(v_c_body)/dt = -M_A * (omega x v_c_body).
-        # Spatial/time derivatives of the flow field are not supplied here.
         F_tot -= np.asarray(p.added_mass) * cross3(s.omega, current_body)
+        # Fluid acceleration (Froude-Krylov + added mass): (rho V + M_A) * dv_c/dt in body axes.
+        # The engine supplies dv_c/dt along the vehicle path, filtered and bounded (flow.py).
+        if np.any(self.current_accel_ned):
+            displaced = p.mass + p.net_buoyancy / G
+            F_tot += (displaced + np.asarray(p.added_mass)) * q_rot(q_inv, self.current_accel_ned)
         s.accel = F_tot / self.M
         s.vel = s.vel + s.accel * dt
         M_tot = Mt + M_drag + M_right + inertial[3:]
