@@ -1,5 +1,6 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
+import {getFidelity} from './fidelity.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -454,7 +455,7 @@ let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
 let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
-const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params});
+const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, fidelity: getFidelity()});
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
@@ -762,7 +763,7 @@ $('btnCur').onclick = () => {
 };
 
 /* ═════════════════════════ camera modes ═════════════════════════ */
-const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, params,
+const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, params, fidelity: getFidelity(),
   getAnchor: () => cameraAnchor, getObstacles: () => [seabed, ...Array.from(obstacleMeshes.values(), v => v.mesh)],
   onMode(m, name) {
     camMode = m;

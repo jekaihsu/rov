@@ -167,11 +167,17 @@ export class StateBuffer {
 }
 
 // Keep render-state selection and scene pose updates out of the shared app loop.
-export function createRenderState({P, Q, rovG, fleet, updateTether, params = new URLSearchParams()}) {
-  const assisted = params.get('presentation') === 'assisted';
+export function createRenderState({P, Q, rovG, fleet, updateTether, params = new URLSearchParams(), fidelity = null}) {
+  const legacyAssisted = params.get('presentation') === 'assisted';
   // Provisional generic video latency from the research report, not a vehicle-specific measurement.
   const configuredDelay = Number(params.get('videoDelayMs') ?? 150);
-  const videoDelay = clamp(Number.isFinite(configuredDelay) ? configuredDelay : 150, 0, 1000) / 1000;
+  const legacyDelay = clamp(Number.isFinite(configuredDelay) ? configuredDelay : 150, 0, 1000) / 1000;
+  // With a fidelity store the delay is live; zero delay selects the low-latency predicted presentation.
+  function presentation() {
+    if (!fidelity) return {assisted: legacyAssisted, videoDelay: legacyDelay};
+    const delay = fidelity.get('videoDelayMs') / 1000;
+    return {assisted: delay <= 0, videoDelay: delay};
+  }
   const remote = new StateBuffer();
   const local = new StateBuffer();
   let state = null;
@@ -181,6 +187,7 @@ export function createRenderState({P, Q, rovG, fleet, updateTether, params = new
     local.push(snapshot, now);
   }
   function update(snapshot, replay, now) {
+    const {assisted, videoDelay} = presentation();
     state = replay ? snapshot : remote.sample(now, false, assisted ? null : videoDelay);
     const own = replay ? snapshot : assisted ? local.sample(now, true) : state;
     if (own) {
