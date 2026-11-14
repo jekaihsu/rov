@@ -586,3 +586,12 @@ Noise, attenuation, target sizes and multipath are illustrative training assumpt
 not measurements of a specific instrument. This is a horizontal slice, without elevation resolution.
 The SDK RPC `{"type":"sonar_latest"}` reads the latest subscribed primary vehicle frame,
 or null before any scan. It does not enable scanning or change existing SDK calls.
+
+## Optional simulator vision extension
+
+Viewer message `{"type":"vision_results","detections":[{"cls":"coral","score":1,"box":[0.1,0.2,0.3,0.4]}]}`
+reports normalized top-left xywh boxes. Reports are untrusted client assistance, never scoring authority.
+RPC `{"type":"vision_results"}` reads the primary simulator vehicle's latest report with `age_s`;
+after one second, returns `{"available":false,"detections":[]}`. Requires an active reporting viewer.
+This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
+Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.

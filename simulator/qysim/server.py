@@ -65,6 +65,7 @@ class SimHost:
         self.instructor_code = os.environ.get("QYSIM_INSTRUCTOR_CODE", "")
         self.sonar_subscriptions = {}       # viewer ws -> scan settings (optional T15 extension)
         self.latest_sonar = None            # newest primary-vehicle frame, for the SDK RPC
+        self.vision_results = weakref.WeakKeyDictionary()
         self.rpc_connections = 0
         self.rate_hz = rate_hz
         self.view_hz = view_hz
@@ -269,6 +270,11 @@ class SimHost:
         kind = req.get("type", "sdk")
         if kind == "sdk":
             return self.sim.sdk_call(req["cls"], req["method"], req.get("args", []), req.get("kwargs", {}))
+        if kind == "vision_results":
+            cached = self.vision_results.get(self.sim)
+            if cached is None or time.monotonic() - cached[0] > 1:
+                return {"available": False, "detections": []}
+            return {"available": True, "age_s": time.monotonic() - cached[0], "detections": cached[1]}
         if kind == "camera_view":
             # pose + scene for client-side frame rendering
             s = self.sim.vehicle.s
@@ -545,7 +551,22 @@ class SimHost:
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同任務"}
         if t == "procedure":
             return sim.procedure.action(msg)
-        if t == "rc":
+        if t == "vision_results":
+            detections = msg.get("detections", [])
+            if not isinstance(detections, list) or len(detections) > 256:
+                raise ValueError("invalid detections")
+            for detection in detections:
+                if not isinstance(detection, dict) or not isinstance(detection.get("cls"), (str, int)):
+                    raise ValueError("invalid vision class")
+                box = detection.get("box")
+                if not isinstance(box, list) or len(box) != 4:
+                    raise ValueError("invalid vision box")
+                if not all(isinstance(v, (int, float)) and np.isfinite(v) and 0 <= v <= 1 for v in box):
+                    raise ValueError("invalid normalized vision box")
+                if not isinstance(detection.get("score"), (int, float)) or not 0 <= detection["score"] <= 1:
+                    raise ValueError("invalid vision score")
+            self.vision_results[sim] = (time.monotonic(), detections)
+        elif t == "rc":
             if player is not None and not room.input(player, msg.get("seq"), bridge=controller_bridge):
                 return {"type": "error", "code": "stale_input", "message": "控制封包序號已過期"}
             values = msg.get("rc", {})

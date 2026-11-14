@@ -22,3 +22,10 @@ An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime`
 [SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), retrieved 2026-11-14.
 Licensed under zlib; full notice in `../input/SDL-LICENSE.txt`. Rebuild with
 `python3 simulator/tools/build_input_db.py gamecontrollerdb.txt`.
+
+## Experimental vision pipeline
+
+No additional runtime library or pretrained weights are vendored. Optional external adapters:
+onnxruntime-web (MIT); training uses PyTorch / torchvision SSD-VGG (BSD-3-Clause), Pillow (MIT-CMU),
+ONNX (Apache-2.0). Reference transport uses existing websockets (BSD-3-Clause).
+No trained weights are included. See `tools/vision/train.md` for limitations.
