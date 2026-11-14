@@ -16,6 +16,7 @@ import numpy as np
 import json
 from pathlib import Path
 
+from .silt import seabed_type_for as silt_seabed_type
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, Wall
 
 ASSETS = Path(__file__).resolve().parent / "assets"
@@ -65,11 +66,17 @@ class Scenario:
     biome: str = "temperate"
     # Optional simulated vehicle-link setup (see comms.CommsLink); None keeps a healthy link.
     link: dict | None = None
+    # Sediment and near-bed turbid layer (silt.py). Provisional site values, not measurements.
+    seabed_type: str | None = None      # fluff / mud / silt / sand / gravel / rock; None: from biome
+    bnl_height_m: float = 0.0           # e-folding height of the near-bed turbid layer
+    bnl_mg_l: float = 0.0               # extra suspended sediment at the bed, mg/L
 
     def summary(self) -> dict:
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
-                "tether_length": self.tether_length, "biome": self.biome}
+                "tether_length": self.tether_length, "biome": self.biome,
+                "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
+                "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l}
 
 
 # ── site builders ──────────────────────────────────────────────────────────
@@ -188,6 +195,7 @@ def wreck_survey() -> Scenario:
         "wreck_survey", "沉船調查", "水深 30 m、能見度 4 m，繞沉船一圈拍攝四個面。碰到海床會揚起泥沙；注意桅桿。",
         seabed_depth=sea, obstacles=[wreck, mast], current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, 0.25),
         visibility_m=4.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=80.0,
+        seabed_type="silt", bnl_height_m=1.5, bnl_mg_l=1.0,      # provisional silted wreck site
         objectives=[Objective("checkpoint", n, p, radius=2.0) for n, p in zip(("艏", "左舷", "艉", "右舷"), pts)])
 
 
@@ -294,6 +302,8 @@ def harbor_inspection() -> Scenario:
     sea = 18.
     return Scenario("harbor_inspection", "港灣協作巡檢", "在港樁與碼頭邊分工巡檢，留意橫流、纜線與低能見度。",
                     seabed_depth=sea, biome="harbor", visibility_m=7,
+                    # Provisional near-bed turbid layer: about half the mid-water visibility at 0.5 m altitude.
+                    bnl_height_m=2.0, bnl_mg_l=2.0,
                     obstacles=[Wall("Quay", (42, 0, 0), 180, 70, -2),
                                Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
                                Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)],
@@ -308,7 +318,7 @@ def harbor_inspection() -> Scenario:
 def tutorial_pool() -> Scenario:
     """Calm indoor commissioning pool, using the unchanged vehicle dynamics."""
     return Scenario("tutorial_pool", STRINGS["pool_name"], STRINGS["pool_brief"],
-                    seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35,
+                    seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35, seabed_type="rock",
                     current=CurrentProfile(0, 0, 0, 0, 0, 0, 0),
                     obstacles=[Wall(STRINGS["pool_walls"][0], (12, 0, 0), 180, 24, 0),
                                Wall(STRINGS["pool_walls"][1], (-12, 0, 0), 0, 24, 0),
@@ -320,7 +330,8 @@ def tutorial_pool() -> Scenario:
 INCIDENT_STRINGS = {
     "incident_jacket": ("事故演練｜導管架內受困", "強潮流中止巡檢，沿西側出口撤離；人手與信標壓力見講評腳本。"),
     "incident_wreck": ("事故演練｜沉船勾纏", "不要硬拉；沿纜線回卡點，反向解纏再回收。繞樁代替殘骸細線。"),
-    "incident_silt": ("險情演練｜揚沙迷航", "低能見度下沿纜線回出發點；目前最低能見度為 1 m，並非完全黑屏。"),
+    "incident_silt": ("險情演練｜揚沙迷航",
+                      "貼近鬆軟泥底懸停；起飛的推進水流會揚起泥沙，畫面可能全黑。沿纜線回出發點，考慮先調暗燈光。"),
     "incident_compass": ("險情演練｜鋼構羅盤失準", "演練通報：航向讀數不可信，退出定向，依目視與纜線撤離。未改寫羅盤讀數。"),
     "incident_current": ("險情演練｜流速超限", "無法維持站位時中止，沿回收路線撤離；流速為演練設定，非機型能力值。"),
     "exit": "沿纜線離開危險區",
@@ -357,8 +368,10 @@ def incident_wreck() -> Scenario:
 def incident_silt() -> Scenario:
     name, brief = INCIDENT_STRINGS["incident_silt"]
     return Scenario(
-        "incident_silt", name, brief, seabed_depth=12, visibility_m=1,
-        start_pos=(8, 0, 10), spool_pos=(0, 0, 0), tether_length=20,
+        # The vehicle hovers 0.45 m over a soft fluff bed: the silt-out comes from the pilot's own thrust.
+        "incident_silt", name, brief, seabed_depth=12, visibility_m=3,
+        seabed_type="fluff", bnl_height_m=1.0, bnl_mg_l=2.0,
+        start_pos=(8, 0, 11.55), spool_pos=(0, 0, 0), tether_length=20,
         objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (4, 0, 6)),
                     Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=2)],
         time_limit_s=240)

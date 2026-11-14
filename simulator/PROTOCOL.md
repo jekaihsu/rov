@@ -76,6 +76,7 @@ model_id         vehicle design ID
 vehicle          selected vehicle definition and geometry offsets
 operations       arm state, inspection state and shared work objects
 environment      authoritative fish-school states and localized silt clouds
+                 (`silt_clouds`, legacy shape); optional `silt_puffs` and `turbidity`, see §4a
 tick             room physics tick
 vehicles[]       every vehicle's state, plus id and owner_id
 room             {id, host_id, capacity, players:[{id, vehicle_id, name, connected}]}
@@ -199,7 +200,10 @@ tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tens
         warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout}
 events [{t, obstacle, speed, severity: touch|hard|severe, where}]   (last 12 impacts)
 damage [{t, thruster, health}]
-silt 0..1 (seabed silt cloud; reduce visibility)
+silt 0..1 (seabed silt cloud; reduce visibility). Defined as 1 − effective/base visibility at the
+     vehicle (sediment share of the beam attenuation); 0 in clear water, approaches 1 in a silt-out.
+turbidity {mg_l, visibility_m, c}   optional: suspended sediment (mg/L) at the onboard camera, the
+     black-target visibility there (m, = 4.8 / c, no floor) and the beam attenuation c (1/m)
 nav {mode: IDLE|H_NAVI|V_NAVI|VCCM, nav_status, vccm, route [[n,e,d]...], route_i, target [n,e,d]|null}
 score {score 0..100, elapsed, failed "", finished, current_index,
        objectives [{kind, label, point [n,e,d], radius, hold_s, done, progress 0..1, target}],
@@ -300,13 +304,37 @@ obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|m
           | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
           | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall} ]              (vertical face; extends from `top` down to the seabed)
 current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
-scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length}
+scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length,
+          biome, seabed_type, bnl_height_m, bnl_mg_l}       (the last three optional, see §4a)
 spool [n,e,d]         tether spool / deployment point on the surface
 start_pos [n,e,d]     ROV start position (the viewer's deployment intro ends here)
 catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
+
+### 4a. Sediment and turbidity (optional fields)
+
+The host simulates thruster-induced silt (`qysim/silt.py`): each thruster jet is followed along its
+world axis, eroding the bed only above the seabed type's critical shear, and the sediment is carried
+as mass-conserving Gaussian puffs that settle by grain class, drift with the current and spread.
+All coefficients are provisional (see `docs/reference/silt-validation.md`).
+
+```text
+world.scenario.seabed_type   fluff | mud | silt | sand | gravel | rock   (rock never erodes)
+world.scenario.bnl_height_m  e-folding height of a near-bed turbid layer (0 = none)
+world.scenario.bnl_mg_l      extra suspended sediment at the bed from that layer, mg/L
+state.environment.silt_puffs [[n, e, d, sigma_h, sigma_v, peak_mg_l], ...]   up to 64, strongest first
+state.environment.turbidity  {seabed_type, c_water, k_m2_per_g, bnl_height_m, bnl_mg_l}
+```
+
+A client may reconstruct the concentration anywhere as the sum over puffs of
+`peak * exp(-(dn²+de²)/(2 sigma_h²)) * (exp(-dd²/(2 sigma_v²)) + exp(-dd_img²/(2 sigma_v²)))`, where
+`dd_img` is measured from the puff's mirror image below the seabed, plus
+`bnl_mg_l * exp(-altitude / bnl_height_m)`. Beam attenuation is `c = c_water + k_m2_per_g * C`
+(C in mg/L = g/m³) and black-target visibility is `4.8 / c`. `c_water` is `4.8 / visibility_m`.
+`silt_clouds` keeps its old keys (`pos`, `strength` 0..1, `radius`, `age`, `source`) for the strongest
+24 puffs. Clients that ignore the new fields keep working.
 
 ### Optional flight assistance
 
