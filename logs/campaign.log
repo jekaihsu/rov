@@ -1,0 +1,17 @@
+welcome
+unlock
+move
+move_前
+move_後
+move_右
+move_左
+move_下
+move_上
+depth_line
+depth
+light_line
+light
+photo_line
+photo
+end
+Campaign browser input proof passed: /workspace/rov/simulator/output/campaign-validation
