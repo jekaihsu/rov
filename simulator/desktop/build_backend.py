@@ -35,9 +35,11 @@ args = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
         '--specpath', str(PROJECT / '.runtime'),
         '--paths', str(SIM),
         '--add-data', f'{SIM / "viewer"}:viewer',
+        '--add-data', f'{SIM / "campaign"}:campaign',
         '--add-data', f'{SIM / "qysim" / "assets"}:qysim/assets',
         '--add-data', f'{SIM / "qysim" / "_cable_accel.py"}:qysim',
         '--collect-all', 'numba', '--collect-all', 'llvmlite',
+        '--collect-all', 'jsonschema_specifications',
         '--hidden-import', 'websockets.legacy',
         '--hidden-import', 'websockets.asyncio.server']
 for excluded in ('scipy', 'matplotlib', 'pandas', 'cv2', 'IPython', 'jupyter',
@@ -50,7 +52,8 @@ if not options.licenses_only:
 licenses=distpath/'rov-sim'/'licenses'
 licenses.mkdir(exist_ok=True)
 versions={}
-for package in ('numpy','numba','llvmlite','websockets','pyinstaller'):
+for package in ('numpy','numba','llvmlite','websockets','pyinstaller','jsonschema',
+                'jsonschema-specifications','referencing','rpds-py','attrs'):
     distribution=metadata.distribution(package)
     versions[package]=distribution.version
     for file in distribution.files or []:

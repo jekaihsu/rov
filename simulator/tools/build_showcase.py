@@ -16,18 +16,31 @@ import base64
 import json
 import re
 import shutil
+
+from vendor_manifest import copy_vendor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VIEWER = ROOT / "viewer"
-PAGES = [
-    "app.js", "style.css", "deploy_intro.js", "pilot_pip.js", "humanoid.js", "figures.js", "glb.js", "cable.js", "environment.js",
-    "demo_recording.json",
-    "cockpit.js", "fleet.js", "vehicle_models.js", "underwater_lighting.js", "replay_store.js", "vehicle_stickers.js", "surface_paint.js", "render_quality.js", "mission_panel.js", "pilot_guide.js", "attitude_indicator.js",
-    "model-preview.html",
-    "boot.js", "main_menu.js", "menu.css", "scene_previews.json",
-    "collection_store.js", "collection_panel.js", "collection.css", "expedition_client.js", "expedition_panel.js", "observation_camera.js",
-]
+# Every viewer source file ships, so new modules (hud/, input/, audio/ ...) are never forgotten.
+# index.html is rewritten below; vendor/ and models/ are copied separately; dev-only pages are skipped.
+SKIP_DIRS = {"vendor", "models", "node_modules", "output"}
+SKIP_FILES = {"index.html", "anim_test.html", "controller-check.html", "controller-check.js"}
+PAGE_SUFFIXES = {".js", ".css", ".json", ".html", ".svg", ".md", ".txt"}
+
+
+def pages() -> list[Path]:
+    """Viewer source files (relative paths) that the replay page may import or fetch."""
+    found = []
+    for path in sorted(VIEWER.rglob("*")):
+        rel = path.relative_to(VIEWER)
+        if not path.is_file() or rel.parts[0] in SKIP_DIRS or rel.as_posix() in SKIP_FILES:
+            continue
+        if path.suffix in PAGE_SUFFIXES:
+            found.append(rel)
+    return found
+
+
 MODELS = ["rov.glb", "workboat.glb", "worker.glb", "korean_castle.glb", "waternormals.jpg", "CREDITS.md"]
 MODELS += ["bluerov2_heavy.glb", "falcon.glb"]
 
@@ -44,9 +57,11 @@ def build(out: Path, glb_json: bool, overrides: dict | None = None) -> None:
         html = re.sub(r"</?(html|head|body)\b[^>]*>\s*", "", html, flags=re.I)
         html = html.replace("<title>X1 ROV 訓練駕駛台</title>", "<title>X1 ROV 訓練回放</title>")
     (out / "index.html").write_text(html, encoding="utf-8")
-    for f in PAGES:
-        shutil.copy2(VIEWER / f, out / f)
-    shutil.copytree(VIEWER / "vendor", out / "vendor", dirs_exist_ok=True)
+    for rel in pages():
+        (out / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(VIEWER / rel, out / rel)
+    shutil.rmtree(out / "vendor", ignore_errors=True)
+    copy_vendor(out / "vendor")
     for f in MODELS:
         src = VIEWER / "models" / f
         if overrides and f in overrides:

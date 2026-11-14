@@ -1,0 +1,66 @@
+{
+  "id": "hull",
+  "title": "第一章｜船殼",
+  "scenario": "hull_inspection",
+  "mode": "inspection_coop",
+  "requires": "harbor",
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "brief.text",
+      "speaker_key": "brief.speaker"
+    },
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal.text"
+    },
+    {
+      "id": "cable",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "cable.text",
+      "speaker_key": "cable.speaker"
+    },
+    {
+      "id": "survey",
+      "type": "wait",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "completed"
+      },
+      "hint_key": "survey.hint"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "done.text",
+      "speaker_key": "done.speaker"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "hull_badge"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "brief.text": "船主說昨晚靠泊時擦了一下。別貼太近，留點退路。",
+      "brief.speaker": "林督導",
+      "goal.text": "依巡檢站點穩定懸停並拍照",
+      "cable.text": "看不見就停。照片不清楚可以重拍，船殼不能拿來煞車。",
+      "cable.speaker": "阿禾",
+      "survey.hint": "前往 HUD 巡檢站點，穩定三秒後拍照",
+      "done.text": "照片齊了。阿禾，收線吧。今晚有飯吃了。",
+      "done.speaker": "林督導"
+    }
+  }
+}

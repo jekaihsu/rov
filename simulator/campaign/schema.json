@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "scenario",
+    "mode",
+    "nodes",
+    "strings"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "scenario": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "free_explore",
+        "inspection_coop",
+        "scenario_training",
+        "expedition"
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "dialogue",
+              "wait",
+              "objective",
+              "hint",
+              "branch",
+              "reward",
+              "checkpoint",
+              "environment",
+              "spawn",
+              "remove"
+            ]
+          },
+          "voice": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "condition": {
+            "type": "object",
+            "required": [
+              "path",
+              "op",
+              "value"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  "eq",
+                  "lt",
+                  "gt"
+                ]
+              },
+              "value": {}
+            }
+          },
+          "speaker_key": {
+            "type": "string"
+          },
+          "text_key": {
+            "type": "string"
+          },
+          "hint_key": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "reward": {
+            "type": "string"
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "visibility_m": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "point": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "dialogue"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "text_key",
+                "speaker_key"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "wait"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "condition"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "branch"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "condition",
+                "target"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "objective"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "text_key"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "hint"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "text_key"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "reward"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "reward"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "environment"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "visibility_m"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "spawn"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "object_id",
+                "label",
+                "point"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "remove"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "object_id"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "strings": {
+      "type": "object",
+      "required": [
+        "zh-TW"
+      ],
+      "properties": {
+        "zh-TW": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

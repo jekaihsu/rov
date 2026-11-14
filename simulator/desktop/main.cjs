@@ -33,9 +33,10 @@ app.whenReady().then(async()=>{
   const preferencesPath=path.join(data,'preferences.json');
   const modelIds=['x1','bluerov2_heavy','falcon'];
   let preferredModel='x1';
+  let inputPreferences = {};
   const qualityModes=['auto','performance','medium','high'];let preferredQuality='auto';
-  try{const saved=JSON.parse(fs.readFileSync(preferencesPath,'utf8'));if(modelIds.includes(saved.model))preferredModel=saved.model;if(qualityModes.includes(saved.quality))preferredQuality=saved.quality;}catch{}
-  const savePreferences=()=>fs.writeFileSync(preferencesPath,JSON.stringify({model:preferredModel,quality:preferredQuality}));
+  try{const saved=JSON.parse(fs.readFileSync(preferencesPath,'utf8'));inputPreferences=saved.input || {};if(modelIds.includes(saved.model))preferredModel=saved.model;if(qualityModes.includes(saved.quality))preferredQuality=saved.quality;}catch{}
+  const savePreferences=()=>fs.writeFileSync(preferencesPath,JSON.stringify({model:preferredModel,quality:preferredQuality,input:inputPreferences}));
   const cache=path.join(data,'numba-cache');fs.mkdirSync(cache,{recursive:true});
   log=fs.createWriteStream(path.join(data,'backend.log'),{flags:'a'});
   backend=spawn(executable,app.isPackaged?args:['-X','utf8','-m','qysim.server',...args],{cwd:root,windowsHide:true,env:{...process.env,PYTHONUTF8:'1',NUMBA_CACHE_DIR:cache}});
@@ -122,6 +123,20 @@ app.whenReady().then(async()=>{
     let allowed=false;try{allowed=event.sender===window.webContents&&event.senderFrame===window.webContents.mainFrame&&new URL(event.senderFrame.url).origin===`http://127.0.0.1:${http}`;}catch{}
     if(!allowed||!['list','readPhoto','savePhoto','saveResult','setCover','export','import'].includes(method))return {ok:false,error:'此頁面無法存取本機收藏'};
     try{return {ok:true,value:await collection[method](payload)};}catch(error){return {ok:false,error:error.message||'收藏儲存失敗'};}
+  });
+  ipcMain.handle('rov:input-read', event => {
+    if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) return {};
+    return inputPreferences;
+  });
+  ipcMain.on('rov:input-selected', (event, settings) => {
+    if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) return;
+    if (!settings || typeof settings !== 'object' || JSON.stringify(settings).length > 262144) return;
+    try {
+      inputPreferences = settings;
+      savePreferences();
+    } catch (error) {
+      log.write(`Could not save input preference: ${error.message}\n`);
+    }
   });
   ipcMain.on('rov:model-selected',(event,model)=>{
     if(event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!event.senderFrame.url.startsWith(`http://127.0.0.1:${http}/`)||!modelIds.includes(model)||model===preferredModel)return;

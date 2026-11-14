@@ -1,7 +1,11 @@
+import {installInput} from './input/index.js';
+import {assistFields} from './input/actions.js';
+import { updateFlightHUD } from './hud/flight_hud.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
 import * as THREE from 'three';
+import {installAudio, installAudioSettings} from './audio/engine.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { loadGLTF } from './glb.js';
@@ -14,6 +18,7 @@ import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo} from './render_quality.js';
+import {installCampaign} from './story/campaign.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installExpeditionClient} from './expedition_client.js';
@@ -463,6 +468,7 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
+const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
@@ -505,6 +511,7 @@ function onWorld(m) {
   if(launchScene&&!REPLAY){const chosen=launchScene;launchScene=null;const seed=Number(params.get('seed')||42);if(session?.is_host&&(m.scenario?.key!==chosen||m.scenario?.seed!==seed)){send({type:'scenario',key:chosen,seed});return;}}
   if(launchControl&&!REPLAY){send({type:'operation_mode',value:launchControl});launchControl=null;}
   if(launchSticker!==null&&!REPLAY){send({type:'operation',action:'appearance',sticker:launchSticker});launchSticker=null;}
+  if(launchMission==='campaign')launchMission=null;
   if(launchMission&&!REPLAY){if(session?.is_host)send({type:'operation',action:'mission_mode',mode:launchMission});launchMission=null;}
   const firstOrNew = !W || W.scenario?.key !== m.scenario?.key || W.scenario?.seed !== m.scenario?.seed;
   W = m;
@@ -530,6 +537,7 @@ function onState(m) {
   fleet.ingest(m);cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
   missionPanel.update(m);
+  campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
@@ -607,46 +615,12 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const rc = { rc_lock: 1, keep_depth: 0, left_switch: 0, right_switch: 0 };
-const hold = { photo: new Set(), record: new Set() };
-const keys = new Set();
-const touch = Object.fromEntries(CH.map((c) => [c, 0]));
-const out = Object.fromEntries(CH.map((c) => [c, 0]));   // combined −1..1
-let padPrev = [], padName = '';
+const input = installInput({blocked: () => collectionOpen, camera: () => cycleCam(), tick: () => inputTick(),
+  preferred: () => preferredPad, gain: () => +$('kbGain').value,
+  setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
+  arm: () => { $('armMode').click(); }});
+const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 
-const toggleLock = () => { rc.rc_lock = rc.rc_lock ? 0 : 1; };
-const toggleDepth = () => { rc.keep_depth = rc.keep_depth ? 0 : 1; };
-const cycleMode = () => { rc.left_switch = (rc.left_switch + 1) % 3; };
-const cycleLed = () => { rc.right_switch = (rc.right_switch + 1) % 3; };
-
-const FLIGHT = new Set(['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyQ', 'KeyE', 'KeyZ', 'KeyC', 'Space', 'KeyH', 'KeyP', 'KeyR', 'KeyM', 'KeyL', 'KeyV']);
-const isText = (el) => el && (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['range', 'checkbox'].includes(el.type)));
-addEventListener('keydown', (e) => {
-  if(collectionOpen)return;
-  if (isText(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.code.startsWith('Shift')) keys.add(e.code);
-  if (!FLIGHT.has(e.code)) return;
-  e.preventDefault();
-  if (e.repeat) return;
-  keys.add(e.code);
-  switch (e.code) {
-    case 'Space': toggleLock(); break;
-    case 'KeyH': toggleDepth(); break;
-    case 'KeyM': cycleMode(); break;
-    case 'KeyL': cycleLed(); break;
-    case 'KeyV': cycleCam(); break;
-    case 'KeyP': hold.photo.add('kb'); break;
-    case 'KeyR': hold.record.add('kb'); break;
-  }
-  inputTick();
-});
-addEventListener('keyup', (e) => {
-  keys.delete(e.code);
-  if (e.code === 'KeyP') hold.photo.delete('kb');
-  if (e.code === 'KeyR') hold.record.delete('kb');
-  if (FLIGHT.has(e.code) && !isText(e.target)) e.preventDefault();
-});
-addEventListener('blur', () => { keys.clear(); hold.photo.delete('kb'); hold.record.delete('kb'); });
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}
   keys.clear();hold.photo.clear();hold.record.clear();rc.rc_lock=1;
@@ -657,83 +631,21 @@ function stopForCollection(){
   if(session)send({type:'rc',rc:{...rcMessage(),photo:0,record:0},seq:++inputSequence,controller_generation:S?.controller?.generation});
 }
 
-// on-screen sticks and wheels
-function bindStick(el, chUD, chLR) {
-  let id = null;
-  const set = (e) => {
-    const r = el.getBoundingClientRect(), R = r.width / 2;
-    let x = (e.clientX - r.left - R) / (R * .8), y = -(e.clientY - r.top - R) / (R * .8);
-    const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
-    touch[chLR] = x; touch[chUD] = y;
-  };
-  el.addEventListener('pointerdown', (e) => { id = e.pointerId; el.setPointerCapture(id); set(e); e.preventDefault(); });
-  el.addEventListener('pointermove', (e) => { if (e.pointerId === id) set(e); });
-  const end = (e) => { if (e.pointerId !== id) return; id = null; touch[chLR] = 0; touch[chUD] = 0; };
-  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
-}
-function bindWheel(el, ch) {
-  let id = null;
-  const set = (e) => { const r = el.getBoundingClientRect(); touch[ch] = clamp(((e.clientX - r.left) / r.width - .5) * 2.3, -1, 1); };
-  el.addEventListener('pointerdown', (e) => { id = e.pointerId; el.setPointerCapture(id); set(e); e.preventDefault(); });
-  el.addEventListener('pointermove', (e) => { if (e.pointerId === id) set(e); });
-  const end = (e) => { if (e.pointerId !== id) return; id = null; touch[ch] = 0; };
-  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
-}
-bindStick($('stickL'), 'left_ud', 'left_lr'); bindStick($('stickR'), 'right_ud', 'right_lr');
-bindWheel($('wheelL'), 'left_wave'); bindWheel($('wheelR'), 'right_wave');
-
-// panel buttons
-$('bLock').onclick = () => { toggleLock(); inputTick(); };
-$('bDepth').onclick = () => { toggleDepth(); inputTick(); };
-$('bMode').onclick = () => { cycleMode(); inputTick(); };
-$('bLed').onclick = () => { cycleLed(); inputTick(); };
-for (const [id, k] of [['bPhoto', 'photo'], ['bRec', 'record']]) {
-  const b = $(id);
-  b.addEventListener('pointerdown', (e) => { b.setPointerCapture(e.pointerId); hold[k].add('ui'); inputTick(); });
-  const up = () => { hold[k].delete('ui'); inputTick(); };
-  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
-}
-addEventListener('gamepadconnected', (e) => { padName = e.gamepad.id; });
-addEventListener('gamepaddisconnected', () => { padName = ''; });
-
-function readPad() {
-  const gp = preferredPad==='keyboard'?null:navigator.getGamepads ? [...navigator.getGamepads()].find((g) => g && g.connected && (preferredPad==='auto'||String(g.index)===preferredPad)) : null;
-  if (!gp) { padPrev = []; hold.photo.delete('pad'); hold.record.delete('pad'); return null; }
-  const b = (i) => gp.buttons[i] ? (gp.buttons[i].value || (gp.buttons[i].pressed ? 1 : 0)) : 0;
-  const pr = (i) => !!gp.buttons[i]?.pressed;
-  const edge = (i) => pr(i) && !padPrev[i];
-  if (edge(2)) toggleDepth();
-  if (edge(3)) toggleLock();
-  if (edge(8)) cycleMode();
-  if (edge(9)) cycleLed();
-  pr(0) ? hold.photo.add('pad') : hold.photo.delete('pad');
-  pr(1) ? hold.record.add('pad') : hold.record.delete('pad');
-  padPrev = gp.buttons.map((x) => x.pressed);
-  const dz = (v) => (Math.abs(v || 0) < .08 ? 0 : (v - Math.sign(v) * .08) / .92);
-  return {
-    left_lr: dz(gp.axes[0]), left_ud: -dz(gp.axes[1]), right_lr: dz(gp.axes[2]), right_ud: -dz(gp.axes[3]),
-    left_wave: b(7) - b(6), right_wave: b(5) - b(4), id: gp.id,
-  };
-}
-
 let lastSent = '', lastSentAt = 0, photoPressed=false;
 function rcMessage() {
   const m = {};
   for (const c of CH) m[c] = cockpit.armMode ? 1500 : Math.round(1500 + 500 * out[c]);
   m.rc_lock = rc.rc_lock; m.keep_depth = rc.keep_depth; m.left_switch = rc.left_switch; m.right_switch = rc.right_switch;
+  Object.assign(m, assistFields(S, rc));
   m.photo = 0; m.record = collectionOpen?0:hold.record.size ? 1 : 0;
   if(collectionOpen){CH.forEach(c=>m[c]=1500);m.rc_lock=1;}
   return m;
 }
 function inputTick() {
-  const shift = keys.has('ShiftLeft') || keys.has('ShiftRight');
-  const g = shift ? 1 : +$('kbGain').value;
-  const k = (a, b) => ((keys.has(a) ? 1 : 0) - (keys.has(b) ? 1 : 0)) * g;
-  const kb = { left_ud: k('KeyW', 'KeyS'), left_lr: k('KeyD', 'KeyA'), right_ud: k('ArrowUp', 'ArrowDown'), right_lr: k('ArrowRight', 'ArrowLeft'), left_wave: k('KeyE', 'KeyQ'), right_wave: k('KeyC', 'KeyZ') };
-  const pad = collectionOpen?null:readPad();
+  const pad = input.sample();
+  input.feedback(S);
   const pressed=!collectionOpen&&hold.photo.size>0;
   if(pressed&&!photoPressed&&!REPLAY)photoClient.takePhoto();photoPressed=pressed;
-  for (const c of CH) out[c] = clamp(kb[c] + touch[c] + (pad ? pad[c] : 0), -1, 1);
   if (S?.controller) for (const c of CH) out[c] = clamp(((S.controller.axes[c] ?? 1500) - 1500) / 500, -1, 1);
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage(), js = JSON.stringify(msg), now = performance.now();
@@ -1303,6 +1215,10 @@ window.__movieDone = false;
 
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
+const audio = installAudio({
+  getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
+});
+installAudioSettings(audio, document.querySelector('.rack.left'));
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   const frameSeconds=Math.max(0,(now-last)/1000);
@@ -1310,6 +1226,7 @@ function frame(now) {
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
   // pose (smoothed toward latest state)
   replayTick(dt);
+  updateFlightHUD(S, W, dt, input.hudState());
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);
@@ -1359,6 +1276,7 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
+  audio.update(S);
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
