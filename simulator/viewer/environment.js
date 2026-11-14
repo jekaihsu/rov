@@ -512,7 +512,7 @@ export class Environment {
     for(const school of this.sharedSchools || []) {
       const live=schools.find(x=>x.id===school.id);
       if(live){school.target.copy(P(live.pos));school.vel.copy(P(live.vel));}
-      school.pos.lerp(school.target,1-Math.exp(-dt*12));
+      school.pos.copy(school.target);
       school.mesh.visible=school.pos.distanceTo(camera.position)<55;
       if(!school.mesh.visible)continue;
       const heading=Math.atan2(school.vel.x,school.vel.z);

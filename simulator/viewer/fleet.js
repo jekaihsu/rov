@@ -38,11 +38,8 @@ export class Fleet {
   }
   update(dt){
     for(const p of this.peers.values()){
-      const frames=p.samples;if(!frames.length)continue;
-      const t=frames.at(-1).time+Math.min(.1,(performance.now()-p.received)/1000)-.1;
-      let a=frames[0],b=frames.at(-1);for(let i=1;i<frames.length;i++)if(frames[i].time>=t){a=frames[i-1];b=frames[i];break;}
-      const k=Math.max(0,Math.min(1,(t-a.time)/Math.max(.001,b.time-a.time)));
-      p.root.position.lerpVectors(a.pos,b.pos,k);p.root.quaternion.slerpQuaternions(a.q,b.q,k);
+      p.root.position.copy(P(p.state.pos));
+      p.root.quaternion.copy(Q(p.state.q));
       p.model?.updateArm(p.state.operations?.arm);
       applyVehicleSticker(p.model,p.state.appearance?.sticker||'none');
       for(const rotor of p.model?.rotors||[]){rotor.ang+=(p.state.thrust?.[rotor.thrusterIndex]||0)*dt*40;rotor.o.quaternion.copy(rotor.base).multiply(this.rotorRotation.setFromAxisAngle(rotor.axis,rotor.ang));}
