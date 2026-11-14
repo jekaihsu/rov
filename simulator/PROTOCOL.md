@@ -420,6 +420,16 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
   injection matching `kind`, `vehicle_id` and its exact `start`; other overrides are untouched.
   A stale/nonmatching timestamp is rejected. Omit it to retain normal injection behavior.
   Freeze uses the individual simulator pause while the room override clock keeps advancing.
+* Optional vehicle-system kinds (same `vehicle_id`, `strength`, `duration`, `cancel_start` rules,
+  per-vehicle scope; see the optional `link`, `power`, `thermal`/`leak` state sections):
+  `video_delay` (adds `strength` × 5 s of video lag, no freezes), `video_freeze` (holds the video),
+  `link_degrade` (degraded link with severity `strength`), `comms_loss` (link lost; on expiry the
+  reconnect starts), `power_trip` (all thrust, lights and the link drop and the vehicle disarms
+  immediately; on expiry power returns and the link reconnects), `leak` (leak alarm, self-test
+  `leak: 0`) and `overheat` (adds `strength` × 50 °C to motor and driver readings). `comms_loss`
+  accepts optional `failsafe` (`disarm`|`depth_hold`|`surface`), `failsafe_delay` and `reconnect`
+  (0..600 s) for that injection only. `freeze` remains a physics pause, unrelated to `video_freeze`.
+  On a tether-powered vehicle a `battery` injection lowers the supply power instead of a charge.
 * `action:"pause", value:true|false`; `action:"reset"`; `action:"scenario", key:"..."`.
   Reset archives assessment evidence and clears overrides.
 * `action:"return", vehicle_id:"v1"` redeploys the model locked at its normal start.
@@ -460,6 +470,6 @@ company baseline flights. Reaction means first changed control packet after inje
 not a validated successful recovery. Completion/failure automatically archives a report;
 reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are available.
 
-This draft does **not** yet implement tether snags, sensor or video faults, lighting
+This draft does **not** yet implement tether snags, sensor faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.
