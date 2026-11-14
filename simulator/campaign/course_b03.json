@@ -1,0 +1,96 @@
+{
+  "id": "course_b03",
+  "title": "B03｜初級｜港灣巡檢與纜線協作",
+  "scenario": "harbor_inspection",
+  "mode": "scenario_training",
+  "category": "course",
+  "order": 30,
+  "source_chapters": [
+    "harbor"
+  ],
+  "training": {
+    "level": "初級",
+    "simulator_minutes": 60,
+    "pass_status": "暫定，待資深操作員基準航次校準",
+    "goal": "面向目標巡檢、記錄影像，與纜線手確認路線",
+    "criteria": "完成場景巡檢與回航；影像可定位、纜線轉向有覆誦",
+    "injection": "僅口頭報纜線偏緊，學員提出檢查與協調"
+  },
+  "nodes": [
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal"
+    },
+    {
+      "id": "poll",
+      "type": "wait",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      }
+    },
+    {
+      "id": "failed",
+      "type": "branch",
+      "condition": {
+        "path": "score.failed",
+        "op": "gt",
+        "value": ""
+      },
+      "target": "failure"
+    },
+    {
+      "id": "finished",
+      "type": "branch",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "target": "success"
+    },
+    {
+      "id": "repeat",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "poll"
+    },
+    {
+      "id": "failure",
+      "type": "objective",
+      "text_key": "failure"
+    },
+    {
+      "id": "after_failure",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "save"
+    },
+    {
+      "id": "success",
+      "type": "objective",
+      "text_key": "success"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "goal": "B03｜面向目標巡檢、記錄影像，與纜線手確認路線。合格門檻：暫定，待資深操作員基準航次校準。程序與證據由教官評核。",
+      "success": "場景節點完成；不代表考核合格。完成場景巡檢與回航；影像可定位、纜線轉向有覆誦。暫定，待資深操作員基準航次校準。請匯出證據並由教官簽核。",
+      "failure": "場景失敗：停止本航次，記錄失敗原因，匯出證據並檢討後重試。暫定，待資深操作員基準航次校準。"
+    }
+  }
+}
