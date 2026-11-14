@@ -1,0 +1,13 @@
+{
+  "id": "offshore",
+  "title": "第二章｜離岸",
+  "scenario": "open_water",
+  "mode": "free_explore",
+  "requires": "harbor_signoff",
+  "placeholder": true,
+  "outline": "強流、陽極塊巡檢與解纜。",
+  "nodes": [],
+  "strings": {
+    "zh-TW": {}
+  }
+}

@@ -25,3 +25,8 @@ An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime`
 No external assets were added for T11a. Existing training assets and their provenance
 above are retained. Generic visuals retain legacy physics IDs solely for protocol
 compatibility; they are not depictions of the corresponding manufacturer vehicles.
+### Input mapping data
+`../input/controller-db.json` is a compact conversion of the Linux records from
+[SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), retrieved 2026-11-14.
+Licensed under zlib; full notice in `../input/SDL-LICENSE.txt`. Rebuild with
+`python3 simulator/tools/build_input_db.py gamecontrollerdb.txt`.

@@ -1,0 +1,66 @@
+{
+  "id": "harbor_signoff",
+  "title": "第一章｜交班複查",
+  "scenario": "harbor_inspection",
+  "mode": "inspection_coop",
+  "requires": "hull",
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "brief.text",
+      "speaker_key": "brief.speaker"
+    },
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal.text"
+    },
+    {
+      "id": "cable",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "cable.text",
+      "speaker_key": "cable.speaker"
+    },
+    {
+      "id": "survey",
+      "type": "wait",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "completed"
+      },
+      "hint_key": "survey.hint"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "done.text",
+      "speaker_key": "done.speaker"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "harbor_signoff_badge"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "brief.text": "船主帶來昨晚的照片。阿禾說樁底有一圈新刮痕，我們再看一次。",
+      "brief.speaker": "林督導",
+      "goal.text": "依巡檢站點穩定懸停並拍照",
+      "cable.text": "線在你右後方。我盯著，你慢慢繞。",
+      "cable.speaker": "阿禾",
+      "survey.hint": "前往 HUD 巡檢站點，穩定三秒後拍照",
+      "done.text": "三張都有了。不是裂痕，是拖纜磨掉的漆。把位置交給船主，今天到這裡。",
+      "done.speaker": "林督導"
+    }
+  }
+}
