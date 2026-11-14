@@ -18,11 +18,12 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams} from './structure_sdf.js';
 import {structureMaterial} from './structure_materials.js';
+import {detectHardware} from './render_quality.js';
 
-export const SCENE_TOLERANCE = 0.1;
+export const SCENE_TOLERANCE = 0.1;           // m a visual surface may stand proud of its collision shape
 // fittings drawn as one merged mesh per material on the low tier (snag highlight then lights the whole group)
 const LOW_BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
-  'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast']);           // m a visual surface may stand proud of its collision shape
+  'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast']);
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
   low: {radial: 12, rockDetail: 0, lumps: 0, hullX: 48, hullZ: 10},
@@ -32,8 +33,12 @@ const DETAIL = {
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 
-/** Scene detail tier from the render-quality setting: performance -> low, high -> high, otherwise medium. */
-export function structureDetail() {
+/**
+ * Scene detail tier from the render-quality setting: performance -> low, high -> high, medium -> medium.
+ * Automatic quality uses medium, or low when ``renderer`` is drawn in software (no GPU), where shading cost
+ * grows with every texture read.
+ */
+export function structureDetail(renderer = null) {
   let mode = 'auto';
   try {
     mode = globalThis.localStorage?.getItem('rov.quality') || 'auto';
@@ -42,6 +47,7 @@ export function structureDetail() {
   }
   if (mode === 'performance') return 'low';
   if (mode === 'high') return 'high';
+  if (mode === 'auto' && renderer && detectHardware(renderer).tier === 'software') return 'low';
   return 'medium';
 }
 

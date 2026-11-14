@@ -221,7 +221,7 @@ function buildWorld() {
   fleet.reset(W);
   worldG.clear(); obstacleMeshes.clear();
   if (env) env.dispose();
-  const detail = structureDetail();
+  const detail = structureDetail(renderer);
   env = params.has('noenv') ? null : new Environment(scene, W, {detail});
   seabed.userData.plane.visible = !env;                         // the environment brings its own sand
   seabed.userData.plane.userData.paintable=true;
