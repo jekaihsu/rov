@@ -1,9 +1,18 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
+import { updateTetherOperations } from './tether/operations.js';
+import { tensionColor, warnLoad, gaugePercent } from './tether/tension.js';
+import { installProcedure } from './procedure/index.js';
+import { createSonar } from './sonar/panel.js';
+import { hidesTargets } from './sonar/scenario.js';
+import {visionTargets} from './vision/targets.js';
+import {installVision} from './vision/overlay.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
+import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
+import {installTetherReel} from './tether_reel.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -14,6 +23,7 @@ import { DeployIntro } from './deploy_intro.js';
 import { loadGLTF } from './glb.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
+import { createFlowField } from './flow_field.js';
 import { PilotPiP } from './pilot_pip.js';
 import { createVehicleModel } from './vehicle_models.js';
 import { Fleet } from './fleet.js';
@@ -30,14 +40,16 @@ import {inspectObservation} from './observation_camera.js';
 import {installPilotGuide} from './pilot_guide.js';
 import {drawROVAttitude} from './attitude_indicator.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
+import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
+import { createLinkPresenter } from './video_link.js';
+import { installVideoLinkOverlay } from './video_link_overlay.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
-const WARN_N = 250, BREAK_N = 300 * 9.80665;          // tether.py TetherParams warn_n / breaking_n
 const css = getComputedStyle(document.documentElement);
 const C = (n) => css.getPropertyValue(n).trim();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -59,9 +71,10 @@ renderer.domElement.className = 'gl';
 vp.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-const waterSurf = new THREE.Color('#1d6378'), waterDeep = new THREE.Color('#01070b'), siltCol = new THREE.Color('#3b3a26');
+const waterSurf = new THREE.Color('#1d6378'), waterDeep = new THREE.Color('#01070b');
 scene.background = new THREE.Color('#0a2a38');
 scene.fog = new THREE.Fog(0x0a2a38, 0.3, 12);
+const siltFx = new SiltRenderer(scene);
 const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 2600);
 camera.position.set(-3, 1.5, -3);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -260,6 +273,7 @@ function buildWorld() {
 }
 
 function buildObjectives(list) {
+  if (hidesTargets(W)) list = [];
   const geometries=new Set(),materials=new Set();objG.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
   objG.clear(); objMarkers = [];
   list.forEach((o) => {
@@ -313,11 +327,6 @@ const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6),
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);
 
-const colLow = new THREE.Color('#e9c534'), colWarn = new THREE.Color('#ffb020'), colBreak = new THREE.Color('#ff3040');
-function tensionColor(T, out) {
-  if (T <= WARN_N) return out.copy(colLow).lerp(colWarn, Math.pow(clamp(T / WARN_N, 0, 1), 1.6));
-  return out.copy(colWarn).lerp(colBreak, clamp((T - WARN_N) / (BREAK_N - WARN_N), 0, 1) ** .6);
-}
 
 function distToObstacle(p, ob) {        // p NED; approximate surface distance
   if (ob.type === 'cylinder') {
@@ -346,12 +355,13 @@ function updateTether(t) {
   const n = Math.min(nodes.length, MAXN);
   const pts = []; for (let i = 0; i < n; i++) pts.push(P(nodes[i]));
   const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  const Tat = (s) => { const T = ts + (tr - ts) * s; return t.warn ? Math.max(T, WARN_N) : T; };
+  const warnN = warnLoad(t);
+  const Tat = (s) => { const T = ts + (tr - ts) * s; return t.warn ? Math.max(T, warnN) : T; };
   // polyline (always visible)
   const lp = tetherLine.geometry.attributes.position.array, lc = tetherLine.geometry.attributes.color.array;
   for (let i = 0; i < n; i++) {
     lp[i * 3] = pts[i].x; lp[i * 3 + 1] = pts[i].y; lp[i * 3 + 2] = pts[i].z;
-    tensionColor(Tat(i / Math.max(1, n - 1)), _c); lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
+    tensionColor(Tat(i / Math.max(1, n - 1)), _c, warnN); lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
   }
   tetherLine.geometry.setDrawRange(0, n);
   tetherLine.geometry.attributes.position.needsUpdate = true; tetherLine.geometry.attributes.color.needsUpdate = true;
@@ -427,14 +437,20 @@ const dot = (() => { const c = document.createElement('canvas'); c.width = c.hei
 const particles = new THREE.Points(partGeo, new THREE.PointsMaterial({ color: 0xbfe3ef, size: .035, map: dot, transparent: true, opacity: .8, depthWrite: false }));
 particles.frustumCulled = false; scene.add(particles);
 let partCentre = null;
+const flowField = createFlowField(), partFlow = [0, 0, 0];
+function particleFlow(x, y, z) {      // host flow grid (NED) when available, else the mean profile
+  const v = flowField.sample(z, -x, -y, performance.now(), partFlow);
+  if (v) return v;
+  const m = currentAt(-y); partFlow[0] = m[0]; partFlow[1] = m[1]; partFlow[2] = 0; return partFlow;
+}
 function updateParticles(dt, centre) {
   particles.visible = $('optFlow').checked;
   if (!particles.visible) return;
   if (!partCentre) partCentre = centre.clone();
   for (let i = 0; i < NP; i++) {
     const j = i * 3; let x = partPos[j], y = partPos[j + 1], z = partPos[j + 2];
-    const depth = -y; const v = currentAt(depth);
-    x += -v[1] * dt; z += v[0] * dt; y += (Math.sin(i * 12.9 + x) * .02) * dt;
+    const v = particleFlow(x, y, z);
+    x += -v[1] * dt; z += v[0] * dt; y += (Math.sin(i * 12.9 + x) * .02 - v[2]) * dt;
     // keep inside a box around the camera target (world-fixed particles, wrapped)
     const dx = x - centre.x, dy = y - centre.y, dz = z - centre.z;
     if (dx > HB[0]) x -= 2 * HB[0]; else if (dx < -HB[0]) x += 2 * HB[0];
@@ -458,14 +474,18 @@ let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
 let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
-const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, fidelity: getFidelity()});
+const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, fidelity: getFidelity(),
+  link: createLinkPresenter()});
+const videoLinkOverlay = installVideoLinkOverlay(vp);
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
+const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
+    vision.assertPhoto();
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
     const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
@@ -477,6 +497,7 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
+const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
@@ -485,6 +506,7 @@ $('offUrl').textContent = WS_URL;
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
+const sonarPanel = createSonar(send);
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
@@ -531,22 +553,25 @@ function onWorld(m) {
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
   $('offline').hidden = true;
-  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) startIntro();
+  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) procedurePanel.startIntro(startIntro);
 }
 
 function onState(m) {
+  sonarPanel.receive(m);
   if(m.model_id !== S?.model_id)needResync=true;
   if(m.control_generation !== S?.control_generation)needResync=true;
   if (lastT >= 0 && m.t < lastT - 0.5) needResync = true;    // scenario loaded / reset → server RC reset to locked
   if (m.controller?.generation !== S?.controller?.generation) needResync = true;
   if (m.controller?.revision !== S?.controller?.revision) needResync = true;
   lastT = m.t;
+  flowField.ingest(m.flow_field, performance.now());
   S = m; stateCount++;
   renderState.ingest(m, rep);
   if(session && m.room){session.is_host=m.room.host_id===session.player_id;for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!session.is_host;}
   cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
   missionPanel.update(m);
+  procedurePanel.update(m);
   campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -564,7 +589,7 @@ function onState(m) {
   const ch = m.current_here || [0, 0, 0], cv = P(ch), sp = cv.length();
   if (sp > 1e-3) curArrow.setDirection(cv.clone().normalize());
   curArrow.setLength(.3 + sp / KNOT * .45, .16, .1);
-  curArrow.visible = sp > 1e-3 && !introActive();
+  curArrow.visible = sp > 1e-3 && !introActive() && showsTruth(m);
   checkEvents(m.events || []);
   uiDirty = true;
 }
@@ -734,8 +759,7 @@ $('btnReset').onclick = () => send({ type: 'reset' });
 $('btnPause').onclick = () => send({ type: 'pause', value: !(S && S.paused) });
 $('btnRelease').onclick = () => send({ type: 'remote_release' });
 $('opMode').onchange = () => { rememberControlLayout($('opMode').value); send({ type: 'operation_mode', value: $('opMode').value }); };
-$('autoPay').onchange = () => send({ type: 'auto_payout', value: $('autoPay').checked });
-document.querySelectorAll('[data-pay]').forEach((b) => (b.onclick = () => send({ type: 'payout', metres: +b.dataset.pay })));
+const updateTetherReel = installTetherReel({ send });
 $('kbGain').oninput = () => ($('kbGainV').textContent = Math.round($('kbGain').value * 100) + '%'); $('kbGain').oninput();
 
 // current override sliders
@@ -778,7 +802,10 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
   }});
 cameraRig.bindInput(input);
 surfacePaint.bindInput(input);
+procedurePanel.bindInput(input);
 campaignPanel.bindInput(input);
+sonarPanel.bindInput(input);
+vision.bindInput(input);
 let camMode = cameraRig.mode;
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
@@ -806,24 +833,6 @@ function drawLabels(list, w, h) {
 const adi = $('adi');
 function drawADI(pitch, roll, hdg) {
   drawROVAttitude(adi,{pitch:pitch/DEG,roll:roll/DEG,heading:hdg});
-}
-const tape = $('tape'), tctx = tape.getContext('2d');
-function drawTape(hdg) {
-  const Wd = tape.width, H = tape.height, ppd = 5;
-  tctx.clearRect(0, 0, Wd, H);
-  tctx.fillStyle = 'rgba(6,16,24,.55)'; tctx.fillRect(0, 0, Wd, H);
-  tctx.strokeStyle = '#d6e4ec'; tctx.fillStyle = '#d6e4ec'; tctx.textAlign = 'center'; tctx.font = '600 26px ' + C('--f-data');
-  const card = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
-  for (let d = Math.floor((hdg - 64) / 5) * 5; d <= hdg + 64; d += 5) {
-    const x = Wd / 2 + (d - hdg) * ppd, dd = ((d % 360) + 360) % 360;
-    tctx.lineWidth = dd % 30 === 0 ? 2 : 1;
-    tctx.beginPath(); tctx.moveTo(x, H); tctx.lineTo(x, H - (dd % 30 === 0 ? 16 : dd % 10 === 0 ? 10 : 6)); tctx.stroke();
-    if (dd % 30 === 0) { tctx.fillStyle = card[dd] ? '#f2b705' : '#d6e4ec'; tctx.fillText(card[dd] || String(dd / 10).padStart(2, '0'), x, 24); }
-  }
-  tctx.fillStyle = '#f2b705'; tctx.beginPath(); tctx.moveTo(Wd / 2 - 9, H); tctx.lineTo(Wd / 2 + 9, H); tctx.lineTo(Wd / 2, H - 14); tctx.fill();
-  tctx.fillStyle = '#061018'; tctx.fillRect(Wd / 2 - 40, 0, 80, 32);
-  tctx.strokeStyle = '#f2b705'; tctx.lineWidth = 2; tctx.strokeRect(Wd / 2 - 40, 1, 80, 31);
-  tctx.fillStyle = '#f2b705'; tctx.font = '600 28px ' + C('--f-data'); tctx.fillText(String(Math.round(hdg) % 360).padStart(3, '0'), Wd / 2, 26);
 }
 
 const prof = $('profile'), pctx = prof.getContext('2d');
@@ -887,15 +896,18 @@ const setTxt = (id, v) => { const el = $(id); if (el.textContent !== String(v)) 
 const setHTML = (id, v) => { const el = $(id); if (el._h !== v) { el.innerHTML = v; el._h = v; } };
 function updateUI() {
   const s = S; if (!s) return;
-  const [roll, pitch, hdg] = s.euler || [0, 0, 0];
-  const depth = s.pos[2], alt = W ? W.seabed_depth - depth : null;
+  const [roll, pitch] = s.euler || [0, 0, 0];
+  const reading = pilotReadings(s, W);
+  const hdg = reading.heading;
+  const depth = reading.depth;
+  const alt = reading.altitude;
   setTxt('gDepth', depth.toFixed(2)); setTxt('gHdg', String(Math.round(hdg) % 360).padStart(3, '0'));
-  setTxt('gAtt', `${pitch.toFixed(0)}° / ${roll.toFixed(0)}°`); setTxt('gSpd', (s.speed_kn ?? 0).toFixed(2));
+  setTxt('gAtt', `${pitch.toFixed(0)}° / ${roll.toFixed(0)}°`); setTxt('gSpd', formatKnots(reading.speedKn));
   setTxt('gBat', (s.battery ?? 0).toFixed(0)); $('gBat').closest('.g').classList.toggle('low', s.battery < 20);
   setTxt('gAlt', alt == null ? '—' : alt.toFixed(2)); $('gAlt').closest('.g').classList.toggle('low', alt != null && alt < 1);
   setTxt('gHold', s.depth_hold != null ? `定深設定點 ${s.depth_hold.toFixed(2)} m` : '');
-  setTxt('rDepth', depth.toFixed(1)); setTxt('rAlt', alt == null ? '—' : alt.toFixed(1)); setTxt('rSpd', (s.speed_kn ?? 0).toFixed(2)); setTxt('rCur', (s.current_kn ?? 0).toFixed(2));
-  drawADI(pitch * DEG, roll * DEG, hdg); drawTape(hdg);
+  setTxt('rDepth', depth.toFixed(1)); setTxt('rAlt', alt == null ? '—' : alt.toFixed(1)); setTxt('rSpd', formatKnots(reading.speedKn)); setTxt('rCur', formatKnots(reading.currentKn));
+  drawADI(pitch * DEG, roll * DEG, hdg);
 
   // HUD
   const lk = $('lockBadge');
@@ -913,7 +925,7 @@ function updateUI() {
   if (document.activeElement !== $('opMode')) $('opMode').value = s.operation_mode;
   buildMapTable(s.operation_mode);
   $('btnPause').textContent = s.paused ? '繼續' : '暫停'; $('btnPause').classList.toggle('on', !!s.paused);
-  const lv = [0, 0.55, 1][led] || 0;
+  const lv = s.power?.lights_on === false ? 0 : [0, 0.55, 1][led] || 0;   // a tripped or empty supply
   leds.forEach((l) => (l.intensity = lv * 260));                  // candela (physically based lights)
   beamMat.uniforms.uI.value = lv;
   for (const b of beams) { b.cone.visible = lv > 0 && camMode !== 'onboard'; b.glow.visible = lv > 0; b.glow.material.opacity = 0.5 + 0.5 * lv; }
@@ -933,18 +945,18 @@ function updateUI() {
   const t = s.tether || {};
   setTxt('tLen', (t.length ?? 0).toFixed(1)); setTxt('tMax', (t.max_length ?? 0).toFixed(0));
   $('tLenFill').style.width = (100 * (t.length || 0) / (t.max_length || 1)) + '%';
-  const gw = (T) => Math.sqrt(clamp(T / BREAK_N, 0, 1)) * 100;
   for (const [k, id] of [['tension_rov', 'tRov'], ['tension_spool', 'tSpool']]) {
     const T = t[k] || 0; setTxt(id, `${T.toFixed(0)} N`);
-    const f = $(id + 'Fill'); f.style.width = gw(T) + '%'; f.style.background = '#' + tensionColor(T, _c).getHexString();
+    const f = $(id + 'Fill'); f.style.width = gaugePercent(T) + '%';
+    f.style.background = '#' + tensionColor(T, _c, warnLoad(t, k)).getHexString();
+    f.nextElementSibling.style.left = gaugePercent(warnLoad(t, k)) + '%';
   }
-  document.querySelectorAll('.tgauge .wmark').forEach((m) => (m.style.left = gw(WARN_N) + '%'));
   const ts = $('tState');
   if (t.broken) { ts.textContent = '已斷裂'; ts.className = 'chip bad'; }
   else if (t.warn) { ts.textContent = '張力過高'; ts.className = 'chip warn'; }
   else if (t.snagged_on?.length) { ts.textContent = '卡纜'; ts.className = 'chip warn'; }
   else { ts.textContent = '正常'; ts.className = 'chip on'; }
-  if (document.activeElement !== $('autoPay')) $('autoPay').checked = !!t.auto_payout;
+  updateTetherReel(t, s.t);
   const wr = Object.entries(t.wraps || {}).filter(([, v]) => Math.abs(v) >= .05);
   setHTML('tWraps', [
     wr.length ? '纏繞：' + wr.map(([n, v]) => `<b style="color:${Math.abs(v) >= .25 ? 'var(--bad)' : 'var(--amber)'}">${esc(n)} ${v > 0 ? '↻' : '↺'}${Math.abs(v).toFixed(2)} 圈</b>`).join('、') : '無纏繞',
@@ -1023,7 +1035,8 @@ function renderTether(dt) {
   tetherLine.geometry.attributes.position.needsUpdate = true;
   if (t.broken) { cable.hide(); return; }
   const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, WARN_N) : T, out); });
+  const warnN = warnLoad(t);
+  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, warnN) : T, out, warnN); });
 }
 
 /* ═════════════════════════ deploy intro + pilot PiP ═════════════════════════ */
@@ -1041,6 +1054,7 @@ async function startIntro() {
   introStarts++;
   if (intro) { intro.dispose(); intro = null; }
   intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: W.start_pos || S?.pos || [0, 0, 3], seabed: W.seabed_depth || 30, assets });
+  intro.showVehicle(() => activeModel?.model);       // the onboard view hides the hull; the intro shows it
   vp.classList.add('intro'); $('skipIntro').hidden = false;
   const wasPaused = !!S?.paused;
   if (!wasPaused) send({ type: 'pause', value: true });
@@ -1194,6 +1208,7 @@ function frame(now) {
   // pose (smoothed toward latest state)
   replayTick(dt);
   updateFlightHUD(renderState.display(S), W, dt, input.hudState());
+  updateTetherOperations(S);
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);
@@ -1215,17 +1230,15 @@ function frame(now) {
   hemi.intensity = 1.5; sun.intensity = 1.6;
   applyUnderwaterLighting(scene);
   fleet.update(dt);
-  _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
-  scene.background.copy(_wc); scene.fog.color.copy(_wc);
-  const vis = (W?.scenario?.visibility_m || 12) * (1 - .75 * clamp(S?.silt || 0, 0, 1));
-  const real = $('optFog').checked && camMode !== 'top';
-  scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, cameraRig.topH * 4);
+  _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
+  siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
+    displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   surface.visible = camMode !== 'top' || camera.position.y < 0;
   for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
-  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S);
+  if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
@@ -1244,6 +1257,8 @@ function frame(now) {
   } else guide.visible = false;
   audio.update(renderState.display(S));
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
+  videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);
+  vision.update(now);
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
@@ -1265,5 +1280,5 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});

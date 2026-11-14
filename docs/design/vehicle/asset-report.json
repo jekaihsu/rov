@@ -1,0 +1,185 @@
+{
+  "source": "cad/build_observation_rov.py",
+  "lods": [
+    {
+      "file": "observation_rov.glb",
+      "bytes": 3164284,
+      "triangles_drawn": 79204,
+      "unique_triangles": 51050,
+      "materials": 10,
+      "nodes": 54,
+      "textures": [
+        {
+          "name": "body_normal",
+          "mime": "image/jpeg",
+          "bytes": 563729,
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "name": "body_orm",
+          "mime": "image/jpeg",
+          "bytes": 915919,
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "name": "body_basecolor",
+          "mime": "image/jpeg",
+          "bytes": 560960,
+          "width": 2048,
+          "height": 2048
+        },
+        {
+          "name": "thruster_normal",
+          "mime": "image/jpeg",
+          "bytes": 128967,
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "name": "thruster_orm",
+          "mime": "image/jpeg",
+          "bytes": 185013,
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "name": "thruster_basecolor",
+          "mime": "image/jpeg",
+          "bytes": 122046,
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "texture_memory_rgba8_with_mips_bytes": 83886078,
+      "extensions": [
+        "EXT_meshopt_compression",
+        "KHR_materials_emissive_strength",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "file": "observation_rov_lod1.glb",
+      "bytes": 1316704,
+      "triangles_drawn": 50751,
+      "unique_triangles": 29422,
+      "materials": 10,
+      "nodes": 54,
+      "textures": [
+        {
+          "name": "body_normal",
+          "mime": "image/jpeg",
+          "bytes": 26953,
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "name": "body_orm",
+          "mime": "image/jpeg",
+          "bytes": 347761,
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "name": "body_basecolor",
+          "mime": "image/jpeg",
+          "bytes": 176272,
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "name": "thruster_normal",
+          "mime": "image/jpeg",
+          "bytes": 31531,
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "name": "thruster_orm",
+          "mime": "image/jpeg",
+          "bytes": 177203,
+          "width": 1024,
+          "height": 1024
+        },
+        {
+          "name": "thruster_basecolor",
+          "mime": "image/jpeg",
+          "bytes": 89847,
+          "width": 1024,
+          "height": 1024
+        }
+      ],
+      "texture_memory_rgba8_with_mips_bytes": 33554430,
+      "extensions": [
+        "EXT_meshopt_compression",
+        "KHR_materials_emissive_strength",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "file": "observation_rov_lod2.glb",
+      "bytes": 606100,
+      "triangles_drawn": 25535,
+      "unique_triangles": 15626,
+      "materials": 10,
+      "nodes": 54,
+      "textures": [
+        {
+          "name": "body_normal",
+          "mime": "image/jpeg",
+          "bytes": 4953,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "body_orm",
+          "mime": "image/jpeg",
+          "bytes": 128507,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "body_basecolor",
+          "mime": "image/jpeg",
+          "bytes": 64421,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "thruster_normal",
+          "mime": "image/jpeg",
+          "bytes": 5101,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "thruster_orm",
+          "mime": "image/jpeg",
+          "bytes": 67890,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "name": "thruster_basecolor",
+          "mime": "image/jpeg",
+          "bytes": 34026,
+          "width": 512,
+          "height": 512
+        }
+      ],
+      "texture_memory_rgba8_with_mips_bytes": 8388606,
+      "extensions": [
+        "EXT_meshopt_compression",
+        "KHR_materials_emissive_strength",
+        "KHR_mesh_quantization"
+      ]
+    }
+  ],
+  "budget": {
+    "triangles": 80000,
+    "bytes": 8388608,
+    "lod0_within_triangles": true,
+    "lod0_within_bytes": true
+  }
+}

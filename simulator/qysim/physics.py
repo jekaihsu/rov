@@ -55,6 +55,14 @@ def q_rot(q: np.ndarray, v: np.ndarray) -> np.ndarray:
                      scale*vz + 2*(z*dot + w*(x*vy-y*vx))])
 
 
+def q_matrix(q: np.ndarray) -> np.ndarray:
+    """Rotation matrix (body -> world) of a unit quaternion (w, x, y, z)."""
+    w, x, y, z = q
+    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+                     [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+                     [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
+
+
 def cross3(a, b):
     """Cross product specialized to single 3-vectors, with no broadcast setup."""
     ax, ay, az = a
@@ -173,6 +181,8 @@ class Vehicle:
         self.B_pinv[:, controlled] = np.linalg.pinv(self.B[controlled, :])
         self.s = VehicleState(thrust=np.zeros(len(self.thrusters)))
         self.current_ned = np.zeros(3)      # water current, world m/s
+        self.current_accel_ned = np.zeros(3)  # water acceleration along the path, world m/s^2
+        self.current_points = None          # optional (body points (k,3), world currents (k,3))
         self.seabed_depth = 30.0            # m
         m = self.p.mass
         self.M = np.array([m + a for a in self.p.added_mass])
@@ -191,6 +201,20 @@ class Vehicle:
         if self.p.quadratic_drag is not None:
             self.quad_drag = np.asarray(self.p.quadratic_drag[:3], float)
             self.quad_rdrag = np.asarray(self.p.quadratic_drag[3:], float)
+
+    def _uneven_flow_wrench(self, q_inv, v_rel, lin) -> tuple[np.ndarray, np.ndarray]:
+        """Drag wrench from flow that differs across the hull (shear, wake edges).
+
+        ``current_points`` holds body points and the world flow sampled there. The drag is
+        linearised about the centre-of-gravity flow and shared equally among the points, so a
+        uniform flow gives exactly zero and an uneven one gives the force and torque of the
+        differences (e.g. yaw when the bow is in a pile's wake and the stern is not).
+        """
+        points, flows = self.current_points
+        gain = (lin[:3] + 2.0 * self.quad_drag * np.abs(v_rel)) / len(points)
+        delta = (np.asarray(flows) - self.current_ned) @ q_matrix(self.s.q)     # world -> body rows
+        f = gain * delta
+        return f.sum(axis=0), np.cross(points, f).sum(axis=0)
 
     def _authority(self) -> np.ndarray:
         """Largest achievable force/torque along each wrench axis (thrusters saturated)."""
@@ -235,6 +259,10 @@ class Vehicle:
         lin = np.array(p.linear_drag)
         F_drag = -lin[:3] * v_rel - self.quad_drag * v_rel * np.abs(v_rel)
         M_drag = -lin[3:] * s.omega - self.quad_rdrag * s.omega * np.abs(s.omega)
+        if self.current_points is not None:
+            F_shear, M_shear = self._uneven_flow_wrench(q_inv, v_rel, lin)
+            F_drag = F_drag + F_shear
+            M_drag = M_drag + M_shear
 
         # net buoyancy acts up (world -z), righting moment from CB above CG
         up_body = q_rot(q_inv, np.array([0.0, 0.0, -1.0]))
@@ -248,8 +276,12 @@ class Vehicle:
         F_tot += inertial[:3]
         # The locally frozen NED current still rotates in body coordinates:
         # M_A * d(v_c_body)/dt = -M_A * (omega x v_c_body).
-        # Spatial/time derivatives of the flow field are not supplied here.
         F_tot -= np.asarray(p.added_mass) * cross3(s.omega, current_body)
+        # Fluid acceleration (Froude-Krylov + added mass): (rho V + M_A) * dv_c/dt in body axes.
+        # The engine supplies dv_c/dt along the vehicle path, filtered and bounded (flow.py).
+        if np.any(self.current_accel_ned):
+            displaced = p.mass + p.net_buoyancy / G
+            F_tot += (displaced + np.asarray(p.added_mass)) * q_rot(q_inv, self.current_accel_ned)
         s.accel = F_tot / self.M
         s.vel = s.vel + s.accel * dt
         M_tot = Mt + M_drag + M_right + inertial[3:]

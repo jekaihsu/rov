@@ -3,6 +3,7 @@
 // and settings branches). Every step is a full-screen layer; back is always available. Exposes window.__menu
 // for the browser checks and the desktop smoke test.
 import { installCollectionPanel } from '../collection_panel.js';
+import { genericVehicle } from '../asset_config.js';
 import { diveSites, supportsMode } from './catalogue.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
 import { hasLastSession, initialChoice, lastSession, launchUrl, rememberChoice } from './preferences.js';
@@ -108,6 +109,13 @@ try {
 }
 setLoading(0.35, STRINGS.loading.scene);
 const stage = createStage(menu, { quality: choice.quality });
+// ?assets=generic draws other visuals for some physics ids; the menu must use their names, never the training ones.
+for (const vehicle of catalogue.vehicles) {
+  const generic = genericVehicle(vehicle.id);
+  if (!generic) continue;
+  vehicle.name = generic.name;
+  vehicle.detail = generic.detail;
+}
 const data = {
   scenes,
   sites: diveSites(scenes, catalogue.chapters),

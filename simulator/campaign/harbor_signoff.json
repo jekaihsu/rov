@@ -8,61 +8,321 @@
   "requires": "hull",
   "nodes": [
     {
+      "id": "restart",
+      "type": "checkpoint"
+    },
+    {
       "id": "brief",
       "type": "dialogue",
+      "speaker_key": "supervisor",
       "voice": null,
-      "text_key": "brief.text",
-      "speaker_key": "brief.speaker"
+      "text_key": "brief"
     },
     {
-      "id": "goal",
+      "id": "task_1",
       "type": "objective",
-      "text_key": "goal.text"
+      "text_key": "task_1"
     },
     {
-      "id": "cable",
+      "id": "task_1_brief",
       "type": "dialogue",
+      "speaker_key": "supervisor",
       "voice": null,
-      "text_key": "cable.text",
-      "speaker_key": "cable.speaker"
+      "text_key": "task_1_brief"
     },
     {
-      "id": "survey",
+      "id": "task_1_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "task_1_cable"
+    },
+    {
+      "id": "task_1_poll",
       "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "task_1_poll.hint"
+    },
+    {
+      "id": "task_1_broken",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": true
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_1_expired",
+      "type": "branch",
       "condition": {
         "path": "mission.status",
         "op": "eq",
-        "value": "completed"
+        "value": "expired"
       },
-      "hint_key": "survey.hint"
+      "target": "abort"
+    },
+    {
+      "id": "task_1_checked",
+      "type": "branch",
+      "condition": {
+        "path": "mission.targets.0.completed",
+        "op": "eq",
+        "value": true
+      },
+      "target": "task_1_report"
+    },
+    {
+      "id": "task_1_repeat",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "task_1_poll"
+    },
+    {
+      "id": "task_1_report",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_1_report"
+    },
+    {
+      "id": "task_2",
+      "type": "objective",
+      "text_key": "task_2"
+    },
+    {
+      "id": "task_2_brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_2_brief"
+    },
+    {
+      "id": "task_2_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "task_2_cable"
+    },
+    {
+      "id": "task_2_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "task_2_poll.hint"
+    },
+    {
+      "id": "task_2_broken",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": true
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_2_expired",
+      "type": "branch",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "expired"
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_2_checked",
+      "type": "branch",
+      "condition": {
+        "path": "mission.targets.1.completed",
+        "op": "eq",
+        "value": true
+      },
+      "target": "task_2_report"
+    },
+    {
+      "id": "task_2_repeat",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "task_2_poll"
+    },
+    {
+      "id": "task_2_report",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_2_report"
+    },
+    {
+      "id": "task_3",
+      "type": "objective",
+      "text_key": "task_3"
+    },
+    {
+      "id": "task_3_brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_3_brief"
+    },
+    {
+      "id": "task_3_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "task_3_cable"
+    },
+    {
+      "id": "task_3_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "task_3_poll.hint"
+    },
+    {
+      "id": "task_3_broken",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": true
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_3_expired",
+      "type": "branch",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "expired"
+      },
+      "target": "abort"
+    },
+    {
+      "id": "task_3_checked",
+      "type": "branch",
+      "condition": {
+        "path": "mission.targets.2.completed",
+        "op": "eq",
+        "value": true
+      },
+      "target": "task_3_report"
+    },
+    {
+      "id": "task_3_repeat",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "task_3_poll"
+    },
+    {
+      "id": "task_3_report",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "task_3_report"
     },
     {
       "id": "done",
       "type": "dialogue",
+      "speaker_key": "supervisor",
       "voice": null,
-      "text_key": "done.text",
-      "speaker_key": "done.speaker"
+      "text_key": "done"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "harbor_signoff_badge"
     },
     {
       "id": "save",
       "type": "checkpoint"
     },
     {
-      "id": "reward",
-      "type": "reward",
-      "reward": "harbor_signoff_badge"
+      "id": "skip_abort",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "end"
+    },
+    {
+      "id": "abort",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "abort"
+    },
+    {
+      "id": "abort_goal",
+      "type": "objective",
+      "text_key": "abort_goal"
+    },
+    {
+      "id": "abort_hold",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "lt",
+        "value": -1
+      },
+      "hint_key": "abort_hold.hint"
+    },
+    {
+      "id": "end",
+      "type": "checkpoint"
     }
   ],
   "strings": {
     "zh-TW": {
-      "brief.text": "船主帶來昨晚的照片。阿禾說樁底有一圈新刮痕，我們再看一次。",
-      "brief.speaker": "林督導",
-      "goal.text": "依巡檢站點穩定懸停並拍照",
-      "cable.text": "線在你右後方。我盯著，你慢慢繞。",
-      "cable.speaker": "阿禾",
-      "survey.hint": "前往 HUD 巡檢站點，穩定三秒後拍照",
-      "done.text": "三張都有了。不是裂痕，是拖纜磨掉的漆。把位置交給船主，今天到這裡。",
-      "done.speaker": "林督導"
+      "supervisor": "林督導",
+      "tender": "阿禾",
+      "brief": "交班前再看一次。照片要能讓下一班找到同一處，今天練貼近結構與留退路。",
+      "task_1": "作業一｜樁面定位：完成第一站",
+      "task_1_brief": "面對樁往下看，別一邊轉一邊掉深度。",
+      "task_1_cable": "線在你後面。先看清這一面，再換下一面。",
+      "task_1_poll.hint": "依第一站提示穩定三秒拍照；保持面對樁，留出退出空間。",
+      "task_1_report": "位置對上了。這張留作全景。",
+      "task_2": "作業二｜樁腳複查：完成第二站",
+      "task_2_brief": "新刮痕在下面。先拍位置，再拍細節，不碰樁。",
+      "task_2_cable": "我先理好甲板的線。你別繞滿一圈又接著繞。",
+      "task_2_poll.hint": "到第二站穩定拍照。張力上升先停下評估，沿來路返回卡點，不盲拉。",
+      "task_2_report": "痕跡是一圈磨漆，沒有足夠證據說是裂痕。",
+      "task_3": "作業三｜交接照片：完成第三站",
+      "task_3_brief": "最後這張要讓夜班看得懂。把鄰近結構也帶進去。",
+      "task_3_cable": "收到。今天的線沒有變麻花，我也有功勞吧。",
+      "task_3_poll.hint": "完成第三站穩定拍照；確認各站完成標示，再按無線電繼續。",
+      "task_3_report": "有。日誌寫你一筆。交班不是把機器交出去就算完。",
+      "done": "港灣案結了，作業載具也能部署了。下一趟去離岸，別把平潮當成保證。",
+      "abort": "停工。這趟不交合格報告。從章節面板重開本章，先確認退路和剩餘時間。",
+      "abort_goal": "本趟中止：從章節面板重開本章；不計完成、不發獎勵。",
+      "abort_hold.hint": "從章節面板重開本章。"
     }
   }
 }

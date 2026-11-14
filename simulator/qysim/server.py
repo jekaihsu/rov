@@ -17,6 +17,7 @@ import asyncio
 import functools
 import http.server
 import json
+import math
 import os
 import re
 import secrets
@@ -30,7 +31,9 @@ from pathlib import Path
 import numpy as np
 
 from .engine import Simulator
+from .flow import TIDE_STARTS, Tide
 from .rc import CHANNELS
+from .reel import MODES as REEL_MODES
 from .qirc import QircControls
 from .room import Room
 
@@ -63,6 +66,9 @@ class SimHost:
         self.bridges = {}
         self.instructor_sessions = {}
         self.instructor_code = os.environ.get("QYSIM_INSTRUCTOR_CODE", "")
+        self.sonar_subscriptions = {}       # viewer ws -> scan settings (optional T15 extension)
+        self.latest_sonar = None            # newest primary-vehicle frame, for the SDK RPC
+        self.vision_results = weakref.WeakKeyDictionary()
         self.rpc_connections = 0
         self.rate_hz = rate_hz
         self.view_hz = view_hz
@@ -267,6 +273,11 @@ class SimHost:
         kind = req.get("type", "sdk")
         if kind == "sdk":
             return self.sim.sdk_call(req["cls"], req["method"], req.get("args", []), req.get("kwargs", {}))
+        if kind == "vision_results":
+            cached = self.vision_results.get(self.sim)
+            if cached is None or time.monotonic() - cached[0] > 1:
+                return {"available": False, "detections": []}
+            return {"available": True, "age_s": time.monotonic() - cached[0], "detections": cached[1]}
         if kind == "camera_view":
             # pose + scene for client-side frame rendering
             s = self.sim.vehicle.s
@@ -278,6 +289,8 @@ class SimHost:
                     "tether": self.sim.tether.x.tolist()}
         if kind == "state":
             return self.viewer_state()
+        if kind == "sonar_latest":
+            return self.latest_sonar
         if kind == "ping":
             return "pong"
         raise ValueError(f"unknown request type {kind!r}")
@@ -303,6 +316,8 @@ class SimHost:
                             reply = self.join_instructor(ws, msg)
                         elif ws in self.instructor_sessions:
                             reply = self.instructor_command(ws, msg)
+                        elif msg.get("type") == "operation" and msg.get("action") == "sonar_subscribe":
+                            reply = self.sonar_subscribe(ws, msg)
                         elif msg.get("type") == "attach_controller":
                             reply = self.attach_controller(ws, msg)
                             room, player, _ = self.sessions[ws]
@@ -366,6 +381,7 @@ class SimHost:
                         room.lock(room.vehicles[player.vehicle_id])
                     else:
                         room.disconnect(player, generation)
+            self.sonar_subscriptions.pop(ws, None)
             self.viewers.discard(ws)
 
     def join_instructor(self, ws, msg):
@@ -431,6 +447,18 @@ class SimHost:
         self.world_version += 1
         return {"type": "instructor_result", "action": action, "ok": True}
 
+    def sonar_subscribe(self, ws, msg):
+        """Start, retune or stop background sonar scans for one viewer connection."""
+        settings = {key: float(msg.get(key, default)) for key, default in
+                    (("range_m", 30), ("noise", 0.02), ("multipath", 0.05))}
+        if not (2 <= settings["range_m"] <= 50 and 0 <= settings["noise"] <= 1 and 0 <= settings["multipath"] <= 1):
+            raise ValueError("invalid sonar settings")
+        if msg.get("enabled", True):
+            self.sonar_subscriptions[ws] = settings
+        else:
+            self.sonar_subscriptions.pop(ws, None)
+        return {"type": "operation_result", "action": "sonar_subscribe", "ok": True}
+
     def attach_controller(self, ws, msg):
         if ws in self.sessions:
             raise ValueError("A controller bridge needs a fresh connection")
@@ -492,6 +520,10 @@ class SimHost:
 
     async def _viewer_sender(self, ws):
         seen_version = self.world_version
+        sonar_time = 0.0
+        sonar_frame = None
+        sonar_pending = None
+        sonar_primary = False
         while True:
             world = None
             async with self.lock:                 # snapshot under the lock, send outside it
@@ -503,6 +535,27 @@ class SimHost:
                     sim = room.vehicles[player.vehicle_id] if player else room.primary
                     world = dumps({"type": "world", **self.world_description(room, player)})
                 payload = self.viewer_payload(room, player)
+            settings = self.sonar_subscriptions.get(ws)
+            if settings is not None:
+                if sonar_pending is not None and sonar_pending.done():
+                    sonar_frame = sonar_pending.result()
+                    sonar_pending = None
+                    if sonar_primary:
+                        self.latest_sonar = sonar_frame
+                if sonar_pending is None and time.monotonic() - sonar_time >= 0.2:
+                    from .sonar import snapshot, submit_scan
+                    sim = room.vehicles[player.vehicle_id] if player else room.primary
+                    # The SDK RPC reads the default room's primary vehicle, so only its scans are published there.
+                    sonar_primary = room is self.room and sim is room.primary
+                    world_snapshot, pos, q = snapshot(room, sim)
+                    sonar_pending = submit_scan(world_snapshot, pos, q, settings)
+                    sonar_time = time.monotonic()
+                if sonar_frame is not None:
+                    state = json.loads(payload)
+                    state["sonar"] = sonar_frame
+                    payload = dumps(state)
+            else:
+                sonar_frame = None
             if world:
                 await ws.send(world)
             await ws.send(payload)
@@ -518,7 +571,24 @@ class SimHost:
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同場景"}
         if t == "operation" and msg.get("action") in ("mission_mode", "expedition_start", "expedition_cancel") and (player is None or player.id != room.host_id):
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同任務"}
-        if t == "rc":
+        if t == "procedure":
+            return sim.procedure.action(msg)
+        if t == "vision_results":
+            detections = msg.get("detections", [])
+            if not isinstance(detections, list) or len(detections) > 256:
+                raise ValueError("invalid detections")
+            for detection in detections:
+                if not isinstance(detection, dict) or not isinstance(detection.get("cls"), (str, int)):
+                    raise ValueError("invalid vision class")
+                box = detection.get("box")
+                if not isinstance(box, list) or len(box) != 4:
+                    raise ValueError("invalid vision box")
+                if not all(isinstance(v, (int, float)) and np.isfinite(v) and 0 <= v <= 1 for v in box):
+                    raise ValueError("invalid normalized vision box")
+                if not isinstance(detection.get("score"), (int, float)) or not 0 <= detection["score"] <= 1:
+                    raise ValueError("invalid vision score")
+            self.vision_results[sim] = (time.monotonic(), detections)
+        elif t == "rc":
             if player is not None and not room.input(player, msg.get("seq"), bridge=controller_bridge):
                 return {"type": "error", "code": "stale_input", "message": "控制封包序號已過期"}
             values = msg.get("rc", {})
@@ -572,7 +642,10 @@ class SimHost:
                 sim._buttons(sim.rc_physical)
         elif t == "scenario":
             seed = msg.get("seed")
+            tide_start = parse_tide_start(msg)
             room.reset(msg.get("key", "open_water"), int(seed) if seed not in (None, "") else None)
+            if tide_start is not None and room.primary.world.current.tide is not None:
+                room.primary.world.current.set_tide_start(tide_start)
             self.world_version += 1
             if room is self.room:
                 self.controller_controls.reset()
@@ -604,6 +677,11 @@ class SimHost:
             sim.tether.payout(max(-100.0, min(100.0, metres)))
         elif t == "auto_payout":
             sim.tether.auto_payout = bool(msg.get("value", True))
+        elif t == "reel":
+            command = str(msg.get("command", ""))
+            if command not in REEL_MODES:
+                raise ValueError(f"Unknown reel command: {command}")
+            sim.tether.reel_command(command)
         elif t == "operation_mode":
             sim.sdk_call("QYRovParameterManage", "set_rov_controller_operation", [msg.get("value", "ROV_USA")], {})
         elif t == "current":
@@ -614,10 +692,22 @@ class SimHost:
                     value = float(msg[k])
                     if not np.isfinite(value):
                         raise ValueError("Current must be finite")
-                    limit = 360.0 if k.endswith("dir") else 3.0 if k == "turbulence" else 10.0
+                    limit = 360.0 if k.endswith("dir") else MAX_HOST_TURBULENCE if k == "turbulence" else MAX_HOST_KNOTS
                     changes[k] = max(0.0, min(limit, value))
+            tide = msg.get("tide", cur.tide) if "tide" in msg else cur.tide
+            if "tide" in msg and tide is not None:
+                if not isinstance(tide, dict):
+                    raise ValueError("tide must be an object or null")
+                tide = Tide.from_dict(tide)
+            tide_start = parse_tide_start(msg)
+            if tide_start is not None and tide is None:
+                raise ValueError("tide_start needs a tide")
             for key, value in changes.items():
                 setattr(cur, key, value)
+            if "tide" in msg:
+                cur.tide = tide
+            if tide_start is not None:
+                cur.set_tide_start(tide_start)
             self.world_version += 1
         elif t == "shaping":
             for k in ("throttle_curvature", "throttle_limit", "rotate_curvature", "rotate_limit"):
@@ -630,6 +720,24 @@ class SimHost:
             return {"type": "command_result", "action": t, "ok": True}
         return None
 
+
+def parse_tide_start(msg: dict):
+    """Optional time-of-tide selector: one of flow.TIDE_STARTS or finite hours after peak flood."""
+    if "tide_start" not in msg:
+        return None
+    value = msg["tide_start"]
+    if isinstance(value, str) and value in TIDE_STARTS:
+        return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) \
+            and -13 <= value <= 13:
+        return float(value)
+    raise ValueError("tide_start must be a tide stage or hours after peak flood")
+
+
+# Host current overrides: turbulence intensity above ~0.3 is not observed at tidal sites (notes §4).
+MAX_HOST_TURBULENCE = 0.3
+# Per-layer host override limit (knots); stronger than any training scenario (assumed).
+MAX_HOST_KNOTS = 5.0
 
 # Optional flight-assist metadata carried inside an RC packet (see PROTOCOL.md).
 ASSIST_FIELDS = ("assist", "profile")

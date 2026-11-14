@@ -2,6 +2,7 @@
 import base64
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from _menu import open_settings_tab
 from _browser import launch, http_base, ws_base
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'audio-validation'
@@ -12,11 +13,12 @@ with sync_playwright() as p:
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(f"{http_base(8093, 'ROV_BEFORE_HTTP_PORT')}/?ws={ws_base(8793, 'ROV_BEFORE_WS_PORT')}&nointro")
-    page.wait_for_selector('#launchForm')
+    page.wait_for_selector('#launchForm', state='attached')
     page.screenshot(path=str(OUT / 'before.png'))
     page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&nointro')
-    page.wait_for_selector('#launchForm')
-    page.get_by_text('音效', exact=True).click()
+    # The launch menu keeps the audio mixer under 設定 → 音訊.
+    open_settings_tab(page, 'audio')
+    page.wait_for_selector('.menu-audio input[type=range]')
     page.screenshot(path=str(OUT / 'after.png'))
     page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&play=1&nointro&room=audio')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')

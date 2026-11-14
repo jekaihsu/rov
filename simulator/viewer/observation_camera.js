@@ -2,6 +2,7 @@
 // No screenshot is generated here: capture the renderer immediately afterwards,
 // before any animation/update, so matrices and the image describe the same view.
 import * as THREE from 'three';
+import {kelpFlowAt,kelpStir} from './kelp_flow.js';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const NED=p=>[p.z,-p.x,-p.y];
@@ -29,10 +30,12 @@ function bentProxy(mesh,index){
   const u=mesh.userData.observationBend, local=new THREE.Matrix4();mesh.getMatrixAt(index,local);
   const geo=mesh.geometry.clone(), pos=geo.attributes.position;
   const phase=local.elements[12]*.37+local.elements[14]*.53;
+  const flow=u.uFlowGrid?kelpFlowAt(u,local.elements[12],local.elements[14]):u.uFlow.value;
+  const stir=u.uFlowGrid?kelpStir(flow):1;
   for(let i=0;i<pos.count;i++){
-    const h=pos.getY(i),sway=Math.sin(u.uTime.value*.9+phase+h*.6)*.35+Math.sin(u.uTime.value*1.7+phase*2.1)*.12;
+    const h=pos.getY(i),sway=(Math.sin(u.uTime.value*.9+phase+h*.6)*.35+Math.sin(u.uTime.value*1.7+phase*2.1)*.12)*stir;
     const bend=h*h*1.1;
-    pos.setXYZ(i,pos.getX(i)+(u.uFlow.value.x*1.2+sway)*bend,h,pos.getZ(i)+(u.uFlow.value.z*1.2+sway*.6)*bend);
+    pos.setXYZ(i,pos.getX(i)+(flow.x*1.2+sway)*bend,h,pos.getZ(i)+(flow.z*1.2+sway*.6)*bend);
   }
   geo.computeBoundingBox();geo.computeBoundingSphere();
   const proxy=new THREE.Mesh(geo,mesh.material);proxy.matrixAutoUpdate=false;
@@ -59,7 +62,31 @@ function samples(part,camera){
     for(let k=0;k<3;k++)p.add(new THREE.Vector3().fromBufferAttribute(attr,idx?idx.getX(tri+k):tri+k));
     points.push(p.multiplyScalar(1/3).applyMatrix4(matrix));
   }
-  return {area:(right-left)*(top-bottom)/4,points,center:new THREE.Vector2((left+right)/2,(bottom+top)/2)};
+  return {area:(right-left)*(top-bottom)/4,points,bounds:[(left+1)/2,(1-top)/2,(right-left)/2,(top-bottom)/2],center:new THREE.Vector2((left+right)/2,(bottom+top)/2)};
+}
+
+// Normalized top-left xywh bounds shared by all-target annotations.
+function annotationBox(projected) {
+  let left = 1;
+  let top = 1;
+  let right = 0;
+  let bottom = 0;
+  for (const {sample} of projected) {
+    const [x, y, width, height] = sample.bounds;
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    right = Math.max(right, x + width);
+    bottom = Math.max(bottom, y + height);
+  }
+  return [left, top, right - left, bottom - top];
+}
+
+// Physical visibility at the onboard camera: the server's turbidity field when present (no floor),
+// otherwise the legacy silt index estimate.
+function observationRange(state,world){
+  const physical=state.turbidity?.visibility_m;
+  if(Number.isFinite(physical))return physical;
+  return (world.scenario?.visibility_m||12)*(1-.75*clamp(state.silt||0,0,1));
 }
 
 /**
@@ -68,15 +95,16 @@ function samples(part,camera){
  * visible; empty waypoint markers cannot become evidence.
  */
 export function inspectObservation({scene,camera,environment,state={},world={},camMode,
-  targets=[],minCoverage=.0025}={}){
+  targets=[],minCoverage=.0025,all=false}={}){
   camera.updateWorldMatrix(true,false);scene.updateMatrixWorld(true);
   const pos=camera.getWorldPosition(new THREE.Vector3());
   const q=camera.getWorldQuaternion(new THREE.Quaternion()).multiply(new THREE.Quaternion(0,1,0,0)).normalize();
   if(q.w<0){q.x*=-1;q.y*=-1;q.z*=-1;q.w*=-1;}
   const base={ok:false,entity_id:null,category:null,view:camMode,visible:false,coverage:0,
     camera:{pos:NED(pos),q:[q.w,q.z,-q.x,-q.y],fov:camera.fov,aspect:camera.aspect}};
+  if(all&&camMode!=='onboard')return [];
   if(camMode!=='onboard')return {...base,reason:'請切換機載鏡頭再拍攝；外部視角不計入觀察紀錄。'};
-  const range=(world.scenario?.visibility_m||12)*(1-.75*clamp(state.silt||0,0,1));
+  const range=observationRange(state,world);
   // Keep fog physically limiting observations even when the display fog toggle
   // is off. Retain at least 20% contrast in the renderer's linear fog model.
   const fogLimit=.3+.8*Math.max(0,range*1.35-.3);
@@ -145,9 +173,11 @@ export function inspectObservation({scene,camera,environment,state={},world={},c
       const ok=enough&&coverage>=minCoverage;
       reports.push({...base,ok,entity_id:target.entity_id,category:target.category,visible:enough,coverage,
         distance_m:distance,visible_samples:hits,sample_count:attempts,centerDistance,priority:target.priority,
+box:annotationBox(projected),occlusion:attempts?1-hits/attempts:1,
         reason:ok?'已在機載畫面中清楚辨識目標。':!inRange?'目標超出目前水下能見度，請靠近再拍。':!enough?'目標被遮擋或未清楚入鏡，請調整位置。':'目標在畫面中太小，請靠近並對準後再拍。'});
-      if(ok)break;
+      if(ok&&!all)break;
     }
+    if(all)return reports.filter(report=>report.visible);
     reports.sort((a,b)=>Number(b.ok)-Number(a.ok)||a.priority-b.priority||a.centerDistance-b.centerDistance||a.distance_m-b.distance_m);
     const best=reports[0];
     if(!best)return {...base,reason:'畫面中沒有可辨識的觀察目標，請對準生物或工程目標。'};

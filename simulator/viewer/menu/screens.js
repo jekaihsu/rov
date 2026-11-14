@@ -1,6 +1,8 @@
 // The launch flow's own screens: title, main menu, mode, vehicle hangar, dive site and briefing.
 // Each builder returns {element, enter()}; navigation, data and the 3D stage come from the shared context.
 import { STICKERS } from '../vehicle_stickers.js';
+import { getFidelity } from '../fidelity.js';
+import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
 import { MODES, siteFacts, supportsMode, vehicleSpecs } from './catalogue.js';
 
 const STRINGS = {
@@ -27,7 +29,7 @@ const STRINGS = {
   },
   hangarTitle: '載具',
   provisional: '暫定',
-  provisionalHelp: '此機型參數尚未實測，數值為暫定估算（見 X1 實測清單）。',
+  provisionalHelp: '此機型參數尚未實測，數值為暫定估算，待實測補齊。',
   estimated: '工程估算',
   numbers: { mass: '質量', thrusters: '推進器', speed: '前進極速', arm: '機械臂' },
   units: { mass: 'kg', thrusters: '具', speed: 'kn' },
@@ -49,6 +51,9 @@ const STRINGS = {
   hostNote: '加入既有房間時，以房主的場景與玩法為準。',
   room: '房間',
   intro: '下水動畫',
+  procedure: '潛前檢查與下水流程',
+  procedureOff: '關閉時直接從水中開始，略過潛前檢查（擬真設定「下水流程」為完整作業時）。',
+  introOff: '關閉時直接從水中開始。',
   launch: '下水',
   chapter: '章節',
   campaign: '劇情與教學',
@@ -263,7 +268,8 @@ export function buildHangar(ctx) {
     const specs = vehicleSpecs(vehicle);
     name.textContent = vehicle.name;
     marker.hidden = !specs.provisional;
-    note.textContent = specs.provisional ? STRINGS.provisionalHelp : STRINGS.estimated;
+    const caveat = specs.provisional ? STRINGS.provisionalHelp : STRINGS.estimated;
+    note.textContent = [vehicle.detail, caveat].filter(Boolean).join(' · ');
     numbers.replaceChildren(
       readout(STRINGS.numbers.mass, fixed(specs.mass, 1), STRINGS.units.mass),
       readout(STRINGS.numbers.thrusters, String(specs.thrusters), STRINGS.units.thrusters),
@@ -384,7 +390,17 @@ export function buildBriefing(ctx) {
   const introRow = element('label', 'menu-toggle menu-toggle-inline');
   introRow.htmlFor = 'menuIntro';
   const introText = element('span', 'menu-toggle-text');
-  introText.append(element('strong', '', STRINGS.intro));
+  const introLabel = element('strong', '', STRINGS.intro);
+  const introHelp = element('small', '', STRINGS.introOff);
+  introText.append(introLabel, introHelp);
+  // The same switch decides ?nointro, which also skips the pre-dive procedure when the fidelity item asks for it.
+  function describeLaunch() {
+    const full = getFidelity().get(PROCEDURE_ITEM) === 'full';
+    introLabel.textContent = full ? STRINGS.procedure : STRINGS.intro;
+    introHelp.textContent = full ? STRINGS.procedureOff : STRINGS.introOff;
+  }
+  getFidelity().subscribe(describeLaunch);
+  describeLaunch();
   const intro = element('input');
   intro.type = 'checkbox';
   intro.id = 'menuIntro';

@@ -228,3 +228,17 @@ test("the menu context navigates with pad, stick and keys and owns them over fli
   assert.equal(values.left_lr, 0, "the menu owns the left stick");
   assert.equal(values.right_wave, 0, "and RB");
 });
+
+test("holding Start for the pause menu never toggles the light, even when the menu blocks the pad", () => {
+  const resolver = createResolver();
+  const bindings = defaultPadBindings();
+  const flight = new Set(["flight"]);
+  for (let now = 0; now <= HOLD_MS + 40; now += 33) {
+    assert.equal(resolver.resolve(bindings, snapshot([9]), flight, now).light, 0);
+  }
+  resolver.block(snapshot([9]));
+  for (let now = HOLD_MS + 80; now < HOLD_MS + 400; now += 33) {
+    const values = resolver.resolve(bindings, snapshot(now < HOLD_MS + 200 ? [9] : []), flight, now);
+    assert.equal(values.light, 0, `light toggled at ${now} ms`);
+  }
+});

@@ -6,7 +6,7 @@ import secrets
 import time
 import numpy as np
 
-from .engine import Simulator
+from .engine import Simulator, vehicle_world_source
 from .physics import q_conj, q_rot
 
 
@@ -90,7 +90,7 @@ class Room:
         if vid not in self.vehicles:
             base = self.primary
             sim = Simulator(base.scenario.key, base.scenario.seed, model_id=model_id,
-                            vehicle_id=vid, shared_world=base.world)
+                            vehicle_id=vid, shared_world=base.world, sensor_config=base.sensor_config)
             sim.t = base.t
             sim.paused = base.paused
             self.vehicles[vid] = sim
@@ -116,8 +116,7 @@ class Room:
                                       for other in self.vehicles.values() if other is not sim):
                 delta = candidate - sim.vehicle.s.pos
                 sim.vehicle.s.pos[:] = candidate
-                sim.tether.x[:] += delta
-                sim.tether.x[0] = sim.tether.spool
+                sim.tether.translate(delta)
                 return
 
     def select_model(self, vehicle_id, model_id):
@@ -197,9 +196,7 @@ class Room:
         self._vehicle_contacts()
         for sim in self.vehicles.values():
             sim.step(dt, update_world=False)
-        world.step(dt, vehicles=[{"id": vid, "pos": sim.vehicle.s.pos, "vel": sim.vehicle.world_velocity(),
-                                 "thrust": float(np.mean(np.abs(sim.vehicle.s.thrust)) / sim.vehicle.p.thruster_max)}
-                                 for vid, sim in self.vehicles.items()])
+        world.step(dt, vehicles=[vehicle_world_source(sim) for sim in self.vehicles.values()])
         from .operations import step_objects
         step_objects(world, dt, base.t)
         self.tick += 1
@@ -241,6 +238,7 @@ class Room:
             self._snapshot_at = time.monotonic()
         state = dict(next(s for s in self._snapshot if s["id"] == selected.vehicle_id))
         state["campaign"] = self.campaign.state()
+        state["flow_field"] = selected.flow_field_state()
         state["vehicles"] = self._snapshot
         state["tick"] = self.tick
         state["room"] = {"id": self.id, "host_id": self.host_id, "capacity": self.capacity,

@@ -5,6 +5,7 @@ import { installFidelityPanel } from '../fidelity_panel.js';
 import { installAudio, installAudioSettings } from '../audio/engine.js';
 import { hintItems } from '../input/bindings.js';
 import { renderPrompts } from './navigator.js';
+import './fidelity_items.js';
 
 const STRINGS = {
   hintsTitle: '目前鍵位',
