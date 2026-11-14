@@ -152,12 +152,6 @@ The browser sends:
 | message | effect |
 |---|---|
 | `{"type":"rc","rc":{"left_ud":1500,...,"rc_lock":0,"keep_depth":1,"left_switch":1,"right_switch":0,"record":0,"photo":0}}` | physical RC state (any subset of keys). Channels are PWM 1000–2000 (1500 centre, `>1500` = up/right). Buttons are levels: `rc_lock` 1=locked, `record`/`photo` 1=pressed. `left_switch` 0/1/2 = A/S/C, `right_switch` 0/1/2 = LED. Send at ~30 Hz while input changes and at least every 0.5 s. |
-
-Input-layer RC clients also send optional `assist` (0 manual, 1 velocity, 2 position assist) and
-`profile` (`cine`, `normal`, `sport`). Omitted values retain the legacy manual/normal semantics.
-The viewer defaults to `assist:2`, `profile:"normal"`. Hosts without assist support ignore these
-fields; the input layer does not modify physical PWM channel meanings.
-
 | `{"type":"scenario","key":"random","seed":123}` | load a scenario (`seed` optional) |
 | `{"type":"reset"}` | restart the current scenario |
 | `{"type":"pause","value":true}` | pause / resume |
@@ -167,6 +161,13 @@ fields; the input layer does not modify physical PWM channel meanings.
 | `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north) |
 | `{"type":"shaping","throttle_curvature":60,"throttle_limit":100,"rotate_curvature":60,"rotate_limit":100}` | stick curves |
 | `{"type":"remote_release"}` | force SDK remote control OFF (give control back to the physical RC) |
+
+Input-layer RC clients also send optional `assist` (0 manual, 1 velocity, 2 position assist) and
+`profile` (`cine`, `normal`, `sport`). Omitted values retain the legacy manual/normal semantics.
+The viewer defaults to `assist:2`, `profile:"normal"`. Clients MUST omit both fields unless
+the received `state.assist` is an object.
+Legacy hosts reject string-valued RC fields, including `profile`; the input layer does not modify
+physical PWM channel meanings.
 
 Stick meaning depends on `operation_mode` (see `qysim/rc.py`); the viewer only sends raw channels.
 

@@ -34,6 +34,7 @@ export const BUTTONS = {
   right: "b15",
   accept: "b0",
   back: "b1",
+  engineering: "b8",
   arm: "b16",
 };
 export function bindingValue(binding, snapshot) {
@@ -55,4 +56,11 @@ export function curve(value, { expo = 0, sensitivity = 1, invert = false } = {})
     -1,
     Math.min(1, Math.sign(value) * ((1 - expo) * magnitude + expo * magnitude ** 3) * sensitivity * (invert ? -1 : 1)),
   );
+}
+
+// Capability is advertised by telemetry, never inferred from the client defaults.
+export function assistFields(state, controls) {
+  const assist = state?.assist;
+  if (!assist || typeof assist !== "object" || Array.isArray(assist)) return {};
+  return { assist: controls.assist, profile: controls.profile };
 }

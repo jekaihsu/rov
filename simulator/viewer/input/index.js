@@ -14,11 +14,12 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   } catch {}
   if (desktopSettings && Object.keys(desktopSettings).length) settings = desktopSettings;
   settings.custom ||= {};
-  settings.bindings ||= { ...PRESETS.current, ...BUTTONS };
+  settings.bindings = { ...PRESETS.current, ...BUTTONS, ...settings.bindings };
   settings.channels ||= {};
   const devices = createDevices(database, settings.custom);
   let frame = { devices: [], pad: null };
   let previous = {};
+  let hudActions = {};
   let lastPadValues = "";
   let lastPadId = "";
   const stickStyle = document.createElement("style");
@@ -245,6 +246,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   });
   const panel = installSettings(settings, save, haptics, setMode);
   function readPad() {
+    hudActions = {};
     frame = devices.poll(panel.selected() || preferred());
     panel.update(frame);
     const padId = frame.pad ? `${frame.pad.index}:${frame.pad.id}` : "";
@@ -273,6 +275,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     const actions = Object.fromEntries(
       Object.entries(settings.bindings).map(([k, b]) => [k, bindingValue(b, snapshot)]),
     );
+    hudActions = actions;
     const handlers = {
       lock: toggleLock,
       depth: toggleDepth,
@@ -334,5 +337,29 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     if (high && !tensionHigh) haptics.pulse("tension");
     tensionHigh = high;
   }
-  return { rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed, sample, haptics, feedback };
+  function hudState() {
+    return {
+      actions: hudActions,
+      active:
+        !!frame.snapshot?.known &&
+        (frame.snapshot.axes.some((value) => Math.abs(value) > 0.15) ||
+          frame.snapshot.buttons.some((value) => value > 0.5)),
+      pulse: haptics.pulse,
+    };
+  }
+  return {
+    rc,
+    hold,
+    keys,
+    touch,
+    out,
+    toggleLock,
+    toggleDepth,
+    cycleMode,
+    cycleLed,
+    sample,
+    haptics,
+    feedback,
+    hudState,
+  };
 }

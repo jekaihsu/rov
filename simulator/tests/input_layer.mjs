@@ -73,3 +73,26 @@ test("haptics ignores unsupported devices and respects strength", async () => {
   haptics.pulse("hard");
   assert.equal(effect, null);
 });
+
+import { assistFields } from "../viewer/input/actions.js";
+import { readHUDButtons } from "../viewer/hud/flight_hud.js";
+test("legacy RC omits auxiliary fields until an assist object is advertised", () => {
+  const controls = { assist: 2, profile: "normal" };
+  for (const state of [null, {}, { assist: null }, { assist: 2 }, { assist: [] }]) {
+    assert.deepEqual(assistFields(state, controls), {});
+  }
+  assert.deepEqual(assistFields({ assist: {} }, controls), controls);
+  assert.deepEqual(assistFields({ assist: { level: 1 } }, controls), controls);
+});
+test("HUD consumes semantic directions without polling a device", () => {
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      getGamepads() {
+        throw Error("HUD must not poll");
+      },
+    },
+  });
+  assert.deepEqual(readHUDButtons({ up: 1, right: 0.8 }), [true, false, true, false]);
+  assert.deepEqual(readHUDButtons(), [false, false, false, false]);
+});

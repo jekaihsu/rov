@@ -1,8 +1,12 @@
 """Injected standard, database and unknown controller paths plus setup screenshots."""
+import argparse
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--before-url', help='Optional comparison server URL')
+args = parser.parse_args()
 OUT = Path(__file__).resolve().parents[1] / 'output/t02'
 OUT.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
@@ -10,11 +14,29 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width': 1600, 'height': 900})
     page.set_default_timeout(90000)
     errors = []
+    packets = []
+    page.on('websocket', lambda ws: ws.on('framesent', lambda frame: packets.append(json.loads(frame))))
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.add_init_script("""window.fakePads=[];
+      localStorage.setItem('rov.input.v1', JSON.stringify({bindings:{up:'b5'}}));
       Object.defineProperty(navigator,'getGamepads',{value:()=>window.fakePads});""")
     page.goto('http://127.0.0.1:8080/?play=1&nointro')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')
+    page.evaluate("""() => {
+      for (const [type, code] of [['keydown','Space'], ['keyup','Space'], ['keydown','ArrowUp']]) {
+        document.body.dispatchEvent(new KeyboardEvent(type, {code, bubbles:true}));
+      }
+    }""")
+    try:
+        page.wait_for_function('window.__viewer.S.rc.rc_lock===0 && window.__viewer.S.rc.right_ud>1500')
+    except Exception:
+        print('CONTROL DIAGNOSTICS', page.evaluate('({rc:window.__viewer.rc,state:window.__viewer.S.rc,focus:document.activeElement.tagName})'), packets[-3:], errors, flush=True)
+        raise
+    page.evaluate("document.body.dispatchEvent(new KeyboardEvent('keyup',{code:'ArrowUp',bubbles:true}))")
+    page.wait_for_function('window.__viewer.S.rc.right_ud===1500')
+    rc_packets = [packet['rc'] for packet in packets if packet.get('type') == 'rc']
+    assert rc_packets and all('assist' not in rc and 'profile' not in rc for rc in rc_packets)
+    print('Legacy host unlock/movement and capability-gated RC passed', flush=True)
     page.screenshot(path=str(OUT / 'after.png'))
     result = page.evaluate("""async () => {
       const {normalize}=await import('/input/devices.js');
@@ -29,8 +51,12 @@ with sync_playwright() as p:
       return {standard:standard.known,known:known.known,unknown:unknown.known};
     }""")
     assert result == {'standard': True, 'known': True, 'unknown': False}, result
+    page.evaluate('window.fakePads[0].buttons[5]={value:1,pressed:true}')
+    page.wait_for_function('document.querySelector("#flightPeek.visible strong")?.textContent==="任務與目標"')
+    page.evaluate('window.fakePads[0].buttons[5]={value:0,pressed:false}')
+    print('Remapped b5 -> up -> HUD task card passed', flush=True)
     print('Mapping paths passed', flush=True)
-    page.click('#inputSettingsButton')
+    page.keyboard.press('F8')
     page.wait_for_timeout(200)
     page.screenshot(path=str(OUT / 'settings.png'))
     page.evaluate("window.fakePads[0].mapping='';window.fakePads[0].id='HOTAS unknown';window.fakePads[0].axes=Array(20).fill(0)")
@@ -54,8 +80,9 @@ with sync_playwright() as p:
             page.wait_for_function('document.querySelector("#inputSettings p").dataset.ready==="true"')
     assert page.evaluate("JSON.parse(localStorage.getItem('rov.input.v1')).custom['HOTAS unknown'].buttons.length") == 17
     assert not errors, errors
-    page.goto('http://127.0.0.1:8093/?play=1&nointro&ws=ws://127.0.0.1:8793')
-    page.wait_for_function('window.__viewer?.S?.vehicle_id')
-    page.screenshot(path=str(OUT / 'before.png'))
+    if args.before_url:
+        page.goto(args.before_url)
+        page.wait_for_function('window.__viewer?.S?.vehicle_id')
+        page.screenshot(path=str(OUT / 'before.png'))
     browser.close()
 print('Input smoke passed:', json.dumps(result), '; wizard stored 4 axes and 17 buttons; no page errors')
