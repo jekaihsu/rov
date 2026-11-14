@@ -2,19 +2,19 @@
 import json
 import time
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'paint-validation'
 OUT.mkdir(parents=True, exist_ok=True)
-BASE = 'http://127.0.0.1:8093/'
-QUERY = f'?ws=ws://127.0.0.1:8793&room=paint_{int(time.time())}&model=bluerov2_heavy&scene=seagrass_meadow'
+BASE = f'{http_base(8093)}/'
+QUERY = f'?ws={ws_base(8793)}&room=paint_{int(time.time())}&model=bluerov2_heavy&scene=seagrass_meadow'
 PAINT_COUNT = "window.__viewer.scene.getObjectByName('Shared surface paint')?.userData.markCount||0"
 STICKER_COUNT = "(()=>{let count=0;window.__viewer.scene.traverse(o=>{if(o.name==='Vehicle stickers')count+=o.children.length;});return count;})()"
 results = {}
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'), headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width':1440,'height':1000}, accept_downloads=True)
     peer = browser.new_page(viewport={'width':900,'height':700})
     errors = []

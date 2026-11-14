@@ -3,17 +3,17 @@ import json
 import math
 import time
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 out=Path(__file__).resolve().parents[1]/'output'/'attitude-validation'
 out.mkdir(parents=True,exist_ok=True)
 angles=[(0,0,0),(20,0,90),(-20,0,180),(0,30,270),(0,-30,359),(20,-30,45),(0,179,370),(0,-179,-10)]
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True,args=['--enable-unsafe-swiftshader'])
+    browser=launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
     page=browser.new_page(viewport={'width':1366,'height':768})
     errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
-    page.goto(f'http://127.0.0.1:8094/?ws=ws://127.0.0.1:8794&room=attitude_{int(time.time())}&play=1&nointro&model=falcon')
+    page.goto(f'{http_base(8094)}/?ws={ws_base(8794)}&room=attitude_{int(time.time())}&play=1&nointro&model=falcon')
     page.wait_for_function('window.__viewer?.S?.vehicle_id && window.__modelLoaded',timeout=90000)
     page.wait_for_function('document.querySelector("#adi").getAttribute("aria-label")?.includes("ROV")')
     page.click('#flightDrawer')

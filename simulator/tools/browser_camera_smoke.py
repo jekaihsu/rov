@@ -1,13 +1,14 @@
 """Exercise the camera rig in real Three.js without a simulation or GPU workload."""
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=True)
+    browser = launch(playwright, headless=True)
     page = browser.new_page()
     page.route('**/camera-harness', lambda route: route.fulfill(
         content_type='text/html', body='''<script type="importmap">
         {"imports":{"three":"/vendor/three/build/three.module.js"}}</script>'''))
-    page.goto('http://127.0.0.1:8092/camera-harness')
+    page.goto(f'{http_base(8092)}/camera-harness')
     result = page.evaluate('''async () => {
       const THREE = await import('three');
       const {createCameraRig} = await import('/camera_rig.js');

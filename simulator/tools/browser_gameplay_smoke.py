@@ -2,13 +2,13 @@
 import json
 import time
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 OUT = Path(__file__).resolve().parents[1]/'output'/'gameplay-validation'
 OUT.mkdir(parents=True, exist_ok=True)
-BASE = 'http://127.0.0.1:8094/'
-WS = 'ws://127.0.0.1:8794'
+BASE = f'{http_base(8094)}/'
+WS = ws_base(8794)
 room = f'gameplay{int(time.time())}'
 errors = []
 
@@ -19,7 +19,7 @@ def wait_state(page, mode):
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'), headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     contexts = []
     def new_page():
         context = browser.new_context(viewport={'width':1366,'height':768}, accept_downloads=True)

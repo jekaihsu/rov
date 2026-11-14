@@ -1,8 +1,12 @@
-"""Real-browser smoke checks against a separately running simulator."""
+"""Real-browser smoke checks against a separately running simulator.
+
+Three software-rendered viewers share one CPU here, so each can drop to about one frame per second. Steps that
+depend on render speed are marked below; scale every timeout with ROV_BROWSER_TIMEOUT_SCALE on slower machines.
+"""
 import json
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base, timeout
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'output' / 'upgrade-validation'
@@ -11,18 +15,20 @@ OUT.mkdir(parents=True, exist_ok=True)
 def run():
     errors=[]
     with sync_playwright() as p:
-        browser=p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True, args=['--enable-unsafe-swiftshader'])
+        browser=launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
         contexts=[]
         pages=[]
         for i in range(3):
             print('Connecting browser',i+1,flush=True)
             context=browser.new_context(viewport={'width':960,'height':720})
+            context.set_default_timeout(timeout(60000))
             page=context.new_page();contexts.append(context);pages.append(page)
             page.on('pageerror',lambda error: (errors.append(str(error)),print('PAGE ERROR',error,flush=True)))
             page.on('requestfailed',lambda request: print('REQUEST FAILED',request.url,request.failure,flush=True))
             page.on('console',lambda msg: print('CONSOLE',msg.text,flush=True) if msg.type=='error' else None)
-            page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&model=falcon&nointro&room=browsercheck',wait_until='domcontentloaded',timeout=90000)
-            try:page.wait_for_function('window.__viewer?.S?.vehicle_id',timeout=60000)
+            page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&play=1&model=falcon&nointro&room=browsercheck',wait_until='domcontentloaded',timeout=timeout(90000))
+            # Render-speed dependent: the first state needs the model and scene loaded while other viewers render.
+            try:page.wait_for_function('window.__viewer?.S?.vehicle_id',timeout=timeout(120000))
             except Exception:
                 print('DIAGNOSTICS',page.evaluate('({title:document.title,ready:!!window.__viewer,state:window.__viewer?.S,notice:document.querySelector("#operationNotice")?.textContent,connection:document.querySelector("#conn")?.textContent})'),flush=True)
                 page.screenshot(path=str(OUT/f'failed-{i}.png'))
@@ -31,17 +37,19 @@ def run():
         main.wait_for_function('window.__viewer.S.vehicles.length===3')
         assert main.locator('#pip').is_hidden()
         main.evaluate("const option=document.querySelector('#optPip');option.checked=true;option.dispatchEvent(new Event('change'))")
-        main.wait_for_function('document.querySelector(".pilot-pip-canvas")',timeout=60000)
-        main.locator('#closePip').click()
+        main.wait_for_function('document.querySelector(".pilot-pip-canvas")',timeout=timeout(60000))
+        # Render-speed dependent: a click waits for the element to hold still across animation frames. None of
+        # these clicks navigate, so do not also wait for a navigation that never happens.
+        main.locator('#closePip').click(no_wait_after=True)
         assert main.locator('#pip').is_hidden()
         assert main.evaluate('localStorage.getItem("rov.operatorVisible")')=='false'
         # Vehicle is selected before entering the game via the launch URL.
         main.wait_for_function('window.__viewer.S.model_id==="falcon"')
         main.wait_for_timeout(1000)
-        main.click('#flightDrawer')
+        main.click('#flightDrawer',no_wait_after=True)
         assert main.locator('#armPanel').is_visible()
-        main.locator('#armPanel summary').click()
-        main.click('#gripClose')
+        main.locator('#armPanel summary').click(no_wait_after=True)
+        main.click('#gripClose',no_wait_after=True)
         main.wait_for_function('window.__viewer.S.operations.arm.grip<.5')
         main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')
         main.wait_for_function('window.__viewer.S.rc.right_switch===2')
