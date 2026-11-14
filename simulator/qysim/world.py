@@ -15,11 +15,13 @@ from __future__ import annotations
 import functools
 import math
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import numpy as np
 
-from .flow import (BED_ROUGHNESS_M, BIOME_BED, DEFAULT_Z0, StructureFlow, Tide, TurbulenceField, bed_factor,
-                   bed_reference_height, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors)
+from ._flow_accel import turbulence as _compiled_turbulence
+from .flow import (BED_ROUGHNESS_M, BIOME_BED, COMPONENT_RATIOS, DEFAULT_Z0, StructureFlow, Tide, TurbulenceField,
+                   bed_factor, bed_reference_height, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors)
 from .physics import KNOT, q_rot
 
 WORLD_UP = np.array([0.0, 0.0, -1.0])
@@ -269,6 +271,7 @@ class CurrentProfile:
     _turb: object = field(default=None, repr=False)
     _seabed_hint: float = field(default=30.0, repr=False)
     _layer_cache: object = field(default=None, repr=False)
+    use_compiled: ClassVar[bool] = True   # numba turbulence loop when available (NumPy is the reference)
     _inj: dict | None = field(default=None, repr=False)
     _tide_cache: object = field(default=None, repr=False)
     _travel: float = field(default=0.0, repr=False)
@@ -429,10 +432,14 @@ class CurrentProfile:
         if self.turbulence <= 0:
             return np.zeros_like(mean)
         _, ell = self.turbulence_scales(seabed)
-        unit = self._field().unit(positions, ell)
-        fallback = self.layer("surface")
-        norm = float(np.linalg.norm(fallback))
-        fallback = fallback / norm if norm > 1e-9 else np.array([1.0, 0.0, 0.0])
+        a = math.radians(self.surface_dir)
+        fallback = np.array([math.cos(a), math.sin(a), 0.0])
+        turb = self._field()
+        if self.use_compiled and _compiled_turbulence is not None:
+            return _compiled_turbulence(np.ascontiguousarray(positions, float), mean, turb.displacement,
+                                        1.0 / ell, turb.k, turb.psi + turb.theta, turb.amp, float(self.turbulence),
+                                        COMPONENT_RATIOS, fallback[0], fallback[1])
+        unit = turb.unit(positions, ell)
         return turbulence_vectors(unit, mean, self.turbulence, positions[:, 2], fallback)
 
     def shedding_travel(self, depths, seabed: float) -> np.ndarray:
@@ -557,7 +564,12 @@ class World:
         P = np.atleast_2d(np.asarray(points, float))
         bed = None
         if self.terrain is not None and self.terrain.relief:
-            bed = self.terrain.sample_many(P)[0]
+            # Terrain only rises above the nominal floor; points higher than the relief plus the
+            # bed layer are unaffected, so only query the terrain near the bottom.
+            low = P[:, 2] > self.seabed_depth - self.terrain.relief - bed_reference_height(self.seabed_depth)
+            if np.any(low):
+                bed = np.full(len(P), self.seabed_depth)
+                bed[low] = self.terrain.sample_many(P[low])[0]
         U = self.current.sample_many(P, self.seabed_depth, bed=bed, z0=self.bed_roughness())
         flow = self.structure_flow()
         if flow.empty:

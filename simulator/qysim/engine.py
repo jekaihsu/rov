@@ -20,7 +20,7 @@ import numpy as np
 from . import scenarios as sc_mod
 from .controller import FlightController
 from .navigation import GeoFrame, Navigator, wrap_pi
-from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_rot
+from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_matrix, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether
 from .flow import FlowAccelerometer
@@ -240,7 +240,7 @@ class Simulator:
     def _sample_flow(self, s) -> np.ndarray:
         """Local flow at the CG plus hull points (uneven flow gives torque, see Vehicle)."""
         body = self._flow_points
-        world = s.pos + np.array([q_rot(s.q, r) for r in body])
+        world = s.pos + body @ q_matrix(s.q).T
         flows = self.world.current_at_many(np.vstack([s.pos, world]), self.t)
         self.vehicle.current_points = (body, flows[1:])
         return flows[0]

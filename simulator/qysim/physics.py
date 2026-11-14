@@ -55,6 +55,14 @@ def q_rot(q: np.ndarray, v: np.ndarray) -> np.ndarray:
                      scale*vz + 2*(z*dot + w*(x*vy-y*vx))])
 
 
+def q_matrix(q: np.ndarray) -> np.ndarray:
+    """Rotation matrix (body -> world) of a unit quaternion (w, x, y, z)."""
+    w, x, y, z = q
+    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+                     [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+                     [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
+
+
 def cross3(a, b):
     """Cross product specialized to single 3-vectors, with no broadcast setup."""
     ax, ay, az = a
@@ -204,13 +212,9 @@ class Vehicle:
         """
         points, flows = self.current_points
         gain = (lin[:3] + 2.0 * self.quad_drag * np.abs(v_rel)) / len(points)
-        force, moment = np.zeros(3), np.zeros(3)
-        for r_body, flow in zip(points, flows):
-            delta = q_rot(q_inv, np.asarray(flow) - self.current_ned)
-            f = gain * delta
-            force += f
-            moment += cross3(r_body, f)
-        return force, moment
+        delta = (np.asarray(flows) - self.current_ned) @ q_matrix(self.s.q)     # world -> body rows
+        f = gain * delta
+        return f.sum(axis=0), np.cross(points, f).sum(axis=0)
 
     def _authority(self) -> np.ndarray:
         """Largest achievable force/torque along each wrench axis (thrusters saturated)."""

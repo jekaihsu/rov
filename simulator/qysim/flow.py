@@ -21,6 +21,8 @@ from dataclasses import asdict, dataclass, fields
 
 import numpy as np
 
+from ._flow_accel import cylinders as _compiled_cylinders
+
 M2_PERIOD_S = 12.4206012 * 3600.0    # principal lunar semidiurnal constituent
 S2_PERIOD_S = 12.0 * 3600.0          # principal solar semidiurnal constituent
 TIDE_STARTS = ("peak_flood", "slack_before_ebb", "peak_ebb", "slack_before_flood")
@@ -324,6 +326,8 @@ class StructureFlow:
     the normal component and slow the flow in a 2 m boundary layer. Flow is zero inside solids.
     """
 
+    use_compiled = True                  # numba loop when available; the NumPy path is the reference
+
     def __init__(self, obstacles: list):
         from .world import Box, Cylinder, FieldMesh, Wall
         cyl = [o for o in obstacles if isinstance(o, Cylinder) and o.kind != "habitat"]
@@ -362,7 +366,11 @@ class StructureFlow:
         ``travel`` is the per-point integrated free-stream distance (m) that sets the shedding phase.
         """
         V = U.copy()
-        if self.n_cyl:
+        if self.n_cyl and self.use_compiled and _compiled_cylinders is not None:
+            V = _compiled_cylinders(np.ascontiguousarray(X, float), V, np.ascontiguousarray(travel, float),
+                                    self.cyl_a, self.cyl_axis, self.cyl_len, self.cyl_r, self.cyl_phase,
+                                    STROUHAL, SHED_AMPLITUDE, WAKE_DECAY_D, WAKE_RANGE_D)
+        elif self.n_cyl:
             V = self._cylinders(X, V, travel)
         for box in self.boxes:
             V = self._box(X, V, *box)

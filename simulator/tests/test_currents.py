@@ -588,5 +588,38 @@ class ScenarioCurrentTests(unittest.TestCase):
         self.assertEqual(a.as_dict(), b.as_dict())
 
 
+class CompiledFlowTests(unittest.TestCase):
+    """The optional numba loops must match the NumPy reference implementations."""
+
+    def setUp(self):
+        from qysim import _flow_accel
+        if _flow_accel.njit is None:
+            self.skipTest("optional Numba is not installed")
+
+    def test_turbulence_kernel_matches_numpy(self):
+        profile = uniform_profile(knots=1.2, seed=9)
+        profile.step_gust(7.0)
+        points = np.random.default_rng(2).uniform([-50, -50, 0], [50, 50, 28], (300, 3))
+        try:
+            CurrentProfile.use_compiled = False
+            reference = profile.sample_many(points, 28.0)
+        finally:
+            CurrentProfile.use_compiled = True
+        np.testing.assert_allclose(profile.sample_many(points, 28.0), reference, atol=1e-12)
+
+    def test_cylinder_kernel_matches_numpy(self):
+        from qysim.engine import Simulator
+        from qysim.flow import StructureFlow
+        sim = Simulator("jacket_inspection")
+        sim.world.current.step_gust(11.0)
+        points = np.random.default_rng(3).uniform([0, -15, 0], [40, 15, 32], (400, 3))
+        try:
+            StructureFlow.use_compiled = False
+            reference = sim.world.current_at_many(points)
+        finally:
+            StructureFlow.use_compiled = True
+        np.testing.assert_allclose(sim.world.current_at_many(points), reference, atol=1e-12)
+
+
 if __name__ == "__main__":
     unittest.main()
