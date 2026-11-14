@@ -460,6 +460,11 @@ class SimHost:
                     sim.input_latched = False
                 else:
                     values["rc_lock"] = 1
+            # Assistance metadata is packet-scoped, not a button edge.
+            # Keep it even when unchanged buttons were removed above.
+            for key in ("assist", "profile"):
+                if key in msg.get("rc", {}):
+                    values[key] = msg["rc"][key]
             sim.apply_viewer_rc(values)
             if not sim.remote_control:
                 # Preserve short camera button edges when several network packets

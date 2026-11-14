@@ -171,3 +171,11 @@ class TestFlightAssist(unittest.TestCase):
         host.handle_viewer({'type': 'rc', 'rc': {'assist': 99, 'profile': 'unknown'}})
         self.assertEqual(host.sim.rc_physical.assist, 0)
         self.assertEqual(host.sim.rc_physical.profile, 'normal')
+        # Repeated metadata must survive the USB/button edge filtering path.
+        host.qirc_enabled = True
+        previous = {}
+        packet = {'type': 'rc', 'rc': {'assist': 2, 'profile': 'cine'}}
+        host.handle_viewer(packet, button_values=previous)
+        host.handle_viewer(packet, button_values=previous)
+        self.assertEqual(host.sim.rc_physical.assist, 2)
+        self.assertEqual(host.sim.rc_physical.profile, 'cine')
