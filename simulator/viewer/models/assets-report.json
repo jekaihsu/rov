@@ -1,0 +1,68 @@
+{
+  "models_total_bytes": 15286304,
+  "assets": [
+    {
+      "asset": "observation-lod0.glb",
+      "triangles": 15180,
+      "bytes": 99768,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "observation-lod1.glb",
+      "triangles": 8302,
+      "bytes": 109780,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "observation-lod2.glb",
+      "triangles": 3734,
+      "bytes": 86352,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "work-lod0.glb",
+      "triangles": 15780,
+      "bytes": 121968,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "work-lod1.glb",
+      "triangles": 8624,
+      "bytes": 137400,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "work-lod2.glb",
+      "triangles": 3874,
+      "bytes": 103852,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "openframe-lod0.glb",
+      "triangles": 18288,
+      "bytes": 98096,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "openframe-lod1.glb",
+      "triangles": 10004,
+      "bytes": 108708,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    },
+    {
+      "asset": "openframe-lod2.glb",
+      "triangles": 4504,
+      "bytes": 87472,
+      "texture_gpu_rgba8_bytes_with_mips": 1310715,
+      "max_texture": 128
+    }
+  ]
+}

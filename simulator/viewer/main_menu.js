@@ -1,3 +1,4 @@
+import { trainingAssets, vehicleAssets } from './asset_config.js';
 import * as THREE from 'three';
 import {Environment} from './environment.js';
 import {createVehicleModel} from './vehicle_models.js';
@@ -8,6 +9,9 @@ import {installCollectionPanel} from './collection_panel.js';
 const query=new URLSearchParams(location.search),$=id=>document.getElementById(id);
 const read=(key,fallback)=>{try{return localStorage.getItem(key)||fallback;}catch{return fallback;}};
 const models={falcon:{name:'Falcon',detail:'五推進器作業型 ROV · 四關節機械臂'},bluerov2_heavy:{name:'BlueROV2 Heavy',detail:'八推進器 · 六自由度操控'},x1:{name:'X1',detail:'六推進器 · 緊湊型機身'}};
+if (!trainingAssets) {
+  for (const [id, asset] of Object.entries(vehicleAssets)) models[id].name = asset.name;
+}
 let selected=query.get('model')||read('rov.vehicle','falcon');if(!models[selected])selected='falcon';
 let settings={};try{settings=JSON.parse(read('rov.menuSettings','{}'));}catch{}
 document.body.classList.add('menu-open');

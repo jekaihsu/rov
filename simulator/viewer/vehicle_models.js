@@ -1,5 +1,6 @@
 // Vehicle visuals use Three coordinates (-starboard, -down, forward), metres.
 import * as THREE from 'three';
+import { trainingAssets, vehicleAsset } from './asset_config.js';
 import { loadGLTF } from './glb.js';
 
 const point = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
@@ -116,15 +117,17 @@ function fallback(id) {
 }
 
 /** Load an independent vehicle instance. Lighting intentionally lives outside root. */
-export async function createVehicleModel(definition='x1') {
+export async function createVehicleModel(definition='x1', options={}) {
   const id=typeof definition==='string'?definition:definition.id || 'x1';
   const def={...(defaults[id] || defaults.x1),...(typeof definition==='object'?definition:{})};
   const root=new THREE.Group(); root.name=`Vehicle ${id}`;
+  const original = options.training ?? trainingAssets;
+  if (!original) def.model = vehicleAsset(id, options.lod ?? 0);
   let model, loadError=null;
   try { model=(await loadGLTF(def.model)).scene; }
   catch(e) { loadError=e; console.warn(`Vehicle model ${id} unavailable; using fallback`,e); model=fallback(id); }
   // Preserve the legacy X1 centring convention; fleet GLBs are authored about CG.
-  if(id==='x1') { const box=new THREE.Box3().setFromObject(model); model.position.sub(box.getCenter(new THREE.Vector3())); }
+  if(original && id==='x1') { const box=new THREE.Box3().setFromObject(model); model.position.sub(box.getCenter(new THREE.Vector3())); }
   root.add(model); root.updateMatrixWorld(true);
   const rotors=[];
   model.traverse((o) => {
@@ -138,11 +141,19 @@ export async function createVehicleModel(definition='x1') {
     } else axis=new THREE.Vector3(...(o.userData.axis || [0,0,1])).applyQuaternion(worldQ.clone().invert()).normalize();
     rotors.push({o,base:o.quaternion.clone(),axis,pos:o.getWorldPosition(new THREE.Vector3()),ang:0,thrusterIndex:o.userData.thruster_index});
   });
-  if(id==='x1') matchLegacyRotors(rotors,def.thrusters);
+  if(original && id==='x1') matchLegacyRotors(rotors,def.thrusters);
   const arm=id==='falcon'?(bindModelArm(root,model) || manipulator(def.arm_mount_body)):null;
   if(arm && arm.root.parent!==root) root.add(arm.root);
+  const gimbal = model.getObjectByName('camera_gimbal');
+  const lamps = [0, 1].map((i) => model.getObjectByName(`lamp_pivot_${i}`));
+  function updatePivots(cameraTilt = 0, lampTilt = 0) {
+    if (gimbal) gimbal.rotation.x = cameraTilt * Math.PI / 180;
+    for (const lamp of lamps) {
+      if (lamp) lamp.rotation.x = lampTilt * Math.PI / 180;
+    }
+  }
   const lampAnchors=(def.lamp_body || []).map((p) => ({position:point(p),direction:new THREE.Vector3(0,-.055,1).normalize()}));
-  return {root,model,rotors,arm,definition:def,loadError,lampAnchors,
+  return {root,model,rotors,arm,definition:def,loadError,lampAnchors,updatePivots,
     cameraAnchor:point(def.camera_body),tetherAnchor:point(def.gland_body),
     updateArm:(state) => arm?.update(state), dispose:() => disposeTree(root)};
 }
