@@ -204,7 +204,10 @@ function foulingShader(params, textures) {
         float depth = -vFoulPos.y;
         vec3 coarse = foulSample(0.13);
         #if FOUL_QUALITY >= 2
-        vec3 fine = foulSample(0.9);
+        vec3 fineN = abs(vFoulNormal);
+        vec3 fineP = vFoulPos * 0.9;
+        vec3 fine = texture2D(uFouling, fineN.y > max(fineN.x, fineN.z) ? fineP.xz
+          : (fineN.x > fineN.z ? fineP.zy : fineP.xy)).rgb;
         #else
         vec3 fine = coarse.gbr;
         #endif
@@ -238,7 +241,7 @@ function foulingShader(params, textures) {
  * A new material for one structure kind. Each call returns its own instance (the snag highlight changes the
  * emissive colour per obstacle); the shader program is shared through the cache key. ``detail`` sets the cost:
  * low has no fouling shader, medium reads the fouling mask once (dominant-axis projection), high blends three
- * projections at two scales.
+ * projections for the coarse scale and adds one fine read (four reads).
  */
 export function structureMaterial(kind, detail = 'medium') {
   const params = PRESETS[kind] || PRESETS.steel;

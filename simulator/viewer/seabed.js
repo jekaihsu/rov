@@ -82,9 +82,37 @@ function drawTiles(g, n) {
   }
 }
 
+/** Smooth tileable value noise, one octave per channel: R 8 cells, G 32 cells, B 4 cells across the tile. */
+function drawNoise(g, n) {
+  const image = g.createImageData(n, n);
+  const octave = (x, y, cells, seed) => {
+    const fx = x / n * cells;
+    const fy = y / n * cells;
+    const ix = Math.floor(fx);
+    const iy = Math.floor(fy);
+    const u = (fx - ix) * (fx - ix) * (3 - 2 * (fx - ix));
+    const v = (fy - iy) * (fy - iy) * (3 - 2 * (fy - iy));
+    const h = (a, b) => hash2((a % cells) + seed, (b % cells) + seed * 3);
+    const top = h(ix, iy) * (1 - u) + h(ix + 1, iy) * u;
+    const bottom = h(ix, iy + 1) * (1 - u) + h(ix + 1, iy + 1) * u;
+    return top * (1 - v) + bottom * v;
+  };
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      const i = (y * n + x) * 4;
+      image.data[i] = Math.round(octave(x, y, 8, 11) * 255);
+      image.data[i + 1] = Math.round(octave(x, y, 32, 23) * 255);
+      image.data[i + 2] = Math.round(octave(x, y, 4, 37) * 255);
+      image.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(image, 0, 0);
+}
+
 function sharedTextures() {
   if (!textures) {
-    textures = {field: canvas(drawField, false), gravel: canvas(drawGravel), tiles: canvas(drawTiles)};
+    textures = {field: canvas(drawField, false), gravel: canvas(drawGravel), tiles: canvas(drawTiles),
+      noise: canvas(drawNoise, false)};
   }
   return textures;
 }
@@ -107,6 +135,7 @@ function shaderPatch(profile, maps) {
     uField: {value: maps.field},
     uGravel: {value: maps.gravel},
     uTiles: {value: maps.tiles},
+    uNoise: {value: maps.noise},
     uSand: {value: new THREE.Color(profile.sand)},
     uMud: {value: new THREE.Color(profile.mud)},
     uWeights: {value: new THREE.Vector4(profile.gravel, profile.mud_w, profile.shell, profile.rock)},
@@ -122,29 +151,19 @@ function shaderPatch(profile, maps) {
       uniform sampler2D uField;
       uniform sampler2D uGravel;
       uniform sampler2D uTiles;
+      uniform sampler2D uNoise;
       uniform vec3 uSand;
       uniform vec3 uMud;
       uniform vec4 uWeights;
       uniform float uRipple;
       uniform float uTileFloor;
-      float seaHash(vec2 p) {
-        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-      }
-      float seaNoise(vec2 p) {
-        vec2 i = floor(p);
-        vec2 f = fract(p);
-        vec2 u = f * f * (3.0 - 2.0 * f);
-        return mix(mix(seaHash(i), seaHash(i + vec2(1.0, 0.0)), u.x),
-          mix(seaHash(i + vec2(0.0, 1.0)), seaHash(i + vec2(1.0, 1.0)), u.x), u.y);
-      }
-      vec2 seaRot(vec2 p, float a) {
-        return mat2(cos(a), -sin(a), sin(a), cos(a)) * p;
-      }
+      // ripple field read along a 0.35 rad rotated grid (and a second 1.95 rad grid on high): no visible tiling
+      const mat2 SEA_ROT_A = mat2(0.9394, -0.3429, 0.3429, 0.9394);
+      const mat2 SEA_ROT_B = mat2(-0.3702, -0.9290, 0.9290, -0.3702);
       float seaRipple(vec2 p, float mixer) {
-        float a = texture2D(uField, seaRot(p, 0.35) * 0.16).r;
+        float a = texture2D(uField, SEA_ROT_A * p * 0.16).r;
         #if SEA_QUALITY >= 2
-        float b = texture2D(uField, seaRot(p, 1.95) * 0.083).r;
-        return mix(a, b, mixer);
+        return mix(a, texture2D(uField, SEA_ROT_B * p * 0.083).r, mixer);
         #else
         return a;
         #endif
@@ -152,23 +171,21 @@ function shaderPatch(profile, maps) {
       ` + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
       vec2 seaP = vSeaPos.xz;
-      #if SEA_QUALITY >= 2
-      float seaLow = seaNoise(seaP * 0.045);
-      float seaMid = seaNoise(seaP * 0.17 + 13.0);
-      float seaMix = smoothstep(0.3, 0.7, seaNoise(seaP * 0.02 + 5.0));
-      float seaR = seaRipple(seaP, seaMix);
-      vec4 seaF = texture2D(uField, seaP * 0.9);
-      #elif SEA_QUALITY == 1
-      float seaLow = seaNoise(seaP * 0.045);
-      float seaMid = seaNoise(seaP * 0.17 + 13.0);
-      float seaMix = 0.0;
-      vec4 seaF = texture2D(uField, seaRot(seaP, 0.35) * 0.16);
-      float seaR = seaF.r;
+      #if SEA_QUALITY >= 1
+      vec3 seaN = texture2D(uNoise, seaP * 0.00625).rgb;   // 160 m tile of smooth noise
+      float seaLow = seaN.r;
+      float seaMid = seaN.g;
+      float seaMix = smoothstep(0.3, 0.7, seaN.b);
+      vec4 seaF = texture2D(uField, SEA_ROT_A * seaP * 0.16);
       #else
       float seaLow = 0.5;
       float seaMid = 0.5;
       float seaMix = 0.0;
       vec4 seaF = texture2D(uField, seaP * 0.16);
+      #endif
+      #if SEA_QUALITY >= 2
+      float seaR = mix(seaF.r, texture2D(uField, SEA_ROT_B * seaP * 0.083).r, seaMix);
+      #else
       float seaR = seaF.r;
       #endif
       vec3 seaCol = uSand * (0.82 + 0.3 * seaR * uRipple + 0.12 * (seaF.g - 0.5));
@@ -180,14 +197,14 @@ function shaderPatch(profile, maps) {
       vec3 gravel = uMud;
       #endif
       #if SEA_QUALITY >= 2
-      gravel = mix(gravel, texture2D(uGravel, seaRot(seaP, 1.1) * 0.21).rgb, seaMix);
+      gravel = mix(gravel, texture2D(uGravel, SEA_ROT_A * seaP * 0.21).rgb, seaMix);
       #endif
       float gravelW = uWeights.x * smoothstep(0.55, 0.75, seaMid * 0.6 + seaLow * 0.5);
       seaCol = mix(seaCol, gravel, gravelW);
       float shellW = uWeights.z * seaF.b * smoothstep(0.35, 0.7, seaMid);
       seaCol = mix(seaCol, vec3(0.86, 0.82, 0.74), shellW * 0.8);
-      #if SEA_QUALITY >= 2
-      float rockW = uWeights.w * smoothstep(0.72, 0.8, seaNoise(seaP * 0.06 + 31.0));
+      #if SEA_QUALITY >= 1
+      float rockW = uWeights.w * smoothstep(0.72, 0.8, seaLow * 0.7 + seaN.b * 0.4);
       seaCol = mix(seaCol, vec3(0.36, 0.35, 0.31) * (0.8 + 0.4 * seaF.g), rockW);
       #endif
       #ifdef SEA_TILES
@@ -196,7 +213,7 @@ function shaderPatch(profile, maps) {
       diffuseColor.rgb *= seaCol;
       float seaBump = uRipple * (1.0 - mudW * 0.7) * (1.0 - uTileFloor);`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-      #if SEA_QUALITY >= 1
+      #if SEA_QUALITY >= 2
       {
         float e = 0.06;
         float hx = (seaRipple(seaP + vec2(e, 0.0), seaMix) - seaR) * 2.0;
@@ -212,8 +229,9 @@ const QUALITY = {low: 0, medium: 1, high: 2};
 
 /**
  * Seabed material for a profile name from siteProfile(). ``detail`` (low / medium / high) sets the shader cost:
- * low reads one texture and no noise (cost of the old single sand texture), medium adds mud / gravel patches and
- * ripple shading, high mixes two rotated scales of every texture and adds rock outcrops.
+ * low reads one texture (cost of the old single sand texture); medium three (a baked smooth-noise texture for
+ * mud, gravel and rock patches, the ripple field, gravel); high adds a second ripple and gravel scale and ripple
+ * shading of the normal (seven reads). No procedural noise is evaluated per pixel.
  */
 export function seabedMaterial(name, detail = 'medium') {
   const profile = PROFILES[name] || PROFILES.offshore;
@@ -221,7 +239,7 @@ export function seabedMaterial(name, detail = 'medium') {
   material.onBeforeCompile = shaderPatch(profile, sharedTextures());
   material.defines = {SEA_QUALITY: QUALITY[detail] ?? 1};
   if (profile.tiles) material.defines.SEA_TILES = 1;
-  material.customProgramCacheKey = () => `seabed-site-v2-${material.defines.SEA_QUALITY}-${profile.tiles ? 1 : 0}`;
+  material.customProgramCacheKey = () => `seabed-site-v3-${material.defines.SEA_QUALITY}-${profile.tiles ? 1 : 0}`;
   material.userData.seabedProfile = name;
   return material;
 }

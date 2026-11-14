@@ -21,14 +21,14 @@ import {structureMaterial} from './structure_materials.js';
 import {detectHardware} from './render_quality.js';
 
 export const SCENE_TOLERANCE = 0.1;           // m a visual surface may stand proud of its collision shape
-// fittings drawn as one merged mesh per material on the low tier (snag highlight then lights the whole group)
-const LOW_BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
+// fittings drawn as one merged mesh per material (labels keep per-obstacle anchors; a snag lights the group)
+const BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
   'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast']);
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
   low: {radial: 12, rockDetail: 0, lumps: 0, hullX: 48, hullZ: 10},
-  medium: {radial: 20, rockDetail: 0, lumps: 90, hullX: 96, hullZ: 16},
-  high: {radial: 28, rockDetail: 1, lumps: 180, hullX: 140, hullZ: 22},
+  medium: {radial: 20, rockDetail: 0, lumps: 60, hullX: 96, hullZ: 16},
+  high: {radial: 28, rockDetail: 0, lumps: 120, hullX: 140, hullZ: 22},
 };
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
@@ -165,7 +165,7 @@ class StructureSet {
   /** Add one mesh drawn for the named colliders; the first name owns the mesh for snag highlighting. */
   add(geometry, kind, names, role = 'solid', obs = []) {
     if (!geometry) return null;
-    if (this.detailName === 'low' && LOW_BATCH_KINDS.has(obs[0]?.kind)) {
+    if (BATCH_KINDS.has(obs[0]?.kind)) {
       return this.addBatched(`${kind}:${role}`, geometry, kind, names, role, obs);
     }
     return this.addMesh(geometry, kind, names, role, obs);
@@ -186,11 +186,10 @@ class StructureSet {
   }
 
   /**
-   * Low tier: queue small repeated parts (anodes, mud mats) and draw each kind as one merged mesh, to keep the
-   * draw-call count of the low tier close to the plain primitives. Other tiers add the mesh directly.
+   * Queue small repeated parts (anodes, mud mats, fenders, weld cans...) and draw each material as one merged
+   * mesh, so the draw-call count stays close to the plain primitives on every tier.
    */
   addBatched(batch, geometry, kind, names, role, obs) {
-    if (this.detailName !== 'low') return this.addMesh(geometry, kind, names, role, obs);
     if (!this.batches) this.batches = new Map();
     if (!this.batches.has(batch)) this.batches.set(batch, {kind, role, parts: [], names: [], obs: []});
     const entry = this.batches.get(batch);
@@ -277,13 +276,13 @@ function steelTube(set, ob, kind = 'steel') {
       return tube(c.clone().addScaledVector(dir, -0.7), c.clone().addScaledVector(dir, 0.7), ob.radius + 0.04,
         radial, true);
     });
-    if (cans.length) set.add(merged(cans), kind, [ob.name], 'attached');
+    if (cans.length) set.addBatched('weld-cans', merged(cans), kind, [ob.name], 'attached', []);
   }
-  if (set.detail.lumps && ['jacket_leg', 'pile', 'monopile', 'brace'].includes(ob.kind)) musselLumps(set, ob, kind);
+  if (set.detail.lumps && ['jacket_leg', 'pile', 'monopile', 'brace'].includes(ob.kind)) musselLumps(set, ob);
 }
 
 /** Mussel and barnacle clumps on the upper part of a tubular, at most 0.05 m proud of the steel. */
-function musselLumps(set, ob, kind) {
+function musselLumps(set, ob) {
   const R = seeded(ob.name);
   const a = P(ob.p0);
   const b = P(ob.p1);
@@ -293,11 +292,9 @@ function musselLumps(set, ob, kind) {
   const other = new THREE.Vector3().crossVectors(dir, side).normalize();
   const length = a.distanceTo(b);
   const count = Math.round(set.detail.lumps * (ob.kind === 'brace' ? 0.25 : 1) * Math.min(1, length / 30));
-  const geo = unitRock(3, 0);
-  const mesh = new THREE.InstancedMesh(geo, set.makeMaterial('steel'), count);
-  const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   let n = 0;
+  if (!set.lumps) set.lumps = {matrices: [], names: []};
   for (let i = 0; i < count * 3 && n < count; i++) {
     const t = R();
     const p = a.clone().addScaledVector(dir, t * length);
@@ -308,15 +305,24 @@ function musselLumps(set, ob, kind) {
     const size = 0.06 + R() * 0.07;
     p.addScaledVector(normal, ob.radius + 0.005);
     q.setFromUnitVectors(UP, normal);
-    m.compose(p, q, new THREE.Vector3(size, 0.045, size * (0.7 + R() * 0.5)));
-    mesh.setMatrixAt(n++, m);
+    const scale = new THREE.Vector3(size, 0.045, size * (0.7 + R() * 0.5));
+    set.lumps.matrices.push(new THREE.Matrix4().compose(p, q, scale));
+    n++;
   }
-  mesh.count = n;
+  if (n) set.lumps.names.push(ob.name);
+}
+
+/** All mussel lumps of the site as one instanced mesh. */
+function flushLumps(set) {
+  if (!set.lumps?.matrices.length) return;
+  const mesh = new THREE.InstancedMesh(unitRock(3, 0), set.makeMaterial('steel'), set.lumps.matrices.length);
+  set.lumps.matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
   mesh.instanceMatrix.needsUpdate = true;
-  mesh.userData.colliders = [ob.name];
+  mesh.userData.colliders = set.lumps.names;
   mesh.userData.role = 'attached';
   mesh.computeBoundingSphere();
   set.group.add(mesh);
+  set.lumps = null;
 }
 
 // ── anodes ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -407,18 +413,22 @@ function rockArmour(set, colliders, kind) {
     const axis = b.clone().sub(a).normalize();
     const side = new THREE.Vector3().crossVectors(axis, UP).normalize();
     // the armour crown: rows of rocks along the capsule, each touching the collision envelope from inside
-    const step = (set.detailName === 'low' ? 0.75 : 0.42) * Math.min(1, ob.radius / 0.95);
+    const base = {high: 0.42, medium: 0.62}[set.detailName] ?? 0.75;
+    const step = base * Math.min(1, ob.radius / 0.95);
     const bury = P(ob.p0).lerp(P(ob.p1), 0.5).y - set.seabedY;
     const reach = Math.acos(Math.max(-1, Math.min(1, bury / ob.radius)));
     const arcSteps = Math.max(2, Math.ceil(2 * reach * ob.radius / step));
-    for (let s = -0.8 * ob.radius; s <= length + 0.8 * ob.radius + 1e-6; s += step) {
+    const span = length + 1.9 * ob.radius;
+    const rows = Math.ceil(span / step);
+    for (let row = 0; row <= rows; row++) {
+      const s = -0.95 * ob.radius + span * row / rows;
       const beyond = s < 0 ? -s : Math.max(0, s - length);
       const local = Math.sqrt(Math.max(ob.radius ** 2 - beyond ** 2, 0));
-      if (local < bury + 0.15) continue;
+      if (local < bury + 0.05) continue;
       const localReach = Math.acos(Math.max(-1, Math.min(1, bury / local)));
       for (let k = 0; k <= arcSteps; k++) {
-        const size = set.detailName === 'low' ? 0.4 + R() * 0.08 : 0.27 + R() * 0.11;
-        const rho = Math.min(local * 0.45, ob.radius * size);
+        const size = set.detailName === 'high' ? 0.27 + R() * 0.11 : 0.4 + R() * 0.08;
+        const rho = Math.min(local * 0.45, ob.radius * size, Math.max(0.08, (local - bury) * 0.8));
         const ang = (-reach + 2 * reach * k / arcSteps) * localReach / reach + (R() - 0.5) * 0.1;
         const shell = Math.sqrt(Math.max(0, (ob.radius - 0.85 * rho) ** 2 - beyond ** 2));
         const along = s;
@@ -875,5 +885,6 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
     buildOne(set, ob, consumed);
   }
   set.flushBatches();
+  flushLumps(set);
   return set;
 }
