@@ -163,8 +163,9 @@ export function installCampaign({send, readOnly = false}) {
       const requested = new URLSearchParams(location.search).get('mission') === 'campaign';
       if (campaign.status === 'idle' && requested) {
         const completed = save?.completed || [];
+        // Incident drills are launched from the list only; a server without categories is all story.
         const chapter = campaign.chapters.find(entry => !entry.placeholder
-          && !completed.includes(entry.id) && (!entry.requires || completed.includes(entry.requires)));
+          && (entry.category || 'story') === 'story' && !completed.includes(entry.id) && (!entry.requires || completed.includes(entry.requires)));
         if (chapter) command('campaign_start', {chapter: chapter.id, resume: save?.checkpoint?.chapter === chapter.id});
       }
     }

@@ -2,7 +2,7 @@
 import unittest
 from qysim.engine import Simulator
 from qysim.room import Room
-from qysim.instructor import Instructor, statistics, PHASES
+from qysim.instructor import Instructor, statistics, PHASES, MAX_REPORTS, MAX_SAMPLES_PER_VEHICLE
 from qysim.server import SimHost
 
 
@@ -16,6 +16,15 @@ class InstructorTests(unittest.TestCase):
         self.assertFalse(Instructor.authorized('secret', 'wrong'))
         self.assertFalse(Instructor.authorized('secret', None))
         self.assertTrue(Instructor.authorized('secret', 'secret'))
+
+    def test_unset_code_disables_the_instructor_feature(self):
+        host = SimHost(self.room.primary)
+        host.instructor_code = ''
+        for code in ('', None, 'anything'):
+            with self.subTest(code=code):
+                with self.assertRaises(ValueError):
+                    host.join_instructor('observer', {'code': code})
+        self.assertFalse(host.room.instructor.supervised)
 
     def test_injections_restore_and_record(self):
         sim = self.room.primary
@@ -45,6 +54,7 @@ class InstructorTests(unittest.TestCase):
 
     def test_report_and_statistics(self):
         self.assertEqual(statistics([0, 2], 1)['outside_fraction'], .5)
+        self.instructor.supervised = True
         self.instructor.update(1)
         report = self.instructor.report('v1')
         self.assertTrue(report['provisional'])
@@ -54,6 +64,44 @@ class InstructorTests(unittest.TestCase):
         self.assertIn('max_tension', report)
         self.instructor.finish()
         self.assertEqual(len(self.instructor.reports), 1)
+
+    def test_unsupervised_room_records_nothing(self):
+        for _ in range(1200):
+            self.room.step(.01)
+        self.assertEqual(self.instructor.samples, {})
+        self.room.reset()
+        self.assertEqual(self.instructor.reports, [])
+
+    def test_sampling_follows_supervision_and_overrides(self):
+        self.instructor.supervised = True
+        for _ in range(3):
+            self.instructor.update(1)
+        self.assertEqual(len(self.instructor.samples['v1']), 3)
+        self.instructor.supervised = False
+        self.instructor.update(1)
+        self.assertEqual(len(self.instructor.samples['v1']), 3)
+        self.instructor.inject({'kind': 'battery', 'duration': 2.5})
+        for _ in range(4):
+            self.instructor.update(1)
+        self.assertFalse(self.instructor.active)
+        self.assertEqual(len(self.instructor.samples['v1']), 5)
+
+    def test_samples_and_reports_are_bounded(self):
+        self.instructor.supervised = True
+        for _ in range(MAX_SAMPLES_PER_VEHICLE + 5):
+            self.instructor.update(1)
+        samples = self.instructor.samples['v1']
+        self.assertEqual(len(samples), MAX_SAMPLES_PER_VEHICLE)
+        self.assertEqual(samples[-1]['t'], MAX_SAMPLES_PER_VEHICLE + 5)
+        report = self.instructor.report('v1')
+        self.assertIsInstance(report['trajectory'], list)
+        self.assertEqual(len(report['trajectory']), MAX_SAMPLES_PER_VEHICLE)
+        self.instructor.finish()
+        for run in range(MAX_REPORTS + 3):
+            self.instructor.update(1)
+            self.instructor.finish()
+        self.assertEqual(len(self.instructor.reports), MAX_REPORTS)
+        self.assertEqual(len(self.instructor.reports[-1]['trajectory']), 1)
 
     def test_overlap_and_invalid(self):
         for strength in (-1, 2, float('nan')):
@@ -73,3 +121,59 @@ class InstructorTests(unittest.TestCase):
         host.instructor_command('observer', {'type': 'instructor', 'action': 'inject', 'kind': 'battery'})
         reply = host.handle_viewer({'type': 'reset'})
         self.assertEqual(reply['code'], 'instructor_override')
+
+    def supervised_host(self):
+        host = SimHost(self.room.primary)
+        self.pilot = host.room.join(now=0)
+        host.room.instructor.supervised = True
+        return host
+
+    def test_supervision_blocks_shared_scene_commands(self):
+        host = self.supervised_host()
+        blocked = [{'type': 'scenario', 'key': 'coral_reef'}, {'type': 'reset'}, {'type': 'pause', 'value': True},
+                   {'type': 'current', 'surface_kn': 3}, {'type': 'model', 'model_id': 'falcon'},
+                   {'type': 'operation', 'action': 'campaign_start'},
+                   {'type': 'operation', 'action': 'mission_mode', 'mode': 'free_explore'}]
+        scenario = host.room.primary.scenario.key
+        for msg in blocked:
+            with self.subTest(msg=msg):
+                reply = host.handle_viewer(msg, room=host.room, player=self.pilot)
+                self.assertEqual(reply['code'], 'instructor_override')
+        self.assertEqual(host.room.primary.scenario.key, scenario)
+        self.assertFalse(host.room.primary.paused)
+        self.assertEqual(host.room.campaign.status, 'idle')
+
+    def test_override_alone_blocks_shared_scene_commands(self):
+        host = SimHost(self.room.primary)
+        pilot = host.room.join(now=0)
+        host.room.instructor.inject({'kind': 'battery', 'duration': 5})
+        self.assertFalse(host.room.instructor.supervised)
+        reply = host.handle_viewer({'type': 'reset'}, room=host.room, player=pilot)
+        self.assertEqual(reply['code'], 'instructor_override')
+        self.assertIsNone(host.handle_viewer({'type': 'payout', 'metres': 1}, room=host.room, player=pilot))
+
+    def test_supervision_keeps_vehicle_operations(self):
+        host = self.supervised_host()
+        sim = host.room.vehicles[self.pilot.vehicle_id]
+
+        def send(msg):
+            return host.handle_viewer(msg, room=host.room, player=self.pilot)
+
+        length = sim.tether.length
+        self.assertIsNone(send({'type': 'payout', 'metres': 2}))
+        self.assertGreater(sim.tether.length, length)
+        self.assertIsNone(send({'type': 'auto_payout', 'value': False}))
+        self.assertFalse(sim.tether.auto_payout)
+        self.assertIsNone(send({'type': 'operation_mode', 'value': 'UAV_CHN'}))
+        self.assertEqual(sim.operation_mode, 'UAV_CHN')
+        self.assertIsNone(send({'type': 'shaping', 'throttle_limit': 40}))
+        self.assertEqual(sim.shaping.throttle_limit, 40)
+        self.assertIsNone(send({'type': 'remote_release'}))
+        self.assertIsNone(send({'type': 'rc', 'seq': 0, 'rc': {'rc_lock': 1}}))
+        arm = send({'type': 'operation', 'action': 'arm', 'joints': [20, 0, 0, 0], 'grip': 1})
+        self.assertEqual(arm['type'], 'operation_result')
+        for action in ('mission_photo', 'campaign_advance', 'campaign_restore'):
+            with self.subTest(action=action):
+                reply = send({'type': 'operation', 'action': action})
+                self.assertEqual(reply['type'], 'operation_result')
+                self.assertNotEqual(reply.get('code'), 'instructor_override')

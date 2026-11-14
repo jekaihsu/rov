@@ -3,6 +3,8 @@
   "title": "事故訓練｜沉船勾纏",
   "scenario": "incident_wreck",
   "mode": "scenario_training",
+  "category": "incident",
+  "order": 20,
   "nodes": [
     {
       "id": "brief",

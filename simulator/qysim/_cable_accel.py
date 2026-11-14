@@ -110,3 +110,21 @@ def _batch(x,v,water,spool,gland,gland_vel,broken,h,m,l0,k,damping,diameter,
 
 
 advance_batch = njit(cache=True)(_batch) if njit is not None else None
+
+
+FAST_REQUIREMENTS = "requirements-fast.txt"
+
+
+def compiled_available():
+    """True when the numba-compiled tether path is importable in this interpreter."""
+    return advance_batch is not None
+
+
+def solver_status_line(compiled=None):
+    """One startup line naming the active tether path and how to enable the fast one."""
+    if compiled is None:
+        compiled = compiled_available()
+    if compiled:
+        return "[qysim] tether solver: compiled (numba) - fast path active"
+    return ("[qysim] tether solver: NumPy fallback - same physics but slower; rooms with several vehicles "
+            f"may run below real time. Enable the compiled path with: pip install -r {FAST_REQUIREMENTS}")

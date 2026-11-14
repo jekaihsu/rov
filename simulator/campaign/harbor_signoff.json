@@ -3,6 +3,8 @@
   "title": "第一章｜交班複查",
   "scenario": "harbor_inspection",
   "mode": "inspection_coop",
+  "category": "story",
+  "order": 40,
   "requires": "hull",
   "nodes": [
     {

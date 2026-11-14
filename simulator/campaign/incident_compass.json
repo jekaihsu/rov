@@ -3,6 +3,8 @@
   "title": "事故訓練｜鋼結構旁羅盤失準",
   "scenario": "incident_compass",
   "mode": "scenario_training",
+  "category": "incident",
+  "order": 40,
   "nodes": [
     {
       "id": "brief",

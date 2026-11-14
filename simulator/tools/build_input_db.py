@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 records = {}
-for line in Path(sys.argv[1]).read_text().splitlines():
+for line in Path(sys.argv[1]).read_text(encoding='utf-8').splitlines():
     parts = line.split(',')
     if len(parts) < 3 or len(parts[0]) != 32:
         continue
@@ -25,5 +25,5 @@ for line in Path(sys.argv[1]).read_text().splitlines():
     if all(re.fullmatch(r'-?a\d+', x) for x in axes):
         records[key] = {'axes': axes, 'buttons': buttons}
 output = Path(__file__).resolve().parents[1] / 'viewer/input/controller-db.json'
-output.write_text(json.dumps(records, separators=(',', ':')) + '\n')
+output.write_text(json.dumps(records, separators=(',', ':')) + '\n', encoding='utf-8')
 print(f'{len(records)} mappings -> {output}')

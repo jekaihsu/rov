@@ -9,8 +9,12 @@
 ```sh
 cd simulator
 pip install -r requirements.txt
+pip install -r requirements-fast.txt   # 選用：編譯版纜線求解（numba），多機房間建議安裝
 python -m qysim.server
 ```
+
+沒裝 `requirements-fast.txt` 也能執行，只是纜線走較慢的 NumPy 路徑；啟動時的
+`[qysim] tether solver: ...` 一行會說明目前走哪條路徑。
 
 開啟 http://127.0.0.1:8080/；回放使用 `http://127.0.0.1:8080/?replay=demo_recording.json`；模型预览为 `/model-preview.html`。
 

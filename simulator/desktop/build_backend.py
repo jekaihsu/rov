@@ -36,6 +36,8 @@ if not options.licenses_only:
 
 args = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
         '--name', 'rov-sim', '--onedir', '--console',
+        # Frozen builds ignore PYTHONUTF8; force UTF-8 mode so no file read depends on the Windows code page.
+        '--python-option', 'X utf8',
         '--distpath', str(distpath),
         '--workpath', str(PROJECT / '.runtime' / 'pyinstaller-build'),
         '--specpath', str(PROJECT / '.runtime'),
