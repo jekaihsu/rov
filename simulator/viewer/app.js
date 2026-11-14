@@ -4,6 +4,7 @@ import {getFidelity} from './fidelity.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
+import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -569,7 +570,7 @@ function onState(m) {
   const ch = m.current_here || [0, 0, 0], cv = P(ch), sp = cv.length();
   if (sp > 1e-3) curArrow.setDirection(cv.clone().normalize());
   curArrow.setLength(.3 + sp / KNOT * .45, .16, .1);
-  curArrow.visible = sp > 1e-3 && !introActive();
+  curArrow.visible = sp > 1e-3 && !introActive() && showsTruth(m);
   checkEvents(m.events || []);
   uiDirty = true;
 }
@@ -872,14 +873,17 @@ const setTxt = (id, v) => { const el = $(id); if (el.textContent !== String(v)) 
 const setHTML = (id, v) => { const el = $(id); if (el._h !== v) { el.innerHTML = v; el._h = v; } };
 function updateUI() {
   const s = S; if (!s) return;
-  const [roll, pitch, hdg] = s.euler || [0, 0, 0];
-  const depth = s.pos[2], alt = W ? W.seabed_depth - depth : null;
+  const [roll, pitch] = s.euler || [0, 0, 0];
+  const reading = pilotReadings(s, W);
+  const hdg = reading.heading;
+  const depth = reading.depth;
+  const alt = reading.altitude;
   setTxt('gDepth', depth.toFixed(2)); setTxt('gHdg', String(Math.round(hdg) % 360).padStart(3, '0'));
-  setTxt('gAtt', `${pitch.toFixed(0)}° / ${roll.toFixed(0)}°`); setTxt('gSpd', (s.speed_kn ?? 0).toFixed(2));
+  setTxt('gAtt', `${pitch.toFixed(0)}° / ${roll.toFixed(0)}°`); setTxt('gSpd', formatKnots(reading.speedKn));
   setTxt('gBat', (s.battery ?? 0).toFixed(0)); $('gBat').closest('.g').classList.toggle('low', s.battery < 20);
   setTxt('gAlt', alt == null ? '—' : alt.toFixed(2)); $('gAlt').closest('.g').classList.toggle('low', alt != null && alt < 1);
   setTxt('gHold', s.depth_hold != null ? `定深設定點 ${s.depth_hold.toFixed(2)} m` : '');
-  setTxt('rDepth', depth.toFixed(1)); setTxt('rAlt', alt == null ? '—' : alt.toFixed(1)); setTxt('rSpd', (s.speed_kn ?? 0).toFixed(2)); setTxt('rCur', (s.current_kn ?? 0).toFixed(2));
+  setTxt('rDepth', depth.toFixed(1)); setTxt('rAlt', alt == null ? '—' : alt.toFixed(1)); setTxt('rSpd', formatKnots(reading.speedKn)); setTxt('rCur', formatKnots(reading.currentKn));
   drawADI(pitch * DEG, roll * DEG, hdg);
 
   // HUD
