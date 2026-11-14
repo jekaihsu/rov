@@ -183,7 +183,8 @@ function drawMap(canvas, s, w) {
     }
   }
   line(s.tether?.nodes || [], '#4fd1e0');
-  for (const target of s.mission?.targets || w?.objectives || []) {
+  const mapTargets = w?.scenario?.key === "sonar_search" ? [] : s.mission?.targets || w?.objectives || [];
+  for (const target of mapTargets) {
     if (!target.point) continue;
     const [x, y] = point(target.point);
     ctx.strokeStyle = '#f2b84b';
