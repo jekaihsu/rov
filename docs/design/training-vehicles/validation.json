@@ -1,0 +1,237 @@
+{
+  "base": "22ece2a95cf7a0484036985ff04ae83959c45891",
+  "blender": "4.5.9",
+  "assets": [
+    {
+      "model": "falcon",
+      "nodes": 361,
+      "rotors": 5,
+      "originalBytes": 4499452,
+      "finalBytes": 6932364,
+      "textures": 18,
+      "graphExtrasTransforms": "exact match",
+      "orientedTrianglePositions": "exact match"
+    },
+    {
+      "model": "bluerov2_heavy",
+      "nodes": 154,
+      "rotors": 8,
+      "originalBytes": 1356724,
+      "finalBytes": 3910676,
+      "textures": 14,
+      "graphExtrasTransforms": "exact match",
+      "orientedTrianglePositions": "exact match"
+    }
+  ],
+  "browser": [
+    {
+      "model": "falcon",
+      "rotors": [
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        }
+      ],
+      "sliders": [
+        "j0",
+        "j1",
+        "j2",
+        "j3",
+        "grip"
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "mapped": 297
+    },
+    {
+      "model": "bluerov2_heavy",
+      "rotors": [
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        },
+        {
+          "moved": true,
+          "pivotFixed": true,
+          "blades": 3
+        }
+      ],
+      "sliders": [],
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "mapped": 126
+    }
+  ],
+  "unitTests": {
+    "run": 188,
+    "status": "OK",
+    "skipped": 0,
+    "seconds": 86.94,
+    "command": "cd simulator && python -m unittest discover -s tests"
+  },
+  "images": [
+    {
+      "file": "bluerov2_heavy-quarter-after.png",
+      "bytes": 1011695,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "bluerov2_heavy-quarter-before.png",
+      "bytes": 1028847,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "bluerov2_heavy-side-after.png",
+      "bytes": 955115,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "bluerov2_heavy-side-before.png",
+      "bytes": 980087,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "bluerov2_heavy-thruster-after.png",
+      "bytes": 960296,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "bluerov2_heavy-thruster-before.png",
+      "bytes": 969116,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "falcon-quarter-after.png",
+      "bytes": 1011404,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "falcon-quarter-before.png",
+      "bytes": 1009895,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "falcon-side-after.png",
+      "bytes": 992155,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "falcon-side-before.png",
+      "bytes": 971757,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "falcon-thruster-after.png",
+      "bytes": 1145914,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "file": "falcon-thruster-before.png",
+      "bytes": 1196691,
+      "width": 1600,
+      "height": 900
+    }
+  ],
+  "generalBrowserChecks": {
+    "browser_menu_smoke": "PASS",
+    "browser_smoke": {
+      "status": "PASS",
+      "command": "ROV_BROWSER_TIMEOUT_SCALE=3 python tools/run_browser_checks.py browser_smoke",
+      "seconds": 53.2,
+      "environment": "isolated, no concurrent rendering",
+      "earlierAttempts": "Timed out waiting for PiP / RC state while rendering concurrently; assertions unchanged."
+    },
+    "unmodifiedAssetBaselineSmoke": "PASS (51 s)"
+  },
+  "savedSources": [
+    {
+      "model": "falcon",
+      "sourceGeometryAndProperties": "exact match",
+      "packedImages": 18,
+      "signature": "82e549f572d0144ae7fe7fc6bcc3461135b0b8bda73163e8074cf47066a8c821"
+    },
+    {
+      "model": "bluerov2_heavy",
+      "sourceGeometryAndProperties": "exact match",
+      "packedImages": 14,
+      "signature": "1212558ee5f31c7142566912026b87751496a271a7854a600262853d8fa3c59a"
+    }
+  ],
+  "assetBaseline": "afc33198adfec6b34114db0416bf810be98157ff"
+}

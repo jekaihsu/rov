@@ -20,3 +20,14 @@ Run from repository root:
 ```
 
 Outputs: `cad/bluerov2_heavy.blend`, `cad/falcon.blend`, and matching `simulator/viewer/models/*.glb`. The reproducible source is `build_vehicle_fleet.py`, with physical definitions in `simulator/qysim/vehicles.py`. No manufacturer logos or downloaded proprietary CAD are included. Coordinates originate at the defined centre of gravity; GLB +Z is forward and +Y is up. `thruster_index` extras provide stable rotor-to-motor mapping. The visual dimensions are approximations and should be refined against approved orthographic references before claiming replica fidelity.
+
+## Training surface pass (A3)
+
+The checked-in training `.blend` sources and GLBs include a material-only PBR pass.
+`training_vehicle_materials.py` edits the existing source files rather than rebuilding geometry;
+`compress_training_models.mjs` packages them with glTF Transform / meshopt without position quantization.
+The original generation commands above recreate the original flat materials, so rebuilding geometry
+also requires reapplying the surface pass. Start that pass from pristine sources, not an already
+processed `.blend`. See [the comparison and rebuild notes](../docs/design/training-vehicles/README.md)
+for the exact base revision, texture generation, packaging, verification, and render settings.
+Finish selection and wear are visual estimates; the provenance and physical limitations above remain unchanged.
