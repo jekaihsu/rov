@@ -200,6 +200,7 @@ tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tens
 events [{t, obstacle, speed, severity: touch|hard|severe, where}]   (last 12 impacts)
 damage [{t, thruster, health}]
 silt 0..1 (seabed silt cloud; reduce visibility)
+sensors {...}    optional: what the vehicle's own instruments report (see "Optional sensor layer")
 nav {mode: IDLE|H_NAVI|V_NAVI|VCCM, nav_status, vccm, route [[n,e,d]...], route_i, target [n,e,d]|null}
 score {score 0..100, elapsed, failed "", finished, current_index,
        objectives [{kind, label, point [n,e,d], radius, hold_s, done, progress 0..1, target}],
@@ -241,6 +242,9 @@ with finite ground velocity. Outside this window assistance falls back to manual
 clears history, and reacquires only when the simulated lock is valid again.
 This common simulated window is provisional: it is not a calibrated model of
 any vehicle's sensor, bottom material, DVL drift, or hardware loss-of-lock policy.
+That window is the ideal-sensor path. With the default realistic sensor layer the lock
+comes from the DVL model instead (see "Optional sensor layer"), and position and velocity
+feedback use the DVL-derived estimates rather than truth.
 Lock, failsafe, disconnect and remote takeover clear assistance history.
 
 `state.assist` contains `level`, `profile`, `holding`, `limited`, `speed_limit`
@@ -278,6 +282,51 @@ less than 3 cm reverse travel; sport reaches 90% within 0.9 s and brakes within
 not guarantee performance under contact, tether loading or arbitrary attitude.
 All vehicle parameters, especially unmeasured model-specific values, remain
 provisional; see `docs/reference/real-rov-research.md`.
+
+## Optional sensor layer
+
+Every measurement a consumer reads passes through `qysim/sensors.py`: the flight controller (heading,
+depth and position hold), the SDK autopilots and dead reckoning, SDK telemetry and `state.sensors`.
+The realistic layer is the default. `QYSIM_SENSORS=ideal` in the server environment (or
+`Simulator(sensor_config=SensorConfig(ideal=True))`) turns every imperfection off; that path is compared
+byte-for-byte with a frozen copy of the pre-layer engine (`tests/test_sensors.py`). All values below are
+provisional and labelled with their sources in `qysim/sensors.py`; none is an X1 measurement.
+
+`state.sensors` (optional; clients must tolerate its absence):
+
+```text
+ideal bool              true when imperfections are off (values are then truth)
+heading deg 0-360       estimated heading (gyro + magnetometer fusion, steel deviation)
+depth m                 pressure depth (zero offset, density setting, 2 mm quantisation, noise)
+altitude m|null         altimeter: nearest echo in a 25 deg cone; null = no echo or blind zone
+altitude_blind bool     true when the nearest echo is inside the 0.3 m blind zone (realistic layer only)
+range m|null            forward echo sounder, same cone model; range_blind as above
+dvl {status: locked|coasting|lost, reason: null|too_high|too_low|slope|vegetation|silt|aeration|mud|
+     pool|range|fault|window, altitude m|null, ground_speed_kn kn|null (null while lost)}
+pos_est [n,e,d]         dead-reckoned position (DVL velocity x estimated heading; frozen while lost;
+                        reset to the GPS fix at the surface)
+realigned_t s|null      time of the last "yaw re-aligned" jump of the heading estimator
+faults [kind]           active instructor sensor faults
+```
+
+Existing fields keep their meaning: `pos`, `q`, `euler`, `vel`, `speed_kn`, `current_here` and
+`current_kn` remain physics truth (they drive rendering and replay). The viewer's real fidelity preset
+shows `state.sensors` instead of them; the `truthTelemetry` fidelity item (exceeds the real vehicle, on in
+`assisted`) restores the truth presentation. Position and velocity assistance require DVL bottom lock:
+while `dvl.status` is `lost` the controller falls back to manual exactly as with the old window.
+
+SDK telemetry with the realistic layer (shapes unchanged): `Depth`, `Compass`, attitude `Yaw`, the
+50 Hz quaternion and depth, the 10 Hz velocity, latitude/longitude and yaw, and `get_rov_data` /
+`get_navigation_status` / `init_dr` positions use the estimates above. `Accessories_Status.DVL_Status`
+is `"OnLine"` while bottom lock holds and `"OffLine"` while it is lost; `QDVL`/`MicroDVL` speeds read
+0.0 while lost. `Altitude`/`Distance` read the echo sounders, with the maximum range (100 / 50 m) for
+no echo and 0.3 for an echo inside the blind zone. `get_rov_data.dvl` adds optional `velocity_valid`
+(bool) and `lock` (status string), sets `position_valid` false while lock is lost, and reports per-beam
+slant ranges (0.0 for a beam without return). Pitch, roll, `Temp` and power fields are unchanged.
+
+Scenarios may name `water` (`salt` default, `fresh` for the pool) and `seabed_type`
+(`sand`, `mud`, `rock`, `pool`; default from the biome). The depth sensor's density setting defaults to
+the site's water.
 
 ## Optional campaign layer
 

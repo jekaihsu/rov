@@ -63,6 +63,8 @@ class Scenario:
     time_limit_s: float = 900.0
     seed: int | None = None
     biome: str = "temperate"
+    water: str = "salt"                  # "salt" or "fresh": pressure-to-depth density of the site
+    seabed_type: str = ""                # "sand"/"mud"/"rock"/"pool"; "" = derived from the biome
 
     def summary(self) -> dict:
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
@@ -291,7 +293,7 @@ def seagrass_meadow() -> Scenario:
 def harbor_inspection() -> Scenario:
     sea = 18.
     return Scenario("harbor_inspection", "港灣協作巡檢", "在港樁與碼頭邊分工巡檢，留意橫流、纜線與低能見度。",
-                    seabed_depth=sea, biome="harbor", visibility_m=7,
+                    seabed_depth=sea, biome="harbor", visibility_m=7, seabed_type="mud",
                     obstacles=[Wall("Quay", (42, 0, 0), 180, 70, -2),
                                Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
                                Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)],
@@ -307,6 +309,7 @@ def tutorial_pool() -> Scenario:
     """Calm indoor commissioning pool, using the unchanged vehicle dynamics."""
     return Scenario("tutorial_pool", STRINGS["pool_name"], STRINGS["pool_brief"],
                     seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35,
+                    water="fresh", seabed_type="pool",
                     current=CurrentProfile(0, 0, 0, 0, 0, 0, 0),
                     obstacles=[Wall(STRINGS["pool_walls"][0], (12, 0, 0), 180, 24, 0),
                                Wall(STRINGS["pool_walls"][1], (-12, 0, 0), 0, 24, 0),
@@ -355,7 +358,7 @@ def incident_wreck() -> Scenario:
 def incident_silt() -> Scenario:
     name, brief = INCIDENT_STRINGS["incident_silt"]
     return Scenario(
-        "incident_silt", name, brief, seabed_depth=12, visibility_m=1,
+        "incident_silt", name, brief, seabed_depth=12, visibility_m=1, seabed_type="mud",
         start_pos=(8, 0, 10), spool_pos=(0, 0, 0), tether_length=20,
         objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (4, 0, 6)),
                     Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=2)],

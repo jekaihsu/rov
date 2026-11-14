@@ -90,7 +90,7 @@ class Room:
         if vid not in self.vehicles:
             base = self.primary
             sim = Simulator(base.scenario.key, base.scenario.seed, model_id=model_id,
-                            vehicle_id=vid, shared_world=base.world)
+                            vehicle_id=vid, shared_world=base.world, sensor_config=base.sensor_config)
             sim.t = base.t
             sim.paused = base.paused
             self.vehicles[vid] = sim
