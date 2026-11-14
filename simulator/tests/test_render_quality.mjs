@@ -48,6 +48,10 @@ configureRenderQuality(r,'auto');
 r.domElement.clientWidth=3840;r.domElement.clientHeight=2160;
 for(let i=0;i<300;i++)updateRenderQuality(r,1/60);
 assert.ok(r.ratio<=.5);assert.ok(r.ratio*r.ratio*3840*2160<=s.hardware.pixelBudget+1);
+// Software GL in automatic quality starts with the underwater screen effects off; real GPUs start with them on.
+assert.equal(configureRenderQuality(renderer('SwiftShader'),'auto').effectsSuppressed,true);
+assert.equal(configureRenderQuality(renderer('NVIDIA GeForce RTX 4060'),'auto').effectsSuppressed,false);
+assert.equal(configureRenderQuality(renderer('SwiftShader'),'medium').effectsSuppressed,false);
 // Large-asset texture tier: full-resolution files only for the explicit "high" mode, standard otherwise.
 assert.equal(assetTextureTier('high'),'high');
 for(const mode of ['auto','performance','medium','bogus'])assert.equal(assetTextureTier(mode),'standard');

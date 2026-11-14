@@ -2,9 +2,15 @@
 // and soft instanced billboards for the server's silt puffs (state.environment.silt_puffs, PROTOCOL.md §4a).
 // Self-contained so an optics pipeline can call siltExtinctionAt()/siltBackscatterAt() instead of the fog.
 // Without the optional server fields it reproduces the legacy fog (linear, 25 % floor from state.silt).
+// In the underwater optics tiers (fx/water_optics.js) the sediment at the camera joins the water as a medium
+// contributor, so there is one attenuation path and one lamp-backscatter integral; the fog settings made here
+// are then only used by the legacy look. The silt puff sprites are made exposure-neutral there.
 import * as THREE from 'three';
 import {registerFidelityItem, getFidelity} from '../fidelity.js';
-import {lampBackscatter, presentedVisibility, siltExtinction, siltOpticsAt} from './silt_field.js';
+import {addMediumContributor} from './water_optics.js';
+import {lampBackscatter, presentedVisibility, siltExtinction, siltOpticsAt, SILT_OPTICS} from './silt_field.js';
+
+const SILT_CONTRAST = SILT_OPTICS.contrast;
 
 const STRINGS = {
   siltVisibilityFloor: '揚沙能見度下限',
@@ -15,6 +21,8 @@ const LAMP_COLOUR = new THREE.Color(0xfff2dc);
 const SILT_COLOUR = new THREE.Color('#3b3a26');
 const SPRITE_DAY_COLOUR = new THREE.Color('#8c8466');
 const LAMP_HALF_ANGLE_COS = Math.cos(0.5);
+// Suspended sediment scatters most of what it removes and absorbs blue most (brown-green clouds), 1/m per 1/m.
+const SEDIMENT_SCATTERING = Object.freeze([0.85, 0.8, 0.6]);
 
 registerFidelityItem({
   id: 'siltVisibilityFloor', labelKey: 'siltVisibilityFloor', descriptionKey: 'siltVisibilityFloorHelp',
@@ -77,6 +85,7 @@ function createPuffMesh() {
       }`,
     transparent: true, depthWrite: false
   });
+  material.userData.exposureNeutral = true;
   const mesh = new THREE.Mesh(geometry, material);
   mesh.frustumCulled = false;
   mesh.renderOrder = 6;
@@ -96,6 +105,24 @@ export class SiltRenderer {
     this._lamp = new THREE.Vector3();
     this._lampDir = new THREE.Vector3();
     this._point = new THREE.Vector3();
+    this.medium = null;
+    this.removeMedium = addMediumContributor(this.mediumAtCamera.bind(this));
+  }
+
+  // Medium contributor for the optics tiers: sediment extinction at the camera on top of the clean water
+  // (scene.userData.waterVisibility). The assisted visibility floor caps the total like presentedVisibility().
+  mediumAtCamera({water}) {
+    const medium = this.medium;
+    if (!medium) return null;
+    let sediment = medium.sediment;
+    if (medium.floor) {
+      const ceiling = SILT_CONTRAST / (0.25 * this.visibilityM);
+      sediment = Math.min(sediment, Math.max(0, ceiling - water.c[1]));
+    }
+    if (!(sediment > 0)) return null;
+    return {local: true, extinction: sediment, scattering: SEDIMENT_SCATTERING.map(function share(f) {
+      return f * sediment;
+    })};
   }
 
   // Attenuation c (1/m) at a three.js point, for an external optics pipeline.
@@ -147,6 +174,7 @@ export class SiltRenderer {
     }
     scene.background.copy(waterColour);
     scene.fog.color.copy(waterColour);
+    this._publishMedium(real, modern, visibility, displayFar, share);
     if (real && modern) {
       scene.fog.near = -4.8 / visibility;
       scene.fog.far = 1;
@@ -158,6 +186,21 @@ export class SiltRenderer {
       scene.fog.far = displayFar;
     }
     this._updatePuffs(camera, environment?.silt_puffs, lampLevel, real ? 4.8 / visibility : 0, waterColour);
+  }
+
+  // What the optics tiers need: clean-water visibility and the sediment extinction at the camera.
+  _publishMedium(real, modern, visibility, displayFar, share) {
+    const data = this.scene.userData;
+    if (real && modern) {
+      data.waterVisibility = this.visibilityM;
+      data.waterSiltTint = 0;
+      const floor = getFidelity().get('siltVisibilityFloor');
+      this.medium = {sediment: Math.max(0, this.optics.c - SILT_CONTRAST / this.visibilityM), floor};
+    } else {
+      data.waterVisibility = real ? visibility : displayFar / 1.35;
+      data.waterSiltTint = real ? share : 0;
+      this.medium = null;
+    }
   }
 
   _updatePuffs(camera, puffs, lampLevel, attenuation, waterColour) {

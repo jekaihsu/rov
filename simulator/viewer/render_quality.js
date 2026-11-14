@@ -48,13 +48,17 @@ function bounds(renderer,hardware){
   return {ceiling,floor:Math.min(ceiling,hardware.floor)};
 }
 export function configureRenderQuality(renderer,mode='auto'){
-  if(!['auto','performance','medium','high'].includes(mode))mode='auto';
+  const requested = new URLSearchParams(globalThis.location?.search || '').get('quality');
+  if (!mode && ['low', 'ultra'].includes(requested)) mode = requested;
+  if(!['auto','performance','low','medium','high','ultra'].includes(mode))mode='auto';
   const hardware=detectHardware(renderer),dpr=positive(globalThis.devicePixelRatio)||1;
-  const limits=mode==='auto'?bounds(renderer,hardware):{ceiling:Math.min(dpr,mode==='high'?2:1),floor:Math.min(dpr,.6)};
-  const ratio=mode==='auto'?Math.min(limits.ceiling,hardware.initialRatio):mode==='performance'?Math.min(dpr,.75):limits.ceiling;
-  const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3};
+  const limits=mode==='auto'?bounds(renderer,hardware):{ceiling:Math.min(dpr,['high','ultra'].includes(mode)?2:1),floor:Math.min(dpr,.6)};
+  const ratio=mode==='auto'?Math.min(limits.ceiling,hardware.initialRatio):['performance','low'].includes(mode)?Math.min(dpr,.75):limits.ceiling;
+  // Automatic quality on software GL starts without screen effects (underwater optics); there is no frame budget.
+  const effectsSuppressed=mode==='auto'&&hardware.tier==='software';
+  const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3,effectsSuppressed};
   lastMode=mode;
-  profiles.set(renderer,state);renderer.shadowMap.enabled=mode==='high';renderer.setPixelRatio(ratio);
+  profiles.set(renderer,state);renderer.shadowMap.enabled=['high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
   return state;
 }
 export function updateRenderQuality(renderer,seconds,{suspended=false}={}){
@@ -68,6 +72,7 @@ export function updateRenderQuality(renderer,seconds,{suspended=false}={}){
   if(s.elapsed<1.5)return;
   Object.assign(s,bounds(renderer,s.hardware));
   const fps=s.frames/s.elapsed;let next=Math.max(s.floor,Math.min(s.ceiling,s.ratio));
+  if(fps<50&&!s.effectsSuppressed){s.effectsSuppressed=true;s.elapsed=0;s.frames=0;s.stable=0;return;}
   if(fps<50){next=Math.max(s.floor,s.ratio-.1);s.stable=0;}
   else if(fps>58){s.stable+=s.elapsed;if(s.stable>=8){next=Math.min(s.ceiling,s.ratio+.05);s.stable=0;}}
   else s.stable=0;
@@ -76,16 +81,21 @@ export function updateRenderQuality(renderer,seconds,{suspended=false}={}){
   if(Math.abs(next-s.ratio)>.001){s.ratio=next;renderer.setPixelRatio(next);}
 }
 export function renderQualityInfo(renderer){
-  const s=profiles.get(renderer);return s?{mode:s.mode,scale:Math.round(s.ratio*100),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
+  const s=profiles.get(renderer);return s?{mode:s.mode,effectsSuppressed:s.effectsSuppressed,scale:Math.round(s.ratio*100),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
     hardwareLabel:s.hardware.label,hardwareReason:s.hardware.reason,hardwareTier:s.hardware.tier,hardwareRenderer:s.hardware.renderer,
     hardwareProfile:{initialRatio:s.hardware.initialRatio,floor:s.floor,ceiling:s.ceiling,pixelBudget:s.hardware.pixelBudget,entryLevel:s.hardware.entryLevel}}:null;
+}
+
+// Internal scene consumers avoid allocating a diagnostic object for every frame.
+export function renderQualityState(renderer) {
+  return profiles.get(renderer);
 }
 
 // Texture tier for large assets (e.g. the work boat): the full-resolution "high" files only when the user chose
 // the "high" quality mode; every other mode, including the default "auto", loads the standard files.
 // Without an explicit mode it uses the last configured mode, else the same URL / stored choice the menus use.
 export function assetTextureTier(mode = lastMode ?? storedQualityMode()) {
-  return mode === 'high' ? 'high' : 'standard';
+  return ['high', 'ultra'].includes(mode) ? 'high' : 'standard';
 }
 
 function storedQualityMode() {

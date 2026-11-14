@@ -39,6 +39,7 @@ import {installExpeditionPanel} from './expedition_panel.js';
 import {inspectObservation} from './observation_camera.js';
 import {installPilotGuide} from './pilot_guide.js';
 import {drawROVAttitude} from './attitude_indicator.js';
+import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
@@ -140,6 +141,7 @@ for (const x of [0.12, -0.12]) {
   const geo = new THREE.CylinderGeometry(0.03, BEAM_LEN * Math.tan(BEAM_HALF) * 0.85, BEAM_LEN, 32, 1, true);
   geo.translate(0, -BEAM_LEN / 2, 0);                  // apex (top, uv.y = 1) at the origin, cone along -Y
   const cone = new THREE.Mesh(geo, beamMat);
+  cone.userData.legacyBeam = true;  // fx/water_optics.js draws the scattered beam itself in the optics tiers
   cone.renderOrder = 5; cone.frustumCulled = false; cone.visible = false;
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xfff4e6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   glow.scale.setScalar(0.35); glow.visible = false;
@@ -1228,7 +1230,8 @@ function frame(now) {
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   hemi.intensity = 1.5; sun.intensity = 1.6;
-  applyUnderwaterLighting(scene);
+  installUnderwaterPipeline(renderer, { surface });
+  applyUnderwaterLighting(scene, S, renderer);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
