@@ -3,18 +3,18 @@ import argparse
 import json
 import time
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, host, http_port, ws_port
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--http-port', type=int, default=8095)
-parser.add_argument('--ws-port', type=int, default=8795)
+parser.add_argument('--http-port', type=int, default=http_port(8095))
+parser.add_argument('--ws-port', type=int, default=ws_port(8795))
 args = parser.parse_args()
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'output' / 'playwright' / 'expedition'
 OUT.mkdir(parents=True, exist_ok=True)
-BASE = f'http://127.0.0.1:{args.http_port}/'
-WS = f'ws://127.0.0.1:{args.ws_port}'
+BASE = f'http://{host()}:{args.http_port}/'
+WS = f'ws://{host()}:{args.ws_port}'
 errors = []
 room = 'exp' + str(int(time.time()))
 instrument = """window.__testSockets=[];window.__testMessages=[];
@@ -35,7 +35,7 @@ def current_host(tabs):
     return next(tab for tab in tabs if tab.evaluate("window.__viewer.S.room.host_id===window.__testMessages.filter(m=>m.type==='session').at(-1).player_id"))
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True,args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
     contexts=[]
     def page():
         context=browser.new_context(viewport={'width':1366,'height':768},accept_downloads=True)

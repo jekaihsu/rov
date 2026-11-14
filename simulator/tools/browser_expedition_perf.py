@@ -10,13 +10,14 @@ from pathlib import Path
 import statistics
 import expedition_photo_fixture as fixture
 from playwright.sync_api import sync_playwright
+from _browser import launch
 
 OUT=Path(__file__).resolve().parents[1]/'output'/'expedition-performance'
 
 def benchmark():
     OUT.mkdir(parents=True,exist_ok=True)
     with sync_playwright() as p:
-        browser=p.chromium.launch(channel='chrome',headless=True,args=['--enable-unsafe-swiftshader'])
+        browser=launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
         page=browser.new_page(viewport={'width':1440,'height':900})
         page.add_init_script('''window.__benchSockets=[];const Native=window.WebSocket;window.WebSocket=class extends Native{constructor(...args){super(...args);window.__benchSockets.push(this);}};window.__benchCPU=null;const raf=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=callback=>raf(t=>{if(callback.name!=='frame'){callback(t);return;}const start=performance.now();callback(t);if(window.__benchCPU)window.__benchCPU.push(performance.now()-start);});''')
         page.goto('http://127.0.0.1:8096/?ws=ws://127.0.0.1:8796&room=training&model=falcon&mission=expedition&play=1&nointro&quality=medium')

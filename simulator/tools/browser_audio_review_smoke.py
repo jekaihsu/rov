@@ -1,13 +1,14 @@
 """Regression checks for flight shortcut isolation, replay pause and mixer scheduling."""
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
-BASE = 'http://127.0.0.1:8092/'
+BASE = f'{http_base(8092)}/'
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width': 1280, 'height': 720})
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    page.goto(BASE + '?play=1&nointro&ws=ws://127.0.0.1:8792&room=audio-review')
+    page.goto(BASE + f'?play=1&nointro&ws={ws_base(8792)}&room=audio-review')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')
     mode = page.evaluate('window.__viewer.S.ctrl_mode')
     page.keyboard.press('m')

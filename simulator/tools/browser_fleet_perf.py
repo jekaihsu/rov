@@ -3,16 +3,17 @@ import json
 import argparse
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--url', default='http://127.0.0.1:8093/')
+parser.add_argument('--url', default=f'{http_base(8093)}/')
 parser.add_argument('--snapshot', type=Path)
 args = parser.parse_args()
 
 out = Path(__file__).resolve().parents[1] / 'output' / 'fleet-performance'
 out.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
-    browser = p.chromium.launch(channel='chrome', headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page()
     page.goto(args.url)
     page.wait_for_function('window.__menu?.ready')

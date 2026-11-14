@@ -1,16 +1,16 @@
 """Verify setup precedes connection, preview choices apply, and play stays clear."""
 import json
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 out=Path(__file__).resolve().parents[1]/'output'/'menu-validation';out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True,args=['--enable-unsafe-swiftshader'])
+    browser=launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
     page=browser.new_page(viewport={'width':1920,'height':1080})
     sockets=[];errors=[]
     page.on('websocket',lambda ws:sockets.append(ws.url))
     page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&room=menucheck&model=falcon')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=menucheck&model=falcon')
     page.wait_for_function('window.__menu?.ready')
     assert not sockets,sockets
     page.screenshot(path=str(out/'desktop.png'))

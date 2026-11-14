@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_query
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--before-url', help='Optional comparison server URL')
@@ -10,7 +11,7 @@ args = parser.parse_args()
 OUT = Path(__file__).resolve().parents[1] / 'output/t02'
 OUT.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width': 1600, 'height': 900})
     page.set_default_timeout(90000)
     errors = []
@@ -20,7 +21,7 @@ with sync_playwright() as p:
     page.add_init_script("""window.fakePads=[];
       localStorage.setItem('rov.input.v1', JSON.stringify({bindings:{up:'b5'}}));
       Object.defineProperty(navigator,'getGamepads',{value:()=>window.fakePads});""")
-    page.goto('http://127.0.0.1:8080/?play=1&nointro')
+    page.goto(f'{http_base(8080)}/?play=1&nointro{ws_query()}')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')
     page.evaluate("""() => {
       for (const [type, code] of [['keydown','Space'], ['keyup','Space'], ['keydown','ArrowUp']]) {
