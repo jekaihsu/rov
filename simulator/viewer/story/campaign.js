@@ -72,17 +72,23 @@ export function installCampaign({send, readOnly = false}) {
   report.textContent = STRINGS.export;
   menu.append(summary, label, list, resume, sticker, vehicle, skip, report, history);
   document.querySelector('.mission-tools')?.append(menu);
+  // The radio sits beside the depth scale and above the minimap, so it never covers an instrument;
+  // its layer comes from the stacking scale in hud/tokens.css.
   const style = document.createElement('style');
   style.textContent = `
-    .story-radio{position:fixed;left:4%;top:16%;width:40%;max-width:45%;max-height:60%;overflow:auto;
-      box-sizing:border-box;padding:16px 24px;
+    .story-radio{position:fixed;left:max(13%,168px);top:9%;width:31%;max-width:45%;max-height:48%;
+      overflow:auto;box-sizing:border-box;padding:16px 24px;
       background:rgba(8,18,26,.72);backdrop-filter:blur(14px);border-left:2px solid #4fd1e0;
-      color:#e8f1f5;z-index:25;pointer-events:none;transition:opacity .2s ease-out}
+      color:#e8f1f5;z-index:var(--z-story);pointer-events:none;transition:opacity .2s ease-out}
     .story-avatar{float:left;width:24px;height:24px;margin-right:8px;fill:none;stroke:#4fd1e0}
     .story-radio[hidden]{display:none}.story-radio strong{color:#4fd1e0;font-size:12px;letter-spacing:.1em}
     .story-radio p{font-size:17px;line-height:1.6;margin:8px 0}.story-radio small{color:#8fa6b2}
     .story-radio button{pointer-events:auto;float:right}.story-menu button{display:block;margin:8px 0;width:100%}
     .story-menu button:focus-visible{outline:2px solid #4fd1e0}.story-menu{padding:8px 0}
+    @media(max-width:720px){
+      .story-radio{left:4%;top:60px;width:58%;max-width:58%;max-height:250px;padding:8px 12px;pointer-events:auto}
+      .story-radio p{font-size:14px;margin:4px 0}
+    }
     @media(prefers-reduced-motion:reduce){.story-radio{transition:none}}
   `;
   document.head.append(style);

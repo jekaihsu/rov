@@ -1,3 +1,4 @@
+/* The collection panel is a modal <dialog>: it opens in the browser top layer, above the stacking scale in hud/tokens.css. */
 .collection-panel{box-sizing:border-box;width:min(1100px,94vw);height:min(850px,92vh);max-width:none;max-height:none;padding:0;border:1px solid #35515c;border-radius:10px;background:#0b1d27;color:#e7f0ee;box-shadow:0 22px 100px #0009;font:14px/1.6 system-ui,sans-serif;overflow:hidden}
 .collection-panel::backdrop{background:#020a10b8;backdrop-filter:blur(5px)}
 .collection-panel *{box-sizing:border-box}.collection-panel[open]{display:flex;flex-direction:column}
