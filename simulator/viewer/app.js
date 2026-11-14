@@ -3,6 +3,11 @@ import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
 import { updateTetherOperations } from './tether/operations.js';
 import { tensionColor, warnLoad, gaugePercent } from './tether/tension.js';
+import { installProcedure } from './procedure/index.js';
+import { createSonar } from './sonar/panel.js';
+import { hidesTargets } from './sonar/scenario.js';
+import {visionTargets} from './vision/targets.js';
+import {installVision} from './vision/overlay.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -267,6 +272,7 @@ function buildWorld() {
 }
 
 function buildObjectives(list) {
+  if (hidesTargets(W)) list = [];
   const geometries=new Set(),materials=new Set();objG.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
   objG.clear(); objMarkers = [];
   list.forEach((o) => {
@@ -474,9 +480,11 @@ let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
+const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
+    vision.assertPhoto();
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
     const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
@@ -488,6 +496,7 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
+const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
@@ -496,6 +505,7 @@ $('offUrl').textContent = WS_URL;
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
+const sonarPanel = createSonar(send);
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
@@ -542,10 +552,11 @@ function onWorld(m) {
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
   $('offline').hidden = true;
-  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) startIntro();
+  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) procedurePanel.startIntro(startIntro);
 }
 
 function onState(m) {
+  sonarPanel.receive(m);
   if(m.model_id !== S?.model_id)needResync=true;
   if(m.control_generation !== S?.control_generation)needResync=true;
   if (lastT >= 0 && m.t < lastT - 0.5) needResync = true;    // scenario loaded / reset → server RC reset to locked
@@ -559,6 +570,7 @@ function onState(m) {
   cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
   missionPanel.update(m);
+  procedurePanel.update(m);
   campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -787,7 +799,10 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
   }});
 cameraRig.bindInput(input);
 surfacePaint.bindInput(input);
+procedurePanel.bindInput(input);
 campaignPanel.bindInput(input);
+sonarPanel.bindInput(input);
+vision.bindInput(input);
 let camMode = cameraRig.mode;
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
@@ -1240,6 +1255,7 @@ function frame(now) {
   audio.update(renderState.display(S));
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);
+  vision.update(now);
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();

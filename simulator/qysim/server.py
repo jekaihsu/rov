@@ -66,6 +66,9 @@ class SimHost:
         self.bridges = {}
         self.instructor_sessions = {}
         self.instructor_code = os.environ.get("QYSIM_INSTRUCTOR_CODE", "")
+        self.sonar_subscriptions = {}       # viewer ws -> scan settings (optional T15 extension)
+        self.latest_sonar = None            # newest primary-vehicle frame, for the SDK RPC
+        self.vision_results = weakref.WeakKeyDictionary()
         self.rpc_connections = 0
         self.rate_hz = rate_hz
         self.view_hz = view_hz
@@ -270,6 +273,11 @@ class SimHost:
         kind = req.get("type", "sdk")
         if kind == "sdk":
             return self.sim.sdk_call(req["cls"], req["method"], req.get("args", []), req.get("kwargs", {}))
+        if kind == "vision_results":
+            cached = self.vision_results.get(self.sim)
+            if cached is None or time.monotonic() - cached[0] > 1:
+                return {"available": False, "detections": []}
+            return {"available": True, "age_s": time.monotonic() - cached[0], "detections": cached[1]}
         if kind == "camera_view":
             # pose + scene for client-side frame rendering
             s = self.sim.vehicle.s
@@ -281,6 +289,8 @@ class SimHost:
                     "tether": self.sim.tether.x.tolist()}
         if kind == "state":
             return self.viewer_state()
+        if kind == "sonar_latest":
+            return self.latest_sonar
         if kind == "ping":
             return "pong"
         raise ValueError(f"unknown request type {kind!r}")
@@ -306,6 +316,8 @@ class SimHost:
                             reply = self.join_instructor(ws, msg)
                         elif ws in self.instructor_sessions:
                             reply = self.instructor_command(ws, msg)
+                        elif msg.get("type") == "operation" and msg.get("action") == "sonar_subscribe":
+                            reply = self.sonar_subscribe(ws, msg)
                         elif msg.get("type") == "attach_controller":
                             reply = self.attach_controller(ws, msg)
                             room, player, _ = self.sessions[ws]
@@ -367,6 +379,7 @@ class SimHost:
                         room.lock(room.vehicles[player.vehicle_id])
                     else:
                         room.disconnect(player, generation)
+            self.sonar_subscriptions.pop(ws, None)
             self.viewers.discard(ws)
 
     def join_instructor(self, ws, msg):
@@ -432,6 +445,18 @@ class SimHost:
         self.world_version += 1
         return {"type": "instructor_result", "action": action, "ok": True}
 
+    def sonar_subscribe(self, ws, msg):
+        """Start, retune or stop background sonar scans for one viewer connection."""
+        settings = {key: float(msg.get(key, default)) for key, default in
+                    (("range_m", 30), ("noise", 0.02), ("multipath", 0.05))}
+        if not (2 <= settings["range_m"] <= 50 and 0 <= settings["noise"] <= 1 and 0 <= settings["multipath"] <= 1):
+            raise ValueError("invalid sonar settings")
+        if msg.get("enabled", True):
+            self.sonar_subscriptions[ws] = settings
+        else:
+            self.sonar_subscriptions.pop(ws, None)
+        return {"type": "operation_result", "action": "sonar_subscribe", "ok": True}
+
     def attach_controller(self, ws, msg):
         if ws in self.sessions:
             raise ValueError("A controller bridge needs a fresh connection")
@@ -476,6 +501,10 @@ class SimHost:
 
     async def _viewer_sender(self, ws):
         seen_version = self.world_version
+        sonar_time = 0.0
+        sonar_frame = None
+        sonar_pending = None
+        sonar_primary = False
         while True:
             world = None
             async with self.lock:                 # snapshot under the lock, send outside it
@@ -487,6 +516,27 @@ class SimHost:
                     sim = room.vehicles[player.vehicle_id] if player else room.primary
                     world = dumps({"type": "world", **self.world_description(room, player)})
                 payload = self.viewer_payload(room, player)
+            settings = self.sonar_subscriptions.get(ws)
+            if settings is not None:
+                if sonar_pending is not None and sonar_pending.done():
+                    sonar_frame = sonar_pending.result()
+                    sonar_pending = None
+                    if sonar_primary:
+                        self.latest_sonar = sonar_frame
+                if sonar_pending is None and time.monotonic() - sonar_time >= 0.2:
+                    from .sonar import snapshot, submit_scan
+                    sim = room.vehicles[player.vehicle_id] if player else room.primary
+                    # The SDK RPC reads the default room's primary vehicle, so only its scans are published there.
+                    sonar_primary = room is self.room and sim is room.primary
+                    world_snapshot, pos, q = snapshot(room, sim)
+                    sonar_pending = submit_scan(world_snapshot, pos, q, settings)
+                    sonar_time = time.monotonic()
+                if sonar_frame is not None:
+                    state = json.loads(payload)
+                    state["sonar"] = sonar_frame
+                    payload = dumps(state)
+            else:
+                sonar_frame = None
             if world:
                 await ws.send(world)
             await ws.send(payload)
@@ -502,7 +552,24 @@ class SimHost:
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同場景"}
         if t == "operation" and msg.get("action") in ("mission_mode", "expedition_start", "expedition_cancel") and (player is None or player.id != room.host_id):
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同任務"}
-        if t == "rc":
+        if t == "procedure":
+            return sim.procedure.action(msg)
+        if t == "vision_results":
+            detections = msg.get("detections", [])
+            if not isinstance(detections, list) or len(detections) > 256:
+                raise ValueError("invalid detections")
+            for detection in detections:
+                if not isinstance(detection, dict) or not isinstance(detection.get("cls"), (str, int)):
+                    raise ValueError("invalid vision class")
+                box = detection.get("box")
+                if not isinstance(box, list) or len(box) != 4:
+                    raise ValueError("invalid vision box")
+                if not all(isinstance(v, (int, float)) and np.isfinite(v) and 0 <= v <= 1 for v in box):
+                    raise ValueError("invalid normalized vision box")
+                if not isinstance(detection.get("score"), (int, float)) or not 0 <= detection["score"] <= 1:
+                    raise ValueError("invalid vision score")
+            self.vision_results[sim] = (time.monotonic(), detections)
+        elif t == "rc":
             if player is not None and not room.input(player, msg.get("seq"), bridge=controller_bridge):
                 return {"type": "error", "code": "stale_input", "message": "控制封包序號已過期"}
             values = msg.get("rc", {})

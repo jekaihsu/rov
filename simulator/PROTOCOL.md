@@ -687,3 +687,42 @@ tether solver (`qysim/tether_ops.py`) and applies no force.
 All thresholds and score weights are provisional training assumptions. Reel commands are unchanged (`payout`,
 `auto_payout`, `reel`, controlling player only). Clump weights and a separately authorized multiplayer
 tether-hand role are not yet supported.
+
+## Optional procedure (T23)
+
+`{ "type":"procedure", "action":"begin" }` opts this vehicle into the full deployment procedure.
+Without it, existing SDK/RC behavior is unchanged. Subsequent actions are `check` (`key` in ordered
+`seals, connector, trim, power, communication, camera, lights, thrusters, instruments, unlock`),
+`test` (`index`, zero-based two-second diagnostic pulse), `skip`, `tender`, `lower`
+(`point:"upstream"`), `water_confirm`, `recover`, `rinse`, `inspect`, `save` (`notes`).
+Invalid progression returns the existing error envelope; accepted actions return `procedure_result`.
+`state.procedure` (present only while this vehicle has opted in; absent otherwise) adds phase, checked keys, tests, dry time, penalty, events, elapsed time, peak depth,
+peak cable length and notes. Physics enforces locked flight outside `diving`, including SDK input.
+`state.score.procedure_penalty` is optional. Skips have a seeded 35% per-check fault probability
+(training assumption); missing communication checks may cause control loss and forced cable recovery.
+Recovery rate and wave modulation are provisional training approximations, not measured vessel limits.
+
+## Optional forward imaging sonar (simulator extension)
+
+Viewer sends `{"type":"operation","action":"sonar_subscribe","enabled":true,"range_m":30,
+"noise":0.02,"multipath":0.05}`. Range: 2–50 m; noise and multipath: 0–1.
+Defaults shown above. Disable with `enabled:false`; disconnect clears the subscription.
+Only the subscribed connection receives `state.sonar`, refreshed at 5 Hz independently
+of physics. Each frame contains Unix `timestamp`, `range_m`, `fov_deg:120`, `beams:256`,
+`distance_m`, `intensity` (unsigned 8-bit integers), and `ghost_m` arrays.
+Beam indices run from -60° (port) to +60° (starboard), relative to body forward.
+Distances are slant ranges in metres; range limit means no return. First surfaces occlude
+later targets. `ghost_m` is a weak synthetic multipath return (range limit means none).
+Noise, attenuation, target sizes and multipath are illustrative training assumptions,
+not measurements of a specific instrument. This is a horizontal slice, without elevation resolution.
+The SDK RPC `{"type":"sonar_latest"}` reads the latest subscribed primary vehicle frame,
+or null before any scan. It does not enable scanning or change existing SDK calls.
+
+## Optional simulator vision extension
+
+Viewer message `{"type":"vision_results","detections":[{"cls":"coral","score":1,"box":[0.1,0.2,0.3,0.4]}]}`
+reports normalized top-left xywh boxes. Reports are untrusted client assistance, never scoring authority.
+RPC `{"type":"vision_results"}` reads the primary simulator vehicle's latest report with `age_s`;
+after one second, returns `{"available":false,"detections":[]}`. Requires an active reporting viewer.
+This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
+Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.
