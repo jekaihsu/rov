@@ -10,14 +10,14 @@
     "pitch_deg": -12.0,
     "lamp_level": 0,
     "visibility_m": 18,
-    "seconds_per_frame": 5.889,
+    "seconds_per_frame": 3.434,
     "quality": "medium",
     "exposure": {
-      "exposure": 30.705332322440945,
-      "target": 30.675163817105496,
-      "meteredLuminance": 0.005867939191626357
+      "exposure": 32.216918737108934,
+      "target": 32.17761543743958,
+      "meteredLuminance": 0.005910274603286093
     },
-    "bytes": 97567
+    "bytes": 111041
   },
   "seagrass": {
     "scenario": "seagrass_meadow",
@@ -30,14 +30,14 @@
     "pitch_deg": -12.0,
     "lamp_level": 0,
     "visibility_m": 12,
-    "seconds_per_frame": 6.167,
+    "seconds_per_frame": 4.454,
     "quality": "medium",
     "exposure": {
-      "exposure": 23.916940403228526,
-      "target": 23.849583597678166,
-      "meteredLuminance": 0.007547301412401838
+      "exposure": 27.3628816934749,
+      "target": 27.34220248023091,
+      "meteredLuminance": 0.007592909930924615
     },
-    "bytes": 62455
+    "bytes": 78266
   },
   "harbour": {
     "scenario": "harbor_inspection",
@@ -50,14 +50,14 @@
     "pitch_deg": -10.6,
     "lamp_level": 1,
     "visibility_m": 7,
-    "seconds_per_frame": 11.63,
+    "seconds_per_frame": 3.616,
     "quality": "medium",
     "exposure": {
-      "exposure": 40.517126759970836,
-      "target": 38.12255867488381,
-      "meteredLuminance": 0.004721613717143835
+      "exposure": 36.55617981334472,
+      "target": 36.61841032885133,
+      "meteredLuminance": 0.004844285201031545
     },
-    "bytes": 57216
+    "bytes": 63997
   },
   "wreck-lit-1": {
     "scenario": "korean_castle",
@@ -70,14 +70,14 @@
     "pitch_deg": -6.0,
     "lamp_level": 1,
     "visibility_m": 10.0,
-    "seconds_per_frame": 40.224,
+    "seconds_per_frame": 17.791,
     "quality": "medium",
     "exposure": {
-      "exposure": 105.97343584707018,
-      "target": 91.27095127506871,
-      "meteredLuminance": 0.0019721498840247144
+      "exposure": 67.84838744354394,
+      "target": 67.7718519629024,
+      "meteredLuminance": 0.0018789809450361046
     },
-    "bytes": 164813
+    "bytes": 157668
   },
   "wreck-lit-2": {
     "scenario": "korean_castle",
@@ -90,14 +90,14 @@
     "pitch_deg": -6.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 27.384,
+    "seconds_per_frame": 22.248,
     "quality": "medium",
     "exposure": {
-      "exposure": 78.73009216525627,
-      "target": 51.79653847865331,
-      "meteredLuminance": 0.0034751356221639166
+      "exposure": 47.13480124511755,
+      "target": 46.99993852075388,
+      "meteredLuminance": 0.003299619072273706
     },
-    "bytes": 166409
+    "bytes": 162576
   },
   "wreck-dark": {
     "scenario": "korean_castle",
@@ -110,13 +110,53 @@
     "pitch_deg": -6.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 21.194,
+    "seconds_per_frame": 11.931,
     "quality": "medium",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 9.679269848880223e-05
+      "meteredLuminance": 9.738045149454904e-05
     },
-    "bytes": 45362
+    "bytes": 57059
+  },
+  "silt-lamps-full": {
+    "scenario": "incident_silt",
+    "eye_ned": [
+      8.0,
+      0.0,
+      11.55
+    ],
+    "heading_deg": 0.1,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 3,
+    "seconds_per_frame": 3.153,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 6.76800130630077,
+      "target": 6.069378877744177,
+      "meteredLuminance": 0.07692792522226793
+    },
+    "bytes": 34780
+  },
+  "silt-lamps-off": {
+    "scenario": "incident_silt",
+    "eye_ned": [
+      8.0,
+      0.0,
+      11.55
+    ],
+    "heading_deg": 0.1,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 3,
+    "seconds_per_frame": 3.389,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 3.137206638284192e-05
+    },
+    "bytes": 39597
   }
 }

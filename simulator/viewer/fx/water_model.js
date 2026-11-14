@@ -54,7 +54,8 @@ function channels(value) {
 // Adds participating-medium contributions (for example suspended sediment) to the water: each is
 // {extinction, scattering} in 1/m, a number or an [r, g, b] array. Extinction adds to c; scattering (the part
 // of it that turns into backscatter, coloured if per channel) adds to b; the rest is absorption, which also
-// darkens daylight on its way down. Returns {c, b, kd} with b per channel.
+// darkens daylight on its way down unless the item is `local: true` (a cloud near the camera, not a water
+// column property). Returns {c, b, kd} with b per channel.
 export function combineMedium(water, contributions = []) {
   const c = water.c.slice();
   const b = channels(water.b);
@@ -68,7 +69,8 @@ export function combineMedium(water, contributions = []) {
       const absorb = Math.max(0, extinction[i] - scatter);
       c[i] += extinction[i] > 0 ? extinction[i] : 0;
       b[i] += scatter;
-      kd[i] += 1.1 * absorb + 0.15 * scatter;
+      // A local cloud (silt around the vehicle) does not shade the whole water column above it.
+      if (!item.local) kd[i] += 1.1 * absorb + 0.15 * scatter;
     }
   }
   return {c, b, kd, a: water.a};

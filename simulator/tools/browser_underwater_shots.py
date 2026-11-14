@@ -33,7 +33,14 @@ SHOTS = (
     ('wreck-lit-1', 'korean_castle', 'wreck', 1),
     ('wreck-lit-2', 'korean_castle', 'wreck', 2),
     ('wreck-dark', 'korean_castle', 'wreck', 0),
+    ('silt-lamps-full', 'incident_silt', 'silt', 2),
+    ('silt-lamps-off', 'incident_silt', 'silt', 0),
 )
+# incident_silt: from the start pose 0.45 m over the fluff bed, full ascent thrust for 0.8 s, then 6 s of drift
+# (the sequence of docs/design/silt/after_*); the vehicle is then shown back at the start pose, inside the
+# cloud it raised (about 30 mg/L, 0.27 m visibility at the camera). Server puffs and turbidity are kept.
+SILT_THRUST_S = 0.8
+SILT_DRIFT_S = 6.0
 
 
 WRECK_EYE_NED = (16.0, 0.0, 25.0)
@@ -74,20 +81,39 @@ def subject_pose(sim, world, subject):
     return list(WRECK_EYE_NED), 0.0, -6.0
 
 
+def stir_silt(sim):
+    """Fly the incident_silt take-off: full ascent stick, then hands off while the cloud spreads."""
+    sim.rc_physical.rc_lock = 0
+    sim.rc_physical.left_wave = 1900
+    for _ in range(int(SILT_THRUST_S / 0.01)):
+        sim.step(0.01)
+    sim.rc_physical.left_wave = 1500
+    for _ in range(int(SILT_DRIFT_S / 0.01)):
+        sim.step(0.01)
+
+
 def build_replay(name, scenario, subject, lamp):
     sim = Simulator(scenario, seed=42)
     world = json.loads(json.dumps(sim.world_description(), default=_json_default))
-    eye, heading, pitch = subject_pose(sim, world, subject)
-    sim.vehicle.s.pos[:] = eye
-    sim.vehicle.s.q[:] = quaternion(heading, pitch)
+    if subject == 'silt':
+        stir_silt(sim)
+        sim.vehicle.s.pos[:] = sim.scenario.start_pos
+        eye = [float(v) for v in sim.vehicle.s.pos]
+        heading = math.degrees(float(sim.vehicle.euler[2]))
+        pitch = math.degrees(float(sim.vehicle.euler[1]))
+    else:
+        eye, heading, pitch = subject_pose(sim, world, subject)
+        sim.vehicle.s.pos[:] = eye
+        sim.vehicle.s.q[:] = quaternion(heading, pitch)
     state = json.loads(json.dumps(sim.viewer_state(), default=_json_default))
     state['rc']['right_switch'] = lamp
     state['rc']['rc_lock'] = 0
     state['locked'] = False
-    # A tether leaving backwards and up, out of the onboard camera's view.
-    back = [-math.cos(math.radians(heading)), -math.sin(math.radians(heading))]
-    state['tether']['nodes'] = [[eye[0] + back[0] * (0.5 + i), eye[1] + back[1] * (0.5 + i), eye[2] * (1 - i / 8)]
-                                for i in range(9)]
+    if subject != 'silt':
+        # A tether leaving backwards and up, out of the onboard camera's view.
+        back = [-math.cos(math.radians(heading)), -math.sin(math.radians(heading))]
+        state['tether']['nodes'] = [[eye[0] + back[0] * (0.5 + i), eye[1] + back[1] * (0.5 + i), eye[2] * (1 - i / 8)]
+                                    for i in range(9)]
     frames = []
     for i in range(3):
         frame = dict(state)

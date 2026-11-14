@@ -8,7 +8,11 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { WATER_COMMON, shareWaterUniforms } from './water_optics.js';
 
 export const EXPOSURE = Object.freeze({
-  key: 0.18,          // mid-grey the meter aims for, before ACES
+  key: 0.15,          // mid-grey the meter aims for, before ACES
+  // The loop corrects only part of the metered error in stops around a reference gain, like a video camera
+  // with a limited AE range: brighter lamps still give a brighter picture and the near-field pool stays visible.
+  compensation: 0.65,
+  reference: 50.0,
   minimum: 0.3,       // strongest darkening (bright shallow water, sun-lit sand)
   maximum: 400.0,     // most gain the camera adds in the dark (beyond this the image just gets darker)
   tau: 0.35,          // seconds, first-order lag in stops
@@ -123,6 +127,7 @@ const ADAPT = /* glsl */ `
   uniform float uStep;
   uniform float uReset;
   uniform vec3 uRange;
+  uniform vec2 uPartial;
   varying vec2 vUv;
   void main() {
     float logSum = 0.0;
@@ -135,7 +140,9 @@ const ADAPT = /* glsl */ `
       }
     }
     float average = logSum / max(weights, 1e-4);
-    float target = clamp(log(uRange.x) - average, log(uRange.y), log(uRange.z));
+    float full = log(uRange.x) - average;
+    float partial = uPartial.x * full + (1.0 - uPartial.x) * uPartial.y;
+    float target = clamp(partial, log(uRange.y), log(uRange.z));
     float previous = texelFetch(tPrevious, ivec2(0, 0), 0).r;
     float next = uReset > 0.5 ? target : previous + (target - previous) * uStep;
     gl_FragColor = vec4(next, target, average, 1.0);
@@ -172,7 +179,8 @@ export class AutoExposurePass extends Pass {
     this.adaptMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tMeter: { value: this.meter.texture }, tPrevious: { value: null }, uStep: { value: 1 },
-        uReset: { value: 1 }, uRange: { value: new THREE.Vector3(EXPOSURE.key, EXPOSURE.minimum, EXPOSURE.maximum) }
+        uReset: { value: 1 }, uRange: { value: new THREE.Vector3(EXPOSURE.key, EXPOSURE.minimum, EXPOSURE.maximum) },
+        uPartial: { value: new THREE.Vector2(EXPOSURE.compensation, Math.log(EXPOSURE.reference)) }
       },
       vertexShader: VERTEX, fragmentShader: ADAPT, depthTest: false, depthWrite: false
     });

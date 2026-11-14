@@ -95,7 +95,7 @@ export function renderQualityState(renderer) {
 // the "high" quality mode; every other mode, including the default "auto", loads the standard files.
 // Without an explicit mode it uses the last configured mode, else the same URL / stored choice the menus use.
 export function assetTextureTier(mode = lastMode ?? storedQualityMode()) {
-  return mode === 'high' ? 'high' : 'standard';
+  return ['high', 'ultra'].includes(mode) ? 'high' : 'standard';
 }
 
 function storedQualityMode() {

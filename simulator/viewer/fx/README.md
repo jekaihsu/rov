@@ -19,7 +19,8 @@ lamp-lit seabed blew out. This document describes the reworked version.
 2. `water_optics.js` updates one set of shared uniforms per frame (`waterUniforms`), draws a full-screen
    **water background** that evaluates the same in-scatter integral for an infinite ray in each pixel's
    direction, and turns the lamps into physical lamps while optics are on (decay 2, no cut-off distance,
-   soft 120° beam). The legacy values are restored when the look falls back.
+   soft 120° beam whose intensity falls smoothly from the axis, penumbra 1). The legacy values are restored
+   when the look falls back.
 3. `surface.js` shades the surface from below: Snell's window (critical angle for n = 1.333) with moving
    normals, total internal reflection of the water below outside it, then the same water path to the camera.
 4. `suspension.js` draws instanced marine snow in a 4 m box around the camera, lit by the lamps (inverse
@@ -40,8 +41,9 @@ Per channel R, G, B (about 620 / 540 / 470 nm):
 | `b` | scattering, drives in-scatter and backscatter | 80 % of the non-water part of `c` |
 | `Kd` | diffuse attenuation of daylight going down | `1.1 a + 0.15 b` |
 
-`visibility` is `scene.fog.far / 1.35`, i.e. the value the app already derives from the scenario and silt;
-the existing "real visibility" toggle therefore still works. Water colour at infinity looking with vertical
+The clean-water `visibility` is published by the silt module (`scene.userData.waterVisibility`: the
+scenario's visibility, or the legacy silt-reduced value when the server sends no turbidity field, or the
+display distance when the "real visibility" toggle is off); without it the scene fog is read instead. Water colour at infinity looking with vertical
 component `u` from depth `z` is `b * E(z) / (c - Kd u)` with `E(z) = exp(-Kd z)`. Distant objects tend to
 exactly this colour, so there is no seam at the horizon, and looking up is brighter than looking down.
 
@@ -53,8 +55,10 @@ depth while daylit objects lose red with depth plus distance, as described in
 ### Exposure (`exposure.js`)
 
 The scene is metered on the GPU (32 x 18 grid, centre-weighted log-average luminance), the log exposure
-moves towards `key / average` with a first-order lag (`tau` 0.35 s, symmetric in stops) and is clamped to
-`[0.3, 400]`. The upper clamp is the camera's maximum gain: at 25-32 m with the lamps off the image stays
+moves towards its target with a first-order lag (`tau` 0.35 s, symmetric in stops) and is clamped to
+`[0.3, 400]`. The target corrects only 65 % of the metered error in stops around a reference gain of 50
+(`compensation`, `reference`): a video camera's AE does not fully normalise a scene, so lamp level 2 is
+visibly brighter than level 1 and the near-field lamp pool is not flattened to mid-grey. The upper clamp is the camera's maximum gain: at 25-32 m with the lamps off the image stays
 dark and objects read as silhouettes against slightly brighter water. No pixel is read back for rendering
 (`state.exposure()` is a synchronous diagnostic for tools only).
 
@@ -76,7 +80,9 @@ Everything numeric here is a visualization assumption; nothing is X1 data. Mark 
 - Daylight in-scatter phase 0.07 and lamp backscatter phase 0.00025, with the near-lamp `1/d²` limited at
   0.5 m: tuned on the review shots so that 10 m visibility shows a veil but keeps a lit hull at 2-3 m
   readable, and harbour water (7 m) is clearly murkier.
-- Exposure key 0.18, range 0.3-400, lag 0.35 s, centre weighting: the research report has no measured
+- Multiple-scattering lamp glow (0.007, cube law in `c`) and sediment scattering share `[0.85, 0.8, 0.6]`:
+  visual calibration against main's silt screenshots; `silt-validation.md` has no image measurements either.
+- Exposure key 0.15, partial compensation 0.65 around gain 50, range 0.3-400, lag 0.35 s, centre weighting: the research report has no measured
   auto-exposure or gain behaviour.
 - Particle sizes, density (scaled by `b`) and drift; sun shaft and caustic patterns. Size and the order of
   the visible count follow `research_notes/洋流與波浪對ROV作業/real_dive_footage.md` (§8 target 12), not X1.
@@ -110,23 +116,35 @@ the beautify finish and `OutputPass`. Its input and output are linear and alread
 has been applied), so sensor noise added there scales like real gain noise. Do not tone-map. The caller
 owns and disposes the pass; `setCameraPass(null)` removes it. The pass is not used in low / fallback.
 
-### Extra participating medium (silt, feat/silt)
+### Extra participating medium (silt)
 
 ```js
 import { addMediumContributor } from './fx/pipeline.js';   // also exported by fx/water_optics.js
 const remove = addMediumContributor(function siltAtCamera({ scene, camera, water }) {
-  return { extinction: 1.2, scattering: [1.0, 0.95, 0.8] };   // 1/m, number or [r, g, b]; or null
+  return { extinction: 1.2, scattering: [1.0, 0.95, 0.8], local: true };   // 1/m; or null
 });
 ```
 
 Called once per optics frame. `extinction` adds to the beam attenuation `c` of every light path (so
 visibility drops as `4.8 / c`); `scattering` adds to `b`, i.e. to the daylight in-scatter, the water
 colour at infinity and the lamp backscatter (per channel gives coloured backscatter, e.g. brown silt); the
-absorbed remainder `extinction - scattering` also dims daylight going down. The model is homogeneous: the
-values are taken as uniform along every ray, so pass the concentration sampled at the camera. Localised
-puffs remain the silt module's own geometry. The app's existing silt term (`fog.far` and the slight
-absorption tint from `state.silt`) still applies; when the silt module contributes the same sediment it
-should take that term over to avoid counting it twice.
+absorbed remainder `extinction - scattering` also dims daylight going down unless `local: true` (a cloud
+around the camera, not a property of the whole column). The model is homogeneous: the values are taken as
+uniform along every ray, so pass the concentration sampled at the camera.
+
+`fx/silt.js` (from main) is the one contributor today. In the optics tiers there is exactly one medium:
+it publishes the clean-water visibility and contributes `k * C` at the camera (C from the server's puffs
+and near-bed layer, `state.environment`) as `local` sediment with scattering `[0.85, 0.8, 0.6]` of the
+extinction (brown-green clouds; the assisted visibility floor caps the total). Its exponential fog, fog
+colour and lamp veil are then unused (the optics shaders replace three's fog and the background), so there
+is one attenuation path and one lamp-backscatter integral. Its puff sprites stay as geometry and are made
+exposure-neutral. In the low / fallback tiers `silt.js` behaves exactly as on main.
+
+Dense water also needs the lamps' multiple scattering, which single scattering misses (extinction kills
+the single-scatter path within centimetres): `uLampGlow` = lamp power x `b / c` x `(1 - exp(-0.3 c))^3` x
+0.007, added along every camera path. It is negligible below `c` of about 1/m and saturates in a
+silt-out; calibrated so `incident_silt` with the lamps full goes near white-out (stronger than main's
+grey veil) and near black with the lamps off.
 
 ## Observation photos
 

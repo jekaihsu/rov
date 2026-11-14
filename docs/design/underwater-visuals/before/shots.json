@@ -10,10 +10,10 @@
     "pitch_deg": -12.0,
     "lamp_level": 0,
     "visibility_m": 18,
-    "seconds_per_frame": 1.875,
+    "seconds_per_frame": 0.661,
     "quality": "medium",
     "exposure": null,
-    "bytes": 75803
+    "bytes": 67551
   },
   "seagrass": {
     "scenario": "seagrass_meadow",
@@ -26,10 +26,10 @@
     "pitch_deg": -12.0,
     "lamp_level": 0,
     "visibility_m": 12,
-    "seconds_per_frame": 2.035,
+    "seconds_per_frame": 0.544,
     "quality": "medium",
     "exposure": null,
-    "bytes": 65448
+    "bytes": 51306
   },
   "harbour": {
     "scenario": "harbor_inspection",
@@ -42,10 +42,10 @@
     "pitch_deg": -10.6,
     "lamp_level": 1,
     "visibility_m": 7,
-    "seconds_per_frame": 6.204,
+    "seconds_per_frame": 2.035,
     "quality": "medium",
     "exposure": null,
-    "bytes": 47843
+    "bytes": 53971
   },
   "wreck-lit-1": {
     "scenario": "korean_castle",
@@ -58,10 +58,10 @@
     "pitch_deg": -6.0,
     "lamp_level": 1,
     "visibility_m": 10.0,
-    "seconds_per_frame": 21.211,
+    "seconds_per_frame": 7.137,
     "quality": "medium",
     "exposure": null,
-    "bytes": 93848
+    "bytes": 68083
   },
   "wreck-lit-2": {
     "scenario": "korean_castle",
@@ -74,10 +74,10 @@
     "pitch_deg": -6.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 21.941,
+    "seconds_per_frame": 8.18,
     "quality": "medium",
     "exposure": null,
-    "bytes": 84952
+    "bytes": 63712
   },
   "wreck-dark": {
     "scenario": "korean_castle",
@@ -90,9 +90,41 @@
     "pitch_deg": -6.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 23.698,
+    "seconds_per_frame": 10.564,
     "quality": "medium",
     "exposure": null,
-    "bytes": 30158
+    "bytes": 40042
+  },
+  "silt-lamps-full": {
+    "scenario": "incident_silt",
+    "eye_ned": [
+      8.0,
+      0.0,
+      11.55
+    ],
+    "heading_deg": 0.1,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 3,
+    "seconds_per_frame": 1.45,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 35522
+  },
+  "silt-lamps-off": {
+    "scenario": "incident_silt",
+    "eye_ned": [
+      8.0,
+      0.0,
+      11.55
+    ],
+    "heading_deg": 0.1,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 3,
+    "seconds_per_frame": 1.128,
+    "quality": "medium",
+    "exposure": null,
+    "bytes": 36664
   }
 }

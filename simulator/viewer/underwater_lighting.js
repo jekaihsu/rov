@@ -111,6 +111,11 @@ function installMaterial(material, detail) {
   material.needsUpdate = true;
 }
 
+// Built-in unlit materials, and shader materials that opt in (silt puff sprites), keep their screen brightness.
+function neutralCandidate(material) {
+  return !material.isShaderMaterial || material.userData.exposureNeutral === true;
+}
+
 export function applyUnderwaterLighting(scene, state, renderer) {
   const low = legacyWaterLook(renderer);
   scene.userData.waterCurrent = state?.current_here;
@@ -128,7 +133,7 @@ export function applyUnderwaterLighting(scene, state, renderer) {
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     for (const material of materials) {
       if (material?.isMeshStandardMaterial && object.isMesh) installMaterial(material, detail);
-      else if (material && !material.isShaderMaterial && !material.isMeshStandardMaterial) neutraliseExposure(material);
+      else if (material && !material.isMeshStandardMaterial && neutralCandidate(material)) neutraliseExposure(material);
     }
   });
 }

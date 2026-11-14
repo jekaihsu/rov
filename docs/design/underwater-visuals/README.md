@@ -11,11 +11,14 @@ pose); no teleport command, no fixture scene. HUD and training markers are the a
 
 ```bash
 cd simulator
-python tools/browser_underwater_shots.py --url http://127.0.0.1:8080 --out OUT --frames 4 --query "quality=medium&beautify=0"
-python tools/browser_underwater_shots.py --url http://127.0.0.1:8080 --out OUT --frames 4 --query "quality=medium&beautify=1"
+python tools/browser_underwater_shots.py --url http://127.0.0.1:8080 --out OUT --frames 8 --query "quality=medium&beautify=0"
+python tools/browser_underwater_shots.py --url http://127.0.0.1:8080 --out OUT --frames 8 --query "quality=medium&beautify=1"
 ```
 
-`before/` is `main` at `afc3319` (the branch base) with the same tool and poses.
+`before/` is `main` at `f4171a3` (after the silt, sensor-layer and launch-intro merges; the HUD there is
+main's new one) with the same tool and poses. All images were re-shot after merging that main. The HUD's
+DEPTH readout in these replay shots is not the vehicle depth (the replay frames carry no sensor-layer
+fields); the pose column is authoritative.
 
 | Shot | Scenario, pose | Before (main) | After, real | After, beautify |
 |---|---|---|---|---|
@@ -25,6 +28,8 @@ python tools/browser_underwater_shots.py --url http://127.0.0.1:8080 --out OUT -
 | Wreck, lamps 1 | `korean_castle`, 25 m, hull plating about 2.3 m ahead, lamps level 1 | [before](before/wreck-lit-1.jpg) | [real](real/wreck-lit-1.jpg) | [beautify](beautify/wreck-lit-1.jpg) |
 | Wreck, lamps 2 | same pose, lamps level 2 | [before](before/wreck-lit-2.jpg) | [real](real/wreck-lit-2.jpg) | [beautify](beautify/wreck-lit-2.jpg) |
 | Wreck, lamps off | same pose, lamps off | [before](before/wreck-dark.jpg) | [real](real/wreck-dark.jpg) | [beautify](beautify/wreck-dark.jpg) |
+| Silt-out, lamps full | `incident_silt`: 0.8 s full ascent thrust over the fluff bed, 6 s drift, vehicle shown back at the 0.45 m start pose: about 32 mg/L, 0.27 m visibility at the camera | [before](before/silt-lamps-full.jpg) | [real](real/silt-lamps-full.jpg) | [beautify](beautify/silt-lamps-full.jpg) |
+| Silt-out, lamps off | same | [before](before/silt-lamps-off.jpg) | [real](real/silt-lamps-off.jpg) | [beautify](beautify/silt-lamps-off.jpg) |
 
 The wreck shots are at 25 m, not 32 m: the 32 m figure is the seabed; the hull side at the bow section is
 reachable at 2-3 m stand-off only at mid-height. The first inspection objective's stand-off point turned out
@@ -36,17 +41,19 @@ the meter asks for, clamped to 0.3-400):
 
 | Shot | Metered luminance (linear) | Target | Exposure at capture |
 |---|---|---|---|
-| Reef | 5.8e-3 | 30.9 | 30.9 |
-| Seagrass | 7.5e-3 | 24.0 | 24.0 |
-| Harbour | 4.7e-3 | 38.2 | 40.5 |
-| Wreck, lamps 1 | 2.0e-3 | 91.2 | 105.9 |
-| Wreck, lamps 2 | 3.5e-3 | 51.8 | 64.2 |
-| Wreck, lamps off | 9.7e-5 | 400 (clamped) | 400 |
+| Reef | 5.9e-3 | 32.3 | 32.4 |
+| Seagrass | 7.6e-3 | 27.4 | 27.5 |
+| Harbour | 4.8e-3 | 36.6 | 36.5 |
+| Wreck, lamps 1 | 1.9e-3 | 67.8 | 68.2 |
+| Wreck, lamps 2 | 3.3e-3 | 47.0 | 47.6 |
+| Wreck, lamps off | 9.8e-5 | 400 (clamped) | 400 |
+| Silt-out, lamps full | 7.7e-2 | 6.1 | 6.2 |
+| Silt-out, lamps off | 3.1e-5 | 400 (clamped) | 400 |
 
-The capture advances only 4 frames per shot (software rendering here takes 3-40 s per frame), so the two
-lit wreck shots were still 15-25 % above their settled exposure when captured; the lamp 1 / lamp 2 pair
-therefore looks almost the same. That is also what a camera with auto-exposure does: the second lamp
-level lowers the gain (target 91 -> 52), it does not make the picture twice as bright.
+The exposure loop corrects only 65 % of the metered error (in stops, around a gain of 50), so the second
+lamp level lowers the gain (68 -> 47) but the picture still gets brighter, and the lamp pool on the hull
+(bright centre, darker corners) is not flattened to mid-grey any more. 8 frames per shot; exposure had
+settled to within 1-2 %.
 
 ## Notes against the target look
 
@@ -67,15 +74,25 @@ level lowers the gain (target 91 -> 52), it does not make the picture twice as b
 - **Lamps (review items 1 and 3).** Lamps now use inverse-square falloff (decay 2), a soft 120° flood
   and extinction both ways; auto-exposure meters the frame and `OutputPass` tone-maps once. The lit wreck
   is no longer black (main had a blown-out disc with a hard edge in a black frame; #26 had it almost
-  black) and the harbour pile is no longer a white column; both show the falloff from the beam centre.
+  black) and the harbour pile is no longer a white column. After review the beam got a full penumbra (the
+  intensity falls smoothly from the axis) and the exposure became partial, so the wreck shows a readable
+  pool: bright centre, darker corners, and level 2 brighter than level 1. Self-critique: the pool is still
+  green-white rather than warm; at 2.3 m red is mostly gone on the round trip, and the fouling texture
+  itself is green.
 - **Backscatter.** Lamp backscatter is a per-pixel integral (visible as the lighter veil in the beam
   direction in harbour and around the wreck hot spot) plus instanced point particles lit by the lamps.
   The particles are visible in the lit wreck shots as small specks; in daylight shots there are few.
+- **Silt-out (merged from main's silt work).** Sediment at the camera is now part of the one optics
+  medium: it adds `k * C` to the beam attenuation and brown-green scattering, and the lamps' multiple
+  scattering in dense water lifts the whole view. Lamps full: cream white-out, sampled (207, 200, 174) in
+  the frame centre, stronger than main's grey veil (111, 108, 99). Lamps off: near black (0, 16, 0);
+  main's lamps-off is dark grey-green. Puff sprites from `silt.js` are unchanged geometry. In the low
+  tier `silt.js` behaves exactly as on main.
 - **Deep, lamps off.** At 25 m with the lamps off the exposure hits its 400 limit and the frame is dark
   green with only the hull's edges readable. With the hull filling the frame there is little open water
   to silhouette it against, so "silhouettes" is only weakly demonstrated by this pose.
 - **Beautify** (`?beautify=1`, fidelity item `waterBeautify`; the HUD's fidelity chip shows 自訂 because
-  it exceeds the real preset): faint sun shafts in the reef shot (top right), caustic bands on the sand,
+  it exceeds the real preset; main's new HUD does not show that chip): faint sun shafts in the reef shot (top right), caustic bands on the sand,
   a gentle vignette; nothing changes in the deep shots except the vignette. With it off nothing remains.
 - **Observation photos:** unchanged geometry; see `simulator/viewer/fx/README.md`.
 
@@ -95,6 +112,8 @@ small ROVs; not X1, colours from re-encoded video, ±10 per channel):
 | 7. Near the surface the dome breaks the surface and blows out for 0.2-0.4 s | Not modelled | **Not done** (belongs to the surface-crossing / camera work) |
 
 ## Low tier cost
+
+(Measured before the merge of main `f4171a3`; the low-tier path was not changed by the integration.)
 
 `quality=performance` (the low tier) does not install the pipeline: `installUnderwaterPipeline` returns
 `null`, `renderer.render` is not wrapped, materials keep the original depth shader and the lamps keep their
@@ -127,7 +146,7 @@ GL here the medium-tier capture frames took 0.6-1.8× the time of main's (shots.
 
 ## Not done / known gaps
 
-- The shots were taken on a heavily loaded machine with software GL (3-40 s per frame), 4 frames each.
+- The shots were taken on a loaded machine with software GL (1-40 s per frame), 8 frames each.
   Nothing here was looked at on a real GPU; frame time of the optics tiers on integrated graphics is
   unmeasured. The `auto` tier falls back to the legacy look on its first slow sample, and on software GL
   it starts in the legacy look: without that, `browser_smoke.py` (three software viewers on one CPU)

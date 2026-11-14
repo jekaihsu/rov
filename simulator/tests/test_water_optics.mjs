@@ -80,4 +80,8 @@ test('medium contributors add extinction and coloured backscatter on top of the 
   // Visibility shrinks the way the silt module expects: V ~ 4.8 / c.
   assert.ok(VISIBILITY_CONTRAST / silty.c[1] < 10 / 2);
   assert.ok(luminance(waterRadianceAtInfinity(5, 0, silty)) > 0);
+  // A local cloud around the camera attenuates every path but does not shade the water column above it.
+  const cloud = combineMedium(water, [{extinction: 1.2, scattering: 1.0, local: true}]);
+  assert.deepEqual(cloud.kd, water.kd);
+  assert.ok(cloud.c[1] > water.c[1]);
 });
