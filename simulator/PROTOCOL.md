@@ -213,6 +213,61 @@ objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
 
+### Optional flight assistance
+
+RC packets may include `assist` (0 manual, 1 ground velocity, 2 ground position
+hold) and `profile` (`cine`, `normal`, `sport`). Each packet defaults to 0 and
+`normal` when omitted; unsupported values use those defaults. Internal USB samples
+and attached controller bridge packets merge axes into the selected assistance
+settings instead of reverting omitted metadata. Complete browser RC packets keep
+the documented manual defaults. SDK remote control
+and active navigation bypass assistance. Depth keeping retains vertical priority.
+A/C interpret velocity in heading-aligned horizontal coordinates; S uses body axes.
+All translation sticks must be within 0.02 and ground speed below 0.05 m/s to
+capture a position. Any translation stick outside that threshold releases it.
+The simulator currently assumes bottom lock only at 0.1–100 m bottom altitude
+with finite ground velocity. Outside this window assistance falls back to manual,
+clears history, and reacquires only when the simulated lock is valid again.
+This common simulated window is provisional: it is not a calibrated model of
+any vehicle's sensor, bottom material, DVL drift, or hardware loss-of-lock policy.
+Lock, failsafe, disconnect and remote takeover clear assistance history.
+
+`state.assist` contains `level`, `profile`, `holding`, `limited`, `speed_limit`
+([surge, sway, heave], m/s) and `yaw_rate_limit` (degrees/s). `limited` reports
+requested motor saturation including coupled translation/attitude demands.
+It cannot guarantee position holding in currents exceeding available thrust.
+Translation force demand is capped at the same per-axis authority as manual full
+stick; assistance never increases motor limits. Integral and reference histories
+rotate with the control frame so their world direction remains consistent.
+`profile` reports the requested valid profile even in manual/locked mode.
+Manual thrust control remains the default and is compared byte-for-byte against
+its frozen pre-assistance implementation. Velocity and position assistance are
+optional simulator features, not claims about real vehicle defaults.
+
+Profile parameters scale with vehicle specifications rather than a model ID:
+
+| Profile | Speed / nominal axis vmax | Acceleration / (authority / effective mass) | Jerk / acceleration (s⁻¹) | Yaw / nominal wmax | Stick exponent |
+|---|---:|---:|---:|---:|---:|
+| cine | 0.30 | 0.10 | 12 | 0.30 | 2.0 |
+| normal | 0.52 | 0.35 | 20 | 0.50 | 1.5 |
+| sport | 0.70 | 0.90 | 30 | 0.75 | 1.0 |
+
+Yaw acceleration is bounded to the profile yaw limit per second. Existing RC
+curvature/limits apply before the profile exponent. The S-curve reference integrates
+bounded jerk and acceleration; a velocity PI with nominal still-water drag feedforward
+produces force. Integration during velocity tracking waits for settling to avoid
+learning command transients; position holding may integrate persistent current error.
+Both integrators are bounded and frozen when motor allocation saturates.
+
+Still-water acceptance bounds (optional assistance, not hardware specifications):
+cine reaches 90% forward speed and brakes below 0.05 m/s within 2.0 s;
+normal within 1.2 s for each, at most 0.6 m braking, at most 5% overshoot and
+less than 3 cm reverse travel; sport reaches 90% within 0.9 s and brakes within
+1.0 s. Cine is slower than normal, which is slower than sport. These bounds do
+not guarantee performance under contact, tether loading or arbitrary attitude.
+All vehicle parameters, especially unmeasured model-specific values, remain
+provisional; see `docs/reference/real-rov-research.md`.
+
 ## Optional campaign layer
 
 Rooms may publish `state.campaign`: `chapter`, `index`, `node`, `status`,

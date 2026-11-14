@@ -84,6 +84,8 @@ class SimHost:
             self.controller_generation += 1
         self.controller_connected = False
         self.controller_reason = reason
+        self.sim.controller.reset_assist()
+        self.sim.rc_physical.assist = 0
         self.sim.rc_physical.centre_sticks()
         self.sim.rc_physical.rc_lock = 1
         self.sim.rc_physical.photo = self.sim.rc_physical.record = 0
@@ -120,7 +122,7 @@ class SimHost:
                     self.sim.input_latched = False
                 else:
                     values["rc_lock"] = 1
-            self.sim.apply_viewer_rc(values)
+            self.sim.apply_viewer_rc(values, partial=True)
             if not self.sim.remote_control:
                 # Preserve short press/release pairs coalesced in one USB read.
                 self.sim._buttons(self.sim.rc_physical)
@@ -425,7 +427,10 @@ class SimHost:
             values = msg.get("rc", {})
             if not isinstance(values, dict):
                 raise ValueError("rc must be an object")
-            if any(not isinstance(v, (int, float)) or not np.isfinite(v) for v in values.values()):
+            if "profile" in values and not isinstance(values["profile"], str):
+                raise ValueError("RC profile must be a string")
+            if any(not isinstance(v, (int, float)) or not np.isfinite(v)
+                   for k, v in values.items() if k != "profile"):
                 raise ValueError("RC values must be finite numbers")
             bridge = self.bridges.get((room.id, player.id)) if player else None
             if bridge and not controller_bridge:
@@ -458,7 +463,12 @@ class SimHost:
                     sim.input_latched = False
                 else:
                     values["rc_lock"] = 1
-            sim.apply_viewer_rc(values)
+            # Assistance metadata is packet-scoped, not a button edge.
+            # Keep it even when unchanged buttons were removed above.
+            for key in ("assist", "profile"):
+                if key in msg.get("rc", {}):
+                    values[key] = msg["rc"][key]
+            sim.apply_viewer_rc(values, partial=controller_bridge)
             if not sim.remote_control:
                 # Preserve short camera button edges when several network packets
                 # arrive between physics ticks, just as the local USB reader does.

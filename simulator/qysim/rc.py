@@ -54,6 +54,8 @@ class RCState:
     right_lr: int = 1500
     left_wave: int = 1500
     right_wave: int = 1500
+    assist: int = 0
+    profile: str = "normal"
     rc_lock: int = 1           # 1 = motors locked, 0 = unlocked
     keep_depth: int = 0
     record: int = 0
