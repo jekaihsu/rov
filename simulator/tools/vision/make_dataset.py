@@ -1,5 +1,6 @@
 """Capture clean onboard RGB and sampled visibility annotations from a running viewer."""
 import argparse
+import base64
 import json
 import random
 from pathlib import Path
@@ -46,6 +47,7 @@ def main():
     parser.add_argument("--url", default="http://127.0.0.1:8080/?play=1&nointro&vision&cam=onboard")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--frames", type=int, default=100)
+    parser.add_argument("--trajectory", type=Path, help="JSON list of Three.js position/quaternion camera poses")
     parser.add_argument("--seed", type=int, default=13)
     args = parser.parse_args()
     if args.frames < 2:
@@ -54,6 +56,7 @@ def main():
     rng = random.Random(args.seed)
     classes = json.loads(Path(__file__).with_name("classes.json").read_text())
     records = []
+    trajectory = json.loads(args.trajectory.read_text()) if args.trajectory else None
     args.output.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
         browser = p.chromium.launch(executable_path=which("chromium") or which("google-chrome"),
@@ -65,18 +68,23 @@ def main():
         page.evaluate("window.rovVision.enabled = true")
         for i in range(args.frames):
             page.wait_for_timeout(300)
-            truth = page.evaluate("window.rovVision.capture()")
+            options = {"visibility": rng.uniform(4, 20), "silt": rng.uniform(0, .6),
+                       "light": rng.uniform(.2, 1.5), "depthOffset": rng.uniform(-.5, .5),
+                       "noise": rng.uniform(0, 16), "seed": args.seed + i}
+            current = {"surface_kn": rng.uniform(0, 2), "mid_kn": rng.uniform(0, 2),
+                       "bottom_kn": rng.uniform(0, 1), "surface_dir": rng.uniform(0, 360)}
+            page.evaluate("current => window.rovVision.setCurrent(current)", current)
+            options["current"] = current
+            if trajectory:
+                options["pose"] = trajectory[i % len(trajectory)]
+            capture = page.evaluate("options => window.rovVision.capture(options)", options)
             split = "val" if i % 5 == 0 else "train"
             file = f"images/{split}/{i:06d}.png"
             path = args.output / file
             path.parent.mkdir(parents=True, exist_ok=True)
-            canvas = page.locator("#vp canvas").first
-            if not canvas.count():
-                raise RuntimeError("viewer canvas unavailable")
-            canvas.screenshot(path=str(path))
-            size = canvas.bounding_box()
-            records.append({"file": file, "split": split, "width": int(size["width"]),
-                            "height": int(size["height"]), "truth": truth, "seed": args.seed})
+            path.write_bytes(base64.b64decode(capture["image"].split(",", 1)[1]))
+            records.append({"file": file, "split": split, "width": capture["width"],
+                            "height": capture["height"], "truth": capture["truth"], "seed": args.seed, "randomization": options})
             # Seeded control commands generate a short random flight using normal keyboard controls.
             page.keyboard.down(rng.choice(["w", "a", "s", "d"]))
             page.wait_for_timeout(100)

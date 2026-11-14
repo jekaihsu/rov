@@ -39,23 +39,29 @@ with sync_playwright() as p:
         }
         if(Math.abs(missed/10000-.3)>.02 || Math.abs(falsePositives/10000-.2)>.02)
             throw Error('oracle distribution');
-        // Controlled known geometry placed in the live camera for screenshot evidence.
+        // Show a controlled visible fixture using the same renderer and production overlay.
         const viewer=window.__viewer;
-        mesh.position.copy(viewer.camera.position);
-        mesh.position.add(viewer.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(3));
-        mesh.material.color.set('#c09060');
-        viewer.scene.add(mesh);
-        const live = inspectObservation({...context,scene:viewer.scene,camera:viewer.camera});
-        window.rovVision.enabled=false;
-        return {error,missRate:missed/10000,falsePositiveRate:falsePositives/10000,live};
+        window.__skipRender=true;
+        const rendererCanvas=document.querySelector('#vp canvas');
+        const testRenderer = new THREE.WebGLRenderer({canvas:document.createElement('canvas')});
+        testRenderer.setSize(rendererCanvas.width,rendererCanvas.height);
+        const light=new THREE.AmbientLight(0xffffff,1);
+        scene.add(light);
+        testRenderer.render(scene,camera);
+        window.rovVision.update=()=>{};
+        window.rovVision.overlay.width=1600;
+        window.rovVision.overlay.height=900;
+        const ctx=window.rovVision.overlay.getContext('2d');
+        ctx.drawImage(testRenderer.domElement,0,0,1600,900);
+        window.__fixtureTruth=truth;
+        return {error,missRate:missed/10000,falsePositiveRate:falsePositives/10000};
     }""")
     page.screenshot(path=str(out / "before.png"))
-    page.evaluate("""async truth => {
+    page.evaluate("""async () => {
         const {drawDetections} = await import('./vision/overlay.js');
         const canvas=window.rovVision.overlay;
-        window.__drawEvidence=setInterval(()=>drawDetections(canvas.getContext('2d'),
-            truth.map(t=>({...t,cls:t.category,score:1})),canvas.width,canvas.height),10);
-    }""", result.pop("live"))
+        drawDetections(canvas.getContext('2d'),window.__fixtureTruth.map(t=>({...t,cls:t.category,score:1})),1600,900);
+    }""")
     page.wait_for_timeout(200)
     page.screenshot(path=str(out / "after.png"))
     page.wait_for_timeout(1000)

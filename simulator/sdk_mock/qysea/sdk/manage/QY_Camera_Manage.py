@@ -182,6 +182,10 @@ class QYCameraMediaStreamManage:
         self._last = 0.0
         self._fps = max(1.0, float(os.environ.get("QYSIM_CAMERA_FPS", "15")))
 
+    def get_sim_detections(self):
+        """Simulator-only extension: viewer reports, not native SDK or frame-aligned BGR detections."""
+        return get_client().request({"type": "vision_results"})
+
     def capture_video(self, camera_flag="MAIN_CAMERA", stream_flag="SUB_STREAM"):
         if camera_flag not in CAMERA_FLAGS:
             return "please pass in the correct camera type"

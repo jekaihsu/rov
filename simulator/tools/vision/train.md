@@ -13,7 +13,7 @@ python simulator/tools/vision/make_dataset.py --output simulator/output/vision -
 Captures use normalized top-left xywh boxes, YOLO center xywh text, and COCO pixel xywh.
 Occlusion is a ray sample estimate, not a pixel mask. Bounding boxes cover projected geometry,
 including occluded portions. Categories currently follow the existing observation targets;
-fish schools are grouped targets. Cable and crack instances are not yet registered.
+fish schools are grouped targets. Cable is registered as a geometry target; crack markers are not yet registered.
 Train/validation is every fifth frame: adjacent frames can leak similar scenes; collect separate
 scenario/seed runs for a defensible evaluation before using model metrics.
 
@@ -38,7 +38,20 @@ Worker tries WebGPU then WASM; contract is RGB float NCHW, square resize, [N,6] 
 `python simulator/tools/vision/remote_server.py`. websockets is BSD-3-Clause.
 No Ultralytics code, architecture, or weights are used.
 
-Remaining acceptance work: UI detector selection and inference scheduling/interpolation for ONNX/remote,
-automatic integrated-GPU fallback, GPU performance budget, synchronized render capture, full domain
-randomization and recorded trajectories, minimap marking, optional mission gating and SDK result transport.
-The current dataset tool captures a short keyboard-driven flight; it does not yet provide those guarantees.
+Configure alternative detectors through `window.rovVision.configure({mode:'onnx', ...config})`
+or `{mode:'remote',url:'ws://127.0.0.1:8766'}`. Inference defaults to 10 Hz, smooths matched entity
+boxes each render, reduces frequency when slow and falls back to oracle above 500 ms or on failure.
+This heuristic is not a measured GPU performance guarantee. M shares detected entities through the
+existing expedition marker protocol (server visibility/discovery requirements still apply).
+
+SDK extension `get_sim_detections()` requires an active reporting viewer; reports expire after one second.
+These are client reports and are not aligned to the SDK's separate synthetic camera frames.
+Dataset capture renders and extracts labels in the same JS call. Seeded visibility, silt, light and camera
+depth perturbations are recorded; `--trajectory` accepts Three.js position/quaternion poses.
+Remaining acceptance work: full detector configuration UI, per-fish/crack registration, broader projection/occlusion fixtures,
+real GPU inference/export validation and the <=15% FPS performance measurement.
+
+`?vision-confirm-photo` enables a client-only detection-before-photo guard, otherwise existing
+photo rules are unchanged. This does not alter authoritative expedition scoring. Toggle vision
+on and use the onboard camera when this option is enabled. It is a simulator workflow assumption,
+not a measured capability of any real vehicle. Detector settings can also be supplied via the JS API.

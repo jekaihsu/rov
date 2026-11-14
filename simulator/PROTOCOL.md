@@ -234,3 +234,12 @@ existing shared mission engine. All pilots receive the same narrative state. Sea
 retain the room instance. `course:true` runs the same script without dialogue pauses.
 A viewer stores local progress in its existing `rov.*` preferences and exports results as JSON.
 Campaign files reserve nullable `voice` on dialogue nodes for later audio assets.
+
+### Optional simulator vision extension
+
+Viewer message `{"type":"vision_results","detections":[{"cls":"coral","score":1,"box":[0.1,0.2,0.3,0.4]}]}`
+reports normalized top-left xywh boxes. Reports are untrusted client assistance, never scoring authority.
+RPC `{"type":"vision_results"}` reads the primary simulator vehicle's latest report with `age_s`;
+after one second, returns `{"available":false,"detections":[]}`. Requires an active reporting viewer.
+This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
+Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.

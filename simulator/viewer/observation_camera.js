@@ -62,6 +62,22 @@ function samples(part,camera){
   return {area:(right-left)*(top-bottom)/4,points,bounds:[(left+1)/2,(1-top)/2,(right-left)/2,(top-bottom)/2],center:new THREE.Vector2((left+right)/2,(bottom+top)/2)};
 }
 
+// Normalized top-left xywh bounds shared by all-target annotations.
+function annotationBox(projected) {
+  let left = 1;
+  let top = 1;
+  let right = 0;
+  let bottom = 0;
+  for (const {sample} of projected) {
+    const [x, y, width, height] = sample.bounds;
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    right = Math.max(right, x + width);
+    bottom = Math.max(bottom, y + height);
+  }
+  return [left, top, right - left, bottom - top];
+}
+
 /**
  * targets: optional engineering [{entity_id,category,mesh,instanceIds?}]. A mesh
  * may be a Group of physical parts. Engineering targets take priority when
@@ -146,11 +162,11 @@ export function inspectObservation({scene,camera,environment,state={},world={},c
       const ok=enough&&coverage>=minCoverage;
       reports.push({...base,ok,entity_id:target.entity_id,category:target.category,visible:enough,coverage,
         distance_m:distance,visible_samples:hits,sample_count:attempts,centerDistance,priority:target.priority,
-        box:projected.reduce((b,x)=>{const [l,t,w,h]=x.sample.bounds;return [Math.min(b[0],l),Math.min(b[1],t),Math.max(b[2],l+w),Math.max(b[3],t+h)];},[1,1,0,0]),occlusion:attempts?1-hits/attempts:1,
+box:annotationBox(projected),occlusion:attempts?1-hits/attempts:1,
         reason:ok?'已在機載畫面中清楚辨識目標。':!inRange?'目標超出目前水下能見度，請靠近再拍。':!enough?'目標被遮擋或未清楚入鏡，請調整位置。':'目標在畫面中太小，請靠近並對準後再拍。'});
       if(ok&&!all)break;
     }
-    if(all)return reports.filter(r=>r.visible).map(r=>({...r,box:[r.box[0],r.box[1],r.box[2]-r.box[0],r.box[3]-r.box[1]]}));
+    if(all)return reports.filter(report=>report.visible);
     reports.sort((a,b)=>Number(b.ok)-Number(a.ok)||a.priority-b.priority||a.centerDistance-b.centerDistance||a.distance_m-b.distance_m);
     const best=reports[0];
     if(!best)return {...base,reason:'畫面中沒有可辨識的觀察目標，請對準生物或工程目標。'};
