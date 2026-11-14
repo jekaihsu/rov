@@ -1,7 +1,12 @@
 """Verify full-frame HUD geometry, peek lifecycle and the preserved engineering drawer."""
+import argparse
 from pathlib import Path
 from shutil import which
 from playwright.sync_api import sync_playwright
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--screenshots', action='store_true')
+args = parser.parse_args()
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 't04'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -20,7 +25,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(300)
         bounds = page.locator('#vp').bounding_box()
         assert bounds == {'x': 0, 'y': 0, 'width': width, 'height': height}, bounds
-        page.screenshot(path=str(OUT / f'{width}x{height}.png'), timeout=120000)
+        if args.screenshots:
+            page.screenshot(path=str(OUT / f'{width}x{height}.png'), timeout=120000)
     page.set_viewport_size({'width': 1280, 'height': 720})
     # Send a tap in one task; software WebGL stalls otherwise turn CDP key presses into holds.
     page.evaluate('''()=>{
@@ -35,9 +41,21 @@ with sync_playwright() as p:
     assert page.locator('#flightPeek').evaluate('(el)=>el.classList.contains("visible")')
     page.keyboard.up('Digit2')
     page.wait_for_function('!document.querySelector("#flightPeek").classList.contains("visible")')
+    mapping = page.evaluate('''async()=>{
+      const {readHUDButtons} = await import('/hud/flight_hud.js');
+      Object.defineProperty(navigator, 'getGamepads', {configurable:true, value:()=>[{
+        mapping:'standard', buttons:Array.from({length:16}, (_, i)=>({pressed:i===12||i===15}))
+      }]});
+      try { return readHUDButtons(); } finally { delete navigator.getGamepads; }
+    }''')
+    assert mapping == [True, False, True, False], mapping
+    page.click('#flightHide')
+    assert page.locator('#flightDepth').is_hidden()
+    page.click('#flightHide')
     page.keyboard.press('Tab')
     assert page.locator('#engineering').is_visible()
-    page.screenshot(path=str(OUT / 'drawer.png'), timeout=120000)
+    if args.screenshots:
+        page.screenshot(path=str(OUT / 'drawer.png'), timeout=120000)
     page.reload()
     page.wait_for_selector('#engineering')
     page.keyboard.press('Tab')

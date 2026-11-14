@@ -10,7 +10,8 @@ const STRINGS = {
   keys: 'WASD / 方向鍵 飛行\nSpace 鎖定 · H 定深 · L 燈光\n1–4 速覽 · Tab 工程',
   cable: '纜線', battery: '電量',
   danger: '危險：纜線斷裂', warn: '注意：纜線張力', near: '注意：接近海床',
-  lowBattery: '提示：電量偏低', forward: '前方估距', controller: 'USB 控制器已連線',
+  obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
+  forward: '前方估距', controller: 'USB 控制器已連線',
   assist: ['手動', '速度輔助', '定點輔助'],
 };
 const $ = id => document.getElementById(id);
@@ -56,7 +57,8 @@ function down(index) {
   held = true;
   $('flightPeek').classList.add('visible');
 }
-function up() {
+function up(index) {
+  if (index !== active) return;
   if (held && performance.now() - pressedAt > 250) active = -1;
   held = false;
 }
@@ -120,7 +122,8 @@ function initialize() {
     if (index >= 0 && !event.repeat) down(index);
   });
   document.addEventListener('keyup', function keyUp(event) {
-    if (['Digit1', 'Digit2', 'Digit3', 'Digit4'].includes(event.code)) up();
+    const index = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(event.code);
+    if (index >= 0) up(index);
   });
   window.addEventListener('blur', function blur() {
     held = false;
@@ -230,19 +233,22 @@ export function updateFlightHUD(s, w, dt) {
   $('flightBattery').textContent = smooth('battery', s.battery ?? 0, dt).toFixed(0);
   $('flightAssist').hidden = !s.assist;
   if (s.assist) $('flightAssist').textContent = `${STRINGS.assist[s.assist.level]} · ${s.assist.profile}`;
-  const warning = s.tether?.broken ? STRINGS.danger : s.tether?.warn ? STRINGS.warn
+  const nearDanger = alt != null && alt < .25 || range != null && range < .25;
+  const danger = !!s.tether?.broken || nearDanger;
+  const warning = s.tether?.broken ? STRINGS.danger : nearDanger ? STRINGS.obstacleDanger
+    : s.tether?.warn ? STRINGS.warn
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
       : s.battery < 20 ? STRINGS.lowBattery : '';
   $('flightWarning').textContent = warning;
-  $('flightWarning').dataset.level = s.tether?.broken ? 'danger'
+  $('flightWarning').dataset.level = danger ? 'danger'
     : warning === STRINGS.lowBattery ? 'info' : 'warning';
-  document.body.classList.toggle('hud-danger', !!s.tether?.broken);
+  document.body.classList.toggle('hud-danger', danger);
   if (warning && warning !== lastWarning) {
     active = 1;
     deadline = performance.now() + 3000;
     const pad = Array.from(navigator.getGamepads?.() || []).find(p => p?.vibrationActuator);
     pad?.vibrationActuator?.playEffect('dual-rumble', {
-      duration: 180, strongMagnitude: s.tether?.broken ? .8 : .2, weakMagnitude: .2,
+      duration: 180, strongMagnitude: danger ? .8 : .2, weakMagnitude: .2,
     }).catch(function ignoreUnsupportedRumble() {});
   }
   lastWarning = warning;
@@ -263,7 +269,7 @@ export function updateFlightHUD(s, w, dt) {
   const buttons = readHUDButtons();
   buttons.forEach(function checkButton(pressed, index) {
     if (pressed && !previous[index]) down(index);
-    if (!pressed && previous[index]) up();
+    if (!pressed && previous[index]) up(index);
   });
   previous = buttons;
   if (buttons.some(Boolean)) document.body.classList.remove('hud-touch');

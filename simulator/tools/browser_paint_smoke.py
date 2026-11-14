@@ -91,6 +91,7 @@ with sync_playwright() as p:
         assert results['shared_first_mark'] == peer.evaluate('window.__viewer.S.paint_marks[0]')
         print('Real terrain F paint and peer rendering passed', flush=True)
 
+        page.click('#flightDrawer')
         canvas=page.locator('.viewport canvas').first
         box=canvas.bounding_box()
         page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
@@ -149,6 +150,7 @@ with sync_playwright() as p:
           }finally{module.dispose();}
         }""")
 
+        page.click('#flightDrawer')
         page.locator('details').filter(has=page.locator('#recordFlight')).locator('summary').click()
         page.click('#recordFlight')
         page.click('#btnPause')
