@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import launch, host, http_port, ws_port
+from _menu import launch_from_menu, open_main
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--http-port', type=int, default=http_port(8095))
@@ -45,13 +46,13 @@ with sync_playwright() as p:
     main=page()
     main.goto(f'{BASE}?ws={WS}&room={room}&model=falcon&scenario=coral_reef&mission=expedition',wait_until='domcontentloaded')
     main.wait_for_function('window.__menu?.ready',timeout=90000)
-    assert main.locator('#menuMode').input_value()=='expedition'
+    assert main.evaluate('window.__menu.mission')=='expedition'
+    open_main(main)
     main.click('#menuCollection')
     main.wait_for_selector('.collection-panel, .collection-dialog, [role="dialog"]')
     main.screenshot(path=str(OUT/'menu-collection.png'))
     main.keyboard.press('Escape')
-    main.locator('#menuIntro').evaluate('(el)=>el.checked=false')
-    main.locator('#startDive').click()
+    launch_from_menu(main, mode='expedition', site='coral_reef')
     wait_state(main)
     main.click('#flightDrawer')
     main.wait_for_selector('.expedition-panel:not([hidden])')

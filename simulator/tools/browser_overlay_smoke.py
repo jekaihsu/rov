@@ -13,6 +13,7 @@ import time
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
+from _menu import to_briefing, wait_screen
 
 BASE_URL = http_base()
 WS_URL = ws_base()
@@ -197,19 +198,33 @@ def campaign(browser, size):
     page.context.close()
 
 
+def centred(page, selector):
+    """Scroll the control to the middle of its screen and wait out the screen's fade-in."""
+    page.evaluate('s => document.querySelector(s).scrollIntoView({block: "center"})', selector)
+    page.wait_for_function('s => window.__overlay.visible(s)', arg=selector, timeout=timeout(10000))
+
+
 def menu(browser, size):
+    """Every step of the launch flow keeps its controls reachable above the 3D stage and the footer."""
     label = f'menu {size[0]}x{size[1]}'
     page, errors = new_page(browser, size)
     page.goto(f'{BASE_URL}/?ws={WS_URL}&quality=performance')
     page.wait_for_function('window.__menu?.ready', timeout=timeout(120000))
-    reachable(page, label, ['#startDive'])
     layers(page, label, [('#launchMenu', '--z-menu')])
-    # Centre it: the nearest edge would be underneath the fixed launch footer.
-    page.evaluate('document.querySelector("#menuCollection").scrollIntoView({block: "center"})')
-    reachable(page, label, ['#menuCollection'])
+    centred(page, '#titleStart')
+    reachable(page, label + ' title', ['#titleStart'])
+    page.click('#titleStart')
+    wait_screen(page, 'main')
+    for selector in ['#entry-dive', '#entry-settings', '#menuCollection']:
+        centred(page, selector)
+        reachable(page, label + ' main', [selector])
     page.locator('#menuCollection').click()
     page.wait_for_selector('dialog.collection-panel[open]', timeout=timeout(30000))
     reachable(page, label + ' collection', ['.collection-close'])
+    page.locator('.collection-close').click()
+    to_briefing(page, mode='free_explore', site='coral_reef')
+    centred(page, '#startDive')
+    reachable(page, label + ' briefing', ['#startDive'])
     check(not errors, f'{label}: page errors {errors}')
     page.context.close()
 

@@ -126,6 +126,20 @@ class TestRoom(unittest.TestCase):
         self.assertEqual(session["room_id"], "other")
         self.assertIsNot(self.host.rooms["other"].primary.world, self.room.primary.world)
 
+    def test_room_query_is_read_only(self):
+        info = self.host.room_info({"room_id": "training"})
+        self.assertTrue(info["exists"])
+        self.assertEqual(info["capacity"], 3)
+        self.assertEqual([p["name"] for p in info["players"]], ["Alpha", "Bravo"])
+        self.assertEqual([p["host"] for p in info["players"]], [True, False])
+        self.assertNotIn("token", json.dumps(info))
+        self.assertNotIn(self.a.token, json.dumps(info))
+        missing = self.host.room_info({"room_id": "nobody_here"})
+        self.assertEqual((missing["exists"], missing["players"]), (False, []))
+        self.assertNotIn("nobody_here", self.host.rooms)
+        with self.assertRaises(ValueError):
+            self.host.room_info({"room_id": "bad room"})
+
 
 class TestIdleGate(unittest.TestCase):
     def test_empty_default_sleeps_but_sdk_and_pending_work_keep_it_running(self):

@@ -191,3 +191,40 @@ test("displayed hints come from the table and cover the previously undocumented 
   const hud = await readFile(new URL("../viewer/hud/flight_hud.js", import.meta.url), "utf8");
   assert.match(hud, /hintText\(/);
 });
+
+test("Start shares light (tap) and the pause menu (hold); Esc opens the pause menu", () => {
+  assert.equal(bindingRow("light").gesture, "tap");
+  assert.equal(bindingRow("pause").gesture, "hold");
+  assert.equal(bindingRow("pause").pad, bindingRow("light").pad);
+  assert.equal(keyRow("Escape", new Set(["flight"])).action, "pause");
+  assert.equal(keyRow("Escape", new Set(["flight", "menu"])).action, "back");
+  const resolver = createResolver();
+  const bindings = defaultPadBindings();
+  const flight = new Set(["flight"]);
+  resolver.resolve(bindings, snapshot([9]), flight, 0);
+  assert.equal(resolver.resolve(bindings, snapshot([]), flight, 100).light, 1, "a short press is the light");
+  resolver.resolve(bindings, snapshot([9]), flight, 1000);
+  const held = resolver.resolve(bindings, snapshot([9]), flight, 1000 + HOLD_MS);
+  assert.equal(held.pause, 1);
+  assert.equal(resolver.resolve(bindings, snapshot([]), flight, 1010 + HOLD_MS).light, 0, "a long press is not");
+});
+
+test("the menu context navigates with pad, stick and keys and owns them over flight", () => {
+  const menu = BINDINGS.filter((row) => row.context === "menu").map((row) => row.action);
+  for (const action of ["menuUp", "menuDown", "menuLeft", "menuRight", "menuStick", "menuStickX", "menuRotate",
+    "accept", "back", "tabPrevious", "tabNext"]) {
+    assert.ok(menu.includes(action), action);
+  }
+  assert.equal(keyRow("ArrowUp", new Set(["flight", "menu"])).action, "menuUp");
+  assert.equal(keyRow("ArrowUp", new Set(["flight"])).action, "right_ud");
+  assert.equal(keyRow("KeyE", new Set(["flight", "menu"])).action, "tabNext");
+  assert.equal("menuRotate" in defaultPadBindings(), false, "menu rows are not rebindable");
+  const resolver = createResolver();
+  const every = Object.fromEntries(BINDINGS.filter((row) => row.pad).map((row) => [row.action, row.pad]));
+  const values = resolver.resolve(every, snapshot([5], [0.8, 0, -0.6, 0]), new Set(["flight", "menu"]), 0);
+  assert.equal(values.menuStickX, 0.8);
+  assert.equal(values.menuRotate, -0.6);
+  assert.equal(values.tabNext, 1);
+  assert.equal(values.left_lr, 0, "the menu owns the left stick");
+  assert.equal(values.right_wave, 0, "and RB");
+});

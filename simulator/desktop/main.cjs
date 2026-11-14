@@ -165,7 +165,7 @@ app.whenReady().then(async()=>{
           }
         }
         if(process.env.ROV_DESKTOP_SMOKE_EXPEDITION==='1'){
-          await window.webContents.executeJavaScript(`(()=>{const mode=document.getElementById('menuMode'),scene=document.getElementById('menuScene');if(!mode||!scene)throw Error('探索模式選單不存在');mode.value='expedition';mode.dispatchEvent(new Event('change',{bubbles:true}));scene.value='coral_reef';scene.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+          await window.webContents.executeJavaScript(`(()=>{if(!window.__menu?.configure)throw Error('探索模式選單不存在');window.__menu.configure({mission:'expedition',scenario:'coral_reef'});})()`);
           for(let i=0;i<60;i++){if(await window.webContents.executeJavaScript(`!!window.__menu?.ready&&window.__menu.scene==='coral_reef'`))break;await new Promise(resolve=>setTimeout(resolve,1000));}
         }
         await window.webContents.executeJavaScript(`new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);

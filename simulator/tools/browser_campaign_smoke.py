@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import launch, http_base, ws_base
+from _menu import open_main, set_intro, wait_screen
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'campaign-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -21,8 +22,12 @@ def run():
         page.goto(f'{http_base(8092)}/?nointro&mission=campaign&control=UAV_CHN'
                   f'&room=campaign{time.time_ns()}&quality=performance&model=bluerov2_heavy&ws={ws_base(8792)}')
         page.wait_for_function('window.__menu?.ready', timeout=90000)
-        page.locator('details').filter(has=page.locator('#menuIntro')).locator('summary').click()
-        page.uncheck('#menuIntro')
+        open_main(page)
+        page.click('#entry-story')
+        page.click('[data-chapter="prologue"]')
+        page.click('#hangarNext')
+        wait_screen(page, 'briefing')
+        set_intro(page, False)
         page.click('#startDive')
         page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=90000)
         page.wait_for_timeout(1500)

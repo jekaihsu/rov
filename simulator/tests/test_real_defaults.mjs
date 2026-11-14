@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   CONTROL_LAYOUT_KEY,
+  CONTROL_LAYOUTS,
   DEFAULT_CONTROL_LAYOUT,
   controlLayout,
   rememberControlLayout,
@@ -24,10 +25,13 @@ test("menu, drawer and simulator share one default control layout", async () => 
   assert.equal(/self\.operation_mode = "(\w+)"/.exec(engine)[1], DEFAULT_CONTROL_LAYOUT);
   const html = await readFile(new URL("../viewer/index.html", import.meta.url), "utf8");
   assert.equal(/<select id="opMode">\s*<option>(\w+)<\/option>/.exec(html)[1], DEFAULT_CONTROL_LAYOUT);
-  const menu = await readFile(new URL("../viewer/main_menu.js", import.meta.url), "utf8");
-  assert.match(menu, /const wanted = CONTROL_LAYOUTS\.includes\(requested\) \? requested : controlLayout\(\);/);
-  assert.equal(/<select id="menuControl"><option value="(\w+)"/.exec(menu)[1], DEFAULT_CONTROL_LAYOUT);
+  const menu = await readFile(new URL("../viewer/menu/preferences.js", import.meta.url), "utf8");
+  assert.match(menu, /control: CONTROL_LAYOUTS\.includes\(requestedControl\) \? requestedControl : controlLayout\(\),/);
+  assert.match(menu, /rememberControlLayout\(choice\.control\)/);
   assert.equal(menu.includes("settings.control"), false, "the menu must not keep its own copy");
+  const menuSettings = await readFile(new URL("../viewer/menu/launch_settings.js", import.meta.url), "utf8");
+  assert.match(menuSettings, /for \(const value of CONTROL_LAYOUTS\) layout\.append/);
+  assert.equal(CONTROL_LAYOUTS[0], DEFAULT_CONTROL_LAYOUT, "the menu lists the default first");
   const app = await readFile(new URL("../viewer/app.js", import.meta.url), "utf8");
   assert.match(app, /let launchControl=params\.get\('control'\)\|\|storedControlLayout\(\);/);
   assert.match(app, /rememberControlLayout\(\$\('opMode'\)\.value\)/);
