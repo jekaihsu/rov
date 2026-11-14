@@ -4,7 +4,9 @@
 
 **範圍**：`docs/reference/public.md`（研究產出）、新增 `simulator/viewer/onboard/`（機載畫面模式）、`simulator/viewer/hud/` 的最小掛載。不改物理、不改選單。
 
-**第一部分：研究（先交，獨立一個 PR：T14a）**
+**第一部分：研究（已完成，見 `docs/reference/real-rov-research.md`；不需再做，直接做第二部分）**
+
+以下為當初的研究範圍，僅供對照：
 
 用公開資料（廠商公開的作業影片與說明書、開源地面站軟體文件、離岸檢查與科研潛航的公開影像、操作員訓練教材）整理成 `docs/reference/public.md`。每一條寫「觀察到什麼 → 模擬器現在差在哪 → 建議怎麼做」，附來源連結。不得把他人圖片或影片存進儲存庫。至少涵蓋：
 
