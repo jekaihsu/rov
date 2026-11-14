@@ -1,3 +1,4 @@
+import './procedure/fidelity_item.js';
 import {installAudio, installAudioSettings} from './audio/engine.js';
 import * as THREE from 'three';
 import {CAMPAIGN_MENU_STRINGS} from './story/campaign.js';
