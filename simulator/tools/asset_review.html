@@ -1,0 +1,180 @@
+<!doctype html>
+<!--
+Fixed-camera review renders for the deck support assets (work boat, deck crew, operator station).
+Served by tools/render_support_assets.py: this page is mapped to /review.html and the viewer directory under
+review (current tree or an older checkout) to /, so before and after renders use the same cameras and lights.
+  /review.html?asset=boat&view=quarter|side|deck|below
+  /review.html?asset=crew&view=quarter|side|close
+  /review.html?asset=station&view=shoulder|front
+-->
+<html lang="en"><head><meta charset="utf-8"><title>asset review</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}#pip{width:1600px;height:900px}</style>
+<script type="importmap">
+{"imports": {"three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/"}}
+</script>
+</head><body><div id="pip"></div>
+<script type="module">
+import * as THREE from 'three';
+import { DeployIntro } from './deploy_intro.js';
+import { Humanoid } from './humanoid.js';
+import { PilotPiP } from './pilot_pip.js';
+import { createVehicleModel } from './vehicle_models.js';
+
+const W = 1600;
+const H = 900;
+const query = new URLSearchParams(location.search);
+const asset = query.get('asset') || 'boat';
+const view = query.get('view') || 'quarter';
+
+function makeRenderer() {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(W, H);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+  return renderer;
+}
+
+function addDaylight(scene, target) {
+  scene.add(new THREE.HemisphereLight(0xcfe2f2, 0x3a4248, 1.1));
+  const sun = new THREE.DirectionalLight(0xfff2dc, 2.6);
+  sun.position.copy(target).add(new THREE.Vector3(8, 14, 10));
+  sun.target.position.copy(target);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -9;
+  sun.shadow.camera.right = 9;
+  sun.shadow.camera.top = 9;
+  sun.shadow.camera.bottom = -9;
+  sun.shadow.bias = -0.0004;
+  scene.add(sun, sun.target);
+  const fill = new THREE.DirectionalLight(0xbcd4ff, 0.6);
+  fill.position.copy(target).add(new THREE.Vector3(-10, 4, -6));
+  scene.add(fill);
+}
+
+const BOAT_VIEWS = {
+  quarter: { pos: [8.5, 5.2, -10.5], look: [0, 0.9, -1.2], water: true },
+  side: { pos: [-17, 1.0, 0.4], look: [0, 0.6, 0.4], water: false },
+  deck: { pos: [2.6, 2.7, -7.0], look: [-0.3, 0.9, -2.6], water: true },
+  below: { pos: [3.2, -3.4, -8.5], look: [0, -0.5, -1.0], water: false, under: true },
+};
+
+async function renderBoat() {
+  const renderer = makeRenderer();
+  const scene = new THREE.Scene();
+  const assets = await DeployIntro.loadAssets('models/');
+  const intro = new DeployIntro(scene, { spool: [-4, 0, 0], start: [0, 0, 3], seabed: 30, assets });
+  const rov = (await createVehicleModel('x1')).root;
+  scene.add(rov);
+  intro.play(rov, null, () => {});
+  for (let i = 0; i < 25; i++) intro.update(0.04);
+  const boat = intro.boat;
+  boat.rotation.x = 0;
+  boat.rotation.z = 0;
+  boat.position.y = 0;
+  boat.updateMatrixWorld(true);
+  const v = BOAT_VIEWS[view];
+  const camera = new THREE.PerspectiveCamera(v.under ? 60 : 38, W / H, 0.05, 2000);
+  camera.position.copy(boat.localToWorld(new THREE.Vector3(...v.pos)));
+  const look = boat.localToWorld(new THREE.Vector3(...v.look));
+  camera.lookAt(look);
+  addDaylight(scene, look);
+  boat.traverse((o) => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+    }
+  });
+  if (intro.water) {
+    intro.water.visible = v.water;
+    intro.sky.visible = !v.under;
+  }
+  if (v.under) {
+    scene.background = new THREE.Color(0x0d4a5c);
+    scene.fog = new THREE.FogExp2(0x0d4a5c, 0.035);
+    const scatter = new THREE.DirectionalLight(0x7fc3d4, 1.2);       // light scattered up from the water column
+    scatter.position.copy(look).add(new THREE.Vector3(2, -10, -3));
+    scatter.target.position.copy(look);
+    scene.add(scatter, scatter.target);
+    const surface = new THREE.Mesh(new THREE.PlaneGeometry(400, 400),
+      new THREE.MeshBasicMaterial({ color: 0x5fb6c8, side: THREE.DoubleSide, fog: true }));
+    surface.rotation.x = Math.PI / 2;
+    surface.position.y = 0.0;
+    scene.add(surface);
+  } else if (!v.water) {
+    scene.background = new THREE.Color(0x9fb4c0);
+  }
+  rov.visible = view !== 'side';
+  renderer.render(scene, camera);
+}
+
+const CREW_VIEWS = {
+  quarter: { pos: [1.9, 1.45, 3.1], look: [0, 0.95, 0] },
+  side: { pos: [3.6, 1.0, 0.0], look: [0, 0.92, 0] },
+  close: { pos: [0.75, 1.62, 1.25], look: [0.05, 1.42, 0] },
+};
+
+async function renderCrew() {
+  const renderer = makeRenderer();
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x8fa3ae);
+  const lib = await Humanoid.load('models/worker.glb');
+  const launcher = new Humanoid(lib, { shirt: 0x2b3f55, pants: 0x2a2f36, vest: 0xff6a13, helmet: 0xf4f4ef });
+  const tender = new Humanoid(lib, { shirt: 0x5b6770, pants: 0x30343a, vest: 0xffc21a, helmet: 0xf4f4ef, height: 1.7 });
+  launcher.root.position.set(-0.45, 0, 0);
+  tender.root.position.set(0.55, 0, -0.35);
+  tender.root.rotation.y = -0.5;
+  for (const h of [launcher, tender]) {
+    h.play('Idle');
+    scene.add(h.root);
+  }
+  for (let i = 0; i < 12; i++) {
+    launcher.update(0.05, {});
+    tender.update(0.05, {});
+  }
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x6d7479 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+  scene.traverse((o) => {
+    if (o.isMesh) o.castShadow = true;
+  });
+  const v = CREW_VIEWS[view];
+  const camera = new THREE.PerspectiveCamera(view === 'close' ? 30 : 34, W / H, 0.05, 100);
+  camera.position.set(...v.pos);
+  const look = new THREE.Vector3(...v.look);
+  camera.lookAt(look);
+  addDaylight(scene, look);
+  renderer.render(scene, camera);
+}
+
+async function renderStation() {
+  const lib = await Humanoid.load('models/worker.glb');
+  const mirror = document.createElement('canvas');
+  mirror.width = 480;
+  mirror.height = 270;
+  const ctx = mirror.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 270);
+  grad.addColorStop(0, '#2c7c8c');
+  grad.addColorStop(1, '#06222c');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 480, 270);
+  const pip = new PilotPiP(document.getElementById('pip'), { mirror, human: lib, width: W, height: H });
+  pip.renderer.setPixelRatio(1);
+  pip.renderer.setSize(W, H, false);
+  pip.t = view === 'front' ? 9.2 : 0.2;
+  const rc = { left_ud: 1500, left_lr: 1640, right_ud: 1700, right_lr: 1420, left_wave: 1500, right_wave: 1500 };
+  for (let i = 0; i < 6; i++) pip.update(0.04, rc);
+}
+
+const runners = { boat: renderBoat, crew: renderCrew, station: renderStation };
+runners[asset]().then(() => {
+  window.__done = true;
+}, (error) => {
+  window.__error = String(error && error.stack || error);
+});
+</script></body></html>
