@@ -53,6 +53,8 @@ app.whenReady().then(async()=>{
   }
   const workArea=screen.getPrimaryDisplay().workAreaSize;
   const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,preload:path.join(__dirname,'preload.cjs')}});
+  app.on('before-quit', () => { shuttingDown = true; });
+  window.on('closed', () => { shuttingDown = true; });
   require('./backend_lifecycle.cjs').watchBackend(app, window, backend, backendFailed);
   const origin = `http://127.0.0.1:${http}`;
   function trusted(event) {

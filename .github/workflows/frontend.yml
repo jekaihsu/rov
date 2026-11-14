@@ -38,6 +38,9 @@ jobs:
           set -e
           node --test simulator/tests/*.mjs
           node simulator/desktop/test_collection_store.cjs
+          node simulator/desktop/test_desktop.cjs
+          node simulator/desktop/test_steam.cjs
+          node simulator/desktop/test_backend_lifecycle.cjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

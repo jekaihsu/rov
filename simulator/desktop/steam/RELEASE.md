@@ -79,3 +79,29 @@ and dependency boundary are required before enabling Steam uploads. No upload is
 performed. SDK files are not intentionally added by the current PyInstaller recipe.
 Real Windows launches with/without Steam, achievement unlocks, CSP rendering,
 backend crash/retry, display behavior and artifact contents are all unverified.
+
+## Review follow-up after merging main
+
+The obsolete standalone input_guard.js was removed; preload executeInMainWorld is
+now the only implementation. T02 input preferences IPC remains available alongside
+Steam/display IPC. Intentional window closure and before-quit suppress backend
+failure dialogs, including readiness errors during shutdown. An unexpected backend
+exit with code zero is still a failure while a simulator window is active.
+
+Windows packaging is workflow_dispatch only, with timeout and cancel-in-progress
+concurrency. Main's split backend/frontend/browser workflows are retained. This
+month's CI budget is exhausted; validation is local and no new CI success is claimed.
+
+`ELECTRON_ZIP_DIR=/path/to/downloaded/zips node simulator/desktop/audit_package.cjs`
+compares old and current production packaging filters on Linux. It writes full
+before/after file lists to a temporary directory. The audit deliberately omits the
+Python backend extraResource and does not launch the application. It checks release
+documents/templates are absent while the achievement catalog and native Steam
+bindings remain. It does not certify Windows packaging or runtime behavior.
+
+AGENTS.md and real-rov-research.md were reread. This change does not alter thrust,
+physics, camera modes, DVL requirements or training assists. The existing desktop
+focus/Shift+Tab pause-and-click-to-resume behavior is a desktop safety assumption,
+not a measured real-controller behavior; own/ measurement data is absent. Steam
+Input mappings and Deck display defaults remain platform proposals, not verified
+real ROV equivalents. No substitute vehicle data is introduced as X1 fact.

@@ -6,7 +6,8 @@ function ignore(filename) {
   if (/^\/node_modules\//.test(filename)) {
     return !/^\/node_modules\/steamworks\.js(\/|$)/.test(filename);
   }
-  return /\.py$/.test(filename) || /^\/(test_.*\.cjs|audit_.*\.cjs|vendor\.cjs|refresh_portable\.cjs)$/.test(filename) ||
+  const tooling = /^\/(test_.*\.cjs|audit_.*\.cjs|vendor\.cjs|refresh_portable\.cjs)$/;
+  return /\.py$/.test(filename) || tooling.test(filename) ||
     /\.(md|vdf|example)$/.test(filename);
 }
 module.exports = {

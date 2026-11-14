@@ -12,12 +12,13 @@ console.log('Audit output:', output);
 const current = require(root + '/forge.config.cjs').packagerConfig;
 async function run() {
   for (const variant of ['before', 'after']) {
-    const ignore = variant === 'before' ? [/^\/backend(?:\/|$)/, /^\/out(?:\/|$)/, /\.py$/, /vendor\.cjs$/] : current.ignore;
+    const oldIgnore = [/^\/backend(?:\/|$)/, /^\/out(?:\/|$)/, /\.py$/, /vendor\.cjs$/];
+    const ignore = variant === 'before' ? oldIgnore : current.ignore;
     const folders = await packager({...current, dir: root, out: path.join(output, variant),
       platform: 'linux', arch: 'x64', electronVersion: '44.5.1', overwrite: true,
       electronZipDir: process.env.ELECTRON_ZIP_DIR, extraResource: [], ignore, prune: true});
     const archive = path.join(folders[0], 'resources/app.asar');
-    const list = asar.listPackage(archive).filter(name => !asar.statFile(archive, name).files);
+    const list = asar.listPackage(archive).filter(name => !asar.statFile(archive, name.slice(1)).files);
     fs.writeFileSync(path.join(output, `${variant}-files.txt`), list.join('\n') + '\n');
     console.log(variant, 'app.asar bytes:', fs.statSync(archive).size, 'files:', list.length);
     console.log('release docs:', list.filter(name => /RELEASE\.md|vdf\.example/.test(name)));
