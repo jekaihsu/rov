@@ -1,0 +1,168 @@
+{
+  "started_at": "2026-11-14T14:48:55.352875+00:00",
+  "active": true,
+  "phase": "complete",
+  "checked": [
+    "seals",
+    "connector",
+    "trim",
+    "power",
+    "communication",
+    "camera",
+    "lights",
+    "thrusters",
+    "instruments",
+    "unlock"
+  ],
+  "tests": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "dry_seconds": 15.999999999999691,
+  "penalty": 0,
+  "events": [
+    {
+      "t": 5.12,
+      "action": "begin",
+      "phase": "checks"
+    },
+    {
+      "t": 15.52,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 17.69,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 19.82,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 22.01,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 24.22,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 26.55,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 28.51,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 30.69,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 34.29,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 38,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 41.66,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 44.93,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 48.53,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 52.34,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 55.94,
+      "action": "test",
+      "phase": "checks"
+    },
+    {
+      "t": 59.54,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 61.46,
+      "action": "check",
+      "phase": "checks"
+    },
+    {
+      "t": 63.24,
+      "action": "check",
+      "phase": "launch"
+    },
+    {
+      "t": 64.92,
+      "action": "tender",
+      "phase": "launch"
+    },
+    {
+      "t": 66.42,
+      "action": "lower",
+      "phase": "water_check"
+    },
+    {
+      "t": 67.96,
+      "action": "water_confirm",
+      "phase": "diving"
+    },
+    {
+      "t": 70.94,
+      "action": "recover",
+      "phase": "recovering"
+    },
+    {
+      "t": 75.25,
+      "action": "rinse",
+      "phase": "inspect"
+    },
+    {
+      "t": 76.74,
+      "action": "inspect",
+      "phase": "log"
+    },
+    {
+      "t": 78.96,
+      "action": "save",
+      "phase": "complete"
+    }
+  ],
+  "elapsed": 75.2,
+  "max_depth": 0.5,
+  "max_cable": 30,
+  "notes": "T23 browser full procedure",
+  "confirmed": true,
+  "thrusters": 8,
+  "diagnostic": 0
+}

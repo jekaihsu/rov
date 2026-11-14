@@ -1,6 +1,7 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
+import { installProcedure } from './procedure/index.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -483,6 +484,7 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
+const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
@@ -537,7 +539,7 @@ function onWorld(m) {
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
   $('offline').hidden = true;
-  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) startIntro();
+  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) procedurePanel.startIntro(startIntro);
 }
 
 function onState(m) {
@@ -553,6 +555,7 @@ function onState(m) {
   cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
   missionPanel.update(m);
+  procedurePanel.update(m);
   campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -782,6 +785,7 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
   }});
 cameraRig.bindInput(input);
 surfacePaint.bindInput(input);
+procedurePanel.bindInput(input);
 campaignPanel.bindInput(input);
 let camMode = cameraRig.mode;
 const cine = cameraRig.cine;

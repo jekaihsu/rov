@@ -556,3 +556,17 @@ reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are av
 This draft does **not** yet implement tether snags, sensor faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.
+
+## Optional procedure (T23)
+
+`{ "type":"procedure", "action":"begin" }` opts this vehicle into the full deployment procedure.
+Without it, existing SDK/RC behavior is unchanged. Subsequent actions are `check` (`key` in ordered
+`seals, connector, trim, power, communication, camera, lights, thrusters, instruments, unlock`),
+`test` (`index`, zero-based two-second diagnostic pulse), `skip`, `tender`, `lower`
+(`point:"upstream"`), `water_confirm`, `recover`, `rinse`, `inspect`, `save` (`notes`).
+Invalid progression returns the existing error envelope; accepted actions return `procedure_result`.
+`state.procedure` adds phase, checked keys, tests, dry time, penalty, events, elapsed time, peak depth,
+peak cable length and notes. Physics enforces locked flight outside `diving`, including SDK input.
+`state.score.procedure_penalty` is optional. Skips have a seeded 35% per-check fault probability
+(training assumption); missing communication checks may cause control loss and forced cable recovery.
+Recovery rate and wave modulation are provisional training approximations, not measured vessel limits.
