@@ -7,7 +7,10 @@ from shutil import which
 from playwright.sync_api import sync_playwright
 out=Path(__file__).resolve().parents[1]/'output'/'menu-validation';out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path=os.environ.get('ROV_BROWSER') or which('google-chrome') or which('chromium'),headless=True,args=['--enable-unsafe-swiftshader'])
+    executable = os.environ.get('ROV_BROWSER') or which('google-chrome') or which('chromium')
+    browser = p.chromium.launch(
+        executable_path=executable, headless=True, args=['--enable-unsafe-swiftshader']
+    )
     page=browser.new_page(viewport={'width':1920,'height':1080})
     sockets=[];errors=[]
     page.on('websocket',lambda ws:sockets.append(ws.url))

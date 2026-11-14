@@ -12,7 +12,10 @@ OUT.mkdir(parents=True, exist_ok=True)
 def run():
     errors=[]
     with sync_playwright() as p:
-        browser=p.chromium.launch(executable_path=os.environ.get('ROV_BROWSER') or which('google-chrome') or which('chromium'),headless=True, args=['--enable-unsafe-swiftshader'])
+        executable = os.environ.get('ROV_BROWSER') or which('google-chrome') or which('chromium')
+        browser = p.chromium.launch(
+            executable_path=executable, headless=True, args=['--enable-unsafe-swiftshader']
+        )
         contexts=[]
         pages=[]
         for i in range(3):

@@ -20,7 +20,10 @@ def wait_state(page, mode):
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path=os.environ.get('ROV_BROWSER') or which('google-chrome') or which('chromium'), headless=True, args=['--enable-unsafe-swiftshader'])
+    executable = os.environ.get('ROV_BROWSER') or which('google-chrome') or which('chromium')
+    browser = p.chromium.launch(
+        executable_path=executable, headless=True, args=['--enable-unsafe-swiftshader']
+    )
     contexts = []
     def new_page():
         context = browser.new_context(viewport={'width':1366,'height':768}, accept_downloads=True)
@@ -87,6 +90,8 @@ with sync_playwright() as p:
     guest.close()
 
     for mode in ('free_explore','scenario_training'):
+        if not main.locator('#returnMenu').is_visible():
+            main.click('#flightDrawer')
         main.click('#returnMenu')
         main.wait_for_function('window.__menu?.ready', timeout=90000)
         main.get_by_role('button',name='進入主選單').click()
