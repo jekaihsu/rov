@@ -1,15 +1,243 @@
 {
   "id": "finale",
   "title": "終章｜夜間回收",
-  "scenario": "open_water",
+  "scenario": "wreck_survey",
   "mode": "free_explore",
   "category": "story",
   "order": 80,
   "requires": "wreck",
-  "placeholder": true,
-  "outline": "在潮汐窗口回收證物；調查完整度決定真相是否公開。",
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "brief.text",
+      "speaker_key": "brief.speaker"
+    },
+    {
+      "id": "night",
+      "type": "environment",
+      "visibility_m": 2
+    },
+    {
+      "id": "window_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "window_line.text",
+      "speaker_key": "window_line.speaker"
+    },
+    {
+      "id": "dive_goal",
+      "type": "objective",
+      "text_key": "dive_goal.text"
+    },
+    {
+      "id": "dive",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "gt",
+        "value": 15
+      },
+      "hint_key": "dive.hint"
+    },
+    {
+      "id": "light",
+      "type": "wait",
+      "condition": {
+        "path": "rc.right_switch",
+        "op": "gt",
+        "value": 0
+      },
+      "hint_key": "light.hint"
+    },
+    {
+      "id": "spawn_case",
+      "type": "spawn",
+      "object_id": "evidence-case",
+      "label": "證物箱",
+      "point": [
+        24,
+        4,
+        27
+      ]
+    },
+    {
+      "id": "spawn_plate",
+      "type": "spawn",
+      "object_id": "name-plate",
+      "label": "船名牌碎片",
+      "point": [
+        28,
+        6,
+        26
+      ]
+    },
+    {
+      "id": "spawn_log",
+      "type": "spawn",
+      "object_id": "wet-log",
+      "label": "浸水維修本",
+      "point": [
+        22,
+        3,
+        26.5
+      ]
+    },
+    {
+      "id": "recover_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "recover_line.text",
+      "speaker_key": "recover_line.speaker"
+    },
+    {
+      "id": "recover_goal",
+      "type": "objective",
+      "text_key": "recover_goal.text"
+    },
+    {
+      "id": "grasp_case",
+      "type": "wait",
+      "condition": {
+        "path": "operations.arm.held",
+        "op": "eq",
+        "value": "campaign-evidence-case"
+      },
+      "hint_key": "grasp_case.hint"
+    },
+    {
+      "id": "surface_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "surface_line.text",
+      "speaker_key": "surface_line.speaker"
+    },
+    {
+      "id": "near_surface",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "lt",
+        "value": 4
+      },
+      "hint_key": "near_surface.hint"
+    },
+    {
+      "id": "release_case",
+      "type": "wait",
+      "condition": {
+        "path": "operations.arm.held",
+        "op": "eq",
+        "value": null
+      },
+      "hint_key": "release_case.hint"
+    },
+    {
+      "id": "remove_case",
+      "type": "remove",
+      "object_id": "evidence-case"
+    },
+    {
+      "id": "clue_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "clue_line.text",
+      "speaker_key": "clue_line.speaker"
+    },
+    {
+      "id": "clue_goal",
+      "type": "objective",
+      "text_key": "clue_goal.text"
+    },
+    {
+      "id": "clue_photos",
+      "type": "wait",
+      "condition": {
+        "path": "photos",
+        "op": "gt",
+        "value": 0
+      },
+      "hint_key": "clue_photos.hint"
+    },
+    {
+      "id": "ending_branch",
+      "type": "branch",
+      "condition": {
+        "path": "photos",
+        "op": "gt",
+        "value": 2
+      },
+      "target": "ending_full"
+    },
+    {
+      "id": "ending_partial",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "ending_partial.text",
+      "speaker_key": "ending_partial.speaker"
+    },
+    {
+      "id": "skip_full",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": false
+      },
+      "target": "wrap"
+    },
+    {
+      "id": "ending_full",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "ending_full.text",
+      "speaker_key": "ending_full.speaker"
+    },
+    {
+      "id": "wrap",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "wrap.text",
+      "speaker_key": "wrap.speaker"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "finale_badge"
+    }
+  ],
   "strings": {
-    "zh-TW": {}
+    "zh-TW": {
+      "brief.text": "潮汐窗口只剩一輪。夜間回收那箱未登記貨，順便把能拍的線索帶走。",
+      "brief.speaker": "林督導",
+      "window_line.text": "甲板燈關一半。我聽得見你呼吸，別跟我比緊張。",
+      "window_line.speaker": "阿禾",
+      "dive_goal.text": "夜間下潛至殘骸附近",
+      "dive.hint": "下潛至深度大於 15 m，並開燈",
+      "light.hint": "L / 燈光鍵",
+      "recover_line.text": "證物箱在艙口外側。夾穩，慢慢上。",
+      "recover_line.speaker": "林督導",
+      "recover_goal.text": "用機械臂回收證物箱並帶回淺處放下",
+      "grasp_case.hint": "靠近證物箱，閉合夾爪",
+      "surface_line.text": "線收好了。上來，吊籃在右舷。",
+      "surface_line.speaker": "阿禾",
+      "near_surface.hint": "帶著證物箱上浮至深度小於 4 m",
+      "release_case.hint": "張開夾爪，放下證物箱",
+      "clue_line.text": "若還看得見名牌或本子，多拍幾張。拍不夠，故事就只剩半截。",
+      "clue_line.speaker": "林督導",
+      "clue_goal.text": "拍攝現場線索；完整調查需超過三張照片",
+      "clue_photos.hint": "P / 拍照鍵，至少一張；三張以上解鎖完整結局",
+      "ending_partial.text": "箱是帶上來了，但線索不夠。委託人只拿到半份真相，我們也只能收下半份尾款。",
+      "ending_partial.speaker": "林督導",
+      "ending_full.text": "名牌、維修本、箱體編號對得起來。這船不是天災——有人改過壓艙。報告會寫清楚。",
+      "ending_full.speaker": "林督導",
+      "wrap.text": "收工。潮間帶工作隊又活過一季。下回水池見，新人。",
+      "wrap.speaker": "阿禾"
+    }
   }
 }

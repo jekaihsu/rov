@@ -1,9 +1,18 @@
 """Campaign triggers, authority, persistence and real-input onboarding regression."""
 import json
+import math
 import unittest
+
+import numpy as np
+
 from qysim.campaign import Campaign, DATA, condition_matches, validate
 from qysim.engine import Simulator
+from qysim.operations import ensure_objects
 from qysim.room import Room
+
+STORY_CHAIN = [
+    'prologue', 'harbor', 'hull', 'harbor_signoff', 'offshore', 'reef', 'wreck', 'finale',
+]
 
 
 class CampaignTests(unittest.TestCase):
@@ -14,6 +23,113 @@ class CampaignTests(unittest.TestCase):
 
     def command(self, action, **kwargs):
         return self.campaign.command(dict(action=action, **kwargs), self.host)
+
+    def unlock_before(self, chapter):
+        index = STORY_CHAIN.index(chapter)
+        self.campaign.completed = list(STORY_CHAIN[:index])
+
+    def start_chapter(self, chapter, model_id='x1'):
+        if self.room.primary.model_id != model_id:
+            self.room.select_model(self.host.vehicle_id, model_id)
+        self.unlock_before(chapter)
+        self.assertTrue(self.command('campaign_start', chapter=chapter)['ok'], chapter)
+
+    def advance_dialogues(self):
+        while self.campaign.node and self.campaign.node['type'] == 'dialogue':
+            self.command('campaign_advance')
+
+    def settle_passthrough(self):
+        """Run until blocked on wait/dialogue or the chapter completes."""
+        for _ in range(64):
+            node = self.campaign.node
+            if node is None or node['type'] in ('wait', 'dialogue', 'branch'):
+                return
+            self.campaign.update(0)
+
+    def layout_at(self, point):
+        sim = self.room.primary
+        target = np.asarray(point, float)
+        spool = np.asarray(sim.scenario.spool_pos, float)
+        sim.tether.broken = False
+        sim.tether.layout([spool, target])
+        sim.vehicle.s.pos[:] = target
+        sim.vehicle.s.vel[:] = 0.
+
+    def face_point(self, point, face):
+        delta = np.asarray(face, float) - np.asarray(point, float)
+        yaw = math.atan2(delta[1], delta[0])
+        self.room.primary.vehicle.s.q[:] = [math.cos(yaw / 2), 0., 0., math.sin(yaw / 2)]
+
+    def complete_inspection_stations(self):
+        sim = self.room.primary
+        mission = sim.world.mission_run
+        for target in mission.targets:
+            self.layout_at(target['point'])
+            if target.get('face_point') is not None:
+                self.face_point(target['point'], target['face_point'])
+            for _ in range(320):
+                sim.t += .01
+                mission.update(sim, .01)
+                sim.vehicle.s.pos[:] = target['point']
+                sim.vehicle.s.vel[:] = 0.
+            sim._take_photo()
+        self.assertEqual(mission.status, 'completed')
+
+    def complete_scenario_objectives(self):
+        sim = self.room.primary
+        for objective in sim.scenario.objectives:
+            self.layout_at(objective.point)
+            if objective.face_point is not None:
+                self.face_point(objective.point, objective.face_point)
+            for _ in range(6):
+                sim.scorer.update(1., sim)
+                sim.vehicle.s.pos[:] = objective.point
+                sim.vehicle.s.vel[:] = 0.
+        sim.scorer.update(.01, sim)
+        self.assertTrue(sim.scorer.finished)
+
+    def force_hold(self, object_id):
+        sim = self.room.primary
+        objects = ensure_objects(sim)
+        self.assertIn(object_id, objects, object_id)
+        sim.operations.held = object_id
+        objects[object_id]['held_by'] = sim.vehicle_id
+
+    def force_release(self):
+        self.room.primary.operations.release()
+
+    def take_photos(self, count):
+        sim = self.room.primary
+        while sim.viewer_state()['photos'] < count:
+            sim._take_photo()
+
+    def run_until_complete(self, handlers, limit=80):
+        visited = []
+        for _ in range(limit):
+            self.settle_passthrough()
+            node = self.campaign.node
+            if node is None:
+                break
+            visited.append(node['id'])
+            if node['type'] == 'dialogue':
+                self.command('campaign_advance')
+                continue
+            if node['type'] == 'branch':
+                self.campaign.update(0)
+                continue
+            if node['type'] != 'wait':
+                self.campaign.update(0)
+                continue
+            handler = handlers.get(node['id'])
+            self.assertIsNotNone(handler, 'missing handler for ' + node['id'])
+            handler()
+            for _ in range(8):
+                self.campaign.update(0)
+                if self.campaign.node is not node:
+                    break
+            self.assertIsNot(self.campaign.node, node, node['id'])
+        self.assertEqual(self.campaign.status, 'completed', visited)
+        return visited
 
     def test_scripts_and_invalid_conditions(self):
         for path in DATA.glob('*.json'):
@@ -45,7 +161,9 @@ class CampaignTests(unittest.TestCase):
         story = [entry['id'] for entry in state['chapters'] if entry['category'] == 'story']
         incidents = [entry['id'] for entry in state['chapters'] if entry['category'] == 'incident']
         self.assertEqual(ids, story + incidents)
-        self.assertEqual(story[:4], ['prologue', 'harbor', 'hull', 'harbor_signoff'])
+        self.assertEqual(story, STORY_CHAIN)
+        self.assertTrue(all(not entry.get('placeholder') for entry in state['chapters']
+                            if entry['category'] == 'story'))
         self.assertEqual(len(incidents), 5)
         self.assertTrue(all(key.startswith('incident_') for key in incidents))
         self.assertEqual(state['next_story'], 'prologue')
@@ -186,3 +304,166 @@ class CampaignTests(unittest.TestCase):
         self.assertIn('first_dive', self.campaign.rewards)
         self.assertIn('prologue', self.campaign.completed)
         print('PROLOGUE REAL INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))
+
+    def test_hull_auto_input(self):
+        self.start_chapter('hull')
+        sim = self.room.primary
+
+        def depth():
+            self.layout_at([18., 0., 9.5])
+
+        def light():
+            sim.rc_physical.right_switch = 1
+
+        visited = self.run_until_complete({
+            'depth': depth,
+            'light': light,
+            'survey': self.complete_inspection_stations,
+        })
+        self.assertIn('hull_badge', self.campaign.rewards)
+        self.assertIn('hull', self.campaign.completed)
+        print('HULL AUTO INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))
+
+    def test_harbor_signoff_auto_input(self):
+        self.start_chapter('harbor_signoff')
+        sim = self.room.primary
+
+        def extra_photo():
+            self.take_photos(4)
+
+        def surface():
+            self.layout_at([0., 0., 1.])
+
+        visited = self.run_until_complete({
+            'survey': self.complete_inspection_stations,
+            'extra_photo': extra_photo,
+            'surface': surface,
+        })
+        self.assertIn('harbor_signoff_badge', self.campaign.rewards)
+        self.assertIn('harbor_signoff', self.campaign.completed)
+        print('HARBOR SIGNOFF AUTO INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))
+
+    def test_offshore_auto_input(self):
+        self.start_chapter('offshore')
+
+        def dive():
+            self.layout_at([10., 0., 6.])
+
+        def survey():
+            self.complete_scenario_objectives()
+
+        def tension_check():
+            self.room.primary.tether.broken = False
+
+        visited = self.run_until_complete({
+            'dive': dive,
+            'survey': survey,
+            'tension_check': tension_check,
+        })
+        self.assertIn('offshore_badge', self.campaign.rewards)
+        self.assertIn('offshore', self.campaign.completed)
+        print('OFFSHORE AUTO INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))
+
+    def test_reef_auto_input(self):
+        self.start_chapter('reef', model_id='falcon')
+        sim = self.room.primary
+
+        def eco_photos():
+            self.take_photos(3)
+
+        def work_depth():
+            self.layout_at([16., -4., 8.])
+
+        def grasp_sensor():
+            self.force_hold('campaign-lost-sensor')
+
+        def near_surface():
+            self.layout_at([2., 0., 2.])
+
+        def release_sensor():
+            self.force_release()
+
+        def grasp_logger():
+            self.force_hold('campaign-new-logger')
+
+        def place_depth():
+            self.layout_at([18., 0., 9.])
+
+        def release_logger():
+            self.force_release()
+
+        visited = self.run_until_complete({
+            'eco_photos': eco_photos,
+            'work_depth': work_depth,
+            'grasp_sensor': grasp_sensor,
+            'near_surface': near_surface,
+            'release_sensor': release_sensor,
+            'grasp_logger': grasp_logger,
+            'place_depth': place_depth,
+            'release_logger': release_logger,
+        })
+        self.assertIn('reef_badge', self.campaign.rewards)
+        self.assertIn('reef', self.campaign.completed)
+        self.assertTrue(sim.operations.has_arm)
+        print('REEF AUTO INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))
+
+    def test_wreck_auto_input(self):
+        self.start_chapter('wreck')
+        sim = self.room.primary
+
+        def approach_depth():
+            self.layout_at([10., 0., 14.])
+
+        def light():
+            sim.rc_physical.right_switch = 1
+
+        def clue_photo():
+            self.take_photos(4)
+
+        def safe_tether():
+            sim.tether.broken = False
+
+        visited = self.run_until_complete({
+            'approach_depth': approach_depth,
+            'light': light,
+            'survey': self.complete_inspection_stations,
+            'clue_photo': clue_photo,
+            'safe_tether': safe_tether,
+        })
+        self.assertIn('wreck_badge', self.campaign.rewards)
+        self.assertIn('wreck', self.campaign.completed)
+        print('WRECK AUTO INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))
+
+    def test_finale_auto_input(self):
+        self.start_chapter('finale', model_id='falcon')
+
+        def dive():
+            self.layout_at([20., 0., 18.])
+
+        def light():
+            self.room.primary.rc_physical.right_switch = 1
+
+        def grasp_case():
+            self.force_hold('campaign-evidence-case')
+
+        def near_surface():
+            self.layout_at([2., 0., 2.])
+
+        def release_case():
+            self.force_release()
+
+        def clue_photos():
+            self.take_photos(3)
+
+        visited = self.run_until_complete({
+            'dive': dive,
+            'light': light,
+            'grasp_case': grasp_case,
+            'near_surface': near_surface,
+            'release_case': release_case,
+            'clue_photos': clue_photos,
+        })
+        self.assertIn('finale_badge', self.campaign.rewards)
+        self.assertIn('finale', self.campaign.completed)
+        self.assertIn('ending_full', visited)
+        print('FINALE AUTO INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))

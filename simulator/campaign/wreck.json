@@ -1,15 +1,176 @@
 {
   "id": "wreck",
   "title": "第四章｜沉船",
-  "scenario": "open_water",
-  "mode": "free_explore",
+  "scenario": "wreck_survey",
+  "mode": "inspection_coop",
   "category": "story",
   "order": 70,
   "requires": "reef",
-  "placeholder": true,
-  "outline": "貨輪殘骸內的額外壓艙物與失蹤的維修紀錄。",
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "brief.text",
+      "speaker_key": "brief.speaker"
+    },
+    {
+      "id": "fog",
+      "type": "environment",
+      "visibility_m": 3
+    },
+    {
+      "id": "approach_goal",
+      "type": "objective",
+      "text_key": "approach_goal.text"
+    },
+    {
+      "id": "approach_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "approach_line.text",
+      "speaker_key": "approach_line.speaker"
+    },
+    {
+      "id": "approach_depth",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "gt",
+        "value": 12
+      },
+      "hint_key": "approach_depth.hint"
+    },
+    {
+      "id": "light_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "light_line.text",
+      "speaker_key": "light_line.speaker"
+    },
+    {
+      "id": "light",
+      "type": "wait",
+      "condition": {
+        "path": "rc.right_switch",
+        "op": "gt",
+        "value": 0
+      },
+      "hint_key": "light.hint"
+    },
+    {
+      "id": "survey_goal",
+      "type": "objective",
+      "text_key": "survey_goal.text"
+    },
+    {
+      "id": "cable",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "cable.text",
+      "speaker_key": "cable.speaker"
+    },
+    {
+      "id": "survey",
+      "type": "wait",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "completed"
+      },
+      "hint_key": "survey.hint"
+    },
+    {
+      "id": "mystery_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "mystery_line.text",
+      "speaker_key": "mystery_line.speaker"
+    },
+    {
+      "id": "spawn_crate",
+      "type": "spawn",
+      "object_id": "odd-crate",
+      "label": "未登記箱體",
+      "point": [
+        25,
+        5,
+        26
+      ]
+    },
+    {
+      "id": "clue_goal",
+      "type": "objective",
+      "text_key": "clue_goal.text"
+    },
+    {
+      "id": "clue_photo",
+      "type": "wait",
+      "condition": {
+        "path": "photos",
+        "op": "gt",
+        "value": 3
+      },
+      "hint_key": "clue_photo.hint"
+    },
+    {
+      "id": "tension_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "tension_line.text",
+      "speaker_key": "tension_line.speaker"
+    },
+    {
+      "id": "safe_tether",
+      "type": "wait",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": false
+      },
+      "hint_key": "safe_tether.hint"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "done.text",
+      "speaker_key": "done.speaker"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "wreck_badge"
+    }
+  ],
   "strings": {
-    "zh-TW": {}
+    "zh-TW": {
+      "brief.text": "例行沉船外觀調查。水深三十，能見度爛。桅桿還在，別去纏。",
+      "brief.speaker": "林督導",
+      "approach_goal.text": "下潛接近殘骸作業深度",
+      "approach_line.text": "慢慢沉。泥一揚，什麼都沒了。",
+      "approach_line.speaker": "林督導",
+      "approach_depth.hint": "下潛至深度大於 12 m",
+      "light_line.text": "開燈。羅盤靠近鋼殼會飄，別死盯航向。",
+      "light_line.speaker": "林督導",
+      "light.hint": "L / 燈光鍵",
+      "survey_goal.text": "繞殘骸完成巡檢站點拍照",
+      "cable.text": "我把線收短。你繞船一圈，轉彎前先抬頭看桅。",
+      "cable.speaker": "阿禾",
+      "survey.hint": "前往 HUD 巡檢站點，穩定三秒後拍照",
+      "mystery_line.text": "等一下——艙口旁邊那箱不在委託清單上。多拍幾張。",
+      "mystery_line.speaker": "林督導",
+      "clue_goal.text": "補拍未登記箱體與周邊，總照片數超過四張",
+      "clue_photo.hint": "P / 拍照鍵，直到照片數大於 4",
+      "tension_line.text": "線還在。別進艙，圍板會咬死纜。",
+      "tension_line.speaker": "阿禾",
+      "safe_tether.hint": "確認纜線未斷，保持在艙外",
+      "done.text": "清單上沒這箱。壓艙紀錄也對不上。今晚潮汐窗口短，我們得再潛一次。",
+      "done.speaker": "林督導"
+    }
   }
 }

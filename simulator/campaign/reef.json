@@ -1,15 +1,220 @@
 {
   "id": "reef",
   "title": "第三章｜礁區",
-  "scenario": "open_water",
+  "scenario": "coral_reef",
   "mode": "free_explore",
   "category": "story",
   "order": 60,
   "requires": "offshore",
-  "placeholder": true,
-  "outline": "生態調查、回收與部署觀測儀。",
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "brief.text",
+      "speaker_key": "brief.speaker"
+    },
+    {
+      "id": "eco_goal",
+      "type": "objective",
+      "text_key": "eco_goal.text"
+    },
+    {
+      "id": "eco_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "eco_line.text",
+      "speaker_key": "eco_line.speaker"
+    },
+    {
+      "id": "eco_photos",
+      "type": "wait",
+      "condition": {
+        "path": "photos",
+        "op": "gt",
+        "value": 2
+      },
+      "hint_key": "eco_photos.hint"
+    },
+    {
+      "id": "depth_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "depth_line.text",
+      "speaker_key": "depth_line.speaker"
+    },
+    {
+      "id": "work_depth",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "gt",
+        "value": 6
+      },
+      "hint_key": "work_depth.hint"
+    },
+    {
+      "id": "recover_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "recover_line.text",
+      "speaker_key": "recover_line.speaker"
+    },
+    {
+      "id": "spawn_sensor",
+      "type": "spawn",
+      "object_id": "lost-sensor",
+      "label": "遺失觀測儀",
+      "point": [
+        18,
+        -4,
+        10
+      ]
+    },
+    {
+      "id": "recover_goal",
+      "type": "objective",
+      "text_key": "recover_goal.text"
+    },
+    {
+      "id": "grasp_sensor",
+      "type": "wait",
+      "condition": {
+        "path": "operations.arm.held",
+        "op": "eq",
+        "value": "campaign-lost-sensor"
+      },
+      "hint_key": "grasp_sensor.hint"
+    },
+    {
+      "id": "basket_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "basket_line.text",
+      "speaker_key": "basket_line.speaker"
+    },
+    {
+      "id": "near_surface",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "lt",
+        "value": 3
+      },
+      "hint_key": "near_surface.hint"
+    },
+    {
+      "id": "release_sensor",
+      "type": "wait",
+      "condition": {
+        "path": "operations.arm.held",
+        "op": "eq",
+        "value": null
+      },
+      "hint_key": "release_sensor.hint"
+    },
+    {
+      "id": "remove_sensor",
+      "type": "remove",
+      "object_id": "lost-sensor"
+    },
+    {
+      "id": "deploy_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "deploy_line.text",
+      "speaker_key": "deploy_line.speaker"
+    },
+    {
+      "id": "spawn_logger",
+      "type": "spawn",
+      "object_id": "new-logger",
+      "label": "新溫度計",
+      "point": [
+        2,
+        0,
+        2
+      ]
+    },
+    {
+      "id": "deploy_goal",
+      "type": "objective",
+      "text_key": "deploy_goal.text"
+    },
+    {
+      "id": "grasp_logger",
+      "type": "wait",
+      "condition": {
+        "path": "operations.arm.held",
+        "op": "eq",
+        "value": "campaign-new-logger"
+      },
+      "hint_key": "grasp_logger.hint"
+    },
+    {
+      "id": "place_depth",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "gt",
+        "value": 8
+      },
+      "hint_key": "place_depth.hint"
+    },
+    {
+      "id": "release_logger",
+      "type": "wait",
+      "condition": {
+        "path": "operations.arm.held",
+        "op": "eq",
+        "value": null
+      },
+      "hint_key": "release_logger.hint"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "done.text",
+      "speaker_key": "done.speaker"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "reef_badge"
+    }
+  ],
   "strings": {
-    "zh-TW": {}
+    "zh-TW": {
+      "brief.text": "研究單位要礁區紀錄。換有機械臂的那台，離珊瑚遠一點，推進器別攪底。",
+      "brief.speaker": "林督導",
+      "eco_goal.text": "拍攝礁區生態，至少三張可用照片",
+      "eco_line.text": "魚會自己游進畫面。你負責別撞上去。",
+      "eco_line.speaker": "林督導",
+      "eco_photos.hint": "P / 拍照鍵，直到照片數大於 3",
+      "depth_line.text": "往觀測帶再沉一點。舊儀器掉在西側砂地。",
+      "depth_line.speaker": "阿禾",
+      "work_depth.hint": "下潛至深度大於 6 m",
+      "recover_line.text": "看到那顆黃殼了嗎？夾穩，別夾珊瑚。",
+      "recover_line.speaker": "林督導",
+      "recover_goal.text": "用機械臂夾起遺失的觀測儀並帶回淺處",
+      "grasp_sensor.hint": "靠近遺失觀測儀，閉合夾爪",
+      "basket_line.text": "往上帶。甲板吊籃在水面附近，鬆開就行。",
+      "basket_line.speaker": "阿禾",
+      "near_surface.hint": "帶著觀測儀上浮至深度小於 3 m",
+      "release_sensor.hint": "張開夾爪，放下觀測儀",
+      "deploy_line.text": "新溫度計在你前方。夾起來，放到更深的砂地上。",
+      "deploy_line.speaker": "林督導",
+      "deploy_goal.text": "夾起新溫度計，部署到約八公尺深後放開",
+      "grasp_logger.hint": "靠近新溫度計，閉合夾爪",
+      "place_depth.hint": "帶著溫度計下潛至深度大於 8 m",
+      "release_logger.hint": "張開夾爪，放下溫度計",
+      "done.text": "回收、部署都有了。研究那邊會謝我們——用發票的那種謝。",
+      "done.speaker": "阿禾"
+    }
   }
 }

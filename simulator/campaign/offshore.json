@@ -1,15 +1,123 @@
 {
   "id": "offshore",
   "title": "第二章｜離岸",
-  "scenario": "open_water",
-  "mode": "free_explore",
+  "scenario": "jacket_inspection",
+  "mode": "scenario_training",
   "category": "story",
   "order": 50,
   "requires": "harbor_signoff",
-  "placeholder": true,
-  "outline": "強流、陽極塊巡檢與解纜。",
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "brief.text",
+      "speaker_key": "brief.speaker"
+    },
+    {
+      "id": "dive_goal",
+      "type": "objective",
+      "text_key": "dive_goal.text"
+    },
+    {
+      "id": "current_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "current_line.text",
+      "speaker_key": "current_line.speaker"
+    },
+    {
+      "id": "dive",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "gt",
+        "value": 5
+      },
+      "hint_key": "dive.hint"
+    },
+    {
+      "id": "hold_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "hold_line.text",
+      "speaker_key": "hold_line.speaker"
+    },
+    {
+      "id": "anode_goal",
+      "type": "objective",
+      "text_key": "anode_goal.text"
+    },
+    {
+      "id": "cable",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "cable.text",
+      "speaker_key": "cable.speaker"
+    },
+    {
+      "id": "survey",
+      "type": "wait",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "hint_key": "survey.hint"
+    },
+    {
+      "id": "snag_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "snag_line.text",
+      "speaker_key": "snag_line.speaker"
+    },
+    {
+      "id": "tension_check",
+      "type": "wait",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": false
+      },
+      "hint_key": "tension_check.hint"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "done.text",
+      "speaker_key": "done.speaker"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "offshore_badge"
+    }
+  ],
   "strings": {
-    "zh-TW": {}
+    "zh-TW": {
+      "brief.text": "離岸風場導管架。表層流不小，陽極塊要一隻腳一隻腳看。",
+      "brief.speaker": "林督導",
+      "dive_goal.text": "下潛至作業深度，對抗橫流靠近構件",
+      "current_line.text": "滿推硬頂只會燒推力。先沉，再用結構擋一點流。",
+      "current_line.speaker": "林督導",
+      "dive.hint": "下潛至深度大於 5 m",
+      "hold_line.text": "到了就定住。面向陽極，別讓流把你推過斜撐。",
+      "hold_line.speaker": "林督導",
+      "anode_goal.text": "完成四支樁腿陽極巡檢並回到投放點",
+      "cable.text": "斜撐會吃線。我放短一點，你轉彎前先喊。",
+      "cable.speaker": "阿禾",
+      "survey.hint": "依場景目標逐站懸停，最後上浮至投放點",
+      "snag_line.text": "剛才差點繞上橫撐。下次別慌、別拉線，先評估再掉頭。",
+      "snag_line.speaker": "阿禾",
+      "tension_check.hint": "確認纜線未斷，保持可控張力",
+      "done.text": "陽極都拍到了。這單結案。下回礁區那邊要機械臂，別把 X1 當萬能。",
+      "done.speaker": "林督導"
+    }
   }
 }

@@ -6,7 +6,11 @@ Enter 顯示完整台詞，再按一次繼續。飛行輸入不會暫停。
 
 序章以真實速度、鎖定、定深、燈光、照片數判定，沒有分數懲罰。
 第一章由港樁、船殼與交班複查三項既有協作巡檢組成；三秒穩定拍照、站點、倒數完全沿用 mission_modes。
-第二章以後為不可選的大綱節點。
+船殼章另以深度與燈光訓練低能見度貼近結構；交班複查補拍近景後上浮交班。
+第二章離岸使用導管架場景訓練：強流下潛、陽極巡檢與纜線警戒，完成條件為 score.finished。
+第三章礁區改自由探索：生態拍照後，以機械臂回收遺失觀測儀並部署新儀器（需 Falcon）。
+第四章沉船綜合低能見度、巡檢站點與未登記箱體取證；終章夜間回收證物箱，
+照片數決定完整或半截結局（三張以上為完整調查）。
 
 腳本位於 simulator/campaign，schema.json 描述格式。每章必填 category（story 劇情 / incident 事故演練）
 與 order（同類內的順序，小的在前）；章節清單依（category、order）排序。自動啟動只挑 story 章節，
@@ -14,6 +18,7 @@ Enter 顯示完整台詞，再按一次繼續。飛行輸入不會暫停。
 陣列使用數字，例如 pos.2、vel.0、mission.status。比較運算為 eq / gt / lt。
 支援 dialogue、wait、objective、hint、branch、reward、checkpoint、environment、spawn、remove。
 branch 條件成立時跳到 target；environment 目前僅支援 visibility_m。
+每個 objective 是一段作業任務；無線電對話與提示節點不是額外任務。
 
 儲存的是本機章節解鎖、獎勵識別碼及成績，不是帳號或雲端存檔。
 存檔點可繼續：重新投放同一場景，從記錄的教學節點開始；不還原完整物理世界。
@@ -21,6 +26,3 @@ branch 條件成立時跳到 target；environment 目前僅支援 visibility_m�
 本版未實作預錄語音；對話與教學按鍵沿用 T02 的裝置 glyph。進度亦保存於既有收藏存放區，桌面版可跨埠保留。
 main 尚無 assist 狀態與後端飛行輔助，依相容契約不送 assist/profile；
 因此預設定點輔助需待 T01 合併。水池使用無流環境，但物理與 SDK 不變。
-
-D1 章節擴充：船殼、交班複查、離岸、礁區、沉船與夜間回收以現有判定編排。
-每個 objective 是一段作業任務；無線電對話與提示節點不是額外任務。

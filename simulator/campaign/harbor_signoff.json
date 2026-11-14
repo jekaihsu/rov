@@ -15,9 +15,9 @@
       "speaker_key": "brief.speaker"
     },
     {
-      "id": "goal",
+      "id": "recheck_goal",
       "type": "objective",
-      "text_key": "goal.text"
+      "text_key": "recheck_goal.text"
     },
     {
       "id": "cable",
@@ -35,6 +35,45 @@
         "value": "completed"
       },
       "hint_key": "survey.hint"
+    },
+    {
+      "id": "photo_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "photo_line.text",
+      "speaker_key": "photo_line.speaker"
+    },
+    {
+      "id": "photo_goal",
+      "type": "objective",
+      "text_key": "photo_goal.text"
+    },
+    {
+      "id": "extra_photo",
+      "type": "wait",
+      "condition": {
+        "path": "photos",
+        "op": "gt",
+        "value": 2
+      },
+      "hint_key": "extra_photo.hint"
+    },
+    {
+      "id": "depth_line",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "depth_line.text",
+      "speaker_key": "depth_line.speaker"
+    },
+    {
+      "id": "surface",
+      "type": "wait",
+      "condition": {
+        "path": "pos.2",
+        "op": "lt",
+        "value": 2
+      },
+      "hint_key": "surface.hint"
     },
     {
       "id": "done",
@@ -57,10 +96,17 @@
     "zh-TW": {
       "brief.text": "船主帶來昨晚的照片。阿禾說樁底有一圈新刮痕，我們再看一次。",
       "brief.speaker": "林督導",
-      "goal.text": "依巡檢站點穩定懸停並拍照",
-      "cable.text": "線在你右後方。我盯著，你慢慢繞。",
+      "recheck_goal.text": "依巡檢站點穩定懸停並拍照",
+      "cable.text": "線在你右後方。繞樁之前先想退路，我盯著張力。",
       "cable.speaker": "阿禾",
       "survey.hint": "前往 HUD 巡檢站點，穩定三秒後拍照",
+      "photo_line.text": "站點齊了。再補幾張近景，給船主對照。",
+      "photo_line.speaker": "林督導",
+      "photo_goal.text": "補拍近景，總照片數超過三張",
+      "extra_photo.hint": "P / 拍照鍵，直到照片數大於 3",
+      "depth_line.text": "好了，上來。別在樁間拖線。",
+      "depth_line.speaker": "阿禾",
+      "surface.hint": "上浮至深度小於 2 m",
       "done.text": "三張都有了。不是裂痕，是拖纜磨掉的漆。把位置交給船主，今天到這裡。",
       "done.speaker": "林督導"
     }
