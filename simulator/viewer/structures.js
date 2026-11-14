@@ -169,6 +169,28 @@ class StructureSet {
     return mesh;
   }
 
+  /**
+   * Low tier: queue small repeated parts (anodes, mud mats) and draw each kind as one merged mesh, to keep the
+   * draw-call count of the low tier close to the plain primitives. Other tiers add the mesh directly.
+   */
+  addBatched(batch, geometry, kind, names, role, obs) {
+    if (this.detailName !== 'low') return this.add(geometry, kind, names, role, obs);
+    if (!this.batches) this.batches = new Map();
+    if (!this.batches.has(batch)) this.batches.set(batch, {kind, role, parts: [], names: [], obs: []});
+    const entry = this.batches.get(batch);
+    entry.parts.push(geometry);
+    entry.names.push(...names);
+    entry.obs.push(...obs);
+    return null;
+  }
+
+  flushBatches() {
+    for (const entry of (this.batches || new Map()).values()) {
+      this.add(merged(entry.parts), entry.kind, entry.names, entry.role, entry.obs);
+    }
+    this.batches = null;
+  }
+
   /** An anchor for colliders drawn by shared instanced meshes (labels need a position). */
   anchor(ob, mesh) {
     const at = new THREE.Object3D();
@@ -230,7 +252,7 @@ function steelTube(set, ob, kind = 'steel') {
   const radial = set.detail.radial;
   const parts = [tube(a, b, ob.radius, radial, false), ...exposedCaps(set.world, ob, ob.radius, radial)];
   set.add(merged(parts), kind, [ob.name], 'solid', [ob]);
-  if (ob.kind === 'jacket_leg') {
+  if (ob.kind === 'jacket_leg' && set.detailName !== 'low') {
     // weld-node cans: thicker wall sections where the braces join, 0.04 m proud of the leg
     const cans = braceNodes(set.world, ob).map((t) => {
       const c = a.clone().lerp(b, t);
@@ -293,7 +315,7 @@ function anodeBar(set, ob, straps) {
     r * 0.6);
   const parts = [body, taperA, taperB];
   for (const strap of straps) parts.push(tube(P(strap.p0), P(strap.p1), strap.radius - 0.005, 6, false));
-  set.add(merged(parts), 'anode', [ob.name, ...straps.map((s) => s.name)], 'solid', [ob, ...straps]);
+  set.addBatched('anode', merged(parts), 'anode', [ob.name, ...straps.map((s) => s.name)], 'solid', [ob, ...straps]);
 }
 
 // ── monopile fittings ───────────────────────────────────────────────────────────────────────────────────
@@ -520,7 +542,7 @@ function plainBox(set, ob, kind, inset = 0.01) {
   g.rotateY(yaw);
   g.translate(centre.x, centre.y, centre.z);
   const role = centre.y - hz > 0 ? 'above' : 'solid';
-  set.add(g, kind, [ob.name], role, [ob]);
+  set.addBatched(`box:${ob.kind}:${kind}:${role}`, g, kind, [ob.name], role, [ob]);
 }
 
 /** Rudder section: round nose, then flat sides tapering to a blunt trailing edge, inside the rudder box. */
@@ -815,8 +837,8 @@ function buildOne(set, ob, consumed) {
  * Build the visible structures for a world message. Habitat colliders and GLB models are left to the caller.
  * ``makeMaterial(kind)`` defaults to the procedural structure materials (browser only).
  */
-export function buildStructures(world, {detail = 'medium', makeMaterial = structureMaterial} = {}) {
-  const set = new StructureSet(world, detail, makeMaterial);
+export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
+  const set = new StructureSet(world, detail, makeMaterial || ((kind) => structureMaterial(kind, detail)));
   const consumed = new Set();
   const obstacles = (world.obstacles || []).filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model');
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'scour_rock'), 'scour_rock');
@@ -825,5 +847,6 @@ export function buildStructures(world, {detail = 'medium', makeMaterial = struct
     if (ob.kind === 'scour_rock' || ob.kind === 'toe_rock') continue;
     buildOne(set, ob, consumed);
   }
+  set.flushBatches();
   return set;
 }

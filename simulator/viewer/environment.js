@@ -78,6 +78,7 @@ export class Environment {
     scene.add(this.group);
     this.t = 0;
     this.world = world;
+    this.detail = options.detail || 'medium';
     // Stable server identities, separate from draw buckets / instance ordering.
     // Read only at photo capture; no raycasts or observation work in update().
     this.observationTargets = [];
@@ -213,7 +214,7 @@ export class Environment {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
       geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(indices); geo.computeVertexNormals();
-      const material = seabedMaterial(siteProfile(this.world));
+      const material = seabedMaterial(siteProfile(this.world), this.detail);
       const terrain = new THREE.Mesh(geo,material);
       terrain.userData.paintable=true;terrain.receiveShadow=true; this.group.add(terrain);
       // Extend clamped edge depths, matching the server's out-of-grid sampling.
@@ -247,7 +248,7 @@ export class Environment {
       p.setY(i, Math.max(h, 0.005));
     }
     g.computeVertexNormals();
-    const terrain = new THREE.Mesh(g, seabedMaterial(siteProfile(this.world)));
+    const terrain = new THREE.Mesh(g, seabedMaterial(siteProfile(this.world), this.detail));
     terrain.position.set(this.centre.x, this.seabedY, this.centre.z);
     terrain.receiveShadow = true;terrain.userData.paintable=true;
     this.group.add(terrain);

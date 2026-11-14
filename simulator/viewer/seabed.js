@@ -3,7 +3,7 @@
 // physics seabed is. Textures are drawn on canvases at start-up (original procedural work). Two rotated scales of
 // every texture are mixed by low-frequency noise, so no repeating tile is visible from flying height.
 //
-//   const material = seabedMaterial(siteProfile(world));
+//   const material = seabedMaterial(siteProfile(world), 'medium');
 import * as THREE from 'three';
 
 const SIZE = 256;
@@ -142,50 +142,86 @@ function shaderPatch(profile, maps) {
       }
       float seaRipple(vec2 p, float mixer) {
         float a = texture2D(uField, seaRot(p, 0.35) * 0.16).r;
+        #if SEA_QUALITY >= 2
         float b = texture2D(uField, seaRot(p, 1.95) * 0.083).r;
         return mix(a, b, mixer);
+        #else
+        return a;
+        #endif
       }
       ` + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
       vec2 seaP = vSeaPos.xz;
+      #if SEA_QUALITY >= 2
       float seaLow = seaNoise(seaP * 0.045);
       float seaMid = seaNoise(seaP * 0.17 + 13.0);
       float seaMix = smoothstep(0.3, 0.7, seaNoise(seaP * 0.02 + 5.0));
       float seaR = seaRipple(seaP, seaMix);
       vec4 seaF = texture2D(uField, seaP * 0.9);
+      #elif SEA_QUALITY == 1
+      float seaLow = seaNoise(seaP * 0.045);
+      float seaMid = seaNoise(seaP * 0.17 + 13.0);
+      float seaMix = 0.0;
+      vec4 seaF = texture2D(uField, seaRot(seaP, 0.35) * 0.16);
+      float seaR = seaF.r;
+      #else
+      float seaLow = 0.5;
+      float seaMid = 0.5;
+      float seaMix = 0.0;
+      vec4 seaF = texture2D(uField, seaRot(seaP, 0.35) * 0.16);
+      float seaR = seaF.r;
+      #endif
       vec3 seaCol = uSand * (0.82 + 0.3 * seaR * uRipple + 0.12 * (seaF.g - 0.5));
       float mudW = clamp(uWeights.y * (0.6 + 0.8 * (seaLow - 0.5)), 0.0, 1.0);
       seaCol = mix(seaCol, uMud * (0.9 + 0.2 * seaF.g), mudW);
-      vec3 gravelA = texture2D(uGravel, seaP * 0.55).rgb;
-      vec3 gravelB = texture2D(uGravel, seaRot(seaP, 1.1) * 0.21).rgb;
-      vec3 gravel = mix(gravelA, gravelB, seaMix);
+      #if SEA_QUALITY >= 1
+      vec3 gravel = texture2D(uGravel, seaP * 0.55).rgb;
+      #else
+      vec3 gravel = uMud;
+      #endif
+      #if SEA_QUALITY >= 2
+      gravel = mix(gravel, texture2D(uGravel, seaRot(seaP, 1.1) * 0.21).rgb, seaMix);
+      #endif
       float gravelW = uWeights.x * smoothstep(0.55, 0.75, seaMid * 0.6 + seaLow * 0.5);
       seaCol = mix(seaCol, gravel, gravelW);
       float shellW = uWeights.z * seaF.b * smoothstep(0.35, 0.7, seaMid);
       seaCol = mix(seaCol, vec3(0.86, 0.82, 0.74), shellW * 0.8);
+      #if SEA_QUALITY >= 2
       float rockW = uWeights.w * smoothstep(0.72, 0.8, seaNoise(seaP * 0.06 + 31.0));
       seaCol = mix(seaCol, vec3(0.36, 0.35, 0.31) * (0.8 + 0.4 * seaF.g), rockW);
-      vec3 tile = texture2D(uTiles, seaP * 0.5).rgb;
-      seaCol = mix(seaCol, tile, uTileFloor);
+      #endif
+      #ifdef SEA_TILES
+      seaCol = texture2D(uTiles, seaP * 0.5).rgb;
+      #endif
       diffuseColor.rgb *= seaCol;
       float seaBump = uRipple * (1.0 - mudW * 0.7) * (1.0 - uTileFloor);`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      #if SEA_QUALITY >= 1
       {
         float e = 0.06;
-        float hx = seaRipple(seaP + vec2(e, 0.0), seaMix) - seaRipple(seaP - vec2(e, 0.0), seaMix);
-        float hz = seaRipple(seaP + vec2(0.0, e), seaMix) - seaRipple(seaP - vec2(0.0, e), seaMix);
+        float hx = (seaRipple(seaP + vec2(e, 0.0), seaMix) - seaR) * 2.0;
+        float hz = (seaRipple(seaP + vec2(0.0, e), seaMix) - seaR) * 2.0;
         vec3 tilt = vec3(-hx, 0.0, -hz) * 0.9 * seaBump;
         normal = normalize(normal + (viewMatrix * vec4(tilt, 0.0)).xyz);
-      }`);
+      }
+      #endif`);
   };
 }
 
-/** Seabed material for a profile name from siteProfile(). */
-export function seabedMaterial(name) {
+const QUALITY = {low: 0, medium: 1, high: 2};
+
+/**
+ * Seabed material for a profile name from siteProfile(). ``detail`` (low / medium / high) sets the shader cost:
+ * low reads one texture and no noise (cost of the old single sand texture), medium adds mud / gravel patches and
+ * ripple shading, high mixes two rotated scales of every texture and adds rock outcrops.
+ */
+export function seabedMaterial(name, detail = 'medium') {
   const profile = PROFILES[name] || PROFILES.offshore;
   const material = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 1, metalness: 0});
   material.onBeforeCompile = shaderPatch(profile, sharedTextures());
-  material.customProgramCacheKey = () => 'seabed-site-v1';
+  material.defines = {SEA_QUALITY: QUALITY[detail] ?? 1};
+  if (profile.tiles) material.defines.SEA_TILES = 1;
+  material.customProgramCacheKey = () => `seabed-site-v2-${material.defines.SEA_QUALITY}-${profile.tiles ? 1 : 0}`;
   material.userData.seabedProfile = name;
   return material;
 }

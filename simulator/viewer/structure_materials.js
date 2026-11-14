@@ -186,18 +186,28 @@ function foulingShader(params, textures) {
       uniform vec3 uBoot;
       uniform float uHasBoot;
       vec3 foulSample(float scale) {
+        vec3 p = vFoulPos * scale;
+        #if FOUL_QUALITY >= 2
         vec3 w = abs(vFoulNormal);
         w = pow(w, vec3(4.0));
         w /= (w.x + w.y + w.z + 1e-4);
-        vec3 p = vFoulPos * scale;
         return texture2D(uFouling, p.zy).rgb * w.x + texture2D(uFouling, p.xz).rgb * w.y
           + texture2D(uFouling, p.xy).rgb * w.z;
+        #else
+        vec3 n = abs(vFoulNormal);
+        vec2 uv = n.y > max(n.x, n.z) ? p.xz : (n.x > n.z ? p.zy : p.xy);
+        return texture2D(uFouling, uv).rgb;
+        #endif
       }
       ` + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       {
         float depth = -vFoulPos.y;
-        vec3 fine = foulSample(0.9);
         vec3 coarse = foulSample(0.13);
+        #if FOUL_QUALITY >= 2
+        vec3 fine = foulSample(0.9);
+        #else
+        vec3 fine = coarse.gbr;
+        #endif
         float clump = clamp(fine.r * 0.6 + coarse.r * 0.8, 0.0, 1.0);
         float band0 = 1.0 - smoothstep(6.0, 10.0, depth);
         float band2 = smoothstep(18.0, 22.0, depth);
@@ -226,17 +236,25 @@ function foulingShader(params, textures) {
 
 /**
  * A new material for one structure kind. Each call returns its own instance (the snag highlight changes the
- * emissive colour per obstacle); the shader program is shared through the cache key.
+ * emissive colour per obstacle); the shader program is shared through the cache key. ``detail`` sets the cost:
+ * low has no fouling shader, medium reads the fouling mask once (dominant-axis projection), high blends three
+ * projections at two scales.
  */
-export function structureMaterial(kind) {
+export function structureMaterial(kind, detail = 'medium') {
   const params = PRESETS[kind] || PRESETS.steel;
   const textures = structureTextures();
   const material = new THREE.MeshStandardMaterial({
     color: params.color, roughness: params.roughness, metalness: params.metalness,
     map: params.map ? textures[params.map] : null,
   });
-  material.onBeforeCompile = foulingShader(params, textures);
-  material.customProgramCacheKey = () => 'structure-fouling-v1';
+  if (detail === 'low') {
+    // low tier: no fouling shader, the base colour is pre-mixed toward the mid-depth growth tone
+    material.color.lerp(new THREE.Color(0x3b3d35), params.cover[1] * 0.6);
+  } else {
+    material.onBeforeCompile = foulingShader(params, textures);
+    material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};
+    material.customProgramCacheKey = () => `structure-fouling-v2-${material.defines.FOUL_QUALITY}`;
+  }
   material.userData.structureKind = kind;
   return material;
 }

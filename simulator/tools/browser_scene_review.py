@@ -13,9 +13,10 @@ stay at the start position. Output: output/scene-review/<site>-<view>-<tag>.jpg 
 chosen images into docs/design/scenes/ by hand.
 
 Performance: for each quality tier (performance / medium / high, stored in localStorage `rov.quality` before
-the page loads so the scene is built for that tier) the script renders both views 15 times at 800x450 with a
-pixel read-back after each frame and reports the mean ms per frame, draw calls and triangles. SwiftShader
-timings are only comparable with each other on the same machine.
+the page loads so the scene is built for that tier) the script renders both views 15 times (ROV_SCENE_FRAMES)
+at 800x450 with a pixel read-back after each frame and reports the mean, median and minimum ms per frame, draw
+calls and triangles. SwiftShader timings are only comparable with each other on the same machine; on a shared
+machine the minimum is the least disturbed figure.
 """
 import base64
 import json
@@ -64,13 +65,18 @@ CAPTURE = '''([view, real, width, height, quality, frames]) => {
   scene.fog.far = real ? vis * 1.35 : 70;
   const gl = renderer.getContext(), pixel = new Uint8Array(4);
   renderer.render(scene, camera);
-  const t0 = performance.now();
+  const times = [];
   for (let i = 0; i < frames; i++) {
+    const t0 = performance.now();
     renderer.render(scene, camera);
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    times.push(performance.now() - t0);
   }
-  const ms = frames ? (performance.now() - t0) / frames : 0;
-  const info = {calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, ms};
+  times.sort((a, b) => a - b);
+  const ms = frames ? times.reduce((a, b) => a + b, 0) / frames : 0;
+  const minMs = frames ? times[0] : 0;
+  const medianMs = frames ? times[Math.floor(frames / 2)] : 0;
+  const info = {calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, ms, minMs, medianMs};
   const image = quality ? renderer.domElement.toDataURL('image/jpeg', quality) : null;
   renderer.setPixelRatio(keep.ratio);
   renderer.setSize(keep.size.x, keep.size.y, false);
@@ -90,6 +96,7 @@ def open_site(browser, key, tier):
     page = browser.new_page(viewport={'width': 1600, 'height': 900}, device_scale_factor=1)
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
+    page.on('console', lambda msg: errors.append(msg.text[:300]) if msg.type == 'error' else None)
     page.add_init_script(f"try{{localStorage.setItem('rov.quality','{tier}')}}catch(e){{}}")
     room = f'rv{abs(hash((key, tier))) % 10**8}'
     url = f'{http_base(8092)}/?play=1&ws={ws_base(8792)}&nointro&nopip&room={room}&scenario={key}&seed=1'
@@ -126,7 +133,8 @@ def main():
                             shot = page.evaluate(CAPTURE, [view, real, 1600, 900, 0.6, 0])
                             size = save_jpeg(shot['image'], OUT / f'{key}-{name}-{TAG}.jpg')
                         entry[f'{name}_jpeg_bytes'] = size
-                    timing = page.evaluate(CAPTURE, [view, real, 800, 450, 0, 15])['info']
+                    frames = int(os.environ.get('ROV_SCENE_FRAMES', '15'))
+                    timing = page.evaluate(CAPTURE, [view, real, 800, 450, 0, frames])['info']
                     entry[f'{tier}_{name}'] = {k: round(v, 2) for k, v in timing.items()}
                 entry[f'{tier}_errors'] = errors
                 page.close()
