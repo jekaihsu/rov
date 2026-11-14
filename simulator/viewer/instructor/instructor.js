@@ -158,7 +158,8 @@ target.addEventListener('change', function selection() {
 });
 const injection = el('form', '', faults, 'injection');
 const kind = select('kind', ['thruster', 'battery', 'current', 'visibility', 'freeze', 'video_delay', 'video_freeze',
-  'link_degrade', 'comms_loss', 'power_trip', 'leak', 'overheat'], injection);
+  'link_degrade', 'comms_loss', 'power_trip', 'leak', 'overheat',
+  'compass', 'depth_sensor', 'dvl', 'altimeter'], injection);
 const inputs = el('div', '', injection, 'fields');
 const strength = field('strength', '.5', inputs, 'number', 0, 1, .05);
 const duration = field('duration', '30', inputs, 'number', .1, 3600);

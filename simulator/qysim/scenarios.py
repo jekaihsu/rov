@@ -70,6 +70,8 @@ class Scenario:
     seabed_type: str | None = None      # fluff / mud / silt / sand / gravel / rock; None: from biome
     bnl_height_m: float = 0.0           # e-folding height of the near-bed turbid layer
     bnl_mg_l: float = 0.0               # extra suspended sediment at the bed, mg/L
+    water: str = "salt"                  # "salt" or "fresh": pressure-to-depth density of the site
+    enclosed: bool = False               # walled pool or tank: DVL beams reverberate off the walls
 
     def summary(self) -> dict:
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
@@ -301,7 +303,7 @@ def seagrass_meadow() -> Scenario:
 def harbor_inspection() -> Scenario:
     sea = 18.
     return Scenario("harbor_inspection", "港灣協作巡檢", "在港樁與碼頭邊分工巡檢，留意橫流、纜線與低能見度。",
-                    seabed_depth=sea, biome="harbor", visibility_m=7,
+                    seabed_depth=sea, biome="harbor", visibility_m=7, seabed_type="mud",
                     # Provisional near-bed turbid layer: about half the mid-water visibility at 0.5 m altitude.
                     bnl_height_m=2.0, bnl_mg_l=2.0,
                     obstacles=[Wall("Quay", (42, 0, 0), 180, 70, -2),
@@ -319,6 +321,7 @@ def tutorial_pool() -> Scenario:
     """Calm indoor commissioning pool, using the unchanged vehicle dynamics."""
     return Scenario("tutorial_pool", STRINGS["pool_name"], STRINGS["pool_brief"],
                     seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35, seabed_type="rock",
+                    water="fresh", enclosed=True,
                     current=CurrentProfile(0, 0, 0, 0, 0, 0, 0),
                     obstacles=[Wall(STRINGS["pool_walls"][0], (12, 0, 0), 180, 24, 0),
                                Wall(STRINGS["pool_walls"][1], (-12, 0, 0), 0, 24, 0),

@@ -13,6 +13,7 @@ import { installFidelityPanel } from '../fidelity_panel.js';
 import { bindingRow, hintText } from '../input/bindings.js';
 import { assistPill } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
+import { pilotReadings } from './sensor_view.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -23,7 +24,7 @@ const STRINGS = {
   cable: '纜線', battery: '電量', tension: '張力', light: '燈光',
   danger: '危險：纜線斷裂', warn: '注意：纜線張力', near: '注意：接近海床',
   obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
-  forward: '前方估距', controller: 'USB 控制器已連線',
+  forward: '前方估距', controller: 'USB 控制器已連線', dvlLost: '注意：DVL 失去底鎖',
   fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
 };
 const $ = id => document.getElementById(id);
@@ -238,14 +239,15 @@ function setText(el, text) {
   if (el.textContent !== text) el.textContent = text;
 }
 // Smoothed read-outs shared by both presentations.
-function readings(s, w, dt) {
-  const alt = w ? w.seabed_depth - s.pos[2] : null;
+// sensed: pilotReadings() — sensor estimates in the real preset, simulator truth otherwise.
+function readings(s, w, dt, sensed) {
+  const alt = sensed.altitude;
   return {
     alt: alt == null ? null : smooth('alt', alt, dt),
     altWarn: alt != null && alt < 1.5,
-    depth: smooth('depth', s.pos[2], dt),
-    heading: smoothHeading(s.euler?.[2] || 0, dt),
-    speed: smooth('speed', s.speed_kn || 0, dt),
+    depth: smooth('depth', sensed.depth, dt),
+    heading: smoothHeading(sensed.heading, dt),
+    speed: sensed.speedKn == null ? null : smooth('speed', sensed.speedKn, dt),
     cable: smooth('cable', s.tether?.length || 0, dt),
     tension: smooth('tension', s.tether?.tension_rov || 0, dt),
     battery: smooth('battery', s.battery ?? 0, dt),
@@ -264,7 +266,7 @@ function updateLine(r, s, w) {
   if (density > 0) drawFlightAttitude($('flightADI'), s.euler);
 }
 function updateReadout(r, s) {
-  setText($('rSpd'), r.speed.toFixed(2));
+  setText($('rSpd'), r.speed == null ? '—' : r.speed.toFixed(2));
   setText($('flightCable'), r.cable.toFixed(1));
   setText($('flightTension'), r.tension.toFixed(0));
   setText($('flightLight'), String(r.light));
@@ -283,13 +285,14 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   $('lockBadge').querySelector('b').textContent = s.locked ? STRINGS.locked : STRINGS.unlocked;
   $('lockBadge').querySelector('span').textContent = s.locked ? STRINGS.unlockHint : '';
   $('flightTools').classList.toggle('controller-visible', !!input.active);
-  const range = forwardRange(s, w);
+  const sensed = pilotReadings(s, w);
+  const range = sensed.range === undefined ? forwardRange(s, w) : sensed.range;
   $('flightRange').textContent = range == null ? '' : `${STRINGS.forward} ${range.toFixed(1)} m`;
   $('flightRange').dataset.level = range < .5 ? 'danger' : 'warning';
   $('flightController').textContent = s.controller ? STRINGS.controller : '';
-  const alt = w ? w.seabed_depth - s.pos[2] : null;
+  const alt = sensed.altitude;
   if (!$('flightCable')) addReadouts();
-  const r = readings(s, w, dt);
+  const r = readings(s, w, dt, sensed);
   updateReadout(r, s);
   showAssist(s);
   if (hudStyle === 'osd') {
@@ -320,7 +323,8 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   const warning = s.tether?.broken ? STRINGS.danger : nearDanger ? STRINGS.obstacleDanger
     : s.tether?.warn ? STRINGS.warn
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
-      : batteryApplies(s) && s.battery < 20 ? STRINGS.lowBattery : '';
+      : batteryApplies(s) && s.battery < 20 ? STRINGS.lowBattery
+        : sensed.dvlLost && s.rc?.assist ? STRINGS.dvlLost : '';
   $('flightWarning').textContent = warning;
   $('flightWarning').dataset.level = danger ? 'danger'
     : warning === STRINGS.lowBattery ? 'info' : 'warning';
