@@ -470,8 +470,9 @@ class SiltField:
         points = np.atleast_2d(np.asarray(points, float))
         if self.bnl_mg_l <= 0.0 or self.bnl_height_m <= 0.0:
             return np.zeros(len(points))
-        altitude = np.maximum(0.0, self.world.seabed_at_many(points) - points[:, 2])
-        return self.bnl_mg_l * np.exp(-altitude / self.bnl_height_m)
+        altitude = self.world.seabed_at_many(points) - points[:, 2]
+        layer = self.bnl_mg_l * np.exp(-np.maximum(0.0, altitude) / self.bnl_height_m)
+        return np.where(altitude < -1e-6, 0.0, layer)
 
     def concentration_mg_l(self, points, include_background: bool = True) -> np.ndarray:
         out = self.puff_mg_l(points)

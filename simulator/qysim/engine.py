@@ -51,6 +51,25 @@ class CameraState:
     counter: int = 1
 
 
+def vehicle_world_source(sim) -> dict:
+    """A vehicle as seen by ``World.step``: pose, mean thrust and per-thruster jets for the silt model."""
+    v, s = sim.vehicle, sim.vehicle.s
+    jets = []
+    for (_, pos_body, axis_body), thrust in zip(v.thrusters, s.thrust):
+        axis = np.asarray(axis_body, float)
+        axis = axis / np.linalg.norm(axis)
+        outlet = s.pos + q_rot(s.q, np.asarray(pos_body, float))
+        # Water leaves opposite to the force the thruster puts on the vehicle.
+        jet = -math.copysign(1.0, float(thrust)) * q_rot(s.q, axis)
+        jets.append((outlet, jet, abs(float(thrust))))
+    source = {"id": sim.vehicle_id, "pos": s.pos, "vel": v.world_velocity(),
+              "thrust": float(np.mean(np.abs(s.thrust)) / v.p.thruster_max), "jets": jets}
+    tether = getattr(sim, "tether", None)
+    if tether is not None:
+        source["tether"] = (tether.x, tether.v, tether.p.node_radius)
+    return source
+
+
 class Simulator:
     def __init__(self, scenario: str = "open_water", seed: int | None = None, rate_hz: float = 100.0,
                  model_id: str = "x1", vehicle_id: str = "default", shared_world=None):
@@ -227,19 +246,7 @@ class Simulator:
                 "c": round(4.8 / visibility, 4)}
 
     def world_source(self) -> dict:
-        """This vehicle as seen by ``World.step``: pose, mean thrust and per-thruster jets for silt."""
-        v, s = self.vehicle, self.vehicle.s
-        jets = []
-        for (_, pos_body, axis_body), thrust in zip(v.thrusters, s.thrust):
-            axis = np.asarray(axis_body, float)
-            axis = axis / np.linalg.norm(axis)
-            outlet = s.pos + q_rot(s.q, np.asarray(pos_body, float))
-            # Water leaves opposite to the force the thruster puts on the vehicle.
-            jet = -math.copysign(1.0, float(thrust)) * q_rot(s.q, axis)
-            jets.append((outlet, jet, abs(float(thrust))))
-        return {"id": self.vehicle_id, "pos": s.pos, "vel": v.world_velocity(),
-                "thrust": float(np.mean(np.abs(s.thrust)) / v.p.thruster_max), "jets": jets,
-                "tether": (self.tether.x, self.tether.v, self.tether.p.node_radius)}
+        return vehicle_world_source(self)
 
     def _buttons(self, rc: RCState) -> None:
         for name in ("record", "photo"):

@@ -6,7 +6,7 @@ import secrets
 import time
 import numpy as np
 
-from .engine import Simulator
+from .engine import Simulator, vehicle_world_source
 from .physics import q_conj, q_rot
 
 
@@ -197,7 +197,7 @@ class Room:
         self._vehicle_contacts()
         for sim in self.vehicles.values():
             sim.step(dt, update_world=False)
-        world.step(dt, vehicles=[sim.world_source() for sim in self.vehicles.values()])
+        world.step(dt, vehicles=[vehicle_world_source(sim) for sim in self.vehicles.values()])
         from .operations import step_objects
         step_objects(world, dt, base.t)
         self.tick += 1
