@@ -1,0 +1,366 @@
+{
+  "version": 1,
+  "vehicle_id": "v1",
+  "provisional": true,
+  "limits": {
+    "still": {
+      "path": 2,
+      "heading": 15,
+      "depth": 1,
+      "hover": 1,
+      "distance": 1,
+      "speed": 0.3
+    },
+    "current": {
+      "path": 2,
+      "heading": 15,
+      "depth": 1,
+      "hover": 1,
+      "distance": 1,
+      "speed": 0.3
+    }
+  },
+  "grade_limits": {
+    "green": 0.1,
+    "yellow": 0.3,
+    "smoothness": 0.25
+  },
+  "elapsed": 1.6100000000000012,
+  "completion": {
+    "score": 0,
+    "elapsed": 1,
+    "failed": "",
+    "finished": false,
+    "current_index": 0,
+    "objectives": [
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 1",
+        "point": [
+          10,
+          0,
+          6
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 2",
+        "point": [
+          10,
+          10,
+          10
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 3",
+        "point": [
+          0,
+          10,
+          14
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 4",
+        "point": [
+          0,
+          0,
+          8
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "surface",
+        "label": "回到投放點上浮",
+        "point": [
+          -2,
+          0,
+          0.5
+        ],
+        "radius": 3,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      }
+    ],
+    "penalties": [],
+    "penalty_total": 0
+  },
+  "matrix": {
+    "descent": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": {
+          "rms": 0.03292486675197227,
+          "min": 0.03292486675197227,
+          "max": 0.03292486675197227,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "heading": {
+          "rms": 2.8999999999999773,
+          "min": -2.8999999999999773,
+          "max": -2.8999999999999773,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "depth": {
+          "rms": 3.016518016846308,
+          "min": -3.016518016846308,
+          "max": -3.016518016846308,
+          "outside_fraction": 1,
+          "grade": "red"
+        },
+        "hover": {
+          "rms": 0.03292486675197227,
+          "min": 0.03292486675197227,
+          "max": 0.03292486675197227,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "distance": {
+          "rms": 3.016697696622752,
+          "min": 3.016697696622752,
+          "max": 3.016697696622752,
+          "outside_fraction": 1,
+          "grade": "red"
+        },
+        "speed": {
+          "rms": 0,
+          "min": 0,
+          "max": 0,
+          "outside_fraction": 0,
+          "grade": "green"
+        }
+      }
+    },
+    "transit": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    },
+    "hover": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    },
+    "orbit": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    },
+    "dock": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    }
+  },
+  "smoothness": null,
+  "collisions": [],
+  "max_tension": 1.7,
+  "wraps": [],
+  "events": [
+    {
+      "kind": "thruster",
+      "vehicle_id": "v1",
+      "scope": "v1",
+      "strength": 0.5,
+      "start": 0.15,
+      "end": 10.15,
+      "reaction_s": null,
+      "index": 0
+    }
+  ],
+  "trajectory": [
+    {
+      "t": 1.0000000000000007,
+      "phase": "descent",
+      "pos": [
+        0.018,
+        0.028,
+        1.983
+      ],
+      "errors": {
+        "path": 0.03292486675197227,
+        "heading": -2.8999999999999773,
+        "depth": -3.016518016846308,
+        "hover": 0.03292486675197227,
+        "distance": 3.016697696622752,
+        "speed": 0
+      },
+      "controls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tension": 1.7,
+      "wraps": {},
+      "current": true,
+      "completion": {
+        "score": 0,
+        "elapsed": 1,
+        "failed": "",
+        "finished": false,
+        "current_index": 0,
+        "objectives": [
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 1",
+            "point": [
+              10,
+              0,
+              6
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 2",
+            "point": [
+              10,
+              10,
+              10
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 3",
+            "point": [
+              0,
+              10,
+              14
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 4",
+            "point": [
+              0,
+              0,
+              8
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "surface",
+            "label": "回到投放點上浮",
+            "point": [
+              -2,
+              0,
+              0.5
+            ],
+            "radius": 3,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          }
+        ],
+        "penalties": [],
+        "penalty_total": 0
+      },
+      "collisions": []
+    }
+  ]
+}

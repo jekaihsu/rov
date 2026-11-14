@@ -289,3 +289,58 @@ existing shared mission engine. All pilots receive the same narrative state. Sea
 retain the room instance. `course:true` runs the same script without dialogue pauses.
 A viewer stores local progress in its existing `rov.*` preferences and exports results as JSON.
 Campaign files reserve nullable `voice` on dialogue nodes for later audio assets.
+
+## Optional instructor preview (T17, draft)
+
+Internal installations may set `QYSIM_INSTRUCTOR_CODE` in the server environment.
+Unset/empty disables authentication. Never put the code in URLs, source files,
+reports or logs. Use WSS on untrusted networks. Open
+`/instructor/instructor.html`; an optional `?ws_port=8792` selects a nondefault WS port.
+Steam backend packaging excludes the instructor directory.
+
+An instructor sends `{"type":"instructor_join","room_id":"training","code":"<private>"}`.
+The room must already exist. Successful authentication replies
+`{"type":"instructor_session","room_id":"training"}` and streams the existing
+fleet state without reserving a player or vehicle. No additional state fields are
+required. Credentials are not echoed. A pilot connection cannot become an instructor.
+An authenticated instructor connection accepts only `type:"instructor"` messages:
+
+* `action:"inject"`, `kind:"thruster"|"battery"|"current"|"visibility"|"freeze"`,
+  optional `vehicle_id:"v1"`, `strength:0..1` (default 1), `duration` (0 < seconds <= 3600,
+  default 10), `index` (thruster index, default 0).
+  Thruster strength reduces existing health; battery strength reduces existing charge.
+  Current and visibility affect the **whole room** through existing current/scene parameters.
+  Current strength maps to 0..4 knots in all layers, retaining their directions.
+  Visibility retains at least 0.1 m. Overrides restore saved values on expiry.
+  Overlapping overrides of the same kind/scope are rejected.
+  Freeze uses the individual simulator pause while the room override clock keeps advancing.
+* `action:"pause", value:true|false`; `action:"reset"`; `action:"scenario", key:"..."`.
+  Reset archives assessment evidence and clears overrides.
+* `action:"return", vehicle_id:"v1"` redeploys the model locked at its normal start.
+* `action:"reference"`, optional `vehicle_id`, `phase` (`descent`, `transit`, `hover`,
+  `orbit`, `dock`), `reference` containing optional NED `target`, `path_start`,
+  `heading` degrees, `depth`, `distance`, `speed_min`, `speed_max` in SI units.
+  Optional `limits` supplies both `still` and `current`, each with positive tolerances
+  `path`, `heading`, `depth`, `hover`, `distance`, `speed`.
+* `action:"report", vehicle_id:"v1"` returns `type:"training_report"`, `report` and
+  prior `archive` reports. Other successes reply `type:"instructor_result", action, ok:true`.
+
+While a supervisor is connected or an override is active, pilot non-RC commands are
+rejected (`instructor_override`). The instructor's credentials never grant an SDK seat.
+Existing clients omitting this entire optional extension retain their current behavior.
+
+Evidence is sampled at 1 Hz of unpaused simulation time. Reports retain a five-phase
+matrix, split by current/no-current samples, with RMS, min/max, outside-tolerance
+fraction and provisional green/yellow/red assessment, plus command variance,
+zero crossings, reversals, collisions, tension, wraps, completion and trajectory.
+Empty phases remain null. References default to deployment location/depth, current
+heading, zero stand-off and speed 0..0.5 m/s; instructors should explicitly set them.
+Path error measures distance to the finite reference segment in the horizontal plane.
+Grades use both RMS and outside-time fraction; all limits are **暫定** and require
+company baseline flights. Reaction means first changed control packet after injection,
+not a validated successful recovery. Completion/failure automatically archives a report;
+reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are available.
+
+This draft does **not** yet implement tether snags, sensor or video faults, lighting
+faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
+fault adapters or permanent report storage. It is not ready for training acceptance.
