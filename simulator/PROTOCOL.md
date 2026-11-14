@@ -368,3 +368,12 @@ reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are av
 This draft does **not** yet implement tether snags, sensor or video faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.
+
+## Optional simulator vision extension
+
+Viewer message `{"type":"vision_results","detections":[{"cls":"coral","score":1,"box":[0.1,0.2,0.3,0.4]}]}`
+reports normalized top-left xywh boxes. Reports are untrusted client assistance, never scoring authority.
+RPC `{"type":"vision_results"}` reads the primary simulator vehicle's latest report with `age_s`;
+after one second, returns `{"available":false,"detections":[]}`. Requires an active reporting viewer.
+This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
+Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.

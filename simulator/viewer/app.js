@@ -1,6 +1,8 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
+import {visionTargets} from './vision/targets.js';
+import {installVision} from './vision/overlay.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -462,9 +464,11 @@ let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
+const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
+    vision.assertPhoto();
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
     const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
@@ -776,6 +780,7 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
 cameraRig.bindInput(input);
 surfacePaint.bindInput(input);
 campaignPanel.bindInput(input);
+vision.bindInput(input);
 let camMode = cameraRig.mode;
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
@@ -1241,6 +1246,7 @@ function frame(now) {
   } else guide.visible = false;
   audio.update(renderState.display(S));
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
+  vision.update(now);
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
