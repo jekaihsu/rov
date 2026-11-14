@@ -1,3 +1,4 @@
+// Desktop lifecycle, local backend ownership and trusted renderer IPC.
 const {app,BrowserWindow,dialog,ipcMain,screen}=require('electron');
 const {spawn}=require('node:child_process');
 const net=require('node:net');
@@ -9,6 +10,15 @@ if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_DATA){
   if(!path.isAbsolute(process.env.ROV_DESKTOP_SMOKE_DATA))throw Error('ROV_DESKTOP_SMOKE_DATA 必須是絕對路徑');
   fs.mkdirSync(process.env.ROV_DESKTOP_SMOKE_DATA,{recursive:true});app.setPath('userData',process.env.ROV_DESKTOP_SMOKE_DATA);
 }
+if (!app.requestSingleInstanceLock()) app.quit();
+app.on('second-instance', () => {
+  const window = BrowserWindow.getAllWindows()[0];
+  if (window) {
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.focus();
+  }
+});
 let backend=null,log=null;
 async function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer();s.once('error',reject);s.listen(0,'127.0.0.1',()=>{const port=s.address().port;s.close(()=>resolve(port));});});}
 async function waitReady(port){for(let i=0;i<1200;i++){if(backend.exitCode!==null || backend.signalCode!==null)throw Error('模擬服務啟動失敗，請查看 backend.log');try{const r=await fetch(`http://127.0.0.1:${port}/`,{signal:AbortSignal.timeout(1000)});if(r.ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('模擬服務啟動逾時');}
@@ -23,7 +33,7 @@ app.whenReady().then(async()=>{
   const preferencesPath=path.join(data,'preferences.json');
   const modelIds=['x1','bluerov2_heavy','falcon'];
   let preferredModel='x1';
-  const qualityModes=['auto','performance','medium','high'];let preferredQuality='auto';
+  const qualityModes=['auto','performance','medium','high'];let preferredQuality=process.env.SteamDeck === '1' ? 'performance' : 'auto';
   try{const saved=JSON.parse(fs.readFileSync(preferencesPath,'utf8'));if(modelIds.includes(saved.model))preferredModel=saved.model;if(qualityModes.includes(saved.quality))preferredQuality=saved.quality;}catch{}
   const savePreferences=()=>fs.writeFileSync(preferencesPath,JSON.stringify({model:preferredModel,quality:preferredQuality}));
   const cache=path.join(data,'numba-cache');fs.mkdirSync(cache,{recursive:true});
@@ -33,6 +43,23 @@ app.whenReady().then(async()=>{
   backend.on('error',e=>{dialog.showErrorBox('模擬器無法啟動',e.message);app.quit();});
   const workArea=screen.getPrimaryDisplay().workAreaSize;
   const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,preload:path.join(__dirname,'preload.cjs')}});
+  const steam = require('./steam_bridge.cjs').createSteam(data);
+  function trusted(event) {
+    return event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame &&
+      event.senderFrame.url.startsWith(`http://127.0.0.1:${http}/`);
+  }
+  require('./window_settings.cjs').installWindowSettings(window, screen, ipcMain, trusted,
+    path.join(data, 'display.json'));
+  ipcMain.handle('rov:steam', (event, method, ...args) => {
+    if (!trusted(event) || !['status', 'event', 'stat'].includes(method)) throw Error('Forbidden IPC');
+    return steam[method](...args);
+  });
+  window.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown' && input.alt && input.key === 'Enter') {
+      event.preventDefault();
+      window.setFullScreen(!window.isFullScreen());
+    }
+  });
   const collection=new CollectionStore(path.join(data,'collection'));
   ipcMain.handle('rov:collection',async(event,method,payload)=>{
     let allowed=false;try{allowed=event.sender===window.webContents&&event.senderFrame===window.webContents.mainFrame&&new URL(event.senderFrame.url).origin===`http://127.0.0.1:${http}`;}catch{}
@@ -48,9 +75,26 @@ app.whenReady().then(async()=>{
     try{preferredQuality=quality;savePreferences();}catch(error){log.write(`Could not save quality preference: ${error.message}\n`);}
   });
   await window.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent('<html lang="zh-Hant"><meta charset="utf-8"><body style="margin:0;background:#081722;color:#dce8ea;font:18px system-ui;display:grid;place-content:center;height:100vh"><h1>ROV Simulator</h1><p>正在準備模擬環境，首次啟動可能需要一點時間。</p></body></html>'));
+  backend.on('exit', (code) => {
+    if (code && !window.isDestroyed()) {
+      dialog.showMessageBox(window, {type: 'error', buttons: ['Retry', 'Close'],
+        message: 'Simulation service stopped', detail: path.join(data, 'backend.log')}).then(({response}) => {
+        if (response === 0) app.relaunch();
+        app.quit();
+      });
+    }
+  });
+  window.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    if (!details.url.startsWith(`http://127.0.0.1:${http}/`)) return callback({});
+    callback({responseHeaders: {...details.responseHeaders, 'Content-Security-Policy': [
+      `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; ` +
+      `img-src 'self' data: blob:; connect-src 'self' ws: wss: https:; worker-src 'self' blob:; ` +
+      `object-src 'none'; frame-src 'none'; base-uri 'none'`
+    ]}});
+  });
   await waitReady(http);
   window.webContents.setWindowOpenHandler(({url})=>{
-    if(url.startsWith(`http://127.0.0.1:${http}/`))return {action:'allow',overrideBrowserWindowOptions:{webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}}};
+    // Child windows cannot inherit privileged local access.
     return {action:'deny'};
   });
   window.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith(`http://127.0.0.1:${http}/`))event.preventDefault();});

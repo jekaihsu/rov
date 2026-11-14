@@ -40,6 +40,7 @@ jobs:
           set -e
           node --test simulator/tests/*.mjs
           node simulator/desktop/test_collection_store.cjs
+          node simulator/desktop/test_steam.cjs
       - name: Generated showcase is not edited by hand
         if: github.event_name == 'pull_request'
         run: |

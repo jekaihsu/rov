@@ -1,0 +1,77 @@
+[
+  {
+    "event": "first_dive",
+    "api": "FIRST_DIVE",
+    "stat": null
+  },
+  {
+    "event": "first_inspection",
+    "api": "FIRST_INSPECTION",
+    "stat": null
+  },
+  {
+    "event": "first_recovery",
+    "api": "FIRST_RECOVERY",
+    "stat": null
+  },
+  {
+    "event": "first_deployment",
+    "api": "FIRST_DEPLOYMENT",
+    "stat": null
+  },
+  {
+    "event": "first_training",
+    "api": "FIRST_TRAINING",
+    "stat": null
+  },
+  {
+    "event": "zero_collision",
+    "api": "ZERO_COLLISION",
+    "stat": null
+  },
+  {
+    "event": "guide_fish",
+    "api": "GUIDE_FISH",
+    "stat": null
+  },
+  {
+    "event": "guide_coral",
+    "api": "GUIDE_CORAL",
+    "stat": null
+  },
+  {
+    "event": "guide_seagrass",
+    "api": "GUIDE_SEAGRASS",
+    "stat": null
+  },
+  {
+    "event": "guide_structure",
+    "api": "GUIDE_STRUCTURE",
+    "stat": null
+  },
+  {
+    "event": "guide_wildlife",
+    "api": "GUIDE_WILDLIFE",
+    "stat": null
+  },
+  {
+    "event": "guide_complete",
+    "api": "GUIDE_COMPLETE",
+    "stat": null
+  },
+  {
+    "event": "three_pilots",
+    "api": "THREE_PILOTS",
+    "stat": null
+  },
+  {
+    "event": "untangled",
+    "api": "UNTANGLED",
+    "stat": null
+  },
+  {
+    "event": "first_photo",
+    "api": "FIRST_PHOTO",
+    "stat": null
+  }
+]

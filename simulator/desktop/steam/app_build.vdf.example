@@ -3,7 +3,7 @@
   "AppID" "REPLACE_WITH_APP_ID"
   "Desc" "ROV Simulator Windows test build"
   "BuildOutput" "./logs/"
-  "ContentRoot" "../out/ROV Simulator-win32-x64/"
+  "ContentRoot" "../ROV Simulator-win32-x64/"
   "Preview" "1"
   "Depots"
   {
