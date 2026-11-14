@@ -1,4 +1,6 @@
 import {installInput} from './input/index.js';
+import {assistFields} from './input/actions.js';
+import { updateFlightHUD } from './hud/flight_hud.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -629,8 +631,7 @@ function rcMessage() {
   const m = {};
   for (const c of CH) m[c] = cockpit.armMode ? 1500 : Math.round(1500 + 500 * out[c]);
   m.rc_lock = rc.rc_lock; m.keep_depth = rc.keep_depth; m.left_switch = rc.left_switch; m.right_switch = rc.right_switch;
-  m.assist = rc.assist;
-  m.profile = rc.profile;
+  Object.assign(m, assistFields(S, rc));
   m.photo = 0; m.record = collectionOpen?0:hold.record.size ? 1 : 0;
   if(collectionOpen){CH.forEach(c=>m[c]=1500);m.rc_lock=1;}
   return m;
@@ -1216,6 +1217,7 @@ function frame(now) {
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
   // pose (smoothed toward latest state)
   replayTick(dt);
+  updateFlightHUD(S, W, dt, input.hudState());
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);
