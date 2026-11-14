@@ -132,7 +132,8 @@ export class StateBuffer {
     }
     this.frames.push(state);
     this.frames.sort((a, b) => a.t - b.t);
-    if (this.frames.length > 90) this.frames.shift();
+    // Keep enough history for the simulated link's video lag (up to ~5 s at the 30 Hz state rate).
+    if (this.frames.length > 300) this.frames.shift();
   }
   sample(now = performance.now() / 1000, local = false, delayOverride = null) {
     if (this.offset === null) return null;
@@ -167,7 +168,9 @@ export class StateBuffer {
 }
 
 // Keep render-state selection and scene pose updates out of the shared app loop.
-export function createRenderState({P, Q, rovG, fleet, updateTether, params = new URLSearchParams(), fidelity = null}) {
+// `link` is the optional presenter from video_link.js; without it the simulated vehicle link is ignored.
+export function createRenderState({P, Q, rovG, fleet, updateTether, params = new URLSearchParams(), fidelity = null,
+  link = null}) {
   const legacyAssisted = params.get('presentation') === 'assisted';
   // Provisional generic video latency from the research report, not a vehicle-specific measurement.
   const configuredDelay = Number(params.get('videoDelayMs') ?? 150);
@@ -181,12 +184,26 @@ export function createRenderState({P, Q, rovG, fleet, updateTether, params = new
   const remote = new StateBuffer();
   const local = new StateBuffer();
   let state = null;
+  let linkReport = null;
+  function linkNow() {
+    return link && linkReport ? link.effect(linkReport) : null;
+  }
   // What the operator learns only through the vehicle's own telemetry, which shares the video link.
   const ONBOARD_FIELDS = ['pos', 'q', 'euler', 'vel', 'speed_kn', 'thrust', 'battery', 'current_here',
-    'current_kn', 'silt', 'tether', 'events', 'damage', 'vehicles'];
+    'current_kn', 'silt', 'tether', 'events', 'damage', 'vehicles', 'power',
+    'thermal', 'leak'];
   // State for the onboard overlay and vehicle sounds: telemetry as old as the picture, while the
   // pilot's own switches, missions and room data stay current. Without a video delay it is `latest`.
   function display(latest) {
+    const telemetry = link && latest ? link.telemetry(latest, linkNow(), performance.now() / 1000) : null;
+    if (telemetry) {
+      // A degraded or lost link delivers vehicle telemetry at its own (reduced or zero) rate.
+      const held = {...latest};
+      for (const field of ONBOARD_FIELDS) {
+        if (field in telemetry) held[field] = telemetry[field];
+      }
+      return held;
+    }
     if (!latest || !state || state === latest || presentation().assisted) return latest;
     const shown = {...latest};
     for (const field of ONBOARD_FIELDS) {
@@ -196,13 +213,20 @@ export function createRenderState({P, Q, rovG, fleet, updateTether, params = new
   }
   function ingest(snapshot, replay, now) {
     if (replay) return;
+    linkReport = snapshot.link ?? null;
     remote.push(snapshot, now);
     local.push(snapshot, now);
   }
   function update(snapshot, replay, now) {
     const {assisted, videoDelay} = presentation();
-    state = replay ? snapshot : remote.sample(now, false, assisted ? null : videoDelay);
-    const own = replay ? snapshot : assisted ? local.sample(now, true) : state;
+    const effect = replay ? null : linkNow();
+    // A frozen link holds the last delivered picture: neither the pose nor the scene state moves.
+    if (effect?.frozen && state) return;
+    // Link lag is added to the video delay; it also overrides the predicted (assisted) presentation.
+    const predicted = assisted && !effect;
+    const delay = videoDelay + (effect?.extraDelay ?? 0);
+    state = replay ? snapshot : remote.sample(now, false, predicted ? null : delay);
+    const own = replay ? snapshot : predicted ? local.sample(now, true) : state;
     if (own) {
       P(own.pos, rovG.position);
       Q(own.q, rovG.quaternion);
@@ -218,6 +242,9 @@ export function createRenderState({P, Q, rovG, fleet, updateTether, params = new
     display,
     get state() {
       return state;
+    },
+    get linkEffect() {
+      return linkNow();
     }
   };
 }

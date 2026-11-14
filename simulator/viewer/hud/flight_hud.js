@@ -12,6 +12,7 @@ import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
 import { bindingRow, hintText } from '../input/bindings.js';
 import { assistPill } from './assist_pill.js';
+import { updateSystemStatus, batteryApplies } from './system_status.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -271,6 +272,8 @@ function updateReadout(r, s) {
   $('flightCable').parentElement.classList.toggle('warn', !!s.tether?.warn);
   $('flightTension').parentElement.classList.toggle('warn', !!s.tether?.warn);
   $('flightBattery').parentElement.classList.toggle('warn', s.battery < 20);
+  $('flightBattery').parentElement.hidden = !batteryApplies(s);
+  updateSystemStatus(s);
 }
 export function updateFlightHUD(s, w, dt, input = {}) {
   if (!ready) initialize();
@@ -317,7 +320,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   const warning = s.tether?.broken ? STRINGS.danger : nearDanger ? STRINGS.obstacleDanger
     : s.tether?.warn ? STRINGS.warn
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
-      : s.battery < 20 ? STRINGS.lowBattery : '';
+      : batteryApplies(s) && s.battery < 20 ? STRINGS.lowBattery : '';
   $('flightWarning').textContent = warning;
   $('flightWarning').dataset.level = danger ? 'danger'
     : warning === STRINGS.lowBattery ? 'info' : 'warning';

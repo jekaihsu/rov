@@ -76,6 +76,7 @@ model_id         vehicle design ID
 vehicle          selected vehicle definition and geometry offsets
 operations       arm state, inspection state and shared work objects
 environment      authoritative fish-school states and localized silt clouds
+                 (`silt_clouds`, legacy shape); optional `silt_puffs` and `turbidity`, see §4a
 tick             room physics tick
 vehicles[]       every vehicle's state, plus id and owner_id
 room             {id, host_id, capacity, players:[{id, vehicle_id, name, connected}]}
@@ -193,19 +194,107 @@ rc {...}         active RC (SDK when remote_control) — same keys as the rc mes
                  reports what the controller actually applies)
 remote_control   bool (SDK has control; physical RC ignored)
 operation_mode   str      ctrl_mode "A"/"S"/"C"   locked bool   keep_depth bool   depth_hold m|null
-battery %        recording bool   photos int
+battery %        (always 100 for tether-powered vehicles; see `power`)   recording bool   photos int
 current_here [n,e,d] m/s at the ROV     current_kn
 tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tension_max (N),
         warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout}
 events [{t, obstacle, speed, severity: touch|hard|severe, where}]   (last 12 impacts)
 damage [{t, thruster, health}]
-silt 0..1 (seabed silt cloud; reduce visibility)
+silt 0..1 (seabed silt cloud; reduce visibility). Defined as 1 − effective/base visibility at the
+     vehicle (sediment share of the beam attenuation); 0 in clear water, approaches 1 in a silt-out.
+turbidity {mg_l, visibility_m, c}   optional: suspended sediment (mg/L) at the onboard camera, the
+     black-target visibility there (m, = 4.8 / c, no floor) and the beam attenuation c (1/m)
 nav {mode: IDLE|H_NAVI|V_NAVI|VCCM, nav_status, vccm, route [[n,e,d]...], route_i, target [n,e,d]|null}
 score {score 0..100, elapsed, failed "", finished, current_index,
        objectives [{kind, label, point [n,e,d], radius, hold_s, done, progress 0..1, target}],
        penalties [{t, reason, points}], penalty_total}
 log [{t, kind, text}]   (last 8 lines, Traditional Chinese)
 ```
+
+### Optional `power`: tether power budget / battery
+
+`state.power` (and each fleet entry) is an optional addition; existing fields keep their meaning.
+
+```text
+power {type: tether|battery, available_w W|null, demand_w W, thruster_w W, lights_w W,
+       limited bool, scale 0..1, tripped bool, cutoff bool, lights_on bool,
+       voltage_v V|null, soc %|null}
+```
+
+* `type:"tether"` (X1 and the larger catalogue vehicle): no battery and no drain. Thrusters
+  (power ~ thrust^1.5), lights and a fixed electronics load share `available_w`. When the demand
+  exceeds it, every thruster command is scaled by the same factor (`scale`, `limited:true`), so all
+  thrusters together cannot reach their individual maxima. `tripped` (instructor `power_trip`)
+  removes all thrust and lights and drops the vehicle link until reset. The legacy `battery` field
+  stays at 100 so old clients see a full, non-draining value. An instructor `battery` injection on a
+  tether vehicle lowers `available_w` (supply sag) instead.
+* `type:"battery"`: the existing state-of-charge drain is unchanged. At 0% motors and lights are
+  cut off (`cutoff:true`) and re-enabled above 2%. `voltage_v` is a linear 4S estimate.
+* `lights_on:false` means the lamps are unpowered even though `rc.right_switch` is on.
+
+SDK compatibility: `QYRovNavigationManage.get_rov_data` `rov.power` keeps exactly
+`{type:"battery", battery_cap_1, battery_cap_2}` for battery vehicles. Tether vehicles report
+`type:"tether"` (a new value), `battery_cap_1`/`battery_cap_2` = 100 and `endurance` = 5000 (the
+legacy full-charge value; a tether vehicle has no endurance limit), plus optional `available_w`,
+`demand_w`, `limited`, `tripped`. Clients that only read the battery percentages keep working and
+see a full supply. `get_rov_status` reports `Battery: "Left: 100, Right: 100"` and the self-test
+battery flags stay healthy for tether vehicles. All wattages are provisional engineering
+assumptions (X1 supply power, light wattage and thruster current are unpublished); see
+`qysim/power.py` for each value's source.
+
+### Optional `thermal` and `leak`
+
+```text
+thermal {motor_c (hottest thruster), mos_c (motor drivers), housing_c, in_water bool, dry_run_s,
+         warnings [dry_run|motor_hot|electronics_hot]}
+leak {detected bool}
+```
+
+A first-order model: heat follows electrical load, cooling is strong in water and weak in air.
+`dry_run` is raised after 30 s of running thrusters out of water (vendor rule; the vehicle is out
+of water only in a deck state, `on_deck` server-side, which current scenarios never use). Sustained
+full thrust in water reaches `motor_hot` after several minutes. Warnings only, no derating. Each new
+warning is also written to `log` (kind `thermal`). Thresholds are provisional assumptions.
+`QYRovCheckManage.ego_self_test` now reports the modelled `temp` (housing) and `mos_temp` instead of
+the constants 31 / 38 (the model starts at those values in 26 °C surface water) and `leak: 0` while a
+leak is detected (1 = dry, unchanged otherwise).
+
+### Optional `link`: simulated vehicle communications link
+
+`state.link` (and each fleet entry) describes the *simulated* tether link between topside and
+the vehicle. It is a training fault model and is separate from the simulator's own network
+watchdog (0.6 s input timeout, latch and resync described above), which is unchanged.
+Clients that ignore the field behave exactly as before. The link is `healthy` unless a scenario
+(`Scenario.link`, server-side) or an instructor injection changes it; nothing degrades on its own.
+
+```text
+link {state: healthy|degraded|lost, phase: connected|lost|reconnecting, cause: comms|power|null,
+      quality 0..1, video_lag_s, video_frozen bool, artefact 0..1, telemetry_hz number|null,
+      failsafe_action: disarm|depth_hold|surface, failsafe: null|disarm|depth_hold|surface,
+      failsafe_in s|null, reconnect_in s|null, rearm_required bool}
+```
+
+* `degraded`: commands still reach the vehicle. `video_lag_s` grows toward a cap (5 s at full
+  severity), `video_frozen` is true during periodic freeze episodes (about 5 s every 20 s at full
+  severity), `artefact` is the compression-artefact level and `telemetry_hz` the reduced telemetry
+  rate (`null` means unchanged).
+* `lost` (`phase:"lost"`): no command reaches the vehicle; it keeps executing the last command
+  it received. After `failsafe_delay_s` (default 3 s) it applies `failsafe_action`: `disarm`
+  (default; the same latched lock as the network failsafe, `input_latched` and a new
+  `control_generation`), `depth_hold` (holds the depth at the moment of the failsafe) or
+  `surface` (ascends through the depth-hold loop). Video is frozen and telemetry stops
+  (`telemetry_hz: 0`). A loss caused by a power trip disarms immediately.
+* `reconnecting`: the link has been restored and the modem re-establishes for `reconnect_s`
+  (default 30 s); `state` is still `lost`. Afterwards the vehicle is locked again and
+  `rearm_required` stays true until the pilot sends a locked packet and then an unlocked one.
+  A `depth_hold`/`surface` failsafe keeps running until that re-arm.
+
+Viewer presentation: `video_lag_s` is added to the video delay, a frozen link holds the last
+rendered picture (onboard camera) and the last vehicle pose, and onboard telemetry read-outs are
+released at `telemetry_hz`. Defaults are provisional (an open-source sub autopilot's failsafe
+options and 3 s pilot-input timeout, a ~30 s reconnect figure from an earlier vehicle's vendor FAQ,
+field reports of 4–5 s lag and 5 s/20 s freezes; sources in
+`research_notes/感測器_揚沙_通訊/comms_and_power.md`); none are X1 measurements. SDK RPC telemetry is not affected by the simulated link.
 
 ## 4. World object (`type: "world"`)
 
@@ -215,13 +304,37 @@ obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|m
           | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
           | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall} ]              (vertical face; extends from `top` down to the seabed)
 current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
-scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length}
+scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length,
+          biome, seabed_type, bnl_height_m, bnl_mg_l}       (the last three optional, see §4a)
 spool [n,e,d]         tether spool / deployment point on the surface
 start_pos [n,e,d]     ROV start position (the viewer's deployment intro ends here)
 catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
+
+### 4a. Sediment and turbidity (optional fields)
+
+The host simulates thruster-induced silt (`qysim/silt.py`): each thruster jet is followed along its
+world axis, eroding the bed only above the seabed type's critical shear, and the sediment is carried
+as mass-conserving Gaussian puffs that settle by grain class, drift with the current and spread.
+All coefficients are provisional (see `docs/reference/silt-validation.md`).
+
+```text
+world.scenario.seabed_type   fluff | mud | silt | sand | gravel | rock   (rock never erodes)
+world.scenario.bnl_height_m  e-folding height of a near-bed turbid layer (0 = none)
+world.scenario.bnl_mg_l      extra suspended sediment at the bed from that layer, mg/L
+state.environment.silt_puffs [[n, e, d, sigma_h, sigma_v, peak_mg_l], ...]   up to 64, strongest first
+state.environment.turbidity  {seabed_type, c_water, k_m2_per_g, bnl_height_m, bnl_mg_l}
+```
+
+A client may reconstruct the concentration anywhere as the sum over puffs of
+`peak * exp(-(dn²+de²)/(2 sigma_h²)) * (exp(-dd²/(2 sigma_v²)) + exp(-dd_img²/(2 sigma_v²)))`, where
+`dd_img` is measured from the puff's mirror image below the seabed, plus
+`bnl_mg_l * exp(-altitude / bnl_height_m)`. Beam attenuation is `c = c_water + k_m2_per_g * C`
+(C in mg/L = g/m³) and black-target visibility is `4.8 / c`. `c_water` is `4.8 / visibility_m`.
+`silt_clouds` keeps its old keys (`pos`, `strength` 0..1, `radius`, `age`, `source`) for the strongest
+24 puffs. Clients that ignore the new fields keep working.
 
 ### Optional flight assistance
 
@@ -335,6 +448,16 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
   injection matching `kind`, `vehicle_id` and its exact `start`; other overrides are untouched.
   A stale/nonmatching timestamp is rejected. Omit it to retain normal injection behavior.
   Freeze uses the individual simulator pause while the room override clock keeps advancing.
+* Optional vehicle-system kinds (same `vehicle_id`, `strength`, `duration`, `cancel_start` rules,
+  per-vehicle scope; see the optional `link`, `power`, `thermal`/`leak` state sections):
+  `video_delay` (adds `strength` × 5 s of video lag, no freezes), `video_freeze` (holds the video),
+  `link_degrade` (degraded link with severity `strength`), `comms_loss` (link lost; on expiry the
+  reconnect starts), `power_trip` (all thrust, lights and the link drop and the vehicle disarms
+  immediately; on expiry power returns and the link reconnects), `leak` (leak alarm, self-test
+  `leak: 0`) and `overheat` (adds `strength` × 50 °C to motor and driver readings). `comms_loss`
+  accepts optional `failsafe` (`disarm`|`depth_hold`|`surface`), `failsafe_delay` and `reconnect`
+  (0..600 s) for that injection only. `freeze` remains a physics pause, unrelated to `video_freeze`.
+  On a tether-powered vehicle a `battery` injection lowers the supply power instead of a charge.
 * `action:"pause", value:true|false`; `action:"reset"`; `action:"scenario", key:"..."`.
   Reset archives assessment evidence and clears overrides.
 * `action:"return", vehicle_id:"v1"` redeploys the model locked at its normal start.
@@ -375,6 +498,6 @@ company baseline flights. Reaction means first changed control packet after inje
 not a validated successful recovery. Completion/failure automatically archives a report;
 reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are available.
 
-This draft does **not** yet implement tether snags, sensor or video faults, lighting
+This draft does **not** yet implement tether snags, sensor faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.

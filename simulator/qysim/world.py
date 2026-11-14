@@ -347,17 +347,16 @@ class World:
         self.mu = 0.4
         self._in_contact: set = set()
         self.events: list[ContactEvent] = []
-        self.silt = 0.0               # 0..1 seabed silt cloud (visibility)
         self._contacts_by_vehicle: dict = {}
         self.world_seed = 0
         self.biome = "temperate"
         self.terrain = None
         self.habitat_entities = []
         self.fish_schools = []
-        self.silt_clouds = []
         self.time = 0.0
         self._ecology_accumulator = 0.0
-        self._silt_last: dict = {}
+        from .silt import SiltField
+        self.silt_field = SiltField(self)
 
     def configure_habitat(self, biome: str, seed: int, keep_clear=()) -> None:
         from .ecology import SeabedTerrain, create_habitat
@@ -374,6 +373,12 @@ class World:
         return float(self.terrain.sample_many(np.asarray(position)[None, :])[0][0])
 
     depth_at = seabed_at
+
+    def seabed_at_many(self, positions: np.ndarray) -> np.ndarray:
+        positions = np.atleast_2d(np.asarray(positions, float))
+        if self.terrain is None:
+            return np.full(len(positions), float(self.seabed_depth))
+        return self.terrain.sample_many(positions)[0]
 
     # ── queries ───────────────────────────────────────────────────────────
     def sdf(self, x: np.ndarray) -> tuple[float, np.ndarray, str]:
@@ -446,8 +451,10 @@ class World:
                         ("-stbd" if c_body[1] > 0.1 else "-port" if c_body[1] < -0.1 else "")
                 self.events.append(ContactEvent(round(t, 2), name, round(speed, 2), sev, where, vehicle_id))
                 if name == "seabed":
-                    self.silt = min(1.0, self.silt + 0.3 + speed)
-                    self.emit_silt(pos, .3 + speed, vehicle_id)
+                    self.silt_field.contact(pos, speed, vehicle_id, impact=True)
+        if any(name == "seabed" for _, name in touching):
+            slide = float(np.linalg.norm(q_rot(q, vel_body)[:2]))
+            self.silt_field.contact(pos, slide, vehicle_id, impact=False)
         self._in_contact = touching
         self._contacts_by_vehicle[vehicle_id] = touching
         return wrench
@@ -511,45 +518,63 @@ class World:
             idx[closer] = i
         return dist, normal, idx
 
-    def emit_silt(self, position, strength: float, source: str = "default") -> None:
-        if self.time - self._silt_last.get(source, -100) < .35:
-            return
-        self._silt_last[source] = self.time
-        self.silt_clouds.append({"pos": np.asarray(position, float).copy(), "strength": min(1.0, strength),
-                                 "radius": .8, "age": 0.0, "source": source})
-        self.silt_clouds = self.silt_clouds[-24:]
+    # ── sediment and turbidity (model in silt.py) ─────────────────────────
+    def configure_silt(self, seabed_type: str, bnl_height_m: float = 0.0, bnl_mg_l: float = 0.0) -> None:
+        self.silt_field.configure(seabed_type, bnl_height_m, bnl_mg_l)
 
-    def silt_at(self, position) -> float:
-        p = np.asarray(position, float)
-        return min(1.0, sum(c["strength"] * math.exp(-float(np.dot(p-c["pos"], p-c["pos"])) /
-                                                     max(.1, 2*c["radius"]**2)) for c in self.silt_clouds))
+    @property
+    def visibility_m(self) -> float:
+        return self.silt_field.visibility_m
+
+    @visibility_m.setter
+    def visibility_m(self, value: float) -> None:
+        self.silt_field.visibility_m = float(value)
+
+    @property
+    def silt_clouds(self) -> list:
+        """Legacy view of the strongest puffs (``environment.silt_clouds``)."""
+        return self.silt_field.legacy_clouds()
+
+    def emit_silt(self, position, strength: float, source: str = "default") -> None:
+        """Legacy source: ``strength`` 1 is about 0.1 kg of the local bed mix around ``position``."""
+        bed = self.silt_field.bed
+        mix = bed["mix"] if sum(bed["mix"]) > 0 else (0.0, 0.5, 0.5)
+        self.silt_field.emit_mix(position, 0.1 * max(0.0, float(strength)), mix, 0.6, 0.4, f"{source}:legacy")
+
+    def silt_concentration_at(self, point) -> float:
+        """Suspended sediment at ``point`` in mg/L (puffs plus the near-bed turbid layer)."""
+        return float(self.silt_field.concentration_mg_l(np.asarray(point, float))[0])
+
+    def visibility_at(self, point, visibility_m: float | None = None) -> float:
+        """Black-target visibility 4.8 / c at ``point`` (m)."""
+        c = float(self.silt_field.attenuation(np.asarray(point, float), visibility_m)[0])
+        return 4.8 / c
+
+    def optical_depth(self, a, b, samples: int = 24) -> float:
+        return self.silt_field.optical_depth(a, b, samples)
+
+    def silt_at(self, position, visibility_m: float | None = None) -> float:
+        """Legacy 0..1 silt index = 1 - effective / base visibility at ``position``."""
+        return float(self.silt_field.silt_index(np.asarray(position, float), visibility_m)[0])
 
     def environment_state(self) -> dict:
         return {"fish_schools": [{"id": s["id"], "pos": s["pos"].round(4).tolist(),
                                   "vel": s["vel"].round(4).tolist()} for s in self.fish_schools],
-                "silt_clouds": [{**c, "pos": c["pos"].round(3).tolist()} for c in self.silt_clouds]}
+                "silt_clouds": [{**c, "pos": c["pos"].round(3).tolist()} for c in self.silt_clouds],
+                "silt_puffs": self.silt_field.puffs_state(),
+                "turbidity": self.silt_field.turbidity_state()}
 
     def step(self, dt: float, vehicles=None) -> None:
         from .ecology import step_schools
         self.time += dt
-        self.silt = max(0.0, self.silt - dt / 25.0)
         vehicles = vehicles or []
+        self.silt_field.step_sources(dt, vehicles)
         self._ecology_accumulator += dt
         if self._ecology_accumulator + 1e-9 >= .1:
             elapsed, self._ecology_accumulator = self._ecology_accumulator, 0.0
             step_schools(self, elapsed, vehicles)
-            for c in self.silt_clouds:
-                c["pos"] += self.current.sample(c["pos"], self.seabed_depth, self.time) * elapsed
-                c["pos"][2] = min(self.seabed_at(c["pos"]), c["pos"][2] + .025 * elapsed)
-                c["radius"] += .09 * elapsed
-                c["strength"] *= math.exp(-elapsed / 9)
-                c["age"] += elapsed
-            self.silt_clouds = [c for c in self.silt_clouds if c["strength"] > .015 and c["age"] < 35]
-            for vehicle in vehicles:
-                p = np.asarray(vehicle["pos"], float)
-                thrust = float(vehicle.get("thrust", 0))
-                if self.seabed_at(p) - p[2] < 1.7 and thrust > .15:
-                    self.emit_silt(p, thrust * .4, str(vehicle.get("id", "default")))
+            positions = [np.asarray(v["pos"], float) for v in vehicles]
+            self.silt_field.step_transport(elapsed, positions)
 
     def as_dict(self) -> dict:
         return {"seabed_depth": self.seabed_depth, "obstacles": [o.as_dict() for o in self.obstacles],

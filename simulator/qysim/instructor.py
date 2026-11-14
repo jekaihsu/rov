@@ -16,6 +16,11 @@ DEFAULT_LIMITS = {'path': 2., 'heading': 15., 'depth': 1., 'hover': 1., 'distanc
 MAX_SAMPLES_PER_VEHICLE = 3600
 # Archived reports carry their full trajectory. Only the newest ones are kept.
 MAX_REPORTS = 16
+PHYSICAL_KINDS = ('thruster', 'battery', 'current', 'visibility', 'freeze')
+# Vehicle-system faults. 'freeze' above pauses physics; 'video_freeze' only freezes the video link.
+SYSTEM_KINDS = ('video_delay', 'video_freeze', 'link_degrade', 'comms_loss', 'power_trip', 'leak', 'overheat')
+# Overheat strength 1 adds this many degrees to motor and driver readings (provisional).
+OVERHEAT_C = 50.
 
 
 def statistics(values, tolerance):
@@ -68,7 +73,7 @@ class Instructor:
             raise ValueError('strength must be 0..1')
         if not math.isfinite(duration) or not 0 < duration <= 3600:
             raise ValueError('duration must be 0..3600 seconds')
-        if kind not in ('thruster', 'battery', 'current', 'visibility', 'freeze'):
+        if kind not in PHYSICAL_KINDS + SYSTEM_KINDS:
             raise ValueError('unsupported physical override')
         scope = 'room' if kind in ('current', 'visibility') else vid
         if any(e['scope'] == scope and e['kind'] == kind for e in self.active):
@@ -87,6 +92,11 @@ class Instructor:
             event['original'] = sim.scenario.visibility_m
         elif kind == 'current':
             event['original'] = deepcopy(sim.world.current)
+        elif kind == 'comms_loss':
+            event['original'] = dict(sim.link.config)
+            self.configure_loss(sim, msg)
+        elif kind in SYSTEM_KINDS:
+            event['original'] = None
         else:
             event['original'] = sim.paused
         event['controls'] = sim.rc.as_dict()
@@ -95,12 +105,65 @@ class Instructor:
         self.enforce(event)
         self.room._snapshot = None
 
+    @staticmethod
+    def configure_loss(sim, msg):
+        """Optional failsafe policy and reconnect time for one comms-loss injection."""
+        values = {}
+        if 'failsafe' in msg:
+            values['failsafe_action'] = msg['failsafe']
+        for field, key in (('failsafe_delay', 'failsafe_delay_s'), ('reconnect', 'reconnect_s')):
+            if field in msg:
+                value = msg[field]
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 600:
+                    raise ValueError(f'{field} must be 0..600 seconds')
+                values[key] = value
+        sim.link.configure(values)
+
+    def enforce_system(self, sim, kind, strength):
+        if kind == 'video_delay':
+            sim.link.fixed_lag_s = strength * sim.link.config['max_video_lag_s']
+        elif kind == 'video_freeze':
+            sim.link.forced_freeze = True
+        elif kind == 'link_degrade':
+            sim.link.degrade(strength)
+        elif kind == 'comms_loss':
+            sim.link.lose(rc=sim.rc)
+        elif kind == 'power_trip':
+            sim.power.trip()
+            sim.link.lose(cause='power', immediate=True)
+        elif kind == 'leak':
+            sim.leak = True
+        elif kind == 'overheat':
+            sim.thermal.injected_c = strength * OVERHEAT_C
+
+    @staticmethod
+    def restore_system(sim, event):
+        kind = event['kind']
+        if kind == 'video_delay':
+            sim.link.fixed_lag_s = 0.
+        elif kind == 'video_freeze':
+            sim.link.forced_freeze = False
+        elif kind == 'link_degrade':
+            sim.link.clear_degrade()
+        elif kind == 'comms_loss':
+            sim.link.restore()
+            sim.link.config.update(event['original'])
+        elif kind == 'power_trip':
+            sim.power.reset()
+            sim.link.restore()
+        elif kind == 'leak':
+            sim.leak = False
+        elif kind == 'overheat':
+            sim.thermal.injected_c = 0.
+
     def enforce(self, event):
         sim = self.room.vehicles.get(event['vehicle_id'])
         if sim is None:
             return
         kind, strength = event['kind'], event['strength']
-        if kind == 'thruster':
+        if kind in SYSTEM_KINDS:
+            self.enforce_system(sim, kind, strength)
+        elif kind == 'thruster':
             sim.health[event['index']] = min(sim.health[event['index']], event['original'] * (1 - strength))
         elif kind == 'battery':
             sim.battery = min(sim.battery, event['original'] * (1 - strength))
@@ -120,7 +183,9 @@ class Instructor:
         if sim is None:
             return
         kind = event['kind']
-        if kind == 'thruster':
+        if kind in SYSTEM_KINDS:
+            self.restore_system(sim, event)
+        elif kind == 'thruster':
             sim.health[event['index']] = event['original']
         elif kind == 'battery':
             sim.battery = event['original']
