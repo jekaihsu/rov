@@ -74,7 +74,8 @@ export function installCampaign({send, readOnly = false}) {
   document.querySelector('.mission-tools')?.append(menu);
   const style = document.createElement('style');
   style.textContent = `
-    .story-radio{position:fixed;left:30%;bottom:18%;width:40%;box-sizing:border-box;padding:16px 24px;
+    .story-radio{position:fixed;left:4%;top:16%;width:40%;max-width:45%;max-height:60%;overflow:auto;
+      box-sizing:border-box;padding:16px 24px;
       background:rgba(8,18,26,.72);backdrop-filter:blur(14px);border-left:2px solid #4fd1e0;
       color:#e8f1f5;z-index:25;pointer-events:none;transition:opacity .2s ease-out}
     .story-avatar{float:left;width:24px;height:24px;margin-right:8px;fill:none;stroke:#4fd1e0}

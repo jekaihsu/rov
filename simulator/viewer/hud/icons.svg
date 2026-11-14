@@ -1,1 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg"><symbol id="compass" viewBox="0 0 24 24"><path d="M12 2 5 21l7-5 7 5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol></svg>
+<svg xmlns="http://www.w3.org/2000/svg"><symbol id="compass" viewBox="0 0 24 24"><path d="M12 2 5 21l7-5 7 5Z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol><symbol id="engineering" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M9 15v6"/></symbol>
+<symbol id="density" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 10h16M10 10v9"/></symbol>
+<symbol id="hud" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5M8 12h8m-4-4v8"/></symbol>
+<symbol id="camera" viewBox="0 0 24 24"><path d="M3 7h5l2-3h4l2 3h5v13H3z"/><circle cx="12" cy="13" r="4"/></symbol></svg>
