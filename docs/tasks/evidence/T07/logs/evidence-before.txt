@@ -1,0 +1,1 @@
+Five fixed scene captures and synchronized render samples passed; no shader errors.

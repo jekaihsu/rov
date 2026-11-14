@@ -1248,8 +1248,8 @@ function frame(now) {
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   hemi.intensity = 1.5; sun.intensity = 1.6;
-  installUnderwaterPipeline(renderer);
-  applyUnderwaterLighting(scene);
+  installUnderwaterPipeline(renderer, { surface });
+  applyUnderwaterLighting(scene, S, renderer);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
   scene.background.copy(_wc); scene.fog.color.copy(_wc);

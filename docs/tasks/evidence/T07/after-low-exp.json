@@ -1,0 +1,170 @@
+{
+  "method": "one Chrome page; fixed onboard camera and medium quality; 3 s warmup; 1.5 s settle then 5 s requestAnimationFrame intervals; ABBA",
+  "scope": "idle UI/render; fixture freezes physics; live telemetry; callback time includes JS and GL submission but not all asynchronous GPU work; vsync caps cadence; not controlled hardware performance certification",
+  "samples": [
+    {
+      "performance": {
+        "fps": 7,
+        "mode": "performance",
+        "effectsSuppressed": false,
+        "scale": 75,
+        "drawCalls": 29,
+        "triangles": 45922,
+        "hardwareLabel": "軟體繪圖",
+        "hardwareReason": "目前 WebGL 使用軟體繪圖；先降低像素負載，再依實際 FPS 調整。",
+        "hardwareTier": "software",
+        "hardwareRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "hardwareProfile": {
+          "initialRatio": 0.6,
+          "floor": 0.6,
+          "ceiling": 1,
+          "pixelBudget": 921600,
+          "entryLevel": false
+        }
+      },
+      "pose": [
+        10.707,
+        1.677,
+        12.864
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 675
+      },
+      "mode": "free_explore",
+      "frames": 32,
+      "mean_frame_ms": 161.453125,
+      "median_frame_ms": 166.60000000000218,
+      "p95_frame_ms": 200,
+      "cpu_samples": 34,
+      "mean_callback_ms": 8.297058823511607,
+      "p95_callback_ms": 12.599999999860302
+    },
+    {
+      "performance": {
+        "fps": 7,
+        "mode": "performance",
+        "effectsSuppressed": false,
+        "scale": 75,
+        "drawCalls": 29,
+        "triangles": 45922,
+        "hardwareLabel": "軟體繪圖",
+        "hardwareReason": "目前 WebGL 使用軟體繪圖；先降低像素負載，再依實際 FPS 調整。",
+        "hardwareTier": "software",
+        "hardwareRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "hardwareProfile": {
+          "initialRatio": 0.6,
+          "floor": 0.6,
+          "ceiling": 1,
+          "pixelBudget": 921600,
+          "entryLevel": false
+        }
+      },
+      "pose": [
+        10.707,
+        1.677,
+        12.864
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 675
+      },
+      "mode": "expedition",
+      "frames": 34,
+      "mean_frame_ms": 147.54117647058828,
+      "median_frame_ms": 149.95000000000073,
+      "p95_frame_ms": 183.29999999999927,
+      "cpu_samples": 36,
+      "mean_callback_ms": 8.06944444448325,
+      "p95_callback_ms": 13.600000000093132
+    },
+    {
+      "performance": {
+        "fps": 7,
+        "mode": "performance",
+        "effectsSuppressed": false,
+        "scale": 75,
+        "drawCalls": 29,
+        "triangles": 45922,
+        "hardwareLabel": "軟體繪圖",
+        "hardwareReason": "目前 WebGL 使用軟體繪圖；先降低像素負載，再依實際 FPS 調整。",
+        "hardwareTier": "software",
+        "hardwareRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "hardwareProfile": {
+          "initialRatio": 0.6,
+          "floor": 0.6,
+          "ceiling": 1,
+          "pixelBudget": 921600,
+          "entryLevel": false
+        }
+      },
+      "pose": [
+        10.707,
+        1.677,
+        12.864
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 675
+      },
+      "mode": "expedition",
+      "frames": 36,
+      "mean_frame_ms": 143.04999999999987,
+      "median_frame_ms": 149.95000000000073,
+      "p95_frame_ms": 166.6999999999971,
+      "cpu_samples": 38,
+      "mean_callback_ms": 7.384210526330494,
+      "p95_callback_ms": 9.100000000093132
+    },
+    {
+      "performance": {
+        "fps": 6,
+        "mode": "performance",
+        "effectsSuppressed": false,
+        "scale": 75,
+        "drawCalls": 29,
+        "triangles": 45922,
+        "hardwareLabel": "軟體繪圖",
+        "hardwareReason": "目前 WebGL 使用軟體繪圖；先降低像素負載，再依實際 FPS 調整。",
+        "hardwareTier": "software",
+        "hardwareRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "hardwareProfile": {
+          "initialRatio": 0.6,
+          "floor": 0.6,
+          "ceiling": 1,
+          "pixelBudget": 921600,
+          "entryLevel": false
+        }
+      },
+      "pose": [
+        10.707,
+        1.677,
+        12.864
+      ],
+      "canvas": {
+        "width": 1080,
+        "height": 675
+      },
+      "mode": "free_explore",
+      "frames": 33,
+      "mean_frame_ms": 152.01212121212126,
+      "median_frame_ms": 150,
+      "p95_frame_ms": 183.29999999999563,
+      "cpu_samples": 35,
+      "mean_callback_ms": 10.88285714284783,
+      "p95_callback_ms": 18.5999999998603
+    }
+  ],
+  "means_ms": {
+    "free_explore": 156.73262310606063,
+    "expedition": 145.29558823529408
+  },
+  "relative_change_percent": -7.297162928886314,
+  "observed_cadence_within_5_percent": true,
+  "callback_means_ms": {
+    "free_explore": 9.589957983179719,
+    "expedition": 7.726827485406872
+  },
+  "callback_change_percent": -19.427931812012933,
+  "hardware": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+}
