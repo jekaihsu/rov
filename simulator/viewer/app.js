@@ -867,7 +867,6 @@ const setCam = m => cameraRig.setMode(m);
 const updateCamera = dt => cameraRig.update(dt);
 $('camBtn').onclick = () => cameraRig.cycle();
 const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion();
-const topH = 22;
 
 /* ═════════════════════════ labels ═════════════════════════ */
 const labelEls = new Map();
@@ -1306,7 +1305,7 @@ function frame(now) {
   scene.background.copy(_wc); scene.fog.color.copy(_wc);
   const vis = (W?.scenario?.visibility_m || 12) * (1 - .75 * clamp(S?.silt || 0, 0, 1));
   const real = $('optFog').checked && camMode !== 'top';
-  scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, topH * 4);
+  scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, cameraRig.topH * 4);
   surface.visible = camMode !== 'top' || camera.position.y < 0;
   for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
@@ -1318,7 +1317,7 @@ function frame(now) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
     topMark.position.copy(rovG.position).add(new THREE.Vector3(0, .6, 0));
     topMark.rotation.set(-Math.PI / 2, 0, Math.atan2(-_f.x, -_f.z), 'XYZ');
-    topMark.scale.setScalar(topH / 22);
+    topMark.scale.setScalar(cameraRig.topH / 22);
   }
   curArrow.position.copy(rovG.position).add(new THREE.Vector3(0, .55, 0));
   // objectives + guide line

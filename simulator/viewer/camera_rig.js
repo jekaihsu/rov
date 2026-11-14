@@ -141,6 +141,6 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
     }
     return function restore() { camera.copy(saved); };
   }
-  return {get mode() { return mode; }, cine, setMode, update, physicalCapture,
+  return {get mode() { return mode; }, get topH() { return height; }, cine, setMode, update, physicalCapture,
     cycle() { setMode(MODES[(MODES.indexOf(mode) + 1) % MODES.length]); }};
 }
