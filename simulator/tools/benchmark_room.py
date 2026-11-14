@@ -20,8 +20,9 @@ def main():
     parser.add_argument('--ticks', type=int, default=180)
     parser.add_argument('--warmup', type=int, default=120)
     parser.add_argument('--profile', action='store_true')
+    parser.add_argument('--scenario', default='coral_reef')
     args = parser.parse_args()
-    room = Room(Simulator('coral_reef', seed=42), 'benchmark')
+    room = Room(Simulator(args.scenario, seed=42), 'benchmark')
     for model in ('x1', 'bluerov2_heavy', 'falcon'):
         player = room.join(model, model_id=model)
         sim = room.vehicles[player.vehicle_id]
@@ -46,10 +47,10 @@ def main():
         stream = io.StringIO()
         pstats.Stats(profiler, stream=stream).sort_stats('cumulative').print_stats(30)
         print(stream.getvalue())
-    result = dict(scenario='coral_reef', seed=42, players=3, ticks=args.ticks,
+    result = dict(scenario=args.scenario, seed=42, players=3, ticks=args.ticks,
         warmup=args.warmup, profiled=args.profile, wall_mean_ms=float(np.mean(durations)),
         wall_p95_ms=float(np.percentile(durations,95)), cpu_mean_ms=float(np.mean(cpu_durations)),
-        batch_fraction=batches/(3*args.ticks),
+        batch_fraction=batches/(3*args.ticks), real_time_factor=10.0/float(np.mean(durations)),
         positions={key:sim.vehicle.s.pos.tolist() for key,sim in room.vehicles.items()},
         tether_forces={key:sim.tether.force_on_rov.tolist() for key,sim in room.vehicles.items()})
     output = Path(args.output)
