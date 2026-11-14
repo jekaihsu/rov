@@ -459,5 +459,55 @@ class NearBedProfileTests(unittest.TestCase):
         self.assertEqual(np.linalg.norm(world.current_at(np.array([top[0], top[1], bed + 0.2]))), 0.0)
 
 
+class HullSamplingTests(unittest.TestCase):
+    """Gap 10: flow sampled at several hull points gives torque in uneven flow."""
+
+    @staticmethod
+    def run_vehicle(points_flow, seconds=3.0):
+        from qysim.physics import Vehicle
+        vehicle = Vehicle()
+        vehicle.s.pos = np.array([0.0, 0.0, 10.0])
+        vehicle.current_ned = np.array([0.0, 0.3, 0.0])
+        for _ in range(int(seconds / 0.01)):
+            if points_flow is not None:
+                vehicle.current_points = points_flow(vehicle)
+            vehicle.step(0.01, np.zeros(len(vehicle.thrusters)))
+        return vehicle
+
+    def test_uniform_flow_is_unchanged(self):
+        from qysim.engine import hull_flow_points
+        body = hull_flow_points(self.run_vehicle(None).definition)
+        uniform = self.run_vehicle(lambda v: (body, np.tile(v.current_ned, (len(body), 1))))
+        plain = self.run_vehicle(None)
+        np.testing.assert_allclose(uniform.s.pos, plain.s.pos, atol=1e-12)
+        np.testing.assert_allclose(uniform.s.omega, plain.s.omega, atol=1e-12)
+
+    def test_cross_flow_on_the_bow_only_yaws_the_vehicle(self):
+        from qysim.engine import hull_flow_points
+        body = hull_flow_points(self.run_vehicle(None).definition)
+
+        def bow_in_jet(vehicle):
+            flows = np.tile(vehicle.current_ned, (len(body), 1))
+            flows[0] = vehicle.current_ned + np.array([0.0, 0.4, 0.0])     # bow sees extra east flow
+            return body, flows
+
+        yawed = self.run_vehicle(bow_in_jet, seconds=1.0)
+        self.assertGreater(yawed.s.omega[2], 0.01)                   # bow pushed to starboard
+
+    def test_engine_samples_hull_points_beside_a_pile(self):
+        from qysim.engine import Simulator
+        sim = Simulator("monopile_current")
+        sim.world.current.turbulence = 0.0
+        pile = sim.world.obstacles[0]
+        centre = np.asarray(pile.p0, float)
+        # 1 m upstream of the stagnation point: the flow slows sharply toward the pile
+        sim.vehicle.s.pos = np.array([centre[0] + pile.radius + 1.0, centre[1] + 0.5, 12.0])
+        sim.step(0.01)
+        points, flows = sim.vehicle.current_points
+        self.assertEqual(len(points), 6)
+        spread = float(np.ptp(np.linalg.norm(flows, axis=1)))
+        self.assertGreater(spread, 0.1)
+
+
 if __name__ == "__main__":
     unittest.main()

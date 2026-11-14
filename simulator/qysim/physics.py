@@ -194,6 +194,24 @@ class Vehicle:
             self.quad_drag = np.asarray(self.p.quadratic_drag[:3], float)
             self.quad_rdrag = np.asarray(self.p.quadratic_drag[3:], float)
 
+    def _uneven_flow_wrench(self, q_inv, v_rel, lin) -> tuple[np.ndarray, np.ndarray]:
+        """Drag wrench from flow that differs across the hull (shear, wake edges).
+
+        ``current_points`` holds body points and the world flow sampled there. The drag is
+        linearised about the centre-of-gravity flow and shared equally among the points, so a
+        uniform flow gives exactly zero and an uneven one gives the force and torque of the
+        differences (e.g. yaw when the bow is in a pile's wake and the stern is not).
+        """
+        points, flows = self.current_points
+        gain = (lin[:3] + 2.0 * self.quad_drag * np.abs(v_rel)) / len(points)
+        force, moment = np.zeros(3), np.zeros(3)
+        for r_body, flow in zip(points, flows):
+            delta = q_rot(q_inv, np.asarray(flow) - self.current_ned)
+            f = gain * delta
+            force += f
+            moment += cross3(r_body, f)
+        return force, moment
+
     def _authority(self) -> np.ndarray:
         """Largest achievable force/torque along each wrench axis (thrusters saturated)."""
         out = np.zeros(6)
@@ -237,6 +255,10 @@ class Vehicle:
         lin = np.array(p.linear_drag)
         F_drag = -lin[:3] * v_rel - self.quad_drag * v_rel * np.abs(v_rel)
         M_drag = -lin[3:] * s.omega - self.quad_rdrag * s.omega * np.abs(s.omega)
+        if self.current_points is not None:
+            F_shear, M_shear = self._uneven_flow_wrench(q_inv, v_rel, lin)
+            F_drag = F_drag + F_shear
+            M_drag = M_drag + M_shear
 
         # net buoyancy acts up (world -z), righting moment from CB above CG
         up_body = q_rot(q_inv, np.array([0.0, 0.0, -1.0]))

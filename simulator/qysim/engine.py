@@ -35,6 +35,15 @@ MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
 LED_LABEL = {0: "OFF", 1: "1", 2: "2"}
 
 
+def hull_flow_points(definition) -> np.ndarray:
+    """Body points where the flow is sampled: hull extremes along x plus port/starboard and top/bottom."""
+    centres = np.array(definition.hull_centres, float)
+    r = float(definition.hull_radius)
+    xs = centres[:, 0]
+    return np.array([[xs.max() + r, 0.0, 0.0], [xs.min() - r, 0.0, 0.0],
+                     [0.0, r, 0.0], [0.0, -r, 0.0], [0.0, 0.0, -r], [0.0, 0.0, r]])
+
+
 def ok(text="Success", code="200", **extra) -> dict:
     return {"status": "ok", "status_code": code, "text": text, **extra}
 
@@ -80,6 +89,7 @@ class Simulator:
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
         self._flow_accel = FlowAccelerometer()
+        self._flow_points = hull_flow_points(self.vehicle.definition)
         self.vehicle.seabed_depth = sc.seabed_depth
         self.vehicle.s.pos = np.array(sc.start_pos, float)
         self.vehicle.s.q = q_from_euler(0.0, 0.0, math.radians(sc.start_heading_deg))
@@ -187,7 +197,7 @@ class Simulator:
         self.last_pilot = pilot                    # final command (pilot or autopilot), for recordings
         if update_world:
             self.world.current.step_gust(dt, self.current_rng)
-        v.current_ned = self.world.current_at(s.pos, self.t)
+        v.current_ned = self._sample_flow(s)
         v.current_accel_ned = self._flow_accel.update(v.current_ned, dt)
         operation_wrench = self.operations.step(dt)
         keep_depth = keep_depth or self.operations.altitude is not None
@@ -217,6 +227,14 @@ class Simulator:
         ensure_mission(self).update(self, dt)
         if self.world.mission_run.mode == "expedition":
             ensure_expedition(self).update(self, dt)
+
+    def _sample_flow(self, s) -> np.ndarray:
+        """Local flow at the CG plus hull points (uneven flow gives torque, see Vehicle)."""
+        body = self._flow_points
+        world = s.pos + np.array([q_rot(s.q, r) for r in body])
+        flows = self.world.current_at_many(np.vstack([s.pos, world]), self.t)
+        self.vehicle.current_points = (body, flows[1:])
+        return flows[0]
 
     def _buttons(self, rc: RCState) -> None:
         for name in ("record", "photo"):

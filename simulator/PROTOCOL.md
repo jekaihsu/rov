@@ -433,6 +433,10 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   node ρ·A·l·(2 a_normal + a_axial) (Ca = 1 normal, as MoorDyn). dv_c/dt is the finite-difference
   rate of the sampled flow along the path, low-passed (50 ms) and clipped at 3 m/s²; a neutral body
   therefore follows an oscillating flow with amplitude ratio ≈ 1, and steady flow is unchanged.
+* **Hull sampling**: the engine samples the flow at the CG and six hull points (bow, stern, port,
+  starboard, top, bottom); differences from the CG flow add a linearised drag force and torque, so
+  wake edges and shear yaw or pitch the vehicle. Uniform flow gives exactly the old result.
+  `current_here` stays the CG value.
 * `World.current_at(point, t)` / `World.current_at_many(points, t)` return this **full local flow**
   (ambient + structures); the vehicle, tether nodes, silt, fish and work objects use it.
 * `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` keep their signatures and return
