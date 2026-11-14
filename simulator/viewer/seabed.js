@@ -166,18 +166,16 @@ function shaderPatch(profile, maps) {
       ` + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
       vec2 seaP = vSeaPos.xz;
-      #if SEA_QUALITY >= 1
+      #if SEA_QUALITY == 0
+      // low: one read and the site's sand / mud mix as a constant, the cost of the old sand texture
+      vec4 seaF = texture2D(uField, seaP * 0.16);
+      vec3 seaCol = mix(uSand, uMud, uWeights.y * 0.6) * (0.82 + 0.3 * seaF.r * uRipple);
+      #else
       vec3 seaN = texture2D(uNoise, seaP * 0.00625).rgb;   // 160 m tile of smooth noise
       float seaLow = seaN.r;
       float seaMid = seaN.g;
       float seaMix = smoothstep(0.3, 0.7, seaN.b);
       vec4 seaF = texture2D(uField, SEA_ROT_A * seaP * 0.16);
-      #else
-      float seaLow = 0.5;
-      float seaMid = 0.5;
-      float seaMix = 0.0;
-      vec4 seaF = texture2D(uField, seaP * 0.16);
-      #endif
       float seaR = seaF.r;
       vec3 seaCol = uSand * (0.82 + 0.3 * seaR * uRipple + 0.12 * (seaF.g - 0.5));
       float mudW = clamp(uWeights.y * (0.6 + 0.8 * (seaLow - 0.5)), 0.0, 1.0);
@@ -192,7 +190,6 @@ function shaderPatch(profile, maps) {
       seaCol = mix(seaCol, gravel, gravelW);
       float shellW = uWeights.z * seaF.b * smoothstep(0.35, 0.7, seaMid);
       seaCol = mix(seaCol, vec3(0.86, 0.82, 0.74), shellW * 0.8);
-      #if SEA_QUALITY >= 1
       float rockW = uWeights.w * smoothstep(0.72, 0.8, seaLow * 0.7 + seaN.b * 0.4);
       seaCol = mix(seaCol, vec3(0.36, 0.35, 0.31) * (0.8 + 0.4 * seaF.g), rockW);
       #endif

@@ -211,7 +211,8 @@ class StructureSet {
   anchor(ob, mesh) {
     const at = new THREE.Object3D();
     if (ob.type === 'cylinder') at.position.copy(P(ob.p0).lerp(P(ob.p1), 0.5));
-    else if (ob.type === 'box') at.position.copy(P(ob.center));
+    else if (ob.type === 'box' || ob.type === 'ship_hull') at.position.copy(P(ob.center));
+    else if (ob.type === 'wall' || ob.type === 'snag') at.position.copy(P(ob.point));
     at.material = mesh.material;
     this.entries.set(ob.name, {mesh: at, ob, drawnBy: mesh});
   }
@@ -929,5 +930,35 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   }
   set.flushBatches();
   flushLumps(set);
+  if (set.detailName !== 'high') mergeByMaterial(set);
   return set;
+}
+
+/**
+ * Low and medium tiers: one mesh per material kind and role for the whole site (geometry is already in world
+ * space). Labels keep per-obstacle anchors; a snag highlight then lights every part of that material.
+ */
+function mergeByMaterial(set) {
+  const groups = new Map();
+  for (const mesh of set.group.children) {
+    if (!mesh.isMesh || mesh.isInstancedMesh || mesh.material.side !== THREE.FrontSide) continue;
+    const key = `${mesh.material.userData.structureKind}:${mesh.userData.role}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(mesh);
+  }
+  for (const meshes of groups.values()) {
+    if (meshes.length < 2) continue;
+    const geometry = merged(meshes.map((m) => m.geometry));
+    const mesh = new THREE.Mesh(geometry, meshes[0].material);
+    mesh.userData = {...meshes[0].userData, colliders: meshes.flatMap((m) => m.userData.colliders || [])};
+    set.group.add(mesh);
+    const gone = new Set(meshes);
+    for (const old of meshes) {
+      old.removeFromParent();
+      if (old.material !== mesh.material) old.material.dispose();
+    }
+    for (const [, entry] of set.entries) {
+      if (gone.has(entry.mesh) || gone.has(entry.drawnBy)) set.anchor(entry.ob, mesh);
+    }
+  }
 }
