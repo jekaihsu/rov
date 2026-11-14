@@ -661,3 +661,29 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   (`viewer/flow_field.js`); drifting particles and kelp/seagrass sway use it, so they move with the
   same gusts, tide and wakes that push the vehicle. Clients that ignore it keep working; hosts
   that do not send it leave the viewer on its mean-profile fallback.
+
+## Optional `state.tether_ops` (T21)
+
+Older clients may ignore this object; absent means no cable operations feedback. It is an observer of the
+tether solver (`qysim/tether_ops.py`) and applies no force.
+
+* `turns` is the solver's net vehicle heading turns (`state.tether.turns`); `torque_nm` is the restoring yaw
+  moment the solver applies for it (GJ × twist angle / deployed length, see the tether notes in §3).
+  `twist_warning` is true beyond ±2 turns: a console / tender warning only, not an extra force.
+* `events` is a rolling list of 20 `{id, code, metres?, mode?}` radio messages; codes are `length` (5 m bucket
+  changes in either direction), `tension` (rated working load exceeded, same as `tether.warn`), `structure`
+  (cable touching a structure), `twist`, `snag` (a recovery episode starts), `released`, `reel` (reel mode
+  changed to `mode`: free|hold|pay_out|haul_in|auto) and `stall` (powered haul-in stalled).
+* An episode starts when the solver reports a snag hook (`tether.snags`) or a wrap of at least a quarter turn
+  (`tether.wraps`). `snag` is null or `{name, kind: snag|wrap, returned, tightening}`. Tightening accumulates
+  vehicle-end load above the termination's rated working load (`tether.gland_working_load_n`).
+* `result` is null or `{score, peak_n, elapsed, returned, correct, kind}` for the last episode. High scores
+  need facing and returning to the cable point first, then unwinding in the reverse sense (wraps) or backing
+  out until the hook lets go (snags); peak vehicle-end load relative to its working load and elapsed seconds
+  reduce the score. Broken cables score zero.
+* `slack_seconds` counts excess paid length over the direct span > 10 m; `taut_seconds` counts time with
+  `tether.warn`. `discipline_score` (0–100) deducts one point per excess-slack second and two per warn second.
+
+All thresholds and score weights are provisional training assumptions. Reel commands are unchanged (`payout`,
+`auto_payout`, `reel`, controlling player only). Clump weights and a separately authorized multiplayer
+tether-hand role are not yet supported.

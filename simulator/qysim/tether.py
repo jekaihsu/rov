@@ -562,8 +562,12 @@ class Tether:
         if self._heading is not None:
             self.turns += ((heading - self._heading + math.pi) % (2 * math.pi) - math.pi) / (2 * math.pi)
         self._heading = heading
-        torque = -self.p.gj * 2 * math.pi * self.turns / max(self.length, MIN_LENGTH_M)
-        return q_rot(q_conj(rov_q), np.array([0.0, 0.0, torque]))
+        return q_rot(q_conj(rov_q), np.array([0.0, 0.0, self.twist_torque_nm]))
+
+    @property
+    def twist_torque_nm(self) -> float:
+        """Restoring moment about the vertical from the net twist (GJ * twist angle / deployed length)."""
+        return -self.p.gj * 2 * math.pi * self.turns / max(self.length, MIN_LENGTH_M)
 
     def _update_metrics(self, contacts, pin_force, dt: float, t_now: float) -> None:
         p = self.p

@@ -350,6 +350,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   document.body.classList.toggle('hud-peek', active >= 0);
   const index = active < 0 ? 1 : active;
   card.querySelector('strong').textContent = STRINGS.cards[index];
+  card.dataset.card = String(index);
   const sources = [
     ['brief', 'objs', 'missionStatus'], ['thrBars', 'tState', 'tRov', 'gBat', 'damage'], ['activeRoomName'], [],
   ];

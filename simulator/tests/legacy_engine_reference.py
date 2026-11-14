@@ -1,8 +1,9 @@
 """Frozen pre-sensor-layer engine paths, used only for same-runtime bitwise regression.
 
 ``LegacySimulator`` replays the step, controller wiring and every telemetry method exactly as they read
-before the shared sensor layer existed (re-frozen after the comms/power/thermal, silt, currents and
-tether-physics work merged: only sensor reads differ from the engine, each replaced by truth).
+before the shared sensor layer existed (re-frozen after the comms/power/thermal, silt, currents,
+tether-physics and T21 tether-operations work merged: only sensor reads differ from the engine,
+each replaced by truth).
 Tests run it next to the current ``Simulator`` with sensor imperfections disabled and require identical bytes.
 """
 
@@ -78,6 +79,7 @@ class LegacySimulator(Simulator):
                                                vehicle_id=self.vehicle_id,
                                                hull_spheres=[(centre, self.vehicle.definition.hull_radius)
                                                              for centre in self.vehicle.definition.hull_centres])
+        self.tether_ops.step(dt, self.tether, s.pos, self.yaw)     # observer only: radio, scoring
         v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
         if update_world:
             self.world.step(dt, vehicles=[self.world_source()])
@@ -247,6 +249,7 @@ class LegacySimulator(Simulator):
             "current_here": [round(float(x), 3) for x in cur],
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
             "tether": self.tether.state(),
+            "tether_ops": self.tether_ops.state(),
             "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
             "damage": self.damage_events[-6:],
             "silt": round(self.world.silt_at(s.pos), 2),

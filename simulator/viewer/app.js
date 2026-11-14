@@ -1,6 +1,8 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
+import { updateTetherOperations } from './tether/operations.js';
+import { tensionColor, warnLoad, gaugePercent } from './tether/tension.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -42,7 +44,6 @@ import { installVideoLinkOverlay } from './video_link_overlay.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
-const WARN_N = 250, BREAK_N = 300 * 9.80665;          // tether.py TetherParams warn_n / breaking_n
 const css = getComputedStyle(document.documentElement);
 const C = (n) => css.getPropertyValue(n).trim();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -319,11 +320,6 @@ const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6),
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);
 
-const colLow = new THREE.Color('#e9c534'), colWarn = new THREE.Color('#ffb020'), colBreak = new THREE.Color('#ff3040');
-function tensionColor(T, out) {
-  if (T <= WARN_N) return out.copy(colLow).lerp(colWarn, Math.pow(clamp(T / WARN_N, 0, 1), 1.6));
-  return out.copy(colWarn).lerp(colBreak, clamp((T - WARN_N) / (BREAK_N - WARN_N), 0, 1) ** .6);
-}
 
 function distToObstacle(p, ob) {        // p NED; approximate surface distance
   if (ob.type === 'cylinder') {
@@ -352,12 +348,13 @@ function updateTether(t) {
   const n = Math.min(nodes.length, MAXN);
   const pts = []; for (let i = 0; i < n; i++) pts.push(P(nodes[i]));
   const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  const Tat = (s) => { const T = ts + (tr - ts) * s; return t.warn ? Math.max(T, WARN_N) : T; };
+  const warnN = warnLoad(t);
+  const Tat = (s) => { const T = ts + (tr - ts) * s; return t.warn ? Math.max(T, warnN) : T; };
   // polyline (always visible)
   const lp = tetherLine.geometry.attributes.position.array, lc = tetherLine.geometry.attributes.color.array;
   for (let i = 0; i < n; i++) {
     lp[i * 3] = pts[i].x; lp[i * 3 + 1] = pts[i].y; lp[i * 3 + 2] = pts[i].z;
-    tensionColor(Tat(i / Math.max(1, n - 1)), _c); lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
+    tensionColor(Tat(i / Math.max(1, n - 1)), _c, warnN); lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
   }
   tetherLine.geometry.setDrawRange(0, n);
   tetherLine.geometry.attributes.position.needsUpdate = true; tetherLine.geometry.attributes.color.needsUpdate = true;
@@ -930,12 +927,12 @@ function updateUI() {
   const t = s.tether || {};
   setTxt('tLen', (t.length ?? 0).toFixed(1)); setTxt('tMax', (t.max_length ?? 0).toFixed(0));
   $('tLenFill').style.width = (100 * (t.length || 0) / (t.max_length || 1)) + '%';
-  const gw = (T) => Math.sqrt(clamp(T / BREAK_N, 0, 1)) * 100;
   for (const [k, id] of [['tension_rov', 'tRov'], ['tension_spool', 'tSpool']]) {
     const T = t[k] || 0; setTxt(id, `${T.toFixed(0)} N`);
-    const f = $(id + 'Fill'); f.style.width = gw(T) + '%'; f.style.background = '#' + tensionColor(T, _c).getHexString();
+    const f = $(id + 'Fill'); f.style.width = gaugePercent(T) + '%';
+    f.style.background = '#' + tensionColor(T, _c, warnLoad(t, k)).getHexString();
+    f.nextElementSibling.style.left = gaugePercent(warnLoad(t, k)) + '%';
   }
-  document.querySelectorAll('.tgauge .wmark').forEach((m) => (m.style.left = gw(WARN_N) + '%'));
   const ts = $('tState');
   if (t.broken) { ts.textContent = '已斷裂'; ts.className = 'chip bad'; }
   else if (t.warn) { ts.textContent = '張力過高'; ts.className = 'chip warn'; }
@@ -1020,7 +1017,8 @@ function renderTether(dt) {
   tetherLine.geometry.attributes.position.needsUpdate = true;
   if (t.broken) { cable.hide(); return; }
   const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, WARN_N) : T, out); });
+  const warnN = warnLoad(t);
+  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, warnN) : T, out, warnN); });
 }
 
 /* ═════════════════════════ deploy intro + pilot PiP ═════════════════════════ */
@@ -1192,6 +1190,7 @@ function frame(now) {
   // pose (smoothed toward latest state)
   replayTick(dt);
   updateFlightHUD(renderState.display(S), W, dt, input.hudState());
+  updateTetherOperations(S);
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);
