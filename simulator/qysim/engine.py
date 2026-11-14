@@ -35,6 +35,13 @@ MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
 LED_LABEL = {0: "OFF", 1: "1", 2: "2"}
 
 
+# Flow grid sent to the viewer (state.flow_field): 5 x 5 x 2 points, 6 m apart, centred on the
+# vehicle (two levels 3 m above and below it), refreshed every 0.5 s of simulation time, in cm/s.
+FLOW_GRID_SIZE = (5, 5, 2)
+FLOW_GRID_STEP = (6.0, 6.0, 6.0)
+FLOW_GRID_PERIOD_S = 0.5
+
+
 def hull_flow_points(definition) -> np.ndarray:
     """Body points where the flow is sampled: hull extremes along x plus port/starboard and top/bottom."""
     centres = np.array(definition.hull_centres, float)
@@ -90,6 +97,8 @@ class Simulator:
         self.vehicle = Vehicle(model_id=self.model_id)
         self._flow_accel = FlowAccelerometer()
         self._flow_points = hull_flow_points(self.vehicle.definition)
+        self._flow_grid = None
+        self._flow_grid_seq = getattr(self, "_flow_grid_seq", 0)
         self.vehicle.seabed_depth = sc.seabed_depth
         self.vehicle.s.pos = np.array(sc.start_pos, float)
         self.vehicle.s.q = q_from_euler(0.0, 0.0, math.radians(sc.start_heading_deg))
@@ -815,6 +824,33 @@ class Simulator:
             "score": ensure_mission(self).score_state(self),
             "log": self.log[-8:],
         }
+
+    def flow_field_state(self) -> dict:
+        """Compact flow sample around the vehicle for viewer particles and kelp (optional state field).
+
+        The same ``World.current_at_many`` the physics uses, on a coarse grid, cached for
+        ``FLOW_GRID_PERIOD_S``; viewers interpolate in space and blend between refreshes.
+        """
+        grid = self._flow_grid
+        if grid is not None and 0.0 <= self.t - grid["t"] < FLOW_GRID_PERIOD_S - 1e-9:
+            return grid
+        size, step = np.array(FLOW_GRID_SIZE), np.array(FLOW_GRID_STEP)
+        pos = self.vehicle.s.pos
+        origin = pos - step * (size - 1) / 2
+        top = max(0.0, self.world.seabed_depth - step[2] * (size[2] - 1) - 0.5)
+        origin[2] = min(max(pos[2] - step[2] * (size[2] - 1) / 2, 0.0), top)
+        axes = [origin[k] + step[k] * np.arange(size[k]) for k in range(3)]
+        points = np.stack(np.meshgrid(*axes, indexing="ij"), axis=-1).reshape(-1, 3)
+        flow = self.world.current_at_many(points, self.t)
+        self._flow_grid_seq += 1
+        grid = {"seq": self._flow_grid_seq, "t": round(self.t, 2), "origin": np.round(origin, 2).tolist(),
+                "step": step.tolist(), "size": size.tolist(),
+                "cm_s": np.rint(flow * 100).astype(int).ravel().tolist()}
+        tide = self.world.current.tide_info()
+        if tide is not None:
+            grid["tide"] = tide
+        self._flow_grid = grid
+        return grid
 
     def world_description(self) -> dict:
         from .vehicles import VEHICLE_DEFINITIONS

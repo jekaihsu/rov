@@ -241,6 +241,7 @@ class Room:
             self._snapshot_at = time.monotonic()
         state = dict(next(s for s in self._snapshot if s["id"] == selected.vehicle_id))
         state["campaign"] = self.campaign.state()
+        state["flow_field"] = selected.flow_field_state()
         state["vehicles"] = self._snapshot
         state["tick"] = self.tick
         state["room"] = {"id": self.id, "host_id": self.host_id, "capacity": self.capacity,

@@ -195,6 +195,8 @@ remote_control   bool (SDK has control; physical RC ignored)
 operation_mode   str      ctrl_mode "A"/"S"/"C"   locked bool   keep_depth bool   depth_hold m|null
 battery %        recording bool   photos int
 current_here [n,e,d] m/s at the ROV     current_kn
+flow_field {seq, t, origin [n,e,d], step [m,m,m], size [nx,ny,nz], cm_s [...], tide?}   (optional, see
+           "Ocean current model"; top level only, not inside `vehicles`)
 tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tension_max (N),
         warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout}
 events [{t, obstacle, speed, severity: touch|hard|severe, where}]   (last 12 impacts)
@@ -442,3 +444,14 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
 * `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` keep their signatures and return
   the **ambient** flow only (no structures, nominal seabed). `t` is accepted for compatibility; the field is evaluated at the
   profile clock that `step_gust(dt)` advances once per tick.
+* **Viewer cues** (`state.flow_field`, optional): the host samples `World.current_at_many` on a
+  5 × 5 × 2 grid around the selected vehicle (6 m spacing; the two levels 3 m above and below it,
+  kept inside the water column) every 0.5 s of simulation time. `cm_s` holds integer cm/s,
+  `[n, e, d]` per point, in index order `((i·ny + j)·nz + k)` with i along north, j east, k down.
+  `seq` increases with every new grid; the same grid repeats in the states in between (about
+  600 bytes, ≈ 5 % of a state). `tide` is `{factor, stage: flood|ebb|slack, minutes_to_slack}` when
+  the scenario has a tide (`minutes_to_slack` is null for rotary tides). Viewers interpolate it
+  trilinearly (clamped at the edges) and blend successive grids over 0.5 s
+  (`viewer/flow_field.js`); drifting particles and kelp/seagrass sway use it, so they move with the
+  same gusts, tide and wakes that push the vehicle. Clients that ignore it keep working; hosts
+  that do not send it leave the viewer on its mean-profile fallback.

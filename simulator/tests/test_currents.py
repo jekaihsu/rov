@@ -509,5 +509,43 @@ class HullSamplingTests(unittest.TestCase):
         self.assertGreater(spread, 0.1)
 
 
+class ViewerFlowFieldTests(unittest.TestCase):
+    """Gap 8: the viewer's particles and kelp sample the same field as the physics."""
+
+    def test_state_carries_a_compact_grid_of_the_physics_flow(self):
+        import json
+        from qysim.engine import FLOW_GRID_SIZE, Simulator
+        from qysim.room import Room
+        room = Room(Simulator("monopile_current"))
+        sim = room.primary
+        sim.vehicle.s.pos = np.array([5.0, 1.0, 12.0])
+        for _ in range(60):
+            room.step(0.01)
+        grid = room.state()["flow_field"]
+        nx, ny, nz = FLOW_GRID_SIZE
+        values = np.array(grid["cm_s"]).reshape(nx, ny, nz, 3) / 100
+        axes = [grid["origin"][k] + grid["step"][k] * np.arange(grid["size"][k]) for k in range(3)]
+        points = np.stack(np.meshgrid(*axes, indexing="ij"), axis=-1).reshape(-1, 3)
+        np.testing.assert_allclose(values.reshape(-1, 3), sim.world.current_at_many(points), atol=0.0051)
+        self.assertLess(len(json.dumps(grid, separators=(",", ":"))), 900)
+        # The vehicle sits between the two levels at the grid centre: trilinear = midpoint average.
+        centre = values[nx // 2, ny // 2].mean(axis=0)
+        here = sim.world.current_at(sim.vehicle.s.pos)
+        self.assertAlmostEqual(axes[2].mean(), sim.vehicle.s.pos[2], delta=0.05)
+        self.assertLess(np.linalg.norm(centre - here), 0.25 * np.linalg.norm(here))
+
+    def test_grid_refreshes_every_half_second_only(self):
+        from qysim.engine import Simulator
+        from qysim.room import Room
+        room = Room(Simulator("open_water"))
+        first = room.state()["flow_field"]
+        for _ in range(20):
+            room.step(0.01)
+        self.assertIs(room.state()["flow_field"], first)
+        for _ in range(31):
+            room.step(0.01)
+        self.assertEqual(room.state()["flow_field"]["seq"], first["seq"] + 1)
+
+
 if __name__ == "__main__":
     unittest.main()
