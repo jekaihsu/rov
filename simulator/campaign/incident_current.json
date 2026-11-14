@@ -1,0 +1,96 @@
+{
+  "id": "incident_current",
+  "title": "事故訓練｜流速超過能力",
+  "scenario": "incident_current",
+  "mode": "scenario_training",
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "brief"
+    },
+    {
+      "id": "objective",
+      "type": "objective",
+      "text_key": "objective"
+    },
+    {
+      "id": "poll",
+      "type": "wait",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": 0
+      }
+    },
+    {
+      "id": "failed",
+      "type": "branch",
+      "condition": {
+        "path": "score.failed",
+        "op": "gt",
+        "value": ""
+      },
+      "target": "failure"
+    },
+    {
+      "id": "finished",
+      "type": "branch",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "target": "success"
+    },
+    {
+      "id": "repeat",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "poll"
+    },
+    {
+      "id": "failure",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "failure"
+    },
+    {
+      "id": "after_failure",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "debrief"
+    },
+    {
+      "id": "success",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "success"
+    },
+    {
+      "id": "debrief",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "debrief"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "speaker": "訓練督導",
+      "brief": "演練事件：站位持續漂移，請中止並收回；不要持續滿推硬守。流速為固定演練設定，未模擬潮流隨時間轉強。",
+      "objective": "依序完成撤離與回收。評分：檢查點完成率，碰撞與纜線過張力扣分。失敗：斷纜、三次嚴重碰撞或逾時。",
+      "success": "撤離完成。請檢視分數、碰撞與最大纜線張力。",
+      "failure": "演練失敗：請檢視斷纜、碰撞或逾時原因，重試時提前中止。",
+      "debrief": "研究中通報 02/23 的強流導致受困、磨纜與載具遺失，改正措施包含環境限值與流速顯示。強流操作指引建議平潮作業、實地確認潮況，結構背流區可作遮蔽。本題採中止回收路線，未模擬結構尾流；演練流速不是機型的真實抗流極限。"
+    }
+  }
+}

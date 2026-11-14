@@ -1,0 +1,96 @@
+{
+  "id": "incident_compass",
+  "title": "事故訓練｜鋼結構旁羅盤失準",
+  "scenario": "incident_compass",
+  "mode": "scenario_training",
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "brief"
+    },
+    {
+      "id": "objective",
+      "type": "objective",
+      "text_key": "objective"
+    },
+    {
+      "id": "poll",
+      "type": "wait",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": 0
+      }
+    },
+    {
+      "id": "failed",
+      "type": "branch",
+      "condition": {
+        "path": "score.failed",
+        "op": "gt",
+        "value": ""
+      },
+      "target": "failure"
+    },
+    {
+      "id": "finished",
+      "type": "branch",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "target": "success"
+    },
+    {
+      "id": "repeat",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "poll"
+    },
+    {
+      "id": "failure",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "failure"
+    },
+    {
+      "id": "after_failure",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "debrief"
+    },
+    {
+      "id": "success",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "success"
+    },
+    {
+      "id": "debrief",
+      "type": "dialogue",
+      "speaker_key": "speaker",
+      "text_key": "debrief"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "speaker": "訓練督導",
+      "brief": "演練注入通報：羅盤偏移，定向不可信。退出自動定向，以目視、纜線方向和深度撤離。此版本只注入通報，不改寫儀表數值。",
+      "objective": "依序完成撤離與回收。評分：檢查點完成率，碰撞與纜線過張力扣分。失敗：斷纜、三次嚴重碰撞或逾時。",
+      "success": "撤離完成。請檢視分數、碰撞與最大纜線張力。",
+      "failure": "演練失敗：請檢視斷纜、碰撞或逾時原因，重試時提前中止。",
+      "debrief": "研究的現場回報摘要描述鋼質沉船附近打轉與偏航重對準警告，建議後退並避免附近自動航向；它不是完整事故調查。靠近鋼構應交叉檢查目視與纜線方向，不能只信羅盤。偏差角度與距離均無來源，不設定為真機數字。"
+    }
+  }
+}
