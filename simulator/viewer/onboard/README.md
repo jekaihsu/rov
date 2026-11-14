@@ -7,8 +7,10 @@
 - a light block/compression look,
 - centre-weighted auto-exposure that follows the scene with a ~0.9 s first-order lag (metered every 200 ms).
 
-It is the `cameraLook` fidelity item: on in the `real` preset (a real feed has these artefacts), off in
-`assisted`; turning it off is marked as exceeding the real vehicle. Other views always render the plain scene.
+It is the `cameraLook` fidelity item, currently opt-in (off) in both presets and preset-neutral. A real feed has
+these artefacts, so `real` should eventually turn it on, but with software WebGL the extra full-screen pass roughly
+doubles the frame time at 1080p (measured about 380 ms -> 640-1040 ms per frame under swiftshader) and
+`browser_menu_smoke.py` then lost its connection after launch. Other views always render the plain scene.
 
 Not here, on purpose:
 

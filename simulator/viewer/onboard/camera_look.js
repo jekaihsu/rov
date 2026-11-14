@@ -5,7 +5,7 @@
 // so tone mapping and colour space are untouched; the effects work on display-encoded values.
 // Every coefficient, response time and lens parameter is a provisional presentation assumption, not a measured
 // camera or vehicle specification (docs/reference/real-rov-research.md has no calibrated values for these).
-// The `cameraLook` fidelity item turns it on in `real` (a real feed has these artefacts) and off in `assisted`.
+// The `cameraLook` fidelity item is an opt-in presentation setting in both presets (see the note at its defaults).
 // TODO(fx pipeline): main has no fx pipeline yet. When simulator/viewer/fx/ lands with a `setCameraPass` hook,
 // register `cameraPass` below through it and delete render(); the shader and exposure logic carry over unchanged.
 // Geometry, camera transforms and observation evidence are never modified; photo capture keeps the clean frame.
@@ -24,11 +24,11 @@ registerFidelityItem({
   labelKey: CAMERA_LOOK_ITEM,
   descriptionKey: 'cameraLookHelp',
   type: 'toggle',
-  defaults: {real: true, assisted: false},
-  exceedsReal: true,
-  exceeds: function cleanerThanReal(value) {
-    return value === false;
-  },
+  // Opt-in for now: with software WebGL (CI, headless checks) the extra full-screen pass roughly doubles the
+  // frame time at 1080p and the launch-menu check then loses its connection. Revisit the preset defaults once the
+  // fx pipeline shares one pass and the X1 camera has been measured.
+  defaults: {real: false, assisted: false},
+  presetNeutral: true,
 }, {
   cameraLook: '機載鏡頭特性',
   cameraLookHelp: '機載畫面加入鏡頭畸變、低光雜訊、輕度壓縮與自動曝光遲滯（參數暫定）。關閉時為乾淨畫面。',
