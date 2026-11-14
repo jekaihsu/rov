@@ -7,6 +7,8 @@ vehicle hull and every tether node can collide with them cheaply:
     Wall      vertical half-space with finite extent (quay wall, dam face)
     FieldMesh arbitrary structure (e.g. a wreck) from a precomputed distance field of its
               collision meshes (tools/build_wreck.py); thin plates get a small thickness
+    SnagFeature small seabed item (rock, boulder, debris, rope) that can hook a tether lying on the
+              bottom; scenes register them like any other obstacle (see tether_snag.py)
 The seabed is a horizontal plane at ``World.seabed_depth`` (NED z, metres).
 """
 
@@ -153,6 +155,33 @@ class Wall:
                 "width": self.width, "top": self.top, "kind": self.kind}
 
 
+class SnagFeature(Cylinder):
+    """Small snaggable seabed item: a vertical capsule standing on the seabed at ``point``.
+
+    It is a ``Cylinder`` for contact (so it joins the vectorised capsule queries) but reports its own
+    type. ``hold_n`` is the (min, max) holding force range in N; each feature draws its own value from
+    it (tether_snag.py). Values are provisional training settings, not measurements: no published
+    data on small-ROV tether snag strength exists (research_notes/臍帶纜物理與收放文獻/tether_properties.md §5)."""
+
+    def __init__(self, name: str, point: tuple, radius: float = 0.25, height: float = 0.4,
+                 hold_n: tuple = (150.0, 400.0), kind: str = "snag", item: str = "rock"):
+        base = tuple(float(v) for v in point)
+        top = (base[0], base[1], base[2] - max(float(height) - float(radius), 0.0))
+        super().__init__(name, base, top, float(radius), kind)
+        self.point = base
+        self.height = float(height)
+        self.hold_n = tuple(hold_n)
+        self.item = item
+
+    @property
+    def snag_hold(self) -> tuple:
+        return self.hold_n
+
+    def as_dict(self):
+        return {"type": "snag", "name": self.name, "point": list(self.point), "radius": self.radius,
+                "height": self.height, "kind": self.kind, "item": self.item}
+
+
 @functools.lru_cache(maxsize=4)
 def _load_field(path: str):
     """Distance field arrays, shared read-only by every FieldMesh that uses the same file."""
@@ -172,8 +201,11 @@ class FieldMesh:
     """
 
     def __init__(self, name: str, field_path, origin: tuple, heading_deg: float = 180.0,
-                 kind: str = "wreck", thickness: float = 0.12, model: str | None = None, seabed_depth: float | None = None):
+                 kind: str = "wreck", thickness: float = 0.12, model: str | None = None, seabed_depth: float | None = None,
+                 snag_hold: tuple | None = None):
         self.name, self.kind, self.thickness, self.model = name, kind, float(thickness), model
+        # Optional (min, max) N: lets the tether hook on the structure where it bends round it.
+        self.snag_hold = snag_hold
         self.F, self.lo, self.h = _load_field(str(field_path))
         self.shape = np.array(self.F.shape)
         self.hi = self.lo + self.h * (self.shape - 1)
@@ -473,10 +505,15 @@ class World:
         a, b = cached
         return np.flatnonzero(np.all(a <= hi + margin, axis=1) & np.all(b >= lo - margin, axis=1)).tolist()
 
-    def sdf_many(self, X: np.ndarray, candidates: list[int] | None = None
+    def sdf_many(self, X: np.ndarray, candidates: list[int] | None = None, include_seabed: bool = True
                  ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Vectorised nearest-surface query for many points. Returns (dist, normal, obstacle index; -1 = seabed)."""
-        if self.terrain is None or not self.terrain.relief:
+        """Vectorised nearest-surface query for many points. Returns (dist, normal, obstacle index; -1 = seabed).
+
+        ``include_seabed=False`` measures obstacles only (seabed distance reported as 1e9)."""
+        if not include_seabed:
+            dist = np.full(len(X), 1e9)
+            normal = np.tile(WORLD_UP, (len(X), 1))
+        elif self.terrain is None or not self.terrain.relief:
             dist = self.seabed_depth - X[:, 2]
             normal = np.tile(WORLD_UP, (len(X), 1))
         else:

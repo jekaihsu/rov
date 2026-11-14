@@ -31,6 +31,7 @@ import numpy as np
 
 from .engine import Simulator
 from .rc import CHANNELS
+from .reel import MODES as REEL_MODES
 from .qirc import QircControls
 from .room import Room
 
@@ -585,6 +586,11 @@ class SimHost:
             sim.tether.payout(max(-100.0, min(100.0, metres)))
         elif t == "auto_payout":
             sim.tether.auto_payout = bool(msg.get("value", True))
+        elif t == "reel":
+            command = str(msg.get("command", ""))
+            if command not in REEL_MODES:
+                raise ValueError(f"Unknown reel command: {command}")
+            sim.tether.reel_command(command)
         elif t == "operation_mode":
             sim.sdk_call("QYRovParameterManage", "set_rov_controller_operation", [msg.get("value", "ROV_USA")], {})
         elif t == "current":

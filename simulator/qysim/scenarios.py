@@ -16,7 +16,7 @@ import numpy as np
 import json
 from pathlib import Path
 
-from .world import Box, Cylinder, CurrentProfile, FieldMesh, Wall
+from .world import Box, Cylinder, CurrentProfile, FieldMesh, SnagFeature, Wall
 
 ASSETS = Path(__file__).resolve().parent / "assets"
 STRINGS = {
@@ -59,6 +59,7 @@ class Scenario:
     spool_pos: tuple = (-3.0, 0.0, 0.0)
     tether_length: float = 40.0
     prewrap: dict | None = None          # {"pile": name, "turns": 1.25, "depth": 10}
+    tether: dict | None = None           # optional TetherParams overrides, e.g. {"density": 1150}
     objectives: list = field(default_factory=list)
     time_limit_s: float = 900.0
     seed: int | None = None
@@ -156,7 +157,8 @@ def tether_untangle() -> Scenario:
     pile = Cylinder("Pile P1", (8.0, 0.0, -3.0), (8.0, 0.0, sea + 1.0), 0.9, "pile")
     return Scenario(
         "tether_untangle", "纜線纏繞脫困", "纜線已在 P1 樁繞了一圈多，張力持續上升。判斷纏繞方向，反向繞樁把纜線解開（剩不到 0.25 圈），再回投放點。",
-        seabed_depth=sea, obstacles=[pile], current=CurrentProfile(0.8, 90, 0.8, 90, 0.3, 90, 0.2),
+        seabed_depth=sea, obstacles=[pile, SnagFeature("P1 base debris", (9.6, -1.4, sea), 0.3, 0.5, item="debris")],
+        current=CurrentProfile(0.8, 90, 0.8, 90, 0.3, 90, 0.2),
         visibility_m=9.0, start_pos=(8.0, 2.8, 10.0), start_heading_deg=180, spool_pos=(-3, 0, 0),
         tether_length=35.0, prewrap={"pile": "Pile P1", "turns": 1.25, "depth": 10.0},
         objectives=[Objective("untangle", "解開 P1 纏繞", target="Pile P1"),
@@ -174,6 +176,18 @@ def hull_inspection() -> Scenario:
         objectives=[Objective("checkpoint", f"船底 {i + 1}", p, radius=1.8) for i, p in enumerate(pts)])
 
 
+def wreck_debris(cx: float, cy: float, seabed: float, prefix: str = "Wreck", yaw_deg: float = 0.0) -> list:
+    """Snaggable debris round a wreck (offsets in the wreck frame): plates, a rope tangle and rocks.
+
+    Holding forces use the SnagFeature default range, a provisional training setting."""
+    items = (((-10.0, -6.5), 0.35, 0.6, "debris"), ((6.0, -6.0), 0.25, 0.3, "rope"),
+             ((12.0, 6.5), 0.45, 0.7, "boulder"), ((-15.0, 6.0), 0.3, 0.4, "rock"))
+    c, s = math.cos(math.radians(yaw_deg)), math.sin(math.radians(yaw_deg))
+    return [SnagFeature(f"{prefix} {item} {i + 1}", (cx + c * dx - s * dy, cy + s * dx + c * dy, seabed), r, h,
+                        item=item)
+            for i, ((dx, dy), r, h, item) in enumerate(items)]
+
+
 def wreck_survey() -> Scenario:
     sea = 30.0
     wreck = Box("Wreck 沉船", (25.0, 5.0, sea - 3.0), (18.0, 4.0, 3.0), 35.0, "wreck")
@@ -184,7 +198,8 @@ def wreck_survey() -> Scenario:
         pts.append((25 + c * lx - s * ly, 5 + s * lx + c * ly, sea - 4.0))
     return Scenario(
         "wreck_survey", "沉船調查", "水深 30 m、能見度 4 m，繞沉船一圈拍攝四個面。碰到海床會揚起泥沙；注意桅桿。",
-        seabed_depth=sea, obstacles=[wreck, mast], current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, 0.25),
+        seabed_depth=sea, obstacles=[wreck, mast] + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
+        current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, 0.25),
         visibility_m=4.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=80.0,
         objectives=[Objective("checkpoint", n, p, radius=2.0) for n, p in zip(("艏", "左舷", "艉", "右舷"), pts)])
 
@@ -196,7 +211,7 @@ def korean_castle() -> Scenario:
     sea = 32.0
     # local frame: X bow->stern, Y across, Z up from the seabed; bow to the west, stern to the east
     wreck = FieldMesh("Korean Castle", ASSETS / "korean_castle_field.npz", origin=(28.0, -70.0, sea),
-                      heading_deg=90.0, kind="wreck", model="models/korean_castle.glb")
+                      heading_deg=90.0, kind="wreck", model="models/korean_castle.glb", snag_hold=(250.0, 700.0))
     W = lambda x, y, z: tuple(float(v) for v in wreck.world_point((x, y, z)).round(2))
     objs = [
         Objective("inspect", "X1-BOW-C05 艏段斷裂面（左舷）", W(45.5, -14.8, 6.0), radius=1.6, hold_s=5.0,
@@ -294,7 +309,10 @@ def harbor_inspection() -> Scenario:
                     seabed_depth=sea, biome="harbor", visibility_m=7,
                     obstacles=[Wall("Quay", (42, 0, 0), 180, 70, -2),
                                Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
-                               Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)],
+                               Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65),
+                               SnagFeature("Harbor mooring block", (24, -6, sea), .5, .6, item="debris"),
+                               SnagFeature("Harbor rope tangle", (30, 4, sea), .25, .3, item="rope"),
+                               SnagFeature("Harbor rubble", (36, -2, sea), .4, .5, item="rock")],
                     current=CurrentProfile(.8, 90, .55, 95, .15, 110, .2),
                     start_pos=(0, 0, 3), tether_length=75,
                     objectives=[Objective("inspect", "港樁 A", (18, -10, 8), 1.5, hold_s=6, face_point=(21,-10,8)),
@@ -344,7 +362,8 @@ def incident_wreck() -> Scenario:
     snag = Cylinder("Training snag", (8, 0, 118), (8, 0, 135), .6, "pile")
     return Scenario(
         "incident_wreck", name, brief, seabed_depth=138, visibility_m=4,
-        obstacles=[Box("Training wreck", (20, 0, 134), (6, 3, 3), 0, "wreck"), snag],
+        obstacles=[Box("Training wreck", (20, 0, 134), (6, 3, 3), 0, "wreck"), snag]
+                  + wreck_debris(20.0, 0.0, 138.0, "Training"),
         start_pos=(8, 2.8, 128), spool_pos=(0, 0, 0), tether_length=160,
         prewrap={"pile": "Training snag", "turns": 1.25, "depth": 128},
         objectives=[Objective("untangle", INCIDENT_STRINGS["untangle"], target="Training snag"),
@@ -453,7 +472,8 @@ class Scorer:
             self.failed = "嚴重碰撞 3 次"
         # tether
         tt = sim.tether
-        over = tt.tension_max > tt.p.warn_n
+        # Rated working load (cable or termination), formerly a fixed 250 N; same penalty per episode.
+        over = tt.over_working_load
         if over and not self._over_tension:
             self.penalties.append({"t": round(sim.t, 2), "reason": f"纜線張力過高 {tt.tension_max:.0f} N", "points": 10})
         self._over_tension = over

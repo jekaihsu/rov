@@ -158,8 +158,9 @@ The browser sends:
 | `{"type":"scenario","key":"random","seed":123}` | load a scenario (`seed` optional) |
 | `{"type":"reset"}` | restart the current scenario |
 | `{"type":"pause","value":true}` | pause / resume |
-| `{"type":"payout","metres":5}` | pay out (+) / recover (−) tether |
-| `{"type":"auto_payout","value":false}` | toggle automatic payout |
+| `{"type":"payout","metres":5}` | legacy: move the deployed length by +/− metres. Since the reel model the change is no longer instant: the reel pays out at the tender feed rate or hauls in at the motor rate until the target is reached, then resumes its previous mode (`state.tether.reel.target_length`) |
+| `{"type":"auto_payout","value":false}` | legacy toggle: `true` = reel mode `auto` (constant-tension controller), `false` = reel mode `hold` (brake on, fixed length, as before) |
+| `{"type":"reel","command":"pay_out"}` | optional, new: tender / reel rate command — `free` (drum turns freely; the vehicle drags tether off against bearing drag), `hold` (brake on; slips above the brake holding force), `pay_out` (tender hand-feeds tether), `haul_in` (powered haul-in with a line-pull cap; stalls against a snag), `auto` (constant-tension controller). Unknown commands are rejected with `invalid_command`. Clients send it only when `state.tether.reel` is present. |
 | `{"type":"operation_mode","value":"ROV_JPN"}` | ROV_USA/JPN/CHN, UAV_USA/JPN/CHN |
 | `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north) |
 | `{"type":"shaping","throttle_curvature":60,"throttle_limit":100,"rotate_curvature":60,"rotate_limit":100}` | stick curves |
@@ -196,7 +197,30 @@ operation_mode   str      ctrl_mode "A"/"S"/"C"   locked bool   keep_depth bool 
 battery %        recording bool   photos int
 current_here [n,e,d] m/s at the ROV     current_kn
 tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tension_max (N),
-        warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout}
+        warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout,
+        optional additions (absent on older hosts):
+        reel {mode: free|hold|pay_out|haul_in|auto, speed m/s (+ out), stalled bool,
+              target_length m|null, tension_n},
+        turns            net vehicle heading turns put into the tether (+ = clockwise seen from above),
+        snags [{name, point [n,e,d], held bool, since s, hold_n, tension_n}]   hooked snag points,
+        chafe 0..1       worst segment chafe work / provisional limit,
+        working_load_n, gland_working_load_n   rated working loads behind `warn`,
+        break_reason     null | "gland" | "cable" | "chafe"}
+```
+
+Tether notes (since the reel / physical-stiffness model; see `docs/reference/tether-validation.md`):
+
+* `nodes` no longer has a fixed count: payout adds nodes at the spool end and long tethers merge
+  spool-side segments. Clients must not assume 41 nodes.
+* `tension_rov` and `tension_max` are the highest values of any solver substep in the tick.
+* `warn` now means the rated working load is exceeded: half the breaking strength on any segment, or
+  half the termination (gland) strength at the vehicle end. It used to be a fixed 250 N. The scorer
+  still deducts 10 points per over-tension episode.
+* Server-side `Tether.events` (not streamed) record `tether_break` with `where` (`gland`, `cable` or `chafe`),
+  `tether_snag`, `tether_snag_released` and `reel_stall`; clients read the state fields above.
+* `auto_payout` is `true` only in reel mode `auto`. A new host starts in reel mode `free`.
+
+```text
 events [{t, obstacle, speed, severity: touch|hard|severe, where}]   (last 12 impacts)
 damage [{t, thruster, health}]
 silt 0..1 (seabed silt cloud; reduce visibility)
@@ -213,7 +237,9 @@ log [{t, kind, text}]   (last 8 lines, Traditional Chinese)
 seabed_depth m
 obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast}
           | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
-          | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall} ]              (vertical face; extends from `top` down to the seabed)
+          | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall}               (vertical face; extends from `top` down to the seabed)
+          | {type:"snag", name, point [n,e,d], radius, height, kind: snag, item: rock|boulder|debris|rope} ]
+                                (optional: small snaggable seabed item standing on `point`; clients that do not know the type may skip it)
 current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
 scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length}
 spool [n,e,d]         tether spool / deployment point on the surface
