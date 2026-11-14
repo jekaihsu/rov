@@ -670,6 +670,8 @@ async def main_async(args):
         start_static(args.http_port, args.host)
     print(f"[qysim] scenario={sim.scenario.name}  SDK rpc tcp://127.0.0.1:{args.rpc_port}  "
           f"viewer ws://{args.host}:{args.ws_port}  http://{args.host}:{args.http_port}/", flush=True)
+    from ._cable_accel import solver_status_line
+    print(solver_status_line(), flush=True)
     async with rpc:
         tasks = [host.physics_loop(), rpc.serve_forever(), ws.wait_closed()]
         if args.qirc:
