@@ -1,0 +1,12 @@
+{
+  "samples": 4906638,
+  "queries": 5000,
+  "seed": 2026,
+  "exact_distance_equality": true,
+  "query_seconds_compact_true_false": {
+    "True": 5.241710664000038,
+    "False": 0.4038615260001279
+  },
+  "distance_upper_bound_m": 12.75,
+  "surface_pitch_m": 0.05
+}

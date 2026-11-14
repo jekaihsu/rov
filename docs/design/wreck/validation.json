@@ -1,0 +1,106 @@
+{
+  "base_commit": "41ac39a5d23c52b46cac9dd10fb2a6316586f8ee",
+  "source_bytes": 100616887,
+  "glb_bytes": 11849352,
+  "original_non_seabed_meshes_identical": 117,
+  "original_collision_triangles": 2842,
+  "final_collision_triangles": 3130,
+  "runtime_meshes": 69,
+  "runtime_triangles": 717631,
+  "extensions_required": [
+    "EXT_meshopt_compression",
+    "EXT_texture_webp",
+    "KHR_mesh_quantization"
+  ],
+  "source_sha256": "a5bde7b2f9afd13d147878f3500fd690f89fddb0704a7245c49b23b6c326fc2f",
+  "glb_sha256": "dff5e760229c2fb7a7139e589cb2a0d1dfc542bab06aee850c07053438c38bdc",
+  "original_geometry_contract_sha256": "e6fea0cf2cef7b2dc5a794ebdd5b910a85a076a3125434f70cf83ec3d0d71bd7",
+  "field_bytes": 2145227,
+  "field_sha256": "155b726f1711c71a0f0e5bcd332a650821b414c0390f2ef5e49766f661878242",
+  "field_shape": [
+    530,
+    170,
+    71
+  ],
+  "field_spacing_m": 0.3,
+  "field_quant_m": 0.05,
+  "route_and_inspection_grid_unchanged": true,
+  "render_baseline_commit": "afc33198adfec6b34114db0416bf810be98157ff",
+  "unittest": {
+    "command": "python -m unittest discover -s tests",
+    "cwd": "simulator",
+    "tests": 189,
+    "seconds": 190.456,
+    "status": "OK",
+    "skipped": 0
+  },
+  "renders": {
+    "after-fracture.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1085051,
+      "sha256": "c4684ff40f7edf2b6ef27fa7690e4a39b5422ddd7dcf253ee0c24da9df232f2e"
+    },
+    "after-hold-02.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1101953,
+      "sha256": "532eff3873e98e2594979aa0c4b66ac31763eb484af4f3ea30058aa54a0e4e3f"
+    },
+    "after-overview.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1007503,
+      "sha256": "3a73358082c4e788d52fd4e9cfa639358b5762384a937e6a4406d87d091016ef"
+    },
+    "after-stern-windows.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1142116,
+      "sha256": "2c233ccdcbc6894867b8bc0f404f5b8a0279369879c2faafd01ff61530e3f23e"
+    },
+    "before-fracture.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1049634,
+      "sha256": "f82f21d151278d169f6f70c08f2bfca36b4a6bd058396566cefe436d66459f08"
+    },
+    "before-hold-02.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1093757,
+      "sha256": "4dbb1b70257a4b597d86dee6d663102e34c27850e103315bba84bcdd47b37cf1"
+    },
+    "before-overview.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1010959,
+      "sha256": "879f5ea7b8105559241935e4feb46c45a9d943d5582441cfb29d5e8a5b96749f"
+    },
+    "before-stern-windows.png": {
+      "width": 1600,
+      "height": 900,
+      "bytes": 1144613,
+      "sha256": "3d956e8a540cafa67c52c2eb5842f51bbf84d55985a50d615b34347e4770f440"
+    }
+  },
+  "browser_checks": {
+    "command": "ROV_CHROMIUM=/usr/bin/chromium python tools/run_browser_checks.py browser_smoke browser_menu_smoke browser_wreck_asset_smoke",
+    "cwd": "simulator",
+    "checks": {
+      "browser_smoke": {
+        "status": "PASS",
+        "seconds": 69.9
+      },
+      "browser_menu_smoke": {
+        "status": "PASS",
+        "seconds": 30.7
+      },
+      "browser_wreck_asset_smoke": {
+        "status": "PASS",
+        "seconds": 8.8
+      }
+    },
+    "note": "Final run after rendering completed. Two earlier generic smoke attempts timed out at arm.grip < .5; no timeout, assertion or control-code changes."
+  }
+}
