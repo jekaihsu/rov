@@ -122,6 +122,20 @@ class CampaignTests(unittest.TestCase):
         self.campaign.update(0)
         self.assertEqual(self.campaign.status, 'completed')
 
+    def test_world_effects_refresh_the_shared_state(self):
+        self.command('campaign_start')
+        slot = len(self.room.primary.viewer_state()['operations']['objects'])
+        spawned = dict(path=f'operations.objects.{slot}.id', op='eq', value='campaign-sample')
+        self.campaign.scripts['prologue']['nodes'] = [
+            dict(id='armed', type='wait', condition=dict(path='locked', op='eq', value=True)),
+            dict(id='spawn', type='spawn', object_id='sample', label='樣品', point=[0, 0, 1]),
+            dict(id='seen', type='branch', condition=spawned, target='end'),
+            dict(id='stale', type='dialogue', speaker='督導', text='條件讀到舊狀態'),
+            dict(id='end', type='checkpoint')]
+        self.campaign.index = 0
+        self.campaign.update(0)
+        self.assertEqual(self.campaign.status, 'completed')
+
     def test_script_effects(self):
         self.command('campaign_start')
         self.campaign.scripts['prologue']['nodes'] = [
