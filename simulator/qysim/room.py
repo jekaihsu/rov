@@ -55,6 +55,8 @@ class Room:
             rc.centre_sticks()
             rc.rc_lock = 1
             rc.photo = rc.record = 0
+        sim.controller.reset_assist()
+        sim.rc_physical.assist = 0
         sim.remote_control = False
         sim.nav.mode = "IDLE"
         sim.nav.hold = None

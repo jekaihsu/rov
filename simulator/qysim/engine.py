@@ -168,9 +168,11 @@ class Simulator:
         self._buttons(rc)
 
         heading = None
+        assist = 0 if self.remote_control else rc.assist
         if not locked and (self.nav.mode != "IDLE" or self.nav.hold is not None):
             out = self.nav.step(dt, s.pos, self.yaw, v.world_velocity(), pilot, v.p.vmax[0])
             if out is not None:
+                assist = 0
                 pilot = {**{k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}, **out.cmd}
                 heading = out.heading
                 if out.depth is not None:
@@ -186,7 +188,7 @@ class Simulator:
         operation_wrench = self.operations.step(dt)
         keep_depth = keep_depth or self.operations.altitude is not None
         v.seabed_depth = self.world.depth_at(s.pos)
-        thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading) * self.health
+        thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist, rc.profile) * self.health
         w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
         n_events = len(self.world.events)
         w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
@@ -365,6 +367,7 @@ class Simulator:
             # take over with the physical RC's current switches, sticks centred
             self.rc_sdk = RCState(**{**self.rc_physical.as_dict(), "left_ud": 1500, "left_lr": 1500,
                                      "right_ud": 1500, "right_lr": 1500, "left_wave": 1500, "right_wave": 1500})
+        self.controller.reset_assist()
         self.remote_control = on
         self._log("sdk", f"遠端控制 {'ON（實體遙控器停用）' if on else 'OFF（交還遙控器）'}")
         return ok()
@@ -770,6 +773,7 @@ class Simulator:
             "health": [round(float(h), 2) for h in self.health],
             "rc": rc.as_dict(), "remote_control": self.remote_control, "operation_mode": self.operation_mode,
             "ctrl_mode": ctrl_mode(rc), "locked": bool(rc.rc_lock), "keep_depth": bool(rc.keep_depth),
+            "assist": self.controller.assist_state(),
             "depth_hold": None if self.controller.depth_hold is None else round(self.controller.depth_hold, 2),
             "battery": round(self.battery, 1), "recording": self.camera.recording_since is not None,
             "photos": sum(1 for f in self.camera.files if f["name"].endswith("JPG")),
@@ -798,6 +802,11 @@ class Simulator:
 
     # ── viewer commands ───────────────────────────────────────────────────
     def apply_viewer_rc(self, msg: dict) -> None:
+        # Each packet must opt in, so old clients retain manual semantics.
+        self.rc_physical.assist = msg.get("assist", 0) if msg.get("assist", 0) in (0, 1, 2) else 0
+        self.rc_physical.profile = msg.get("profile", "normal")
+        if self.rc_physical.profile not in ("cine", "normal", "sport"):
+            self.rc_physical.profile = "normal"
         for k, val in msg.items():
             if k in ("left_ud", "left_lr", "right_ud", "right_lr", "left_wave", "right_wave"):
                 self.rc_physical.set_channel(k, val)

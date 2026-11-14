@@ -18,6 +18,14 @@ from .physics import Vehicle, q_conj, q_mul, q_rot, q_from_euler, q_to_euler
 
 ACTIVE = 0.02
 
+# speed fraction, authority/mass acceleration fraction, jerk multiplier,
+# yaw rate fraction, stick exponent. All limits scale with the selected vehicle.
+PROFILES = {
+    "cine": (0.30, 0.10, 1.5, 0.30, 2.0),
+    "normal": (0.52, 0.18, 2.0, 0.50, 1.5),
+    "sport": (0.70, 0.25, 3.0, 0.75, 1.0),
+}
+
 
 @dataclass
 class ControllerGains:
@@ -36,13 +44,84 @@ class FlightController:
         self.q_hold = vehicle.s.q.copy()
         self.depth_hold: float | None = None
         self.last_wrench = np.zeros(6)
+        self.reset_assist()
+
+    def reset_assist(self) -> None:
+        self.assist_level = 0
+        self.profile = "normal"
+        self.velocity_target = np.zeros(3)
+        self.acceleration = np.zeros(3)
+        self.velocity_integral = np.zeros(3)
+        self.position_integral = np.zeros(3)
+        self.position_hold = None
+        self.yaw_rate = 0.0
+        self.limited = False
+
+    def assist_state(self) -> dict:
+        speed, _, _, yaw, _ = PROFILES[self.profile]
+        return {
+            "level": self.assist_level,
+            "profile": self.profile,
+            "holding": self.position_hold is not None,
+            "limited": self.limited,
+            "speed_limit": (np.asarray(self.v.p.vmax) * speed).tolist(),
+            "yaw_rate_limit": math.degrees(self.v.p.wmax[2] * yaw),
+        }
+
+    def assist_force(self, dt, c, mode, keep_depth):
+        """Ground velocity PI in a heading-aligned (A/C) or body (S) frame.
+
+        The reference is a critically damped, acceleration/jerk bounded filter.
+        Conditional integration and bounded integrators prevent allocation windup.
+        """
+        v = self.v
+        speed, accel, jerk, _, exponent = PROFILES[self.profile]
+        limits = np.asarray(v.p.vmax) * speed
+        amax = np.minimum(v.authority[:3] / v.M * accel, limits * 1.5)
+        frame = v.s.q if mode == "S" else q_from_euler(0, 0, q_to_euler(v.s.q)[2])
+        velocity = q_rot(q_conj(frame), v.world_velocity())
+        sticks = np.array([c["surge"], c["sway"], -c["heave"]])
+        target = np.sign(sticks) * np.abs(sticks) ** exponent * limits
+        active = np.any(np.abs(sticks) > ACTIVE)
+        if active or self.assist_level != 2:
+            self.position_hold = None
+            self.position_integral[:] = 0
+        elif self.position_hold is None and np.linalg.norm(v.world_velocity()) < 0.05:
+            self.position_hold = v.s.pos.copy()
+        if self.position_hold is not None:
+            error = self.position_hold - v.s.pos
+            if keep_depth:
+                error[2] = 0
+            if not self.limited:
+                self.position_integral = np.clip(self.position_integral + error * dt, -0.5, 0.5)
+            target = q_rot(q_conj(frame), 0.8 * error + 0.15 * self.position_integral)
+            target -= 0.25 * velocity
+            target = np.clip(target, -limits, limits)
+        desired_a = np.clip(4.0 * (target - self.velocity_target) - 4.0 * self.acceleration, -amax, amax)
+        self.acceleration += np.clip(desired_a - self.acceleration, -amax * jerk * dt, amax * jerk * dt)
+        self.velocity_target += self.acceleration * dt
+        error = self.velocity_target - velocity
+        old_integral = self.velocity_integral.copy()
+        self.velocity_integral = np.clip(old_integral + error * dt, -v.authority[:3] / v.M, v.authority[:3] / v.M)
+        # Normalized gains derived from effective mass and independent axis authority.
+        newtons = v.M * (self.acceleration + 4.0 * error + 2.0 * self.velocity_integral)
+        if keep_depth:
+            # Depth is controlled in world coordinates even in S mode.
+            world_force = q_rot(frame, newtons)
+            world_force[2] = 0
+            newtons = q_rot(q_conj(frame), world_force)
+            self.velocity_integral[2] = 0
+        force = q_rot(q_conj(v.s.q), q_rot(frame, newtons))
+        force = np.divide(force, v.authority[:3], out=np.zeros(3), where=v.authority[:3] > 1e-9)
+        return force, old_integral
 
     def reset_holds(self) -> None:
         self.q_hold = self.v.s.q.copy()
         self.depth_hold = None
+        self.reset_assist()
 
     def update(self, dt: float, cmd: dict, mode: str, locked: bool, keep_depth: bool,
-               heading_target: float | None = None) -> np.ndarray:
+               heading_target: float | None = None, assist: int = 0, profile: str = "normal") -> np.ndarray:
         """Return thruster commands in [-1, 1]. ``cmd`` holds surge/sway/heave/roll/pitch/yaw."""
         s = self.v.s
         if locked:
@@ -50,6 +129,12 @@ class FlightController:
             self.last_wrench = np.zeros(6)
             return np.zeros(len(self.v.thrusters))
 
+        if assist != self.assist_level or profile != self.profile:
+            self.reset_assist()
+        self.assist_level = assist
+        self.profile = profile if profile in PROFILES else "normal"
+        if not assist:
+            self.reset_assist()
         roll, pitch, yaw = q_to_euler(s.q)
         c = {k: float(cmd.get(k, 0.0)) for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
         for axis in c:
@@ -86,6 +171,11 @@ class FlightController:
                 rate_des[i] = axis_cmd[i] * g.rate_max[i]
             else:
                 rate_des[i] = max(-g.rate_max[i], min(g.rate_max[i], g.att_p * err[i]))
+        if assist:
+            yaw_max = self.v.p.wmax[2] * PROFILES[self.profile][3]
+            yaw_target = np.clip(rate_des[2], -yaw_max, yaw_max)
+            self.yaw_rate += float(np.clip(yaw_target - self.yaw_rate, -yaw_max * dt, yaw_max * dt))
+            rate_des[2] = self.yaw_rate
         torque = np.clip(np.array(g.rate_d) * (rate_des - s.omega), -1, 1)
 
         # ── translation ───────────────────────────────────────────────────
@@ -112,6 +202,19 @@ class FlightController:
             force += np.divide(body_force, self.v.authority[:3],
                                out=np.zeros(3), where=self.v.authority[:3] > 1e-9)
 
+        if assist:
+            assisted, old_integral = self.assist_force(dt, c, mode, keep_depth)
+            if keep_depth:
+                vertical_newtons = heave_world * self.v.authority[2]
+                depth_force = q_rot(q_conj(s.q), np.array([0.0, 0.0, vertical_newtons]))
+                assisted += np.divide(depth_force, self.v.authority[:3],
+                                      out=np.zeros(3), where=self.v.authority[:3] > 1e-9)
+            force = assisted
+            demand = np.concatenate([force, torque])
+            motors = self.v.B_pinv @ (demand * self.v.authority) / self.v.p.thruster_max
+            self.limited = bool(np.max(np.abs(motors)) > 1.0)
+            if self.limited:
+                self.velocity_integral = old_integral
         wrench = np.clip(np.concatenate([force, torque]), -1.5, 1.5)
         self.last_wrench = wrench
         return self.v.allocate(wrench)

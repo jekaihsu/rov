@@ -205,3 +205,35 @@ catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
+
+### Optional flight assistance
+
+RC packets may include `assist` (0 manual, 1 ground velocity, 2 ground position
+hold) and `profile` (`cine`, `normal`, `sport`). Each packet defaults to 0 and
+`normal` when omitted; unsupported values use those defaults. SDK remote control
+and active navigation bypass assistance. Depth keeping retains vertical priority.
+A/C interpret velocity in heading-aligned horizontal coordinates; S uses body axes.
+All translation sticks must be within 0.02 and ground speed below 0.05 m/s to
+capture a position. Any translation stick outside that threshold releases it.
+Lock, failsafe, disconnect and remote takeover clear assistance history.
+
+`state.assist` contains `level`, `profile`, `holding`, `limited`, `speed_limit`
+([surge, sway, heave], m/s) and `yaw_rate_limit` (degrees/s). `limited` reports
+requested motor saturation including coupled translation/attitude demands.
+It cannot guarantee position holding in currents exceeding available thrust.
+
+Profile parameters scale with vehicle specifications rather than a model ID:
+
+| Profile | Speed / nominal axis vmax | Acceleration / (authority / effective mass) | Jerk / acceleration (s⁻¹) | Yaw / nominal wmax | Stick exponent |
+|---|---:|---:|---:|---:|---:|
+| cine | 0.30 | 0.10 | 1.5 | 0.30 | 2.0 |
+| normal | 0.52 | 0.18 | 2.0 | 0.50 | 1.5 |
+| sport | 0.70 | 0.25 | 3.0 | 0.75 | 1.0 |
+
+Acceleration is additionally capped at 1.5 times the speed limit per second.
+Yaw acceleration is bounded to the profile yaw limit per second. Existing RC
+curvature/limits apply before the profile exponent. Conservative still-water
+acceptance bounds: reach 90% forward speed within 8/10/12 seconds respectively;
+normal braking from settled full forward speed reaches 0.05 m/s within 8 seconds
+and 4 metres, with less than 5 cm reverse travel. These are controller acceptance
+bounds, not guarantees under contact, tether loading or arbitrary attitude.

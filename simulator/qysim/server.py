@@ -84,6 +84,8 @@ class SimHost:
             self.controller_generation += 1
         self.controller_connected = False
         self.controller_reason = reason
+        self.sim.controller.reset_assist()
+        self.sim.rc_physical.assist = 0
         self.sim.rc_physical.centre_sticks()
         self.sim.rc_physical.rc_lock = 1
         self.sim.rc_physical.photo = self.sim.rc_physical.record = 0
@@ -422,7 +424,10 @@ class SimHost:
             values = msg.get("rc", {})
             if not isinstance(values, dict):
                 raise ValueError("rc must be an object")
-            if any(not isinstance(v, (int, float)) or not np.isfinite(v) for v in values.values()):
+            if "profile" in values and not isinstance(values["profile"], str):
+                raise ValueError("RC profile must be a string")
+            if any(not isinstance(v, (int, float)) or not np.isfinite(v)
+                   for k, v in values.items() if k != "profile"):
                 raise ValueError("RC values must be finite numbers")
             bridge = self.bridges.get((room.id, player.id)) if player else None
             if bridge and not controller_bridge:
