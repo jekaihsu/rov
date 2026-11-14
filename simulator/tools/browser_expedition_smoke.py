@@ -3,6 +3,7 @@ import argparse
 import json
 import time
 from pathlib import Path
+from shutil import which
 from playwright.sync_api import sync_playwright
 
 parser = argparse.ArgumentParser()
@@ -34,7 +35,7 @@ def current_host(tabs):
     return next(tab for tab in tabs if tab.evaluate("window.__viewer.S.room.host_id===window.__testMessages.filter(m=>m.type==='session').at(-1).player_id"))
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(channel='chrome',headless=True,args=['--enable-unsafe-swiftshader'])
+    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True,args=['--enable-unsafe-swiftshader'])
     contexts=[]
     def page():
         context=browser.new_context(viewport={'width':1366,'height':768},accept_downloads=True)
@@ -52,6 +53,7 @@ with sync_playwright() as p:
     main.locator('#menuIntro').evaluate('(el)=>el.checked=false')
     main.locator('#startDive').click()
     wait_state(main)
+    main.click('#flightDrawer')
     main.wait_for_selector('.expedition-panel:not([hidden])')
     main.click('.exp-available button')
     main.wait_for_function("window.__viewer.S.expedition.active?.kind==='inspect'")
