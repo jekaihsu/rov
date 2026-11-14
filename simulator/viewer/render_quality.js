@@ -53,7 +53,9 @@ export function configureRenderQuality(renderer,mode='auto'){
   const hardware=detectHardware(renderer),dpr=positive(globalThis.devicePixelRatio)||1;
   const limits=mode==='auto'?bounds(renderer,hardware):{ceiling:Math.min(dpr,['high','ultra'].includes(mode)?2:1),floor:Math.min(dpr,.6)};
   const ratio=mode==='auto'?Math.min(limits.ceiling,hardware.initialRatio):['performance','low'].includes(mode)?Math.min(dpr,.75):limits.ceiling;
-  const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3,effectsSuppressed:false};
+  // Automatic quality on software GL starts without screen effects (underwater optics); there is no frame budget.
+  const effectsSuppressed=mode==='auto'&&hardware.tier==='software';
+  const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3,effectsSuppressed};
   profiles.set(renderer,state);renderer.shadowMap.enabled=['high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
   return state;
 }

@@ -129,7 +129,10 @@ GL here the medium-tier capture frames took 0.6-1.8× the time of main's (shots.
 
 - The shots were taken on a heavily loaded machine with software GL (3-40 s per frame), 4 frames each.
   Nothing here was looked at on a real GPU; frame time of the optics tiers on integrated graphics is
-  unmeasured. The `auto` tier falls back to the legacy look on its first slow sample.
+  unmeasured. The `auto` tier falls back to the legacy look on its first slow sample, and on software GL
+  it starts in the legacy look: without that, `browser_smoke.py` (three software viewers on one CPU)
+  timed out twice on this branch while main passed, because each viewer first compiled every material
+  for the optics tier and then again for the fallback.
 - Unlit helpers (objective wire spheres, flow particles, current arrow) are divided by the exposure so
   they keep their designed brightness; the app's flow particles are white dots and are far more visible
   than the simulated suspension in daylight. They are a training aid that already existed.

@@ -86,7 +86,9 @@ Everything numeric here is a visualization assumption; nothing is X1 data. Mark 
 - `low` / `performance`: `installUnderwaterPipeline` returns `null` at start-up and the renderer is not
   wrapped; the original single-coefficient depth shader (`legacy_lighting.js`) is used. No composer, no
   extra draw calls, no particles.
-- `auto`: starts with optics; the first slow sample sets `effectsSuppressed`, which switches the frame back
+- `auto`: starts with optics (on software GL it starts with `effectsSuppressed` already set, i.e. the
+  legacy look, since there is no frame budget to spend); the first slow sample sets `effectsSuppressed`,
+  which switches the frame back
   to the legacy look (materials recompile once, lamps get their legacy falloff back); later slow samples
   lower the resolution as before.
 - `medium` / `high` / `ultra`: optics; 1024 / 2048 / 4096 particles in a 4 m box; high and ultra add the small
