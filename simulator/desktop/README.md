@@ -74,3 +74,10 @@ Backend Python changes still require rebuilding the frozen backend. Set
 `ROV_DESKTOP_SMOKE_MODEL=falcon` to test switching the packaged app to Falcon and
 saving the preference; relaunch with the same user-data directory and without
 that override to check persistence across launches.
+
+## Steam preparation (T10)
+
+See [release configuration and known blockers](steam/RELEASE.md). The current CI
+artifact remains an internal training build; it is not ready for Steam publication.
+IDs are supplied through environment variables or GitHub secrets. Generate preview
+upload descriptors with `node steam/generate_vdf.cjs`; no credentials are stored.

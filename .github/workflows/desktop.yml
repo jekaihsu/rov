@@ -1,0 +1,46 @@
+name: Windows desktop
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      ROV_BUILD_EDITION: internal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: simulator/desktop/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+        working-directory: simulator/desktop
+      - run: node test_desktop.cjs
+        working-directory: simulator/desktop
+      - run: npm run vendor
+        working-directory: simulator/desktop
+      - run: python -m pip install numpy==1.24.4 numba==0.57.1 llvmlite==0.40.1 websockets==15.0.1 pyinstaller==6.22.3
+      - run: python simulator/desktop/build_backend.py
+      - run: python simulator/desktop/smoke_backend.py
+      - run: npm run make -- --platform=win32 --arch=x64
+        working-directory: simulator/desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rov-windows-internal
+          path: simulator/desktop/out/make/**/*.zip
+          if-no-files-found: error
+      - name: Generate upload descriptors (manual, secrets required)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          STEAM_APP_ID: ${{ secrets.STEAM_APP_ID }}
+          STEAM_DEPOT_ID: ${{ secrets.STEAM_DEPOT_ID }}
+        run: node simulator/desktop/steam/generate_vdf.cjs

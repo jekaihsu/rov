@@ -1,0 +1,77 @@
+[
+  {
+    "event": "first_dive",
+    "api": "ACH_FIRST_DIVE",
+    "name": "第一次下潛"
+  },
+  {
+    "event": "inspection",
+    "api": "ACH_INSPECTION",
+    "name": "首次巡檢"
+  },
+  {
+    "event": "recovery",
+    "api": "ACH_RECOVERY",
+    "name": "首次回收"
+  },
+  {
+    "event": "deployment",
+    "api": "ACH_DEPLOYMENT",
+    "name": "首次部署"
+  },
+  {
+    "event": "scenario",
+    "api": "ACH_SCENARIO",
+    "name": "首次訓練"
+  },
+  {
+    "event": "zero_collision",
+    "api": "ACH_ZERO_COLLISION",
+    "name": "零碰撞完成"
+  },
+  {
+    "event": "guide_fish",
+    "api": "ACH_GUIDE_FISH",
+    "name": "魚類觀察"
+  },
+  {
+    "event": "guide_coral",
+    "api": "ACH_GUIDE_CORAL",
+    "name": "珊瑚觀察"
+  },
+  {
+    "event": "guide_seagrass",
+    "api": "ACH_GUIDE_SEAGRASS",
+    "name": "海草觀察"
+  },
+  {
+    "event": "guide_structure",
+    "api": "ACH_GUIDE_STRUCTURE",
+    "name": "結構觀察"
+  },
+  {
+    "event": "guide_other",
+    "api": "ACH_GUIDE_OTHER",
+    "name": "其他觀察"
+  },
+  {
+    "event": "guide_complete",
+    "api": "ACH_GUIDE_COMPLETE",
+    "name": "圖鑑五類集滿"
+  },
+  {
+    "event": "three_pilots",
+    "api": "ACH_THREE_PILOTS",
+    "name": "三人協作"
+  },
+  {
+    "event": "untangled",
+    "api": "ACH_UNTANGLED",
+    "name": "解開纏繞"
+  },
+  {
+    "event": "first_photo",
+    "api": "ACH_FIRST_PHOTO",
+    "name": "首次拍照"
+  }
+]
