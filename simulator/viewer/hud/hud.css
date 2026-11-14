@@ -77,3 +77,20 @@ body.replaying .hud.bc { bottom: 96px; }
 body.hud-danger #vp::after { content: ''; position: absolute; inset: 0; pointer-events: none;
   box-shadow: inset 0 0 70px var(--danger); z-index: 9; }
 body.hud-hidden #vp::after { display: none; }
+
+/* Decorative HUD surfaces never intercept playback controls. */
+body .hud, body .hud > * { pointer-events: none; }
+body .hud button, body .hud input, body .hud select { pointer-events: auto; }
+body.replaying #replayBar { z-index: 11; pointer-events: auto; }
+body.replaying #replayBar.idle { pointer-events: none; }
+body.replaying #flightMapBox { bottom: 120px; }
+body.replaying #flightTools { bottom: 120px; }
+#flightTools { opacity: .45; transition: opacity 180ms ease-out; }
+#flightTools:hover, #flightTools:focus-within, #flightTools.controller-visible { opacity: 1; }
+#flightTools button { width: 40px; height: 40px; padding: 8px; }
+#flightTools svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+body .lock.locked { border-color: var(--warn); color: var(--warn); padding: 12px 16px; }
+body .lock.locked b { font-size: 22px; }
+body .lock.locked span { display: block; font-size: 13px; color: var(--text); }
+body .lock:not(.locked) { padding: 4px 8px; opacity: .7; }
+@media (prefers-reduced-motion: reduce) { #flightTools { transition: none; } }

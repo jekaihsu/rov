@@ -75,5 +75,26 @@ with sync_playwright() as p:
     page.keyboard.press('Tab')
     assert page.locator('#engineering').is_hidden()
     assert not errors, errors
+
+    # Exercise real replay playback with hit-tested clicks, without force or DOM click().
+    page.unroute('**/boot.js')
+    page.goto('http://127.0.0.1:8092/?replay=demo_recording.json&nointro&quality=performance')
+    page.wait_for_function('window.__replay?.() && document.querySelector("#flightCable")', timeout=90000)
+    for width, height in [(1280, 720), (1920, 1080)]:
+        page.set_viewport_size(dict(width=width, height=height))
+        button = page.locator('#rpPlay').bounding_box()
+        x = button['x'] + button['width'] / 2
+        y = button['y'] + button['height'] / 2
+        page.mouse.move(x, y)
+        page.mouse.click(x, y)
+        page.wait_for_function('document.querySelector("#rpPlay").textContent === "▶"')
+        paused = page.evaluate('window.__replay().t')
+        page.wait_for_timeout(500)
+        assert page.evaluate('window.__replay().t') == paused
+        page.mouse.click(x, y)
+        page.wait_for_function('t => window.__replay().t > t', arg=paused)
+        if args.screenshots:
+            page.screenshot(path=str(OUT / f'replay-{width}x{height}.png'), timeout=120000)
+    assert not errors, errors
     browser.close()
-print('HUD geometry, tap timeout, hold/release, D-pad adapter, hiding and drawer persistence passed.')
+print('HUD geometry, tap timeout, hold/release, D-pad adapter, hiding drawer persistence and real replay play/pause clicks passed.')

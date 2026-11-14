@@ -5,6 +5,8 @@ import { drawFlightAttitude } from './attitude.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
+  view: '切換視角 V', locked: '馬達鎖定', unlocked: '馬達解鎖',
+  unlockHint: '按 Space / 手把 Y 解鎖',
   hide: '切換 HUD', north: '北朝上', head: '機頭朝上',
   cards: ['任務與目標', '載具系統', '地圖與隊友', '鍵位提示'],
   keys: 'WASD / 方向鍵 飛行\nSpace 鎖定 · H 定深 · L 燈光\n1–4 速覽 · Tab 工程',
@@ -75,8 +77,15 @@ export function readHUDButtons(actions = {}) {
 }
 function setDensity() {
   document.body.classList.toggle('hud-minimal', density === 0);
-  $('flightDensity').textContent = STRINGS.density[density];
+  toolIcon($('flightDensity'), 'density', STRINGS.density[density]);
   save('rov.hud.density', String(density));
+}
+function toolIcon(button, icon, label) {
+  button.title = label;
+  button.setAttribute('aria-label', label);
+  if (button.querySelector('svg')) return;
+  button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24">'
+    + `<use href="/hud/icons.svg#${icon}"></use></svg>`;
 }
 function initialize() {
   ready = true;
@@ -105,6 +114,9 @@ function initialize() {
   add('flightPeek', '<strong></strong><p></p><canvas width="336" height="288" hidden></canvas>');
   add('flightTools', `<button id="flightDrawer">${STRINGS.engineering}</button>
     <button id="flightDensity"></button><button id="flightHide">${STRINGS.hide}</button>`);
+  $('flightTools').append($('camBtn'));
+  toolIcon($('flightDrawer'), 'engineering', STRINGS.engineering);
+  toolIcon($('flightHide'), 'hud', STRINGS.hide);
   $('flightDrawer').onclick = drawer;
   $('flightMapMode').onclick = function toggleNorth() {
     north = !north;
@@ -207,6 +219,10 @@ function drawMap(canvas, s, w) {
 export function updateFlightHUD(s, w, dt, input = {}) {
   if (!ready) initialize();
   if (!s?.pos) return;
+  toolIcon($('camBtn'), 'camera', STRINGS.view);
+  $('lockBadge').querySelector('b').textContent = s.locked ? STRINGS.locked : STRINGS.unlocked;
+  $('lockBadge').querySelector('span').textContent = s.locked ? STRINGS.unlockHint : '';
+  $('flightTools').classList.toggle('controller-visible', !!input.active);
   const range = forwardRange(s, w);
   $('flightRange').textContent = range == null ? '' : `${STRINGS.forward} ${range.toFixed(1)} m`;
   $('flightRange').style.color = range < .5 ? 'var(--danger)' : 'var(--warn)';

@@ -27,6 +27,13 @@ def run():
         page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=90000)
         page.wait_for_timeout(1500)
         page.screenshot(path=str(OUT / 'prologue.png'))
+
+        for width, height in [(1280, 720), (1920, 1080)]:
+            page.set_viewport_size(dict(width=width, height=height))
+            radio = page.locator('.story-radio').bounding_box()
+            assert radio['width'] <= width * .45, radio
+            assert radio['x'] + radio['width'] < width * .5, radio
+            page.screenshot(path=str(OUT / f'dialogue-{width}x{height}.png'))
         visited = []
         inputs = {'unlock': 'Space', 'move_前': 'w', 'move_後': 's', 'move_右': 'd',
                   'move_左': 'a', 'move_下': 'ArrowDown', 'move_上': 'ArrowUp',
