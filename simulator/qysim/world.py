@@ -22,7 +22,8 @@ from typing import ClassVar
 import numpy as np
 
 from ._flow_accel import turbulence as _compiled_turbulence
-from .flow import (BED_ROUGHNESS_M, BIOME_BED, COMPONENT_RATIOS, DEFAULT_Z0, SEABED_Z0, StructureFlow, Tide, TurbulenceField,
+from .flow import (COMPONENT_RATIOS, DEFAULT_Z0, SEABED_Z0, StructureFlow, Tide,
+                   TurbulenceField,
                    bed_factor, bed_reference_height, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors)
 from .physics import KNOT, q_rot
 
