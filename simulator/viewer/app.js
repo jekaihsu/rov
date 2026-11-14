@@ -804,24 +804,6 @@ const adi = $('adi');
 function drawADI(pitch, roll, hdg) {
   drawROVAttitude(adi,{pitch:pitch/DEG,roll:roll/DEG,heading:hdg});
 }
-const tape = $('tape'), tctx = tape.getContext('2d');
-function drawTape(hdg) {
-  const Wd = tape.width, H = tape.height, ppd = 5;
-  tctx.clearRect(0, 0, Wd, H);
-  tctx.fillStyle = 'rgba(6,16,24,.55)'; tctx.fillRect(0, 0, Wd, H);
-  tctx.strokeStyle = '#d6e4ec'; tctx.fillStyle = '#d6e4ec'; tctx.textAlign = 'center'; tctx.font = '600 26px ' + C('--f-data');
-  const card = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
-  for (let d = Math.floor((hdg - 64) / 5) * 5; d <= hdg + 64; d += 5) {
-    const x = Wd / 2 + (d - hdg) * ppd, dd = ((d % 360) + 360) % 360;
-    tctx.lineWidth = dd % 30 === 0 ? 2 : 1;
-    tctx.beginPath(); tctx.moveTo(x, H); tctx.lineTo(x, H - (dd % 30 === 0 ? 16 : dd % 10 === 0 ? 10 : 6)); tctx.stroke();
-    if (dd % 30 === 0) { tctx.fillStyle = card[dd] ? '#f2b705' : '#d6e4ec'; tctx.fillText(card[dd] || String(dd / 10).padStart(2, '0'), x, 24); }
-  }
-  tctx.fillStyle = '#f2b705'; tctx.beginPath(); tctx.moveTo(Wd / 2 - 9, H); tctx.lineTo(Wd / 2 + 9, H); tctx.lineTo(Wd / 2, H - 14); tctx.fill();
-  tctx.fillStyle = '#061018'; tctx.fillRect(Wd / 2 - 40, 0, 80, 32);
-  tctx.strokeStyle = '#f2b705'; tctx.lineWidth = 2; tctx.strokeRect(Wd / 2 - 40, 1, 80, 31);
-  tctx.fillStyle = '#f2b705'; tctx.font = '600 28px ' + C('--f-data'); tctx.fillText(String(Math.round(hdg) % 360).padStart(3, '0'), Wd / 2, 26);
-}
 
 const prof = $('profile'), pctx = prof.getContext('2d');
 function arrow(ctx, x, y, dirDeg, len, col, lw = 2) {
@@ -892,7 +874,7 @@ function updateUI() {
   setTxt('gAlt', alt == null ? '—' : alt.toFixed(2)); $('gAlt').closest('.g').classList.toggle('low', alt != null && alt < 1);
   setTxt('gHold', s.depth_hold != null ? `定深設定點 ${s.depth_hold.toFixed(2)} m` : '');
   setTxt('rDepth', depth.toFixed(1)); setTxt('rAlt', alt == null ? '—' : alt.toFixed(1)); setTxt('rSpd', (s.speed_kn ?? 0).toFixed(2)); setTxt('rCur', (s.current_kn ?? 0).toFixed(2));
-  drawADI(pitch * DEG, roll * DEG, hdg); drawTape(hdg);
+  drawADI(pitch * DEG, roll * DEG, hdg);
 
   // HUD
   const lk = $('lockBadge');

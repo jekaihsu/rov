@@ -34,6 +34,11 @@ const STRINGS = {
   densityMinimal: '極簡',
   densityStandard: '標準',
   densityFull: '完整',
+  hudStyle: 'HUD 樣式',
+  hudStyleHelp: '自動：真實模式的機載畫面用影像疊字，其他情況用線條儀表。',
+  hudStyleAuto: '自動',
+  hudStyleLine: '線條儀表',
+  hudStyleOsd: '影像疊字',
   unitMs: 'ms'
 };
 export const PRESET_NAMES = ['real', 'assisted'];
@@ -325,4 +330,14 @@ registerFidelityItem({
     {value: 2, labelKey: 'densityFull'}
   ],
   defaults: {real: 1, assisted: 1}, presetNeutral: true
+});
+registerFidelityItem({
+  // Presentation only: both styles show the same delayed read-outs, so neither exceeds the real vehicle.
+  id: 'hudStyle', descriptionKey: 'hudStyleHelp', type: 'choice',
+  options: [
+    {value: 'auto', labelKey: 'hudStyleAuto'},
+    {value: 'line', labelKey: 'hudStyleLine'},
+    {value: 'osd', labelKey: 'hudStyleOsd'}
+  ],
+  defaults: {real: 'auto', assisted: 'auto'}, presetNeutral: true, urlValue: urlParam('hudStyle')
 });
