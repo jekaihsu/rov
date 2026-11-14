@@ -25,7 +25,15 @@
 - 基底分支 `main`。每份任務書開一個分支 `task/<編號>-<短名>`，一個 PR。PR 標題以任務編號開頭，例如 `T02: 輸入層`。
 - PR 描述須包含：做了什麼、如何驗證（貼上實際執行的指令與結果）、未完成或有疑慮的部分。前端變更附前後截圖。
 - 不要順手做任務書以外的事。發現別的問題，寫在 PR 描述的「後續」段落。
-- 審查與合併由 Claude 負責。CI 未過不合併。
+- 審查與合併由 Claude 負責。CI 未過不合併；CI 額度用完時，由審查者在本機重跑測試代替。
+
+## CI 額度（GitHub Free，每月內含額度有限）
+
+- 開發中請開 **draft PR**，draft 不跑 CI。完成後再轉為 ready for review。
+- 不要為了觸發 CI 一直推小提交。在本機跑完測試、一次推上去。PR 描述裡貼上本機測試的指令與結果，這是必要的，不能只依賴 CI。
+- **禁止**在 `pull_request` 或 `push` 觸發 Windows／macOS runner（計費是 Linux 的數倍）。這類工作只能用 `workflow_dispatch` 手動觸發，或在推送版本 tag 時觸發。
+- 瀏覽器（Playwright）類的 CI 工作，必須用 `paths` 限定只在 `simulator/viewer/**` 變更時執行。
+- 新增 workflow 必須設 `timeout-minutes` 與 `concurrency: cancel-in-progress: true`。
 
 ## 硬性規則
 
