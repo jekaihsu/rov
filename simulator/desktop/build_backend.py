@@ -43,7 +43,7 @@ args = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
 for excluded in ('scipy', 'matplotlib', 'pandas', 'cv2', 'IPython', 'jupyter',
                  'pytest', 'tkinter', 'PyQt5', 'PyQt6', 'PIL', 'sympy'):
     args.extend(['--exclude-module', excluded])
-args.append(str(SIM / 'tools' / 'desktop_entry.py'))
+args.append(str(DESKTOP / 'backend_entry.py'))
 if not options.licenses_only:
     subprocess.run(args, cwd=PROJECT, check=True)
 
