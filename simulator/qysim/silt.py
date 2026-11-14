@@ -15,8 +15,9 @@ and how far can a camera see through it":
   a soft bed add a smaller contact source.
 * Transport: mass-conserving Gaussian puffs in three grain classes (fine sand 200 um,
   coarse silt 63 um, fine silt 15 um). Each puff settles at its class settling velocity
-  (Soulsby 1997, which reduces to Stokes for silt), is advected by ``CurrentProfile.sample``,
-  spreads as ``sigma**2 += 2 * K * dt`` (K: still water + current shear + decaying thruster wake) and loses mass only by deposition at the bed
+  (Soulsby 1997, which reduces to Stokes for silt), is advected by ``CurrentProfile.sample``
+  (log law in the last metre above the bed), spreads as ``sigma**2 += 2 * K * dt`` (K: still
+  water + current shear + decaying thruster wake) and loses mass only by deposition at the bed
   (flux ``ws * C_bed``) or by leaving the area around the vehicles. Every kilogram is booked
   in ``emitted = suspended + deposited + removed``.
 * Optics: concentration ``C`` in mg/L (= g/m3) at any point, with an optional near-bed
