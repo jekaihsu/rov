@@ -734,17 +734,27 @@ export function shipHullGeometry(ob, detail = DETAIL.medium) {
     }
     const positions = [];
     const uvs = [];
-    const push = (pt, side) => {
-      positions.push(...toWorld(pt.x, side * pt.hb, pt.z).toArray());
-      uvs.push(pt.x / 10, pt.z / 2.5);
+    const zMid = (hp.top + hp.draft) / 2;
+    // one triangle in hull-local coordinates (x forward, y starboard, z down; right-handed like the world),
+    // wound so its normal points away from the hull's centre line: the hull can then be drawn front faces only
+    const triangle = (a, b, c) => {
+      const pa = [a[0].x, a[1] * a[0].hb, a[0].z];
+      const pb = [b[0].x, b[1] * b[0].hb, b[0].z];
+      const pc = [c[0].x, c[1] * c[0].hb, c[0].z];
+      const u = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]];
+      const v = [pc[0] - pa[0], pc[1] - pa[1], pc[2] - pa[2]];
+      const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+      const centre = [(pa[0] + pb[0] + pc[0]) / 3, (pa[1] + pb[1] + pc[1]) / 3, (pa[2] + pb[2] + pc[2]) / 3];
+      const out = [centre[0] * 0.02, centre[1], centre[2] - zMid];
+      const order = n[0] * out[0] + n[1] * out[1] + n[2] * out[2] >= 0 ? [pa, pb, pc] : [pa, pc, pb];
+      for (const q of order) {
+        positions.push(...toWorld(q[0], q[1], q[2]).toArray());
+        uvs.push(q[0] / 10, q[2] / 2.5);
+      }
     };
     const quad = (p00, p01, p10, p11, s00, s01, s10, s11) => {
-      push(p00, s00);
-      push(p10, s10);
-      push(p11, s11);
-      push(p00, s00);
-      push(p11, s11);
-      push(p01, s01);
+      triangle([p00, s00], [p10, s10], [p11, s11]);
+      triangle([p00, s00], [p11, s11], [p01, s01]);
     };
     for (let i = 0; i < columns.length - 1; i++) {
       const c0 = columns[i];
@@ -768,8 +778,7 @@ export function shipHullGeometry(ob, detail = DETAIL.medium) {
 }
 
 function shipHull(set, ob) {
-  const mesh = set.add(shipHullGeometry(ob, set.detail), 'hull', [ob.name], 'solid', [ob]);
-  mesh.material.side = THREE.DoubleSide;
+  set.add(shipHullGeometry(ob, set.detail), 'hull', [ob.name], 'solid', [ob]);
   // zinc anodes welded flush on the hull near the stern, 0.06 m proud
   const hp = shipHullParams(ob);
   const {toWorld} = shipLocalFrame(ob);
