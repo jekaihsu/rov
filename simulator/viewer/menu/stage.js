@@ -248,7 +248,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
       look.copy(targetLook);
       snapped = true;
     } else {
-      const blend = 1 - Math.exp(-dt * 2.6);
+      // Real elapsed time, not the capped frame step, so a slow renderer still arrives at the pose.
+      const blend = 1 - Math.exp(-Math.min(1, seconds) * 2.6);
       eye.lerp(targetEye, blend);
       look.lerp(targetLook, blend);
     }

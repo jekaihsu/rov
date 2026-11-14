@@ -1,8 +1,9 @@
 """Capture every launch-menu screen and the pause menu at 1600x900 (device scale 2) for design review.
 
-Usage (from the simulator directory): python tools/run_browser_checks.py browser_menu_screens
+Usage: start a simulator (defaults http 8092 / ws 8792, see _browser.py), then python tools/browser_menu_screens.py.
+A full software-GL run takes about 20 minutes, longer than run_browser_checks.py allows one script.
 Writes PNGs to docs/design/menu-redesign/ (or the directory given as the first argument). A capture larger than
-1.5 MB is re-encoded with a 256-colour palette so review images stay small. Not a pass/fail check.
+1.5 MB is re-encoded with a palette (256 colours or fewer) so review images stay small. Not a pass/fail check.
 """
 import io
 import sys
@@ -33,15 +34,23 @@ Object.defineProperty(navigator, 'getGamepads', {value: () => [reviewPad, null, 
 """
 
 
+def shrink(path):
+    """Re-encode an oversized capture with an ever smaller palette until it fits under LIMIT."""
+    image = Image.open(path).convert('RGB')
+    attempts = [(256, Image.Quantize.FASTOCTREE, Image.Dither.FLOYDSTEINBERG)]
+    attempts += [(colors, Image.Quantize.FASTOCTREE, Image.Dither.NONE) for colors in (256, 192, 128, 96, 64)]
+    for colors, method, dither in attempts:
+        if path.stat().st_size <= LIMIT:
+            return
+        image.quantize(colors=colors, method=method, dither=dither).save(path, optimize=True)
+
+
 def save(page, name, settle=1500):
     page.wait_for_timeout(settle)
-    data = page.screenshot()
+    data = page.screenshot(timeout=timeout(120000))
     path = OUT / f'{name}.png'
-    image = Image.open(io.BytesIO(data))
-    image.save(path, optimize=True)
-    if path.stat().st_size > LIMIT:
-        image.convert('RGB').quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG) \
-            .save(path, optimize=True)
+    Image.open(io.BytesIO(data)).save(path, optimize=True)
+    shrink(path)
     print(f'{name}.png {path.stat().st_size // 1024} KB', flush=True)
 
 
@@ -54,6 +63,8 @@ def press(page, button):
 def menu_page(browser, query=''):
     context = browser.new_context(viewport=VIEW, device_scale_factor=2)
     page = context.new_page()
+    # Device scale 2 under software GL renders slowly; clicks wait for stable frames.
+    page.set_default_timeout(timeout(120000))
     page.add_init_script(PAD)
     page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&quality=medium&room={ROOM}{query}')
     return page
@@ -67,7 +78,11 @@ def run():
         context = browser.new_context(viewport=VIEW, device_scale_factor=2)
         page = context.new_page()
         held = []
-        page.route('**/menu_catalogue.json', held.append)
+
+        def hold(route):
+            held.append(route)
+
+        page.route('**/menu_catalogue.json', hold)
         page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}', wait_until='commit')
         page.wait_for_function('getComputedStyle(document.querySelector("#menuLoading")).getPropertyValue("--progress")'
                                ' !== ""')

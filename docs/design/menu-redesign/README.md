@@ -1,12 +1,15 @@
 # 主選單重做（T06）截圖
 
 1600×900、deviceScaleFactor 2，以 `simulator/tools/browser_menu_screens.py` 在軟體 WebGL（SwiftShader）下擷取；
-超過 1.5 MB 的圖以 256 色調色盤重新編碼。重新產生：
+超過 1.5 MB 的圖以 256 色（必要時更少）調色盤重新編碼。重新產生：
 
 ```bash
 cd simulator
-ROV_CHROMIUM=/opt/pw-browsers/chromium python tools/run_browser_checks.py browser_menu_screens
+python -m qysim.server --http-port 8092 --ws-port 8792 &   # 另開一個伺服器
+cd tools && ROV_CHROMIUM=/opt/pw-browsers/chromium ROV_BROWSER_TIMEOUT_SCALE=3 python browser_menu_screens.py
 ```
+
+（軟體繪圖下整套擷取約 20 分鐘，超過 `run_browser_checks.py` 每支腳本 900 秒的上限，所以直接執行。）
 
 視覺語言沿用飛行 HUD 方向稿 A（`docs/design/mockups/hud-a-line-instrument.png`）：細線、半透明層、大型等寬數字，
 每個畫面最多一顆實心強調按鈕（簡報頁的「下水」）。背景一律是即時 3D 場景，換步驟時鏡頭平滑移動。
