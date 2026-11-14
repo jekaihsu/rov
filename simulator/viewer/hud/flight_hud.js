@@ -6,6 +6,7 @@ import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
 import { bindingRow, hintText } from '../input/bindings.js';
 import { assistPill } from './assist_pill.js';
+import { pilotReadings } from './sensor_view.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -16,7 +17,7 @@ const STRINGS = {
   cable: '纜線', battery: '電量',
   danger: '危險：纜線斷裂', warn: '注意：纜線張力', near: '注意：接近海床',
   obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
-  forward: '前方估距', controller: 'USB 控制器已連線',
+  forward: '前方估距', controller: 'USB 控制器已連線', dvlLost: '注意：DVL 失去底鎖',
   fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
 };
 const $ = id => document.getElementById(id);
@@ -256,17 +257,18 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   $('lockBadge').querySelector('b').textContent = s.locked ? STRINGS.locked : STRINGS.unlocked;
   $('lockBadge').querySelector('span').textContent = s.locked ? STRINGS.unlockHint : '';
   $('flightTools').classList.toggle('controller-visible', !!input.active);
-  const range = forwardRange(s, w);
+  const readings = pilotReadings(s, w);
+  const range = readings.range === undefined ? forwardRange(s, w) : readings.range;
   $('flightRange').textContent = range == null ? '' : `${STRINGS.forward} ${range.toFixed(1)} m`;
   $('flightRange').style.color = range < .5 ? 'var(--danger)' : 'var(--warn)';
   $('flightController').textContent = s.controller ? STRINGS.controller : '';
-  const alt = w ? w.seabed_depth - s.pos[2] : null;
-  $('flightDepthValue').textContent = smooth('depth', s.pos[2], dt).toFixed(1);
+  const alt = readings.altitude;
+  $('flightDepthValue').textContent = smooth('depth', readings.depth, dt).toFixed(1);
   $('flightAltitude').textContent = alt == null ? '—' : smooth('alt', alt, dt).toFixed(1);
   $('flightClearance').value = alt ?? 3;
   $('flightClearance').style.accentColor = alt < .5 ? 'var(--danger)' : alt < 1.5 ? 'var(--warn)' : 'var(--go)';
   drawFlightAttitude($('flightADI'), s.euler);
-  drawFlightCompass($('tape'), s.euler?.[2] || 0, dt);
+  drawFlightCompass($('tape'), readings.heading, dt);
   const objective = s.expedition?.active?.steps?.find(item => !item.completed)
     || s.mission?.targets?.find(item => !item.done)
     || s.score?.objectives?.find(item => !item.done);
@@ -290,7 +292,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     document.querySelector('.chips').append(fidelityChip, chip, status);
     showFidelity();
   }
-  $('rSpd').textContent = smooth('speed', s.speed_kn || 0, dt).toFixed(2);
+  $('rSpd').textContent = readings.speedKn == null ? '—' : smooth('speed', readings.speedKn, dt).toFixed(2);
   $('flightCable').textContent = `${smooth('cable', s.tether?.length || 0, dt).toFixed(1)} m`;
   $('flightCable').style.color = s.tether?.warn ? 'var(--warn)' : 'var(--text)';
   $('flightBattery').textContent = smooth('battery', s.battery ?? 0, dt).toFixed(0);
@@ -310,7 +312,8 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   const warning = s.tether?.broken ? STRINGS.danger : nearDanger ? STRINGS.obstacleDanger
     : s.tether?.warn ? STRINGS.warn
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
-      : s.battery < 20 ? STRINGS.lowBattery : '';
+      : s.battery < 20 ? STRINGS.lowBattery
+        : readings.dvlLost && s.rc?.assist ? STRINGS.dvlLost : '';
   $('flightWarning').textContent = warning;
   $('flightWarning').dataset.level = danger ? 'danger'
     : warning === STRINGS.lowBattery ? 'info' : 'warning';
