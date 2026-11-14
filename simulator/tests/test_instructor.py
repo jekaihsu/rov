@@ -17,6 +17,15 @@ class InstructorTests(unittest.TestCase):
         self.assertFalse(Instructor.authorized('secret', None))
         self.assertTrue(Instructor.authorized('secret', 'secret'))
 
+    def test_unset_code_disables_the_instructor_feature(self):
+        host = SimHost(self.room.primary)
+        host.instructor_code = ''
+        for code in ('', None, 'anything'):
+            with self.subTest(code=code):
+                with self.assertRaises(ValueError):
+                    host.join_instructor('observer', {'code': code})
+        self.assertFalse(host.room.instructor.supervised)
+
     def test_injections_restore_and_record(self):
         sim = self.room.primary
         for kind in ('thruster', 'battery', 'current', 'visibility', 'freeze'):

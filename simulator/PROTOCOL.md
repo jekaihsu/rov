@@ -18,7 +18,7 @@ rooms are created. Supported model IDs are published in `world.vehicle_catalogue
 A successful join replies:
 
 ```json
-{"type":"session","protocol":2,"room_id":"training","player_id":"opaque-id","vehicle_id":"v1","resume_token":"private-token","generation":1,"is_host":true,"capacity":4}
+{"type":"session","protocol":2,"room_id":"training","player_id":"opaque-id","vehicle_id":"v1","resume_token":"private-token","generation":1,"is_host":true,"capacity":3}
 ```
 
 Keep the resume token private and resend it to recover the same seat after a
@@ -49,7 +49,10 @@ Changing a model redeploys only the requesting pilot's vehicle in a locked state
 with `{"type":"operation_result","ok":true,"action":"..."}` or `ok:false` and a
 `message`. Scenario changes, reset, pause and current overrides require the host.
 Other vehicle commands from §2 apply only to the sender's seat. Errors are
-`{"type":"error","code":"host_only|join_required|stale_input|session_replaced|invalid_command","message":"..."}`.
+`{"type":"error","code":"host_only|join_required|stale_input|session_replaced|invalid_command|instructor_override|controller_only","message":"..."}`.
+`instructor_override` rejects a shared-scene command while an instructor supervises the room
+(see the instructor section); `controller_only` rejects any non-RC message from an attached
+controller bridge connection.
 Clients which do not join can observe the default room but cannot issue commands.
 
 To use a USB controller on a remote pilot's computer, download a pairing JSON
@@ -68,7 +71,7 @@ Successful scenario/reset/pause/current/model commands reply with
 Each `state` retains the original top-level fields for the receiving pilot and adds:
 
 ```text
-vehicle_id       runtime ID, v1–v4 (room-local)
+vehicle_id       runtime ID, v1–v3 (room-local)
 model_id         vehicle design ID
 vehicle          selected vehicle definition and geometry offsets
 operations       arm state, inspection state and shared work objects
@@ -164,10 +167,15 @@ The browser sends:
 
 Input-layer RC clients also send optional `assist` (0 manual, 1 velocity, 2 position assist) and
 `profile` (`cine`, `normal`, `sport`). Omitted values retain the legacy manual/normal semantics.
-The viewer defaults to `assist:2`, `profile:"normal"`. Clients MUST omit both fields unless
-the received `state.assist` is an object.
-Legacy hosts reject string-valued RC fields, including `profile`; the input layer does not modify
-physical PWM channel meanings.
+The viewer takes both from its fidelity profile (`viewer/fidelity.js`): the `real` preset, which is
+the default for internal training builds and the acceptance baseline, sends `assist:0`
+(manual, stick is thrust) with `profile:"normal"`; only the optional `assisted` preset defaults to
+`assist:2`. Clients MUST omit both fields unless the received `state.assist` is an object.
+A host with flight assistance never rejects a packet because of these two fields: an `assist` that
+is not 0, 1 or 2, or a `profile` that is not one of the three strings (including non-string values),
+falls back to `0` / `"normal"` and the rest of the packet is applied. All other RC values must
+still be finite numbers. Legacy hosts without `state.assist` reject string-valued RC fields,
+including `profile`; the input layer does not modify physical PWM channel meanings.
 
 Stick meaning depends on `operation_mode` (see `qysim/rc.py`); the viewer only sends raw channels.
 
@@ -180,7 +188,9 @@ euler [roll,pitch,yaw_0_360] deg        vel [u,v,w]   body m/s
 speed_kn         speed through water
 thrust [6]       -1..1 per thruster (order = world.thrusters)
 health [6]       0..1 thruster health (impact damage)
-rc {...}         active RC (SDK when remote_control) — same keys as the rc message
+rc {...}         active RC (SDK when remote_control) — same keys as the rc message, plus the
+                 requested `assist` (0/1/2) and `profile` (optional additions; `state.assist`
+                 reports what the controller actually applies)
 remote_control   bool (SDK has control; physical RC ignored)
 operation_mode   str      ctrl_mode "A"/"S"/"C"   locked bool   keep_depth bool   depth_hold m|null
 battery %        recording bool   photos int
@@ -217,7 +227,8 @@ thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 
 RC packets may include `assist` (0 manual, 1 ground velocity, 2 ground position
 hold) and `profile` (`cine`, `normal`, `sport`). Each packet defaults to 0 and
-`normal` when omitted; unsupported values use those defaults. Internal USB samples
+`normal` when omitted; unsupported values (wrong type or out of range) use those defaults
+without rejecting the packet. Internal USB samples
 and attached controller bridge packets merge axes into the selected assistance
 settings instead of reverting omitted metadata. Complete browser RC packets keep
 the documented manual defaults. SDK remote control
@@ -240,8 +251,8 @@ Translation force demand is capped at the same per-axis authority as manual full
 stick; assistance never increases motor limits. Integral and reference histories
 rotate with the control frame so their world direction remains consistent.
 `profile` reports the requested valid profile even in manual/locked mode.
-Manual thrust control remains the default and is compared byte-for-byte against
-its frozen pre-assistance implementation. Velocity and position assistance are
+Manual thrust control remains the default, on the host and in the viewer's `real` fidelity
+preset, and is compared byte-for-byte against its frozen pre-assistance implementation. Velocity and position assistance are
 optional simulator features, not claims about real vehicle defaults.
 
 Profile parameters scale with vehicle specifications rather than a model ID:
@@ -298,7 +309,9 @@ Campaign files reserve nullable `voice` on dialogue nodes for later audio assets
 ## Optional instructor preview (T17, draft)
 
 Internal installations may set `QYSIM_INSTRUCTOR_CODE` in the server environment.
-Unset/empty disables authentication. Never put the code in URLs, source files,
+Unset/empty disables the instructor feature entirely: every `instructor_join` is refused
+(`invalid_command`, "instructor authentication failed"), including one with an empty or
+missing code. It does not turn authentication off. Never put the code in URLs, source files,
 reports or logs. Use WSS on untrusted networks. Open
 `/instructor/instructor.html`; an optional `?ws_port=8792` selects a nondefault WS port.
 Steam backend packaging excludes the instructor directory.

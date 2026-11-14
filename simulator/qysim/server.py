@@ -505,10 +505,10 @@ class SimHost:
             values = msg.get("rc", {})
             if not isinstance(values, dict):
                 raise ValueError("rc must be an object")
-            if "profile" in values and not isinstance(values["profile"], str):
-                raise ValueError("RC profile must be a string")
+            # Unsupported assist/profile values fall back to manual/normal in apply_viewer_rc;
+            # they never invalidate the rest of the packet.
             if any(not isinstance(v, (int, float)) or not np.isfinite(v)
-                   for k, v in values.items() if k != "profile"):
+                   for k, v in values.items() if k not in ASSIST_FIELDS):
                 raise ValueError("RC values must be finite numbers")
             bridge = self.bridges.get((room.id, player.id)) if player else None
             if bridge and not controller_bridge:
@@ -611,6 +611,9 @@ class SimHost:
             return {"type": "command_result", "action": t, "ok": True}
         return None
 
+
+# Optional flight-assist metadata carried inside an RC packet (see PROTOCOL.md).
+ASSIST_FIELDS = ("assist", "profile")
 
 # While an instructor supervises a room (or an injected override is running) pilots may not
 # change the shared scene. Everything a pilot does to their own vehicle keeps working.

@@ -166,6 +166,23 @@ class TestFlightAssist(unittest.TestCase):
         host.handle_viewer({'type': 'rc', 'rc': {'assist': 99, 'profile': 'unknown'}})
         self.assertEqual(host.sim.rc_physical.assist, 0)
         self.assertEqual(host.sim.rc_physical.profile, 'normal')
+        # Wrong-typed metadata falls back to the defaults; the rest of the packet still applies.
+        for assist, profile in ((2, 5), ('2', 'cine'), (None, None), ([1], {'name': 'sport'}),
+                                (1.5, ''), (float('nan'), 'normal')):
+            with self.subTest(assist=assist, profile=profile):
+                host.handle_viewer({'type': 'rc', 'rc': {'assist': 2, 'profile': 'sport'}})
+                host.sim.rc_physical.right_ud = 1500
+                reply = host.handle_viewer({'type': 'rc', 'rc': {'assist': assist, 'profile': profile,
+                                                                 'right_ud': 1700}})
+                self.assertIsNone(reply)
+                self.assertEqual(host.sim.rc_physical.right_ud, 1700)
+                expected_assist = assist if assist in (0, 1, 2) and not isinstance(assist, str) else 0
+                expected_profile = profile if profile in ('cine', 'normal', 'sport') else 'normal'
+                self.assertEqual(host.sim.rc_physical.assist, expected_assist)
+                self.assertEqual(host.sim.rc_physical.profile, expected_profile)
+        with self.assertRaises(ValueError):
+            host.handle_viewer({'type': 'rc', 'rc': {'right_ud': '1700', 'assist': 0}})
+        self.assertEqual(sorted(set(host.sim.viewer_state()['rc']) & {'assist', 'profile'}), ['assist', 'profile'])
         # Repeated metadata must survive the USB/button edge filtering path.
         host.qirc_enabled = True
         previous = {}
