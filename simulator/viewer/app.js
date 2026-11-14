@@ -1,6 +1,7 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
+import { installCameraLook } from './onboard/camera_look.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -777,6 +778,7 @@ cameraRig.bindInput(input);
 surfacePaint.bindInput(input);
 campaignPanel.bindInput(input);
 let camMode = cameraRig.mode;
+const cameraLook = installCameraLook({renderer, scene, camera, getMode: () => camMode, fidelity: getFidelity()});
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
 const updateCamera = dt => cameraRig.update(dt);
@@ -1240,7 +1242,7 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   audio.update(renderState.display(S));
-  if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
+  if (!window.__skipRender) cameraLook.render();      // the movie renderer fast-forwards without drawing
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
@@ -1262,5 +1264,5 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
