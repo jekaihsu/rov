@@ -1,0 +1,746 @@
+{
+  "version": 1,
+  "vehicle_id": "v1",
+  "provisional": true,
+  "limits": {
+    "still": {
+      "path": 2,
+      "heading": 15,
+      "depth": 1,
+      "hover": 1,
+      "distance": 1,
+      "speed": 0.3
+    },
+    "current": {
+      "path": 2,
+      "heading": 15,
+      "depth": 1,
+      "hover": 1,
+      "distance": 1,
+      "speed": 0.3
+    }
+  },
+  "grade_limits": {
+    "green": 0.1,
+    "yellow": 0.3,
+    "smoothness": 0.25
+  },
+  "elapsed": 1.5900000000000012,
+  "completion": {
+    "score": 0,
+    "elapsed": 1,
+    "failed": "",
+    "finished": false,
+    "current_index": 0,
+    "objectives": [
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 1",
+        "point": [
+          10,
+          0,
+          6
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 2",
+        "point": [
+          10,
+          10,
+          10
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 3",
+        "point": [
+          0,
+          10,
+          14
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "checkpoint",
+        "label": "檢查點 4",
+        "point": [
+          0,
+          0,
+          8
+        ],
+        "radius": 1.5,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      },
+      {
+        "kind": "surface",
+        "label": "回到投放點上浮",
+        "point": [
+          -2,
+          0,
+          0.5
+        ],
+        "radius": 3,
+        "hold_s": 0,
+        "done": false,
+        "progress": 0,
+        "target": ""
+      }
+    ],
+    "penalties": [],
+    "penalty_total": 0
+  },
+  "supervision": {
+    "phase": "descent",
+    "reference": {},
+    "world": {
+      "obstacles": [
+        {
+          "type": "cylinder",
+          "name": "rock-0",
+          "p0": [
+            24.380253197078446,
+            26.78043723917888,
+            24.58663040512142
+          ],
+          "p1": [
+            24.380253197078446,
+            26.78043723917888,
+            24.58663040512142
+          ],
+          "radius": 0.41336959487858044,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-1",
+          "p0": [
+            15.011499912208365,
+            -17.781852372859202,
+            24.388417886435313
+          ],
+          "p1": [
+            15.011499912208365,
+            -17.781852372859202,
+            24.388417886435313
+          ],
+          "radius": 0.6115821135646893,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-2",
+          "p0": [
+            -11.535716294156282,
+            14.682290049506442,
+            24.2213734512211
+          ],
+          "p1": [
+            -11.535716294156282,
+            14.682290049506442,
+            24.2213734512211
+          ],
+          "radius": 0.7786265487788996,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-3",
+          "p0": [
+            27.846065921916967,
+            -12.21151703795988,
+            24.323866720797245
+          ],
+          "p1": [
+            27.846065921916967,
+            -12.21151703795988,
+            24.323866720797245
+          ],
+          "radius": 0.6761332792027562,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-4",
+          "p0": [
+            5.843017850815432,
+            -31.395941762023025,
+            24.37668164658685
+          ],
+          "p1": [
+            5.843017850815432,
+            -31.395941762023025,
+            24.37668164658685
+          ],
+          "radius": 0.6233183534131521,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-5",
+          "p0": [
+            -1.9240000098849244,
+            -25.96247235515544,
+            24.207610092179014
+          ],
+          "p1": [
+            -1.9240000098849244,
+            -25.96247235515544,
+            24.207610092179014
+          ],
+          "radius": 0.792389907820985,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-6",
+          "p0": [
+            43.28961004100281,
+            -34.38236737673186,
+            24.60845258722455
+          ],
+          "p1": [
+            43.28961004100281,
+            -34.38236737673186,
+            24.60845258722455
+          ],
+          "radius": 0.3915474127754472,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-7",
+          "p0": [
+            46.730397462883666,
+            3.035041899768416,
+            24.594008056357193
+          ],
+          "p1": [
+            46.730397462883666,
+            3.035041899768416,
+            24.594008056357193
+          ],
+          "radius": 0.4059919436428106,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-8",
+          "p0": [
+            27.755204642675537,
+            -4.326082270535288,
+            24.130454255664063
+          ],
+          "p1": [
+            27.755204642675537,
+            -4.326082270535288,
+            24.130454255664063
+          ],
+          "radius": 0.8695457443359356,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-9",
+          "p0": [
+            48.177032045598445,
+            32.02793949073488,
+            24.514992973165946
+          ],
+          "p1": [
+            48.177032045598445,
+            32.02793949073488,
+            24.514992973165946
+          ],
+          "radius": 0.48500702683405583,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-10",
+          "p0": [
+            46.062321682226994,
+            9.71652843155588,
+            24.47351687819207
+          ],
+          "p1": [
+            46.062321682226994,
+            9.71652843155588,
+            24.47351687819207
+          ],
+          "radius": 0.5264831218079326,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-11",
+          "p0": [
+            51.140604057583,
+            14.783905570711639,
+            24.154419301378084
+          ],
+          "p1": [
+            51.140604057583,
+            14.783905570711639,
+            24.154419301378084
+          ],
+          "radius": 0.8455806986219165,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-12",
+          "p0": [
+            -2.263510163229011,
+            15.46892413309417,
+            24.49319575756085
+          ],
+          "p1": [
+            -2.263510163229011,
+            15.46892413309417,
+            24.49319575756085
+          ],
+          "radius": 0.5068042424391485,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-13",
+          "p0": [
+            11.053608223649622,
+            5.6953046944957535,
+            24.5275623019286
+          ],
+          "p1": [
+            11.053608223649622,
+            5.6953046944957535,
+            24.5275623019286
+          ],
+          "radius": 0.47243769807139857,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-14",
+          "p0": [
+            39.64906844265042,
+            16.03028392085063,
+            24.566268953042346
+          ],
+          "p1": [
+            39.64906844265042,
+            16.03028392085063,
+            24.566268953042346
+          ],
+          "radius": 0.4337310469576551,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-15",
+          "p0": [
+            -6.541427249976788,
+            -18.918085210643397,
+            24.176728363858725
+          ],
+          "p1": [
+            -6.541427249976788,
+            -18.918085210643397,
+            24.176728363858725
+          ],
+          "radius": 0.8232716361412749,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-16",
+          "p0": [
+            18.359612062423302,
+            -15.981166026417405,
+            24.59840169558788
+          ],
+          "p1": [
+            18.359612062423302,
+            -15.981166026417405,
+            24.59840169558788
+          ],
+          "radius": 0.4015983044121187,
+          "kind": "habitat"
+        },
+        {
+          "type": "cylinder",
+          "name": "rock-17",
+          "p0": [
+            60.538556205397214,
+            6.873295586871038,
+            24.603303375877537
+          ],
+          "p1": [
+            60.538556205397214,
+            6.873295586871038,
+            24.603303375877537
+          ],
+          "radius": 0.39669662412246126,
+          "kind": "habitat"
+        }
+      ],
+      "objectives": [
+        {
+          "kind": "checkpoint",
+          "label": "檢查點 1",
+          "point": [
+            10,
+            0,
+            6
+          ],
+          "radius": 1.5,
+          "hold_s": 0,
+          "done": false,
+          "progress": 0,
+          "target": ""
+        },
+        {
+          "kind": "checkpoint",
+          "label": "檢查點 2",
+          "point": [
+            10,
+            10,
+            10
+          ],
+          "radius": 1.5,
+          "hold_s": 0,
+          "done": false,
+          "progress": 0,
+          "target": ""
+        },
+        {
+          "kind": "checkpoint",
+          "label": "檢查點 3",
+          "point": [
+            0,
+            10,
+            14
+          ],
+          "radius": 1.5,
+          "hold_s": 0,
+          "done": false,
+          "progress": 0,
+          "target": ""
+        },
+        {
+          "kind": "checkpoint",
+          "label": "檢查點 4",
+          "point": [
+            0,
+            0,
+            8
+          ],
+          "radius": 1.5,
+          "hold_s": 0,
+          "done": false,
+          "progress": 0,
+          "target": ""
+        },
+        {
+          "kind": "surface",
+          "label": "回到投放點上浮",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3,
+          "hold_s": 0,
+          "done": false,
+          "progress": 0,
+          "target": ""
+        }
+      ]
+    },
+    "active": [
+      {
+        "kind": "thruster",
+        "vehicle_id": "v1",
+        "scope": "v1",
+        "strength": 0.5,
+        "start": 1.5900000000000012,
+        "end": 61.59,
+        "reaction_s": null,
+        "index": 0
+      }
+    ]
+  },
+  "matrix": {
+    "descent": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": {
+          "rms": 0.028781234702202518,
+          "min": 0.028781234702202518,
+          "max": 0.028781234702202518,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "heading": {
+          "rms": 0,
+          "min": 0,
+          "max": 0,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "depth": {
+          "rms": 0.01745514698350159,
+          "min": -0.01745514698350159,
+          "max": -0.01745514698350159,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "hover": {
+          "rms": 0.028781234702202518,
+          "min": 0.028781234702202518,
+          "max": 0.028781234702202518,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "distance": {
+          "rms": 0.03366068370070506,
+          "min": 0.03366068370070506,
+          "max": 0.03366068370070506,
+          "outside_fraction": 0,
+          "grade": "green"
+        },
+        "speed": {
+          "rms": 0,
+          "min": 0,
+          "max": 0,
+          "outside_fraction": 0,
+          "grade": "green"
+        }
+      }
+    },
+    "transit": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    },
+    "hover": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    },
+    "orbit": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    },
+    "dock": {
+      "still": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      },
+      "current": {
+        "path": null,
+        "heading": null,
+        "depth": null,
+        "hover": null,
+        "distance": null,
+        "speed": null
+      }
+    }
+  },
+  "smoothness": null,
+  "collisions": [],
+  "max_tension": 0.8,
+  "wraps": [],
+  "events": [
+    {
+      "kind": "thruster",
+      "vehicle_id": "v1",
+      "scope": "v1",
+      "strength": 0.5,
+      "start": 1.5900000000000012,
+      "end": 61.59,
+      "reaction_s": null,
+      "index": 0
+    }
+  ],
+  "trajectory": [
+    {
+      "t": 1.0000000000000007,
+      "phase": "descent",
+      "pos": [
+        0.018,
+        0.023,
+        1.983
+      ],
+      "errors": {
+        "path": 0.028781234702202518,
+        "heading": 0,
+        "depth": -0.01745514698350159,
+        "hover": 0.028781234702202518,
+        "distance": 0.03366068370070506,
+        "speed": 0
+      },
+      "controls": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tension": 0.8,
+      "wraps": {},
+      "current": true,
+      "completion": {
+        "score": 0,
+        "elapsed": 1,
+        "failed": "",
+        "finished": false,
+        "current_index": 0,
+        "objectives": [
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 1",
+            "point": [
+              10,
+              0,
+              6
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 2",
+            "point": [
+              10,
+              10,
+              10
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 3",
+            "point": [
+              0,
+              10,
+              14
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "checkpoint",
+            "label": "檢查點 4",
+            "point": [
+              0,
+              0,
+              8
+            ],
+            "radius": 1.5,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          },
+          {
+            "kind": "surface",
+            "label": "回到投放點上浮",
+            "point": [
+              -2,
+              0,
+              0.5
+            ],
+            "radius": 3,
+            "hold_s": 0,
+            "done": false,
+            "progress": 0,
+            "target": ""
+          }
+        ],
+        "penalties": [],
+        "penalty_total": 0
+      },
+      "collisions": []
+    }
+  ]
+}

@@ -331,6 +331,9 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
   Current strength maps to 0..4 knots in all layers, retaining their directions.
   Visibility retains at least 0.1 m. Overrides restore saved values on expiry.
   Overlapping overrides of the same kind/scope are rejected.
+  Optional `cancel_start` (finite simulation timestamp) instead restores and ends the active
+  injection matching `kind`, `vehicle_id` and its exact `start`; other overrides are untouched.
+  A stale/nonmatching timestamp is rejected. Omit it to retain normal injection behavior.
   Freeze uses the individual simulator pause while the room override clock keeps advancing.
 * `action:"pause", value:true|false`; `action:"reset"`; `action:"scenario", key:"..."`.
   Reset archives assessment evidence and clears overrides.
@@ -357,6 +360,13 @@ recent 3600 samples and the archive keeps the newest 16 reports. Reports retain 
 matrix, split by current/no-current samples, with RMS, min/max, outside-tolerance
 fraction and provisional green/yellow/red assessment, plus command variance,
 zero crossings, reversals, collisions, tension, wraps, completion and trajectory.
+Reports optionally include `supervision: {phase, reference, active, world}`. `reference` is keyed
+by vehicle ID; `world` contains the supervised room’s existing obstacle/objective descriptions
+(the initial unauthenticated world can belong to another room). `active` contains the public
+injection fields (`kind`, `vehicle_id`, `scope`,
+`strength`, `start`, `end`, `reaction_s`, optional thruster `index`), never saved originals or controls.
+Use report `elapsed` as the simulation clock for countdowns; refresh reports to observe expiry,
+other instructors and resets. Clients must tolerate this field being absent.
 Empty phases remain null. References default to deployment location/depth, current
 heading, zero stand-off and speed 0..0.5 m/s; instructors should explicitly set them.
 Path error measures distance to the finite reference segment in the horizontal plane.
