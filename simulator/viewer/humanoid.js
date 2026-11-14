@@ -1,4 +1,5 @@
-// Rigged human (Quaternius "Animated Men", CC0) with a base animation clip plus procedural
+// Rigged human (Quaternius "Animated Men", CC0; dressed as deck crew by cad/build_deck_crew.py: coverall,
+// boots, gloves, and a work vest + hard hat as separate skinned meshes) with a base animation clip plus procedural
 // layers on top: pelvis offset, spine bend/twist, head turn and two-bone IK for arms and legs.
 // Targets are given in the figure's local space in metres; the figure stands at the origin
 // facing +Z. The rig's bone axes are never assumed: IK aims bones by world-space directions.
@@ -76,6 +77,33 @@ function twoBone(upper, lower, target, pole) {
   aim(lower, S.clone().addScaledVector(n, d));
 }
 
+// Materials of the dressed model's PPE meshes; hidden when the figure is created without that item (the pilot).
+const PPE_MATERIALS = { Vest: 'vest', VestTape: 'vest', Helmet: 'helmet', HatBand: 'helmet' };
+const KEEP_FINISH = /Tape|Helmet/;
+
+/** Clone materials, apply tints, hide unused PPE; returns which PPE items the model itself provides. */
+function dressModel(model, tint, wanted) {
+  const found = { vest: false, helmet: false };
+  model.traverse(function dressMesh(o) {
+    if (!o.isMesh) return;
+    o.castShadow = true;
+    o.frustumCulled = false;
+    o.material = o.material.clone();
+    const name = o.material.name;
+    if (!o.material.map && !KEEP_FINISH.test(name)) {
+      o.material.roughness = 0.85;
+      o.material.metalness = 0;
+    }
+    if (tint[name] != null) o.material.color.setHex(tint[name]);
+    const item = PPE_MATERIALS[name];
+    if (item) {
+      found[item] = true;
+      o.visible = wanted[item];
+    }
+  });
+  return found;
+}
+
 export class Humanoid {
   static async load(url) {
     const g = await loadGLTF(url);
@@ -87,14 +115,8 @@ export class Humanoid {
     this.model = SkeletonUtils.clone(lib.scene);
     this.model.scale.setScalar(height / MODEL_HEIGHT);
     this.root.add(this.model);
-    const tint = { Shirt: shirt, Pants: pants, Skin: skin };
-    this.model.traverse((o) => {
-      if (!o.isMesh) return;
-      o.castShadow = true; o.frustumCulled = false;
-      o.material = o.material.clone();
-      o.material.roughness = 0.85; o.material.metalness = 0;
-      if (tint[o.material.name] != null) o.material.color.setHex(tint[o.material.name]);
-    });
+    const tint = { Shirt: shirt, Pants: pants, Skin: skin, Vest: vest, Helmet: helmet };
+    const ppe = dressModel(this.model, tint, { vest: vest != null, helmet: helmet != null });
     const b = (this.b = {});
     this.model.traverse((o) => { if (o.isBone) b[o.name] = o; });
     this.mixer = new THREE.AnimationMixer(this.model);
@@ -104,7 +126,7 @@ export class Humanoid {
     this.rest = Object.values(b).map((o) => [o, o.position.clone(), o.quaternion.clone(), o.scale.clone()]);
     this.unit = height / MODEL_HEIGHT;          // metres per model unit
 
-    if (helmet != null) {                       // hard hat on the head bone
+    if (helmet != null && !ppe.helmet) {        // older model without its own hard hat: add one on the head bone
       const hat = new THREE.Group();
       const shell = new THREE.Mesh(new THREE.SphereGeometry(0.135, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2),
         new THREE.MeshStandardMaterial({ color: helmet, roughness: 0.35 }));
@@ -117,7 +139,7 @@ export class Humanoid {
       b.Head.add(hat);
       this.hat = hat;
     }
-    if (vest != null) {                         // hi-vis life vest over the torso
+    if (vest != null && !ppe.vest) {            // older model without its own vest: add one over the torso
       const m = new THREE.MeshStandardMaterial({ color: vest, roughness: 0.6 });
       const v = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.17, 0.46, 18, 1, true), m);
       m.side = THREE.DoubleSide;
