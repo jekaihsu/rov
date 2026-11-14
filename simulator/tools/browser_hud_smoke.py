@@ -22,7 +22,12 @@ with sync_playwright() as p:
         assert bounds == {'x': 0, 'y': 0, 'width': width, 'height': height}, bounds
         page.screenshot(path=str(OUT / f'{width}x{height}.png'), timeout=120000)
     page.set_viewport_size({'width': 1280, 'height': 720})
-    page.keyboard.press('Digit1')
+    # Send a tap in one task; software WebGL stalls otherwise turn CDP key presses into holds.
+    page.evaluate('''()=>{
+      for (const type of ['keydown', 'keyup']) {
+        document.body.dispatchEvent(new KeyboardEvent(type, {code:'Digit1', bubbles:true}));
+      }
+    }''')
     page.wait_for_function('document.querySelector("#flightPeek").classList.contains("visible")')
     page.wait_for_function('!document.querySelector("#flightPeek").classList.contains("visible")')
     page.keyboard.down('Digit2')

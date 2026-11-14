@@ -1,4 +1,5 @@
 // Full flight presentation and nonblocking peek cards; never sends vehicle controls.
+import { drawFlightCompass } from './compass.js';
 import { forwardRange } from './range.js';
 import { drawFlightAttitude } from './attitude.js';
 const STRINGS = {
@@ -194,6 +195,7 @@ export function updateFlightHUD(s, w, dt) {
   $('flightClearance').value = alt ?? 3;
   $('flightClearance').style.accentColor = alt < .5 ? 'var(--danger)' : alt < 1.5 ? 'var(--warn)' : 'var(--go)';
   drawFlightAttitude($('flightADI'), s.euler);
+  drawFlightCompass($('tape'), s.euler?.[2] || 0, dt);
   const objective = s.expedition?.active?.steps?.find(item => !item.completed)
     || s.mission?.targets?.find(item => !item.done)
     || s.score?.objectives?.find(item => !item.done);
@@ -232,6 +234,9 @@ export function updateFlightHUD(s, w, dt) {
   }
   lastWarning = warning;
   const pad = Array.from(navigator.getGamepads?.() || []).find(p => p?.mapping === 'standard');
+  if (pad?.buttons.some(button => button.pressed) || pad?.axes.some(axis => Math.abs(axis) > .15)) {
+    document.body.classList.remove('hud-touch');
+  }
   if (pad?.buttons[8]?.pressed) {
     viewStarted ??= performance.now();
     if (!viewToggled && performance.now() - viewStarted > 650) {
@@ -261,6 +266,19 @@ export function updateFlightHUD(s, w, dt) {
     ? ($('pilotGuide')?.querySelector('.pilot-mode')?.textContent || '') + '\n'
       + ($('pilotGuide')?.querySelector('dl')?.textContent || STRINGS.keys)
     : sources[index].map(id => $(id)?.textContent || '').join('\n');
+  if (index === 1) {
+    const thrusters = Array.from($('thrBars').children).map(function thrusterRow(row) {
+      return Array.from(row.children).map(el => el.textContent).filter(Boolean).join(' · ');
+    });
+    card.querySelector('p').textContent = [
+      warning, ...thrusters,
+      `${STRINGS.cable} ${$('flightCable').textContent} · ${$('tRov').textContent}`,
+      `${STRINGS.battery} ${$('flightBattery').textContent}%`, $('damage').textContent,
+    ].filter(Boolean).join('\n');
+  }
+  if (index === 0 && s.mission?.targets?.length) {
+    card.querySelector('p').textContent = document.querySelector('.mission-mode-targets')?.textContent || '';
+  }
   card.querySelector('canvas').hidden = index !== 2;
   if (index === 2) drawMap(card.querySelector('canvas'), s, w);
   drawMap($('flightMap'), s, w);

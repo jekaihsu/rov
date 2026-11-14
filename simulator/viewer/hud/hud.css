@@ -66,3 +66,11 @@ body .viewport.intro .flight { opacity: 0; }
 .in-game #engineering #scnSel, .in-game #engineering #seed, .in-game #engineering #btnLoad,
 .in-game #engineering #opMode, .in-game #engineering label[for=opMode] { display: inline-block; }
 #engineering > button { position: sticky; top: 0; z-index: 2; margin-bottom: 16px; }
+body.movie .flight { display: none; }
+body.replaying .hud.bc { bottom: 96px; }
+#flightMission { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#flightPeek { max-height: 65%; overflow: hidden; }
+@media (max-width: 720px) {
+  body.replaying .hud.bc { bottom: 180px; }
+  body.replaying #flightTools { bottom: 130px; flex-direction: column; }
+}
