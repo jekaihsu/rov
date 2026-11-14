@@ -190,7 +190,7 @@ export function createRenderState({P, Q, rovG, fleet, updateTether, params = new
   }
   // What the operator learns only through the vehicle's own telemetry, which shares the video link.
   const ONBOARD_FIELDS = ['pos', 'q', 'euler', 'vel', 'speed_kn', 'thrust', 'battery', 'current_here',
-    'current_kn', 'silt', 'tether', 'events', 'damage', 'vehicles'];
+    'current_kn', 'silt', 'tether', 'events', 'damage', 'vehicles', 'power'];
   // State for the onboard overlay and vehicle sounds: telemetry as old as the picture, while the
   // pilot's own switches, missions and room data stay current. Without a video delay it is `latest`.
   function display(latest) {

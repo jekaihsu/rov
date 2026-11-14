@@ -27,6 +27,7 @@ from .world import World
 from .mission_modes import MissionRun, ensure_mission
 from .expedition import ensure_expedition
 from .comms import CommsLink
+from .power import PowerSystem
 
 MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
     "motor_left_front": 0, "motor_right_front": 1, "motor_left_rear": 2,
@@ -94,6 +95,7 @@ class Simulator:
         self.camera = CameraState()
         self.battery = 100.0
         self.link = CommsLink(getattr(sc, "link", None))
+        self.power = PowerSystem(self.model_id)
         self.dvl_switches: dict = {}
         self.arm = "close"
         gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, np.asarray(self.vehicle.definition.gland_body))
@@ -143,6 +145,11 @@ class Simulator:
     @property
     def rc(self) -> RCState:
         return self.rc_sdk if self.remote_control else self.rc_physical
+
+    @property
+    def battery_percent(self) -> float:
+        """Legacy battery reading. Tether-powered vehicles have no battery and always report 100."""
+        return 100.0 if self.power.tether else self.battery
 
     @property
     def yaw(self) -> float:
@@ -204,6 +211,7 @@ class Simulator:
         dvl_valid = bool(0.1 <= altitude <= 100.0 and np.all(np.isfinite(v.world_velocity())))
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist,
                                      rc.profile, dvl_valid=dvl_valid) * self.health
+        thr = self.power.apply(self, thr, rc)
         w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
         n_events = len(self.world.events)
         w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
@@ -217,8 +225,9 @@ class Simulator:
             step_objects(self.world, dt, self.t)
         self._damage(n_events)
 
-        load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max
-        self.battery = max(0.0, self.battery - dt * (0.004 + 0.05 * load ** 1.5))
+        if not self.power.tether:
+            load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max
+            self.battery = max(0.0, self.battery - dt * (0.004 + 0.05 * load ** 1.5))
         self.t += dt
         self.scorer.update(dt, self)
         ensure_mission(self).update(self, dt)
@@ -300,7 +309,7 @@ class Simulator:
         vb = s.vel
         dvl = lambda p: {f"{p}_Xspeed": round(float(vb[0]), 3), f"{p}_Yspeed": round(float(vb[1]), 3),
                          f"{p}_Zspeed": round(float(vb[2]), 3), f"{p}_Altitude": round(alt, 2)}
-        bat = int(round(self.battery))
+        bat = int(round(self.battery_percent))
         return {
             "status": "ok", "status_code": "", "text": "Success",
             "Battery": f"Left: {bat}, Right: {bat}",
@@ -479,7 +488,8 @@ class Simulator:
                 "network_5v": 1, "network_3v3": 1, "network_switch": 1, "network_plc": 1, "network_current": 1,
                 "spi_flash_comm": 1, "spi_flash_ctrl": 1, "leak": 1, "led_left": 1, "led_right": 1,
                 "press": 1, "mag": 1, "six_axis": 1, "temp_humi_temp": 1, "temp_humi_humi": 1, "temp_humi_mos": 1,
-                "battery_l_status": 1 if self.battery > 5 else 0, "battery_r_status": 1 if self.battery > 5 else 0,
+                "battery_l_status": 1 if self.battery_percent > 5 else 0,
+                "battery_r_status": 1 if self.battery_percent > 5 else 0,
                 "bat_leak_l": 1, "bat_leak_r": 1}
         for fname, idx in MOTOR_FIELDS.items():
             data[fname] = 1 if idx < len(self.health) and self.health[idx] > 0.6 else 0
@@ -528,6 +538,16 @@ class Simulator:
                 "yaw": round(math.degrees(self.yaw) % 360, 2), "dr_ver": 1,
                 "auto_move_status": ams, "auto_move_lm": lm}
 
+    def _sdk_power(self) -> dict:
+        """Battery models keep the original three keys. Tether models report type "tether", legacy
+        battery_cap_1/2 = 100 for old clients, and optional supply fields."""
+        bat = int(self.battery_percent)
+        power = {"type": "tether" if self.power.tether else "battery", "battery_cap_1": bat, "battery_cap_2": bat}
+        if self.power.tether:
+            state = self.power.state(self)
+            power.update({key: state[key] for key in ("available_w", "demand_w", "limited", "tripped")})
+        return power
+
     def _sdk_QYRovNavigationManage__get_rov_data(self, req_types=None):
         types = req_types or ["rov", "gps", "dvl", "uqps", "micro_dvl", "usbl"]
         roll, pitch, yaw = self.vehicle.euler
@@ -541,8 +561,8 @@ class Simulator:
                            "altitude": round(alt, 2), "yaw": round(math.degrees(yaw) % 360, 2),
                            "pitch": round(math.degrees(pitch), 2), "roll": round(math.degrees(roll), 2),
                            **{k: float(v) for k, v in zip("wxyz", s.q)},
-                           "endurance": round(self.battery / 100 * 5000, 0),
-                           "power": {"type": "battery", "battery_cap_1": int(self.battery), "battery_cap_2": int(self.battery)}}
+                           "endurance": round(self.battery_percent / 100 * 5000, 0),
+                           "power": self._sdk_power()}
         if "gps" in types:
             online = self.depth < 0.3
             data["gps"] = {"online": online, "lat": la if online else 0.0, "lng": ln if online else 0.0, "alt": 0.0,
@@ -630,7 +650,7 @@ class Simulator:
             return err("ROV locked")
         if ctrl_mode(self.rc) != "A":
             return err("Mode not A")
-        if self.battery < 10:
+        if self.battery_percent < 10:
             return err("Battery low")
         if np.any(self.health < 0.6):
             return err("Motor error")
@@ -790,7 +810,7 @@ class Simulator:
             "ctrl_mode": ctrl_mode(rc), "locked": bool(rc.rc_lock), "keep_depth": bool(rc.keep_depth),
             "assist": self.controller.assist_state(),
             "depth_hold": None if self.controller.depth_hold is None else round(self.controller.depth_hold, 2),
-            "battery": round(self.battery, 1), "recording": self.camera.recording_since is not None,
+            "battery": round(self.battery_percent, 1), "power": self.power.state(self), "recording": self.camera.recording_since is not None,
             "photos": sum(1 for f in self.camera.files if f["name"].endswith("JPG")),
             "current_here": [round(float(x), 3) for x in cur],
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),

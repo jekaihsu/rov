@@ -914,7 +914,7 @@ function updateUI() {
   if (document.activeElement !== $('opMode')) $('opMode').value = s.operation_mode;
   buildMapTable(s.operation_mode);
   $('btnPause').textContent = s.paused ? '繼續' : '暫停'; $('btnPause').classList.toggle('on', !!s.paused);
-  const lv = [0, 0.55, 1][led] || 0;
+  const lv = s.power?.lights_on === false ? 0 : [0, 0.55, 1][led] || 0;   // a tripped or empty supply
   leds.forEach((l) => (l.intensity = lv * 260));                  // candela (physically based lights)
   beamMat.uniforms.uI.value = lv;
   for (const b of beams) { b.cone.visible = lv > 0 && camMode !== 'onboard'; b.glow.visible = lv > 0; b.glow.material.opacity = 0.5 + 0.5 * lv; }

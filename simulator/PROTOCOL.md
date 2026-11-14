@@ -193,7 +193,7 @@ rc {...}         active RC (SDK when remote_control) — same keys as the rc mes
                  reports what the controller actually applies)
 remote_control   bool (SDK has control; physical RC ignored)
 operation_mode   str      ctrl_mode "A"/"S"/"C"   locked bool   keep_depth bool   depth_hold m|null
-battery %        recording bool   photos int
+battery %        (always 100 for tether-powered vehicles; see `power`)   recording bool   photos int
 current_here [n,e,d] m/s at the ROV     current_kn
 tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tension_max (N),
         warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout}
@@ -206,6 +206,37 @@ score {score 0..100, elapsed, failed "", finished, current_index,
        penalties [{t, reason, points}], penalty_total}
 log [{t, kind, text}]   (last 8 lines, Traditional Chinese)
 ```
+
+### Optional `power`: tether power budget / battery
+
+`state.power` (and each fleet entry) is an optional addition; existing fields keep their meaning.
+
+```text
+power {type: tether|battery, available_w W|null, demand_w W, thruster_w W, lights_w W,
+       limited bool, scale 0..1, tripped bool, cutoff bool, lights_on bool,
+       voltage_v V|null, soc %|null}
+```
+
+* `type:"tether"` (X1 and the larger catalogue vehicle): no battery and no drain. Thrusters
+  (power ~ thrust^1.5), lights and a fixed electronics load share `available_w`. When the demand
+  exceeds it, every thruster command is scaled by the same factor (`scale`, `limited:true`), so all
+  thrusters together cannot reach their individual maxima. `tripped` (instructor `power_trip`)
+  removes all thrust and lights and drops the vehicle link until reset. The legacy `battery` field
+  stays at 100 so old clients see a full, non-draining value. An instructor `battery` injection on a
+  tether vehicle lowers `available_w` (supply sag) instead.
+* `type:"battery"`: the existing state-of-charge drain is unchanged. At 0% motors and lights are
+  cut off (`cutoff:true`) and re-enabled above 2%. `voltage_v` is a linear 4S estimate.
+* `lights_on:false` means the lamps are unpowered even though `rc.right_switch` is on.
+
+SDK compatibility: `QYRovNavigationManage.get_rov_data` `rov.power` keeps exactly
+`{type:"battery", battery_cap_1, battery_cap_2}` for battery vehicles. Tether vehicles report
+`type:"tether"` (a new value), `battery_cap_1`/`battery_cap_2` = 100 and `endurance` = 5000 (the
+legacy full-charge value; a tether vehicle has no endurance limit), plus optional `available_w`,
+`demand_w`, `limited`, `tripped`. Clients that only read the battery percentages keep working and
+see a full supply. `get_rov_status` reports `Battery: "Left: 100, Right: 100"` and the self-test
+battery flags stay healthy for tether vehicles. All wattages are provisional engineering
+assumptions (X1 supply power, light wattage and thruster current are unpublished); see
+`qysim/power.py` for each value's source.
 
 ### Optional `link`: simulated vehicle communications link
 
