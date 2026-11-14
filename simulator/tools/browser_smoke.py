@@ -2,6 +2,7 @@ import os
 """Real-browser smoke checks against a separately running simulator."""
 import json
 from pathlib import Path
+from shutil import which
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,7 +12,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 def run():
     errors=[]
     with sync_playwright() as p:
-        browser=p.chromium.launch(executable_path=os.environ.get('ROV_BROWSER', '/opt/google/chrome/chrome'),headless=True, args=['--enable-unsafe-swiftshader'])
+        browser=p.chromium.launch(executable_path=os.environ.get('ROV_BROWSER') or which('google-chrome') or which('chromium'),headless=True, args=['--enable-unsafe-swiftshader'])
         contexts=[]
         pages=[]
         for i in range(3):
@@ -38,6 +39,7 @@ def run():
         # Vehicle is selected before entering the game via the launch URL.
         main.wait_for_function('window.__viewer.S.model_id==="falcon"')
         main.wait_for_timeout(1000)
+        main.click('#flightDrawer')
         assert main.locator('#armPanel').is_visible()
         main.locator('#armPanel summary').click()
         main.click('#gripClose')

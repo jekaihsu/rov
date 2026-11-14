@@ -1,0 +1,14 @@
+/* Shared flight interface palette. */
+:root {
+  --bg-0: #04090d;
+  --panel: rgba(8, 18, 26, .62);
+  --line: rgba(160, 205, 225, .18);
+  --text: #e8f1f5;
+  --text-dim: #8fa6b2;
+  --accent: #4fd1e0;
+  --go: #5fd38a;
+  --warn: #f2b84b;
+  --danger: #ff5a52;
+  --radius: 10px;
+  --space: 8px;
+}
