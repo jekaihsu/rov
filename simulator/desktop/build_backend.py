@@ -4,6 +4,7 @@ Run with the dedicated packaging virtual environment, not a global scientific
 Python environment. No optional camera SDK, scientific plotting or IDE packages
 are needed by the game server.
 """
+import os
 import subprocess
 import sys
 import json
@@ -19,6 +20,12 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--distpath', type=Path, default=DESKTOP / 'backend')
 parser.add_argument('--licenses-only', action='store_true')
 options = parser.parse_args()
+edition = os.environ.get('ROV_BUILD_EDITION', 'internal')
+if edition not in ('internal', 'steam'):
+    parser.error('ROV_BUILD_EDITION must be internal or steam')
+if edition == 'steam':
+    parser.error('Steam content manifest pending review; see desktop/steam/RELEASE.md')
+
 distpath = options.distpath.resolve()
 
 # Internal supervision UI must not ship in the Steam backend.
@@ -44,7 +51,7 @@ args = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
 for excluded in ('scipy', 'matplotlib', 'pandas', 'cv2', 'IPython', 'jupyter',
                  'pytest', 'tkinter', 'PyQt5', 'PyQt6', 'PIL', 'sympy'):
     args.extend(['--exclude-module', excluded])
-args.append(str(SIM / 'tools' / 'desktop_entry.py'))
+args.append(str(DESKTOP / 'backend_entry.py'))
 if not options.licenses_only:
     subprocess.run(args, cwd=PROJECT, check=True)
 
