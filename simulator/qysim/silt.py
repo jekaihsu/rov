@@ -144,7 +144,9 @@ class SiltField:
         self.mass = np.zeros(0)
         self.cls = np.zeros(0, int)
         self.age = np.zeros(0)
-        self.source: list[str] = []
+        self.source_id = np.zeros(0, int)
+        self._source_ids: dict = {}
+        self._source_names: list[str] = []
         self.emitted = 0.0
         self.deposited = 0.0
         self.removed = 0.0
@@ -190,7 +192,7 @@ class SiltField:
         self.mass = np.append(self.mass, mass)
         self.cls = np.append(self.cls, grain)
         self.age = np.append(self.age, 0.0)
-        self.source.append(str(source))
+        self.source_id = np.append(self.source_id, self._source_code(source))
 
     def emit_mix(self, pos, mass_kg: float, mix, sigma_h: float, sigma_v: float, source: str) -> None:
         """Split ``mass_kg`` by grain ``mix`` and emit one puff per class, merging into a fresh puff nearby."""
@@ -207,11 +209,23 @@ class SiltField:
                 self._merge_into(target, pos, part, sigma_h, sigma_v)
         self._enforce_cap()
 
+    def _source_code(self, source) -> int:
+        name = str(source)
+        code = self._source_ids.get(name)
+        if code is None:
+            code = len(self._source_names)
+            self._source_ids[name] = code
+            self._source_names.append(name)
+        return code
+
+    def source_name(self, i: int) -> str:
+        return self._source_names[int(self.source_id[i])]
+
     def _fresh_neighbour(self, pos, grain, source, sigma_h):
         if not self.count:
             return None
         young = (self.cls == grain) & (self.age < 1.0)
-        young &= np.array([s == source for s in self.source], bool)
+        young &= self.source_id == self._source_code(source)
         if not np.any(young):
             return None
         idx = np.flatnonzero(young)
@@ -244,7 +258,7 @@ class SiltField:
         self.mass = self.mass[keep]
         self.cls = self.cls[keep]
         self.age = self.age[keep]
-        self.source = [s for s, k in zip(self.source, keep) if k]
+        self.source_id = self.source_id[keep]
 
     def _enforce_cap(self) -> None:
         """Merge the lightest puff into its nearest same-class neighbour until under the cap."""
@@ -528,7 +542,7 @@ class SiltField:
             particulate = k * float(peak[i])
             clouds.append({"pos": self.pos[i].copy(), "strength": round(particulate / (cw + particulate), 3),
                            "radius": round(float(self.sigma_h[i]), 3), "age": round(float(self.age[i]), 2),
-                           "source": self.source[i].split(":")[0]})
+                           "source": self.source_name(i).split(":")[0]})
         return clouds
 
     def turbidity_state(self) -> dict:
