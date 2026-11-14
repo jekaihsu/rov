@@ -2,6 +2,8 @@
 import { drawFlightCompass } from './compass.js';
 import { forwardRange } from './range.js';
 import { drawFlightAttitude } from './attitude.js';
+import { getFidelity, fidelityText } from '../fidelity.js';
+import { installFidelityPanel } from '../fidelity_panel.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -15,6 +17,7 @@ const STRINGS = {
   obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
   forward: '前方估距', controller: 'USB 控制器已連線',
   assist: ['手動', '速度輔助', '定點輔助'],
+  fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
 };
 const $ = id => document.getElementById(id);
 let ready = false;
@@ -76,9 +79,16 @@ export function readHUDButtons(actions = {}) {
   return ['up', 'left', 'right', 'down'].map(name => (actions[name] || 0) > .5);
 }
 function setDensity() {
+  density = getFidelity().get('hudDensity');
   document.body.classList.toggle('hud-minimal', density === 0);
   toolIcon($('flightDensity'), 'density', STRINGS.density[density]);
-  save('rov.hud.density', String(density));
+}
+function showFidelity() {
+  const chip = $('flightFidelity');
+  if (!chip) return;
+  const preset = getFidelity().preset;
+  chip.textContent = fidelityText(STRINGS.fidelity[preset]);
+  chip.dataset.preset = preset;
 }
 function toolIcon(button, icon, label) {
   button.title = label;
@@ -98,6 +108,7 @@ function initialize() {
   close.textContent = STRINGS.close;
   close.onclick = drawer;
   panel.append(close);
+  installFidelityPanel(panel);
   panel.append(document.querySelector('.topbar'), ...document.querySelectorAll('.rack'));
   panel.querySelectorAll('.mission-tools > div[hidden]').forEach(function revealSettings(el) {
     el.hidden = false;
@@ -122,11 +133,13 @@ function initialize() {
     north = !north;
     this.textContent = north ? STRINGS.north : STRINGS.head;
   };
-  density = Number(storage('rov.hud.density', '1'));
   setDensity();
-  $('flightDensity').onclick = function cycleDensity() {
-    density = (density + 1) % 3;
+  getFidelity().subscribe(function fidelityChanged() {
     setDensity();
+    showFidelity();
+  });
+  $('flightDensity').onclick = function cycleDensity() {
+    getFidelity().set('hudDensity', (density + 1) % 3);
   };
   $('flightHide').onclick = function hideHUD() { document.body.classList.toggle('hud-hidden'); };
   document.addEventListener('keydown', function keyDown(event) {
@@ -247,7 +260,11 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     const chip = document.createElement('span');
     chip.id = 'flightAssist';
     chip.className = 'chip';
-    document.querySelector('.chips').append(chip);
+    const fidelityChip = document.createElement('span');
+    fidelityChip.id = 'flightFidelity';
+    fidelityChip.className = 'chip';
+    document.querySelector('.chips').append(fidelityChip, chip);
+    showFidelity();
   }
   $('rSpd').textContent = smooth('speed', s.speed_kn || 0, dt).toFixed(2);
   $('flightCable').textContent = `${smooth('cable', s.tether?.length || 0, dt).toFixed(1)} m`;

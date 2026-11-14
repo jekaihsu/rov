@@ -8,7 +8,7 @@ with sync_playwright() as playwright:
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.add_init_script("""window.fakePads=[];
       Object.defineProperty(navigator,'getGamepads',{value:()=>window.fakePads});""")
-    page.goto('http://127.0.0.1:8092/?play=1&nointro&ws=ws://127.0.0.1:8792&room=camera-actions')
+    page.goto('http://127.0.0.1:8092/?play=1&nointro&ws=ws://127.0.0.1:8792&room=camera-actions&thirdPerson=1')
     page.wait_for_function('window.__viewer?.S?.vehicle_id')
     # Isolate action routing from software GPU stalls; this is not a latency benchmark.
     page.evaluate('window.__skipRender=true')

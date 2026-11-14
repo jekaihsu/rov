@@ -7,6 +7,7 @@ import {loadGLTF} from './glb.js';
 import {applyVehicleSticker,STICKERS} from './vehicle_stickers.js';
 import {configureRenderQuality,updateRenderQuality,renderQualityInfo} from './render_quality.js';
 import {installCollectionPanel} from './collection_panel.js';
+import {installFidelityPanel} from './fidelity_panel.js';
 const query=new URLSearchParams(location.search),$=id=>document.getElementById(id);
 const read=(key,fallback)=>{try{return localStorage.getItem(key)||fallback;}catch{return fallback;}};
 const models={falcon:{name:'Falcon',detail:'五推進器作業型 ROV · 四關節機械臂'},bluerov2_heavy:{name:'BlueROV2 Heavy',detail:'八推進器 · 六自由度操控'},x1:{name:'X1',detail:'六推進器 · 緊湊型機身'}};
@@ -117,3 +118,4 @@ addEventListener('pagehide',()=>clearInterval(padTimer));
 try{scenes=await(await fetch('scene_previews.json')).json();const preferred=['coral_reef','seagrass_meadow','harbor_inspection'];scenes.sort((a,b)=>(preferred.includes(a.key)?preferred.indexOf(a.key):99)-(preferred.includes(b.key)?preferred.indexOf(b.key):99));$('menuScene').replaceChildren(...scenes.map(s=>new Option(s.name,s.key)));$('menuScene').value=query.get('scenario')||'coral_reef';if(!$('menuScene').value)$('menuScene').selectedIndex=0;await selectScene();await selectModel(selected);}catch(error){$('menuStatus').textContent='開場預覽載入失敗，請重新整理。';console.error(error);}
 
 installAudioSettings(installAudio(), document.querySelector('#launchForm'));
+installFidelityPanel(document.querySelector('#launchForm'));

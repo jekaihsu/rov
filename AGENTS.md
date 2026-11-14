@@ -75,6 +75,32 @@ RC 封包新增選填欄位：
 
 `holding` 表示正在定點；`limited` 表示推力飽和、輔助無法維持指令（例如洋流過強）。SDK 取得遠端控制時輔助停用。
 
+## 共用契約：擬真設定（fidelity profile）
+
+「真實模式／輔助模式」只有一個來源：`simulator/viewer/fidelity.js`。不要再各自發明開關、URL 參數或 localStorage 鍵。
+
+- 預設組：`real`（與真機一致，內部訓練版預設）、`assisted`（Steam 版預設，僅在 `window.rovDesktop?.edition === 'steam'` 時）、
+  `custom`（使用者改了任何一項非偏好項目時自動顯示）。
+- 優先順序：項目自己的 URL 參數（`cam`、`gimbal`、`videoDelayMs`、`presentation=assisted`、`thirdPerson`）＞
+  `?fidelity=real|assisted`＞localStorage（`rov.fidelity.v1`）＞版本預設。
+- 讀取與訂閱：`getFidelity().get(id)`、`.set(id, value)`、`.setPreset(name)`、`.subscribe(listener)`、`.preset`。
+  設定可在飛行中變更，使用端必須訂閱變更，不要只在啟動時讀一次。
+- **任何超出真機能力的功能（畫面美化、AI 疊圖、聲納輔助、額外視角、控制輔助…）都必須註冊一個項目，且在 `real` 預設為關**：
+
+```js
+import {registerFidelityItem, getFidelity} from './fidelity.js';
+registerFidelityItem({
+  id: 'aiOverlay', labelKey: 'aiOverlay', descriptionKey: 'aiOverlayHelp', type: 'toggle',  // 或 'choice'、'range'
+  defaults: {real: false, assisted: true}, exceedsReal: true
+}, {aiOverlay: 'AI 疊圖', aiOverlayHelp: '在畫面上標示辨識結果。'});
+```
+
+- `exceedsReal: true` 的項目在 `real` 的預設值若仍超出真機，註冊時會直接丟出錯誤。設定面板（`fidelity_panel.js`，
+  主選單與工程抽屜各一份）會自動列出新項目並標上「超出真機」，不需要另外做 UI。
+- 純偏好、不影響擬真程度的項目（例如 HUD 密度）設 `presetNeutral: true`，改動後不會變成「自訂」。
+- `camera_rig.js` 與 `state_buffer.js` 會被單元測試以 data URL 載入，不能有相對路徑 import；fidelity 由 `app.js` 以參數傳入。
+- 測試：`node --test simulator/tests/test_fidelity.mjs`。
+
 ## 本機執行
 
 ```bash
