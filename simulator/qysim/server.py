@@ -292,7 +292,20 @@ class SimHost:
                     continue
                 async with self.lock:
                     try:
-                        if msg.get("type") == "attach_controller":
+                        if msg.get("type") == "operation" and msg.get("action") == "sonar_subscribe":
+                            if not hasattr(self, "sonar_subscriptions"):
+                                self.sonar_subscriptions = {}
+                            settings = {key: float(msg.get(key, default)) for key, default in
+                                        (("range_m", 30), ("noise", 0.02), ("multipath", 0.05))}
+                            if not (2 <= settings["range_m"] <= 50 and
+                                    0 <= settings["noise"] <= 1 and 0 <= settings["multipath"] <= 1):
+                                raise ValueError("invalid sonar settings")
+                            if msg.get("enabled", True):
+                                self.sonar_subscriptions[ws] = settings
+                            else:
+                                self.sonar_subscriptions.pop(ws, None)
+                            reply = {"type": "operation_result", "action": "sonar_subscribe", "ok": True}
+                        elif msg.get("type") == "attach_controller":
                             reply = self.attach_controller(ws, msg)
                             room, player, _ = self.sessions[ws]
                         elif msg.get("type") == "leave":
@@ -350,6 +363,7 @@ class SimHost:
                         room.lock(room.vehicles[player.vehicle_id])
                     else:
                         room.disconnect(player, generation)
+            getattr(self, "sonar_subscriptions", {}).pop(ws, None)
             self.viewers.discard(ws)
 
     def attach_controller(self, ws, msg):
@@ -396,6 +410,8 @@ class SimHost:
 
     async def _viewer_sender(self, ws):
         seen_version = self.world_version
+        sonar_time = 0.0
+        sonar_frame = None
         while True:
             world = None
             async with self.lock:                 # snapshot under the lock, send outside it
@@ -406,6 +422,18 @@ class SimHost:
                     sim = room.vehicles[player.vehicle_id] if player else room.primary
                     world = dumps({"type": "world", **self.world_description(room, player)})
                 payload = self.viewer_payload(room, player)
+            settings = getattr(self, "sonar_subscriptions", {}).get(ws)
+            if settings is not None:
+                if time.monotonic() - sonar_time >= 0.2:
+                    from .sonar import scan
+                    sim = room.vehicles[player.vehicle_id] if player else room.primary
+                    pos = sim.vehicle.s.pos.copy()
+                    q = sim.vehicle.s.q.copy()
+                    sonar_frame = await asyncio.to_thread(scan, sim.world, pos, q, **settings)
+                    sonar_time = time.monotonic()
+                state = json.loads(payload)
+                state["sonar"] = sonar_frame
+                payload = dumps(state)
             if world:
                 await ws.send(world)
             await ws.send(payload)
