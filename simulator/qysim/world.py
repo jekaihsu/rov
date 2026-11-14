@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .flow import TurbulenceField, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors
+from .flow import Tide, TurbulenceField, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors
 from .physics import KNOT, q_rot
 
 WORLD_UP = np.array([0.0, 0.0, -1.0])
@@ -261,12 +261,14 @@ class CurrentProfile:
     turbulence: float = 0.10          # streamwise turbulence intensity sigma_u / U (assumed default)
     gust_tau: float = 6.0             # legacy field, no longer used (integral time is now ~L/U)
     length_scale: float | None = None  # turbulence integral length (m); None = from water depth
+    tide: Tide | None = None          # optional tidal modulation; None = steady profile (legacy)
     seed: int = 0
     _clock: float = field(default=0.0, repr=False)
     _turb: object = field(default=None, repr=False)
     _seabed_hint: float = field(default=30.0, repr=False)
     _layer_cache: object = field(default=None, repr=False)
     _inj: dict | None = field(default=None, repr=False)
+    _tide_cache: object = field(default=None, repr=False)
 
     # ── layers and mean profile ───────────────────────────────────────────
     def layer(self, which: str) -> np.ndarray:
@@ -281,15 +283,47 @@ class CurrentProfile:
     def _layers(self) -> np.ndarray:
         """(3, 3) layer vectors (surface, mid, bottom) in effect now (cached per input values)."""
         injection = self.injection()
+        tau = self.tide_time()
         key = (self.surface_kn, self.surface_dir, self.mid_kn, self.mid_dir, self.bottom_kn, self.bottom_dir,
-               injection)
+               injection, tau)
         if self._layer_cache is None or self._layer_cache[0] != key:
             scale, rotate, template = injection
             layers = rotate_xy(self._base_layers(), rotate) * scale
             if template:
                 layers = layers + rotate_xy(self._template_layers(), rotate) * template
+            if tau is not None:
+                layers = self.tide.transform(layers, self.surface_dir + rotate, tau)
             self._layer_cache = (key, layers)
         return self._layer_cache[1]
+
+    # ── tide ──────────────────────────────────────────────────────────────
+    def tide_time(self) -> float | None:
+        """Tide time (s since an arbitrary M2 origin) at the profile clock; None without a tide."""
+        if self.tide is None:
+            return None
+        cache = self._tide_cache
+        if cache is None or cache[0] is not self.tide or cache[1] != self.tide.start:
+            cache = (self.tide, self.tide.start, self.tide.start_offset_s())
+            self._tide_cache = cache
+        return cache[2] + self._clock * self.tide.time_scale
+
+    def set_tide_start(self, start) -> None:
+        """Choose the time of tide at the current clock (slack, peak or hours after peak flood)."""
+        if self.tide is None:
+            raise ValueError("this scenario has no tide")
+        previous = self.tide.start
+        self.tide.start = start
+        try:
+            offset = self.tide.start_offset_s()
+        except ValueError:
+            self.tide.start = previous
+            raise
+        self._tide_cache = (self.tide, start, offset - self._clock * self.tide.time_scale)
+
+    def tide_info(self) -> dict | None:
+        """{factor, stage flood|ebb, minutes_to_slack} or None without a tide."""
+        tau = self.tide_time()
+        return None if tau is None else self.tide.info(tau)
 
     # ── instructor injection ──────────────────────────────────────────────
     def _template_layers(self) -> np.ndarray:
@@ -414,8 +448,11 @@ class CurrentProfile:
         return self.at_many(np.array([depth], float), seabed)[0]
 
     def as_dict(self):
-        return {k: getattr(self, k) for k in ("surface_kn", "surface_dir", "mid_kn", "mid_dir",
-                                              "bottom_kn", "bottom_dir", "turbulence")}
+        out = {k: getattr(self, k) for k in ("surface_kn", "surface_dir", "mid_kn", "mid_dir",
+                                             "bottom_kn", "bottom_dir", "turbulence")}
+        if self.tide is not None:
+            out["tide"] = self.tide.as_dict()
+        return out
 
 
 # vehicle collision proxy: spheres in body FRD approximating the 770 x 560 x 400 mm envelope

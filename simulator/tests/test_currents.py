@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 
-from qysim.flow import TurbulenceField
+from qysim.flow import M2_PERIOD_S, Tide, TurbulenceField
 from qysim.physics import KNOT
 from qysim.world import CurrentProfile
 
@@ -128,6 +128,99 @@ class TurbulenceTests(unittest.TestCase):
         calm = uniform_profile(knots=1.0, turbulence=0.0)
         v = series(calm, (5.0, 5.0, 5.0), 20.0, 0.1, seabed=20.0)
         self.assertLess(float(np.ptp(v, axis=0).max()), 1e-12)
+
+
+def tidal_profile(knots=1.0, **tide):
+    profile = CurrentProfile(knots, 90, knots, 90, knots, 90, 0.0, tide=Tide(**tide))
+    return profile
+
+
+def speeds_over_cycle(profile, step=10.0, seabed=20.0):
+    out = []
+    for _ in range(int(M2_PERIOD_S / step)):
+        out.append(profile.mean_at(5.0, seabed).copy())
+        profile.step_gust(step)
+    return np.array(out)
+
+
+class TideTests(unittest.TestCase):
+    """Gap 3: optional M2/S2 tide reproducing NOAA slack-water durations."""
+
+    def test_absent_tide_keeps_steady_profile(self):
+        profile = CurrentProfile(1.0, 90, 0.8, 100, 0.3, 110, 0.0)
+        before = profile.mean_many([0.0, 10.0, 18.0], 20.0)
+        profile.step_gust(3 * 3600.0)
+        np.testing.assert_array_equal(profile.mean_many([0.0, 10.0, 18.0], 20.0), before)
+        self.assertNotIn("tide", profile.as_dict())
+        self.assertIsNone(profile.tide_info())
+
+    def test_slack_windows_match_noaa_table_4a(self):
+        # NOAA Tidal Current Tables Table 4A: minutes at or below 0.1 kn around slack.
+        for knots, minutes in ((1.0, 23), (2.0, 11), (4.0, 6)):
+            with self.subTest(knots=knots):
+                v = speeds_over_cycle(tidal_profile(knots), step=10.0)
+                slow = np.linalg.norm(v, axis=1) / KNOT <= 0.1
+                window = slow.sum() * 10.0 / 60.0 / 2          # two slacks per M2 cycle
+                self.assertAlmostEqual(window, minutes, delta=max(1.5, 0.1 * minutes))
+
+    def test_period_reversal_and_ebb_direction(self):
+        profile = tidal_profile(1.0, ebb_dir=250.0, ebb_ratio=0.8)
+        v = speeds_over_cycle(profile, step=60.0)
+        flood, ebb = v[np.argmax(v[:, 1])], v[np.argmax(-v[:, 1] - v[:, 0])]
+        heading = math.degrees(math.atan2(ebb[1], ebb[0])) % 360
+        self.assertAlmostEqual(np.linalg.norm(flood) / KNOT, 1.0, delta=0.01)
+        self.assertAlmostEqual(heading, 250.0, delta=0.5)
+        self.assertAlmostEqual(np.linalg.norm(ebb) / KNOT, 0.8, delta=0.01)
+        np.testing.assert_allclose(profile.mean_at(5.0, 20.0), v[0], atol=1e-3)
+
+    def test_rotary_tide_turns_clockwise_without_slack(self):
+        v = speeds_over_cycle(tidal_profile(1.0, kind="rotary", minor_ratio=0.3), step=60.0)
+        speed = np.linalg.norm(v, axis=1) / KNOT
+        self.assertAlmostEqual(speed.min(), 0.3, delta=0.01)
+        heading = np.unwrap(np.arctan2(v[:, 1], v[:, 0]))
+        self.assertGreater(heading[-1] - heading[0], 1.9 * math.pi)        # one clockwise turn
+
+    def test_time_of_tide_selector(self):
+        for start, factor in (("peak_flood", 1.0), ("peak_ebb", -1.0), ("slack_before_flood", 0.0),
+                              ("slack_before_ebb", 0.0), (3.105, 0.0)):
+            with self.subTest(start=start):
+                profile = tidal_profile(2.0, start=start, m2_phase_deg=40.0)
+                self.assertAlmostEqual(profile.tide_info()["factor"], factor, delta=0.01)
+        rising = tidal_profile(2.0, start="slack_before_flood")
+        rising.step_gust(600.0)
+        self.assertEqual(rising.tide_info()["stage"], "flood")
+        rising.set_tide_start("peak_ebb")
+        self.assertAlmostEqual(rising.tide_info()["factor"], -1.0, delta=0.01)
+        with self.assertRaises(ValueError):
+            rising.set_tide_start("noon")
+        self.assertEqual(rising.tide.start, "peak_ebb")
+
+    def test_spring_tide_adds_s2(self):
+        v = speeds_over_cycle(tidal_profile(1.0, s2=0.3), step=60.0)
+        self.assertAlmostEqual(np.linalg.norm(v, axis=1).max() / KNOT, 1.3, delta=0.02)
+
+    def test_validation(self):
+        for bad in ({"kind": "spiral"}, {"m2": -1}, {"time_scale": 0}, {"start": "noon"},
+                    {"m2": float("nan")}, {"unknown": 1}):
+            with self.subTest(bad=bad), self.assertRaises((ValueError, TypeError)):
+                Tide.from_dict(bad)
+
+    def test_host_messages_set_tide_and_time_of_tide(self):
+        from qysim.engine import Simulator
+        from qysim.server import SimHost
+        host = SimHost(Simulator("open_water"))
+        sim = host.room.primary
+        host.handle_viewer({"type": "current", "tide": {"kind": "rectilinear", "start": "peak_flood"}})
+        self.assertEqual(sim.world.current.as_dict()["tide"]["kind"], "rectilinear")
+        host.handle_viewer({"type": "current", "tide_start": "slack_before_flood"})
+        self.assertAlmostEqual(sim.world.current.tide_info()["factor"], 0.0, delta=0.01)
+        for bad in ({"tide": {"kind": "spiral"}}, {"tide_start": "noon"}, {"tide": 3}):
+            with self.subTest(bad=bad), self.assertRaises((ValueError, TypeError)):
+                host.handle_viewer({"type": "current", **bad})
+        host.handle_viewer({"type": "current", "tide": None})
+        self.assertNotIn("tide", sim.world.current.as_dict())
+        with self.assertRaises(ValueError):
+            host.handle_viewer({"type": "current", "tide_start": "peak_flood"})
 
 
 if __name__ == "__main__":

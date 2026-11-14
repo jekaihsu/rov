@@ -155,7 +155,7 @@ The browser sends:
 | message | effect |
 |---|---|
 | `{"type":"rc","rc":{"left_ud":1500,...,"rc_lock":0,"keep_depth":1,"left_switch":1,"right_switch":0,"record":0,"photo":0}}` | physical RC state (any subset of keys). Channels are PWM 1000–2000 (1500 centre, `>1500` = up/right). Buttons are levels: `rc_lock` 1=locked, `record`/`photo` 1=pressed. `left_switch` 0/1/2 = A/S/C, `right_switch` 0/1/2 = LED. Send at ~30 Hz while input changes and at least every 0.5 s. |
-| `{"type":"scenario","key":"random","seed":123}` | load a scenario (`seed` optional) |
+| `{"type":"scenario","key":"random","seed":123}` | load a scenario (`seed` optional; optional `tide_start` selects the time of tide when the scenario has a tide, see "Ocean current model") |
 | `{"type":"reset"}` | restart the current scenario |
 | `{"type":"pause","value":true}` | pause / resume |
 | `{"type":"payout","metres":5}` | pay out (+) / recover (−) tether |
@@ -214,8 +214,9 @@ seabed_depth m
 obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast}
           | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
           | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall} ]              (vertical face; extends from `top` down to the seabed)
-current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence}
-                      (turbulence = streamwise intensity σu/U; see "Ocean current model" below)
+current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence, tide?}
+                      (turbulence = streamwise intensity σu/U; optional tide object only when the scenario
+                      has one; see "Ocean current model" below)
 scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length}
 spool [n,e,d]         tether spool / deployment point on the surface
 start_pos [n,e,d]     ROV start position (the viewer's deployment intro ends here)
@@ -396,6 +397,24 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   length scale apart are correlated by ≈ 0.4. It advances once per tick and its time derivative does
   not depend on the step size. All values are provisional simulator assumptions (see
   `docs/reference/current-validation.md`).
+* **Tide** (optional `current.tide`; absent = steady profile, today's behaviour). The layer speeds and
+  directions are the flood flow at factor 1. Fields (all optional):
+  `kind` `"rectilinear"`|`"rotary"`, `m2` (0–2, default 1) and `m2_phase_deg`, `s2` (0–1, default 0)
+  and `s2_phase_deg`, `flood_dir` (rotate the profile so the surface floods toward it), `ebb_dir`
+  (default reversed), `ebb_ratio` (0–2, default 1), `minor_ratio` (rotary, 0–1), `residual` (−1..1,
+  non-tidal part of the factor), `time_scale` (default 1 = real time; >1 only for classroom
+  demonstrations) and `start`: `"peak_flood"` (default), `"slack_before_ebb"`, `"peak_ebb"`,
+  `"slack_before_flood"` or hours after peak flood. Factor = m2·cos(ωM2·τ+φ) + s2·cos(ωS2·τ+φ) +
+  residual with the 12.42 h M2 period; a rectilinear factor below zero is ebb; a rotary tide adds
+  `minor_ratio`·(sine terms) across the flood axis, turning clockwise, and never reaches slack.
+  A pure M2 tide reproduces the NOAA Table 4A slack windows (≈ 23.8 min below 0.1 kn at a 1 kn
+  maximum, ≈ 5.9 min at 4 kn).
+* **Time-of-tide selector**: `{"type":"scenario",...,"tide_start":"slack_before_flood"}` (or hours,
+  −13..13) starts a tidal scenario at that stage; host `current` messages also accept
+  `"tide":{...}` (replace; `null` removes it) and `"tide_start"`. Invalid values are rejected with
+  `invalid_command` and change nothing. Scenarios without a tide ignore `tide_start` on load.
+* The former 18 % travelling sine "local flow" pattern (fixed 1 m/s drift toward 37.6°, independent of
+  the real current) was removed; spatial variation now comes from the turbulence field.
 * Backend consumers call `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` (ambient
   flow); the signatures are unchanged. `t` is accepted for compatibility; the field is evaluated at the
   profile clock that `step_gust(dt)` advances once per tick.

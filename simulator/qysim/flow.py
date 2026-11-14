@@ -8,13 +8,19 @@ Pieces
                      spectrum) advected with the depth-averaged mean current (Taylor hypothesis)
                      plus a slow eddy evolution. The state is integrated once per tick, so the
                      field and its time derivative are bounded and independent of the step size.
+    Tide             optional M2/S2 tidal modulation of the layer profile, rectilinear or rotary.
 """
 
 from __future__ import annotations
 
 import math
+from dataclasses import asdict, dataclass, fields
 
 import numpy as np
+
+M2_PERIOD_S = 12.4206012 * 3600.0    # principal lunar semidiurnal constituent
+S2_PERIOD_S = 12.0 * 3600.0          # principal solar semidiurnal constituent
+TIDE_STARTS = ("peak_flood", "slack_before_ebb", "peak_ebb", "slack_before_flood")
 
 # streamwise : cross-stream : vertical turbulence ratios (Islay 1 : 0.75 : 0.55, open channel 0.71/0.55)
 COMPONENT_RATIOS = np.array([1.0, 0.7, 0.5])
@@ -41,6 +47,127 @@ def rotate_xy(v: np.ndarray, degrees: float) -> np.ndarray:
 def turbulence_length(seabed: float) -> float:
     """Integral length scale (m): about half the water depth, 2..15 m (Islay 11-14 m; assumed)."""
     return float(min(15.0, max(2.0, 0.5 * seabed)))
+
+
+# ── tide ─────────────────────────────────────────────────────────────────────
+@dataclass
+class Tide:
+    """Optional tidal modulation. Layer speeds/directions of the profile are the flood flow at factor 1.
+
+    rectilinear  speed factor m2*cos(w2 t + p2) + s2*cos(ws t + ps) + residual; negative = ebb, which
+                 sets toward ``ebb_dir`` (default: reversed) scaled by ``ebb_ratio``.
+    rotary       the same factor along the flood axis plus ``minor_ratio`` times the quadrature
+                 (sin) terms across it, turning clockwise; never fully slack.
+    ``start`` picks the time of tide at t = 0: one of TIDE_STARTS or hours after peak flood.
+    ``time_scale`` > 1 runs the tide faster for classroom demonstrations (1 = real time).
+    """
+    kind: str = "rectilinear"
+    m2: float = 1.0
+    m2_phase_deg: float = 0.0
+    s2: float = 0.0
+    s2_phase_deg: float = 0.0
+    flood_dir: float | None = None
+    ebb_dir: float | None = None
+    ebb_ratio: float = 1.0
+    minor_ratio: float = 0.0
+    residual: float = 0.0
+    time_scale: float = 1.0
+    start: object = "peak_flood"
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Tide":
+        """Validated construction from a protocol/scenario dict; unknown keys are rejected."""
+        names = {f.name for f in fields(cls)}
+        unknown = set(data) - names
+        if unknown:
+            raise ValueError(f"unknown tide fields {sorted(unknown)}")
+        tide = cls(**data)
+        tide.validate()
+        return tide
+
+    def validate(self) -> None:
+        if self.kind not in ("rectilinear", "rotary"):
+            raise ValueError("tide kind must be rectilinear or rotary")
+        for name in ("m2", "m2_phase_deg", "s2", "s2_phase_deg", "ebb_ratio", "minor_ratio",
+                     "residual", "time_scale"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f"tide {name} must be finite")
+        for name in ("flood_dir", "ebb_dir"):
+            value = getattr(self, name)
+            if value is not None and (not isinstance(value, (int, float)) or not math.isfinite(value)):
+                raise ValueError(f"tide {name} must be finite or null")
+        if not 0 <= self.m2 <= 2 or not 0 <= self.s2 <= 1 or not 0 <= self.ebb_ratio <= 2:
+            raise ValueError("tide amplitudes out of range")
+        if not 0 <= self.minor_ratio <= 1 or not -1 <= self.residual <= 1 or not 0 < self.time_scale <= 720:
+            raise ValueError("tide ratios out of range")
+        self.start_offset_s()
+
+    def as_dict(self) -> dict:
+        return asdict(self)
+
+    def _terms(self, tau):
+        w2, ws = 2 * math.pi / M2_PERIOD_S, 2 * math.pi / S2_PERIOD_S
+        a2 = w2 * tau + math.radians(self.m2_phase_deg)
+        as_ = ws * tau + math.radians(self.s2_phase_deg)
+        major = self.m2 * np.cos(a2) + self.s2 * np.cos(as_) + self.residual
+        minor = self.m2 * np.sin(a2) + self.s2 * np.sin(as_)
+        return major, minor
+
+    def start_offset_s(self) -> float:
+        """Tide time (s) at simulation t = 0 for the requested ``start``."""
+        start = self.start
+        if isinstance(start, (int, float)) and not isinstance(start, bool):
+            if not math.isfinite(start):
+                raise ValueError("tide start must be finite")
+            return self._peak_tau() + float(start) * 3600.0
+        if start not in TIDE_STARTS:
+            raise ValueError(f"tide start must be hours or one of {TIDE_STARTS}")
+        tau = np.linspace(0.0, M2_PERIOD_S, 4097)
+        major, _ = self._terms(tau)
+        if start == "peak_flood":
+            return float(tau[int(np.argmax(major))])
+        if start == "peak_ebb":
+            return float(tau[int(np.argmin(major))])
+        rising = start == "slack_before_flood"
+        sign = np.sign(major)
+        idx = np.flatnonzero((sign[:-1] < 0) & (sign[1:] >= 0)) if rising else \
+            np.flatnonzero((sign[:-1] > 0) & (sign[1:] <= 0))
+        if len(idx) == 0:
+            return float(tau[int(np.argmin(np.abs(major)))])
+        i = int(idx[0])
+        frac = major[i] / (major[i] - major[i + 1])
+        return float(tau[i] + frac * (tau[i + 1] - tau[i]))
+
+    def _peak_tau(self) -> float:
+        tau = np.linspace(0.0, M2_PERIOD_S, 4097)
+        return float(tau[int(np.argmax(self._terms(tau)[0]))])
+
+    def transform(self, layers: np.ndarray, surface_dir: float, tau: float) -> np.ndarray:
+        """Apply the tide at tide time ``tau`` to the (3, 3) flood layer vectors."""
+        major, minor = self._terms(tau)
+        major, minor = float(major), float(minor)
+        if self.flood_dir is not None:
+            layers = rotate_xy(layers, float(self.flood_dir) - surface_dir)
+        if self.kind == "rotary":
+            across = rotate_xy(layers, 90.0)
+            return layers * major + across * self.minor_ratio * minor
+        if major >= 0:
+            return layers * major
+        flood = surface_dir if self.flood_dir is None else float(self.flood_dir)
+        ebb_offset = 180.0 if self.ebb_dir is None else float(self.ebb_dir) - flood
+        return rotate_xy(layers, ebb_offset) * (-major) * self.ebb_ratio
+
+    def info(self, tau: float) -> dict:
+        """Compact stage summary for viewers: factor, flood/ebb and minutes to the next slack."""
+        major, _ = self._terms(tau)
+        ahead = tau + np.linspace(0.0, 7 * 3600.0, 421)
+        future, _ = self._terms(ahead)
+        sign = np.sign(future)
+        change = np.flatnonzero(sign[1:] != sign[:-1])
+        minutes = None if self.kind == "rotary" or len(change) == 0 else round(float(change[0]), 0)
+        stage = "slack" if abs(float(major)) < 0.02 else "flood" if float(major) > 0 else "ebb"
+        return {"factor": round(float(major), 3), "stage": stage, "minutes_to_slack": minutes}
 
 
 # ── turbulence ───────────────────────────────────────────────────────────────
