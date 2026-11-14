@@ -162,6 +162,13 @@ The browser sends:
 | `{"type":"shaping","throttle_curvature":60,"throttle_limit":100,"rotate_curvature":60,"rotate_limit":100}` | stick curves |
 | `{"type":"remote_release"}` | force SDK remote control OFF (give control back to the physical RC) |
 
+Input-layer RC clients also send optional `assist` (0 manual, 1 velocity, 2 position assist) and
+`profile` (`cine`, `normal`, `sport`). Omitted values retain the legacy manual/normal semantics.
+The viewer defaults to `assist:2`, `profile:"normal"`. Clients MUST omit both fields unless
+the received `state.assist` is an object.
+Legacy hosts reject string-valued RC fields, including `profile`; the input layer does not modify
+physical PWM channel meanings.
+
 Stick meaning depends on `operation_mode` (see `qysim/rc.py`); the viewer only sends raw channels.
 
 ## 3. State object (`type: "state"`)
@@ -205,3 +212,25 @@ catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
+
+## Optional campaign layer
+
+Rooms may publish `state.campaign`: `chapter`, `index`, `node`, `status`,
+`objective`, `dialogue` (bounded radio history), `completed`, `rewards`, `results`,
+`checkpoint`, `unlocks` (earned vehicle/sticker IDs), and `chapters`. Existing clients can ignore this entire field.
+The default is idle; existing mission modes and SDK semantics are unchanged.
+
+Host-only operation actions (reply: `operation_result` with `ok` and `action`):
+
+* `campaign_start`: optional `chapter` (default `prologue`), `course` (default false), `resume` (default false; starts at the saved checkpoint in a freshly loaded scene).
+  Loads the chapter scene and the existing mission engine; unavailable/locked chapters fail.
+* `campaign_advance`: acknowledges the current dialogue only. Cannot bypass a condition.
+* `campaign_skip`: ends the run; skipping the prologue unlocks the first assignment without a rating/reward.
+* `campaign_restore`: optional `save` containing local `completed`, `rewards`, `results`, `checkpoint`.
+  Accepted only outside an active run. This is local training progress, not trusted competitive entitlement.
+
+Only the starting host's vehicle satisfies tutorial conditions; mission objectives use the
+existing shared mission engine. All pilots receive the same narrative state. Seat reconnects
+retain the room instance. `course:true` runs the same script without dialogue pauses.
+A viewer stores local progress in its existing `rov.*` preferences and exports results as JSON.
+Campaign files reserve nullable `voice` on dialogue nodes for later audio assets.

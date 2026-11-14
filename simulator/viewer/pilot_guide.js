@@ -1,4 +1,5 @@
-﻿// Read-only onboarding: every check comes from received simulator telemetry.
+import {glyph, deviceFamily} from './input/glyphs.js';
+// Read-only onboarding: every check comes from received simulator telemetry.
 const STORAGE_KEY = 'rov.pilotGuide.dismissed.v1';
 const CHANNELS = {
   left_ud: ['W / S', '左桿上下'], left_lr: ['D / A', '左桿左右'],
@@ -45,6 +46,17 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
   </div>`;
   const session = host.querySelector('.session-summary');
   if (session) session.after(root); else host.prepend(root);
+  document.addEventListener('rov-input-device', function updateGlyphs(event) {
+    let shortcuts = root.querySelector('.input-glyphs');
+    if (!shortcuts) {
+      shortcuts = document.createElement('span');
+      shortcuts.className = 'input-glyphs';
+      root.querySelector('.pilot-shortcuts').prepend(shortcuts);
+    }
+    shortcuts.innerHTML = glyph(0, deviceFamily(event.detail), 'P') + ' ' +
+      glyph(1, deviceFamily(event.detail), 'R') + ' ' + glyph(2, deviceFamily(event.detail), 'H') + ' ' +
+      glyph(3, deviceFamily(event.detail), 'Space');
+  });
   const body = root.querySelector('#pilotGuideBody'), toggle = root.querySelector('#pilotGuideToggle');
   const context = root.querySelector('.pilot-context'), count = root.querySelector('.pilot-count');
   const modeLabel = root.querySelector('.pilot-mode'), table = root.querySelector('dl');

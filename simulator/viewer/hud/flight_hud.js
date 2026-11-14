@@ -69,10 +69,9 @@ function up(index) {
   if (held && performance.now() - pressedAt > 250) active = -1;
   held = false;
 }
-// Standard D-pad adapter, isolated for replacement by the shared input module.
-export function readHUDButtons() {
-  const pad = Array.from(navigator.getGamepads?.() || []).find(p => p?.mapping === 'standard');
-  return [12, 14, 15, 13].map(index => !!pad?.buttons[index]?.pressed);
+// Semantic directions come from the selected, normalized and remappable input device.
+export function readHUDButtons(actions = {}) {
+  return ['up', 'left', 'right', 'down'].map(name => (actions[name] || 0) > .5);
 }
 function setDensity() {
   document.body.classList.toggle('hud-minimal', density === 0);
@@ -205,7 +204,7 @@ function drawMap(canvas, s, w) {
   ctx.fill();
   ctx.restore();
 }
-export function updateFlightHUD(s, w, dt) {
+export function updateFlightHUD(s, w, dt, input = {}) {
   if (!ready) initialize();
   if (!s?.pos) return;
   const range = forwardRange(s, w);
@@ -262,17 +261,11 @@ export function updateFlightHUD(s, w, dt) {
   document.body.classList.toggle('hud-danger', danger);
   if (warning && warning !== lastWarning) {
     if (!held) showEventCard(1);
-    const pad = Array.from(navigator.getGamepads?.() || []).find(p => p?.vibrationActuator);
-    pad?.vibrationActuator?.playEffect('dual-rumble', {
-      duration: 180, strongMagnitude: danger ? .8 : .2, weakMagnitude: .2,
-    }).catch(function ignoreUnsupportedRumble() {});
+    input.pulse?.(danger ? 'hard' : 'tension');
   }
   lastWarning = warning;
-  const pad = Array.from(navigator.getGamepads?.() || []).find(p => p?.mapping === 'standard');
-  if (pad?.buttons.some(button => button.pressed) || pad?.axes.some(axis => Math.abs(axis) > .15)) {
-    document.body.classList.remove('hud-touch');
-  }
-  if (pad?.buttons[8]?.pressed) {
+  if (input.active) document.body.classList.remove('hud-touch');
+  if ((input.actions?.engineering || 0) > .5) {
     viewStarted ??= performance.now();
     if (!viewToggled && performance.now() - viewStarted > 650) {
       drawer();
@@ -282,7 +275,7 @@ export function updateFlightHUD(s, w, dt) {
     viewStarted = null;
     viewToggled = false;
   }
-  const buttons = readHUDButtons();
+  const buttons = readHUDButtons(input.actions);
   buttons.forEach(function checkButton(pressed, index) {
     if (pressed && !previous[index]) down(index);
     if (!pressed && previous[index]) up(index);
