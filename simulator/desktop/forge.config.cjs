@@ -5,8 +5,9 @@ const runtimeFiles = new Set([
   '/steam_service.cjs', '/window_settings.cjs', '/package.json', '/steam', '/steam/achievements.json'
 ]);
 function ignore(file) {
-  // Keep dependency licenses and native libraries; Electron Packager prunes devDependencies.
-  if (file === '' || file === '/node_modules' || file.startsWith('/node_modules/')) return false;
+  // Three.js is vendored into the backend viewer; only Steamworks is a Node runtime dependency.
+  if (file === '' || file === '/node_modules') return false;
+  if (file.startsWith('/node_modules/')) return !/^\/node_modules\/steamworks\.js(\/|$)/.test(file);
   return !runtimeFiles.has(file);
 }
 module.exports = {

@@ -99,3 +99,12 @@ Packager prunes devDependencies. `packaging_audit.cjs BEFORE_ASAR AFTER_ASAR`
 checks the actual file lists, sizes and unchanged unpacked native-library bytes.
 Linux cross-packaging checks only the Windows Electron shell when no frozen
 backend is available; it does not validate a complete Windows simulation build.
+
+## Additional retained audit tooling
+
+`ELECTRON_ZIP_DIR=/path/to/downloaded/zips node simulator/desktop/audit_package.cjs`
+compares old and current production packaging filters on Linux. It writes full
+before/after file lists to a temporary directory. The audit deliberately omits the
+Python backend extraResource and does not launch the application. It checks release
+documents/templates are absent while the achievement catalog and native Steam
+bindings remain. It does not certify Windows packaging or runtime behavior.

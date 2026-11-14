@@ -20,6 +20,7 @@ for (const event of ['before-quit', 'window-all-closed']) {
 const closed = fixture();
 closed.window.emit('closed');
 closed.backend.emit('exit', 0, null);
+closed.lifecycle.fail('readiness timeout during shutdown');
 closed.app.emit('window-all-closed');
 assert.deepEqual(closed.failures, []);
 for (const code of [0, 1, null]) {
@@ -33,3 +34,8 @@ cancelled.window.emit('close');
 cancelled.backend.emit('exit', 1, null);
 assert.equal(cancelled.failures.length, 1);
 console.log('Backend lifecycle passed: quit, last-window close, cancelled close, unexpected exit, deduplication.');
+
+const spawnFailure = fixture();
+spawnFailure.backend.emit('error', Error('spawn failed'));
+spawnFailure.backend.emit('exit', 1, null);
+assert.equal(spawnFailure.failures.length, 1);

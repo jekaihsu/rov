@@ -19,6 +19,7 @@ assert.ok(files.some(file => file.endsWith('steamworksjs.win32-x64-msvc.node')))
 assert.ok(files.some(file => file.endsWith('steam_api64.dll')));
 assert.ok(files.includes('/node_modules/steamworks.js/LICENSE'));
 assert.ok(!files.some(file => file.startsWith('/node_modules/@electron-forge/')));
+assert.ok(!files.some(file => file.startsWith('/node_modules/three/')));
 const nativeFiles = files.filter(file => /\.(node|dll|so|dylib)$/.test(file));
 let nativeBytes = 0;
 for (const file of nativeFiles) {
