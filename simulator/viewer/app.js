@@ -26,6 +26,7 @@ import {installExpeditionPanel} from './expedition_panel.js';
 import {inspectObservation} from './observation_camera.js';
 import {installPilotGuide} from './pilot_guide.js';
 import {drawROVAttitude} from './attitude_indicator.js';
+import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { readReplay } from './replay_store.js';
 
@@ -1247,6 +1248,7 @@ function frame(now) {
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   hemi.intensity = 1.5; sun.intensity = 1.6;
+  installUnderwaterPipeline(renderer);
   applyUnderwaterLighting(scene);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
