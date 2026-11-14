@@ -300,7 +300,7 @@ def main():
               f"wraps={sim.tether.wraps} score={s['score']} failed={s['failed']!r}")
         for line in script:
             print(f"   {line['t']:6.1f}s  {line['text']}")
-    Path(args.out).write_text(json.dumps(out, default=_json_default, ensure_ascii=False, separators=(",", ":")))
+    Path(args.out).write_text(json.dumps(out, default=_json_default, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print("wrote", args.out, f"{Path(args.out).stat().st_size / 1e6:.2f} MB")
 
 

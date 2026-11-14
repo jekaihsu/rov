@@ -50,8 +50,14 @@ USB 手把 / 鍵盤 ──▶ 3D 畫面（瀏覽器）──WebSocket──┐
 ```bash
 cd simulator
 pip install -r requirements.txt
+pip install -r requirements-fast.txt                  # 選用：編譯版纜線求解（numba），建議安裝
 python -m qysim.server --scenario tether_untangle     # 或 --scenario random --seed 42
 ```
+
+`requirements-fast.txt` 是選用的：沒裝 numba 時物理結果相同，但纜線走較慢的 NumPy 路徑，
+多機房間可能跑不到即時。伺服器啟動時會印出一行 `[qysim] tether solver: ...`，
+說明目前走哪條路徑以及如何啟用快速路徑。numba 的 wheel 可能尚未支援最新版 Python，
+裝不起來時只用 `requirements.txt` 即可。
 
 ## 操控
 

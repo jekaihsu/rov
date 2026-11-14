@@ -1,0 +1,11 @@
+# Optional: compiled tether solver (numba, BSD-2-Clause).
+#
+#   pip install -r requirements-fast.txt
+#
+# Without numba the simulator falls back to the NumPy tether path, which gives the
+# same physics but is several times slower; a three-vehicle room can then run below
+# real time. numba is kept out of requirements.txt because its wheels can lag behind
+# the newest Python release. If this install fails on your Python version, keep using
+# requirements.txt: the server prints which tether path is active at startup.
+-r requirements.txt
+numba>=0.57,<1

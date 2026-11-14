@@ -3,6 +3,8 @@
   "title": "第一章｜港灣",
   "scenario": "harbor_inspection",
   "mode": "inspection_coop",
+  "category": "story",
+  "order": 20,
   "requires": "prologue",
   "nodes": [
     {

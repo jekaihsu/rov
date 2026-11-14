@@ -3,6 +3,8 @@
   "title": "第二章｜離岸",
   "scenario": "open_water",
   "mode": "free_explore",
+  "category": "story",
+  "order": 50,
   "requires": "harbor_signoff",
   "placeholder": true,
   "outline": "強流、陽極塊巡檢與解纜。",

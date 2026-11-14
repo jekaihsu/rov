@@ -9,7 +9,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-python -c "import numpy, websockets" >nul 2>nul
+python -c "import numpy, websockets, jsonschema" >nul 2>nul
 if errorlevel 1 (
     echo [SETUP] Installing packages ^(first run only^)...
     python -m pip install -r requirements.txt

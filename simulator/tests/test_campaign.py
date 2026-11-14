@@ -30,6 +30,53 @@ class CampaignTests(unittest.TestCase):
         self.assertTrue(self.command("campaign_start")["ok"])
         self.assertEqual(self.campaign.chapter, "prologue")
 
+    def viewer_auto_start(self, completed):
+        # Mirrors the selection in viewer/story/campaign.js so both sides stay consistent.
+        for entry in self.campaign.state()['chapters']:
+            if entry['placeholder'] or entry.get('category', 'story') != 'story' or entry['id'] in completed:
+                continue
+            if not entry['requires'] or entry['requires'] in completed:
+                return entry['id']
+        return None
+
+    def test_auto_start_only_picks_story_chapters_in_order(self):
+        state = self.campaign.state()
+        ids = [entry['id'] for entry in state['chapters']]
+        story = [entry['id'] for entry in state['chapters'] if entry['category'] == 'story']
+        incidents = [entry['id'] for entry in state['chapters'] if entry['category'] == 'incident']
+        self.assertEqual(ids, story + incidents)
+        self.assertEqual(story[:4], ['prologue', 'harbor', 'hull', 'harbor_signoff'])
+        self.assertEqual(len(incidents), 5)
+        self.assertTrue(all(key.startswith('incident_') for key in incidents))
+        self.assertEqual(state['next_story'], 'prologue')
+        self.assertEqual(self.viewer_auto_start([]), 'prologue')
+        self.assertTrue(self.command('campaign_start', chapter=state['next_story'])['ok'])
+        self.assertEqual(self.campaign.chapter, 'prologue')
+        self.campaign.index = len(self.campaign.scripts['prologue']['nodes'])
+        self.campaign.update(0)
+        self.assertEqual(self.campaign.status, 'completed')
+        self.assertEqual(self.campaign.state()['next_story'], 'harbor')
+        self.assertEqual(self.viewer_auto_start(self.campaign.completed), 'harbor')
+        self.campaign.completed = story + incidents
+        self.assertIsNone(self.campaign.state()['next_story'])
+
+    def test_incidents_stay_launchable_explicitly(self):
+        self.assertTrue(self.command('campaign_start', chapter='incident_compass')['ok'])
+        self.assertEqual(self.campaign.chapter, 'incident_compass')
+        self.assertEqual(self.campaign.state()['next_story'], 'prologue')
+
+    def test_chapter_metadata_is_required(self):
+        script = json.loads((DATA / 'prologue.json').read_text(encoding='utf-8'))
+        for key, value in (('category', None), ('category', 'drill'), ('order', None), ('order', 'first')):
+            broken = dict(script)
+            if value is None:
+                del broken[key]
+            else:
+                broken[key] = value
+            with self.subTest(key=key, value=value):
+                with self.assertRaises(ValueError):
+                    validate(broken)
+
     def test_authority_and_reconnect(self):
         guest = self.room.join(now=0)
         result = self.campaign.command(dict(action='campaign_start'), guest)
@@ -71,6 +118,20 @@ class CampaignTests(unittest.TestCase):
         self.campaign.scripts['prologue']['nodes'] = [
             dict(id='branch', type='branch', condition=dict(path='locked', op='eq', value=True), target='end'),
             dict(id='wrong', type='dialogue', text='wrong'), dict(id='end', type='checkpoint')]
+        self.campaign.index = 0
+        self.campaign.update(0)
+        self.assertEqual(self.campaign.status, 'completed')
+
+    def test_world_effects_refresh_the_shared_state(self):
+        self.command('campaign_start')
+        slot = len(self.room.primary.viewer_state()['operations']['objects'])
+        spawned = dict(path=f'operations.objects.{slot}.id', op='eq', value='campaign-sample')
+        self.campaign.scripts['prologue']['nodes'] = [
+            dict(id='armed', type='wait', condition=dict(path='locked', op='eq', value=True)),
+            dict(id='spawn', type='spawn', object_id='sample', label='樣品', point=[0, 0, 1]),
+            dict(id='seen', type='branch', condition=spawned, target='end'),
+            dict(id='stale', type='dialogue', speaker='督導', text='條件讀到舊狀態'),
+            dict(id='end', type='checkpoint')]
         self.campaign.index = 0
         self.campaign.update(0)
         self.assertEqual(self.campaign.status, 'completed')

@@ -3,6 +3,8 @@
   "title": "第三章｜礁區",
   "scenario": "open_water",
   "mode": "free_explore",
+  "category": "story",
+  "order": 60,
   "requires": "offshore",
   "placeholder": true,
   "outline": "生態調查、回收與部署觀測儀。",

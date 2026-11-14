@@ -3,6 +3,8 @@
   "title": "序章｜水池",
   "scenario": "tutorial_pool",
   "mode": "free_explore",
+  "category": "story",
+  "order": 10,
   "requires": null,
   "nodes": [
     {
