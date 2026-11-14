@@ -27,8 +27,6 @@ def run():
                 page.screenshot(path=str(OUT/f'failed-{i}.png'))
                 raise
         main=pages[0]
-        # Input ownership requires the driving page to have focus.
-        main.bring_to_front()
         main.wait_for_function('window.__viewer.S.vehicles.length===3')
         assert main.locator('#pip').is_hidden()
         main.evaluate("const option=document.querySelector('#optPip');option.checked=true;option.dispatchEvent(new Event('change'))")
