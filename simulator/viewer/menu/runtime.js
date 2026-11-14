@@ -77,6 +77,8 @@ const STRINGS = {
 </label>
 <label class="menu-toggle">下水動畫<input id="menuIntro" type="checkbox" checked>
 </label>
+<label class="menu-toggle">訓練輔助：單人選單暫停仿真<input id="menuPauseSim" type="checkbox">
+</label>
 <label class="menu-toggle">畫面搖桿<input id="menuSticks" type="checkbox" checked>
 </label>
 <label class="menu-toggle">真實能見度<input id="menuFog" type="checkbox" checked>
@@ -195,6 +197,7 @@ $("menuQuality").value = query.get("quality") || read("rov.quality", "auto");
 for (const [id, key, fallback] of [
   ["menuPip", "pip", false],
   ["menuIntro", "intro", false],
+  ["menuPauseSim", "pauseSimulation", false],
   ["menuSticks", "sticks", true],
   ["menuFog", "fog", true],
   ["menuLabels", "labels", false],
@@ -251,6 +254,11 @@ const anchor = new THREE.Vector3(0, -12, 0),
   look = new THREE.Vector3();
 function ready() {
   $("startDive").disabled = !(readyModel && readyScene);
+  const focused = document.activeElement;
+  if (readyModel && readyScene && menu.dataset.screen === "brief" &&
+      (focused === document.body || !focused?.getClientRects().length)) {
+    $("startDive").focus();
+  }
   $("menuStatus").textContent =
     readyModel && readyScene
       ? "已就緒 · 按「開始潛航」進入遊戲"
@@ -421,6 +429,7 @@ $("launchForm").onsubmit = (event) => {
       control: $("menuControl").value,
       pip: $("menuPip").checked,
       intro: $("menuIntro").checked,
+      pauseSimulation: $("menuPauseSim").checked,
       sticks: $("menuSticks").checked,
       fog: $("menuFog").checked,
       labels: $("menuLabels").checked,

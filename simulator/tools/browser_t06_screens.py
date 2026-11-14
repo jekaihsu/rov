@@ -13,7 +13,7 @@ with sync_playwright() as p:
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.add_init_script("""window.testButtons=Array.from({length:17},()=>({pressed:false,value:0}));
-    window.padReads=0; navigator.getGamepads=()=>{window.padReads++;return [{connected:true,index:0,id:'Standard Gamepad',axes:[0,0,0,0],buttons:testButtons}];};""")
+    window.padReads=0; navigator.getGamepads=()=>{window.padReads++;return [{connected:true,index:0,id:'Standard Gamepad',mapping:'standard',axes:[0,0,0,0],buttons:testButtons}];};""")
     page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&room=t06screens&nointro')
     page.wait_for_function('window.__menu?.ready')
     def shot(name):
@@ -66,6 +66,7 @@ with sync_playwright() as p:
     page.wait_for_function('window.__viewer?.S && window.__modelLoaded', timeout=90000)
     shot('10-water')
     press(9)
+    page.wait_for_selector('.pause-menu[open]')
     shot('11-pause')
     assert not errors, errors
     context.close()

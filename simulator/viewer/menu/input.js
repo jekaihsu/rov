@@ -1,5 +1,5 @@
 // Adapt shared T02 device snapshots into frontend navigation actions.
-import { pollMenuDevices } from "./devices.js";
+import { pollMenuDevices, menuBindingValue } from "./devices.js";
 import { deviceFamily } from "../input/glyphs.js";
 const STRINGS = {
   keyboard: "方向鍵 移動 · Enter 確認 · Esc 返回",
@@ -17,7 +17,7 @@ export function readMenuPad() {
     return null;
   }
   if (waitingForSettingsRelease) {
-    if (snapshot?.buttons.some(value => value > 0.5)) return null;
+    if (snapshot?.buttons.some((value) => value > 0.5)) return null;
     waitingForSettingsRelease = false;
   }
   if (!pad) return null;
@@ -27,7 +27,7 @@ export function readMenuPad() {
     down: pressed(13) || snapshot.axes[1] > 0.6,
     left: pressed(14) || snapshot.axes[0] < -0.6,
     right: pressed(15) || snapshot.axes[0] > 0.6,
-    start: pressed(9),
+    start: menuBindingValue("frontendPause", "b9") > 0.5,
     confirm: pressed(0),
     back: pressed(1),
     previous: pressed(4),

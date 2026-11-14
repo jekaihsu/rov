@@ -73,7 +73,10 @@ export function installFlow(menu) {
     menu.dataset.screen = key;
     for (const [name, node] of Object.entries(screens)) node.hidden = name !== key;
     $("startDive").hidden = key !== "brief";
-    screens[key].querySelector("button,input,select")?.focus();
+    const initial = [...screens[key].querySelectorAll("button,input,select")].find(
+      (node) => node.getClientRects().length && !node.disabled,
+    );
+    (initial || (key === "brief" ? $("startDive") : null))?.focus();
     if (key === "brief") {
       summary.textContent = [
         $("menuMode").selectedOptions[0]?.text,
@@ -211,7 +214,7 @@ export function installFlow(menu) {
   installAudioSettings(installAudio(), panels[2]);
   panels[2].querySelector("details").open = true;
   panels[4].textContent = STRINGS.language;
-  for (const id of ["menuPip", "menuIntro", "menuSticks", "menuFog", "menuLabels"]) {
+  for (const id of ["menuPip", "menuIntro", "menuPauseSim", "menuSticks", "menuFog", "menuLabels"]) {
     panels[3].append($(id).closest("label"));
   }
   let tabIndex = 0;

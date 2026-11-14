@@ -18,12 +18,16 @@ with sync_playwright() as playwright:
     packets = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.on('websocket', lambda socket: socket.on('framesent', lambda raw: packets.append(json.loads(raw))))
+    page.add_init_script("""if (!localStorage.getItem('rov.input.v1')) {
+      localStorage.setItem('rov.input.v1',JSON.stringify({bindings:{cameraPitchUp:'b6'}}));
+    }""")
     room = f't06-{time.time_ns()}'
     page.goto(f'http://127.0.0.1:8092/?room={room}&ws=ws://127.0.0.1:8792')
     page.wait_for_function('window.__menu?.ready', timeout=90000)
     assert page.locator('#menuMode').input_value() == 'campaign'
     assert not page.locator('#menuIntro').is_checked()
     assert not page.locator('#menuLabels').is_checked()
+    assert not page.locator('#menuPauseSim').is_checked()
     page.get_by_role('button', name='進入主選單', exact=True).click()
     page.get_by_role('button', name='圖鑑與收藏', exact=True).click()
     page.wait_for_selector('dialog[open]')
@@ -50,6 +54,8 @@ with sync_playwright() as playwright:
     page.locator('#inputSettings input[type=range]').first.focus()
     page.keyboard.press('ArrowRight')
     assert page.evaluate('JSON.parse(localStorage.getItem("rov.input.v1")).inner') > 0.08
+    page.locator('#inputSettings select').nth(1).select_option('current')
+    assert page.evaluate('JSON.parse(localStorage.getItem("rov.input.v1")).bindings.cameraPitchUp') == 'b6'
     page.screenshot(path=str(OUT / 'controls.png'))
     page.evaluate('collectionPad.buttons[1]={pressed:true,value:1}')
     page.wait_for_function('!document.querySelector("#inputSettings").open')
@@ -64,6 +70,7 @@ with sync_playwright() as playwright:
     page.screenshot(path=str(OUT / 'audio.png'))
     page.get_by_role('button', name='返回', exact=True).click()
     page.get_by_role('button', name='開始潛航', exact=True).click()
+    assert page.get_by_role('button', name='潮間帶工作隊', exact=False).evaluate('(node)=>node===document.activeElement')
     assert 'undefined' not in page.locator('.menu-cards').first.inner_text()
     assert page.get_by_role('button', name='潮間帶工作隊', exact=False).count() == 1
     page.screenshot(path=str(OUT / 'modes.png'))
@@ -73,11 +80,28 @@ with sync_playwright() as playwright:
     page.screenshot(path=str(OUT / 'vehicle.png'))
     page.get_by_role('button', name='下一步', exact=True).click()
     page.get_by_role('button', name='下一步', exact=True).click()
+    assert page.locator('#startDive').evaluate('(node)=>node===document.activeElement')
     page.click('#startDive')
     page.wait_for_function('window.__viewer?.S && window.__modelLoaded', timeout=90000)
     assert 'cam=onboard' in page.url
+    page.keyboard.press('F8')
+    assert page.locator('#inputSettings').is_visible()
     page.keyboard.press('Escape')
-    page.wait_for_function('window.__viewer.S.paused')
+    assert not page.locator('#inputSettings').is_visible()
+    assert not page.locator('.pause-menu').is_visible()
+    page.keyboard.press('v')
+    page.wait_for_function('document.getElementById("xhair").hidden')
+    for _ in range(3):
+        page.keyboard.press('v')
+    page.wait_for_function('!document.getElementById("xhair").hidden')
+    page.keyboard.press('Escape')
+    page.wait_for_selector('.pause-menu[open]')
+    assert not page.evaluate('window.__viewer.S.paused')
+    clock = page.evaluate('window.__viewer.S.t')
+    page.wait_for_function('(clock)=>window.__viewer.S.t>clock', arg=clock)
+    page.get_by_role('button', name='設定', exact=True).click()
+    page.get_by_label('訓練輔助：單人選單暫停仿真', exact=False).check()
+    assert not page.evaluate('window.__viewer.S.paused')
     page.evaluate("""() => {
       window.testMenuPad = {id:'045e:028e',index:0,connected:true,mapping:'standard',axes:[0,0,0,0],
         buttons:Array.from({length:17},()=>({pressed:false,value:0}))};
@@ -88,6 +112,31 @@ with sync_playwright() as playwright:
     page.wait_for_function('!window.__viewer.S.paused')
     assert page.evaluate('window.__viewer.S.rc.record') == 0
     page.evaluate('testMenuPad.buttons[1]={pressed:false,value:0}')
+    page.wait_for_timeout(300)
+    lights = page.evaluate('window.__viewer.S.rc.right_switch')
+    page.evaluate('testMenuPad.buttons[9]={pressed:true,value:1}')
+    page.wait_for_function('document.querySelector(".pause-menu").open && window.__viewer.S.paused')
+    assert page.evaluate('window.__viewer.S.rc.right_switch') == lights
+    page.evaluate('testMenuPad.buttons[9]={pressed:false,value:0}')
+    page.wait_for_timeout(300)
+    page.evaluate('testMenuPad.buttons[1]={pressed:true,value:1}')
+    page.wait_for_function('!document.querySelector(".pause-menu").open && !window.__viewer.S.paused')
+    assert page.evaluate('window.__viewer.S.rc.record') == 0
+    page.evaluate('testMenuPad.buttons[1]={pressed:false,value:0}')
+    page.wait_for_timeout(300)
+    page.evaluate('testMenuPad.buttons[9]={pressed:true,value:1}')
+    page.wait_for_function('document.querySelector(".pause-menu").open && window.__viewer.S.paused')
+    assert page.evaluate('window.__viewer.S.rc.right_switch') == lights
+    page.evaluate('testMenuPad.buttons[9]={pressed:false,value:0}')
+    page.wait_for_timeout(300)
+    page.get_by_role('button', name='設定', exact=True).click()
+    page.get_by_role('button', name='燈光（循環', exact=False).click()
+    lights = (lights + 1) % 3
+    page.wait_for_function('(level)=>window.__viewer.S.rc.right_switch===level', arg=lights)
+    page.evaluate('testMenuPad.buttons[9]={pressed:true,value:1}')
+    page.wait_for_function('!document.querySelector(".pause-menu").open && !window.__viewer.S.paused')
+    assert page.evaluate('window.__viewer.S.rc.right_switch') == lights
+    page.evaluate('testMenuPad.buttons[9]={pressed:false,value:0}')
     guest = context.new_page()
     guest.goto(f'http://127.0.0.1:8092/?play=1&nointro&room={room}&ws=ws://127.0.0.1:8792')
     guest.wait_for_function('window.__viewer?.S?.vehicles.length===2', timeout=90000)

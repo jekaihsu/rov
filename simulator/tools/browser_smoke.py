@@ -32,6 +32,7 @@ def run():
                 page.screenshot(path=str(OUT/f'failed-{i}.png'))
                 raise
         main=pages[0]
+        main.bring_to_front()
         main.wait_for_function('window.__viewer.S.vehicles.length===3')
         assert main.locator('#pip').is_hidden()
         main.evaluate("const option=document.querySelector('#optPip');option.checked=true;option.dispatchEvent(new Event('change'))")
@@ -47,6 +48,14 @@ def run():
         assert main.locator('#armPanel').is_visible()
         main.locator('#armPanel summary').click()
         main.wait_for_function('document.querySelector("#offline").hidden')
+        # Verify that the foreground operator's RC heartbeat has resumed before commanding a tool.
+        assert main.evaluate('window.__viewer.S.locked')
+        main.keyboard.down('w')
+        try:
+            main.wait_for_function('window.__viewer.S.rc.left_ud>1500')
+        finally:
+            main.keyboard.up('w')
+        main.wait_for_function('window.__viewer.S.rc.left_ud===1500')
         main.click('#gripClose')
         main.wait_for_function('window.__viewer.S.operations.arm.grip<.5')
         main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')

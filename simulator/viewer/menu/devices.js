@@ -1,6 +1,6 @@
 // Reuse the shared T02 device mapping and settings without installing flight controls in the frontend.
-import { PRESETS, BUTTONS } from "../input/actions.js";
-import { createDevices } from "../input/devices.js";
+import { PRESETS, BUTTONS, bindingValue } from "../input/actions.js";
+import { createDevices, normalize } from "../input/devices.js";
 import { createHaptics } from "../input/haptics.js";
 import { installSettings } from "../input/settings.js";
 const database = await fetch(new URL("../input/controller-db.json", import.meta.url)).then(readDatabase);
@@ -17,6 +17,15 @@ if (!settings || typeof settings !== "object" || Array.isArray(settings)) settin
 settings.custom ||= {};
 settings.channels ||= {};
 settings.bindings = { ...PRESETS.current, ...BUTTONS, ...settings.bindings };
+const standardBindings = new Set(Object.keys({ ...PRESETS.current, ...BUTTONS }));
+const featureBindings = new Map();
+function preserveFeatureBindings() {
+  for (const [name, binding] of Object.entries(settings.bindings)) {
+    if (!standardBindings.has(name)) featureBindings.set(name, binding);
+  }
+  settings.bindings = { ...settings.bindings, ...Object.fromEntries(featureBindings) };
+}
+preserveFeatureBindings();
 const devices = createDevices(database, settings.custom);
 let frame = {};
 let panel = null;
@@ -30,7 +39,9 @@ export function pollMenuDevices() {
   try {
     const saved = localStorage.getItem("rov.input.v1");
     if (saved !== savedMapping) {
-      const custom = JSON.parse(saved || "{}").custom || {};
+      const profile = JSON.parse(saved || "{}");
+      const custom = profile.custom || {};
+      settings.bindings = { ...PRESETS.current, ...BUTTONS, ...profile.bindings };
       for (const key of Object.keys(settings.custom)) delete settings.custom[key];
       Object.assign(settings.custom, custom);
       savedMapping = saved;
@@ -40,13 +51,14 @@ export function pollMenuDevices() {
   if (panel) {
     const open = panel.open();
     if (open && !panelWasOpen) waitingForPanelRelease = true;
-    if (!frame.snapshot?.buttons.some(value => value > 0.5)) waitingForPanelRelease = false;
+    if (!frame.snapshot?.buttons.some((value) => value > 0.5)) waitingForPanelRelease = false;
     if (!waitingForPanelRelease) panel.update(frame);
     panelWasOpen = open;
   }
   return frame;
 }
 function saveSettings() {
+  preserveFeatureBindings();
   try {
     localStorage.setItem("rov.input.v1", JSON.stringify(settings));
   } catch {}
@@ -60,5 +72,23 @@ function setControlMode(value) {
 export function installMenuControls(parent) {
   const haptics = createHaptics(() => frame.pad, settings);
   panel = installSettings(settings, saveSettings, haptics, setControlMode);
+  panel.registerActions?.(
+    Object.fromEntries([...featureBindings].map(([name, binding]) => [name, { label: name, binding }])),
+  );
   parent.append(document.getElementById("inputSettingsButton"));
+}
+
+export function menuBindingValue(name, fallback) {
+  const { snapshot } = pollMenuDevices();
+  return snapshot ? bindingValue(settings.bindings[name] ?? fallback, snapshot) : 0;
+}
+
+export function menuDevicesActive() {
+  const { devices: attached } = pollMenuDevices();
+  return attached.some(function held(pad) {
+    const snapshot = normalize(pad, database, settings.custom);
+    return (
+      snapshot.buttons.some((value) => value > 0.5) || snapshot.axes.slice(0, 4).some((value) => Math.abs(value) > 0.2)
+    );
+  });
 }

@@ -19,7 +19,7 @@ export function createFeatureActions(getBinding) {
     const consumed = new Set();
     for (const [name, action] of actions) {
       const value = snapshot ? bindingValue(getBinding(name, action.binding), snapshot) : 0;
-      if (action.enabled?.() !== false && snapshot) {
+      if (action.enabled?.(snapshot, value) !== false && snapshot) {
         if (action.continuous || (value > .5 && !(previous.get(name) > .5))) action.run(value, dt);
         for (const channel of action.consume || []) consumed.add(channel);
       }

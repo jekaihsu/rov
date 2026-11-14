@@ -1,4 +1,4 @@
-import {frontendInputBlocked, FRONTEND_OPEN_EVENT} from './menu/state.js';
+import {frontendInputBlocked, FRONTEND_OPEN_EVENT, registerFrontendActions} from './menu/state.js';
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {installInput} from './input/index.js';
@@ -640,6 +640,7 @@ function stopForCollection(){
 }
 
 addEventListener(FRONTEND_OPEN_EVENT, stopForCollection);
+registerFrontendActions(input);
 let lastSent = '', lastSentAt = 0, photoPressed=false;
 function rcMessage() {
   const m = {};
