@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const source = path.resolve(path.dirname(require.resolve('three')), '..');
 const target = path.resolve(__dirname, '../viewer/vendor/three');
-const files = require('../tools/vendor-manifest.json');
+const manifest = require('../tools/vendor-manifest.json');
+const files = [...new Set([...manifest.modules, ...manifest.runtime])];
 fs.rmSync(target, {recursive: true, force: true});
 for (const file of files) {
   const destination = path.join(target, file);

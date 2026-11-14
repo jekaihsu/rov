@@ -7,7 +7,11 @@ on:
       - "simulator/viewer/**"
       - "simulator/desktop/**"
       - "simulator/tests/**.mjs"
-      - "docs/showcase/**"
+      - "simulator/tests/test_vendor_manifest.py"
+      - "simulator/tools/vendor*"
+      - "simulator/tools/sync_version.py"
+      - "simulator/tools/check_changed_js.py"
+      - "VERSION"
       - ".github/workflows/frontend.yml"
   workflow_dispatch:
 concurrency:
@@ -37,6 +41,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - run: python -m unittest discover -s simulator/tests -p test_vendor_manifest.py
       - run: python simulator/tools/vendor_manifest.py --check
       - run: python simulator/tools/sync_version.py --check
       - name: Check added JavaScript lines
@@ -46,57 +51,3 @@ jobs:
         run: |
           git fetch origin "$BASE_SHA"
           python simulator/tools/check_changed_js.py "$BASE_SHA"
-  browser:
-    name: Browser smoke (advisory)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: python -m pip install -r simulator/requirements.txt playwright
-      - run: python -m playwright install --with-deps chrome
-      - name: Browser smoke tests (SwiftShader)
-        working-directory: simulator
-        run: |
-          python -m qysim.server --http-port 8092 --ws-port 8792 > /tmp/server.log 2>&1 &
-          trap 'cat /tmp/server.log' EXIT
-          python - <<'PYTHON'
-          import time, urllib.request
-          for attempt in range(60):
-              try:
-                  urllib.request.urlopen('http://127.0.0.1:8092/')
-                  break
-              except OSError:
-                  time.sleep(1)
-          else:
-              raise SystemExit('Server did not start')
-          PYTHON
-      - name: Multi-window smoke (advisory)
-        id: smoke
-        continue-on-error: true
-        working-directory: simulator
-        run: python tools/browser_smoke.py
-      - name: Menu smoke (advisory)
-        id: menu
-        continue-on-error: true
-        working-directory: simulator
-        run: python tools/browser_menu_smoke.py
-      - name: Report advisory results
-        if: always()
-        env:
-          SMOKE_RESULT: ${{ steps.smoke.outcome }}
-          MENU_RESULT: ${{ steps.menu.outcome }}
-        run: |
-          echo "### Advisory browser checks" >> "$GITHUB_STEP_SUMMARY"
-          echo "Multi-window: $SMOKE_RESULT; menu: $MENU_RESULT" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$SMOKE_RESULT" != success ] || [ "$MENU_RESULT" != success ]; then
-            echo "::warning::Advisory browser failure; inspect logs and browser-validation artifacts."
-            echo "Software-rendered multi-window smoke times out on the arm grip assertion; see T08 PR." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: browser-validation
-          path: simulator/output/

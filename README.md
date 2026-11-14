@@ -40,6 +40,18 @@ python tools/build_showcase.py
 - [舊硬體設計文件](docs/hardware/README.md)。
 
 `docs/showcase/` 為忽略的產生物；main 更新時由 Actions 建置並部署 Pages。
-新增 three.js import 後執行 `python simulator/tools/vendor_manifest.py --prune`，提交更新後的清單及依賴。
+新增 three.js addon 的步骤（从仓库根目录执行）：
+
+```sh
+(cd simulator/desktop && npm ci)
+# 在 viewer 新增 import 后，自动从固定版本 three@0.160.0 恢复缺失的 addon 与递归依赖。
+python simulator/tools/vendor_manifest.py --prune
+python simulator/tools/vendor_manifest.py --check
+```
+
+提交更新后的 `vendor-manifest.json` 与 vendor 文件。`--check` 只检查，不恢复或改写文件；失败会给出修复命令。
+Basis / Draco 解码器、WASM、worker 等通过 URL 路径载入的资产不在 import 图中：
+请手动将其相对 `vendor/three/` 的文件路径加入清单的 `runtime` 数组（目前为空）。
+生成器会从同版本 npm 套件恢复这些文件，`--prune` 保留它们，桌面版与展示页也会复制它们。
 更新版本時修改 `VERSION`，執行 `python simulator/tools/sync_version.py` 並提交產生的版本資訊。
 授權狀態見 [LICENSING.md](LICENSING.md)。
