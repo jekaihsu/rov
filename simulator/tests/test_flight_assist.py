@@ -1,5 +1,4 @@
 """Flight-assist acceptance tests using the unchanged vehicle dynamics and allocator."""
-import hashlib
 import unittest
 
 import numpy as np
@@ -12,17 +11,13 @@ MODELS = ('x1', 'bluerov2_heavy', 'falcon')
 
 class TestFlightAssist(unittest.TestCase):
     def test_manual_bitwise_main_regression(self):
-        # SHA256 of motor outputs + requested wrenches from main f2b2207.
-        golden = (
-            '85dc24ff82a0674e8034769df5555636103b48097741aa6b745dd764800b67a3',
-            '77071f61b4ebfe0250aa6ecc2ec558f34216722dc78917efffe7f28173298e6b',
-            '694b459f115e494f15d5cbda08587424f382145111478c0bc902dcb18ea01525',
-        )
-        for model, expected in zip(MODELS, golden):
+        from tests.legacy_controller_reference import FlightController as LegacyController
+
+        for model in MODELS:
             for explicit in (False, True):
                 v = Vehicle(model_id=model)
                 c = FlightController(v)
-                digest = hashlib.sha256()
+                legacy = LegacyController(v)
                 for i in range(90):
                     v.s.pos = np.array([1., 2., 10. + i * .01])
                     v.s.q = q_from_euler(.2, .4, i * .03)
@@ -31,9 +26,9 @@ class TestFlightAssist(unittest.TestCase):
                     cmd = dict(surge=.7, sway=-.2, heave=.15, roll=.3, pitch=-.2, yaw=.1 if i % 2 else 0)
                     kwargs = {'assist': 0} if explicit else {}
                     motors = c.update(.01, cmd, ('A', 'S', 'C')[i % 3], i % 19 == 0, i % 2 == 0, **kwargs)
-                    digest.update(motors.tobytes())
-                    digest.update(c.last_wrench.tobytes())
-                self.assertEqual(digest.hexdigest(), expected)
+                    expected = legacy.update(.01, cmd, ('A', 'S', 'C')[i % 3], i % 19 == 0, i % 2 == 0)
+                    self.assertEqual(motors.tobytes(), expected.tobytes())
+                    self.assertEqual(c.last_wrench.tobytes(), legacy.last_wrench.tobytes())
 
     def test_step_and_brake_all_models_profiles(self):
         for model in MODELS:
