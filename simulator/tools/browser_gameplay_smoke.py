@@ -2,6 +2,7 @@
 import json
 import time
 from pathlib import Path
+from shutil import which
 from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1]/'output'/'gameplay-validation'
@@ -18,7 +19,7 @@ def wait_state(page, mode):
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(channel='chrome', headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'), headless=True, args=['--enable-unsafe-swiftshader'])
     contexts = []
     def new_page():
         context = browser.new_context(viewport={'width':1366,'height':768}, accept_downloads=True)
@@ -47,6 +48,7 @@ with sync_playwright() as p:
     main.click('#startDive')
     wait_state(main,'inspection_coop')
     main.wait_for_function('window.__viewer.S.mission.targets.length===3')
+    main.click('#flightDrawer')
     assert main.locator('.mission-photo').is_visible()
     assert main.evaluate('document.querySelector("#score").closest(".sec").hidden')
     target_ids = main.evaluate('window.__viewer.S.mission.targets.map(t=>t.id)')

@@ -2,6 +2,7 @@
 import json
 import time
 from pathlib import Path
+from shutil import which
 from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'paint-validation'
@@ -13,7 +14,7 @@ STICKER_COUNT = "(()=>{let count=0;window.__viewer.scene.traverse(o=>{if(o.name=
 results = {}
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(channel='chrome', headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'), headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width':1440,'height':1000}, accept_downloads=True)
     peer = browser.new_page(viewport={'width':900,'height':700})
     errors = []
@@ -45,6 +46,7 @@ with sync_playwright() as p:
         print('Menu, own and peer stickers passed', flush=True)
 
         page.bring_to_front()
+        page.click('#flightDrawer')
         page.click('.surface-paint-tools summary')
         page.click('.paint-toggle')
         page.evaluate("window.__viewer.setCam('top')")
@@ -89,6 +91,7 @@ with sync_playwright() as p:
         assert results['shared_first_mark'] == peer.evaluate('window.__viewer.S.paint_marks[0]')
         print('Real terrain F paint and peer rendering passed', flush=True)
 
+        page.click('#flightDrawer')
         canvas=page.locator('.viewport canvas').first
         box=canvas.bounding_box()
         page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
@@ -147,6 +150,7 @@ with sync_playwright() as p:
           }finally{module.dispose();}
         }""")
 
+        page.click('#flightDrawer')
         page.locator('details').filter(has=page.locator('#recordFlight')).locator('summary').click()
         page.click('#recordFlight')
         page.click('#btnPause')
