@@ -6,7 +6,9 @@ from playwright.sync_api import sync_playwright
 OUT = Path(__file__).resolve().parents[2] / 'docs/assets/T11a'
 BASE = 'http://127.0.0.1:8092'
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path=os.environ.get('CHROME_PATH'), channel=None if os.environ.get('CHROME_PATH') else 'chrome', args=['--enable-unsafe-swiftshader'])
+    chrome = os.environ.get('CHROME_PATH')
+    browser = p.chromium.launch(executable_path=chrome, channel=None if chrome else 'chrome',
+                                args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width': 1600, 'height': 900})
     for identifier in ['x1', 'falcon', 'bluerov2_heavy']:
         page.goto(f'{BASE}/model-preview.html?model={identifier}')
