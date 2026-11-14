@@ -43,6 +43,8 @@ class Room:
         self._snapshot_tick = -1
         from .campaign import Campaign
         self.campaign = Campaign(self)
+        from .instructor import Instructor
+        self.instructor = Instructor(self)
 
     @property
     def primary(self):
@@ -166,6 +168,7 @@ class Room:
                 self.lock(self.vehicles[p.vehicle_id])
 
     def reset(self, key=None, seed=None):
+        self.instructor.finish()
         if self.campaign.status != "idle":
             self.campaign.status = "interrupted"
         self._snapshot = None
@@ -185,6 +188,7 @@ class Room:
         if base.paused:
             return
         world = base.world
+        self.instructor.update(dt)
         world.current.step_gust(dt, self.rng)
         self._vehicle_contacts()
         for sim in self.vehicles.values():
