@@ -2,6 +2,7 @@
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
 import * as THREE from 'three';
+import {installAudio, installAudioSettings} from './audio/engine.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { loadGLTF } from './glb.js';
@@ -1303,6 +1304,8 @@ window.__movieDone = false;
 
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
+const audio = installAudio({getCamera: () => camera, getMode: () => camMode});
+installAudioSettings(audio, document.querySelector('.rack.left'));
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   const frameSeconds=Math.max(0,(now-last)/1000);
@@ -1359,6 +1362,7 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
+  audio.update(S);
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
