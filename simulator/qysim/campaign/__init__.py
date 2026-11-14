@@ -6,6 +6,9 @@ from jsonschema import Draft202012Validator, ValidationError
 
 DATA = Path(__file__).resolve().parents[2] / 'campaign'
 SCHEMA = Draft202012Validator(json.loads((DATA / 'schema.json').read_text()))
+# Chapter list order: the story campaign first, then the standalone incident drills.
+CATEGORIES = ('story', 'incident')
+CHAPTER_FIELDS = ('id', 'title', 'requires', 'placeholder', 'outline', 'category', 'order')
 TYPES = {'dialogue', 'wait', 'objective', 'hint', 'branch', 'reward', 'checkpoint', 'environment', 'spawn', 'remove'}
 
 
@@ -19,6 +22,11 @@ def validate(script):
     required = ('id', 'title', 'scenario', 'mode')
     if any(not isinstance(script.get(key), str) for key in required):
         raise ValueError('missing script metadata')
+    if script.get('category') not in CATEGORIES:
+        raise ValueError('invalid chapter category')
+    order = script.get('order')
+    if isinstance(order, bool) or not isinstance(order, int):
+        raise ValueError('invalid chapter order')
     ids = [node.get('id') for node in script['nodes']]
     if len(set(ids)) != len(ids) or any(not isinstance(i, str) for i in ids):
         raise ValueError('duplicate or invalid node id')
@@ -82,12 +90,24 @@ class Campaign:
         self.environment_changed = False
 
     def chapter_order(self, script):
-        depth = 0
-        parent = script.get('requires')
-        while parent in self.scripts and depth < len(self.scripts):
-            depth += 1
-            parent = self.scripts[parent].get('requires')
-        return depth
+        """Explicit sort key: (category, order); the id only breaks accidental ties."""
+        return (CATEGORIES.index(script['category']), script['order'], script['id'])
+
+    def ordered_scripts(self):
+        return sorted(self.scripts.values(), key=self.chapter_order)
+
+    def next_story_chapter(self, completed=None):
+        """First playable, unfinished story chapter; incidents are never auto-started."""
+        done = self.completed if completed is None else completed
+        for script in self.ordered_scripts():
+            if script['category'] != 'story' or script.get('placeholder'):
+                continue
+            if script['id'] in done:
+                continue
+            if script.get('requires') and script['requires'] not in done:
+                continue
+            return script['id']
+        return None
 
     def command(self, msg, player):
         if player is None or player.id != self.room.host_id:
@@ -218,5 +238,5 @@ class Campaign:
                              rewards=self.rewards, results=self.results, checkpoint=self.checkpoint,
                              unlocks=dict(vehicles=['falcon'] if 'harbor_signoff' in self.completed else [],
                                           stickers=['dive'] if 'prologue' in self.completed else []),
-                             chapters=[{k: s.get(k) for k in ('id', 'title', 'requires', 'placeholder', 'outline')}
-                                       for s in sorted(self.scripts.values(), key=self.chapter_order)]))
+                             next_story=self.next_story_chapter(),
+                             chapters=[{k: s.get(k) for k in CHAPTER_FIELDS} for s in self.ordered_scripts()]))

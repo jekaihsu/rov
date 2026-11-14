@@ -272,7 +272,12 @@ provisional; see `docs/reference/real-rov-research.md`.
 
 Rooms may publish `state.campaign`: `chapter`, `index`, `node`, `status`,
 `objective`, `dialogue` (bounded radio history), `completed`, `rewards`, `results`,
-`checkpoint`, `unlocks` (earned vehicle/sticker IDs), and `chapters`. Existing clients can ignore this entire field.
+`checkpoint`, `unlocks` (earned vehicle/sticker IDs), `next_story`, and `chapters`. Existing clients can ignore this entire field.
+Each `chapters` entry carries `id`, `title`, `requires`, `placeholder`, `outline`, `category`
+(`story` or `incident`) and `order`. The list is sorted by category (`story` first) and then by `order`.
+`next_story` is the id of the first playable, unfinished `story` chapter (or `null`): a client that
+auto-starts the campaign must use only `story` chapters. `incident` chapters are standalone drills that
+start only through an explicit `campaign_start` with their `chapter` id.
 The default is idle; existing mission modes and SDK semantics are unchanged.
 
 Host-only operation actions (reply: `operation_result` with `ok` and `action`):

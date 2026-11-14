@@ -3,6 +3,8 @@
   "title": "事故訓練｜導管架內受困",
   "scenario": "incident_jacket",
   "mode": "scenario_training",
+  "category": "incident",
+  "order": 10,
   "nodes": [
     {
       "id": "brief",
