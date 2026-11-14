@@ -15,9 +15,9 @@ with sync_playwright() as playwright:
     page.evaluate('window.__skipRender=true')
     page.wait_for_timeout(1000)
     page.evaluate("document.body.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyV',bubbles:true}))")
-    page.wait_for_function('document.querySelector("#camBtn").textContent.includes("追蹤")')
+    page.wait_for_function('document.querySelector("#camBtn").dataset.mode==="chase"')
     page.evaluate("document.body.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyV',bubbles:true}))")
-    page.wait_for_function('document.querySelector("#camBtn").textContent.includes("環繞")')
+    page.wait_for_function('document.querySelector("#camBtn").dataset.mode==="orbit"')
     page.wait_for_timeout(500)
     angle = page.evaluate('''() => {
       const v=window.__viewer;

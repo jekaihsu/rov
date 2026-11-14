@@ -77,7 +77,7 @@ with sync_playwright() as p:
 
     # Exercise real replay playback with hit-tested clicks, without force or DOM click().
     page.unroute('**/boot.js')
-    page.goto('http://127.0.0.1:8092/?replay=demo_recording.json&nointro&quality=performance')
+    page.goto(f'{http_base(8092)}/?replay=demo_recording.json&nointro&quality=performance')
     page.wait_for_function('window.__replay?.() && document.querySelector("#flightCable")', timeout=90000)
     for width, height in [(1280, 720), (1920, 1080)]:
         page.set_viewport_size(dict(width=width, height=height))

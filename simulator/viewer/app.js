@@ -767,7 +767,8 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
   getAnchor: () => cameraAnchor, getObstacles: () => [seabed, ...Array.from(obstacleMeshes.values(), v => v.mesh)],
   onMode(m, name) {
     camMode = m;
-    $('camBtn').textContent = `視角：${name}（V）`;
+    $('camBtn').dataset.mode = m;
+    $('camBtn').dataset.label = `視角：${name}（V）`;
     $('xhair').hidden = m !== 'onboard';
     placeholder.visible = m !== 'onboard';
     if (activeModel) activeModel.model.visible = m !== 'onboard';
