@@ -12,7 +12,7 @@ pip install -r requirements.txt
 python -m qysim.server
 ```
 
-開啟 http://127.0.0.1:8080/；回放使用 `/viewer/index.html?replay=demo_recording.json`。
+開啟 http://127.0.0.1:8080/；回放使用 `http://127.0.0.1:8080/?replay=demo_recording.json`；模型预览为 `/model-preview.html`。
 
 ## 測試與建置
 

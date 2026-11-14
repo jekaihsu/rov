@@ -7,7 +7,10 @@ from pathlib import Path
 
 VIEWER = Path(__file__).resolve().parents[1] / "viewer"
 MANIFEST = Path(__file__).with_name("vendor-manifest.json")
-IMPORT = re.compile(r"(?:\b(?:import|export)\s+[^;]*?\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)['\"]([a-zA-Z0-9_./@-]+)['\"]")
+IMPORT = re.compile(
+    r"(?:\b(?:import|export)\s+[^;]*?\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)"
+    r"['\"]([a-zA-Z0-9_./@-]+)['\"]"
+)
 
 
 def manifest():
