@@ -193,6 +193,7 @@ def wreck_survey() -> Scenario:
         "wreck_survey", "沉船調查", "水深 30 m、能見度 4 m，繞沉船一圈拍攝四個面。碰到海床會揚起泥沙；注意桅桿。",
         seabed_depth=sea, obstacles=[wreck, mast], current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, 0.25),
         visibility_m=4.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=80.0,
+        seabed_type="silt", bnl_height_m=1.5, bnl_mg_l=1.0,      # provisional silted wreck site
         objectives=[Objective("checkpoint", n, p, radius=2.0) for n, p in zip(("艏", "左舷", "艉", "右舷"), pts)])
 
 
@@ -299,6 +300,8 @@ def harbor_inspection() -> Scenario:
     sea = 18.
     return Scenario("harbor_inspection", "港灣協作巡檢", "在港樁與碼頭邊分工巡檢，留意橫流、纜線與低能見度。",
                     seabed_depth=sea, biome="harbor", visibility_m=7,
+                    # Provisional near-bed turbid layer: about half the mid-water visibility at 0.5 m altitude.
+                    bnl_height_m=2.0, bnl_mg_l=2.0,
                     obstacles=[Wall("Quay", (42, 0, 0), 180, 70, -2),
                                Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
                                Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)],
@@ -313,7 +316,7 @@ def harbor_inspection() -> Scenario:
 def tutorial_pool() -> Scenario:
     """Calm indoor commissioning pool, using the unchanged vehicle dynamics."""
     return Scenario("tutorial_pool", STRINGS["pool_name"], STRINGS["pool_brief"],
-                    seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35,
+                    seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35, seabed_type="rock",
                     current=CurrentProfile(0, 0, 0, 0, 0, 0, 0),
                     obstacles=[Wall(STRINGS["pool_walls"][0], (12, 0, 0), 180, 24, 0),
                                Wall(STRINGS["pool_walls"][1], (-12, 0, 0), 0, 24, 0),

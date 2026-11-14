@@ -218,6 +218,23 @@ class ValidationTargetTests(unittest.TestCase):
         self.assertGreater(self.hold("mud", 0.5, [0, 0, 0, 0, 1, 1], 3.0), 0.8 * 7.0)
         self.assertGreater(self.hold("rock", 0.5, ascent, 3.0), 6.99)
 
+    def test_harbour_is_more_turbid_near_the_bottom(self):
+        sim = Simulator("harbor_inspection", 1)
+        world = sim.world
+        bed = world.seabed_depth
+        near = world.visibility_at([0, 0, bed - 0.5], sim.scenario.visibility_m)
+        mid = world.visibility_at([0, 0, bed / 2], sim.scenario.visibility_m)
+        self.assertLess(near, 0.6 * mid)
+        self.assertGreater(world.silt_concentration_at([0, 0, bed - 0.5]), 0.0)
+        self.assertEqual(world.silt_field.seabed_type, "mud")
+        self.assertAlmostEqual(world.environment_state()["turbidity"]["c_water"], 4.8 / 7.0, places=3)
+
+    def test_scenario_seabed_types(self):
+        self.assertEqual(Simulator("tutorial_pool", 1).world.silt_field.seabed_type, "rock")
+        self.assertEqual(Simulator("coral_reef", 1).world.silt_field.seabed_type, "rock")
+        self.assertEqual(Simulator("seagrass_meadow", 1).world.silt_field.seabed_type, "sand")
+        self.assertEqual(Simulator("open_water", 1).world.silt_field.background_mg_l([[0, 0, 29.9]])[0], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
