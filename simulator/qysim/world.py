@@ -18,7 +18,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .flow import StructureFlow, Tide, TurbulenceField, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors
+from .flow import (BED_ROUGHNESS_M, BIOME_BED, DEFAULT_Z0, StructureFlow, Tide, TurbulenceField, bed_factor,
+                   bed_reference_height, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors)
 from .physics import KNOT, q_rot
 
 WORLD_UP = np.array([0.0, 0.0, -1.0])
@@ -262,6 +263,7 @@ class CurrentProfile:
     gust_tau: float = 6.0             # legacy field, no longer used (integral time is now ~L/U)
     length_scale: float | None = None  # turbulence integral length (m); None = from water depth
     tide: Tide | None = None          # optional tidal modulation; None = steady profile (legacy)
+    z0: float | None = None           # bed roughness length (m); None = from the biome / rippled sand
     seed: int = 0
     _clock: float = field(default=0.0, repr=False)
     _turb: object = field(default=None, repr=False)
@@ -369,16 +371,22 @@ class CurrentProfile:
         """Effective surface-layer speed now (knots), including injections."""
         return float(np.linalg.norm(self._layers()[0])) / KNOT
 
-    def mean_many(self, depths, seabed: float) -> np.ndarray:
-        """Mean (turbulence-free) current at depths below the surface, NED m/s, shape (N, 3)."""
+    def mean_many(self, depths, seabed: float, heights=None, z0: float | None = None) -> np.ndarray:
+        """Mean (turbulence-free) current at depths below the surface, NED m/s, shape (N, 3).
+
+        Three-layer interpolation over the nominal depth, then a log-law bed layer: the bottom
+        layer value applies at ``bed_reference_height`` (1-3 m) above the bed and the speed falls
+        as ln(h/z0) below it. ``heights`` are heights above the local seabed (default: nominal).
+        """
         layers = self._layers()
         z = np.asarray(depths, float)
         knots = (0.0, seabed / 2, seabed)
         v = np.empty((len(z), 3))
         for k in range(3):
             v[:, k] = np.interp(z, knots, layers[:, k])
-        # boundary layer: current dies off in the last metre above the seabed
-        v *= np.clip(seabed - z, 0.0, 1.0)[:, None]
+        h = seabed - z if heights is None else np.asarray(heights, float)
+        roughness = z0 if z0 is not None else self.z0 if self.z0 is not None else DEFAULT_Z0
+        v *= bed_factor(h, roughness, bed_reference_height(seabed))[:, None]
         return v
 
     def mean_at(self, depth: float, seabed: float) -> np.ndarray:
@@ -436,14 +444,18 @@ class CurrentProfile:
         return self._travel * local / avg
 
     # ── sampling ──────────────────────────────────────────────────────────
-    def sample_many(self, positions: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
-        """Ambient flow (mean profile + turbulence) at NED points, shared by vehicle, cable and ecology.
+    def sample_many(self, positions: np.ndarray, seabed: float, t: float = 0.0, bed=None,
+                    z0: float | None = None) -> np.ndarray:
+        """Ambient flow (mean profile + turbulence) at NED points.
 
-        Not obstacle-resolving; ``World.current_at_many`` adds structure effects.
+        Not obstacle-resolving; ``World.current_at_many`` adds structure effects and passes the
+        local seabed depth per point (``bed``) and the biome roughness (``z0``). Without them the
+        nominal flat seabed and the profile's own roughness are used.
         """
         p = np.atleast_2d(np.asarray(positions, float))
         self._seabed_hint = float(seabed)
-        mean = self.mean_many(p[:, 2], seabed)
+        heights = None if bed is None else np.asarray(bed, float) - p[:, 2]
+        mean = self.mean_many(p[:, 2], seabed, heights, z0)
         return mean + self.fluctuation_many(p, mean, seabed)
 
     def sample(self, position: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
@@ -543,11 +555,20 @@ class World:
         clock advanced once per tick by ``CurrentProfile.step_gust``). Zero inside solids.
         """
         P = np.atleast_2d(np.asarray(points, float))
-        U = self.current.sample_many(P, self.seabed_depth)
+        bed = None
+        if self.terrain is not None and self.terrain.relief:
+            bed = self.terrain.sample_many(P)[0]
+        U = self.current.sample_many(P, self.seabed_depth, bed=bed, z0=self.bed_roughness())
         flow = self.structure_flow()
         if flow.empty:
             return U
         return flow.apply(P, U, self.current.shedding_travel(P[:, 2], self.seabed_depth))
+
+    def bed_roughness(self) -> float:
+        """Roughness length z0 (m): the profile's own value, else the biome's assumed bed type."""
+        if self.current.z0 is not None:
+            return float(self.current.z0)
+        return BED_ROUGHNESS_M[BIOME_BED.get(self.biome, "rippled_sand")]
 
     def current_at(self, point, t: float | None = None) -> np.ndarray:
         """Single-point ``current_at_many``."""

@@ -9,6 +9,7 @@ Pieces
                      plus a slow eddy evolution. The state is integrated once per tick, so the
                      field and its time derivative are bounded and independent of the step size.
     Tide             optional M2/S2 tidal modulation of the layer profile, rectilinear or rotary.
+    bed_factor       log-law velocity reduction near the local seabed (biome roughness z0).
     StructureFlow    analytic flow around cylinders (doublet, Gaussian wake, Strouhal shedding)
                      and lee shelter / blocking around boxes, wreck meshes and walls.
 """
@@ -23,6 +24,13 @@ import numpy as np
 M2_PERIOD_S = 12.4206012 * 3600.0    # principal lunar semidiurnal constituent
 S2_PERIOD_S = 12.0 * 3600.0          # principal solar semidiurnal constituent
 TIDE_STARTS = ("peak_flood", "slack_before_ebb", "peak_ebb", "slack_before_flood")
+KAPPA = 0.4                          # von Karman constant
+# Soulsby (1990) roughness lengths via HR Wallingford SR 360, in metres. "rock" is an assumption
+# (field values range up to ~10 cm on rough rocky beds).
+BED_ROUGHNESS_M = {"mud": 0.0002, "sand": 0.0004, "rippled_sand": 0.006, "gravel": 0.003, "rock": 0.03}
+# Seabed type assumed for each habitat biome (assumption, not a survey).
+BIOME_BED = {"harbor": "mud", "seagrass": "rippled_sand", "reef": "rock", "temperate": "rippled_sand"}
+DEFAULT_Z0 = BED_ROUGHNESS_M["rippled_sand"]
 STROUHAL = 0.2                       # high-Re circular cylinder (assumed constant)
 # Fluid acceleration fed to the inertia terms is clipped to this magnitude (m/s^2). Natural
 # currents and gusts stay far below it; it only guards instant host overrides.
@@ -79,6 +87,20 @@ def rotate_xy(v: np.ndarray, degrees: float) -> np.ndarray:
     out[..., 0] = c * v[..., 0] - s * v[..., 1]
     out[..., 1] = s * v[..., 0] + c * v[..., 1]
     return out
+
+
+# ── near-bed profile ─────────────────────────────────────────────────────────
+def bed_reference_height(seabed: float) -> float:
+    """Height above the bed at which the layer profile's bottom value applies (assumed)."""
+    return float(min(3.0, max(1.0, 0.1 * seabed)))
+
+
+def bed_factor(height, z0: float, h_ref: float):
+    """Log-law ratio u(h)/u(h_ref) = ln(h/z0)/ln(h_ref/z0), 1 above h_ref and 0 at/below the bed."""
+    z0 = max(float(z0), 1e-6)
+    h = np.asarray(height, float)
+    ratio = np.log(np.maximum(h, z0) / z0) / math.log(max(h_ref, 2 * z0) / z0)
+    return np.where(h >= h_ref, 1.0, np.clip(ratio, 0.0, 1.0))
 
 
 def turbulence_length(seabed: float) -> float:

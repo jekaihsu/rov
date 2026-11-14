@@ -415,5 +415,49 @@ class FluidAccelerationTests(unittest.TestCase):
         self.assertGreater(amplitudes[0], 0.6)
 
 
+class NearBedProfileTests(unittest.TestCase):
+    """Gap 7: log-law bed layer on the local (terrain) seabed with biome roughness."""
+
+    def test_log_law_ratios(self):
+        profile = CurrentProfile(1.0, 90, 1.0, 90, 1.0, 90, 0.0, z0=0.003)          # gravel
+        seabed = 20.0
+        h_ref = 2.0                                                                  # 0.1 x depth
+        for height in (0.2, 1.0):
+            speed = np.linalg.norm(profile.mean_at(seabed - height, seabed)) / KNOT
+            self.assertAlmostEqual(speed, math.log(height / 0.003) / math.log(h_ref / 0.003), places=6)
+        self.assertAlmostEqual(np.linalg.norm(profile.mean_at(seabed - 5.0, seabed)) / KNOT, 1.0, places=6)
+        u02, u1 = (np.linalg.norm(profile.mean_at(seabed - h, seabed)) for h in (0.2, 1.0))
+        self.assertLess(u02, u1)
+
+    def test_rougher_beds_slow_the_flow_more(self):
+        speeds = []
+        for z0 in (0.0002, 0.006, 0.03):                         # mud, rippled sand, rock
+            profile = CurrentProfile(1.0, 90, 1.0, 90, 1.0, 90, 0.0, z0=z0)
+            speeds.append(np.linalg.norm(profile.mean_at(19.7, 20.0)))
+        self.assertGreater(speeds[0], speeds[1])
+        self.assertGreater(speeds[1], speeds[2])
+
+    def test_terrain_high_point_uses_local_seabed(self):
+        from qysim.engine import Simulator
+        sim = Simulator("coral_reef")
+        world = sim.world
+        world.current.turbulence = 0.0
+        self.assertEqual(world.bed_roughness(), 0.03)
+        rng = np.random.default_rng(0)
+        xy = rng.uniform(-40, 60, (4000, 3))
+        xy[:, 2] = 0.0
+        beds = world.terrain.sample_many(xy)[0]
+        top = xy[int(np.argmin(beds))].copy()
+        bed = float(beds.min())
+        self.assertLess(bed, world.seabed_depth - 0.8)
+        top[2] = bed - 0.3
+        above_reef = np.linalg.norm(world.current_at(top))
+        mid_water = np.linalg.norm(world.current_at(np.array([top[0], top[1], 7.0])))
+        same_depth_profile = np.linalg.norm(world.current.mean_at(top[2], world.seabed_depth))
+        self.assertLess(above_reef, mid_water)
+        self.assertLess(above_reef, 0.8 * same_depth_profile)
+        self.assertEqual(np.linalg.norm(world.current_at(np.array([top[0], top[1], bed + 0.2]))), 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

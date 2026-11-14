@@ -397,6 +397,11 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   length scale apart are correlated by ≈ 0.4. It advances once per tick and its time derivative does
   not depend on the step size. All values are provisional simulator assumptions (see
   `docs/reference/current-validation.md`).
+* **Near-bed profile**: the bottom layer value applies at 0.1 × depth (1–3 m) above the bed; below it the
+  speed follows the log law ln(h/z0)/ln(h_ref/z0) (it used to fall linearly over the last metre).
+  `World.current_at` measures h from the local terrain (reef and seagrass relief), with z0 from the
+  biome (assumed bed types, Soulsby 1990 values: harbour mud 0.02 cm, temperate/seagrass rippled sand
+  0.6 cm, reef rock 3 cm; gravel 0.3 cm). Optional `CurrentProfile.z0` overrides it.
 * **Tide** (optional `current.tide`; absent = steady profile, today's behaviour). The layer speeds and
   directions are the flood flow at factor 1. Fields (all optional):
   `kind` `"rectilinear"`|`"rotary"`, `m2` (0–2, default 1) and `m2_phase_deg`, `s2` (0–1, default 0)
