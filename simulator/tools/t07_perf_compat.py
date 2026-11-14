@@ -34,4 +34,5 @@ if kind == 'expedition':
         source = source.replace('quality=medium', 'quality=performance')
         source = source.replace('===\"medium\"', '===\"performance\"')
         source = source.replace('medium quality', 'performance quality')
+sys.argv = [str(script)] + (sys.argv[3:] if kind == 'fleet' else [])
 exec(compile(source, str(script), 'exec'), {'__name__': '__main__', '__file__': str(script)})

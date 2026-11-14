@@ -15,6 +15,11 @@ with sync_playwright() as p:
       const {installUnderwaterPipeline}=await import('./fx/pipeline.js');
       const {applyUnderwaterLighting}=await import('./underwater_lighting.js');
       const {configureRenderQuality}=await import('./render_quality.js');
+      const lowRenderer=new T.WebGLRenderer();
+      configureRenderQuality(lowRenderer,'performance');
+      const lowOriginal=lowRenderer.render;
+      const lowStartup=installUnderwaterPipeline(lowRenderer)===null && lowRenderer.render===lowOriginal;
+      lowRenderer.dispose();
       const r=new T.WebGLRenderer({preserveDrawingBuffer:true}), scene=new T.Scene(), camera=new T.PerspectiveCamera(60,1,.01,100);
       camera.position.set(0,-2,3);camera.lookAt(0,-2,0);
       scene.fog=new T.Fog(0x102a30,.3,4);
@@ -46,7 +51,7 @@ with sync_playwright() as p:
       fx.setCameraPass(null);pass.dispose();fx.setEnhancements(false);r.render(scene,camera);
       const bypassAgain=calls===2;
       fx.dispose();target.dispose();
-      return {lowBypass,composed,geometryIgnored,resized,offscreenPreserved,bypassAgain,png:blob.type==='image/png'};
+      return {lowStartup,lowBypass,composed,geometryIgnored,resized,offscreenPreserved,bypassAgain,png:blob.type==='image/png'};
     }''')
     assert all(result.values()), result
     assert not errors, errors

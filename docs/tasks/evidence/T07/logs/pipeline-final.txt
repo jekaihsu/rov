@@ -1,1 +1,1 @@
-{"lowBypass": true, "composed": true, "geometryIgnored": true, "resized": true, "offscreenPreserved": true, "bypassAgain": true, "png": true}
+{"lowStartup": true, "lowBypass": true, "composed": true, "geometryIgnored": true, "resized": true, "offscreenPreserved": true, "bypassAgain": true, "png": true}
