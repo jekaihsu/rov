@@ -10,3 +10,8 @@ No trained weights, vendored inference libraries, dataset captures, or large bin
 
 Reproduce with the server on port 8080:
 `python simulator/tools/vision/browser_check.py`.
+
+`seastar-scene.png` is an additional capture of existing environment entities through `rovVision.capture`.
+The camera was positioned two metres above and one metre behind an instanced seastar and aimed at it.
+The same captured RGB and oracle truth were drawn together; both visible seastars are annotated.
+This is a tooling camera pose, not a claim that the vehicle flew that trajectory.
