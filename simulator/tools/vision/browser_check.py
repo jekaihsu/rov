@@ -1,0 +1,65 @@
+"""Check analytical box center and oracle degradation; capture overlay evidence."""
+from pathlib import Path
+from shutil import which
+from playwright.sync_api import sync_playwright
+
+out = Path(__file__).resolve().parents[2] / "output/vision"
+out.mkdir(parents=True, exist_ok=True)
+with sync_playwright() as p:
+    browser = p.chromium.launch(executable_path=which("chromium"), args=["--enable-unsafe-swiftshader"])
+    page = browser.new_page(viewport={"width": 1600, "height": 900}, record_video_dir=str(out))
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto("http://127.0.0.1:8080/?play=1&nointro&cam=onboard&vision")
+    page.wait_for_function("window.__viewer?.S && window.rovVision")
+    result = page.evaluate("""async () => {
+        const {THREE} = window.__viewer;
+        const {inspectObservation} = await import('./observation_camera.js');
+        const {OracleDetector} = await import('./vision/detector.js');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(70,1600/900,.01,100);
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial());
+        mesh.position.z = -3;
+        scene.add(mesh);
+        const context = {scene,camera,camMode:'onboard',all:true,
+            targets:[{entity_id:'test',category:'engineering',mesh}]};
+        const truth = inspectObservation(context);
+        if (truth.length !== 1) throw Error('missing analytical target');
+        const box = truth[0].box;
+        const error = Math.hypot((box[0]+box[2]/2-.5)*1600,(box[1]+box[3]/2-.5)*900);
+        if (error >= 2) throw Error('box center error '+error);
+        let seed=13;
+        function random() {seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;}
+        const detector = new OracleDetector({miss:.3,falsePositive:.2,random});
+        let missed=0, falsePositives=0;
+        for(let i=0;i<10000;i++) {
+            const detections = await detector.detect({truth});
+            if(!detections.some(d=>d.entity_id==='test')) missed++;
+            if(detections.some(d=>d.cls==='unknown')) falsePositives++;
+        }
+        if(Math.abs(missed/10000-.3)>.02 || Math.abs(falsePositives/10000-.2)>.02)
+            throw Error('oracle distribution');
+        // Controlled known geometry placed in the live camera for screenshot evidence.
+        const viewer=window.__viewer;
+        mesh.position.copy(viewer.camera.position);
+        mesh.position.add(viewer.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(3));
+        mesh.material.color.set('#c09060');
+        viewer.scene.add(mesh);
+        const live = inspectObservation({...context,scene:viewer.scene,camera:viewer.camera});
+        window.rovVision.enabled=false;
+        return {error,missRate:missed/10000,falsePositiveRate:falsePositives/10000,live};
+    }""")
+    page.screenshot(path=str(out / "before.png"))
+    page.evaluate("""async truth => {
+        const {drawDetections} = await import('./vision/overlay.js');
+        const canvas=window.rovVision.overlay;
+        window.__drawEvidence=setInterval(()=>drawDetections(canvas.getContext('2d'),
+            truth.map(t=>({...t,cls:t.category,score:1})),canvas.width,canvas.height),10);
+    }""", result.pop("live"))
+    page.wait_for_timeout(200)
+    page.screenshot(path=str(out / "after.png"))
+    page.wait_for_timeout(1000)
+    assert not errors, errors
+    print(result)
+    page.close()
+    browser.close()

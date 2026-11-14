@@ -1,3 +1,4 @@
+import {drawDetections} from './vision/overlay.js';
 // Picture-in-picture "pilot at the console": a seated operator (Quaternius CC0 rig, IK hands on
 // the grips) holding a gamepad whose sticks, triggers, bumpers and face buttons follow the live
 // RC input, in front of a monitor that mirrors the main 3D view (flight-simulator style).
@@ -136,6 +137,7 @@ export class PilotPiP {
       this.lastMirror = this.t;
       const ctx = this.screenCanvas.getContext('2d');
       try { ctx.drawImage(this.mirror, 0, 0, this.screenCanvas.width, this.screenCanvas.height); } catch (e) { /* not ready */ }
+      drawDetections(ctx, window.rovVision?.detections || [], 480, 270);
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, 480, 22);
       ctx.fillStyle = '#9fe3ff'; ctx.font = '14px monospace'; ctx.fillText('ROV CAM', 8, 16);
       ctx.fillStyle = (this.t % 1) < 0.5 ? '#ff4757' : '#7a2630'; ctx.fillText('● REC', 410, 16);

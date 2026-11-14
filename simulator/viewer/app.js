@@ -1,3 +1,4 @@
+import {installVision} from './vision/overlay.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -456,6 +457,7 @@ let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
+const vision = installVision({canvas:renderer.domElement,getContext:()=>({scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:engineeringPhotoTargets()})});
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
@@ -1278,6 +1280,7 @@ function frame(now) {
   } else guide.visible = false;
   audio.update(S);
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
+  vision.update(now);
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
