@@ -10,6 +10,7 @@ if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_DATA){
   fs.mkdirSync(process.env.ROV_DESKTOP_SMOKE_DATA,{recursive:true});app.setPath('userData',process.env.ROV_DESKTOP_SMOKE_DATA);
 }
 const { createSteam } = require('./steam_service.cjs');
+const { installBackendLifecycle } = require('./backend_lifecycle.cjs');
 const displaySettings = require('./window_settings.cjs');
 if (!app.requestSingleInstanceLock()) app.exit(0);
 app.on('second-instance', () => {
@@ -41,21 +42,17 @@ app.whenReady().then(async()=>{
   log=fs.createWriteStream(path.join(data,'backend.log'),{flags:'a'});
   backend=spawn(executable,app.isPackaged?args:['-X','utf8','-m','qysim.server',...args],{cwd:root,windowsHide:true,env:{...process.env,PYTHONUTF8:'1',NUMBA_CACHE_DIR:cache}});
   backend.stdout.pipe(log,{end:false});backend.stderr.pipe(log,{end:false});
-  let shuttingDown = false;
   async function backendFailed(error) {
-    if (shuttingDown) return;
-    shuttingDown = true;
     const result = await dialog.showMessageBox({ type: 'error', title: 'ROV Simulator',
       message: '模擬服務已停止', detail: `${error}\n${path.join(data, 'backend.log')}`,
       buttons: ['重試', '結束'] });
     if (result.response === 0) app.relaunch();
     app.quit();
   }
-  backend.on('error', backendFailed);
-  backend.on('exit', code => backendFailed(`Backend exit: ${code}`));
-  app.on('before-quit', () => { shuttingDown = true; });
+  const lifecycle = installBackendLifecycle(app, backend, backendFailed);
   const workArea=screen.getPrimaryDisplay().workAreaSize;
   const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,preload:path.join(__dirname,'preload.cjs')}});
+  lifecycle.watchWindow(window);
   const origin = `http://127.0.0.1:${http}`;
   function trusted(event) {
     return event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame &&
@@ -147,7 +144,7 @@ app.whenReady().then(async()=>{
     try{preferredQuality=quality;savePreferences();}catch(error){log.write(`Could not save quality preference: ${error.message}\n`);}
   });
   await window.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent('<html lang="zh-Hant"><meta charset="utf-8"><body style="margin:0;background:#081722;color:#dce8ea;font:18px system-ui;display:grid;place-content:center;height:100vh"><h1>ROV Simulator</h1><p>正在準備模擬環境，首次啟動可能需要一點時間。</p></body></html>'));
-  try { await waitReady(http); } catch (error) { await backendFailed(error.message); return; }
+  try { await waitReady(http); } catch (error) { await lifecycle.fail(error.message); return; }
   await window.loadURL(`http://127.0.0.1:${http}/?ws=${encodeURIComponent(`ws://127.0.0.1:${ws}`)}&nointro&model=${preferredModel}&quality=${preferredQuality}`);
   if(process.env.ROV_DESKTOP_SMOKE){
     setTimeout(async()=>{

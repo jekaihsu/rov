@@ -79,3 +79,23 @@ and dependency boundary are required before enabling Steam uploads. No upload is
 performed. SDK files are not intentionally added by the current PyInstaller recipe.
 Real Windows launches with/without Steam, achievement unlocks, CSP rendering,
 backend crash/retry, display behavior and artifact contents are all unverified.
+
+## Review follow-up after merging main
+
+The Windows workflow is manual-only with a timeout and concurrency cancellation;
+no runner was triggered for this review update because the monthly budget is exhausted.
+The obsolete monolithic CI workflow stays deleted; desktop tests live in frontend.yml.
+Only preload installs the desktop input guard; tests execute that actual preload source.
+The guard is a simulator safety policy, not a measured behavior of a real vehicle.
+It preserves depth/mode fields and controller-generation metadata and does not add
+velocity control, position hold or a DVL assumption. Research was re-read in
+`docs/reference/real-rov-research.md`; `docs/reference/own/` is absent in this checkout.
+No vehicle-specific behavior or measurement is inferred from another vehicle.
+
+Electron packaging now uses an explicit runtime file allowlist. Only
+steam/achievements.json is retained from the release directory. Production npm
+dependencies and their licenses/native libraries stay present, while Electron
+Packager prunes devDependencies. `packaging_audit.cjs BEFORE_ASAR AFTER_ASAR`
+checks the actual file lists, sizes and unchanged unpacked native-library bytes.
+Linux cross-packaging checks only the Windows Electron shell when no frozen
+backend is available; it does not validate a complete Windows simulation build.
