@@ -6,7 +6,9 @@ import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
 import { bindingRow, hintText } from '../input/bindings.js';
 import { assistPill } from './assist_pill.js';
+import { hidesTargets } from '../sonar/scenario.js';
 const STRINGS = {
+  sonarSource: '聲納',
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
   view: '切換視角 V', locked: '馬達鎖定', unlocked: '馬達解鎖',
@@ -217,7 +219,8 @@ function drawMap(canvas, s, w) {
     }
   }
   line(s.tether?.nodes || [], '#4fd1e0');
-  for (const target of s.mission?.targets || w?.objectives || []) {
+  const mapTargets = hidesTargets(w) ? [] : s.mission?.targets || w?.objectives || [];
+  for (const target of mapTargets) {
     if (!target.point) continue;
     const [x, y] = point(target.point);
     ctx.strokeStyle = '#f2b84b';
@@ -257,7 +260,8 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   $('lockBadge').querySelector('span').textContent = s.locked ? STRINGS.unlockHint : '';
   $('flightTools').classList.toggle('controller-visible', !!input.active);
   const range = forwardRange(s, w);
-  $('flightRange').textContent = range == null ? '' : `${STRINGS.forward} ${range.toFixed(1)} m`;
+  const rangeSource = s.sonar ? STRINGS.sonarSource : STRINGS.forward;
+  $('flightRange').textContent = range == null ? '' : `${rangeSource} ${range.toFixed(1)} m`;
   $('flightRange').style.color = range < .5 ? 'var(--danger)' : 'var(--warn)';
   $('flightController').textContent = s.controller ? STRINGS.controller : '';
   const alt = w ? w.seabed_depth - s.pos[2] : null;

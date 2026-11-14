@@ -54,3 +54,9 @@ See [SDK / AI examples](../examples/README.md) for deterministic stepping, CSV l
 and six runnable demonstrations. Existing manage methods remain the vendor-compatible
 surface. Env, local transport binding, ideal ranges, mission evaluation and fixed seeds
 are simulator extensions, unavailable through the vendor SDK on hardware.
+
+### 聲納（模擬器擴充，非原廠 SDK 介面）
+
+`from qysea.sonar import get_latest_sonar`：讀取最近一次已訂閱的聲納掃描，尚未掃描時為 `None`。
+先在瀏覽器按 5（或工程面板的「聲納」按鈕）開啟聲納並勾選固定。此方法是**模擬器擴充，非原廠 SDK 介面**。
+影像範例：`PYTHONPATH=sdk_mock python examples/sonar_image.py`。

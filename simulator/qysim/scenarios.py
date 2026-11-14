@@ -303,6 +303,15 @@ def harbor_inspection() -> Scenario:
                                 Objective("surface", "返回投放區", (-2, 0, .5), 3)])
 
 
+def sonar_search() -> Scenario:
+    """Low visibility acoustic approach training; parameters are illustrative."""
+    return Scenario("sonar_search", "聲納搜尋", "坐底掃描、讀方位、轉向零度，再接近回波並以攝影機確認。",
+                    seabed_depth=15, visibility_m=0.8, start_pos=(0, 0, 13), spool_pos=(-3, 0, 0),
+                    tether_length=60,
+                    obstacles=[Box("搜尋目標", (18, 5, 13), (1, 1, 2))],
+                    objectives=[Objective("checkpoint", "接近並確認目標", (16, 5, 13), radius=1.5)])
+
+
 def tutorial_pool() -> Scenario:
     """Calm indoor commissioning pool, using the unchanged vehicle dynamics."""
     return Scenario("tutorial_pool", STRINGS["pool_name"], STRINGS["pool_brief"],
@@ -392,6 +401,7 @@ LIBRARY = {
     "incident_current": incident_current,
 
     "tutorial_pool": tutorial_pool,
+    "sonar_search": sonar_search,
     "open_water": open_water,
     "jacket_inspection": jacket_inspection,
     "monopile_current": monopile_current,
