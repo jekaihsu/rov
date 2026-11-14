@@ -5,6 +5,7 @@ import { drawFlightAttitude } from './attitude.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
 import { bindingRow, hintText } from '../input/bindings.js';
+import { assistPill } from './assist_pill.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -16,7 +17,6 @@ const STRINGS = {
   danger: '危險：纜線斷裂', warn: '注意：纜線張力', near: '注意：接近海床',
   obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
   forward: '前方估距', controller: 'USB 控制器已連線',
-  assist: ['手動', '速度輔助', '定點輔助'],
   fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
 };
 const $ = id => document.getElementById(id);
@@ -91,6 +91,18 @@ function showFidelity() {
   const preset = getFidelity().preset;
   chip.textContent = fidelityText(STRINGS.fidelity[preset]);
   chip.dataset.preset = preset;
+}
+// The pill states what the pilot selected; the status chip says when the simulator is not flying it.
+function showAssist(s) {
+  const fidelity = getFidelity();
+  const pill = assistPill(s, {level: fidelity.get('assistLevel'), profile: fidelity.get('flightProfile')});
+  const chip = $('flightAssist');
+  const status = $('flightAssistStatus');
+  if (chip.textContent !== pill.text) chip.textContent = pill.text;
+  status.hidden = !pill.status;
+  if (status.textContent !== pill.status) status.textContent = pill.status;
+  status.dataset.tone = pill.tone;
+  status.title = pill.help;
 }
 function toolIcon(button, icon, label) {
   button.title = label;
@@ -275,15 +287,18 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     const fidelityChip = document.createElement('span');
     fidelityChip.id = 'flightFidelity';
     fidelityChip.className = 'chip';
-    document.querySelector('.chips').append(fidelityChip, chip);
+    const status = document.createElement('span');
+    status.id = 'flightAssistStatus';
+    status.className = 'chip';
+    status.setAttribute('role', 'status');
+    document.querySelector('.chips').append(fidelityChip, chip, status);
     showFidelity();
   }
   $('rSpd').textContent = smooth('speed', s.speed_kn || 0, dt).toFixed(2);
   $('flightCable').textContent = `${smooth('cable', s.tether?.length || 0, dt).toFixed(1)} m`;
   $('flightCable').style.color = s.tether?.warn ? 'var(--warn)' : 'var(--text)';
   $('flightBattery').textContent = smooth('battery', s.battery ?? 0, dt).toFixed(0);
-  $('flightAssist').hidden = !s.assist;
-  if (s.assist) $('flightAssist').textContent = `${STRINGS.assist[s.assist.level]} · ${s.assist.profile}`;
+  showAssist(s);
   const nearDanger = alt != null && alt < .25 || range != null && range < .25;
   const danger = !!s.tether?.broken || nearDanger;
   const nextMissionKey = [s.mission?.mode, objective?.id, objective?.label, s.score?.current_index].join(':');

@@ -100,3 +100,9 @@ body .hud, .flight { z-index: var(--z-hud); }
 #flightPeek, #flightWarning { z-index: var(--z-notice); }
 #flightTools { z-index: var(--z-controls); }
 .banner { z-index: var(--z-banner); }
+
+/* Assist status beside the mode pill: dashed while the request waits, amber when the simulator is not flying it. */
+#flightAssistStatus[hidden] { display: none; }
+#flightAssistStatus[data-tone=pending] { color: var(--text-dim); border-style: dashed; }
+#flightAssistStatus[data-tone=warn] { color: var(--warn); border-color: var(--warn); }
+#flightAssistStatus[data-tone=ok] { color: var(--go); border-color: var(--go); }
