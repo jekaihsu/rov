@@ -95,20 +95,26 @@ export function installFlow(menu) {
   button(home, STRINGS.collection, () => $("menuCollection").click());
   button(home, STRINGS.settings, () => show("settings"));
   button(home, STRINGS.quit, () => {
-    if (window.rovDesktop?.quit) window.rovDesktop.quit();
+    if (window.rovDesktop) window.close();
     else $("menuStatus").textContent = STRINGS.quitHelp;
   });
   const mode = screen("mode", STRINGS.mode);
   mode.append(sections[1]);
+  sections[1].hidden = true;
   const modes = document.createElement("div");
   modes.className = "menu-cards";
   for (const [index, option] of [...$("menuMode").options].entries()) {
-    button(modes, option.value === "campaign" ? `${CAMPAIGN_MENU_STRINGS.title} — ${CAMPAIGN_MENU_STRINGS.brief}`
-      : `${STRINGS.modes[index - 1]} — ${STRINGS.tips[index - 1]}`, () => {
-      $("menuMode").value = option.value;
-      $("menuMode").dispatchEvent(new Event("change"));
-      show("vehicle");
-    });
+    button(
+      modes,
+      option.value === "campaign"
+        ? `${CAMPAIGN_MENU_STRINGS.title} — ${CAMPAIGN_MENU_STRINGS.brief}`
+        : `${STRINGS.modes[index - 1]} — ${STRINGS.tips[index - 1]}`,
+      () => {
+        $("menuMode").value = option.value;
+        $("menuMode").dispatchEvent(new Event("change"));
+        show("vehicle");
+      },
+    );
   }
   mode.append(modes);
   const training = document.createElement("details");
@@ -144,7 +150,7 @@ export function installFlow(menu) {
     const [mass, count, speed, arm] = specsData[id];
     specs.replaceChildren();
     const values = document.createElement("p");
-    values.textContent = `${mass ?? "—"} kg · ${count} 推進器 · ${speed ?? "—"} m/s · 機械臂 ${arm ? "有" : "無"}`;
+    values.textContent = `${mass ?? STRINGS.unknown} kg · ${count} 推進器 · ${speed ?? STRINGS.unknown} m/s · 機械臂 ${arm ? STRINGS.yes : STRINGS.no}`;
     specs.append(values);
     const note = document.createElement("small");
     note.textContent = STRINGS.specs;

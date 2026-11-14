@@ -1,9 +1,25 @@
 // Adapt shared T02 device snapshots into frontend navigation actions.
 import { pollMenuDevices } from "./devices.js";
 import { deviceFamily } from "../input/glyphs.js";
+const STRINGS = {
+  keyboard: "方向鍵 移動 · Enter 確認 · Esc 返回",
+  playstation: "方向鍵 移動 · × 確認 · ○ 返回 · L1 / R1 分頁",
+  switch: "方向鍵 移動 · B 確認 · A 返回 · L / R 分頁",
+  xbox: "方向鍵 移動 · A 確認 · B 返回 · LB / RB 分頁",
+  generic: "方向鍵 移動 · 1 確認 · 2 返回 · 5 / 6 分頁",
+};
+let waitingForSettingsRelease = false;
 export function readMenuPad() {
+  const wasSettingsOpen = Boolean(document.getElementById("inputSettings")?.open);
   const { pad, snapshot } = pollMenuDevices();
-  if (document.getElementById("inputSettings")?.open) return null;
+  if (wasSettingsOpen || document.getElementById("inputSettings")?.open) {
+    waitingForSettingsRelease = true;
+    return null;
+  }
+  if (waitingForSettingsRelease) {
+    if (snapshot?.buttons.some(value => value > 0.5)) return null;
+    waitingForSettingsRelease = false;
+  }
   if (!pad) return null;
   const pressed = (index) => (snapshot.buttons[index] || 0) > 0.5;
   return {
@@ -23,6 +39,7 @@ export function readMenuPad() {
 
 export function installMenuInput(root, back, tab) {
   let prior = {};
+  let lastDevice = "keyboard";
   let repeat = 0;
   function controls() {
     return [...(document.querySelector("dialog[open]") || root).querySelectorAll("button,input,select,summary")].filter(
@@ -62,8 +79,6 @@ export function installMenuInput(root, back, tab) {
       button.onclick = function typeCharacter() {
         if (key === "✓") {
           dialog.close();
-          dialog.remove();
-          node.focus();
           return;
         }
         node.value = key === "⌫" ? node.value.slice(0, -1) : node.value + key;
@@ -71,6 +86,10 @@ export function installMenuInput(root, back, tab) {
       };
       dialog.append(button);
     }
+    dialog.addEventListener("close", function restoreFocus() {
+      dialog.remove();
+      node.focus();
+    });
     dialog.showModal();
     dialog.querySelector("button").focus();
   }
@@ -78,11 +97,10 @@ export function installMenuInput(root, back, tab) {
     const pad = root.tagName === "DIALOG" && !root.open ? null : readMenuPad();
     if (pad) {
       const hints = root.querySelector("#inputHints");
-      if (hints)
-        hints.textContent =
-          pad.family === "playstation"
-            ? "方向鍵 移動 · ✕ 確認 · ○ 返回 · L1 / R1 分頁"
-            : "方向鍵 移動 · A 確認 · B 返回 · LB / RB 分頁";
+      if (Object.values(pad).some((value) => value === true) || Math.abs(pad.rotate) > 0.15) {
+        lastDevice = pad.family;
+      }
+      if (hints) hints.textContent = STRINGS[lastDevice] || STRINGS.generic;
       for (const action of ["up", "down", "left", "right", "confirm", "back", "previous", "next"]) {
         if (!pad[action] || (prior[action] && (now < repeat || !["up", "down", "left", "right"].includes(action))))
           continue;
@@ -94,8 +112,10 @@ export function installMenuInput(root, back, tab) {
         if (action === "confirm") confirm();
         if (action === "back") {
           const dialog = document.querySelector("dialog[open]");
-          if (dialog) dialog.close();
-          else back();
+          if (dialog && dialog !== root) {
+            const cancel = new Event("cancel", { cancelable: true });
+            if (dialog.dispatchEvent(cancel)) dialog.close();
+          } else back();
         }
         if (action === "previous") tab(-1);
         if (action === "next") tab(1);
@@ -105,7 +125,15 @@ export function installMenuInput(root, back, tab) {
     }
     requestAnimationFrame(tick);
   }
+  root.addEventListener("pointerdown", function onPointer() {
+    lastDevice = "keyboard";
+    const hints = root.querySelector("#inputHints");
+    if (hints) hints.textContent = STRINGS.keyboard;
+  });
   root.addEventListener("keydown", function onKey(event) {
+    lastDevice = "keyboard";
+    const hints = root.querySelector("#inputHints");
+    if (hints) hints.textContent = STRINGS.keyboard;
     if (event.key === "Escape") back();
     if (event.key.startsWith("Arrow") && !["INPUT", "SELECT"].includes(event.target.tagName)) {
       event.preventDefault();

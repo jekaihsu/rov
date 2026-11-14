@@ -1,3 +1,4 @@
+import {frontendInputBlocked, FRONTEND_OPEN_EVENT} from './menu/state.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -615,7 +616,8 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen, camera: () => cycleCam(), tick: () => inputTick(),
+const input = installInput({blocked: () => collectionOpen || frontendInputBlocked(),
+  camera: () => cycleCam(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
@@ -631,6 +633,7 @@ function stopForCollection(){
   if(session)send({type:'rc',rc:{...rcMessage(),photo:0,record:0},seq:++inputSequence,controller_generation:S?.controller?.generation});
 }
 
+addEventListener(FRONTEND_OPEN_EVENT, stopForCollection);
 let lastSent = '', lastSentAt = 0, photoPressed=false;
 function rcMessage() {
   const m = {};

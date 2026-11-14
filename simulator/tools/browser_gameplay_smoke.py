@@ -42,7 +42,6 @@ with sync_playwright() as p:
     main.wait_for_function('window.__menu?.ready', timeout=90000)
     main.get_by_role('button',name='進入主選單').click()
     main.locator('.menu-screen:visible').get_by_role('button',name='開始潛航',exact=True).click()
-    main.select_option('#menuMode','inspection_coop')
     main.get_by_role('button',name='協作巡檢 ·',exact=False).click()
     main.get_by_role('button',name='下一步').click()
     main.select_option('#menuScene','coral_reef')
@@ -75,6 +74,8 @@ with sync_playwright() as p:
     print('Guest shares mission and mode change is denied', flush=True)
 
     main.bring_to_front()
+    main.wait_for_function('document.querySelector("#offline").hidden && '
+                           'window.__testSockets.some(socket=>socket.readyState===1)')
     with main.expect_download(predicate=lambda d:d.suggested_filename.endswith('.png'), timeout=30000) as capture:
         main.click('.mission-photo')
     capture.value.save_as(OUT/'not-ready-photo.png')
@@ -96,11 +97,10 @@ with sync_playwright() as p:
         main.wait_for_function('window.__menu?.ready', timeout=90000)
         main.get_by_role('button',name='進入主選單').click()
         main.locator('.menu-screen:visible').get_by_role('button',name='開始潛航',exact=True).click()
-        main.select_option('#menuMode',mode)
-        main.get_by_role('button',name='探索與工程',exact=False).click()
+        label = '自由探索 ·' if mode == 'free_explore' else '訓練 ·'
+        main.get_by_role('button',name=label,exact=False).click()
         main.get_by_role('button',name='下一步').click()
         main.get_by_role('button',name='下一步').click()
-        main.locator('#menuMode').evaluate('(el,mode)=>{el.value=mode}',mode)
         main.locator('#menuIntro').evaluate('(el)=>{el.checked=false}')
         main.click('#startDive')
         wait_state(main,mode)

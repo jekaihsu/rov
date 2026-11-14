@@ -1,11 +1,12 @@
 // Present an in-game pause surface without changing simulation or HUD rendering.
+import { FRONTEND_OPEN_EVENT, finishFrontendInput } from "./state.js";
 import { readMenuPad, installMenuInput } from "./input.js";
 const STRINGS = {
   title: "潛航暫停",
   resume: "繼續",
   settings: "設定",
   home: "返回主選單",
-  notice: "多人連線持續運行；開啟選單時鎖定自己的推進器。",
+  notice: "多人連線持續運行；選單鎖定自己的推進器。恢復後請先鬆開按鍵、回中，再重新解鎖。",
   quality: "畫質",
   back: "返回",
 };
@@ -17,6 +18,7 @@ if (new URLSearchParams(location.search).get("play") === "1") {
   const actions = root.querySelector("#pauseActions");
   let pausedByMenu = false;
   function close() {
+    finishFrontendInput();
     root.close();
     if (pausedByMenu) document.getElementById("btnPause").click();
     pausedByMenu = false;
@@ -47,13 +49,13 @@ if (new URLSearchParams(location.search).get("play") === "1") {
     const viewer = window.__viewer;
     if (!viewer) return;
     viewer.rc.rc_lock = 1;
-    for (const key of ["left_ud", "left_lr", "right_ud", "right_lr", "left_wave", "right_wave"]) viewer.rc[key] = 1500;
     const fleet = viewer.S?.vehicles || [];
     if (Array.isArray(fleet) && fleet.length === 1 && !viewer.S.paused) {
       document.getElementById("btnPause").click();
       pausedByMenu = true;
     }
     root.showModal();
+    dispatchEvent(new Event(FRONTEND_OPEN_EVENT));
     actions.querySelector("button").focus();
   }
   addEventListener(

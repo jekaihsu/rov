@@ -194,10 +194,10 @@ $("menuQuality").replaceChildren(
 $("menuQuality").value = query.get("quality") || read("rov.quality", "auto");
 for (const [id, key, fallback] of [
   ["menuPip", "pip", false],
-  ["menuIntro", "intro", true],
+  ["menuIntro", "intro", false],
   ["menuSticks", "sticks", true],
   ["menuFog", "fog", true],
-  ["menuLabels", "labels", true],
+  ["menuLabels", "labels", false],
 ])
   $(id).checked = settings[key] ?? fallback;
 const reduced = matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -399,6 +399,7 @@ $("launchForm").onsubmit = (event) => {
     const url = new URL(location.href);
     url.searchParams.delete("replay");
     url.searchParams.set("play", "1");
+    if (!url.searchParams.has("cam")) url.searchParams.set("cam", "onboard");
     url.searchParams.set("model", selected);
     url.searchParams.set("ws", server.href);
     url.searchParams.set("room", $("menuRoom").value);

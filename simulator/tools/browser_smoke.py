@@ -26,7 +26,7 @@ def run():
             page.on('requestfailed',lambda request: print('REQUEST FAILED',request.url,request.failure,flush=True))
             page.on('console',lambda msg: print('CONSOLE',msg.text,flush=True) if msg.type=='error' else None)
             page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&model=falcon&nointro&room=browsercheck',wait_until='domcontentloaded',timeout=90000)
-            try:page.wait_for_function('window.__viewer?.S?.vehicle_id',timeout=60000)
+            try:page.wait_for_function('window.__viewer?.S?.vehicle_id && window.__modelLoaded',timeout=60000)
             except Exception:
                 print('DIAGNOSTICS',page.evaluate('({title:document.title,ready:!!window.__viewer,state:window.__viewer?.S,notice:document.querySelector("#operationNotice")?.textContent,connection:document.querySelector("#conn")?.textContent})'),flush=True)
                 page.screenshot(path=str(OUT/f'failed-{i}.png'))
@@ -36,6 +36,7 @@ def run():
         assert main.locator('#pip').is_hidden()
         main.evaluate("const option=document.querySelector('#optPip');option.checked=true;option.dispatchEvent(new Event('change'))")
         main.wait_for_function('document.querySelector(".pilot-pip-canvas")',timeout=60000)
+        main.wait_for_function('document.querySelector("#offline").hidden')
         main.locator('#closePip').click()
         assert main.locator('#pip').is_hidden()
         assert main.evaluate('localStorage.getItem("rov.operatorVisible")')=='false'
@@ -45,6 +46,7 @@ def run():
         main.click('#flightDrawer')
         assert main.locator('#armPanel').is_visible()
         main.locator('#armPanel summary').click()
+        main.wait_for_function('document.querySelector("#offline").hidden')
         main.click('#gripClose')
         main.wait_for_function('window.__viewer.S.operations.arm.grip<.5')
         main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')
