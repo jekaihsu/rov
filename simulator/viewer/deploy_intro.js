@@ -3,8 +3,8 @@
 // tether off the reel. Splash, then the ROV glides down to its start position while the cable
 // pays out.
 //
-// Open models (see models/CREDITS.md): work boat (OpenGameArt "Fishing Boat", CC0), deck crew
-// (Quaternius "Animated Men", CC0), sea + sky (three.js Water / Sky shaders, MIT).
+// Models (see models/CREDITS.md): ROV support work boat (original, cad/build_support_vessel.py), deck crew
+// (Quaternius "Animated Men", CC0, dressed by cad/build_deck_crew.py), sea + sky (three.js Water / Sky, MIT).
 //
 //   const assets = await DeployIntro.loadAssets('models/');
 //   const intro = new DeployIntro(scene, { spool: [n,e,d], start: [n,e,d], seabed: 30, assets });
@@ -49,6 +49,39 @@ function placeModelBoat(src) {
   const deckY = BOAT_SRC.deck * BOAT_S + yOff;
   const sternZ = -(BOAT_SRC.stern - BOAT_SRC.cx) * BOAT_S;
   boat.userData = { L: BOAT_LEN, deckY, sternZ, transomY: BOAT_SRC.transomTop * BOAT_S + yOff, aftDeck: [sternZ + 0.3, -0.2] };
+  return boat;
+}
+
+// Support vessel GLB (cad/build_support_vessel.py): metres, stern towards -Z, waterline at y = 0. The root node's
+// extras give the deck and transom heights; "TetherDrum" spins about its local X, "TetherExit" is the drum top.
+function findVesselInfo(src) {
+  let info = null;
+  src.traverse(function visit(o) {
+    if (!info && o.userData && typeof o.userData.deckY === 'number') info = o.userData;
+  });
+  return info;
+}
+
+function placeVesselModel(src) {
+  const info = findVesselInfo(src);
+  if (!info) return null;
+  const boat = new THREE.Group();
+  const model = src.clone(true);
+  model.traverse(function enableShadows(o) {
+    if (!o.isMesh) return;
+    o.castShadow = true;
+    o.receiveShadow = true;
+  });
+  boat.add(model);
+  boat.userData = {
+    L: info.length,
+    deckY: info.deckY,
+    sternZ: info.sternZ,
+    transomY: info.transomY,
+    aftDeck: [info.sternZ + 0.3, -0.2],
+    drum: model.getObjectByName('TetherDrum'),
+    exit: model.getObjectByName('TetherExit'),
+  };
   return boat;
 }
 
@@ -138,7 +171,8 @@ export class DeployIntro {
     const add = (o) => { scene.add(o); this.objects.push(o); return o; };
 
     // boat: stern (-Z local) at the spool, bow pointing away from the dive site
-    this.boat = assets.boat ? placeModelBoat(assets.boat) : buildFallbackBoat();
+    const vessel = assets.boat ? placeVesselModel(assets.boat) : null;
+    this.boat = vessel || (assets.boat ? placeModelBoat(assets.boat) : buildFallbackBoat());
     const dir = new THREE.Vector3().subVectors(this.start, this.spool); dir.y = 0;
     if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
     dir.normalize();
@@ -148,9 +182,15 @@ export class DeployIntro {
     this.boat.position.y = 0;
     add(this.boat);
 
-    this.reel = buildReel();
-    this.reel.position.set(-0.75, ud.deckY, ud.sternZ + 2.2);
-    this.boat.add(this.reel);
+    if (ud.drum && ud.exit) {
+      this.reel = ud.exit;                                        // the vessel's own powered tether winch
+      this.reel.userData.drum = ud.drum;
+      this.reel.userData.top = V(0, 0, 0);
+    } else {
+      this.reel = buildReel();
+      this.reel.position.set(-0.75, ud.deckY, ud.sternZ + 2.2);
+      this.boat.add(this.reel);
+    }
     this.boat.updateMatrixWorld(true);
 
     // deck crew
