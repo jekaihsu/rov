@@ -47,6 +47,7 @@ DEFAULT_CHECKS = (
     'browser_paint_smoke',
     'browser_campaign_smoke',
     'observation_smoke',
+    'browser_vehicle_assets_smoke',
 )
 
 
