@@ -8,6 +8,7 @@ import {applyUnderwaterLighting} from '../underwater_lighting.js';
 const STRINGS = {
   title: '機載影像（叠字配置暫定）', real: '真實影像', strength: '效果強度',
   osd: '顯示叠字', burn: '拍照／錄影燒入叠字', delay: '影像延遲',
+  mode: '模式', locked: '鎖定', unlocked: '解鎖', recording: '錄影',
   connected: '連線', offline: '離線', depth: '深度', heading: '航向', light: '燈光',
 };
 
@@ -62,10 +63,11 @@ export function installOnboard({renderer, scene, camera, getState, getMode, isRe
           previous.call(this, shader, webgl);
           shader.uniforms.onboardOptical = optical;
           shader.uniforms.onboardStrength = strength;
-          shader.fragmentShader = 'uniform float onboardOptical; uniform float onboardStrength;\n' + shader.fragmentShader;
+          shader.fragmentShader = 'uniform float onboardOptical; uniform float onboardStrength;\n'
+            + shader.fragmentShader;
           // Independent RGB Beer-Lambert coefficients; no single-color fog substitute.
           // Incoming sunlight travels to the surface point; point/spot lights travel from lamp to point.
-          let chunk = THREE.ShaderChunk.lights_fragment_begin;
+          let chunk = shader.fragmentShader;
           for (const type of ['Point', 'Spot']) {
             const call = `get${type}LightInfo( ${type.toLowerCase()}Light, geometryPosition, directLight );`;
             chunk = chunk.replace(call, call + ` directLight.color *= exp(-vec3(.18,.065,.03) *
@@ -78,7 +80,7 @@ export function installOnboard({renderer, scene, camera, getState, getMode, isRe
             `getHemisphereLightIrradiance( hemisphereLights[ i ], geometryNormal ) *
              exp(-vec3(.18,.065,.03) * vWaterDepth * onboardOptical * onboardStrength)`);
           // Existing depth varying is provided by underwater_lighting.js.
-          shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', chunk);
+          shader.fragmentShader = chunk;
         };
         const oldKey = material.customProgramCacheKey.bind(material);
         material.customProgramCacheKey = function cacheKey() { return oldKey() + '|onboard-v1'; };
@@ -92,13 +94,14 @@ export function installOnboard({renderer, scene, camera, getState, getMode, isRe
   const uniforms = {
     image: {value: null}, depth: {value: null}, osd: {value: osdTexture}, burn: {value: 0},
     amount: strength, near: {value: camera.near}, far: {value: camera.far}, time: {value: 0},
-    exposure: {value: 1},
+    rayScale: {value: new THREE.Vector2()}, exposure: {value: 1}, lamp: {value: 0},
   };
   const material = new THREE.ShaderMaterial({uniforms,
     vertexShader: 'varying vec2 uv0; void main(){uv0=uv;gl_Position=vec4(position.xy,0.,1.);}',
     fragmentShader: `varying vec2 uv0;
       uniform sampler2D image, depth, osd;
-      uniform float amount, near, far, time, exposure, burn;
+      uniform vec2 rayScale;
+      uniform float amount, near, far, time, exposure, burn, lamp;
       float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
       void main(){
         vec2 p=uv0-.5;
@@ -107,14 +110,14 @@ export function installOnboard({renderer, scene, camera, getState, getMode, isRe
         vec2 block=floor(uv*vec2(800.,450.))/vec2(800.,450.);
         vec3 c=mix(texture2D(image,uv).rgb,texture2D(image,block).rgb,amount*.18);
         float z=texture2D(depth,uv).x;
-        float d=near*far/(far-z*(far-near));
+        float d=near*far/(far-z*(far-near))*length(vec3((uv-.5)*rayScale,1.));
         // Return path completes sunlight depth+range and lamp->object->camera paths.
         c*=exp(-vec3(.18,.065,.03)*d*amount);
         vec3 scatter=vec3(.025,.11,.13)*(1.-exp(-vec3(.1,.14,.16)*d));
-        c+=scatter*amount;
+        c+=scatter*amount*(.35+lamp);
         float noise=hash(gl_FragCoord.xy+floor(time*30.));
         c+=(noise-.5)*amount*.065;
-        c+=step(.998,noise)*amount*.25;
+        c+=step(.998,noise)*amount*.25*lamp;
         c*=exposure;
         vec4 text=texture2D(osd,uv0);
         gl_FragColor=vec4(mix(c,text.rgb,text.a*burn),1.);
@@ -133,8 +136,12 @@ export function installOnboard({renderer, scene, camera, getState, getMode, isRe
     ctx.shadowColor = 'black';
     ctx.shadowBlur = 4;
     const euler = state?.euler || [0, 0, 0];
-    ctx.fillText(`${state ? STRINGS.connected : STRINGS.offline}   ${STRINGS.light} ${state?.rc?.light ?? '—'}`, 64, 65);
+    const status = state ? STRINGS.connected : STRINGS.offline;
+    ctx.fillText(`${status}   ${STRINGS.light} ${state?.rc?.right_switch ?? '—'}`, 64, 65);
+    ctx.fillText(`${STRINGS.mode} ${state?.operation_mode || '—'}`, 600, 65);
     ctx.fillText(new Date().toISOString(), 1000, 65);
+    const lock = state?.rc?.rc_lock ? STRINGS.locked : STRINGS.unlocked;
+    ctx.fillText(`${lock}  ${state?.recording ? STRINGS.recording : ''}`, 1250, 120);
     ctx.fillText(`${STRINGS.depth} ${(state?.pos?.[2] ?? 0).toFixed(1)} m`, 64, 400);
     ctx.fillText(`${STRINGS.heading} ${euler[2].toFixed(0)}°`, 1250, 760);
     ctx.fillText(`R ${euler[0].toFixed(1)}°  P ${euler[1].toFixed(1)}°`, 64, 800);
@@ -164,7 +171,11 @@ export function installOnboard({renderer, scene, camera, getState, getMode, isRe
     osdTexture.needsUpdate = true;
     const burn = settings.osd && settings.burn && (capture || isRecording());
     overlay.style.visibility = burn ? 'hidden' : 'visible';
-    if (now - lastFrame >= 30 || !targets.length) {
+    if (!settings.real && settings.delay === 0 && !burn) {
+      renderer.render(scene, camera);
+      return;
+    }
+    if (capture || now - lastFrame >= 30 || !targets.length) {
       const frame = targets.length >= 8 ? targets.shift() : {target: new THREE.WebGLRenderTarget(
         dimensions.x, dimensions.y, {depthTexture: new THREE.DepthTexture(dimensions.x, dimensions.y)})};
       const fog = scene.fog;
@@ -181,11 +192,18 @@ export function installOnboard({renderer, scene, camera, getState, getMode, isRe
       targets.push(frame);
       lastFrame = now;
     }
-    const frame = [...targets].reverse().find(item => item.time <= now - settings.delay) || targets[0];
+    // Evidence photos use the current frame so displayed geometry agrees with authoritative inspection.
+    const frame = capture ? targets[targets.length - 1]
+      : [...targets].reverse().find(item => item.time <= now - settings.delay) || targets[0];
     uniforms.image.value = frame.target.texture;
     uniforms.depth.value = frame.target.depthTexture;
     uniforms.burn.value = burn ? 1 : 0;
+    const tangent = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    uniforms.rayScale.value.set(2 * tangent * camera.aspect, 2 * tangent);
+    uniforms.near.value = camera.near;
+    uniforms.far.value = camera.far;
     uniforms.time.value = now / 1000;
+    uniforms.lamp.value = [0, .55, 1][getState()?.rc?.right_switch || 0] || 0;
     // Provisional slow adaptation to lamp setting and depth; no calibrated sensor response claimed.
     const targetExposure = settings.real ? meteredExposure : 1;
     uniforms.exposure.value += (targetExposure - uniforms.exposure.value) * (1 - Math.exp(-(now-lastTime)/900));
