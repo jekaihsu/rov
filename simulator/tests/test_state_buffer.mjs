@@ -59,3 +59,13 @@ test('long loss, resume and pause never teleport the displayed vehicle', () => {
   }
   assert.deepEqual(sampleSnapshots([{...state(0), paused: true}], 5).pos, [0, 0, 0]);
 });
+
+test('duplicate timestamp carries pause and resume rebases the clock', () => {
+  const buffer = new StateBuffer();
+  buffer.push(state(0), 10);
+  buffer.push({...state(0), paused: true}, 11);
+  assert.equal(buffer.sample(12).t, 0);
+  buffer.push(state(.01), 13);
+  assert.equal(buffer.frames.length, 1);
+  assert.ok(Math.abs(buffer.offset - 12.99) < 1e-9);
+});

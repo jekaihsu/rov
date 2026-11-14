@@ -91,7 +91,11 @@ export class StateBuffer {
       this.offset = this.offset === null ? offset : this.offset + .05 * (offset - this.offset);
       this.arrival = now;
     }
-    if (this.frames.some(s => s.t === state.t)) return;
+    const duplicate = this.frames.findIndex(s => s.t === state.t);
+    if (duplicate >= 0) {
+      this.frames[duplicate] = state;
+      return;
+    }
     this.frames.push(state);
     this.frames.sort((a, b) => a.t - b.t);
     if (this.frames.length > 90) this.frames.shift();
