@@ -1,0 +1,366 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>T17 範例報告</title><h1>T17 範例報告</h1><p>門檻：暫定。非操作員資格證明。</p><pre style="white-space:pre-wrap">{
+  &quot;version&quot;: 1,
+  &quot;vehicle_id&quot;: &quot;v1&quot;,
+  &quot;provisional&quot;: true,
+  &quot;limits&quot;: {
+    &quot;still&quot;: {
+      &quot;path&quot;: 2,
+      &quot;heading&quot;: 15,
+      &quot;depth&quot;: 1,
+      &quot;hover&quot;: 1,
+      &quot;distance&quot;: 1,
+      &quot;speed&quot;: 0.3
+    },
+    &quot;current&quot;: {
+      &quot;path&quot;: 2,
+      &quot;heading&quot;: 15,
+      &quot;depth&quot;: 1,
+      &quot;hover&quot;: 1,
+      &quot;distance&quot;: 1,
+      &quot;speed&quot;: 0.3
+    }
+  },
+  &quot;grade_limits&quot;: {
+    &quot;green&quot;: 0.1,
+    &quot;yellow&quot;: 0.3,
+    &quot;smoothness&quot;: 0.25
+  },
+  &quot;elapsed&quot;: 1.6100000000000012,
+  &quot;completion&quot;: {
+    &quot;score&quot;: 0,
+    &quot;elapsed&quot;: 1,
+    &quot;failed&quot;: &quot;&quot;,
+    &quot;finished&quot;: false,
+    &quot;current_index&quot;: 0,
+    &quot;objectives&quot;: [
+      {
+        &quot;kind&quot;: &quot;checkpoint&quot;,
+        &quot;label&quot;: &quot;檢查點 1&quot;,
+        &quot;point&quot;: [
+          10,
+          0,
+          6
+        ],
+        &quot;radius&quot;: 1.5,
+        &quot;hold_s&quot;: 0,
+        &quot;done&quot;: false,
+        &quot;progress&quot;: 0,
+        &quot;target&quot;: &quot;&quot;
+      },
+      {
+        &quot;kind&quot;: &quot;checkpoint&quot;,
+        &quot;label&quot;: &quot;檢查點 2&quot;,
+        &quot;point&quot;: [
+          10,
+          10,
+          10
+        ],
+        &quot;radius&quot;: 1.5,
+        &quot;hold_s&quot;: 0,
+        &quot;done&quot;: false,
+        &quot;progress&quot;: 0,
+        &quot;target&quot;: &quot;&quot;
+      },
+      {
+        &quot;kind&quot;: &quot;checkpoint&quot;,
+        &quot;label&quot;: &quot;檢查點 3&quot;,
+        &quot;point&quot;: [
+          0,
+          10,
+          14
+        ],
+        &quot;radius&quot;: 1.5,
+        &quot;hold_s&quot;: 0,
+        &quot;done&quot;: false,
+        &quot;progress&quot;: 0,
+        &quot;target&quot;: &quot;&quot;
+      },
+      {
+        &quot;kind&quot;: &quot;checkpoint&quot;,
+        &quot;label&quot;: &quot;檢查點 4&quot;,
+        &quot;point&quot;: [
+          0,
+          0,
+          8
+        ],
+        &quot;radius&quot;: 1.5,
+        &quot;hold_s&quot;: 0,
+        &quot;done&quot;: false,
+        &quot;progress&quot;: 0,
+        &quot;target&quot;: &quot;&quot;
+      },
+      {
+        &quot;kind&quot;: &quot;surface&quot;,
+        &quot;label&quot;: &quot;回到投放點上浮&quot;,
+        &quot;point&quot;: [
+          -2,
+          0,
+          0.5
+        ],
+        &quot;radius&quot;: 3,
+        &quot;hold_s&quot;: 0,
+        &quot;done&quot;: false,
+        &quot;progress&quot;: 0,
+        &quot;target&quot;: &quot;&quot;
+      }
+    ],
+    &quot;penalties&quot;: [],
+    &quot;penalty_total&quot;: 0
+  },
+  &quot;matrix&quot;: {
+    &quot;descent&quot;: {
+      &quot;still&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      },
+      &quot;current&quot;: {
+        &quot;path&quot;: {
+          &quot;rms&quot;: 0.03292486675197227,
+          &quot;min&quot;: 0.03292486675197227,
+          &quot;max&quot;: 0.03292486675197227,
+          &quot;outside_fraction&quot;: 0,
+          &quot;grade&quot;: &quot;green&quot;
+        },
+        &quot;heading&quot;: {
+          &quot;rms&quot;: 2.8999999999999773,
+          &quot;min&quot;: -2.8999999999999773,
+          &quot;max&quot;: -2.8999999999999773,
+          &quot;outside_fraction&quot;: 0,
+          &quot;grade&quot;: &quot;green&quot;
+        },
+        &quot;depth&quot;: {
+          &quot;rms&quot;: 3.016518016846308,
+          &quot;min&quot;: -3.016518016846308,
+          &quot;max&quot;: -3.016518016846308,
+          &quot;outside_fraction&quot;: 1,
+          &quot;grade&quot;: &quot;red&quot;
+        },
+        &quot;hover&quot;: {
+          &quot;rms&quot;: 0.03292486675197227,
+          &quot;min&quot;: 0.03292486675197227,
+          &quot;max&quot;: 0.03292486675197227,
+          &quot;outside_fraction&quot;: 0,
+          &quot;grade&quot;: &quot;green&quot;
+        },
+        &quot;distance&quot;: {
+          &quot;rms&quot;: 3.016697696622752,
+          &quot;min&quot;: 3.016697696622752,
+          &quot;max&quot;: 3.016697696622752,
+          &quot;outside_fraction&quot;: 1,
+          &quot;grade&quot;: &quot;red&quot;
+        },
+        &quot;speed&quot;: {
+          &quot;rms&quot;: 0,
+          &quot;min&quot;: 0,
+          &quot;max&quot;: 0,
+          &quot;outside_fraction&quot;: 0,
+          &quot;grade&quot;: &quot;green&quot;
+        }
+      }
+    },
+    &quot;transit&quot;: {
+      &quot;still&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      },
+      &quot;current&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      }
+    },
+    &quot;hover&quot;: {
+      &quot;still&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      },
+      &quot;current&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      }
+    },
+    &quot;orbit&quot;: {
+      &quot;still&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      },
+      &quot;current&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      }
+    },
+    &quot;dock&quot;: {
+      &quot;still&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      },
+      &quot;current&quot;: {
+        &quot;path&quot;: null,
+        &quot;heading&quot;: null,
+        &quot;depth&quot;: null,
+        &quot;hover&quot;: null,
+        &quot;distance&quot;: null,
+        &quot;speed&quot;: null
+      }
+    }
+  },
+  &quot;smoothness&quot;: null,
+  &quot;collisions&quot;: [],
+  &quot;max_tension&quot;: 1.7,
+  &quot;wraps&quot;: [],
+  &quot;events&quot;: [
+    {
+      &quot;kind&quot;: &quot;thruster&quot;,
+      &quot;vehicle_id&quot;: &quot;v1&quot;,
+      &quot;scope&quot;: &quot;v1&quot;,
+      &quot;strength&quot;: 0.5,
+      &quot;start&quot;: 0.15,
+      &quot;end&quot;: 10.15,
+      &quot;reaction_s&quot;: null,
+      &quot;index&quot;: 0
+    }
+  ],
+  &quot;trajectory&quot;: [
+    {
+      &quot;t&quot;: 1.0000000000000007,
+      &quot;phase&quot;: &quot;descent&quot;,
+      &quot;pos&quot;: [
+        0.018,
+        0.028,
+        1.983
+      ],
+      &quot;errors&quot;: {
+        &quot;path&quot;: 0.03292486675197227,
+        &quot;heading&quot;: -2.8999999999999773,
+        &quot;depth&quot;: -3.016518016846308,
+        &quot;hover&quot;: 0.03292486675197227,
+        &quot;distance&quot;: 3.016697696622752,
+        &quot;speed&quot;: 0
+      },
+      &quot;controls&quot;: [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      &quot;tension&quot;: 1.7,
+      &quot;wraps&quot;: {},
+      &quot;current&quot;: true,
+      &quot;completion&quot;: {
+        &quot;score&quot;: 0,
+        &quot;elapsed&quot;: 1,
+        &quot;failed&quot;: &quot;&quot;,
+        &quot;finished&quot;: false,
+        &quot;current_index&quot;: 0,
+        &quot;objectives&quot;: [
+          {
+            &quot;kind&quot;: &quot;checkpoint&quot;,
+            &quot;label&quot;: &quot;檢查點 1&quot;,
+            &quot;point&quot;: [
+              10,
+              0,
+              6
+            ],
+            &quot;radius&quot;: 1.5,
+            &quot;hold_s&quot;: 0,
+            &quot;done&quot;: false,
+            &quot;progress&quot;: 0,
+            &quot;target&quot;: &quot;&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;checkpoint&quot;,
+            &quot;label&quot;: &quot;檢查點 2&quot;,
+            &quot;point&quot;: [
+              10,
+              10,
+              10
+            ],
+            &quot;radius&quot;: 1.5,
+            &quot;hold_s&quot;: 0,
+            &quot;done&quot;: false,
+            &quot;progress&quot;: 0,
+            &quot;target&quot;: &quot;&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;checkpoint&quot;,
+            &quot;label&quot;: &quot;檢查點 3&quot;,
+            &quot;point&quot;: [
+              0,
+              10,
+              14
+            ],
+            &quot;radius&quot;: 1.5,
+            &quot;hold_s&quot;: 0,
+            &quot;done&quot;: false,
+            &quot;progress&quot;: 0,
+            &quot;target&quot;: &quot;&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;checkpoint&quot;,
+            &quot;label&quot;: &quot;檢查點 4&quot;,
+            &quot;point&quot;: [
+              0,
+              0,
+              8
+            ],
+            &quot;radius&quot;: 1.5,
+            &quot;hold_s&quot;: 0,
+            &quot;done&quot;: false,
+            &quot;progress&quot;: 0,
+            &quot;target&quot;: &quot;&quot;
+          },
+          {
+            &quot;kind&quot;: &quot;surface&quot;,
+            &quot;label&quot;: &quot;回到投放點上浮&quot;,
+            &quot;point&quot;: [
+              -2,
+              0,
+              0.5
+            ],
+            &quot;radius&quot;: 3,
+            &quot;hold_s&quot;: 0,
+            &quot;done&quot;: false,
+            &quot;progress&quot;: 0,
+            &quot;target&quot;: &quot;&quot;
+          }
+        ],
+        &quot;penalties&quot;: [],
+        &quot;penalty_total&quot;: 0
+      },
+      &quot;collisions&quot;: []
+    }
+  ]
+}</pre></html>

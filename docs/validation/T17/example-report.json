@@ -4,19 +4,19 @@
   "provisional": true,
   "limits": {
     "still": {
-      "path": 2.0,
-      "heading": 15.0,
-      "depth": 1.0,
-      "hover": 1.0,
-      "distance": 1.0,
+      "path": 2,
+      "heading": 15,
+      "depth": 1,
+      "hover": 1,
+      "distance": 1,
       "speed": 0.3
     },
     "current": {
-      "path": 2.0,
-      "heading": 15.0,
-      "depth": 1.0,
-      "hover": 1.0,
-      "distance": 1.0,
+      "path": 2,
+      "heading": 15,
+      "depth": 1,
+      "hover": 1,
+      "distance": 1,
       "speed": 0.3
     }
   },
@@ -25,10 +25,10 @@
     "yellow": 0.3,
     "smoothness": 0.25
   },
-  "elapsed": 2.099999999999999,
+  "elapsed": 1.6100000000000012,
   "completion": {
     "score": 0,
-    "elapsed": 2.0,
+    "elapsed": 1,
     "failed": "",
     "finished": false,
     "current_index": 0,
@@ -42,9 +42,9 @@
           6
         ],
         "radius": 1.5,
-        "hold_s": 0.0,
+        "hold_s": 0,
         "done": false,
-        "progress": 0.0,
+        "progress": 0,
         "target": ""
       },
       {
@@ -56,9 +56,9 @@
           10
         ],
         "radius": 1.5,
-        "hold_s": 0.0,
+        "hold_s": 0,
         "done": false,
-        "progress": 0.0,
+        "progress": 0,
         "target": ""
       },
       {
@@ -70,9 +70,9 @@
           14
         ],
         "radius": 1.5,
-        "hold_s": 0.0,
+        "hold_s": 0,
         "done": false,
-        "progress": 0.0,
+        "progress": 0,
         "target": ""
       },
       {
@@ -84,9 +84,9 @@
           8
         ],
         "radius": 1.5,
-        "hold_s": 0.0,
+        "hold_s": 0,
         "done": false,
-        "progress": 0.0,
+        "progress": 0,
         "target": ""
       },
       {
@@ -97,10 +97,10 @@
           0,
           0.5
         ],
-        "radius": 3.0,
-        "hold_s": 0.0,
+        "radius": 3,
+        "hold_s": 0,
         "done": false,
-        "progress": 0.0,
+        "progress": 0,
         "target": ""
       }
     ],
@@ -119,45 +119,45 @@
       },
       "current": {
         "path": {
-          "rms": 0.0899783513843711,
+          "rms": 0.03292486675197227,
           "min": 0.03292486675197227,
-          "max": 0.12291525773907641,
-          "outside_fraction": 0.0,
+          "max": 0.03292486675197227,
+          "outside_fraction": 0,
           "grade": "green"
         },
         "heading": {
-          "rms": 7.091191719309255,
-          "min": -9.600000000000023,
+          "rms": 2.8999999999999773,
+          "min": -2.8999999999999773,
           "max": -2.8999999999999773,
-          "outside_fraction": 0.0,
+          "outside_fraction": 0,
           "grade": "green"
         },
         "depth": {
-          "rms": 3.032734906356239,
-          "min": -3.0488655395908806,
+          "rms": 3.016518016846308,
+          "min": -3.016518016846308,
           "max": -3.016518016846308,
-          "outside_fraction": 1.0,
+          "outside_fraction": 1,
           "grade": "red"
         },
         "hover": {
-          "rms": 0.0899783513843711,
+          "rms": 0.03292486675197227,
           "min": 0.03292486675197227,
-          "max": 0.12291525773907641,
-          "outside_fraction": 0.0,
+          "max": 0.03292486675197227,
+          "outside_fraction": 0,
           "grade": "green"
         },
         "distance": {
-          "rms": 3.03406939867061,
+          "rms": 3.016697696622752,
           "min": 3.016697696622752,
-          "max": 3.051342202882177,
-          "outside_fraction": 1.0,
+          "max": 3.016697696622752,
+          "outside_fraction": 1,
           "grade": "red"
         },
         "speed": {
-          "rms": 0.0,
+          "rms": 0,
           "min": 0,
           "max": 0,
-          "outside_fraction": 0.0,
+          "outside_fraction": 0,
           "grade": "green"
         }
       }
@@ -235,35 +235,9 @@
       }
     }
   },
-  "smoothness": {
-    "variance": [
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0
-    ],
-    "zero_crossings": [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ],
-    "reversals": [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ],
-    "grade": "green"
-  },
+  "smoothness": null,
   "collisions": [],
-  "max_tension": 2.3,
+  "max_tension": 1.7,
   "wraps": [],
   "events": [
     {
@@ -271,15 +245,10 @@
       "vehicle_id": "v1",
       "scope": "v1",
       "strength": 0.5,
-      "start": 0.0,
-      "end": 1.0,
+      "start": 0.15,
+      "end": 10.15,
       "reaction_s": null,
       "index": 0
-    },
-    {
-      "kind": "thruster",
-      "vehicle_id": "v1",
-      "restored_at": 1.0000000000000007
     }
   ],
   "trajectory": [
@@ -300,19 +269,19 @@
         "speed": 0
       },
       "controls": [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        -0.0,
-        0.0
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
       ],
       "tension": 1.7,
       "wraps": {},
       "current": true,
       "completion": {
         "score": 0,
-        "elapsed": 1.0,
+        "elapsed": 1,
         "failed": "",
         "finished": false,
         "current_index": 0,
@@ -326,9 +295,9 @@
               6
             ],
             "radius": 1.5,
-            "hold_s": 0.0,
+            "hold_s": 0,
             "done": false,
-            "progress": 0.0,
+            "progress": 0,
             "target": ""
           },
           {
@@ -340,9 +309,9 @@
               10
             ],
             "radius": 1.5,
-            "hold_s": 0.0,
+            "hold_s": 0,
             "done": false,
-            "progress": 0.0,
+            "progress": 0,
             "target": ""
           },
           {
@@ -354,9 +323,9 @@
               14
             ],
             "radius": 1.5,
-            "hold_s": 0.0,
+            "hold_s": 0,
             "done": false,
-            "progress": 0.0,
+            "progress": 0,
             "target": ""
           },
           {
@@ -368,9 +337,9 @@
               8
             ],
             "radius": 1.5,
-            "hold_s": 0.0,
+            "hold_s": 0,
             "done": false,
-            "progress": 0.0,
+            "progress": 0,
             "target": ""
           },
           {
@@ -381,120 +350,10 @@
               0,
               0.5
             ],
-            "radius": 3.0,
-            "hold_s": 0.0,
+            "radius": 3,
+            "hold_s": 0,
             "done": false,
-            "progress": 0.0,
-            "target": ""
-          }
-        ],
-        "penalties": [],
-        "penalty_total": 0
-      },
-      "collisions": []
-    },
-    {
-      "t": 2.0000000000000013,
-      "phase": "descent",
-      "pos": [
-        0.073,
-        0.099,
-        1.951
-      ],
-      "errors": {
-        "path": 0.12291525773907641,
-        "heading": -9.600000000000023,
-        "depth": -3.0488655395908806,
-        "hover": 0.12291525773907641,
-        "distance": 3.051342202882177,
-        "speed": 0
-      },
-      "controls": [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        -0.0,
-        0.0
-      ],
-      "tension": 2.3,
-      "wraps": {},
-      "current": true,
-      "completion": {
-        "score": 0,
-        "elapsed": 2.0,
-        "failed": "",
-        "finished": false,
-        "current_index": 0,
-        "objectives": [
-          {
-            "kind": "checkpoint",
-            "label": "檢查點 1",
-            "point": [
-              10,
-              0,
-              6
-            ],
-            "radius": 1.5,
-            "hold_s": 0.0,
-            "done": false,
-            "progress": 0.0,
-            "target": ""
-          },
-          {
-            "kind": "checkpoint",
-            "label": "檢查點 2",
-            "point": [
-              10,
-              10,
-              10
-            ],
-            "radius": 1.5,
-            "hold_s": 0.0,
-            "done": false,
-            "progress": 0.0,
-            "target": ""
-          },
-          {
-            "kind": "checkpoint",
-            "label": "檢查點 3",
-            "point": [
-              0,
-              10,
-              14
-            ],
-            "radius": 1.5,
-            "hold_s": 0.0,
-            "done": false,
-            "progress": 0.0,
-            "target": ""
-          },
-          {
-            "kind": "checkpoint",
-            "label": "檢查點 4",
-            "point": [
-              0,
-              0,
-              8
-            ],
-            "radius": 1.5,
-            "hold_s": 0.0,
-            "done": false,
-            "progress": 0.0,
-            "target": ""
-          },
-          {
-            "kind": "surface",
-            "label": "回到投放點上浮",
-            "point": [
-              -2,
-              0,
-              0.5
-            ],
-            "radius": 3.0,
-            "hold_s": 0.0,
-            "done": false,
-            "progress": 0.0,
+            "progress": 0,
             "target": ""
           }
         ],
