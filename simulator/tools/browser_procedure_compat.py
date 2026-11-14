@@ -19,7 +19,7 @@ def run():
                 f'&ws={ws_base()}')
         page.goto(base + '&room=t23-animation')
         page.wait_for_function('window.__intro?.()?.starts > 0', timeout=timeout(90000))
-        assert not page.evaluate('window.__viewer.S.procedure.active')
+        assert not page.evaluate('window.__viewer.S.procedure?.active')
         assert page.locator('#procedurePanel').is_hidden()
         page.evaluate('document.querySelector("#skipIntro").click()')
         page.wait_for_function('!window.__intro().playing', timeout=timeout(30000))
@@ -28,7 +28,7 @@ def run():
         page.wait_for_function('window.__viewer?.S?.vehicle_id', timeout=timeout(90000))
         page.wait_for_timeout(1500)
         assert page.evaluate('window.__intro()') is None
-        assert not page.evaluate('window.__viewer.S.procedure.active')
+        assert not page.evaluate('window.__viewer.S.procedure?.active')
         assert not errors, errors
         browser.close()
     print('Quick-launch animation, skip and ?nointro compatibility passed.')

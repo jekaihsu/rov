@@ -565,7 +565,7 @@ Without it, existing SDK/RC behavior is unchanged. Subsequent actions are `check
 `test` (`index`, zero-based two-second diagnostic pulse), `skip`, `tender`, `lower`
 (`point:"upstream"`), `water_confirm`, `recover`, `rinse`, `inspect`, `save` (`notes`).
 Invalid progression returns the existing error envelope; accepted actions return `procedure_result`.
-`state.procedure` adds phase, checked keys, tests, dry time, penalty, events, elapsed time, peak depth,
+`state.procedure` (present only while this vehicle has opted in; absent otherwise) adds phase, checked keys, tests, dry time, penalty, events, elapsed time, peak depth,
 peak cable length and notes. Physics enforces locked flight outside `diving`, including SDK input.
 `state.score.procedure_penalty` is optional. Skips have a seeded 35% per-check fault probability
 (training assumption); missing communication checks may cause control loss and forced cable recovery.

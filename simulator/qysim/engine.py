@@ -876,9 +876,8 @@ class Simulator:
         roll, pitch, yaw = self.vehicle.euler
         rc = self.rc
         cur = self.vehicle.current_ned
-        return {
+        state = {
             "vehicle_id": self.vehicle_id, "model_id": self.model_id,
-            "procedure": self.procedure.state(),
             "appearance": dict(self.appearance),
             "paint_marks": list(self.world.paint_marks),
             "input_latched": self.input_latched, "control_generation": self.control_generation,
@@ -917,6 +916,10 @@ class Simulator:
             "thermal": self.thermal.state(),
             "leak": {"detected": bool(self.leak)},
         }
+        # Optional: only a vehicle that opted into the deployment procedure reports it (PROTOCOL.md).
+        if self.procedure.active:
+            state["procedure"] = self.procedure.state()
+        return state
 
     def world_description(self) -> dict:
         from .vehicles import VEHICLE_DEFINITIONS
