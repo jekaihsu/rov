@@ -161,9 +161,8 @@ function shaderPatch(profile, maps) {
       uniform vec4 uWeights;
       uniform float uRipple;
       uniform float uTileFloor;
-      // ripple field read along a 0.35 rad rotated grid (and a second 1.95 rad grid on high): no visible tiling
+      // ripple field read along a 0.35 rad rotated grid, mixed by the baked noise: no visible tiling
       const mat2 SEA_ROT_A = mat2(0.9394, -0.3429, 0.3429, 0.9394);
-      const mat2 SEA_ROT_B = mat2(-0.3702, -0.9290, 0.9290, -0.3702);
       ` + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
       vec2 seaP = vSeaPos.xz;
@@ -179,11 +178,7 @@ function shaderPatch(profile, maps) {
       float seaMix = 0.0;
       vec4 seaF = texture2D(uField, seaP * 0.16);
       #endif
-      #if SEA_QUALITY >= 2
-      float seaR = mix(seaF.r, texture2D(uField, SEA_ROT_B * seaP * 0.083).r, seaMix);
-      #else
       float seaR = seaF.r;
-      #endif
       vec3 seaCol = uSand * (0.82 + 0.3 * seaR * uRipple + 0.12 * (seaF.g - 0.5));
       float mudW = clamp(uWeights.y * (0.6 + 0.8 * (seaLow - 0.5)), 0.0, 1.0);
       seaCol = mix(seaCol, uMud * (0.9 + 0.2 * seaF.g), mudW);
@@ -213,8 +208,8 @@ const QUALITY = {low: 0, medium: 1, high: 2};
 /**
  * Seabed material for a profile name from siteProfile(). ``detail`` (low / medium / high) sets the shader cost:
  * low reads one texture (cost of the old single sand texture); medium two (a baked smooth-noise texture for
- * mud, gravel and rock patches, and the ripple field); high adds a second ripple scale and the gravel texture
- * (four reads). Ripples are shading only (no normal perturbation). No procedural noise is evaluated per pixel.
+ * mud, gravel and rock patches, and the ripple field); high adds the gravel texture (three reads). Ripples
+ * are shading only (no normal perturbation). No procedural noise is evaluated per pixel.
  */
 export function seabedMaterial(name, detail = 'medium') {
   const profile = PROFILES[name] || PROFILES.offshore;

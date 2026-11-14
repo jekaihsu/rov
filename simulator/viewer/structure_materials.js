@@ -172,8 +172,10 @@ function foulingShader(params, textures) {
       varying vec3 vFoulNormal;
       varying vec4 vFoulBand;    // shallow, deep, wet, growth cover
       varying vec2 vFoulPaint;   // boot top, topside
+      varying vec4 vFoulTint;    // medium tier: growth colour and amount, no texture read
       uniform vec3 uCover;
       uniform float uHasBoot;
+      uniform vec3 uCoat;
       ` + shader.vertexShader.replace(
       '#include <project_vertex>', `vec4 foulWorld = vec4(transformed, 1.0);
       vec3 foulNormal = objectNormal;
@@ -192,12 +194,17 @@ function foulingShader(params, textures) {
         vFoulBand = vec4(band0, band2, wet, cover);
         vFoulPaint = uHasBoot * vec2((1.0 - smoothstep(0.4, 0.6, depth)) * smoothstep(-1.2, -1.0, depth),
           1.0 - smoothstep(-1.25, -1.15, depth));
+        vec3 growth = vec3(0.12, 0.13, 0.1) * band0 + vec3(0.52, 0.5, 0.44) * (1.0 - band0 - band2)
+          + vec3(0.68, 0.64, 0.6) * band2;
+        float above = (1.0 - uHasBoot) * (1.0 - wet);
+        vFoulTint = vec4(mix(growth, uCoat, above), max(cover * 0.75, above));
       }
       #include <project_vertex>`);
     shader.fragmentShader = `varying vec3 vFoulPos;
       varying vec3 vFoulNormal;
       varying vec4 vFoulBand;
       varying vec2 vFoulPaint;
+      varying vec4 vFoulTint;
       uniform sampler2D uFouling;
       uniform float uSplash;
       uniform vec3 uCoat;
@@ -210,16 +217,14 @@ function foulingShader(params, textures) {
         return texture2D(uFouling, uv).rgb;
       }
       ` + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      #if FOUL_QUALITY < 2
+      diffuseColor.rgb = mix(diffuseColor.rgb, vFoulTint.rgb, vFoulTint.a);
+      diffuseColor.rgb = mix(diffuseColor.rgb, uBoot, vFoulPaint.x);
+      diffuseColor.rgb = mix(diffuseColor.rgb, uCoat, vFoulPaint.y);
+      #else
       {
         vec3 coarse = foulSample(0.13);
-        #if FOUL_QUALITY >= 2
-        vec3 fineN = abs(vFoulNormal);
-        vec3 fineP = vFoulPos * 0.9;
-        vec3 fine = texture2D(uFouling, fineN.y > max(fineN.x, fineN.z) ? fineP.xz
-          : (fineN.x > fineN.z ? fineP.zy : fineP.xy)).rgb;
-        #else
         vec3 fine = coarse.gbr;
-        #endif
         float clump = clamp(fine.r * 0.6 + coarse.r * 0.8, 0.0, 1.0);
         float band0 = vFoulBand.x;
         float band2 = vFoulBand.y;
@@ -240,15 +245,17 @@ function foulingShader(params, textures) {
         diffuseColor.rgb = mix(diffuseColor.rgb, uCoat, vFoulPaint.y);
         float coatAbove = (1.0 - uHasBoot) * (1.0 - wet);
         diffuseColor.rgb = mix(diffuseColor.rgb, uCoat * (0.8 + 0.3 * coarse.r), coatAbove * (1.0 - splash * fine.b));
-      }`);
+      }
+      #endif`);
   };
 }
 
 /**
  * A new material for one structure kind. Each call returns its own instance (the snag highlight changes the
  * emissive colour per obstacle); the shader program is shared through the cache key. ``detail`` sets the cost:
- * low has no fouling shader, medium reads the fouling mask once (dominant-axis projection), high twice (a fine
- * scale) and uses the texture maps (panel joints, plating seams).
+ * low has no fouling shader; medium tints by depth band per vertex (no texture read); high reads the fouling
+ * mask once (dominant-axis projection) for clumps, streaks and splash rust, and uses the texture maps (panel
+ * joints, plating seams).
  */
 export function structureMaterial(kind, detail = 'medium') {
   const params = PRESETS[kind] || PRESETS.steel;
@@ -264,7 +271,7 @@ export function structureMaterial(kind, detail = 'medium') {
   } else {
     material.onBeforeCompile = foulingShader(params, textures);
     material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};
-    material.customProgramCacheKey = () => `structure-fouling-v3-${material.defines.FOUL_QUALITY}`;
+    material.customProgramCacheKey = () => `structure-fouling-v4-${material.defines.FOUL_QUALITY}`;
   }
   material.userData.structureKind = kind;
   return material;
