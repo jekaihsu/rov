@@ -28,6 +28,7 @@ from .mission_modes import MissionRun, ensure_mission
 from .expedition import ensure_expedition
 from .comms import CommsLink
 from .power import PowerSystem
+from .thermal import ThermalModel
 
 MOTOR_FIELDS = {  # self-test field -> thruster index (see physics.THRUSTERS)
     "motor_left_front": 0, "motor_right_front": 1, "motor_left_rear": 2,
@@ -96,6 +97,10 @@ class Simulator:
         self.battery = 100.0
         self.link = CommsLink(getattr(sc, "link", None))
         self.power = PowerSystem(self.model_id)
+        self.thermal = ThermalModel(len(self.vehicle.thrusters), float(sc.start_pos[2]))
+        self._thermal_warnings = set()
+        self.leak = False
+        self.on_deck = False
         self.dvl_switches: dict = {}
         self.arm = "close"
         gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, np.asarray(self.vehicle.definition.gland_body))
@@ -224,6 +229,7 @@ class Simulator:
             from .operations import step_objects
             step_objects(self.world, dt, self.t)
         self._damage(n_events)
+        self._thermal(dt)
 
         if not self.power.tether:
             load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max
@@ -233,6 +239,16 @@ class Simulator:
         ensure_mission(self).update(self, dt)
         if self.world.mission_run.mode == "expedition":
             ensure_expedition(self).update(self, dt)
+
+    _THERMAL_TEXT = {"dry_run": "馬達離水運轉超過 30 秒", "motor_hot": "馬達溫度過高",
+                     "electronics_hot": "電子艙溫度過高"}
+
+    def _thermal(self, dt: float) -> None:
+        self.thermal.step(self, dt)
+        warnings = set(self.thermal.warnings())
+        for code in sorted(warnings - self._thermal_warnings):
+            self._log("thermal", self._THERMAL_TEXT[code])
+        self._thermal_warnings = warnings
 
     def _buttons(self, rc: RCState) -> None:
         for name in ("record", "photo"):
@@ -484,9 +500,11 @@ class Simulator:
 
     # QYRovCheckManage
     def _sdk_QYRovCheckManage__ego_self_test(self):
-        data = {"temp": 31, "humi": 22, "mos_temp": 38, "exit_upper": 0, "exit_lower": 0,
+        # Housing and motor-driver temperatures come from the thermal model; leak 1 means dry.
+        data = {"temp": int(round(self.thermal.housing_c)), "humi": 22,
+                "mos_temp": int(round(self.thermal.mos_reading_c)), "exit_upper": 0, "exit_lower": 0,
                 "network_5v": 1, "network_3v3": 1, "network_switch": 1, "network_plc": 1, "network_current": 1,
-                "spi_flash_comm": 1, "spi_flash_ctrl": 1, "leak": 1, "led_left": 1, "led_right": 1,
+                "spi_flash_comm": 1, "spi_flash_ctrl": 1, "leak": 0 if self.leak else 1, "led_left": 1, "led_right": 1,
                 "press": 1, "mag": 1, "six_axis": 1, "temp_humi_temp": 1, "temp_humi_humi": 1, "temp_humi_mos": 1,
                 "battery_l_status": 1 if self.battery_percent > 5 else 0,
                 "battery_r_status": 1 if self.battery_percent > 5 else 0,
@@ -824,6 +842,8 @@ class Simulator:
             "score": ensure_mission(self).score_state(self),
             "log": self.log[-8:],
             "link": self.link.state(),
+            "thermal": self.thermal.state(),
+            "leak": {"detected": bool(self.leak)},
         }
 
     def world_description(self) -> dict:

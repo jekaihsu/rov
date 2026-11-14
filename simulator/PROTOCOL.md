@@ -238,6 +238,23 @@ battery flags stay healthy for tether vehicles. All wattages are provisional eng
 assumptions (X1 supply power, light wattage and thruster current are unpublished); see
 `qysim/power.py` for each value's source.
 
+### Optional `thermal` and `leak`
+
+```text
+thermal {motor_c (hottest thruster), mos_c (motor drivers), housing_c, in_water bool, dry_run_s,
+         warnings [dry_run|motor_hot|electronics_hot]}
+leak {detected bool}
+```
+
+A first-order model: heat follows electrical load, cooling is strong in water and weak in air.
+`dry_run` is raised after 30 s of running thrusters out of water (vendor rule; the vehicle is out
+of water only in a deck state, `on_deck` server-side, which current scenarios never use). Sustained
+full thrust in water reaches `motor_hot` after several minutes. Warnings only, no derating. Each new
+warning is also written to `log` (kind `thermal`). Thresholds are provisional assumptions.
+`QYRovCheckManage.ego_self_test` now reports the modelled `temp` (housing) and `mos_temp` instead of
+the constants 31 / 38 (the model starts at those values in 26 °C surface water) and `leak: 0` while a
+leak is detected (1 = dry, unchanged otherwise).
+
 ### Optional `link`: simulated vehicle communications link
 
 `state.link` (and each fleet entry) describes the *simulated* tether link between topside and
