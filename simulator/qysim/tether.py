@@ -11,7 +11,7 @@ Model
       the last segment's force is returned to the vehicle as an external wrench
     * automatic payout when the spool-side tension exceeds a threshold, hard stop at
       the maximum length, break at the rated tensile strength
-Defaults follow the X1 tether datasheet: 9.5 mm diameter, 350 m, 300 kgf tensile.
+Provisional reseller dimensions (not X1 measurements): 9.5 mm diameter, 350 m, 300 kgf tensile.
 """
 
 from __future__ import annotations
@@ -21,34 +21,35 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .vehicles import X1_PARAMETERS, X1_TETHER_PARAMETERS
 from .physics import G, RHO, q_rot, q_conj, cross3
 from .world import World, Cylinder
 from ._cable_accel import advance as _advance_compiled, advance_batch as _advance_batch
 
-GLAND_BODY = np.array([-0.38, 0.0, -0.06])     # tether strain-relief gland, rear of the hull
+GLAND_BODY = np.array(X1_PARAMETERS["gland_body"]["value"])     # tether strain-relief gland, rear of the hull
 
 
 @dataclass
 class TetherParams:
-    segments: int = 40
-    diameter: float = 0.0095          # m
-    mass_per_m: float = 0.12          # kg/m in air
-    wet_weight_per_m: float = 0.004   # kg/m net sinking weight in sea water (near neutral)
-    ea: float = 20000.0               # N, effective axial stiffness (softened for real-time)
-    k_max: float = 9000.0             # N/m per-segment stiffness cap (numerical stability)
-    damping_ratio: float = 0.6
-    cd_normal: float = 1.2
-    cd_tangent: float = 0.02
-    max_length: float = 350.0         # m
-    breaking_n: float = 300 * G       # 300 kgf
-    warn_n: float = 250.0             # N tension warning
-    payout_threshold_n: float = 45.0
-    payout_rate: float = 1.0          # m/s
-    node_radius: float = 0.03
-    friction: float = 0.6
-    substeps: int = 10
-    contact_cache_m: float = 0.01     # max displacement before refreshing local contact planes
-    accelerated: bool = True         # optional Numba kernel; equations match NumPy fallback
+    segments: int = X1_TETHER_PARAMETERS["segments"]["value"]
+    diameter: float = X1_TETHER_PARAMETERS["diameter"]["value"]
+    mass_per_m: float = X1_TETHER_PARAMETERS["mass_per_m"]["value"]
+    wet_weight_per_m: float = X1_TETHER_PARAMETERS["wet_weight_per_m"]["value"]
+    ea: float = X1_TETHER_PARAMETERS["ea"]["value"]
+    k_max: float = X1_TETHER_PARAMETERS["k_max"]["value"]
+    damping_ratio: float = X1_TETHER_PARAMETERS["damping_ratio"]["value"]
+    cd_normal: float = X1_TETHER_PARAMETERS["cd_normal"]["value"]
+    cd_tangent: float = X1_TETHER_PARAMETERS["cd_tangent"]["value"]
+    max_length: float = X1_TETHER_PARAMETERS["max_length"]["value"]
+    breaking_n: float = X1_TETHER_PARAMETERS["breaking_n"]["value"]
+    warn_n: float = X1_TETHER_PARAMETERS["warn_n"]["value"]
+    payout_threshold_n: float = X1_TETHER_PARAMETERS["payout_threshold_n"]["value"]
+    payout_rate: float = X1_TETHER_PARAMETERS["payout_rate"]["value"]
+    node_radius: float = X1_TETHER_PARAMETERS["node_radius"]["value"]
+    friction: float = X1_TETHER_PARAMETERS["friction"]["value"]
+    substeps: int = X1_TETHER_PARAMETERS["substeps"]["value"]
+    contact_cache_m: float = X1_TETHER_PARAMETERS["contact_cache_m"]["value"]
+    accelerated: bool = X1_TETHER_PARAMETERS["accelerated"]["value"]
 
 
 class Tether:
@@ -336,3 +337,14 @@ class Tether:
             "auto_payout": self.auto_payout,
             "max_length": self.p.max_length,
         }
+
+
+# von Benzon 2022, Table A1; only measured diameter/mass and cited drag terms.
+# Remaining solver settings are simulator estimates, not a reconstruction of
+# the paper's axial stiffness (6.437e10 Pa) or complete inspection trajectory.
+BENCHMARK_TETHER_PARAMETERS = {
+    "diameter": .0075,
+    "mass_per_m": .043,
+    "cd_normal": 1.2,
+    "cd_tangent": .01,
+}

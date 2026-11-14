@@ -38,3 +38,16 @@
 - QYSEA 的 X1 使用手冊與 OpenSDK 完整文件（公司若已有，放內部空間並在此留摘要）。
 - IMCA R 028／G 014（ROV 模擬器 Class-A 準則，會員限定），決定內部訓練版的對標方向。
 - 公司資深操作員飛一趟基準航次的紀錄，用來訂訓練評分的合格門檻。
+
+## T20 CSV 匯入格式
+
+摘要極速／滑行時間距離不能唯一辨識推力和兩項阻尼；請同時保留階躍與鬆桿的時間序列。
+CSV 放在 `own/`，欄位：`axis,time_s,velocity,command,effective_mass`。
+`axis` 為 surge/sway/heave/yaw；速度帶正負號，平移 m/s、偏航 rad/s；時間秒。
+command 為已校正的推力比例 [-1,1]，由本列保持到下一列，不能直接把未知 PWM 曲線當推力。
+effective_mass 為已知含附加質量的 kg（yaw 用 kg m²）；未知時不能識別絕對推力，只能識別係數與質量的比值。
+每軸時間嚴格遞增，含多個速度、起步與鬆桿；靜水、無纜線力、無碰撞，先扣除浮力及控制器力。
+指令：`python docs/reference/fit_measurements.py docs/reference/own/trace.csv`。
+輸出是建議值與力殘差 RMSE（N；yaw 為 Nm），不會自動覆寫參數或升格為 measured。
+一階推進器延遲會污染起步擬合，需記錄實際推力或剔除尚未穩定的區段。
+正反方向推力不對稱時，每個方向分開檔案擬合；目前不聯合辨識正反推曲線、附加質量或馬達延遲。
