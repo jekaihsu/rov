@@ -160,6 +160,18 @@ class TransportTests(unittest.TestCase):
         self.assertGreater(results[0.0], 1.0)
         self.assertLess(results[0.5], 0.2 * results[0.0])
 
+    def test_small_contact_puff_on_sand_clears_within_seconds_in_current(self):
+        # Footage target (sea, sandy/rocky bed with current): a small grab-induced puff leaves view in <= 5 s.
+        world = mud_world(kind="sand")
+        calm(world)
+        world.current.mid_kn = world.current.bottom_kn = 0.5
+        spot = np.array([0.0, 0.0, 19.7])
+        world.silt_field.contact(np.array([0.0, 0.0, 19.8]), 0.2, "v1", impact=True)
+        start = world.silt_concentration_at(spot)
+        run_transport(world, 5.0, [spot])
+        self.assertGreater(start, 1.0)
+        self.assertLess(world.silt_concentration_at(spot), 0.2 * start)
+
     def test_legacy_clouds_follow_the_puffs(self):
         world = mud_world()
         world.emit_silt([0, 0, 10], 1, "alpha")

@@ -16,7 +16,7 @@ and how far can a camera see through it":
 * Transport: mass-conserving Gaussian puffs in three grain classes (fine sand 200 um,
   coarse silt 63 um, fine silt 15 um). Each puff settles at its class settling velocity
   (Soulsby 1997, which reduces to Stokes for silt), is advected by ``CurrentProfile.sample``,
-  spreads as ``sigma**2 += 2 * K * dt`` and loses mass only by deposition at the bed
+  spreads as ``sigma**2 += 2 * K * dt`` (K: still water + current shear + decaying thruster wake) and loses mass only by deposition at the bed
   (flux ``ws * C_bed``) or by leaving the area around the vehicles. Every kilogram is booked
   in ``emitted = suspended + deposited + removed``.
 * Optics: concentration ``C`` in mg/L (= g/m3) at any point, with an optional near-bed
@@ -46,6 +46,8 @@ SILT_PARAMETERS = {
     "mass_attenuation_m2_per_g": 0.5,  # c*_p, coastal typical; literature 0.05-1.5
     "diffusivity_m2_s": 1.5e-3,      # still-water horizontal puff diffusivity K0
     "shear_dispersion": 0.1,         # extra K = alpha * |u| * sigma_h in a current
+    "jet_diffusivity_m2_s": 0.008,   # residual thruster-wake turbulence, decaying with puff age
+    "jet_turbulence_s": 30.0,        # e-folding time of that residual turbulence
     "vertical_diffusion_ratio": 0.3,  # K_v / K_h
     "max_puffs": 160,
     "range_m": 80.0,                 # puffs this far from every vehicle leave the simulation
@@ -77,6 +79,7 @@ CONTACT_IMPACT_KG = 0.03
 CONTACT_SLIDE_KG_S = 0.02
 TETHER_SLIDE_KG_S = 0.002
 
+BED_ROUGHNESS_M = 0.005        # log-law roughness length for near-bed puff advection (provisional)
 _JET_SAMPLES = np.geomspace(0.05, 12.0, 28)
 _FOOTPRINT_S = np.linspace(0.0, 1.0, 13)
 _TWO_PI_32 = (2.0 * math.pi) ** 1.5
@@ -374,8 +377,9 @@ class SiltField:
         rise = min(2.0, 0.3 + 0.6 * u_bed)
         bed_z = float(impact[2])
         centre = np.array([impact[0], impact[1], bed_z - 0.5 * rise])
-        sigma_h = max(0.3, 0.3 * x_bed + 0.15)
-        sigma_v = max(0.2, 0.5 * rise)
+        sigma_v = max(0.2, 0.4 * rise)
+        # The impinging jet turns into a radial wall jet, so the plume is at least as wide as it is tall.
+        sigma_h = max(0.35, 0.3 * x_bed + 0.15, 0.75 * sigma_v)
         self.emit_mix(centre, mass, self.bed["mix"], sigma_h, sigma_v, key)
 
     def contact(self, pos, speed: float, vehicle_id: str, impact: bool) -> None:
@@ -422,10 +426,11 @@ class SiltField:
             return
         world = self.world
         p = self.params
-        flow = world.current.sample_many(self.pos, world.seabed_depth, world.time)
+        flow = self.near_bed_flow()
         self.pos[:, :2] += flow[:, :2] * dt
         speed = np.linalg.norm(flow[:, :2], axis=1)
         k_h = p["diffusivity_m2_s"] + p["shear_dispersion"] * speed * self.sigma_h
+        k_h = k_h + p["jet_diffusivity_m2_s"] * np.exp(-self.age / p["jet_turbulence_s"])
         k_v = p["vertical_diffusion_ratio"] * k_h
         self.sigma_h = np.sqrt(self.sigma_h ** 2 + 2.0 * k_h * dt)
         self.sigma_v = np.sqrt(self.sigma_v ** 2 + 2.0 * k_v * dt)
@@ -441,6 +446,19 @@ class SiltField:
         self.mass = self.mass * keep_fraction
         self.age += dt
         self._retire(vehicle_positions)
+
+    def near_bed_flow(self) -> np.ndarray:
+        """Current carrying each puff. Within a metre of the bed the world's linear boundary layer is
+        replaced by a log law, u(h) = u(1 m) * ln(h / z0) / ln(1 m / z0), so near-bed silt still drifts."""
+        world = self.world
+        bed = world.seabed_at_many(self.pos)
+        height = bed - self.pos[:, 2]
+        probe = self.pos.copy()
+        probe[:, 2] = np.minimum(self.pos[:, 2], bed - 1.0)
+        flow = world.current.sample_many(probe, world.seabed_depth, world.time)
+        z0 = BED_ROUGHNESS_M
+        factor = np.clip(np.log(np.maximum(height, z0) / z0) / math.log(1.0 / z0), 0.0, 1.0)
+        return flow * factor[:, None]
 
     def _retire(self, vehicle_positions) -> None:
         peak = self.peak_mg_l()
