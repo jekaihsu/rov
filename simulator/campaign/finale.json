@@ -1,15 +1,284 @@
 {
   "id": "finale",
   "title": "終章｜夜間回收",
-  "scenario": "open_water",
-  "mode": "free_explore",
+  "scenario": "harbor_inspection",
+  "mode": "expedition",
   "category": "story",
   "order": 80,
   "requires": "wreck",
-  "placeholder": true,
-  "outline": "在潮汐窗口回收證物；調查完整度決定真相是否公開。",
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "restart",
+      "type": "checkpoint"
+    },
+    {
+      "id": "night_visibility",
+      "type": "environment",
+      "visibility_m": 4
+    },
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "brief"
+    },
+    {
+      "id": "task_1",
+      "type": "objective",
+      "text_key": "task_1"
+    },
+    {
+      "id": "recover",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "recover"
+    },
+    {
+      "id": "recover_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "recover_cable"
+    },
+    {
+      "id": "recover_wait",
+      "type": "wait",
+      "condition": {
+        "path": "expedition.results.0.kind",
+        "op": "eq",
+        "value": "recover"
+      },
+      "hint_key": "recover_wait.hint"
+    },
+    {
+      "id": "recovered",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "recovered"
+    },
+    {
+      "id": "task_2",
+      "type": "objective",
+      "text_key": "task_2"
+    },
+    {
+      "id": "deploy",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "deploy"
+    },
+    {
+      "id": "deploy_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "deploy_cable"
+    },
+    {
+      "id": "deploy_wait",
+      "type": "wait",
+      "condition": {
+        "path": "expedition.results.1.kind",
+        "op": "eq",
+        "value": "deploy"
+      },
+      "hint_key": "deploy_wait.hint"
+    },
+    {
+      "id": "task_3",
+      "type": "objective",
+      "text_key": "task_3"
+    },
+    {
+      "id": "verify",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "verify"
+    },
+    {
+      "id": "verify_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "verify_cable"
+    },
+    {
+      "id": "verify_start",
+      "type": "wait",
+      "condition": {
+        "path": "expedition.active.kind",
+        "op": "eq",
+        "value": "inspect"
+      },
+      "hint_key": "verify_start.hint"
+    },
+    {
+      "id": "verify_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "verify_poll.hint"
+    },
+    {
+      "id": "verify_broken",
+      "type": "branch",
+      "condition": {
+        "path": "tether.broken",
+        "op": "eq",
+        "value": true
+      },
+      "target": "partial"
+    },
+    {
+      "id": "verify_timeout",
+      "type": "branch",
+      "condition": {
+        "path": "expedition.active.elapsed",
+        "op": "gt",
+        "value": 720
+      },
+      "target": "partial"
+    },
+    {
+      "id": "verify_late_result",
+      "type": "branch",
+      "condition": {
+        "path": "expedition.results.2.elapsed",
+        "op": "gt",
+        "value": 720
+      },
+      "target": "partial"
+    },
+    {
+      "id": "verify_full",
+      "type": "branch",
+      "condition": {
+        "path": "expedition.results.2.kind",
+        "op": "eq",
+        "value": "inspect"
+      },
+      "target": "full"
+    },
+    {
+      "id": "verify_return",
+      "type": "branch",
+      "condition": {
+        "path": "pos.2",
+        "op": "lt",
+        "value": 1.5
+      },
+      "target": "partial"
+    },
+    {
+      "id": "verify_repeat",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "verify_poll"
+    },
+    {
+      "id": "partial",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "partial"
+    },
+    {
+      "id": "partial_tender",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "partial_tender"
+    },
+    {
+      "id": "partial_reward",
+      "type": "reward",
+      "reward": "ending_open_question"
+    },
+    {
+      "id": "partial_join",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "closing"
+    },
+    {
+      "id": "full",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "full"
+    },
+    {
+      "id": "full_tender",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "full_tender"
+    },
+    {
+      "id": "full_reward",
+      "type": "reward",
+      "reward": "ending_evidence_complete"
+    },
+    {
+      "id": "closing",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "closing"
+    },
+    {
+      "id": "crew_wrap",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "text_key": "crew_wrap",
+      "voice": null
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    }
+  ],
   "strings": {
-    "zh-TW": {}
+    "zh-TW": {
+      "supervisor": "林督導",
+      "tender": "阿禾",
+      "brief": "今晚在港內接封存匣。轉運隊先放到交接點；工程畫面仍標工具箱。舊影像只供比對，結論要靠這趟重新核實。",
+      "task_1": "作業一｜接回封存匣（預留五至十五分鐘）：完成回收合約",
+      "recover": "先開回收合約。拍原位、夾取、送交接點、放穩。別為趕潮把證物拖過地面。",
+      "recover_cable": "線在手上。你報夾穩，我再跟著收，今晚不猜手勢。",
+      "recover_wait.hint": "以作業載具先完成回收合約；原位照片與實際夾取、放置都不可省略。",
+      "recovered": "封存匣交接了。裡面的維修索引指向排水口，但還缺現場對照。",
+      "task_2": "作業二｜留下復查基準（預留五至十五分鐘）：完成部署合約",
+      "deploy": "開部署合約，把觀測儀放穩並拍照。下一班要能回到同一處。",
+      "deploy_cable": "收到。我把交接位置寫清楚，省得明天再猜一次。",
+      "deploy_wait.hint": "回收後完成部署合約；放穩兩秒再拍完工照。",
+      "task_3": "作業三｜潮窗核驗（最多十二分鐘）：接定點巡檢合約；三站齊全揭示真相，回到淺水則封存待查",
+      "verify": "開定點巡檢合約，核對三處證物標牌。從接案起十二分鐘；不足就回到一點五公尺以淺，資料照實封存。",
+      "verify_cable": "我報收線，你報剩幾站。少一張不丟人，硬湊一個結論才麻煩。",
+      "verify_start.hint": "請接第三份合約：定點巡檢。開始後才計潮窗；先別回淺水。",
+      "verify_poll.hint": "每站低速穩定三秒後拍目標。三站完成即核驗齊全；回到深度小於一點五公尺可結束調查。",
+      "partial": "匣子和基準都有了，現場比對還缺一段。我們只能說有疑點，不能宣布沉沒原因。報告封存，申請下一個潮窗。",
+      "partial_tender": "人和機器都值得等下一趟。飯我留著，明天再把空白補上。",
+      "full": "三處都對上了：加裝的壓艙座擋住排水，修補紀錄卻被抽走。不是一句「天氣不好」就能帶過。把完整證據交出去。",
+      "full_tender": "原來我們那幾張慢慢拍的照片，真有用。好，收線，回家。",
+      "closing": "潮間帶工作隊的日誌到這裡。留白就寫留白，查到的就負責說清楚。",
+      "crew_wrap": "收工。潮間帶工作隊又活過一季。下回水池見。"
+    }
   }
 }
