@@ -2,7 +2,7 @@
 import unittest
 from qysim.engine import Simulator
 from qysim.room import Room
-from qysim.instructor import Instructor, statistics, PHASES
+from qysim.instructor import Instructor, statistics, PHASES, MAX_REPORTS, MAX_SAMPLES_PER_VEHICLE
 from qysim.server import SimHost
 
 
@@ -45,6 +45,7 @@ class InstructorTests(unittest.TestCase):
 
     def test_report_and_statistics(self):
         self.assertEqual(statistics([0, 2], 1)['outside_fraction'], .5)
+        self.instructor.supervised = True
         self.instructor.update(1)
         report = self.instructor.report('v1')
         self.assertTrue(report['provisional'])
@@ -54,6 +55,44 @@ class InstructorTests(unittest.TestCase):
         self.assertIn('max_tension', report)
         self.instructor.finish()
         self.assertEqual(len(self.instructor.reports), 1)
+
+    def test_unsupervised_room_records_nothing(self):
+        for _ in range(1200):
+            self.room.step(.01)
+        self.assertEqual(self.instructor.samples, {})
+        self.room.reset()
+        self.assertEqual(self.instructor.reports, [])
+
+    def test_sampling_follows_supervision_and_overrides(self):
+        self.instructor.supervised = True
+        for _ in range(3):
+            self.instructor.update(1)
+        self.assertEqual(len(self.instructor.samples['v1']), 3)
+        self.instructor.supervised = False
+        self.instructor.update(1)
+        self.assertEqual(len(self.instructor.samples['v1']), 3)
+        self.instructor.inject({'kind': 'battery', 'duration': 2.5})
+        for _ in range(4):
+            self.instructor.update(1)
+        self.assertFalse(self.instructor.active)
+        self.assertEqual(len(self.instructor.samples['v1']), 5)
+
+    def test_samples_and_reports_are_bounded(self):
+        self.instructor.supervised = True
+        for _ in range(MAX_SAMPLES_PER_VEHICLE + 5):
+            self.instructor.update(1)
+        samples = self.instructor.samples['v1']
+        self.assertEqual(len(samples), MAX_SAMPLES_PER_VEHICLE)
+        self.assertEqual(samples[-1]['t'], MAX_SAMPLES_PER_VEHICLE + 5)
+        report = self.instructor.report('v1')
+        self.assertIsInstance(report['trajectory'], list)
+        self.assertEqual(len(report['trajectory']), MAX_SAMPLES_PER_VEHICLE)
+        self.instructor.finish()
+        for run in range(MAX_REPORTS + 3):
+            self.instructor.update(1)
+            self.instructor.finish()
+        self.assertEqual(len(self.instructor.reports), MAX_REPORTS)
+        self.assertEqual(len(self.instructor.reports[-1]['trajectory']), 1)
 
     def test_overlap_and_invalid(self):
         for strength in (-1, 2, float('nan')):

@@ -338,7 +338,9 @@ Everything a pilot does to their own vehicle keeps working: RC, `payout`, `auto_
 `campaign_advance`, `mission_photo`, ...). The instructor's credentials never grant an SDK seat.
 Existing clients omitting this entire optional extension retain their current behavior.
 
-Evidence is sampled at 1 Hz of unpaused simulation time. Reports retain a five-phase
+Evidence is sampled at 1 Hz of unpaused simulation time, only while a supervisor is connected
+or an override is active; an unsupervised room records nothing. Each vehicle keeps its most
+recent 3600 samples and the archive keeps the newest 16 reports. Reports retain a five-phase
 matrix, split by current/no-current samples, with RMS, min/max, outside-tolerance
 fraction and provisional green/yellow/red assessment, plus command variance,
 zero crossings, reversals, collisions, tension, wraps, completion and trajectory.
