@@ -22,6 +22,9 @@ let pressedAt = 0;
 let held = false;
 let previous = [];
 let lastWarning = '';
+let missionKey;
+let peerCount;
+let operationMode;
 let viewStarted = null;
 let viewToggled = false;
 let north = true;
@@ -44,6 +47,10 @@ function add(id, content) {
   el.innerHTML = content;
   $('vp').append(el);
   return el;
+}
+function showEventCard(index) {
+  active = index;
+  deadline = performance.now() + 3000;
 }
 function down(index) {
   if (active === index) {
@@ -235,6 +242,16 @@ export function updateFlightHUD(s, w, dt) {
   if (s.assist) $('flightAssist').textContent = `${STRINGS.assist[s.assist.level]} · ${s.assist.profile}`;
   const nearDanger = alt != null && alt < .25 || range != null && range < .25;
   const danger = !!s.tether?.broken || nearDanger;
+  const nextMissionKey = [s.mission?.mode, objective?.id, objective?.label, s.score?.current_index].join(':');
+  const nextPeerCount = s.vehicles?.length || 1;
+  if (!held) {
+    if (missionKey != null && missionKey !== nextMissionKey) showEventCard(0);
+    if (peerCount != null && peerCount !== nextPeerCount) showEventCard(2);
+    if (operationMode != null && operationMode !== s.operation_mode) showEventCard(3);
+  }
+  missionKey = nextMissionKey;
+  peerCount = nextPeerCount;
+  operationMode = s.operation_mode;
   const warning = s.tether?.broken ? STRINGS.danger : nearDanger ? STRINGS.obstacleDanger
     : s.tether?.warn ? STRINGS.warn
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
@@ -244,8 +261,7 @@ export function updateFlightHUD(s, w, dt) {
     : warning === STRINGS.lowBattery ? 'info' : 'warning';
   document.body.classList.toggle('hud-danger', danger);
   if (warning && warning !== lastWarning) {
-    active = 1;
-    deadline = performance.now() + 3000;
+    if (!held) showEventCard(1);
     const pad = Array.from(navigator.getGamepads?.() || []).find(p => p?.vibrationActuator);
     pad?.vibrationActuator?.playEffect('dual-rumble', {
       duration: 180, strongMagnitude: danger ? .8 : .2, weakMagnitude: .2,

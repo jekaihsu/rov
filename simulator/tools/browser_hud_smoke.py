@@ -16,7 +16,7 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width': 1280, 'height': 720})
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    page.goto('http://127.0.0.1:8092/?play=1&nointro&ws=ws://127.0.0.1:8792&room=hudcheck')
+    page.goto('http://127.0.0.1:8092/?play=1&nointro&ws=ws://127.0.0.1:8792&room=hudcheck', wait_until='domcontentloaded')
     page.wait_for_function('window.__viewer?.S && document.querySelector("#flightCable")')
     assert page.locator('#engineering').is_hidden()
     assert page.locator('#sticks').is_hidden()
@@ -56,7 +56,7 @@ with sync_playwright() as p:
     assert page.locator('#engineering').is_visible()
     if args.screenshots:
         page.screenshot(path=str(OUT / 'drawer.png'), timeout=120000)
-    page.reload()
+    page.reload(wait_until='domcontentloaded')
     page.wait_for_selector('#engineering')
     page.keyboard.press('Tab')
     assert page.locator('#engineering').is_hidden()
