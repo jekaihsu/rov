@@ -1,4 +1,5 @@
 import {glyph, deviceFamily} from './input/glyphs.js';
+import {hintText} from './input/bindings.js';
 // Read-only onboarding: every check comes from received simulator telemetry.
 const STORAGE_KEY = 'rov.pilotGuide.dismissed.v1';
 const CHANNELS = {
@@ -41,9 +42,11 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
     <p class="pilot-context" role="status" aria-live="polite"></p>
     <ol aria-label="首次潛航練習"><li data-step="unlock">解除馬達鎖定</li><li data-step="move">操控移動一小段</li><li data-step="depth">啟用定深</li><li data-step="light">開啟照明</li></ol>
     <details><summary>目前鍵位與視角</summary><p class="pilot-mode"></p><dl></dl>
-      <p class="pilot-shortcuts">Space 鎖定／解鎖 · H 定深 · L 燈光<br>V 切換追蹤、環繞、俯視、機載視角。俯視時以滾輪縮放。<br>需更換手柄或控制配置時，返回主選單。</p>
+      <p class="pilot-shortcuts"><span class="pilot-keys"></span><br>V 切換追蹤、環繞、俯視、機載視角。俯視時以滾輪縮放。<br>需更換手柄或控制配置時，返回主選單。</p>
     </details><button type="button" class="pilot-dismiss" id="pilotGuideDismiss">收起提示，下次不自動展開</button>
   </div>`;
+  // Key captions come from the binding table, never from a second hand-written list.
+  root.querySelector('.pilot-keys').textContent = hintText();
   const session = host.querySelector('.session-summary');
   if (session) session.after(root); else host.prepend(root);
   document.addEventListener('rov-input-device', function updateGlyphs(event) {

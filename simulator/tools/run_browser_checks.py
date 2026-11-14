@@ -33,6 +33,7 @@ DEFAULT_CHECKS = (
     'browser_slow_render_smoke',
     'browser_connection_smoke',
     'browser_hud_smoke',
+    'browser_overlay_smoke',
     'browser_camera_smoke',
     'browser_camera_input_smoke',
     'browser_attitude_smoke',

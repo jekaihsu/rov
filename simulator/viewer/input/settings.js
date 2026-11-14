@@ -1,5 +1,6 @@
 // Controller setup, live shaping preview and sequential calibration; flight is suspended while open.
-import { CHANNELS, PRESETS, BUTTONS, curve, radial, bindingValue } from "./actions.js";
+import { CHANNELS, PRESETS, curve, radial, bindingValue } from "./actions.js";
+import { actionLabel, bindingRow, defaultPadBindings, findCollisions, inputIds } from "./bindings.js";
 const STRINGS = {
   title: "手把設定",
   close: "返回",
@@ -21,6 +22,20 @@ const STRINGS = {
   done: "映射已儲存",
   bind: "綁定（a0、-a1、b0、b7~；以逗號分隔正負來源）",
   unknown: "未知裝置，請先完成對應精靈",
+  collision: "同一情境內有按鍵重複：",
+};
+// Fixed menu navigation, read from the menu rows of the binding table.
+function menuSource(action) {
+  return Number(inputIds(bindingRow(action).pad)[0].slice(1));
+}
+const NAV = {
+  up: menuSource("menuUp"),
+  down: menuSource("menuDown"),
+  left: menuSource("menuLeft"),
+  right: menuSource("menuRight"),
+  stick: menuSource("menuStick"),
+  accept: menuSource("accept"),
+  back: menuSource("back"),
 };
 export function installSettings(settings, save, haptics, setMode) {
   const featureActions = new Map();
@@ -59,7 +74,7 @@ export function installSettings(settings, save, haptics, setMode) {
   const preset = element("select", "");
   for (const key of Object.keys(PRESETS)) element("option", STRINGS[key], preset).value = key;
   preset.onchange = function changePreset() {
-    settings.bindings = { ...PRESETS[preset.value], ...BUTTONS };
+    settings.bindings = { ...defaultPadBindings(), ...PRESETS[preset.value] };
     setMode(preset.value === "drone" ? "UAV_USA" : "ROV_USA");
     save();
     renderBindings();
@@ -116,12 +131,20 @@ export function installSettings(settings, save, haptics, setMode) {
   canvas.height = 120;
   const bindings = element("details", "");
   element("summary", STRINGS.bind, bindings);
+  const collisionNote = element("p", "", bindings);
+  collisionNote.setAttribute("role", "status");
   const rows = element("div", "", bindings);
+  function showCollisions() {
+    const collisions = findCollisions(undefined, settings.bindings);
+    collisionNote.textContent = collisions.length
+      ? STRINGS.collision + collisions.map((entry) => entry.actions.map(actionLabel).join(" / ")).join("；")
+      : "";
+  }
   function renderBindings() {
     for (const [name, action] of featureActions) settings.bindings[name] ??= action.binding ?? "";
     rows.replaceChildren();
     for (const [name, binding] of Object.entries(settings.bindings)) {
-      const row = element("label", featureActions.get(name)?.label || name, rows);
+      const row = element("label", featureActions.get(name)?.label || actionLabel(name), rows);
       const input = element("input", "", row);
       input.dataset.binding = name;
       input.value = Array.isArray(binding) ? binding.join(",") : binding;
@@ -129,14 +152,17 @@ export function installSettings(settings, save, haptics, setMode) {
         if (featureActions.has(name) && !input.value.trim()) {
           settings.bindings[name] = "";
           save();
+          showCollisions();
           return;
         }
         const parts = input.value.split(",").map((p) => p.trim());
         if (!parts.every((p) => /^-?[ab]\d+~?$/.test(p))) return;
         settings.bindings[name] = parts.length > 1 ? parts.slice(0, 2) : parts[0];
         save();
+        showCollisions();
       };
     }
+    showCollisions();
   }
   renderBindings();
   const enabled = element("label", STRINGS.haptics);
@@ -249,25 +275,25 @@ export function installSettings(settings, save, haptics, setMode) {
         return;
       }
     }
-    if (focused?.tagName === "SELECT" && (b[14] > 0.5 || b[15] > 0.5)) {
+    if (focused?.tagName === "SELECT" && (b[NAV.left] > 0.5 || b[NAV.right] > 0.5)) {
       focused.selectedIndex =
-        (focused.selectedIndex + (b[15] > 0.5 ? 1 : -1) + focused.options.length) % focused.options.length;
+        (focused.selectedIndex + (b[NAV.right] > 0.5 ? 1 : -1) + focused.options.length) % focused.options.length;
       focused.dispatchEvent(new Event("change"));
       lastNavigation = performance.now();
       return;
     }
 
-    const direction =
-      b[13] > 0.5 || frame.snapshot.axes[1] > 0.6 ? 1 : b[12] > 0.5 || frame.snapshot.axes[1] < -0.6 ? -1 : 0;
+    const stick = frame.snapshot.axes[NAV.stick];
+    const direction = b[NAV.down] > 0.5 || stick > 0.6 ? 1 : b[NAV.up] > 0.5 || stick < -0.6 ? -1 : 0;
     if (direction) {
       const controls = [...root.querySelectorAll("button,select,input,summary")].filter((e) => e.checkVisibility());
       const index = controls.indexOf(document.activeElement);
       controls[(index + direction + controls.length) % controls.length]?.focus();
-    } else if (b[0] > 0.5) document.activeElement?.click();
-    else if (b[1] > 0.5) root.close();
-    else if (document.activeElement?.type === "range" && (b[14] > 0.5 || b[15] > 0.5)) {
+    } else if (b[NAV.accept] > 0.5) document.activeElement?.click();
+    else if (b[NAV.back] > 0.5) root.close();
+    else if (document.activeElement?.type === "range" && (b[NAV.left] > 0.5 || b[NAV.right] > 0.5)) {
       const input = document.activeElement;
-      input.value = +input.value + (b[15] > 0.5 ? 1 : -1) * +input.step;
+      input.value = +input.value + (b[NAV.right] > 0.5 ? 1 : -1) * +input.step;
       input.dispatchEvent(new Event("input"));
     } else return;
     lastNavigation = performance.now();

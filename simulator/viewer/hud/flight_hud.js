@@ -4,6 +4,8 @@ import { forwardRange } from './range.js';
 import { drawFlightAttitude } from './attitude.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
+import { bindingRow, hintText } from '../input/bindings.js';
+import { assistPill } from './assist_pill.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -11,12 +13,10 @@ const STRINGS = {
   unlockHint: '按 Space / 手把 Y 解鎖',
   hide: '切換 HUD', north: '北朝上', head: '機頭朝上',
   cards: ['任務與目標', '載具系統', '地圖與隊友', '鍵位提示'],
-  keys: 'WASD / 方向鍵 飛行\nSpace 鎖定 · H 定深 · L 燈光\n1–4 速覽 · Tab 工程',
   cable: '纜線', battery: '電量',
   danger: '危險：纜線斷裂', warn: '注意：纜線張力', near: '注意：接近海床',
   obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
   forward: '前方估距', controller: 'USB 控制器已連線',
-  assist: ['手動', '速度輔助', '定點輔助'],
   fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
 };
 const $ = id => document.getElementById(id);
@@ -30,11 +30,13 @@ let lastWarning = '';
 let missionKey;
 let peerCount;
 let operationMode;
-let viewStarted = null;
-let viewToggled = false;
+let engineeringHeld = false;
 let north = true;
 let density = 1;
 const values = {};
+// Presentation keys are declared in the binding table; the HUD only listens for them.
+const CARD_KEYS = ['up', 'left', 'right', 'down'].map(action => bindingRow(action).keys[0]);
+const DRAWER_KEYS = bindingRow('engineering').keys;
 function storage(key, fallback) {
   try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
 }
@@ -90,6 +92,18 @@ function showFidelity() {
   chip.textContent = fidelityText(STRINGS.fidelity[preset]);
   chip.dataset.preset = preset;
 }
+// The pill states what the pilot selected; the status chip says when the simulator is not flying it.
+function showAssist(s) {
+  const fidelity = getFidelity();
+  const pill = assistPill(s, {level: fidelity.get('assistLevel'), profile: fidelity.get('flightProfile')});
+  const chip = $('flightAssist');
+  const status = $('flightAssistStatus');
+  if (chip.textContent !== pill.text) chip.textContent = pill.text;
+  status.hidden = !pill.status;
+  if (status.textContent !== pill.status) status.textContent = pill.status;
+  status.dataset.tone = pill.tone;
+  status.title = pill.help;
+}
 function toolIcon(button, icon, label) {
   button.title = label;
   button.setAttribute('aria-label', label);
@@ -144,24 +158,20 @@ function initialize() {
   $('flightHide').onclick = function hideHUD() { document.body.classList.toggle('hud-hidden'); };
   document.addEventListener('keydown', function keyDown(event) {
     if (event.target.closest('input,select,textarea,[contenteditable=true]')) return;
-    document.body.classList.remove('hud-touch');
-    if (event.code === 'Tab') {
+    if (DRAWER_KEYS.includes(event.code)) {
       event.preventDefault();
       if (!event.repeat) drawer();
     }
-    const index = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(event.code);
+    const index = CARD_KEYS.indexOf(event.code);
     if (index >= 0 && !event.repeat) down(index);
   });
   document.addEventListener('keyup', function keyUp(event) {
-    const index = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(event.code);
+    const index = CARD_KEYS.indexOf(event.code);
     if (index >= 0) up(index);
   });
   window.addEventListener('blur', function blur() {
     held = false;
     active = -1;
-  });
-  document.addEventListener('pointerdown', function pointer(event) {
-    document.body.classList.toggle('hud-touch', event.pointerType === 'touch');
   });
 }
 function smooth(key, target, dt) {
@@ -229,6 +239,16 @@ function drawMap(canvas, s, w) {
   ctx.fill();
   ctx.restore();
 }
+// Help card: the stick mapping of the current control layout, then every key from the binding table.
+function keyCardText(bindings) {
+  const guide = $('pilotGuide');
+  const lines = [guide?.querySelector('.pilot-mode')?.textContent || ''];
+  for (const term of guide?.querySelectorAll('dt') || []) {
+    lines.push(`${term.textContent} ${term.nextElementSibling?.textContent || ''}`);
+  }
+  lines.push(hintText({ bindings }));
+  return lines.filter(Boolean).join('\n');
+}
 export function updateFlightHUD(s, w, dt, input = {}) {
   if (!ready) initialize();
   if (!s?.pos) return;
@@ -263,15 +283,18 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     const fidelityChip = document.createElement('span');
     fidelityChip.id = 'flightFidelity';
     fidelityChip.className = 'chip';
-    document.querySelector('.chips').append(fidelityChip, chip);
+    const status = document.createElement('span');
+    status.id = 'flightAssistStatus';
+    status.className = 'chip';
+    status.setAttribute('role', 'status');
+    document.querySelector('.chips').append(fidelityChip, chip, status);
     showFidelity();
   }
   $('rSpd').textContent = smooth('speed', s.speed_kn || 0, dt).toFixed(2);
   $('flightCable').textContent = `${smooth('cable', s.tether?.length || 0, dt).toFixed(1)} m`;
   $('flightCable').style.color = s.tether?.warn ? 'var(--warn)' : 'var(--text)';
   $('flightBattery').textContent = smooth('battery', s.battery ?? 0, dt).toFixed(0);
-  $('flightAssist').hidden = !s.assist;
-  if (s.assist) $('flightAssist').textContent = `${STRINGS.assist[s.assist.level]} · ${s.assist.profile}`;
+  showAssist(s);
   const nearDanger = alt != null && alt < .25 || range != null && range < .25;
   const danger = !!s.tether?.broken || nearDanger;
   const nextMissionKey = [s.mission?.mode, objective?.id, objective?.label, s.score?.current_index].join(':');
@@ -297,24 +320,16 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     input.pulse?.(danger ? 'hard' : 'tension');
   }
   lastWarning = warning;
-  if (input.active) document.body.classList.remove('hud-touch');
-  if ((input.actions?.engineering || 0) > .5) {
-    viewStarted ??= performance.now();
-    if (!viewToggled && performance.now() - viewStarted > 650) {
-      drawer();
-      viewToggled = true;
-    }
-  } else {
-    viewStarted = null;
-    viewToggled = false;
-  }
+  // The input layer reports the long press as one level; a short press of the same button never arrives here.
+  const engineering = (input.actions?.engineering || 0) > .5;
+  if (engineering && !engineeringHeld) drawer();
+  engineeringHeld = engineering;
   const buttons = readHUDButtons(input.actions);
   buttons.forEach(function checkButton(pressed, index) {
     if (pressed && !previous[index]) down(index);
     if (!pressed && previous[index]) up(index);
   });
   previous = buttons;
-  if (buttons.some(Boolean)) document.body.classList.remove('hud-touch');
   if (!held && performance.now() > deadline) active = -1;
   const card = $('flightPeek');
   card.classList.toggle('visible', active >= 0 || density === 2);
@@ -324,8 +339,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     ['brief', 'objs', 'missionStatus'], ['thrBars', 'tState', 'tRov', 'gBat', 'damage'], ['activeRoomName'], [],
   ];
   card.querySelector('p').textContent = index === 3
-    ? ($('pilotGuide')?.querySelector('.pilot-mode')?.textContent || '') + '\n'
-      + ($('pilotGuide')?.querySelector('dl')?.textContent || STRINGS.keys)
+    ? keyCardText(input.bindings)
     : sources[index].map(id => $(id)?.textContent || '').join('\n');
   if (index === 1) {
     const thrusters = Array.from($('thrBars').children).map(function thrusterRow(row) {

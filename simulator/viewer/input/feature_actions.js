@@ -15,10 +15,20 @@ export function createFeatureActions(getBinding) {
     }
     return false;
   }
-  function sample(snapshot, dt) {
+  // Run one action by name for an input that the caller has already resolved.
+  function run(name) {
+    const action = actions.get(name);
+    if (!action || action.enabled?.() === false) return false;
+    action.run(1, 0);
+    return true;
+  }
+  // values: optional action → value map resolved by the binding table; without it bindings are read directly.
+  function sample(snapshot, dt, values = null) {
     const consumed = new Set();
     for (const [name, action] of actions) {
-      const value = snapshot ? bindingValue(getBinding(name, action.binding), snapshot) : 0;
+      let value = 0;
+      if (snapshot && values) value = values[name] || 0;
+      else if (snapshot) value = bindingValue(getBinding(name, action.binding), snapshot);
       if (action.enabled?.() !== false && snapshot) {
         if (action.continuous || (value > .5 && !(previous.get(name) > .5))) action.run(value, dt);
         for (const channel of action.consume || []) consumed.add(channel);
@@ -27,5 +37,5 @@ export function createFeatureActions(getBinding) {
     }
     return consumed;
   }
-  return {register, key, sample};
+  return {register, key, run, sample};
 }

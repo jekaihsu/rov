@@ -8,6 +8,7 @@ import {applyVehicleSticker,STICKERS} from './vehicle_stickers.js';
 import {configureRenderQuality,updateRenderQuality,renderQualityInfo} from './render_quality.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installFidelityPanel} from './fidelity_panel.js';
+import {CONTROL_LAYOUTS, controlLayout, rememberControlLayout} from './control_layout.js';
 const query=new URLSearchParams(location.search),$=id=>document.getElementById(id);
 const read=(key,fallback)=>{try{return localStorage.getItem(key)||fallback;}catch{return fallback;}};
 const models={falcon:{name:'Falcon',detail:'五推進器作業型 ROV · 四關節機械臂'},bluerov2_heavy:{name:'BlueROV2 Heavy',detail:'八推進器 · 六自由度操控'},x1:{name:'X1',detail:'六推進器 · 緊湊型機身'}};
@@ -20,7 +21,7 @@ menu.innerHTML=`<div class="menu-shade"></div><header class="menu-brand"><b>ROV<
 <form class="launch-panel" id="launchForm"><section><h2>01 / 選擇 ROV</h2><div class="menu-models">${Object.entries(models).map(([id,m])=>`<button type="button" data-vehicle="${id}" aria-pressed="false">${m.name}</button>`).join('')}</div><p class="model-description" id="modelDescription"></p></section>
 <section><h2>02 / 潛航海域</h2><label for="menuScene">場景</label><select id="menuScene"><option>正在準備場景…</option></select><p class="menu-help" id="sceneBrief"></p><p class="menu-help">加入既有房間時，以房主的場景為準。</p></section>
 <details open><summary>連線與操作員</summary><div class="menu-row"><div><label for="menuName">操作員名稱</label><input id="menuName" maxlength="32" required></div><div><label for="menuRoom">房間代碼</label><input id="menuRoom" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" required></div></div><label for="menuServer">伺服器</label><input id="menuServer" type="url" required spellcheck="false"><p class="menu-help">保留本機位址即可單人遊玩；多人請填同一主機與房間。</p></details>
-<details><summary>手柄與設定</summary><label for="menuPad">輸入裝置</label><select id="menuPad"><option value="auto">自動偵測手柄＋鍵盤</option><option value="keyboard">只使用鍵盤</option></select><p class="menu-help" id="menuPadInfo">連接手柄後按任一按鍵以偵測。</p><label for="menuControl">控制配置</label><select id="menuControl"><option value="UAV_CHN">ROV 雙桿：左桿前後／平移，右桿升降／轉向</option><option value="ROV_USA">X1 配置：左桿俯仰／轉向，右桿前後／橫滾</option><option value="ROV_JPN">X1 日本配置</option><option value="ROV_CHN">X1 中國配置</option></select><label for="menuQuality">畫質</label><select id="menuQuality"><option value="medium">中 · 效能優先</option><option value="high">高 · 細節優先</option></select><label class="menu-toggle">操作員小視窗<input id="menuPip" type="checkbox"></label><label class="menu-toggle">下水動畫<input id="menuIntro" type="checkbox" checked></label><label class="menu-toggle">畫面搖桿<input id="menuSticks" type="checkbox" checked></label><label class="menu-toggle">真實能見度<input id="menuFog" type="checkbox" checked></label><label class="menu-toggle">場景標籤<input id="menuLabels" type="checkbox" checked></label></details>
+<details><summary>手柄與設定</summary><label for="menuPad">輸入裝置</label><select id="menuPad"><option value="auto">自動偵測手柄＋鍵盤</option><option value="keyboard">只使用鍵盤</option></select><p class="menu-help" id="menuPadInfo">連接手柄後按任一按鍵以偵測。</p><label for="menuControl">控制配置</label><select id="menuControl"><option value="ROV_USA">X1 配置：左桿俯仰／轉向，右桿前後／橫滾</option><option value="UAV_CHN">ROV 雙桿：左桿前後／平移，右桿升降／轉向</option><option value="ROV_JPN">X1 日本配置</option><option value="ROV_CHN">X1 中國配置</option></select><label for="menuQuality">畫質</label><select id="menuQuality"><option value="medium">中 · 效能優先</option><option value="high">高 · 細節優先</option></select><label class="menu-toggle">操作員小視窗<input id="menuPip" type="checkbox"></label><label class="menu-toggle">下水動畫<input id="menuIntro" type="checkbox" checked></label><label class="menu-toggle">畫面搖桿<input id="menuSticks" type="checkbox" checked></label><label class="menu-toggle">真實能見度<input id="menuFog" type="checkbox" checked></label><label class="menu-toggle">場景標籤<input id="menuLabels" type="checkbox" checked></label></details>
 <p class="menu-status" id="menuStatus" role="status">正在準備 3D 預覽…</p><button class="menu-start" id="startDive" type="submit" disabled><span>開始潛航</span><span aria-hidden="true">↗</span></button></form><div class="menu-caption"><span class="menu-backdrop-label">LIVE 3D PREVIEW / 場景預覽</span><strong id="previewTitle"></strong><span id="previewScene"></span></div>`;
 document.body.append(menu);
 const performanceSection=document.createElement('section');performanceSection.className='menu-performance';performanceSection.innerHTML='<h2>本機效能</h2><p id="menuHardware" class="menu-help">正在偵測目前使用的顯示卡…</p><p id="menuQualityState" class="menu-help"></p>';
@@ -42,7 +43,16 @@ const stickerLabel=document.createElement('label');stickerLabel.htmlFor='menuSti
 const stickerSelect=document.createElement('select');stickerSelect.id='menuSticker';stickerSelect.append(...Object.entries(STICKERS).map(([id,label])=>new Option(label,id)));$('modelDescription').after(stickerLabel,stickerSelect);stickerSelect.value=query.get('sticker')||read('rov.sticker','none');
 $('menuName').value=query.get('name')||read('rov.playerName','操作員');$('menuRoom').value=query.get('room')||'training';
 $('menuServer').value=query.get('ws')||(location.protocol==='https:'?`wss://${location.host}/ws`:`ws://${location.hostname||'127.0.0.1'}:8765`);
-$('menuControl').value=query.get('control')||settings.control||'UAV_CHN';$('menuQuality').replaceChildren(...[['auto','自動 · 依硬體調整（目標 60 FPS）'],['performance','流暢 · 降低解析度'],['medium','標準 · 原生解析度'],['high','高 · 細節優先']].map(([value,label])=>new Option(label,value)));$('menuQuality').value=query.get('quality')||read('rov.quality','auto');
+// A layout chosen in the engineering drawer may not be one of the menu presets: list it instead of losing it.
+function showControlLayout() {
+  const select = $('menuControl');
+  const requested = query.get('control');
+  const wanted = CONTROL_LAYOUTS.includes(requested) ? requested : controlLayout();
+  if (![...select.options].some(option => option.value === wanted)) select.add(new Option(wanted, wanted));
+  select.value = wanted;
+}
+showControlLayout();
+$('menuQuality').replaceChildren(...[['auto','自動 · 依硬體調整（目標 60 FPS）'],['performance','流暢 · 降低解析度'],['medium','標準 · 原生解析度'],['high','高 · 細節優先']].map(([value,label])=>new Option(label,value)));$('menuQuality').value=query.get('quality')||read('rov.quality','auto');
 for(const [id,key,fallback]of [['menuPip','pip',false],['menuIntro','intro',true],['menuSticks','sticks',true],['menuFog','fog',true],['menuLabels','labels',true]])$(id).checked=settings[key]??fallback;
 const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#0c3342');scene.fog=new THREE.Fog('#0c3342',7,36);
@@ -104,7 +114,8 @@ $('launchForm').onsubmit=event=>{
     url.searchParams.set('quality',$('menuQuality').value);window.rovDesktop?.rememberQuality($('menuQuality').value);
     url.searchParams.set('mission',$('menuMode').value);localStorage.setItem('rov.mission',$('menuMode').value);
     if($('menuIntro').checked)url.searchParams.delete('nointro');else url.searchParams.set('nointro','1');
-    const settings={control:$('menuControl').value,pip:$('menuPip').checked,intro:$('menuIntro').checked,sticks:$('menuSticks').checked,fog:$('menuFog').checked,labels:$('menuLabels').checked};
+    rememberControlLayout($('menuControl').value);
+    const settings={pip:$('menuPip').checked,intro:$('menuIntro').checked,sticks:$('menuSticks').checked,fog:$('menuFog').checked,labels:$('menuLabels').checked};
     localStorage.setItem('rov.menuSettings',JSON.stringify(settings));localStorage.setItem('rov.playerName',$('menuName').value);localStorage.setItem('rov.quality',$('menuQuality').value);localStorage.setItem('rov.operatorVisible',String(settings.pip));localStorage.setItem('rov.vehicle',selected);window.rovDesktop?.rememberModel(selected);
     $('startDive').disabled=true;menu.classList.add('departing');setTimeout(()=>location.assign(url),reduced?0:450);
   }catch(error){$('menuStatus').textContent=error.message;}
