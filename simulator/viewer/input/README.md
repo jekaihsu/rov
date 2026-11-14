@@ -6,9 +6,30 @@ button activates, secondary returns. Focus a binding field and move an axis or
 press a button to capture a binding, or enter `a0`, `-a1`, `b7`, `b7~` (digital
 threshold), or `b7,b6` (positive minus negative). Reset restores defaults.
 
-F cycles assist 0/1/2; G cycles cine/normal/sport. Default assist is 2 and profile
-normal; both fields are omitted until telemetry advertises an assist object. Selecting the drone preset also selects
-UAV_USA channel interpretation; current selects ROV_USA. No PWM meaning changes.
+## Binding table and contexts
+
+`bindings.js` is the only place where default keys and gamepad sources are declared. Each row names an
+action, its context and its sources. Contexts stack from low to high priority: `flight`, `orbit` (orbit
+camera owns the right stick), `tool` (surface paint enabled), `dialogue` (campaign radio waiting for
+confirmation) and `menu` (settings, collection and main menu; exclusive). Inside one context an input
+belongs to one action; the only shared form is a short press (`tap`) plus a long press (`hold`, 650 ms)
+on one button. When contexts stack, the highest one that binds an input owns it, and a button claimed when
+it went down stays claimed until released. `node --test simulator/tests/test_bindings.mjs` fails when two
+actions in one context share an input. Feature modules call `input.registerActions({name: {run, enabled}})`
+with a name that has a row in the table; a context above `flight` is active while one of its registered
+actions reports `enabled()`. On-screen hints (engineering drawer, pilot guide, HUD help card) are rendered
+from the same table.
+
+Defaults (standard mapping): A photo, B record (hold), X depth hold, Y lock, View tap A/S/C mode, View
+hold engineering drawer, Menu light, L3 camera view, R3 tap assist level, R3 hold flight profile, D-pad
+peek cards (up mission, left systems, right map, down keys), LB/RB and LT/RT wheels, View + Menu settings.
+Keyboard: F assist (F sprays instead while surface paint is on), G profile, B gimbal, `[` `]` camera
+pitch, Tab drawer, 1–4 peek cards, Enter confirms dialogue. During dialogue A confirms and holding B skips
+the tutorial; neither reaches photo or record.
+
+Assist level and flight profile belong to the fidelity profile (`../fidelity.js`); the `real` preset starts
+at assist 0. Both RC fields are omitted until telemetry advertises an assist object. Selecting the drone
+preset also selects UAV_USA channel interpretation; current selects ROV_USA. No PWM meaning changes.
 
 Unknown controllers are neutral until calibrated. In the wizard move the first
 four requested controls in the positive directions (right/down/right/down), then

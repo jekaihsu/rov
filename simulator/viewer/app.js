@@ -773,6 +773,7 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
     if (activeModel) activeModel.model.visible = m !== 'onboard';
   }});
 cameraRig.bindInput(input);
+surfacePaint.bindInput(input);
 let camMode = cameraRig.mode;
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);

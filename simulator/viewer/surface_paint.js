@@ -98,6 +98,20 @@ export function installSurfacePaint({THREE, scene, camera, renderer, getState, g
   }
   canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',cancel);canvas.addEventListener('lostpointercapture',cancel);
   window.addEventListener('keydown',keydown);
+  // Once the input layer owns the spray key, the binding table decides when F sprays instead of cycling assist.
+  function bindInput(input) {
+    window.removeEventListener('keydown', keydown);
+    input.registerActions({
+      paintSpray: {
+        enabled: function sprayEnabled() {
+          return enabled && !readOnly && !disposed;
+        },
+        run: function sprayCentre() {
+          spray(0, 0);
+        },
+      },
+    });
+  }
 
   function remove(id){const old=records.get(id);if(old){if(old.geometry){old.geometry.dispose();batchDirty=true;group.userData.markCount--;}records.delete(id);}}
   function rebuildBatch(marks=[]){
@@ -151,5 +165,5 @@ export function installSurfacePaint({THREE, scene, camera, renderer, getState, g
   function dispose(){disposed=true;for(const id of records.keys())remove(id);rebuildBatch();material.dispose();texture.dispose();scene.remove(group);panel.remove();style.remove();reticle.remove();
     canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointercancel',cancel);canvas.removeEventListener('lostpointercapture',cancel);window.removeEventListener('keydown',keydown);
   }
-  return {update,dispose};
+  return {update,dispose,bindInput};
 }
