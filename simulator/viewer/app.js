@@ -1,3 +1,4 @@
+import { updateFlightHUD } from './hud/flight_hud.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -1313,6 +1314,7 @@ function frame(now) {
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
   // pose (smoothed toward latest state)
   replayTick(dt);
+  updateFlightHUD(S, W, dt);
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);

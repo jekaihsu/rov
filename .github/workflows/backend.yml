@@ -1,0 +1,31 @@
+name: Backend
+# Free-plan budget: run only on ready (non-draft) PRs that touch backend code.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "simulator/qysim/**"
+      - "simulator/sdk_mock/**"
+      - "simulator/tests/**.py"
+      - "simulator/requirements*.txt"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: simulator/requirements.txt
+      - run: pip install -r simulator/requirements.txt
+      - name: Unit tests
+        working-directory: simulator
+        run: python -m unittest discover -s tests
