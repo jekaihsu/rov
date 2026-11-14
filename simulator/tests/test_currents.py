@@ -10,7 +10,7 @@ import numpy as np
 
 from qysim.flow import M2_PERIOD_S, Tide, TurbulenceField
 from qysim.physics import KNOT
-from qysim.world import CurrentProfile
+from qysim.world import Box, CurrentProfile, Cylinder, Wall, World
 
 
 def uniform_profile(knots=1.6, direction=180.0, turbulence=0.1, seed=3):
@@ -221,6 +221,116 @@ class TideTests(unittest.TestCase):
         self.assertNotIn("tide", sim.world.current.as_dict())
         with self.assertRaises(ValueError):
             host.handle_viewer({"type": "current", "tide_start": "peak_flood"})
+
+
+def pile_world(radius=3.0, speed=1.0, obstacles=None):
+    """28 m deep world with a uniform turbulence-free 1 m/s current toward north (+x)."""
+    world = World(28.0)
+    knots = speed / KNOT
+    world.current = CurrentProfile(knots, 0, knots, 0, knots, 0, 0.0)
+    world.obstacles = obstacles if obstacles is not None else [
+        Cylinder("pile", (0.0, 0.0, -3.0), (0.0, 0.0, 29.0), radius, "monopile")]
+    return world
+
+
+def time_series(world, point, seconds, dt=0.5):
+    out = []
+    for _ in range(int(seconds / dt)):
+        world.current.step_gust(dt)
+        out.append(world.current_at(np.asarray(point, float)))
+    return np.array(out)
+
+
+class StructureFlowTests(unittest.TestCase):
+    """Gap 2: stagnation, shoulder speed-up, wake deficit, shedding, lee shelter."""
+
+    def test_cylinder_speed_ratios(self):
+        world = pile_world()
+        R, z = 3.0, 12.0
+        at = lambda x, y: np.linalg.norm(time_series(world, (x, y, z), 120.0).mean(axis=0))
+        self.assertLess(at(-1.05 * R, 0), 0.15)                     # stagnation upstream
+        self.assertGreater(at(0, 1.05 * R), 1.8)                    # up to 2U at the shoulder
+        self.assertLess(at(0, 1.05 * R), 2.0 + 1e-9)
+        self.assertLess(at(4 * R, 0), 0.5)                           # near wake (2D behind the axis)
+        wake5d = at(10 * R, 0)
+        self.assertGreater(wake5d, 0.5)
+        self.assertLess(wake5d, 0.7)                                 # 30-50 % deficit at 5 D
+        self.assertGreater(at(40 * R, 0), 0.8)                       # recovering by 20 D
+
+    def test_far_field_matches_free_stream(self):
+        world = pile_world()
+        for point in ((-200.0, 0.0, 12.0), (0.0, 60.0, 12.0), (0.0, -90.0, 20.0)):
+            v = world.current_at(np.array(point))
+            np.testing.assert_allclose(v, [1.0, 0.0, 0.0], atol=0.01)
+
+    def test_field_is_continuous_around_the_pile(self):
+        world = pile_world()
+        world.current.step_gust(3.0)
+        for y in (0.0, 4.0, 8.0):
+            xs = np.linspace(-30.0, 60.0, 1801)
+            pts = np.stack([xs, np.full_like(xs, y), np.full_like(xs, 12.0)], axis=1)
+            v = world.current_at_many(pts)
+            outside = np.hypot(xs, y) > 3.05
+            jumps = np.linalg.norm(np.diff(v, axis=0), axis=1)[outside[1:] & outside[:-1]]
+            self.assertLess(float(jumps.max()), 0.1)
+
+    def test_zero_flow_inside_solids(self):
+        hull = Box("hull", (40.0, 0.0, 4.0), (20.0, 5.0, 4.0), 0.0, "hull")
+        wall = Wall("quay", (-30.0, 0.0, 0.0), 0.0, 60.0, -2.0, "wall")
+        world = pile_world(obstacles=[Cylinder("pile", (0.0, 0.0, -3.0), (0.0, 0.0, 29.0), 3.0), hull, wall])
+        for point in ((1.0, 1.0, 10.0), (40.0, 0.0, 4.0), (-35.0, 0.0, 10.0)):
+            np.testing.assert_array_equal(world.current_at(np.array(point)), np.zeros(3))
+
+    def test_shedding_period_follows_strouhal(self):
+        world = pile_world(radius=3.0, speed=1.0)
+        v = time_series(world, (12.0, 1.0, 12.0), 600.0, dt=0.5)
+        lateral = v[:, 1] - v[:, 1].mean()
+        spectrum = np.abs(np.fft.rfft(lateral))
+        freqs = np.fft.rfftfreq(len(lateral), 0.5)
+        peak = freqs[int(np.argmax(spectrum[1:])) + 1]
+        self.assertAlmostEqual(1.0 / peak, 6.0 / (0.2 * 1.0), delta=3.0)   # D / (St U) = 30 s
+        self.assertGreater(lateral.std(), 0.05)
+
+    def test_jacket_leg_sheds_faster_and_brace_respects_its_axis(self):
+        leg = Cylinder("leg", (0.0, 0.0, -3.0), (0.0, 0.0, 29.0), 0.6, "jacket_leg")
+        world = pile_world(obstacles=[leg])
+        v = time_series(world, (2.4, 0.2, 12.0), 120.0, dt=0.1)
+        lateral = v[:, 1] - v[:, 1].mean()
+        freqs = np.fft.rfftfreq(len(lateral), 0.1)
+        peak = freqs[int(np.argmax(np.abs(np.fft.rfft(lateral))[1:])) + 1]
+        self.assertAlmostEqual(1.0 / peak, 1.2 / 0.2, delta=1.0)
+        brace = Cylinder("brace", (-10.0, 0.0, 10.0), (10.0, 0.0, 10.0), 0.25, "brace")   # along the flow
+        aligned = pile_world(obstacles=[brace])
+        np.testing.assert_allclose(aligned.current_at(np.array([0.0, 0.6, 10.0])), [1.0, 0.0, 0.0], atol=1e-9)
+
+    def test_lee_shelter_behind_hull_and_wall_layer(self):
+        hull = Box("hull", (0.0, 0.0, 4.0), (10.0, 5.0, 4.0), 90.0, "hull")       # beam-on to the flow
+        world = pile_world(obstacles=[hull])
+        behind = np.linalg.norm(world.current_at(np.array([7.0, 0.0, 4.0])))
+        far = np.linalg.norm(world.current_at(np.array([7.0, 0.0, 14.0])))
+        ahead = np.linalg.norm(world.current_at(np.array([-7.0, 0.0, 4.0])))
+        self.assertLess(behind, 0.5)
+        self.assertLess(ahead, 0.9)
+        self.assertAlmostEqual(far, 1.0, delta=0.02)
+        quay = Wall("quay", (0.0, 20.0, 0.0), 270.0, 100.0, -2.0, "wall")           # flow runs along it
+        side = pile_world(obstacles=[quay])
+        near = np.linalg.norm(side.current_at(np.array([0.0, 19.9, 10.0])))
+        self.assertLess(near, 0.7)                                   # (0.1 m / 2 m)^(1/7) = 0.65
+        self.assertAlmostEqual(np.linalg.norm(side.current_at(np.array([0.0, 15.0, 10.0]))), 1.0, delta=1e-9)
+
+    def test_performance_budget(self):
+        from qysim.engine import Simulator
+        import time
+        sim = Simulator("jacket_inspection")
+        nodes = sim.tether.x.copy()
+        sim.world.current_at_many(nodes)
+        start = time.process_time()
+        for _ in range(100):
+            sim.world.current_at_many(nodes)
+        per_call = (time.process_time() - start) / 100
+        self.assertLess(per_call, 0.004)            # 41 tether nodes among 24 jacket members
+        open_water = Simulator("open_water")
+        self.assertTrue(open_water.world.structure_flow().empty)
 
 
 if __name__ == "__main__":

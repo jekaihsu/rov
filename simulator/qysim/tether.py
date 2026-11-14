@@ -158,7 +158,7 @@ class Tether:
         gland = rov_pos + q_rot(rov_q, self.gland_body)
         h = dt / p.substeps
         f_rov = np.zeros(3)
-        self._cur = self.world.current.sample_many(self.x, self.world.seabed_depth, t_now)
+        self._cur = self.world.current_at_many(self.x, t_now)
         self._cand = self.world.near(self.x.min(axis=0), self.x.max(axis=0), 2.0)
         self._contact_anchor = None
         complete = False

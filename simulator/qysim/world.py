@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .flow import Tide, TurbulenceField, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors
+from .flow import StructureFlow, Tide, TurbulenceField, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors
 from .physics import KNOT, q_rot
 
 WORLD_UP = np.array([0.0, 0.0, -1.0])
@@ -269,6 +269,7 @@ class CurrentProfile:
     _layer_cache: object = field(default=None, repr=False)
     _inj: dict | None = field(default=None, repr=False)
     _tide_cache: object = field(default=None, repr=False)
+    _travel: float = field(default=0.0, repr=False)
 
     # ── layers and mean profile ───────────────────────────────────────────
     def layer(self, which: str) -> np.ndarray:
@@ -411,6 +412,7 @@ class CurrentProfile:
         self._clock += dt
         after = self.depth_average()
         advect = 0.5 * (before + after)
+        self._travel += float(np.linalg.norm(advect)) * dt
         _, ell = self.turbulence_scales()
         self._field().advance(dt, advect, ell, self.turbulence * float(np.linalg.norm(advect)))
 
@@ -424,6 +426,14 @@ class CurrentProfile:
         norm = float(np.linalg.norm(fallback))
         fallback = fallback / norm if norm > 1e-9 else np.array([1.0, 0.0, 0.0])
         return turbulence_vectors(unit, mean, self.turbulence, positions[:, 2], fallback)
+
+    def shedding_travel(self, depths, seabed: float) -> np.ndarray:
+        """Integrated free-stream distance (m) per depth: sets vortex-shedding phase (f = St U / D)."""
+        avg = float(np.linalg.norm(self.depth_average(seabed)))
+        if avg < 1e-3:
+            return np.full(len(np.atleast_1d(depths)), self._travel)
+        local = np.linalg.norm(self.mean_many(np.atleast_1d(depths), seabed), axis=1)
+        return self._travel * local / avg
 
     # ── sampling ──────────────────────────────────────────────────────────
     def sample_many(self, positions: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
@@ -514,6 +524,34 @@ class World:
         return float(self.terrain.sample_many(np.asarray(position)[None, :])[0][0])
 
     depth_at = seabed_at
+
+    # ── water flow ────────────────────────────────────────────────────────
+    def structure_flow(self) -> StructureFlow:
+        """Cached analytic flow disturbance for the current obstacle list (habitat props excluded)."""
+        key = (id(self.obstacles), len(self.obstacles))
+        cached = getattr(self, "_structure_flow", None)
+        if cached is None or cached[0] != key:
+            cached = (key, StructureFlow(self.obstacles))
+            self._structure_flow = cached
+        return cached[1]
+
+    def current_at_many(self, points, t: float | None = None) -> np.ndarray:
+        """Full local water velocity (NED m/s) at points: ambient profile + turbulence + structures.
+
+        This is the flow the vehicle, tether, silt, fish and work objects feel. ``t`` is accepted
+        for API symmetry; the field is evaluated at the current simulation instant (the profile
+        clock advanced once per tick by ``CurrentProfile.step_gust``). Zero inside solids.
+        """
+        P = np.atleast_2d(np.asarray(points, float))
+        U = self.current.sample_many(P, self.seabed_depth)
+        flow = self.structure_flow()
+        if flow.empty:
+            return U
+        return flow.apply(P, U, self.current.shedding_travel(P[:, 2], self.seabed_depth))
+
+    def current_at(self, point, t: float | None = None) -> np.ndarray:
+        """Single-point ``current_at_many``."""
+        return self.current_at_many(np.asarray(point, float)[None, :], t)[0]
 
     # ── queries ───────────────────────────────────────────────────────────
     def sdf(self, x: np.ndarray) -> tuple[float, np.ndarray, str]:
@@ -679,7 +717,7 @@ class World:
             elapsed, self._ecology_accumulator = self._ecology_accumulator, 0.0
             step_schools(self, elapsed, vehicles)
             for c in self.silt_clouds:
-                c["pos"] += self.current.sample(c["pos"], self.seabed_depth, self.time) * elapsed
+                c["pos"] += self.current_at(c["pos"], self.time) * elapsed
                 c["pos"][2] = min(self.seabed_at(c["pos"]), c["pos"][2] + .025 * elapsed)
                 c["radius"] += .09 * elapsed
                 c["strength"] *= math.exp(-elapsed / 9)

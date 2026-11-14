@@ -9,6 +9,8 @@ Pieces
                      plus a slow eddy evolution. The state is integrated once per tick, so the
                      field and its time derivative are bounded and independent of the step size.
     Tide             optional M2/S2 tidal modulation of the layer profile, rectilinear or rotary.
+    StructureFlow    analytic flow around cylinders (doublet, Gaussian wake, Strouhal shedding)
+                     and lee shelter / blocking around boxes, wreck meshes and walls.
 """
 
 from __future__ import annotations
@@ -21,9 +23,16 @@ import numpy as np
 M2_PERIOD_S = 12.4206012 * 3600.0    # principal lunar semidiurnal constituent
 S2_PERIOD_S = 12.0 * 3600.0          # principal solar semidiurnal constituent
 TIDE_STARTS = ("peak_flood", "slack_before_ebb", "peak_ebb", "slack_before_flood")
+STROUHAL = 0.2                       # high-Re circular cylinder (assumed constant)
 
 # streamwise : cross-stream : vertical turbulence ratios (Islay 1 : 0.75 : 0.55, open channel 0.71/0.55)
 COMPONENT_RATIOS = np.array([1.0, 0.7, 0.5])
+
+
+def smoothstep(x):
+    """C1 ramp 0..1 for x in 0..1 (clamped)."""
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3.0 - 2.0 * x)
 
 
 def cosine_ramp(x: float) -> float:
@@ -245,3 +254,156 @@ def turbulence_vectors(unit: np.ndarray, mean: np.ndarray, intensity: float, dep
     v = unit[:, 1] * (COMPONENT_RATIOS[1] * sigma)
     w = unit[:, 2] * (COMPONENT_RATIOS[2] * sigma) * np.clip(np.asarray(depths, float) * 0.5, 0.0, 1.0)
     return np.stack([ex * u - ey * v, ey * u + ex * v, w], axis=1)
+
+
+# ── structures ───────────────────────────────────────────────────────────────
+WAKE_DECAY_D = 3.0          # centreline deficit 1/(1 + x/(3D)): 0.75 at 1D, 0.38 at 5D, 0.13 at 20D (assumed)
+SHED_AMPLITUDE = 0.4        # peak transverse shedding velocity / U in the near wake (assumed)
+WAKE_RANGE_D = 40.0         # wake ignored beyond 40 D downstream
+LEE_SHELTER = 0.7           # speed reduction right behind a box / wreck section (assumed)
+FRONT_BLOCKING = 0.5        # speed reduction at an upstream face (assumed)
+
+
+class StructureFlow:
+    """Analytic flow disturbance by the world's obstacles (habitat props are ignored).
+
+    Cylinders of any orientation use the flow component normal to their axis: potential-flow
+    doublet (stagnation upstream, 2U at the shoulders), a Gaussian wake behind them and an
+    alternating transverse shedding velocity at f = St U / D. Boxes and wreck meshes give a lee
+    shelter that decays over three body sizes and a weaker blocking zone in front. Walls block
+    the normal component and slow the flow in a 2 m boundary layer. Flow is zero inside solids.
+    """
+
+    def __init__(self, obstacles: list):
+        from .world import Box, Cylinder, FieldMesh, Wall
+        cyl = [o for o in obstacles if isinstance(o, Cylinder) and o.kind != "habitat"]
+        self.n_cyl = len(cyl)
+        self.cyl_a = np.array([o.p0 for o in cyl], float).reshape(-1, 3)
+        b = np.array([o.p1 for o in cyl], float).reshape(-1, 3)
+        axis = b - self.cyl_a
+        self.cyl_len = np.linalg.norm(axis, axis=1)
+        self.cyl_axis = axis / np.maximum(self.cyl_len, 1e-9)[:, None]
+        self.cyl_r = np.array([o.radius for o in cyl], float)
+        self.cyl_phase = np.arange(self.n_cyl) * 2.399963          # decorrelate neighbouring wakes
+        self.boxes = []
+        for o in obstacles:
+            if isinstance(o, Box) and o.kind != "habitat":
+                self.boxes.append((o, np.asarray(o.center, float), np.asarray(o.half, float),
+                                   math.radians(o.yaw_deg), True))
+            elif isinstance(o, FieldMesh):
+                centre_local = 0.5 * (o.lo + o.hi)
+                half = 0.5 * (o.hi - o.lo)
+                centre = o.world_point(centre_local)
+                self.boxes.append((o, centre, np.array([half[0], half[1], half[2]]),
+                                   math.radians(o.heading_deg), False))
+        self.walls = [o for o in obstacles if isinstance(o, Wall)]
+        reach = [np.r_[self.cyl_r * 2 * WAKE_RANGE_D, 0.0].max()]
+        for _, centre, half, _, _ in self.boxes:
+            reach.append(float(np.linalg.norm(half)) * 8)
+        self.reach = float(max(reach))
+
+    @property
+    def empty(self) -> bool:
+        return not (self.n_cyl or self.boxes or self.walls)
+
+    def apply(self, X: np.ndarray, U: np.ndarray, travel: np.ndarray) -> np.ndarray:
+        """Disturbed velocities for points ``X`` given ambient velocities ``U``.
+
+        ``travel`` is the per-point integrated free-stream distance (m) that sets the shedding phase.
+        """
+        V = U.copy()
+        if self.n_cyl:
+            V = self._cylinders(X, V, travel)
+        for box in self.boxes:
+            V = self._box(X, V, *box)
+        for wall in self.walls:
+            V = self._wall(X, V, wall)
+        return V
+
+    def _cylinders(self, X, U, travel):
+        a, ax, R = self.cyl_a, self.cyl_axis, self.cyl_r
+        rel = X[:, None, :] - a[None, :, :]
+        t = np.einsum("nmi,mi->nm", rel, ax)
+        t_in = np.clip(t, 0.0, self.cyl_len[None, :])
+        perp = rel - t_in[..., None] * ax[None, :, :]
+        along = (t - t_in)
+        perp = perp - along[..., None] * ax[None, :, :]
+        r = np.linalg.norm(perp, axis=2)
+        end_fade = np.exp(-(along / np.maximum(R, 0.3)[None, :]) ** 2)
+        Ua = np.einsum("ni,mi->nm", U, ax)
+        Up_vec = U[:, None, :] - Ua[..., None] * ax[None, :, :]
+        Up = np.linalg.norm(Up_vec, axis=2)
+        e1 = Up_vec / np.maximum(Up, 1e-9)[..., None]
+        e2 = np.cross(ax[None, :, :], e1)
+        x = np.einsum("nmi,nmi->nm", perp, e1)
+        y = np.einsum("nmi,nmi->nm", perp, e2)
+        Rm = R[None, :]
+        D = 2 * Rm
+        r2 = np.maximum(r * r, (Rm * Rm))
+        doublet_u = -Rm * Rm * (x * x - y * y) / (r2 * r2)
+        doublet_v = -Rm * Rm * 2 * x * y / (r2 * r2)
+        xp = np.maximum(x, 0.0)
+        onset = smoothstep(x / Rm)
+        width = Rm * np.sqrt(1.0 + xp / D)
+        amp = 1.0 / (1.0 + xp / (WAKE_DECAY_D * D))
+        reach = (x < WAKE_RANGE_D * D).astype(float)
+        deficit = amp * np.exp(-0.5 * (y / width) ** 2) * onset * reach
+        st_travel = travel[:, None] * np.ones_like(Rm)
+        phase = 2 * math.pi * (STROUHAL * st_travel / D - xp / (4.0 * D)) + self.cyl_phase[None, :]
+        shed = SHED_AMPLITUDE * amp * onset * reach * np.exp(-0.5 * (y / (1.5 * width)) ** 2) * np.sin(phase)
+        u1 = (1.0 + doublet_u) * (1.0 - deficit)
+        u2 = doublet_v * (1.0 - deficit) + shed
+        delta = ((u1 - 1.0) * Up)[..., None] * e1 + (u2 * Up)[..., None] * e2
+        active = (Up > 1e-4)[..., None]
+        V = U + (delta * end_fade[..., None] * active).sum(axis=1)
+        inside = ((r < R[None, :]) & (np.abs(along) < 1e-9)).any(axis=1)
+        V[inside] = 0.0
+        return V
+
+    @staticmethod
+    def _box(X, U, ob, centre, half, yaw, solid):
+        c, s = math.cos(yaw), math.sin(yaw)
+        rel = X - centre
+        lx = c * rel[:, 0] + s * rel[:, 1]
+        ly = -s * rel[:, 0] + c * rel[:, 1]
+        lz = rel[:, 2]
+        inside = (np.abs(lx) <= half[0]) & (np.abs(ly) <= half[1]) & (np.abs(lz) <= half[2])
+        speed = np.linalg.norm(U[:, :2], axis=1)
+        d = U[:, :2] / np.maximum(speed, 1e-9)[:, None]
+        dx = c * d[:, 0] + s * d[:, 1]
+        dy = -s * d[:, 0] + c * d[:, 1]
+        along = lx * dx + ly * dy
+        across = -lx * dy + ly * dx
+        depth_half = np.abs(half[0] * dx) + np.abs(half[1] * dy)
+        width_half = np.abs(half[0] * dy) + np.abs(half[1] * dx)
+        size = np.maximum(np.minimum(2 * width_half, 2 * half[2]), 0.5)
+        margin = 0.3 * width_half + 0.5
+        lateral = np.clip((width_half + margin - np.abs(across)) / margin, 0.0, 1.0)
+        vertical = np.clip((half[2] + 0.5 * half[2] + 0.5 - np.abs(lz)) / (0.5 * half[2] + 0.5), 0.0, 1.0)
+        behind = np.maximum(along - depth_half, 0.0)
+        front = np.maximum(-along - depth_half, 0.0)
+        lee = LEE_SHELTER * np.exp(-behind / (3.0 * size)) * (along > 0)
+        block = FRONT_BLOCKING * np.exp(-front / size) * (along <= 0)
+        factor = 1.0 - (lee + block) * lateral * vertical * (speed > 1e-6)
+        V = U * factor[:, None]
+        if solid:
+            V[inside] = 0.0
+        else:
+            V[inside] = U[inside] * (1.0 - 0.8)
+        return V
+
+    @staticmethod
+    def _wall(X, U, wall):
+        dist, normal = wall.sdf_many(X)
+        if not np.any(dist < 3.0):
+            return U
+        n = normal
+        un = np.einsum("ni,ni->n", U, n)
+        tangential = U - un[:, None] * n
+        layer = np.clip(np.maximum(dist, 0.0) / 2.0, 1e-3, 1.0) ** (1.0 / 7.0)
+        into = np.minimum(un, 0.0) * np.clip(dist / 3.0, 0.0, 1.0)
+        away = np.maximum(un, 0.0)
+        V = tangential * layer[:, None] + (into + away)[:, None] * n
+        V[dist <= 0.0] = 0.0
+        near = dist < 3.0
+        return np.where(near[:, None], V, U)

@@ -415,6 +415,17 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   `invalid_command` and change nothing. Scenarios without a tide ignore `tide_start` on load.
 * The former 18 % travelling sine "local flow" pattern (fixed 1 m/s drift toward 37.6°, independent of
   the real current) was removed; spatial variation now comes from the turbulence field.
-* Backend consumers call `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` (ambient
-  flow); the signatures are unchanged. `t` is accepted for compatibility; the field is evaluated at the
+* **Structures** (`StructureFlow`): around every non-habitat cylinder (piles, monopiles, jacket legs,
+  braces, masts; any orientation, using the flow normal to the axis) the host adds a potential-flow
+  doublet (stagnation upstream, up to 2U at the shoulders), a Gaussian wake (centreline deficit
+  1/(1 + x/3D): ≈ 40 % at 5 D, ≈ 13 % at 20 D, ignored past 40 D) and alternating transverse
+  vortex shedding at St = 0.2 (period D / 0.2U, ≈ 30 s for a 6 m pile in 1 m/s, ≈ 6 s for a
+  1.2 m leg). Boxes (hulls, caissons) and wreck meshes get a lee shelter (−70 % right behind,
+  decaying over three body sizes) and an upstream blocking zone (−50 %); walls block the normal
+  component and slow the flow in a 2 m wall layer. Flow is zero inside solids. These are
+  provisional engineering approximations, not CFD.
+* `World.current_at(point, t)` / `World.current_at_many(points, t)` return this **full local flow**
+  (ambient + structures); the vehicle, tether nodes, silt, fish and work objects use it.
+* `CurrentProfile.sample(position, seabed, t)` / `sample_many(...)` keep their signatures and return
+  the **ambient** flow only (no structures, nominal seabed). `t` is accepted for compatibility; the field is evaluated at the
   profile clock that `step_gust(dt)` advances once per tick.
