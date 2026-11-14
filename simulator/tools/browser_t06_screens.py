@@ -13,7 +13,7 @@ with sync_playwright() as p:
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.add_init_script("""window.testButtons=Array.from({length:17},()=>({pressed:false,value:0}));
-    navigator.getGamepads=()=>[{connected:true,index:0,id:'Standard Gamepad',axes:[0,0,0,0],buttons:testButtons}];""")
+    window.padReads=0; navigator.getGamepads=()=>{window.padReads++;return [{connected:true,index:0,id:'Standard Gamepad',axes:[0,0,0,0],buttons:testButtons}];};""")
     page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&room=t06screens&nointro')
     page.wait_for_function('window.__menu?.ready')
     def shot(name):
@@ -21,9 +21,9 @@ with sync_playwright() as p:
         page.screenshot(path=str(OUT / f'{name}.png'))
     def press(index):
         page.evaluate('(i)=>testButtons[i]={pressed:true,value:1}', index)
-        page.wait_for_timeout(500)
+        page.wait_for_function('(prior)=>padReads>prior+2',arg=page.evaluate('padReads'))
         page.evaluate('(i)=>testButtons[i]={pressed:false,value:0}', index)
-        page.wait_for_timeout(500)
+        page.wait_for_function('(prior)=>padReads>prior+2',arg=page.evaluate('padReads'))
     def focus_button(text):
         for _ in range(60):
             if page.evaluate('(text)=>document.activeElement?.textContent===text', text):

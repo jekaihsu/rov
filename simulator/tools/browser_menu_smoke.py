@@ -36,6 +36,9 @@ with sync_playwright() as p:
     page.select_option('#menuControl','UAV_CHN')
     page.get_by_role('button',name='返回',exact=True).click()
     page.get_by_role('button',name='快速開始',exact=True).click()
+    print('LAUNCH',page.url,flush=True)
+    page.wait_for_function('window.__viewer?.S', timeout=90000)
+    print('STATE',page.evaluate('({scenario:window.__viewer?.W?.scenario,model:window.__viewer?.S?.model_id,mode:window.__viewer?.S?.operation_mode})'),flush=True)
     page.wait_for_function('window.__viewer?.W?.scenario?.key==="seagrass_meadow" && window.__viewer?.S?.model_id==="bluerov2_heavy" && window.__viewer?.S?.operation_mode==="UAV_CHN" && window.__modelLoaded')
     assert not page.locator('#launchMenu').count()
     for id in ['vehicleSelect','serverAddress','roomCode','opMode','scnSel','quality']:
