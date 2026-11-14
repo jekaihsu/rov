@@ -49,6 +49,7 @@ DEFAULT_CHECKS = (
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
     'browser_link_smoke',
+    'browser_vehicle_assets_smoke',
 )
 
 

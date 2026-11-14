@@ -31,6 +31,7 @@ python tools/build_support_assets.py             # 重新產生 workboat.glb / w
 | 操作台 `pilot_station.js` | 程式即時產生（three.js 幾何） | 兩個 canvas 螢幕（遙測、聲納） | — |
 
 未壓縮時船的貼圖約佔 95 MB 顯示記憶體（WebP 在 GPU 上仍是 RGBA8）。專案目前沒有 KTX2 編碼工具，這是之後該補的。
+（`intro-v2/` 之後預設品質降到約 23.5 MiB，只有「高」品質載入 2048 船殼貼圖，約 59.5 MiB。）
 
 ## 改善了什麼
 
@@ -58,5 +59,6 @@ python tools/build_support_assets.py             # 重新產生 workboat.glb / w
 - 下水動畫本身仍是「人把 ROV 拋過艉板」。研究報告記載 V6 家族的手冊要求只用纜線把 ROV 放入水中、不可拋擲
   （`docs/reference/real-rov-research.md`），X1 約 30 kg 的吊放方式沒有公開文件。新船已備有 A 架與絞車，
   改成吊放或順纜放入是動畫的後續工作，不在本次範圍。
-- 船只有一級 LOD，沒有碰撞代理；水下仰視時船底在這套燈光下偏暗（遊戲內由水面亮度襯托成剪影，屬合理）。
+  （已由 `intro-v2/` 改為 A 架吊放，見該目錄的 README。）
+- 船只有一級 LOD，沒有碰撞代理（`intro-v2/` 已補兩級 LOD、碰撞代理與貼圖分級）；水下仰視時船底在這套燈光下偏暗（遊戲內由水面亮度襯托成剪影，屬合理）。
 - X1 與實船尺寸、甲板配置是假設的典型小型支援船配置，不是任何實船或廠商資料。
