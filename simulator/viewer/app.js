@@ -31,6 +31,7 @@ import {installPilotGuide} from './pilot_guide.js';
 import {drawROVAttitude} from './attitude_indicator.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { readReplay } from './replay_store.js';
+import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -450,7 +451,7 @@ let menuSettings={};try{menuSettings=JSON.parse(localStorage.getItem('rov.menuSe
 for(const [id,key]of [['optSticks','sticks'],['optFog','fog'],['optLabels','labels'],['optIntro','intro']])if(typeof menuSettings[key]==='boolean')$(id).checked=menuSettings[key];
 const preferredPad=params.get('pad')||'auto';
 let launchScene=params.get('scenario');
-let launchControl=params.get('control');
+let launchControl=params.get('control')||storedControlLayout();
 let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
@@ -730,7 +731,7 @@ $('btnLoad').onclick = () => {
 $('btnReset').onclick = () => send({ type: 'reset' });
 $('btnPause').onclick = () => send({ type: 'pause', value: !(S && S.paused) });
 $('btnRelease').onclick = () => send({ type: 'remote_release' });
-$('opMode').onchange = () => send({ type: 'operation_mode', value: $('opMode').value });
+$('opMode').onchange = () => { rememberControlLayout($('opMode').value); send({ type: 'operation_mode', value: $('opMode').value }); };
 $('autoPay').onchange = () => send({ type: 'auto_payout', value: $('autoPay').checked });
 document.querySelectorAll('[data-pay]').forEach((b) => (b.onclick = () => send({ type: 'payout', metres: +b.dataset.pay })));
 $('kbGain').oninput = () => ($('kbGainV').textContent = Math.round($('kbGain').value * 100) + '%'); $('kbGain').oninput();
@@ -1189,7 +1190,7 @@ function frame(now) {
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
   // pose (smoothed toward latest state)
   replayTick(dt);
-  updateFlightHUD(S, W, dt, input.hudState());
+  updateFlightHUD(renderState.display(S), W, dt, input.hudState());
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);
@@ -1238,7 +1239,7 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
-  audio.update(S);
+  audio.update(renderState.display(S));
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
