@@ -1,11 +1,45 @@
-# ROV-01 自制小型观测级 ROV
+# ROV 水下機器人模擬器
 
-- 设计方案（路线图 / 技术难点 / 成本）：[docs/ROV-设计方案.md](docs/ROV-设计方案.md)
-- 浮力材 Rev B（合成泡沫肩部浮力块）：[docs/浮力材-RevB.md](docs/浮力材-RevB.md) · Blender：[cad/X1-buoyancy-revB.blend](cad/X1-buoyancy-revB.blend)
-- 互动 3D 操控模拟器：[sim/index.html](sim/index.html)（在 `sim/` 目录执行 `python3 -m http.server` 后打开）
-- 图纸
-  - A-001 总装爆炸图：[SVG](drawings/rov-exploded.svg) · [PNG](drawings/rov-exploded.png)
-  - A-002 推进器布置与推力分配图：[SVG](drawings/rov-thrusters.svg) · [PNG](drawings/rov-thrusters.png)
+目前版本：0.3.0（單一來源：`VERSION`）。
 
-![爆炸图](drawings/rov-exploded.png)
-![推进器布置](drawings/rov-thrusters.png)
+共用同一套物理與協定，支援兩個目標：公司內部操作員訓練與 SDK／AI 整合沙盒，以及 Steam 發行的協作潛航遊戲。
+
+## 啟動
+
+```sh
+cd simulator
+pip install -r requirements.txt
+python -m qysim.server
+```
+
+開啟 http://127.0.0.1:8080/；回放使用 `/viewer/index.html?replay=demo_recording.json`。
+
+## 測試與建置
+
+```sh
+cd simulator
+python -m unittest discover -s tests
+node --test tests/*.mjs
+python tools/vendor_manifest.py --check
+python tools/sync_version.py --check
+python tools/build_showcase.py
+```
+
+瀏覽器測試需安裝 `playwright` 與 Chrome，啟動 `python -m qysim.server --http-port 8092 --ws-port 8792`，
+再執行 `python tools/browser_smoke.py` 與 `python tools/browser_menu_smoke.py`。
+桌面版：`cd simulator/desktop && npm ci && npm run vendor`。
+
+## 目錄
+
+- `simulator/qysim/`：權威物理後端。
+- `simulator/viewer/`：原生 ES modules 前端與精簡 three.js。
+- `simulator/sdk_mock/`：SDK 整合沙盒。
+- `simulator/desktop/`：Electron 桌面版。
+- `simulator/tests/`、`simulator/tools/`：測試與建置工具。
+- `docs/tasks/`：任務書；[代理工作規範](AGENTS.md)。
+- [舊硬體設計文件](docs/hardware/README.md)。
+
+`docs/showcase/` 為忽略的產生物；main 更新時由 Actions 建置並部署 Pages。
+新增 three.js import 後執行 `python simulator/tools/vendor_manifest.py --prune`，提交更新後的清單及依賴。
+更新版本時修改 `VERSION`，執行 `python simulator/tools/sync_version.py` 並提交產生的版本資訊。
+授權狀態見 [LICENSING.md](LICENSING.md)。

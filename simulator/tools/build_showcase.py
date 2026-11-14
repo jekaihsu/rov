@@ -16,6 +16,8 @@ import base64
 import json
 import re
 import shutil
+
+from vendor_manifest import copy_vendor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,7 +48,8 @@ def build(out: Path, glb_json: bool, overrides: dict | None = None) -> None:
     (out / "index.html").write_text(html, encoding="utf-8")
     for f in PAGES:
         shutil.copy2(VIEWER / f, out / f)
-    shutil.copytree(VIEWER / "vendor", out / "vendor", dirs_exist_ok=True)
+    shutil.rmtree(out / "vendor", ignore_errors=True)
+    copy_vendor(out / "vendor")
     for f in MODELS:
         src = VIEWER / "models" / f
         if overrides and f in overrides:

@@ -1,0 +1,12 @@
+[
+  "LICENSE",
+  "build/three.module.js",
+  "examples/jsm/controls/OrbitControls.js",
+  "examples/jsm/geometries/DecalGeometry.js",
+  "examples/jsm/libs/meshopt_decoder.module.js",
+  "examples/jsm/loaders/GLTFLoader.js",
+  "examples/jsm/objects/Sky.js",
+  "examples/jsm/objects/Water.js",
+  "examples/jsm/utils/BufferGeometryUtils.js",
+  "examples/jsm/utils/SkeletonUtils.js"
+]
