@@ -34,7 +34,7 @@ def vendor_file(name, check=False):
     if check:
         raise ValueError(f"Missing vendor file: {name}. {REGENERATE}")
     package = NPM_THREE / "package.json"
-    if not package.is_file() or json.loads(package.read_text())["version"] != THREE_VERSION:
+    if not package.is_file() or json.loads(package.read_text(encoding="utf-8"))["version"] != THREE_VERSION:
         raise ValueError(f"Install three@{THREE_VERSION} before restoring {name}. {REGENERATE}")
     source = NPM_THREE / name
     if not source.is_file():
@@ -58,7 +58,7 @@ def manifest(check=False):
         if file in visited:
             continue
         visited.add(file)
-        source = re.sub(r"/\*.*?\*/|^[ \t]*//[^\n]*", "", file.read_text(), flags=re.S | re.M)
+        source = re.sub(r"/\*.*?\*/|^[ \t]*//[^\n]*", "", file.read_text(encoding="utf-8"), flags=re.S | re.M)
         for spec in IMPORT.findall(source):
             if spec == "three":
                 target = VIEWER / "vendor/three/build/three.module.js"
@@ -76,7 +76,7 @@ def manifest(check=False):
             pending.append(target)
     files = [p.relative_to(VIEWER / "vendor/three").as_posix()
              for p in visited if p.is_relative_to(VIEWER / "vendor/three")]
-    data = json.loads(MANIFEST.read_text())
+    data = json.loads(MANIFEST.read_text(encoding="utf-8"))
     modules = sorted(["LICENSE", *files])
     for name in set(modules + data["runtime"]):
         vendor_file(name, check)
@@ -91,7 +91,7 @@ def prune_vendor(data):
 
 
 def copy_vendor(destination):
-    for name in vendor_files(json.loads(MANIFEST.read_text())):
+    for name in vendor_files(json.loads(MANIFEST.read_text(encoding="utf-8"))):
         target = destination / "three" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(VIEWER / "vendor/three" / name, target)
@@ -105,10 +105,10 @@ if __name__ == "__main__":
     try:
         data = manifest(check=args.check)
         if args.check:
-            if json.loads(MANIFEST.read_text()) != data:
+            if json.loads(MANIFEST.read_text(encoding="utf-8")) != data:
                 raise ValueError(f"Vendor manifest is stale. {REGENERATE}")
         else:
-            MANIFEST.write_text(json.dumps(data, indent=2) + "\n")
+            MANIFEST.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
         files = vendor_files(data)
         if args.prune:
             if args.check:

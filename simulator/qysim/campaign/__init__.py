@@ -5,7 +5,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, ValidationError
 
 DATA = Path(__file__).resolve().parents[2] / 'campaign'
-SCHEMA = Draft202012Validator(json.loads((DATA / 'schema.json').read_text()))
+SCHEMA = Draft202012Validator(json.loads((DATA / 'schema.json').read_text(encoding='utf-8')))
 # Chapter list order: the story campaign first, then the standalone incident drills.
 CATEGORIES = ('story', 'incident')
 CHAPTER_FIELDS = ('id', 'title', 'requires', 'placeholder', 'outline', 'category', 'order')
@@ -70,8 +70,8 @@ def condition_matches(condition, state):
 class Campaign:
     def __init__(self, room):
         self.room = room
-        self.scripts = {p.stem: validate(json.loads(p.read_text())) for p in sorted(DATA.glob('*.json'))
-                        if p.name != 'schema.json'}
+        self.scripts = {p.stem: validate(json.loads(p.read_text(encoding='utf-8')))
+                        for p in sorted(DATA.glob('*.json')) if p.name != 'schema.json'}
         self.chapter = None
         self.index = 0
         self.completed = []

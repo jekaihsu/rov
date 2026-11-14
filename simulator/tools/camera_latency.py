@@ -72,11 +72,11 @@ def main():
                     raise RuntimeError(f'{name} trial {trial+1}: no movement within 5s')
                 rows['neutral'] = neutral
                 values.append(rows['latency'])
-                (output / f'{name}-{trial+1}.json').write_text(json.dumps(rows))
+                (output / f'{name}-{trial+1}.json').write_text(json.dumps(rows), encoding='utf-8')
                 print(name, 'trial', trial+1, 'latency_ms_20mm', rows['latency'], flush=True)
             result = {'values_ms': values, 'median_ms': statistics.median(values),
                       'min_ms': min(values), 'max_ms': max(values)}
-            (output / f'{name}-summary.json').write_text(json.dumps(result, indent=2))
+            (output / f'{name}-summary.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
             print(name, result, flush=True)
             page.close()
         browser.close()
