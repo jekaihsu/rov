@@ -2,6 +2,7 @@
 // No screenshot is generated here: capture the renderer immediately afterwards,
 // before any animation/update, so matrices and the image describe the same view.
 import * as THREE from 'three';
+import {kelpFlowAt,kelpStir} from './kelp_flow.js';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const NED=p=>[p.z,-p.x,-p.y];
@@ -29,10 +30,12 @@ function bentProxy(mesh,index){
   const u=mesh.userData.observationBend, local=new THREE.Matrix4();mesh.getMatrixAt(index,local);
   const geo=mesh.geometry.clone(), pos=geo.attributes.position;
   const phase=local.elements[12]*.37+local.elements[14]*.53;
+  const flow=u.uFlowGrid?kelpFlowAt(u,local.elements[12],local.elements[14]):u.uFlow.value;
+  const stir=u.uFlowGrid?kelpStir(flow):1;
   for(let i=0;i<pos.count;i++){
-    const h=pos.getY(i),sway=Math.sin(u.uTime.value*.9+phase+h*.6)*.35+Math.sin(u.uTime.value*1.7+phase*2.1)*.12;
+    const h=pos.getY(i),sway=(Math.sin(u.uTime.value*.9+phase+h*.6)*.35+Math.sin(u.uTime.value*1.7+phase*2.1)*.12)*stir;
     const bend=h*h*1.1;
-    pos.setXYZ(i,pos.getX(i)+(u.uFlow.value.x*1.2+sway)*bend,h,pos.getZ(i)+(u.uFlow.value.z*1.2+sway*.6)*bend);
+    pos.setXYZ(i,pos.getX(i)+(flow.x*1.2+sway)*bend,h,pos.getZ(i)+(flow.z*1.2+sway*.6)*bend);
   }
   geo.computeBoundingBox();geo.computeBoundingSphere();
   const proxy=new THREE.Mesh(geo,mesh.material);proxy.matrixAutoUpdate=false;
@@ -62,6 +65,14 @@ function samples(part,camera){
   return {area:(right-left)*(top-bottom)/4,points,center:new THREE.Vector2((left+right)/2,(bottom+top)/2)};
 }
 
+// Physical visibility at the onboard camera: the server's turbidity field when present (no floor),
+// otherwise the legacy silt index estimate.
+function observationRange(state,world){
+  const physical=state.turbidity?.visibility_m;
+  if(Number.isFinite(physical))return physical;
+  return (world.scenario?.visibility_m||12)*(1-.75*clamp(state.silt||0,0,1));
+}
+
 /**
  * targets: optional engineering [{entity_id,category,mesh,instanceIds?}]. A mesh
  * may be a Group of physical parts. Engineering targets take priority when
@@ -76,7 +87,7 @@ export function inspectObservation({scene,camera,environment,state={},world={},c
   const base={ok:false,entity_id:null,category:null,view:camMode,visible:false,coverage:0,
     camera:{pos:NED(pos),q:[q.w,q.z,-q.x,-q.y],fov:camera.fov,aspect:camera.aspect}};
   if(camMode!=='onboard')return {...base,reason:'請切換機載鏡頭再拍攝；外部視角不計入觀察紀錄。'};
-  const range=(world.scenario?.visibility_m||12)*(1-.75*clamp(state.silt||0,0,1));
+  const range=observationRange(state,world);
   // Keep fog physically limiting observations even when the display fog toggle
   // is off. Retain at least 20% contrast in the renderer's linear fog model.
   const fogLimit=.3+.8*Math.max(0,range*1.35-.3);

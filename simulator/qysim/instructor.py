@@ -11,11 +11,22 @@ import numpy as np
 
 PHASES = ('descent', 'transit', 'hover', 'orbit', 'dock')
 DEFAULT_LIMITS = {'path': 2., 'heading': 15., 'depth': 1., 'hover': 1., 'distance': 1., 'speed': .3}
+# Instructor current injection: strength 0..1 maps to a 0..4 kn surface speed reached over a
+# raised-cosine ramp (30..120 s, default 60 s), keeping the profile shape. Provisional values.
+CURRENT_MAX_KN = 4.0
+CURRENT_RAMP_S = 60.0
 # Evidence is sampled at 1 Hz, so this keeps the most recent hour of each vehicle's run.
 # Older samples are dropped first; a report then covers only the retained window.
 MAX_SAMPLES_PER_VEHICLE = 3600
 # Archived reports carry their full trajectory. Only the newest ones are kept.
 MAX_REPORTS = 16
+PHYSICAL_KINDS = ('thruster', 'battery', 'current', 'visibility', 'freeze')
+# Vehicle-system faults. 'freeze' above pauses physics; 'video_freeze' only freezes the video link.
+SYSTEM_KINDS = ('video_delay', 'video_freeze', 'link_degrade', 'comms_loss', 'power_trip', 'leak', 'overheat')
+# Overheat strength 1 adds this many degrees to motor and driver readings (provisional).
+OVERHEAT_C = 50.
+# Sensor faults act on the vehicle's sensor layer (qysim/sensors.py), never on physics truth.
+SENSOR_FAULTS = ('compass', 'depth_sensor', 'dvl', 'altimeter')
 
 
 def statistics(values, tolerance):
@@ -50,14 +61,34 @@ class Instructor:
         kind = msg['kind']
         vid = msg.get('vehicle_id', 'v1')
         sim = self.room.vehicles[vid]
+        if 'cancel_start' in msg:
+            start = msg['cancel_start']
+            if isinstance(start, bool) or not isinstance(start, (int, float)) or not math.isfinite(start):
+                raise ValueError('cancel_start must be finite')
+            event = next((e for e in self.active if e['kind'] == kind
+                          and e['vehicle_id'] == vid and e['start'] == start), None)
+            if event is None:
+                raise ValueError('override no longer active')
+            self.restore(event)
+            self.active.remove(event)
+            self.room._snapshot = None
+            return
         strength = float(msg.get('strength', 1))
         duration = float(msg.get('duration', 10))
         if not math.isfinite(strength) or not 0 <= strength <= 1:
             raise ValueError('strength must be 0..1')
         if not math.isfinite(duration) or not 0 < duration <= 3600:
             raise ValueError('duration must be 0..3600 seconds')
-        if kind not in ('thruster', 'battery', 'current', 'visibility', 'freeze'):
+        if kind not in PHYSICAL_KINDS + SYSTEM_KINDS + SENSOR_FAULTS:
             raise ValueError('unsupported physical override')
+        if kind in SENSOR_FAULTS and sim.sensors.ideal:
+            raise ValueError('sensor faults need the realistic sensor layer')
+        ramp_s = float(msg.get('ramp_s', CURRENT_RAMP_S))
+        rotate_deg = float(msg.get('rotate_deg', 0))
+        if kind == 'current' and (not math.isfinite(ramp_s) or not 30 <= ramp_s <= 120):
+            raise ValueError('ramp_s must be 30..120 seconds')
+        if kind == 'current' and (not math.isfinite(rotate_deg) or not -180 <= rotate_deg <= 180):
+            raise ValueError('rotate_deg must be -180..180')
         scope = 'room' if kind in ('current', 'visibility') else vid
         if any(e['scope'] == scope and e['kind'] == kind for e in self.active):
             raise ValueError('overlapping override')
@@ -74,7 +105,14 @@ class Instructor:
         elif kind == 'visibility':
             event['original'] = sim.scenario.visibility_m
         elif kind == 'current':
-            event['original'] = deepcopy(sim.world.current)
+            event['original'] = None
+            event['ramp_s'], event['rotate_deg'] = ramp_s, rotate_deg
+            sim.world.current.inject(strength * CURRENT_MAX_KN, ramp_s, rotate_deg)
+        elif kind == 'comms_loss':
+            event['original'] = dict(sim.link.config)
+            self.configure_loss(sim, msg)
+        elif kind in SYSTEM_KINDS or kind in SENSOR_FAULTS:
+            event['original'] = None
         else:
             event['original'] = sim.paused
         event['controls'] = sim.rc.as_dict()
@@ -83,12 +121,65 @@ class Instructor:
         self.enforce(event)
         self.room._snapshot = None
 
+    @staticmethod
+    def configure_loss(sim, msg):
+        """Optional failsafe policy and reconnect time for one comms-loss injection."""
+        values = {}
+        if 'failsafe' in msg:
+            values['failsafe_action'] = msg['failsafe']
+        for field, key in (('failsafe_delay', 'failsafe_delay_s'), ('reconnect', 'reconnect_s')):
+            if field in msg:
+                value = msg[field]
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 600:
+                    raise ValueError(f'{field} must be 0..600 seconds')
+                values[key] = value
+        sim.link.configure(values)
+
+    def enforce_system(self, sim, kind, strength):
+        if kind == 'video_delay':
+            sim.link.fixed_lag_s = strength * sim.link.config['max_video_lag_s']
+        elif kind == 'video_freeze':
+            sim.link.forced_freeze = True
+        elif kind == 'link_degrade':
+            sim.link.degrade(strength)
+        elif kind == 'comms_loss':
+            sim.link.lose(rc=sim.rc)
+        elif kind == 'power_trip':
+            sim.power.trip()
+            sim.link.lose(cause='power', immediate=True)
+        elif kind == 'leak':
+            sim.leak = True
+        elif kind == 'overheat':
+            sim.thermal.injected_c = strength * OVERHEAT_C
+
+    @staticmethod
+    def restore_system(sim, event):
+        kind = event['kind']
+        if kind == 'video_delay':
+            sim.link.fixed_lag_s = 0.
+        elif kind == 'video_freeze':
+            sim.link.forced_freeze = False
+        elif kind == 'link_degrade':
+            sim.link.clear_degrade()
+        elif kind == 'comms_loss':
+            sim.link.restore()
+            sim.link.config.update(event['original'])
+        elif kind == 'power_trip':
+            sim.power.reset()
+            sim.link.restore()
+        elif kind == 'leak':
+            sim.leak = False
+        elif kind == 'overheat':
+            sim.thermal.injected_c = 0.
+
     def enforce(self, event):
         sim = self.room.vehicles.get(event['vehicle_id'])
         if sim is None:
             return
         kind, strength = event['kind'], event['strength']
-        if kind == 'thruster':
+        if kind in SYSTEM_KINDS:
+            self.enforce_system(sim, kind, strength)
+        elif kind == 'thruster':
             sim.health[event['index']] = min(sim.health[event['index']], event['original'] * (1 - strength))
         elif kind == 'battery':
             sim.battery = min(sim.battery, event['original'] * (1 - strength))
@@ -96,19 +187,20 @@ class Instructor:
             for vehicle in self.room.vehicles.values():
                 vehicle.scenario.visibility_m = max(.1, event['original'] * (1 - strength))
         elif kind == 'current':
-            current = sim.world.current
-            current.surface_kn = strength * 4
-            current.mid_kn = strength * 4
-            current.bottom_kn = strength * 4
+            pass                                    # the profile ramps itself (CurrentProfile.inject)
         elif kind == 'freeze':
             sim.paused = True
+        elif kind in SENSOR_FAULTS:
+            sim.sensors.set_fault(kind, strength)
 
     def restore(self, event):
         sim = self.room.vehicles.get(event['vehicle_id'])
         if sim is None:
             return
         kind = event['kind']
-        if kind == 'thruster':
+        if kind in SYSTEM_KINDS:
+            self.restore_system(sim, event)
+        elif kind == 'thruster':
             sim.health[event['index']] = event['original']
         elif kind == 'battery':
             sim.battery = event['original']
@@ -116,9 +208,11 @@ class Instructor:
             for vehicle in self.room.vehicles.values():
                 vehicle.scenario.visibility_m = event['original']
         elif kind == 'current':
-            sim.world.current.__dict__.update(deepcopy(event['original'].__dict__))
+            sim.world.current.release(event.get('ramp_s', CURRENT_RAMP_S))
         elif kind == 'freeze':
             sim.paused = event['original']
+        elif kind in SENSOR_FAULTS:
+            sim.sensors.clear_fault(kind)
         self.events.append({'kind': kind, 'vehicle_id': event['vehicle_id'], 'restored_at': self.clock})
 
     def update(self, dt):
@@ -210,6 +304,11 @@ class Instructor:
         return {'version': 1, 'vehicle_id': vid, 'provisional': True, 'limits': deepcopy(self.limits),
                 'grade_limits': dict(self.grade_limits), 'elapsed': self.clock,
                 'completion': samples[-1]['completion'] if samples else None,
+                'supervision': {'phase': self.phase, 'reference': deepcopy(self.reference),
+                                'world': {'obstacles': [o.as_dict() for o in self.room.primary.world.obstacles],
+                                          'objectives': [o.as_dict() for o in self.room.primary.scenario.objectives]},
+                                'active': [{k: v for k, v in e.items() if k not in ('original', 'controls')}
+                                           for e in self.active]},
                 'matrix': matrix, 'smoothness': smoothness, 'collisions': list(collisions.values()),
                 'max_tension': max((s['tension'] for s in samples), default=0),
                 'wraps': [s['wraps'] for s in samples if s['wraps']],

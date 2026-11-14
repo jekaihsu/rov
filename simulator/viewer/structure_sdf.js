@@ -68,6 +68,12 @@ export function shipHullDistance(p, ob) {
   return hullDistance(x, y, z, hp);
 }
 
+/** A snag item (world.SnagFeature) as its vertical capsule: standing on ``point``, ``height`` tall. */
+export function snagCapsule(ob) {
+  const rise = Math.max(ob.height - ob.radius, 0);
+  return {type: 'cylinder', p0: ob.point, p1: [ob.point[0], ob.point[1], ob.point[2] - rise], radius: ob.radius};
+}
+
 /** Approximate distance from a NED point to an obstacle's surface (1e3 when a wall does not apply). */
 export function obstacleDistance(p, ob) {
   if (ob.type === 'cylinder') {
@@ -93,5 +99,6 @@ export function obstacleDistance(p, ob) {
     return Math.abs(r[0] * n[0] + r[1] * n[1]);
   }
   if (ob.type === 'ship_hull') return shipHullDistance(p, ob);
+  if (ob.type === 'snag') return obstacleDistance(p, snagCapsule(ob));
   return 1e3;
 }

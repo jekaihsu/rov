@@ -7,6 +7,8 @@ vehicle hull and every tether node can collide with them cheaply:
     Wall      vertical half-space with finite extent (quay wall, dam face)
     FieldMesh arbitrary structure (e.g. a wreck) from a precomputed distance field of its
               collision meshes (tools/build_wreck.py); thin plates get a small thickness
+    SnagFeature small seabed item (rock, boulder, debris, rope) that can hook a tether lying on the
+              bottom; scenes register them like any other obstacle (see tether_snag.py)
 The seabed is a horizontal plane at ``World.seabed_depth`` (NED z, metres).
 """
 
@@ -15,9 +17,13 @@ from __future__ import annotations
 import functools
 import math
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import numpy as np
 
+from ._flow_accel import turbulence as _compiled_turbulence
+from .flow import (BED_ROUGHNESS_M, BIOME_BED, COMPONENT_RATIOS, DEFAULT_Z0, SEABED_Z0, StructureFlow, Tide, TurbulenceField,
+                   bed_factor, bed_reference_height, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors)
 from .physics import KNOT, q_rot
 
 WORLD_UP = np.array([0.0, 0.0, -1.0])
@@ -259,6 +265,31 @@ class ShipHull:
         return {"type": "ship_hull", "name": self.name, "kind": self.kind, "center": list(self.center),
                 "yaw_deg": self.yaw_deg, "length": hp["length"], "beam": hp["beam"], "draft": hp["draft"],
                 "top": hp["top"]}
+class SnagFeature(Cylinder):
+    """Small snaggable seabed item: a vertical capsule standing on the seabed at ``point``.
+
+    It is a ``Cylinder`` for contact (so it joins the vectorised capsule queries) but reports its own
+    type. ``hold_n`` is the (min, max) holding force range in N; each feature draws its own value from
+    it (tether_snag.py). Values are provisional training settings, not measurements: no published
+    data on small-ROV tether snag strength exists (research_notes/臍帶纜物理與收放文獻/tether_properties.md §5)."""
+
+    def __init__(self, name: str, point: tuple, radius: float = 0.25, height: float = 0.4,
+                 hold_n: tuple = (150.0, 400.0), kind: str = "snag", item: str = "rock"):
+        base = tuple(float(v) for v in point)
+        top = (base[0], base[1], base[2] - max(float(height) - float(radius), 0.0))
+        super().__init__(name, base, top, float(radius), kind)
+        self.point = base
+        self.height = float(height)
+        self.hold_n = tuple(hold_n)
+        self.item = item
+
+    @property
+    def snag_hold(self) -> tuple:
+        return self.hold_n
+
+    def as_dict(self):
+        return {"type": "snag", "name": self.name, "point": list(self.point), "radius": self.radius,
+                "height": self.height, "kind": self.kind, "item": self.item}
 
 
 @functools.lru_cache(maxsize=4)
@@ -280,8 +311,11 @@ class FieldMesh:
     """
 
     def __init__(self, name: str, field_path, origin: tuple, heading_deg: float = 180.0,
-                 kind: str = "wreck", thickness: float = 0.12, model: str | None = None, seabed_depth: float | None = None):
+                 kind: str = "wreck", thickness: float = 0.12, model: str | None = None, seabed_depth: float | None = None,
+                 snag_hold: tuple | None = None):
         self.name, self.kind, self.thickness, self.model = name, kind, float(thickness), model
+        # Optional (min, max) N: lets the tether hook on the structure where it bends round it.
+        self.snag_hold = snag_hold
         self.F, self.lo, self.h = _load_field(str(field_path))
         self.shape = np.array(self.F.shape)
         self.hi = self.lo + self.h * (self.shape - 1)
@@ -349,78 +383,243 @@ class FieldMesh:
 
 @dataclass
 class CurrentProfile:
-    """Depth-varying current. Speeds in knots, directions in degrees the water flows toward."""
+    """Depth-varying current. Speeds in knots, directions in degrees the water flows toward.
+
+    The ambient flow is the three-layer mean profile plus a smooth, anisotropic, spatially
+    varying turbulence field (``flow.TurbulenceField``). Call ``step_gust`` exactly once per
+    simulation tick: it advances the turbulence (advected with the depth-averaged current). All
+    sampling methods read that state, so every consumer in a tick sees the same flow.
+
+    Compatibility: ``sample``/``sample_many(positions, seabed, t)`` keep their signatures; ``t``
+    is accepted but the field is evaluated at the profile clock that ``step_gust`` advances.
+    """
     surface_kn: float = 0.0
     surface_dir: float = 90.0
     mid_kn: float = 0.0
     mid_dir: float = 90.0
     bottom_kn: float = 0.0
     bottom_dir: float = 90.0
-    turbulence: float = 0.15          # gust std-dev as a fraction of the local speed
-    gust_tau: float = 6.0             # s, gust correlation time
-    _gust: np.ndarray = field(default_factory=lambda: np.zeros(3), repr=False)
+    turbulence: float = 0.10          # streamwise turbulence intensity sigma_u / U (assumed default)
+    gust_tau: float = 6.0             # legacy field, no longer used (integral time is now ~L/U)
+    length_scale: float | None = None  # turbulence integral length (m); None = from water depth
+    tide: Tide | None = None          # optional tidal modulation; None = steady profile (legacy)
+    z0: float | None = None           # bed roughness length (m); None = from the biome / rippled sand
+    seed: int = 0
+    _clock: float = field(default=0.0, repr=False)
+    _turb: object = field(default=None, repr=False)
+    _seabed_hint: float = field(default=30.0, repr=False)
+    _layer_cache: object = field(default=None, repr=False)
+    use_compiled: ClassVar[bool] = True   # numba turbulence loop when available (NumPy is the reference)
+    _inj: dict | None = field(default=None, repr=False)
+    _tide_cache: object = field(default=None, repr=False)
+    _travel: float = field(default=0.0, repr=False)
 
+    # ── layers and mean profile ───────────────────────────────────────────
     def layer(self, which: str) -> np.ndarray:
         kn, d = {"surface": (self.surface_kn, self.surface_dir), "mid": (self.mid_kn, self.mid_dir),
                  "bottom": (self.bottom_kn, self.bottom_dir)}[which]
         a = math.radians(d)
         return np.array([math.cos(a), math.sin(a), 0.0]) * kn * KNOT
 
-    def mean_at(self, depth: float, seabed: float) -> np.ndarray:
-        s, m, b = self.layer("surface"), self.layer("mid"), self.layer("bottom")
-        mid_d = seabed / 2
-        if depth <= mid_d:
-            t = depth / max(mid_d, 1e-6)
-            v = s * (1 - t) + m * t
+    def _base_layers(self) -> np.ndarray:
+        return np.array([self.layer("surface"), self.layer("mid"), self.layer("bottom")])
+
+    def _layers(self) -> np.ndarray:
+        """(3, 3) layer vectors (surface, mid, bottom) in effect now (cached per input values)."""
+        injection = self.injection()
+        tau = self.tide_time()
+        key = (self.surface_kn, self.surface_dir, self.mid_kn, self.mid_dir, self.bottom_kn, self.bottom_dir,
+               injection, tau)
+        if self._layer_cache is None or self._layer_cache[0] != key:
+            scale, rotate, template = injection
+            layers = rotate_xy(self._base_layers(), rotate) * scale
+            if template:
+                layers = layers + rotate_xy(self._template_layers(), rotate) * template
+            if tau is not None:
+                layers = self.tide.transform(layers, self.surface_dir + rotate, tau)
+            self._layer_cache = (key, layers)
+        return self._layer_cache[1]
+
+    # ── tide ──────────────────────────────────────────────────────────────
+    def tide_time(self) -> float | None:
+        """Tide time (s since an arbitrary M2 origin) at the profile clock; None without a tide."""
+        if self.tide is None:
+            return None
+        cache = self._tide_cache
+        if cache is None or cache[0] is not self.tide or cache[1] != self.tide.start:
+            cache = (self.tide, self.tide.start, self.tide.start_offset_s())
+            self._tide_cache = cache
+        return cache[2] + self._clock * self.tide.time_scale
+
+    def set_tide_start(self, start) -> None:
+        """Choose the time of tide at the current clock (slack, peak or hours after peak flood)."""
+        if self.tide is None:
+            raise ValueError("this scenario has no tide")
+        previous = self.tide.start
+        self.tide.start = start
+        try:
+            offset = self.tide.start_offset_s()
+        except ValueError:
+            self.tide.start = previous
+            raise
+        self._tide_cache = (self.tide, start, offset - self._clock * self.tide.time_scale)
+
+    def tide_info(self) -> dict | None:
+        """{factor, stage flood|ebb, minutes_to_slack} or None without a tide."""
+        tau = self.tide_time()
+        return None if tau is None else self.tide.info(tau)
+
+    # ── instructor injection ──────────────────────────────────────────────
+    def _template_layers(self) -> np.ndarray:
+        """Unit-surface-speed profile shape used when injecting into still water (assumed shape)."""
+        a = math.radians(self.surface_dir)
+        unit = np.array([math.cos(a), math.sin(a), 0.0]) * KNOT
+        return np.array([unit, unit * 0.8, unit * 0.4])
+
+    def injection(self) -> tuple[float, float, float]:
+        """(profile scale, rotation deg, still-water template knots) in effect at the profile clock."""
+        inj = self._inj
+        if inj is None:
+            return (1.0, 0.0, 0.0)
+        k = cosine_ramp((self._clock - inj["start"]) / inj["ramp"])
+        return tuple(float(a + (b - a) * k) for a, b in zip(inj["from"], inj["to"]))
+
+    def inject(self, surface_kn: float, ramp_s: float = 60.0, rotate_deg: float = 0.0) -> None:
+        """Ramp the profile to a surface speed of ``surface_kn`` while keeping its shape.
+
+        The layers are multiplied, not overwritten (boundary layer and shear survive); a raised-cosine
+        ramp over ``ramp_s`` seconds avoids unphysical jumps; ``rotate_deg`` turns every layer like a
+        turning tide. Still water (surface < 0.05 kn) ramps in an assumed 1 : 0.8 : 0.4 profile.
+        """
+        start = self.injection()
+        if self.surface_kn >= 0.05:
+            target = (float(surface_kn) / self.surface_kn, float(rotate_deg), 0.0)
         else:
-            t = (depth - mid_d) / max(seabed - mid_d, 1e-6)
-            v = m * (1 - t) + b * t
-        # boundary layer: current dies off in the last metre above the seabed
-        above = seabed - depth
-        if above < 1.0:
-            v = v * max(0.0, above)
+            target = (1.0, float(rotate_deg), float(surface_kn))
+        self._inj = {"from": start, "to": target, "start": self._clock, "ramp": max(float(ramp_s), 1e-3)}
+
+    def release(self, ramp_s: float = 60.0) -> None:
+        """Ramp back to the configured profile."""
+        self._inj = {"from": self.injection(), "to": (1.0, 0.0, 0.0), "start": self._clock,
+                     "ramp": max(float(ramp_s), 1e-3)}
+
+    def target_surface_knots(self) -> float:
+        """Surface speed (knots) the current injection ramp is heading for."""
+        scale, _, template = self._inj["to"] if self._inj else (1.0, 0.0, 0.0)
+        return scale * self.surface_kn + template
+
+    def surface_knots(self) -> float:
+        """Effective surface-layer speed now (knots), including injections."""
+        return float(np.linalg.norm(self._layers()[0])) / KNOT
+
+    def mean_many(self, depths, seabed: float, heights=None, z0: float | None = None) -> np.ndarray:
+        """Mean (turbulence-free) current at depths below the surface, NED m/s, shape (N, 3).
+
+        Three-layer interpolation over the nominal depth, then a log-law bed layer: the bottom
+        layer value applies at ``bed_reference_height`` (1-3 m) above the bed and the speed falls
+        as ln(h/z0) below it. ``heights`` are heights above the local seabed (default: nominal).
+        """
+        layers = self._layers()
+        z = np.asarray(depths, float)
+        knots = (0.0, seabed / 2, seabed)
+        v = np.empty((len(z), 3))
+        for k in range(3):
+            v[:, k] = np.interp(z, knots, layers[:, k])
+        h = seabed - z if heights is None else np.asarray(heights, float)
+        roughness = z0 if z0 is not None else self.z0 if self.z0 is not None else DEFAULT_Z0
+        v *= bed_factor(h, roughness, bed_reference_height(seabed))[:, None]
         return v
 
-    def step_gust(self, dt: float, rng: np.random.Generator) -> None:
-        k = dt / self.gust_tau
-        self._gust += -self._gust * k + math.sqrt(2 * k) * rng.standard_normal(3) * np.array([1, 1, 0.3])
+    def mean_at(self, depth: float, seabed: float) -> np.ndarray:
+        return self.mean_many([depth], seabed)[0]
 
-    def at_many(self, depths: np.ndarray, seabed: float) -> np.ndarray:
-        s, m, b = self.layer("surface"), self.layer("mid"), self.layer("bottom")
-        z = np.clip(np.asarray(depths, float), 0.0, seabed)
-        mid_d = seabed / 2
-        t1 = np.clip(z / max(mid_d, 1e-6), 0, 1)[:, None]
-        t2 = np.clip((z - mid_d) / max(seabed - mid_d, 1e-6), 0, 1)[:, None]
-        v = np.where((z <= mid_d)[:, None], s * (1 - t1) + m * t1, m * (1 - t2) + b * t2)
-        v = v * np.clip(seabed - z, 0.0, 1.0)[:, None]
-        speed = np.maximum(0.05, np.linalg.norm(v, axis=1))[:, None]
-        return v + self._gust * self.turbulence * speed
+    def depth_average(self, seabed: float | None = None) -> np.ndarray:
+        """Depth-averaged mean current (advects the turbulence)."""
+        s, m, b = self._layers()
+        return (s + 2 * m + b) / 4
 
-    def at(self, depth: float, seabed: float) -> np.ndarray:
-        v = self.mean_at(depth, seabed)
-        return v + self._gust * self.turbulence * max(0.05, float(np.linalg.norm(v)))
+    # ── turbulence ────────────────────────────────────────────────────────
+    def reseed(self, seed: int) -> None:
+        """Choose the turbulence realisation (scenario seed); resets the turbulence state."""
+        self.seed = int(seed)
+        self._turb = None
 
-    def sample_many(self, positions: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
-        """Continuous local flow approximation, shared by vehicle, cable and ecology.
+    def _field(self) -> TurbulenceField:
+        if self._turb is None:
+            self._turb = TurbulenceField(self.seed)
+        return self._turb
 
-        Smooth horizontal shear is bounded to 18% of the local mean speed; it is
-        not an obstacle-resolving CFD solver. Zero mean/turbulence stays still.
+    def turbulence_scales(self, seabed: float | None = None) -> tuple[float, float]:
+        """(integral length L in m, model length ell in m) for this water depth."""
+        seabed = self._seabed_hint if seabed is None else seabed
+        L = float(self.length_scale) if self.length_scale else turbulence_length(seabed)
+        return L, L * TurbulenceField.SCALE
+
+    def step_gust(self, dt: float, rng: np.random.Generator | None = None) -> None:
+        """Advance the flow state by ``dt`` (once per tick). ``rng`` is accepted for compatibility."""
+        before = self.depth_average()
+        self._clock += dt
+        after = self.depth_average()
+        advect = 0.5 * (before + after)
+        self._travel += float(np.linalg.norm(advect)) * dt
+        _, ell = self.turbulence_scales()
+        self._field().advance(dt, advect, ell, self.turbulence * float(np.linalg.norm(advect)))
+
+    def fluctuation_many(self, positions: np.ndarray, mean: np.ndarray, seabed: float) -> np.ndarray:
+        """Turbulent velocity at points given their local mean flow (zero if turbulence is 0)."""
+        if self.turbulence <= 0:
+            return np.zeros_like(mean)
+        _, ell = self.turbulence_scales(seabed)
+        a = math.radians(self.surface_dir)
+        fallback = np.array([math.cos(a), math.sin(a), 0.0])
+        turb = self._field()
+        if self.use_compiled and _compiled_turbulence is not None:
+            return _compiled_turbulence(np.ascontiguousarray(positions, float), mean, turb.displacement,
+                                        1.0 / ell, turb.k, turb.psi + turb.theta, turb.amp, float(self.turbulence),
+                                        COMPONENT_RATIOS, fallback[0], fallback[1])
+        unit = turb.unit(positions, ell)
+        return turbulence_vectors(unit, mean, self.turbulence, positions[:, 2], fallback)
+
+    def shedding_travel(self, depths, seabed: float) -> np.ndarray:
+        """Integrated free-stream distance (m) per depth: sets vortex-shedding phase (f = St U / D)."""
+        avg = float(np.linalg.norm(self.depth_average(seabed)))
+        if avg < 1e-3:
+            return np.full(len(np.atleast_1d(depths)), self._travel)
+        local = np.linalg.norm(self.mean_many(np.atleast_1d(depths), seabed), axis=1)
+        return self._travel * local / avg
+
+    # ── sampling ──────────────────────────────────────────────────────────
+    def sample_many(self, positions: np.ndarray, seabed: float, t: float = 0.0, bed=None,
+                    z0: float | None = None) -> np.ndarray:
+        """Ambient flow (mean profile + turbulence) at NED points.
+
+        Not obstacle-resolving; ``World.current_at_many`` adds structure effects and passes the
+        local seabed depth per point (``bed``) and the biome roughness (``z0``). Without them the
+        nominal flat seabed and the profile's own roughness are used.
         """
         p = np.atleast_2d(np.asarray(positions, float))
-        v = self.at_many(p[:, 2], seabed)
-        phase = p[:, 0] * .035 + p[:, 1] * .027 + t * .045
-        speed = np.linalg.norm(v, axis=1)
-        shear = speed * .18 * np.sin(phase)
-        v[:, 0] += shear * np.cos(p[:, 1] * .04)
-        v[:, 1] += shear * np.sin(p[:, 0] * .04)
-        return v
+        self._seabed_hint = float(seabed)
+        heights = None if bed is None else np.asarray(bed, float) - p[:, 2]
+        mean = self.mean_many(p[:, 2], seabed, heights, z0)
+        return mean + self.fluctuation_many(p, mean, seabed)
 
     def sample(self, position: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
         return self.sample_many(np.asarray(position)[None, :], seabed, t)[0]
 
+    def at_many(self, depths: np.ndarray, seabed: float) -> np.ndarray:
+        """Legacy: ambient flow on the vertical through the origin."""
+        z = np.asarray(depths, float)
+        return self.sample_many(np.stack([np.zeros_like(z), np.zeros_like(z), z], axis=1), seabed)
+
+    def at(self, depth: float, seabed: float) -> np.ndarray:
+        return self.at_many(np.array([depth], float), seabed)[0]
+
     def as_dict(self):
-        return {k: getattr(self, k) for k in ("surface_kn", "surface_dir", "mid_kn", "mid_dir",
-                                              "bottom_kn", "bottom_dir", "turbulence")}
+        out = {k: getattr(self, k) for k in ("surface_kn", "surface_dir", "mid_kn", "mid_dir",
+                                             "bottom_kn", "bottom_dir", "turbulence")}
+        if self.tide is not None:
+            out["tide"] = self.tide.as_dict()
+        return out
 
 
 # vehicle collision proxy: spheres in body FRD approximating the 770 x 560 x 400 mm envelope
@@ -455,17 +654,16 @@ class World:
         self.mu = 0.4
         self._in_contact: set = set()
         self.events: list[ContactEvent] = []
-        self.silt = 0.0               # 0..1 seabed silt cloud (visibility)
         self._contacts_by_vehicle: dict = {}
         self.world_seed = 0
         self.biome = "temperate"
         self.terrain = None
         self.habitat_entities = []
         self.fish_schools = []
-        self.silt_clouds = []
         self.time = 0.0
         self._ecology_accumulator = 0.0
-        self._silt_last: dict = {}
+        from .silt import SiltField
+        self.silt_field = SiltField(self)
 
     def configure_habitat(self, biome: str, seed: int, keep_clear=()) -> None:
         from .ecology import SeabedTerrain, create_habitat
@@ -482,6 +680,54 @@ class World:
         return float(self.terrain.sample_many(np.asarray(position)[None, :])[0][0])
 
     depth_at = seabed_at
+
+    def seabed_at_many(self, positions: np.ndarray) -> np.ndarray:
+        positions = np.atleast_2d(np.asarray(positions, float))
+        if self.terrain is None:
+            return np.full(len(positions), float(self.seabed_depth))
+        return self.terrain.sample_many(positions)[0]
+
+    # ── water flow ────────────────────────────────────────────────────────
+    def structure_flow(self) -> StructureFlow:
+        """Cached analytic flow disturbance for the current obstacle list (habitat props excluded)."""
+        key = (id(self.obstacles), len(self.obstacles))
+        cached = getattr(self, "_structure_flow", None)
+        if cached is None or cached[0] != key:
+            cached = (key, StructureFlow(self.obstacles))
+            self._structure_flow = cached
+        return cached[1]
+
+    def current_at_many(self, points, t: float | None = None) -> np.ndarray:
+        """Full local water velocity (NED m/s) at points: ambient profile + turbulence + structures.
+
+        This is the flow the vehicle, tether, silt, fish and work objects feel. ``t`` is accepted
+        for API symmetry; the field is evaluated at the current simulation instant (the profile
+        clock advanced once per tick by ``CurrentProfile.step_gust``). Zero inside solids.
+        """
+        P = np.atleast_2d(np.asarray(points, float))
+        bed = None
+        if self.terrain is not None and self.terrain.relief:
+            # Terrain only rises above the nominal floor; points higher than the relief plus the
+            # bed layer are unaffected, so only query the terrain near the bottom.
+            low = P[:, 2] > self.seabed_depth - self.terrain.relief - bed_reference_height(self.seabed_depth)
+            if np.any(low):
+                bed = np.full(len(P), self.seabed_depth)
+                bed[low] = self.terrain.sample_many(P[low])[0]
+        U = self.current.sample_many(P, self.seabed_depth, bed=bed, z0=self.bed_roughness())
+        flow = self.structure_flow()
+        if flow.empty:
+            return U
+        return flow.apply(P, U, self.current.shedding_travel(P[:, 2], self.seabed_depth))
+
+    def bed_roughness(self) -> float:
+        """Roughness length z0 (m): the profile's own value, else the site's seabed type (the silt model's)."""
+        if self.current.z0 is not None:
+            return float(self.current.z0)
+        return SEABED_Z0.get(self.silt_field.seabed_type, DEFAULT_Z0)
+
+    def current_at(self, point, t: float | None = None) -> np.ndarray:
+        """Single-point ``current_at_many``."""
+        return self.current_at_many(np.asarray(point, float)[None, :], t)[0]
 
     # ── queries ───────────────────────────────────────────────────────────
     def sdf(self, x: np.ndarray) -> tuple[float, np.ndarray, str]:
@@ -554,8 +800,10 @@ class World:
                         ("-stbd" if c_body[1] > 0.1 else "-port" if c_body[1] < -0.1 else "")
                 self.events.append(ContactEvent(round(t, 2), name, round(speed, 2), sev, where, vehicle_id))
                 if name == "seabed":
-                    self.silt = min(1.0, self.silt + 0.3 + speed)
-                    self.emit_silt(pos, .3 + speed, vehicle_id)
+                    self.silt_field.contact(pos, speed, vehicle_id, impact=True)
+        if any(name == "seabed" for _, name in touching):
+            slide = float(np.linalg.norm(q_rot(q, vel_body)[:2]))
+            self.silt_field.contact(pos, slide, vehicle_id, impact=False)
         self._in_contact = touching
         self._contacts_by_vehicle[vehicle_id] = touching
         return wrench
@@ -581,10 +829,15 @@ class World:
         a, b = cached
         return np.flatnonzero(np.all(a <= hi + margin, axis=1) & np.all(b >= lo - margin, axis=1)).tolist()
 
-    def sdf_many(self, X: np.ndarray, candidates: list[int] | None = None
+    def sdf_many(self, X: np.ndarray, candidates: list[int] | None = None, include_seabed: bool = True
                  ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Vectorised nearest-surface query for many points. Returns (dist, normal, obstacle index; -1 = seabed)."""
-        if self.terrain is None or not self.terrain.relief:
+        """Vectorised nearest-surface query for many points. Returns (dist, normal, obstacle index; -1 = seabed).
+
+        ``include_seabed=False`` measures obstacles only (seabed distance reported as 1e9)."""
+        if not include_seabed:
+            dist = np.full(len(X), 1e9)
+            normal = np.tile(WORLD_UP, (len(X), 1))
+        elif self.terrain is None or not self.terrain.relief:
             dist = self.seabed_depth - X[:, 2]
             normal = np.tile(WORLD_UP, (len(X), 1))
         else:
@@ -619,50 +872,66 @@ class World:
             idx[closer] = i
         return dist, normal, idx
 
-    def emit_silt(self, position, strength: float, source: str = "default") -> None:
-        if self.time - self._silt_last.get(source, -100) < .35:
-            return
-        self._silt_last[source] = self.time
-        self.silt_clouds.append({"pos": np.asarray(position, float).copy(), "strength": min(1.0, strength),
-                                 "radius": .8, "age": 0.0, "source": source})
-        self.silt_clouds = self.silt_clouds[-24:]
+    # ── sediment and turbidity (model in silt.py) ─────────────────────────
+    def configure_silt(self, seabed_type: str, bnl_height_m: float = 0.0, bnl_mg_l: float = 0.0) -> None:
+        self.silt_field.configure(seabed_type, bnl_height_m, bnl_mg_l)
 
-    def silt_at(self, position) -> float:
-        p = np.asarray(position, float)
-        return min(1.0, sum(c["strength"] * math.exp(-float(np.dot(p-c["pos"], p-c["pos"])) /
-                                                     max(.1, 2*c["radius"]**2)) for c in self.silt_clouds))
+    @property
+    def visibility_m(self) -> float:
+        return self.silt_field.visibility_m
+
+    @visibility_m.setter
+    def visibility_m(self, value: float) -> None:
+        self.silt_field.visibility_m = float(value)
+
+    @property
+    def silt_clouds(self) -> list:
+        """Legacy view of the strongest puffs (``environment.silt_clouds``)."""
+        return self.silt_field.legacy_clouds()
+
+    def emit_silt(self, position, strength: float, source: str = "default") -> None:
+        """Legacy source: ``strength`` 1 is about 0.1 kg of the local bed mix around ``position``."""
+        bed = self.silt_field.bed
+        mix = bed["mix"] if sum(bed["mix"]) > 0 else (0.0, 0.5, 0.5)
+        self.silt_field.emit_mix(position, 0.1 * max(0.0, float(strength)), mix, 0.6, 0.4, f"{source}:legacy")
+
+    def silt_concentration_at(self, point) -> float:
+        """Suspended sediment at ``point`` in mg/L (puffs plus the near-bed turbid layer)."""
+        return float(self.silt_field.concentration_mg_l(np.asarray(point, float))[0])
+
+    def visibility_at(self, point, visibility_m: float | None = None) -> float:
+        """Black-target visibility 4.8 / c at ``point`` (m)."""
+        c = float(self.silt_field.attenuation(np.asarray(point, float), visibility_m)[0])
+        return 4.8 / c
+
+    def optical_depth(self, a, b, samples: int = 24) -> float:
+        return self.silt_field.optical_depth(a, b, samples)
+
+    def silt_at(self, position, visibility_m: float | None = None) -> float:
+        """Legacy 0..1 silt index = 1 - effective / base visibility at ``position``."""
+        return float(self.silt_field.silt_index(np.asarray(position, float), visibility_m)[0])
 
     def environment_state(self) -> dict:
         return {"fish_schools": [{"id": s["id"], "pos": s["pos"].round(4).tolist(),
                                   "vel": s["vel"].round(4).tolist()} for s in self.fish_schools],
-                "silt_clouds": [{**c, "pos": c["pos"].round(3).tolist()} for c in self.silt_clouds]}
+                "silt_clouds": [{**c, "pos": c["pos"].round(3).tolist()} for c in self.silt_clouds],
+                "silt_puffs": self.silt_field.puffs_state(),
+                "turbidity": self.silt_field.turbidity_state()}
 
     def step(self, dt: float, vehicles=None) -> None:
         from .ecology import step_schools
         self.time += dt
-        self.silt = max(0.0, self.silt - dt / 25.0)
         vehicles = vehicles or []
+        self.silt_field.step_sources(dt, vehicles)
         self._ecology_accumulator += dt
         if self._ecology_accumulator + 1e-9 >= .1:
             elapsed, self._ecology_accumulator = self._ecology_accumulator, 0.0
             step_schools(self, elapsed, vehicles)
-            for c in self.silt_clouds:
-                c["pos"] += self.current.sample(c["pos"], self.seabed_depth, self.time) * elapsed
-                c["pos"][2] = min(self.seabed_at(c["pos"]), c["pos"][2] + .025 * elapsed)
-                c["radius"] += .09 * elapsed
-                c["strength"] *= math.exp(-elapsed / 9)
-                c["age"] += elapsed
-            self.silt_clouds = [c for c in self.silt_clouds if c["strength"] > .015 and c["age"] < 35]
-            for vehicle in vehicles:
-                p = np.asarray(vehicle["pos"], float)
-                thrust = float(vehicle.get("thrust", 0))
-                if self.seabed_at(p) - p[2] < 1.7 and thrust > .15:
-                    self.emit_silt(p, thrust * .4, str(vehicle.get("id", "default")))
+            positions = [np.asarray(v["pos"], float) for v in vehicles]
+            self.silt_field.step_transport(elapsed, positions)
 
     def as_dict(self) -> dict:
-        from .site_dressing import seabed_props
         return {"seabed_depth": self.seabed_depth, "obstacles": [o.as_dict() for o in self.obstacles],
-                "seabed_props": seabed_props(self.obstacles, self.seabed_depth),
                 "current": self.current.as_dict(), "world_seed": self.world_seed, "generation_version": 1,
                 "biome": self.biome, "terrain": self.terrain.as_dict() if self.terrain is not None else None,
                 "habitat": {"entities": self.habitat_entities,

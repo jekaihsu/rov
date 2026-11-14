@@ -1,9 +1,16 @@
 """Campaign triggers, authority, persistence and real-input onboarding regression."""
 import json
 import unittest
+
 from qysim.campaign import Campaign, DATA, condition_matches, validate
 from qysim.engine import Simulator
 from qysim.room import Room
+import test_campaign_chapters as chapter_cases
+
+
+STORY_CHAIN = [
+    'prologue', 'harbor', 'hull', 'harbor_signoff', 'offshore', 'reef', 'wreck', 'finale',
+]
 
 
 class CampaignTests(unittest.TestCase):
@@ -45,7 +52,9 @@ class CampaignTests(unittest.TestCase):
         story = [entry['id'] for entry in state['chapters'] if entry['category'] == 'story']
         incidents = [entry['id'] for entry in state['chapters'] if entry['category'] == 'incident']
         self.assertEqual(ids, story + incidents)
-        self.assertEqual(story[:4], ['prologue', 'harbor', 'hull', 'harbor_signoff'])
+        self.assertEqual(story, STORY_CHAIN)
+        self.assertTrue(all(not entry.get('placeholder') for entry in state['chapters']
+                            if entry['category'] == 'story'))
         self.assertEqual(len(incidents), 5)
         self.assertTrue(all(key.startswith('incident_') for key in incidents))
         self.assertEqual(state['next_story'], 'prologue')
@@ -186,3 +195,27 @@ class CampaignTests(unittest.TestCase):
         self.assertIn('first_dive', self.campaign.rewards)
         self.assertIn('prologue', self.campaign.completed)
         print('PROLOGUE REAL INPUT COMPLETED:', json.dumps(visited, ensure_ascii=False))
+
+    def play_chapter_case(self, method):
+        """Keep the six D1 entry points; use real admission/arm commands, not forced holds."""
+        case = chapter_cases.CampaignChapterTests()
+        case.setUp()
+        getattr(case, method)()
+
+    def test_hull_auto_input(self):
+        self.play_chapter_case('play_hull_to_end')
+
+    def test_harbor_signoff_auto_input(self):
+        self.play_chapter_case('play_harbor_signoff_to_end')
+
+    def test_offshore_auto_input(self):
+        self.play_chapter_case('play_offshore_to_end')
+
+    def test_reef_auto_input(self):
+        self.play_chapter_case('play_reef_to_end')
+
+    def test_wreck_auto_input(self):
+        self.play_chapter_case('play_wreck_to_end')
+
+    def test_finale_auto_input(self):
+        self.play_chapter_case('play_finale_complete_evidence_to_end')

@@ -1,0 +1,64 @@
+/* Camera on-screen display (body[data-hud-style=osd]): monospace text burned into the picture like
+   inspection video. Four corners, a text heading tape, a centre cross and frame marks; no panels.
+   The line instruments are hidden while it is active; shared controls (map, tools, peek, warnings) stay. */
+#flightOsd { inset: 0; display: none; font: 400 19px/1.5 var(--f-osd); letter-spacing: .04em;
+  text-shadow: var(--osd-shadow); color: var(--hud-ink); }
+body[data-hud-style=osd] #flightOsd { display: block; }
+#flightOsd .k { color: var(--hud-ink-dim); white-space: pre; }
+#flightOsd .warn, #flightOsd .warn .k { color: var(--warn); }
+#flightOsd .rec { color: var(--danger); }
+.osd-block { position: absolute; white-space: pre; }
+.osd-tl { left: 4%; top: 5%; }
+.osd-tr { right: 4%; top: 5%; text-align: right; }
+.osd-bl { left: 4%; bottom: 7%; }
+.osd-br { right: 4%; bottom: 7%; text-align: right; }
+.osd-heading { position: absolute; left: 50%; top: 5%; transform: translateX(-50%); white-space: pre;
+  letter-spacing: .12em; }
+.osd-heading b { color: var(--warn); font-weight: 600; letter-spacing: .04em; padding: 0 .3em; }
+.osd-lock { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); white-space: nowrap;
+  color: var(--warn); }
+.osd-frame { position: absolute; inset: 3%; }
+.osd-frame i { position: absolute; width: 30px; height: 30px; border: 2px solid rgba(234, 244, 247, .8);
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .8)); }
+.osd-frame i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.osd-frame i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.osd-frame i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.osd-frame i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.osd-cross { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9)); }
+.osd-cross::before, .osd-cross::after { content: ''; position: absolute; background: rgba(234, 244, 247, .85); }
+.osd-cross::before { left: calc(50% - .75px); top: 0; width: 1.5px; height: 100%; }
+.osd-cross::after { top: calc(50% - .75px); left: 0; height: 1.5px; width: 100%; }
+
+/* Line instruments step aside; their read-outs are in the corners now. */
+body[data-hud-style=osd] .hud.tc, body[data-hud-style=osd] .hud.bc, body[data-hud-style=osd] #flightDepth,
+body[data-hud-style=osd] #flightAttitude, body[data-hud-style=osd] #lockBadge,
+body[data-hud-style=osd] .hud.tl .chips, body[data-hud-style=osd] #xhair { display: none; }
+body[data-hud-style=osd] .hud.tl { top: calc(5% + 96px); }
+body[data-hud-style=osd] .flight { text-shadow: var(--osd-shadow); }
+body[data-hud-style=osd] #flightMission { top: auto; bottom: calc(7% + 64px); font: 15px var(--f-osd); }
+body[data-hud-style=osd] #flightRange { top: calc(50% + 34px); font: 16px var(--f-osd); }
+body[data-hud-style=osd] #flightRange::before { display: none; }
+body[data-hud-style=osd] #flightWarning { font: 600 18px var(--f-osd); letter-spacing: .04em; }
+body[data-hud-style=osd] #flightController { top: calc(5% + 40px); font: 13px var(--f-osd); }
+body[data-hud-style=osd] #labels .lbl { font: 15px var(--f-osd); }
+/* Map and tools leave the corners to the OSD text: the map stacks above the lower-left block (clear of the
+   radio dialogue in the upper left), the tools stand on the right edge. */
+body[data-hud-style=osd] #flightMapBox { bottom: calc(7% + 92px); }
+body[data-hud-style=osd] #flightMap { width: 128px; height: 128px; }
+body[data-hud-style=osd] #flightTools { bottom: auto; top: 50%; transform: translateY(-50%); flex-direction: column; }
+body.replaying .osd-bl, body.replaying .osd-br, body.replaying .osd-lock { bottom: 120px; }
+body.replaying[data-hud-style=osd] #flightMission { bottom: 184px; }
+body.replaying[data-hud-style=osd] #flightMapBox { bottom: 212px; }
+
+@media (max-width: 720px) {
+  #flightOsd { font-size: 11px; }
+  .osd-frame i { width: 18px; height: 18px; }
+  .osd-heading { top: calc(5% + 4px); letter-spacing: .02em; }
+  .osd-tl, .osd-tr { top: calc(5% + 24px); }
+  body[data-hud-style=osd] .hud.tl { top: calc(5% + 84px); }
+  body[data-hud-style=osd] #flightMission { bottom: calc(7% + 40px); font-size: 11px; }
+  body[data-hud-style=osd] #flightMapBox { bottom: calc(7% + 60px); }
+  body[data-hud-style=osd] #flightMap { width: 88px; height: 88px; }
+  .osd-lock, body.replaying .osd-lock { bottom: auto; top: calc(50% + 64px); }
+}

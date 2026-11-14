@@ -1,145 +1,405 @@
-/* Independent instructor connection and printable evidence export; never persists credentials. */
-const STRINGS = {
-  title: '教官台 · 訓練監督', room: '房間', code: '教官碼', connect: '連線', target: '學員載具',
-  kind: '物理覆蓋', strength: '強度 0–1', duration: '持續秒數', index: '推進器索引', inject: '注入',
-  thruster: '推進器推力下降', battery: '電量下降', current: '全房洋流突變', visibility: '全房能見度下降',
-  freeze: '凍結載具', report: '取得報告', pause: '暫停全房', resume: '繼續', reset: '重置並封存報告',
-  return: '移回起點', provisional: '評分門檻：暫定；未取樣階段不評級', connected: '已通過教官驗證',
-  offline: '連線中斷', html: '下載可列印 HTML', print: '列印 HTML', json: '下載 JSON', csv: '下載軌跡 CSV',
-  telemetry: '姿態 / 推進器 / 纜線', phase: '考核階段', reference: '套用考核參考值',
-  descent: '下潛', transit: '轉場', hover: '懸停', orbit: '繞行', dock: '對接',
-  heading: '目標航向 °', depth: '目標深度 m', north: '目標北向 m', east: '目標東向 m',
-};
+/* Independent authenticated console: telemetry, injection lifecycle and server-owned assessment evidence. */
+import {STRINGS as S, PHASES, METRICS} from './strings.js';
+import {createMap} from './map.js';
 const root = document.querySelector('#app');
 let socket;
-let latestReport;
-function element(tag, text, parent = root) {
+let authenticated = false;
+let lastStateAt = 0;
+let state = {};
+let report;
+let pending = false;
+let reportPending = false;
+const actionButtons = [];
+const exportButtons = [];
+const cards = new Map();
+function el(tag, text, parent = root, className = '') {
   const node = document.createElement(tag);
-  if (text) node.textContent = text;
+  node.textContent = text || '';
+  node.className = className;
   parent.append(node);
   return node;
 }
-function field(key, value, parent, type = 'text') {
-  const label = element('label', STRINGS[key], parent);
-  const input = element('input', '', label);
-  input.type = type;
-  input.value = value;
-  return input;
-}
-function button(key, handler, parent) {
-  const node = element('button', STRINGS[key], parent);
-  node.onclick = handler;
+function button(key, handler, parent, gated = true) {
+  const node = el('button', S[key], parent);
+  node.type = 'button';
+  node.addEventListener('click', handler);
+  if (gated) actionButtons.push(node);
   return node;
 }
-function send(message) {
-  if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(message));
-  }
+function field(key, value, parent, type = 'number', min, max, step = 'any') {
+  const input = el('input', '', el('label', S[key], parent));
+  input.type = type;
+  input.value = value;
+  if (min !== undefined) input.min = min;
+  if (max !== undefined) input.max = max;
+  input.step = step;
+  input.id = key;
+  return input;
+}
+function select(key, values, parent) {
+  const input = el('select', '', el('label', S[key], parent));
+  input.id = key;
+  for (const value of values) el('option', S[value] || value, input).value = value;
+  return input;
+}
+function section(key, parent, className = '') {
+  const node = el('section', '', parent, className);
+  el('h2', S[key], node);
+  return node;
+}
+function numeric(value, digits = 1) {
+  return Number.isFinite(value) ? value.toFixed(digits) : S.missing;
+}
+function live() {
+  return authenticated && socket?.readyState === WebSocket.OPEN && Date.now() - lastStateAt < 5000;
+}
+function updateAvailability() {
+  for (const node of actionButtons) node.disabled = !live() || !target.value || pending;
+  for (const node of document.querySelectorAll('.active-event button')) node.disabled = !live() || pending;
+  for (const node of exportButtons) node.disabled = !live() || !report || report.vehicle_id !== target.value;
 }
 function command(action, extra = {}) {
-  send({type: 'instructor', action, vehicle_id: target.value, ...extra});
+  if (!live() || pending || !target.value) return;
+  pending = true;
+  socket.send(JSON.stringify({type: 'instructor', action, vehicle_id: target.value, ...extra}));
+  updateAvailability();
+}
+function refreshReport() {
+  if (!live() || reportPending || !target.value) return;
+  reportPending = true;
+  socket.send(JSON.stringify({type: 'instructor', action: 'report', vehicle_id: target.value}));
 }
 function download(name, content, type) {
+  if (!report || report.vehicle_id !== target.value) return;
   const url = URL.createObjectURL(new Blob([content], {type}));
-  const link = element('a');
+  const link = el('a');
   link.href = url;
-  link.download = name;
+  link.download = `${report.vehicle_id}-${name}`;
   link.click();
   link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(function revoke() { URL.revokeObjectURL(url); }, 1000);
 }
-element('h1', STRINGS.title);
-const status = element('output', STRINGS.provisional);
-const login = element('section');
-login.id = 'login';
-const room = field('room', 'training', login);
+const header = el('header');
+el('div', S.subtitle, header, 'eyebrow');
+const titleRow = el('div', '', header, 'title-row');
+el('h1', S.title, titleRow);
+const status = el('output', S.offline, titleRow);
+status.setAttribute('aria-live', 'polite');
+const login = el('form', '', header, 'login');
+const room = field('room', 'training', login, 'text');
 const code = field('code', '', login, 'password');
 code.autocomplete = 'off';
-button('connect', function connect() {
+code.required = true;
+const connect = button('connect', function noop() {}, login, false);
+connect.type = 'submit';
+login.addEventListener('submit', function join(event) {
+  event.preventDefault();
   socket?.close();
-  const port = new URLSearchParams(location.search).get("ws_port") || 8765;
+  authenticated = false;
+  pending = false;
+  reportPending = false;
+  report = null;
+  state = {};
+  cards.clear();
+  fleet.replaceChildren();
+  target.replaceChildren();
+  chart.reset();
+  renderReport();
+  active.replaceChildren();
+  timeline.replaceChildren();
+  const secret = code.value;
+  code.value = '';
+  const port = new URLSearchParams(location.search).get('ws_port') || 8765;
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-  socket = new WebSocket(`${scheme}://${location.hostname}:${port}`);
-  socket.onopen = function authenticate() {
-    send({type: 'instructor_join', room_id: room.value, code: code.value});
-    code.value = '';
+  const connection = new WebSocket(`${scheme}://${location.hostname}:${port}`);
+  socket = connection;
+  status.textContent = S.connecting;
+  updateAvailability();
+  connection.onopen = function authenticate() {
+    if (socket !== connection) return;
+    connection.send(JSON.stringify({type: 'instructor_join', room_id: room.value.trim(), code: secret}));
   };
-  socket.onclose = function disconnected() {
-    status.textContent = STRINGS.offline;
+  connection.onmessage = function message(event) {
+    if (socket === connection) receive(JSON.parse(event.data));
   };
-  socket.onmessage = receive;
-}, login);
-const commands = element('section');
-commands.id = 'commands';
-const target = element('select', '', element('label', STRINGS.target, commands));
-const kind = element('select', '', element('label', STRINGS.kind, commands));
-for (const key of ['thruster', 'battery', 'current', 'visibility', 'freeze']) {
-  element('option', STRINGS[key], kind).value = key;
-}
-const strength = field('strength', '.5', commands, 'number');
-const duration = field('duration', '10', commands, 'number');
-const index = field('index', '0', commands, 'number');
-button('inject', function inject() {
+  connection.onclose = function close() {
+    if (socket !== connection) return;
+    authenticated = false;
+    status.textContent = S.offline;
+    root.classList.add('stale');
+    updateAvailability();
+  };
+  connection.onerror = function error() {
+    if (socket === connection) status.textContent = S.offline;
+  };
+});
+const dashboard = el('div', '', root, 'dashboard');
+const fleetPanel = section('fleet', dashboard, 'fleet-panel');
+const fleet = el('div', S.emptyFleet, fleetPanel);
+fleet.id = 'fleet';
+const mapPanel = section('map', dashboard, 'map-panel');
+const mapToolbar = el('div', '', mapPanel, 'map-toolbar');
+el('span', S.mapHelp, mapToolbar);
+button('zoomOut', function zoomOut() { chart.zoom(1 / 1.3); }, mapToolbar, false);
+button('zoomIn', function zoomIn() { chart.zoom(1.3); }, mapToolbar, false);
+button('fit', function fit() { chart.fit(); }, mapToolbar, false);
+const canvas = el('canvas', '', mapPanel);
+canvas.setAttribute('aria-label', S.map);
+const chart = createMap(canvas);
+el('p', S.legend, mapPanel, 'legend');
+const faults = section('faults', dashboard, 'fault-panel');
+const target = select('target', [], faults);
+target.addEventListener('change', function selection() {
+  report = null;
+  renderReport();
+  renderFleet();
+  updateAvailability();
+  refreshReport();
+});
+const injection = el('form', '', faults, 'injection');
+const kind = select('kind', ['thruster', 'battery', 'current', 'visibility', 'freeze', 'video_delay', 'video_freeze',
+  'link_degrade', 'comms_loss', 'power_trip', 'leak', 'overheat',
+  'compass', 'depth_sensor', 'dvl', 'altimeter'], injection);
+const inputs = el('div', '', injection, 'fields');
+const strength = field('strength', '.5', inputs, 'number', 0, 1, .05);
+const duration = field('duration', '30', inputs, 'number', .1, 3600);
+const index = field('index', '0', inputs, 'number', 0, 7, 1);
+for (const input of [strength, duration, index]) input.required = true;
+kind.addEventListener('change', function kindChanged() { index.disabled = kind.value !== 'thruster'; });
+const inject = button('inject', function noop() {}, injection);
+inject.type = 'submit';
+injection.addEventListener('submit', function submit(event) {
+  event.preventDefault();
   command('inject', {kind: kind.value, strength: +strength.value, duration: +duration.value, index: +index.value});
-}, commands);
-for (const action of ['reset', 'return', 'report']) button(action, () => command(action), commands);
-button('pause', () => command('pause', {value: true}), commands);
-button('resume', () => command('pause', {value: false}), commands);
-const phase = element('select', '', element('label', STRINGS.phase, commands));
-for (const key of ['descent', 'transit', 'hover', 'orbit', 'dock']) {
-  element('option', STRINGS[key], phase).value = key;
-}
-const north = field('north', '0', commands, 'number');
-const east = field('east', '0', commands, 'number');
-const depth = field('depth', '5', commands, 'number');
-const heading = field('heading', '0', commands, 'number');
-button('reference', function reference() {
+});
+el('h3', S.active, faults);
+const active = el('div', S.emptyActive, faults, 'active-events');
+el('h3', S.timeline, faults);
+const timeline = el('ol', S.emptyEvents, faults, 'timeline');
+const bottom = section('assessment', root, 'assessment');
+const assessmentToolbar = el('div', '', bottom, 'assessment-toolbar');
+const flow = select('flow', ['flow', 'still'], assessmentToolbar);
+flow.setAttribute('aria-label', `${S.flow} / ${S.still}`);
+flow.addEventListener('change', renderReport);
+const reportClock = el('span', '', assessmentToolbar, 'mono');
+button('report', refreshReport, assessmentToolbar);
+exportButtons.push(button('json', function json() {
+  download('training.json', JSON.stringify(report, null, 2), 'application/json');
+}, assessmentToolbar, false));
+exportButtons.push(button('csv', function csv() {
+  const rows = report.trajectory || [];
+  const content = ['t,phase,north,east,depth', ...rows.map(r => [r.t, r.phase, ...r.pos].join(','))].join('\n');
+  download('trajectory.csv', content, 'text/csv');
+}, assessmentToolbar, false));
+exportButtons.push(button('html', function html() {
+  const evidence = JSON.stringify(report, null, 2).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+  const head = `<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>${S.title}</title>`;
+  download('training.html', head
+    + `<h1>${S.title}</h1><p>${S.provisional}</p>`
+    + `<pre style="white-space:pre-wrap">${evidence}</pre></html>`, 'text/html');
+}, assessmentToolbar, false));
+const matrix = el('div', '', bottom, 'matrix');
+el('p', S.provisional, bottom, 'legend');
+const settings = el('div', '', root, 'settings');
+const reference = el('details', '', settings);
+el('summary', S.reference, reference);
+const referenceForm = el('form', '', reference, 'reference-form');
+const phase = select('phase', PHASES, referenceForm);
+const north = field('targetNorth', '0', referenceForm);
+const east = field('targetEast', '0', referenceForm);
+const depth = field('targetDepth', '5', referenceForm);
+const heading = field('targetHeading', '0', referenceForm);
+for (const input of [north, east, depth, heading]) input.required = true;
+const apply = button('apply', function noop() {}, referenceForm);
+apply.type = 'submit';
+referenceForm.addEventListener('submit', function applyReference(event) {
+  event.preventDefault();
   command('reference', {phase: phase.value, reference: {
     target: [+north.value, +east.value, +depth.value], depth: +depth.value, heading: +heading.value,
   }});
-}, commands);
-const fleet = element('div');
-fleet.id = 'fleet';
-const evidence = element('section');
-const reportText = element('pre', STRINGS.provisional, evidence);
-button('json', () => download('training.json', JSON.stringify(latestReport, null, 2), 'application/json'), evidence);
-button('csv', function csv() {
-  const rows = latestReport?.trajectory || [];
-  const data = ['t,phase,north,east,depth', ...rows.map(s => [s.t, s.phase, ...s.pos].join(','))].join('\n');
-  download('trajectory.csv', data, 'text/csv');
-}, evidence);
-button('html', function html() {
-  const text = JSON.stringify(latestReport, null, 2).replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  const content = '<!doctype html><html lang="zh-Hant"><meta charset="utf-8">'
-    + `<title>${STRINGS.title}</title><h1>${STRINGS.title}</h1>`
-    + `<p>${STRINGS.provisional}</p><pre style="white-space:pre-wrap">${text}</pre></html>`;
-  download('training.html', content, 'text/html');
-}, evidence);
-button('print', () => window.print(), evidence);
-function receive(event) {
-  const message = JSON.parse(event.data);
-  if (message.type === 'instructor_session') status.textContent = STRINGS.connected;
-  if (message.type === 'error') status.textContent = message.message;
-  if (message.type === 'instructor_result') status.textContent = `${message.action}: ${message.ok}`;
-  if (message.type === 'training_report') {
-    latestReport = message.report;
-    reportText.textContent = JSON.stringify(message, null, 2);
+});
+const controls = el('details', '', settings);
+el('summary', S.controls, controls);
+button('pause', function pause() { command('pause', {value: true}); }, controls);
+button('resume', function resume() { command('pause', {value: false}); }, controls);
+button('return', function returnVehicle() {
+  if (window.confirm(S.confirmReturn)) command('return');
+}, controls);
+button('reset', function reset() {
+  if (window.confirm(S.confirmReset)) command('reset');
+}, controls);
+function renderFleet() {
+  const vehicles = state.vehicles || [];
+  const players = state.room?.players || [];
+  if (!cards.size) fleet.replaceChildren();
+  for (const v of vehicles) {
+    let card = cards.get(v.id);
+    if (!card) {
+      card = el('article', '', fleet, 'student');
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.addEventListener('click', function choose() {
+        target.value = v.id;
+        target.dispatchEvent(new Event('change'));
+      });
+      card.addEventListener('keydown', function chooseKey(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          card.click();
+        }
+      });
+      cards.set(v.id, card);
+    }
+    card.replaceChildren();
+    const health = v.health || [];
+    const severity = v.tether?.broken || health.some(h => h <= 0) || v.score?.failed ? 'danger'
+      : v.tether?.warn || health.some(h => h < 1) || v.battery < 20 ? 'caution' : 'normal';
+    card.className = `student ${severity} ${v.id === target.value ? 'selected' : ''}`;
+    card.setAttribute('aria-pressed', String(v.id === target.value));
+    const player = players.find(p => p.vehicle_id === v.id);
+    const cardHead = el('div', '', card, 'card-head');
+    el('h3', `${v.id} / ${player?.name || v.id}`, cardHead);
+    el('span', S[severity], cardHead, severity);
+    el('p', `${v.locked ? S.locked : S.unlocked}${v.paused ? ` · ${S.paused}` : ''}`
+      + (player?.connected === false ? ` · ${S.disconnected}` : ''), card, 'lock-state');
+    const readings = el('div', '', card, 'readings');
+    for (const [label, value, unit] of [[S.depth, v.pos?.[2], S.metres], [S.speed, v.speed_kn, S.knots]]) {
+      const reading = el('div', '', readings);
+      el('span', label, reading, 'label');
+      el('strong', numeric(value), reading);
+      el('small', unit, reading);
+    }
+    el('p', S.attitude, card, 'label');
+    el('div', (v.euler || []).map(n => `${numeric(n)}°`).join(' / '), card, 'mono attitude');
+    el('p', S.tether, card, 'label');
+    el('div', `${numeric(v.tether?.length)} ${S.metres} / ${numeric(v.tether?.tension_rov)} ${S.newtons}`,
+      card, 'mono');
+    const healthRow = el('div', '', card, 'health');
+    el('span', S.health, healthRow, 'label');
+    health.forEach(function thruster(h, i) {
+      const meter = el('span', `${i + 1}`, healthRow, h < 1 ? 'caution' : 'normal');
+      meter.title = `${S.health} ${i}: ${Math.round(h * 100)}%`;
+      meter.setAttribute('aria-label', meter.title);
+      meter.style.setProperty('--health-value', h);
+    });
+    const score = v.score || {};
+    const objective = score.objectives?.[score.current_index];
+    const task = score.failed ? S.failed : score.finished ? S.complete : objective?.label || v.mission?.label || S.idle;
+    const progress = objective ? `${score.current_index + 1}/${score.objectives.length} · ` : '';
+    el('p', `${S.task} · ${progress}${task}`, card, 'task');
   }
-  if (message.type !== 'state') return;
-  const selected = target.value;
-  target.replaceChildren();
-  fleet.replaceChildren();
-  for (const state of message.vehicles || []) {
-    element('option', state.id, target).value = state.id;
-    const card = element('article', '', fleet);
-    element('h2', state.id, card);
-    element('p', STRINGS.telemetry, card);
-    element('pre', JSON.stringify({pos: state.pos, euler: state.euler, health: state.health,
-      thrust: state.thrust, battery: state.battery, tether: {
-        length: state.tether.length, tension: state.tether.tension_rov,
-        broken: state.tether.broken, wraps: state.tether.wraps,
-      }}, null, 2), card);
+  for (const [id, card] of cards) {
+    if (!vehicles.some(v => v.id === id)) {
+      card.remove();
+      cards.delete(id);
+    }
   }
-  if ([...target.options].some(o => o.value === selected)) target.value = selected;
+  if (!vehicles.length) fleet.textContent = S.emptyFleet;
+  chart.update(vehicles, target.value);
 }
+function renderReport() {
+  matrix.replaceChildren();
+  reportClock.textContent = report
+    ? `${S.reportTime} ${numeric(report.elapsed)} ${S.seconds} / ${report.vehicle_id}` : S.noReport;
+  for (const key of PHASES) {
+    const column = el('div', '', matrix, 'phase');
+    el('h3', S[key], column);
+    for (const metric of METRICS) {
+      const result = report?.matrix?.[key]?.[flow.value === 'flow' ? 'current' : 'still']?.[metric];
+      const row = el('div', '', column, `grade ${result?.grade || 'ungraded'}`);
+      el('span', metric === 'speed' ? S.speedError : S[metric], row);
+      el('span', result ? S[result.grade] : S.ungraded, row);
+      if (result) row.title = `${S.metricHelp}: ${numeric(result.rms)} / ${numeric(result.min)} / `
+        + `${numeric(result.max)} / ${numeric(result.outside_fraction * 100)}%`;
+    }
+  }
+}
+function renderEvents() {
+  active.replaceChildren();
+  const events = report?.supervision?.active;
+  if (!events) active.textContent = S.legacy;
+  else if (!events.length) active.textContent = S.emptyActive;
+  for (const event of events || []) {
+    const row = el('div', '', active, 'active-event');
+    el('span', `${S[event.kind]} · ${event.scope === 'room' ? S.roomScope : event.vehicle_id}`, row);
+    el('strong', `${Math.max(0, Math.ceil(event.end - report.elapsed))} ${S.seconds}`, row, 'mono');
+    const stop = button('end', function stopEvent() {
+      command('inject', {vehicle_id: event.vehicle_id, kind: event.kind, cancel_start: event.start});
+    }, row, false);
+    stop.disabled = !live() || pending;
+  }
+  timeline.replaceChildren();
+  for (const event of (report?.events || []).slice(-40).reverse()) {
+    const time = event.restored_at ?? event.start ?? event.injection_start;
+    const row = el('li', '', timeline);
+    el('time', `${numeric(time)} ${S.seconds}`, row, 'mono');
+    el('span', `${S[event.kind] || event.kind} · ${event.vehicle_id}`
+      + (event.restored_at !== undefined ? ` · ${S.restored}` : ''), row);
+  }
+  if (!timeline.children.length) timeline.textContent = S.emptyEvents;
+}
+function receive(message) {
+  if (message.type === 'instructor_session') {
+    authenticated = true;
+    status.textContent = S.connected;
+  }
+  if (message.type === 'world' && authenticated) chart.world(message);
+  if (message.type === 'error') {
+    pending = false;
+    reportPending = false;
+    status.textContent = `${S.rejected}: ${message.message || message.code}`;
+    updateAvailability();
+  }
+  if (message.type === 'instructor_result') {
+    pending = false;
+    status.textContent = S.success;
+    if (message.action === 'reset') {
+      chart.reset();
+      report = null;
+      renderReport();
+    }
+    refreshReport();
+    updateAvailability();
+  }
+  if (message.type === 'training_report') {
+    reportPending = false;
+    if (message.report.vehicle_id === target.value) {
+      report = message.report;
+      if (report.supervision?.world) chart.world(report.supervision.world);
+      renderReport();
+      renderEvents();
+    } else refreshReport();
+    updateAvailability();
+  }
+  if (message.type !== 'state' || !authenticated) return;
+  state = message;
+  lastStateAt = Date.now();
+  root.classList.remove('stale');
+  const vehicles = state.vehicles || [];
+  const ids = vehicles.map(v => v.id);
+  if (ids.join(',') !== [...target.options].map(o => o.value).join(',')) {
+    const selected = target.value;
+    target.replaceChildren();
+    for (const v of vehicles) el('option', v.id, target).value = v.id;
+    if (ids.includes(selected)) target.value = selected;
+    else {
+      report = null;
+      renderReport();
+    }
+  }
+  const vehicle = vehicles.find(v => v.id === target.value);
+  index.max = Math.max(0, (vehicle?.health?.length || 1) - 1);
+  renderFleet();
+  updateAvailability();
+}
+setInterval(function poll() {
+  if (authenticated && !live()) {
+    status.textContent = S.stale;
+    root.classList.add('stale');
+  }
+  updateAvailability();
+  refreshReport();
+}, 2000);
+renderReport();
+updateAvailability();

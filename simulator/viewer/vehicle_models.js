@@ -1,6 +1,7 @@
 // Vehicle visuals use Three coordinates (-starboard, -down, forward), metres.
 import * as THREE from 'three';
 import { loadGLTF } from './glb.js';
+import { genericVehicleUrl } from './asset_config.js';
 
 const point = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 const defaults = {
@@ -115,16 +116,23 @@ function fallback(id) {
   return root;
 }
 
-/** Load an independent vehicle instance. Lighting intentionally lives outside root. */
-export async function createVehicleModel(definition='x1') {
+/**
+ * Load an independent vehicle instance. Lighting intentionally lives outside root.
+ * options.assets ('training' | 'generic') overrides the ?assets= query; options.lod picks a generic LOD.
+ */
+export async function createVehicleModel(definition='x1', options={}) {
   const id=typeof definition==='string'?definition:definition.id || 'x1';
   const def={...(defaults[id] || defaults.x1),...(typeof definition==='object'?definition:{})};
   const root=new THREE.Group(); root.name=`Vehicle ${id}`;
+  const genericUrl = genericVehicleUrl(id, options.lod ?? 0, options.assets);
+  // Generic visuals are authored about the CG with explicit thruster_index extras, like the fleet GLBs.
+  const legacyX1 = id === 'x1' && !genericUrl;
+  if (genericUrl) def.model = genericUrl;
   let model, loadError=null;
   try { model=(await loadGLTF(def.model)).scene; }
   catch(e) { loadError=e; console.warn(`Vehicle model ${id} unavailable; using fallback`,e); model=fallback(id); }
   // Preserve the legacy X1 centring convention; fleet GLBs are authored about CG.
-  if(id==='x1') { const box=new THREE.Box3().setFromObject(model); model.position.sub(box.getCenter(new THREE.Vector3())); }
+  if(legacyX1) { const box=new THREE.Box3().setFromObject(model); model.position.sub(box.getCenter(new THREE.Vector3())); }
   root.add(model); root.updateMatrixWorld(true);
   const rotors=[];
   model.traverse((o) => {
@@ -138,11 +146,13 @@ export async function createVehicleModel(definition='x1') {
     } else axis=new THREE.Vector3(...(o.userData.axis || [0,0,1])).applyQuaternion(worldQ.clone().invert()).normalize();
     rotors.push({o,base:o.quaternion.clone(),axis,pos:o.getWorldPosition(new THREE.Vector3()),ang:0,thrusterIndex:o.userData.thruster_index});
   });
-  if(id==='x1') matchLegacyRotors(rotors,def.thrusters);
+  if(legacyX1) matchLegacyRotors(rotors,def.thrusters);
   const arm=id==='falcon'?(bindModelArm(root,model) || manipulator(def.arm_mount_body)):null;
   if(arm && arm.root.parent!==root) root.add(arm.root);
   const lampAnchors=(def.lamp_body || []).map((p) => ({position:point(p),direction:new THREE.Vector3(0,-.055,1).normalize()}));
-  return {root,model,rotors,arm,definition:def,loadError,lampAnchors,
+  const cameraGimbal = model.getObjectByName('camera_gimbal') || null;
+  const lampPivots = [0, 1].map((i) => model.getObjectByName(`lamp_pivot_${i}`)).filter(Boolean);
+  return {root,model,rotors,arm,definition:def,loadError,lampAnchors,cameraGimbal,lampPivots,
     cameraAnchor:point(def.camera_body),tetherAnchor:point(def.gland_body),
     updateArm:(state) => arm?.update(state), dispose:() => disposeTree(root)};
 }

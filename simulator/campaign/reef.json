@@ -1,15 +1,145 @@
 {
   "id": "reef",
   "title": "第三章｜礁區",
-  "scenario": "open_water",
-  "mode": "free_explore",
+  "scenario": "coral_reef",
+  "mode": "expedition",
   "category": "story",
   "order": 60,
   "requires": "offshore",
-  "placeholder": true,
-  "outline": "生態調查、回收與部署觀測儀。",
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "restart",
+      "type": "checkpoint"
+    },
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "brief"
+    },
+    {
+      "id": "task_1",
+      "type": "objective",
+      "text_key": "task_1"
+    },
+    {
+      "id": "biology",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "biology"
+    },
+    {
+      "id": "biology_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "biology_cable"
+    },
+    {
+      "id": "biology_wait",
+      "type": "wait",
+      "condition": {
+        "path": "expedition.discoveries.0.scene",
+        "op": "eq",
+        "value": "coral_reef"
+      },
+      "hint_key": "biology_wait.hint"
+    },
+    {
+      "id": "task_2",
+      "type": "objective",
+      "text_key": "task_2"
+    },
+    {
+      "id": "recover",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "recover"
+    },
+    {
+      "id": "recover_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "recover_cable"
+    },
+    {
+      "id": "recover_wait",
+      "type": "wait",
+      "condition": {
+        "path": "expedition.results.0.kind",
+        "op": "eq",
+        "value": "recover"
+      },
+      "hint_key": "recover_wait.hint"
+    },
+    {
+      "id": "task_3",
+      "type": "objective",
+      "text_key": "task_3"
+    },
+    {
+      "id": "deploy",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "deploy"
+    },
+    {
+      "id": "deploy_cable",
+      "type": "dialogue",
+      "speaker_key": "tender",
+      "voice": null,
+      "text_key": "deploy_cable"
+    },
+    {
+      "id": "deploy_wait",
+      "type": "wait",
+      "condition": {
+        "path": "expedition.results.1.kind",
+        "op": "eq",
+        "value": "deploy"
+      },
+      "hint_key": "deploy_wait.hint"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "speaker_key": "supervisor",
+      "voice": null,
+      "text_key": "done"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "reef_badge"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    }
+  ],
   "strings": {
-    "zh-TW": {}
+    "zh-TW": {
+      "supervisor": "林督導",
+      "tender": "阿禾",
+      "brief": "研究站要換觀測儀。先在章節面板部署已解鎖的作業載具，再開始本章。抓手只搬小件，不拿來吊重物。",
+      "task_1": "作業一｜生態基準照（預留五至十分鐘）：取得一筆有效生態觀察",
+      "biology": "先留一張環境基準。與生物保持距離，別為湊近照把底泥吹起來。",
+      "biology_cable": "我把線留在外側。你顧鏡頭，也幫底下那些住戶留點空間。",
+      "biology_wait.hint": "用機載視角拍攝可辨識的生物，確認觀察紀錄已收錄；普通照片數不算。",
+      "task_2": "作業二｜回收舊器材（預留五至十五分鐘）：完成一份海底物件回收合約",
+      "recover": "開啟海底物件回收合約。先拍原位，再夾取，送到指定交接點才放開。",
+      "recover_cable": "我守著回程。夾住先別衝，看看東西是不是跟著走。",
+      "recover_wait.hint": "先接回收合約：原位照片、機械臂夾取、運送、放開穩定兩秒。請勿先接其他合約。",
+      "task_3": "作業三｜部署觀測儀（預留五至十五分鐘）：完成一份觀測儀部署合約",
+      "deploy": "再開部署合約。放到指定位置，等它穩住，再拍完工照。不要把珊瑚當底座。",
+      "deploy_cable": "放好了也別急著走。我想看它站穩，你大概也想。",
+      "deploy_wait.hint": "回收完成後再接部署合約；夾取、搬運、放開穩定兩秒，最後拍攝部署照片。",
+      "done": "兩件器材交接完成。研究站在舊影像裡找到殘骸輪廓，要請我們再看一眼。"
+    }
   }
 }

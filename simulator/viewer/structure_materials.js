@@ -187,17 +187,9 @@ function foulingShader(params, textures) {
       uniform float uHasBoot;
       vec3 foulSample(float scale) {
         vec3 p = vFoulPos * scale;
-        #if FOUL_QUALITY >= 2
-        vec3 w = abs(vFoulNormal);
-        w = pow(w, vec3(4.0));
-        w /= (w.x + w.y + w.z + 1e-4);
-        return texture2D(uFouling, p.zy).rgb * w.x + texture2D(uFouling, p.xz).rgb * w.y
-          + texture2D(uFouling, p.xy).rgb * w.z;
-        #else
         vec3 n = abs(vFoulNormal);
         vec2 uv = n.y > max(n.x, n.z) ? p.xz : (n.x > n.z ? p.zy : p.xy);
         return texture2D(uFouling, uv).rgb;
-        #endif
       }
       ` + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       {
@@ -240,15 +232,16 @@ function foulingShader(params, textures) {
 /**
  * A new material for one structure kind. Each call returns its own instance (the snag highlight changes the
  * emissive colour per obstacle); the shader program is shared through the cache key. ``detail`` sets the cost:
- * low has no fouling shader, medium reads the fouling mask once (dominant-axis projection), high blends three
- * projections for the coarse scale and adds one fine read (four reads).
+ * low has no fouling shader, medium reads the fouling mask once (dominant-axis projection), high twice (a fine
+ * scale) and uses the texture maps (panel joints, plating seams).
  */
 export function structureMaterial(kind, detail = 'medium') {
   const params = PRESETS[kind] || PRESETS.steel;
   const textures = structureTextures();
   const material = new THREE.MeshStandardMaterial({
     color: params.color, roughness: params.roughness, metalness: params.metalness,
-    map: params.map && (detail !== 'low' || kind === 'tiles') ? textures[params.map] : null,
+    // texture maps (panel joints, plating seams) only on high; pool tiles always
+    map: params.map && (detail === 'high' || kind === 'tiles') ? textures[params.map] : null,
   });
   if (detail === 'low') {
     // low tier: no fouling shader, the base colour is pre-mixed toward the mid-depth growth tone

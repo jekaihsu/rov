@@ -7,8 +7,9 @@ The viewer (viewer/structures.js) dresses each of these obstacles by its ``kind`
 the shape given here, so physics and picture stay the same object. Purely decorative growth (paint, fouling
 textures, mussel lumps thinner than the scene tolerance) has no entry here.
 
-Seabed props larger than about 0.2 m (enough to hook a 9.5 mm tether) are also listed as plain data by
-``seabed_props`` (type, position, size, yaw, collider name) so that a seabed snag model can consume them.
+Seabed fittings larger than about 0.2 m (enough to hook a 9.5 mm tether) carry ``snag_hold`` for the tether
+snag model (tether_snag.py), the same attribute as ``world.SnagFeature`` and the Korean Castle wreck. Fittings in
+the near-bed layer and small attachments make no wake in the structure flow (``NO_WAKE_KINDS``, flow.py).
 Proportions follow common offshore and harbour practice; they are illustrative, not survey data.
 """
 
@@ -27,6 +28,25 @@ APPURTENANCE_KINDS = frozenset({
     "scour_rock", "fender", "ladder", "bollard", "toe_rock", "tyre", "debris_block", "debris_pipe",
     "bilge_keel", "shaft", "propeller", "rudder", "deck",
 })
+# Fittings that sit inside the near-bed log layer (whose roughness length already stands for them) or are too
+# small to shed a wake of their own; the structure flow skips them.
+NO_WAKE_KINDS = frozenset({
+    "scour_rock", "toe_rock", "cable_protection", "debris_pipe", "tyre", "debris_block", "mudmat",
+    "anode_strap", "propeller", "bollard", "deck",
+})
+# Holding force ranges (N) for snaggable seabed fittings. Provisional training settings like SnagFeature's
+# default (150-400 N): no published small-ROV snag strength data exists. Rock armour holds harder (assumed).
+SNAG_HOLD_DEBRIS = (150.0, 400.0)
+SNAG_HOLD_ROCK = (200.0, 500.0)
+
+
+def snaggable(obstacles: list, hold: tuple) -> list:
+    """Mark obstacles as snaggable for the tether (sets ``snag_hold``) and return them."""
+    for ob in obstacles:
+        ob.snag_hold = tuple(hold)
+    return obstacles
+
+
 ANODE_LENGTH = 2.0          # m, stand-off anode bar
 ANODE_RADIUS = 0.13         # m, capsule enclosing the trapezoid bar section
 ANODE_STANDOFF = 0.30       # m, anode axis to leg surface
@@ -73,8 +93,8 @@ def dress_jacket(obs: list, cx: float, cy: float, seabed: float, anode_depths: d
             extra += leg_anode(leg, float(depth), outward, f"{depth:.0f}m")
         foot = _leg_point(leg, seabed)
         yaw = math.degrees(math.atan2(outward[1], outward[0]))
-        extra.append(Box(f"{leg.name} mud mat", _tuple((foot[0], foot[1], seabed - 0.2)), (1.6, 1.6, 0.2), yaw,
-                         "mudmat"))
+        extra += snaggable([Box(f"{leg.name} mud mat", _tuple((foot[0], foot[1], seabed - 0.2)), (1.6, 1.6, 0.2),
+                                yaw, "mudmat")], SNAG_HOLD_DEBRIS)
     return extra
 
 
@@ -133,8 +153,9 @@ def dress_monopile(pile: Cylinder, seabed: float, landing_deg: float = 90.0, jtu
         obs.append(Cylinder(f"{name} bellmouth", _tuple((x1[0], x1[1], seabed - 1.2)),
                             _tuple((x2[0], x2[1], seabed - 0.35)), 0.3, "j_tube"))
         far = c + out * (r + 12.0)
-        obs.append(Cylinder(f"{name} cable protection", _tuple((x2[0], x2[1], seabed - 0.35)),
-                            _tuple((far[0], far[1], seabed - 0.15)), 0.15, "cable_protection"))
+        obs += snaggable([Cylinder(f"{name} cable protection", _tuple((x2[0], x2[1], seabed - 0.35)),
+                                   _tuple((far[0], far[1], seabed - 0.15)), 0.15, "cable_protection")],
+                         SNAG_HOLD_DEBRIS)
         for z in (8.0, 16.0):
             if z < bend - 1:
                 root = c + out * (r - 0.05)
@@ -142,7 +163,8 @@ def dress_monopile(pile: Cylinder, seabed: float, landing_deg: float = 90.0, jtu
                                     _tuple((x0[0], x0[1], z)), 0.08, "j_tube"))
     # rock armour: three overlapping bands, highest next to the pile, buried 0.35-0.5 m in the seabed
     for k, (radius, rock, bury) in enumerate(((r + 1.0, 0.95, 0.35), (r + 2.8, 0.95, 0.4), (r + 4.5, 0.75, 0.5))):
-        obs += _ring(f"{pile.name} scour rock {k + 1}", c[0], c[1], radius, seabed + bury, rock, "scour_rock")
+        obs += snaggable(_ring(f"{pile.name} scour rock {k + 1}", c[0], c[1], radius, seabed + bury, rock,
+                               "scour_rock"), SNAG_HOLD_ROCK)
     return obs
 
 
@@ -178,8 +200,8 @@ def dress_quay(wall: Wall, seabed: float, keep_clear=()) -> list:
     for i, s in enumerate(np.arange(-half + 3.0, half, 9.0)):
         obs.append(Cylinder(f"{wall.name} bollard {i + 1}", _tuple(face(s, -0.9, wall.top - 0.2)),
                             _tuple(face(s, -0.9, wall.top - 0.65)), 0.22, "bollard"))
-    obs.append(Cylinder(f"{wall.name} toe rock", _tuple(face(-half + 1.0, 0.6, seabed + 0.45)),
-                        _tuple(face(half - 1.0, 0.6, seabed + 0.45)), 1.05, "toe_rock"))
+    obs += snaggable([Cylinder(f"{wall.name} toe rock", _tuple(face(-half + 1.0, 0.6, seabed + 0.45)),
+                               _tuple(face(half - 1.0, 0.6, seabed + 0.45)), 1.05, "toe_rock")], SNAG_HOLD_ROCK)
     return obs
 
 
@@ -199,7 +221,7 @@ def quay_debris(wall: Wall, seabed: float) -> list:
     pipe0, pipe1 = p + n * 4.6 + t * (-14.0), p + n * 3.4 + t * (-18.5)
     obs.append(Cylinder(f"{wall.name} pipe", _tuple((pipe0[0], pipe0[1], seabed - 0.18)),
                         _tuple((pipe1[0], pipe1[1], seabed - 0.18)), 0.18, "debris_pipe"))
-    return obs
+    return snaggable(obs, SNAG_HOLD_DEBRIS)
 
 
 def ship_hull(name: str, center_xy, yaw_deg: float, length: float, beam: float, draft: float) -> list:
@@ -250,42 +272,3 @@ def rudder_layout(hp: dict) -> dict:
     top, bottom = hp["counter"] - 0.05, hp["draft"] - 0.3
     return {"x": -hp["length"] / 2 + 0.3 * hp["aperture"], "z": (top + bottom) / 2, "half_chord": 0.2 * hp["aperture"],
             "half_thick": 0.3, "half_height": (bottom - top) / 2}
-
-
-SEABED_PROP_KINDS = {"scour_rock": "scour_rock", "toe_rock": "rock_toe", "tyre": "tyre",
-                     "debris_block": "concrete_block", "debris_pipe": "pipe", "mudmat": "mud_mat",
-                     "cable_protection": "cable_protection"}
-
-
-def seabed_props(obstacles, seabed: float) -> list:
-    """Plain data for seabed props large enough to hook a tether (> ~0.2 m), one entry per collision shape.
-
-    Each entry: ``type``, ``collider`` (obstacle name), ``pos`` (NED centre of the footprint on the seabed),
-    ``size`` ([length, width, height above the seabed] m) and ``yaw_deg``. Meant for a seabed snag model.
-    """
-    out = []
-    for ob in obstacles:
-        kind = SEABED_PROP_KINDS.get(ob.kind)
-        if ob.kind == "habitat" and ob.name.startswith("rock-"):
-            kind = "boulder"
-        if kind is None:
-            continue
-        if isinstance(ob, Cylinder):
-            a, b = np.asarray(ob.p0, float), np.asarray(ob.p1, float)
-            mid = (a + b) / 2
-            height = seabed - (min(a[2], b[2]) - ob.radius)
-            span = float(np.linalg.norm((b - a)[:2])) + 2 * ob.radius
-            yaw = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
-            buried = max(mid[2] - seabed, 0.0)
-            width = 2 * math.sqrt(max(ob.radius ** 2 - buried ** 2, 0.0))
-            out.append({"type": kind, "collider": ob.name, "pos": _list((mid[0], mid[1], seabed)),
-                        "size": _list((span, width, height)), "yaw_deg": round(yaw, 2)})
-        elif isinstance(ob, Box):
-            height = seabed - (ob.center[2] - ob.half[2])
-            out.append({"type": kind, "collider": ob.name, "pos": _list((ob.center[0], ob.center[1], seabed)),
-                        "size": _list((2 * ob.half[0], 2 * ob.half[1], height)), "yaw_deg": round(ob.yaw_deg, 2)})
-    return [p for p in out if p["size"][2] > 0.2]
-
-
-def _list(v) -> list:
-    return [round(float(x), 3) for x in v]

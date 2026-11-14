@@ -14,20 +14,34 @@ from qysim.engine import Simulator
 from qysim.room import Room
 
 
+def place_near_bed(sim, altitude):
+    """Lower the vehicle (and its tether) to ``altitude`` above the bed and command a climb."""
+    delta = sim.world.seabed_at(sim.vehicle.s.pos) - altitude - sim.vehicle.s.pos[2]
+    sim.vehicle.s.pos[2] += delta
+    sim.tether.x[:, 2] += delta * np.linspace(0, 1, len(sim.tether.x))
+    sim.rc_physical.keep_depth = 0
+    sim.rc_physical.left_wave = 1650
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
     parser.add_argument('--ticks', type=int, default=180)
     parser.add_argument('--warmup', type=int, default=120)
     parser.add_argument('--profile', action='store_true')
+    parser.add_argument('--scenario', default='coral_reef')
+    parser.add_argument('--near-bed', type=float, default=None,
+                        help='start every vehicle this many metres above the bed with ascent thrust (silt worst case)')
     args = parser.parse_args()
-    room = Room(Simulator('coral_reef', seed=42), 'benchmark')
+    room = Room(Simulator(args.scenario, seed=42), 'benchmark')
     for model in ('x1', 'bluerov2_heavy', 'falcon'):
         player = room.join(model, model_id=model)
         sim = room.vehicles[player.vehicle_id]
         sim.rc_physical.rc_lock = 0
         sim.rc_physical.keep_depth = 1
         sim.rc_physical.right_ud = 1580
+        if args.near_bed is not None:
+            place_near_bed(sim, args.near_bed)
     for _ in range(args.warmup):
         room.step(.01)
     durations, cpu_durations = [], []
@@ -46,12 +60,13 @@ def main():
         stream = io.StringIO()
         pstats.Stats(profiler, stream=stream).sort_stats('cumulative').print_stats(30)
         print(stream.getvalue())
-    result = dict(scenario='coral_reef', seed=42, players=3, ticks=args.ticks,
+    result = dict(scenario=args.scenario, near_bed=args.near_bed, seed=42, players=3, ticks=args.ticks,
         warmup=args.warmup, profiled=args.profile, wall_mean_ms=float(np.mean(durations)),
         wall_p95_ms=float(np.percentile(durations,95)), cpu_mean_ms=float(np.mean(cpu_durations)),
-        batch_fraction=batches/(3*args.ticks),
+        batch_fraction=batches/(3*args.ticks), real_time_factor=10.0/float(np.mean(durations)),
         positions={key:sim.vehicle.s.pos.tolist() for key,sim in room.vehicles.items()},
-        tether_forces={key:sim.tether.force_on_rov.tolist() for key,sim in room.vehicles.items()})
+        tether_forces={key:sim.tether.force_on_rov.tolist() for key,sim in room.vehicles.items()},
+        silt_puffs=room.primary.world.silt_field.count)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2), encoding='utf-8')

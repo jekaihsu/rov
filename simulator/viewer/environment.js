@@ -9,9 +9,10 @@
 // through these props: they must never sit where the training happens.
 //
 //   const env = new Environment(scene, world /* the simulator's world message */, {detail: 'low'|'medium'|'high'});
-//   each frame: env.update(dt, camera, currentVec3 /* three-space water velocity */)
+//   each frame: env.update(dt, camera, currentVec3 /* three-space water velocity */, state, flowField)
 //   env.dispose()
 import * as THREE from 'three';
+import { KELP_FLOW_GLSL, createKelpFlowUniforms, updateKelpFlow } from './kelp_flow.js';
 import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
 
@@ -57,14 +58,17 @@ function kelpMaterial(uniforms) {
   const m = M(0x5b6b2c, { side: THREE.DoubleSide, roughness: 0.8 });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = uniforms.uTime; sh.uniforms.uFlow = uniforms.uFlow;
-    sh.vertexShader = 'uniform float uTime; uniform vec3 uFlow;\n' + sh.vertexShader.replace('#include <begin_vertex>', `
+    sh.uniforms.uFlowGrid = uniforms.uFlowGrid; sh.uniforms.uFlowBox = uniforms.uFlowBox;
+    const header = 'uniform float uTime; uniform vec3 uFlow;\n' + KELP_FLOW_GLSL;
+    sh.vertexShader = header + sh.vertexShader.replace('#include <begin_vertex>', `
       #include <begin_vertex>
       float h = position.y;                                   // 0 at the root
       float ph = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.53;
-      float sway = sin(uTime * 0.9 + ph + h * 0.6) * 0.35 + sin(uTime * 1.7 + ph * 2.1) * 0.12;
+      vec3 flow = kelpFlow(vec2(instanceMatrix[3].x, instanceMatrix[3].z));   // host flow at the root
+      float sway = (sin(uTime * 0.9 + ph + h * 0.6) * 0.35 + sin(uTime * 1.7 + ph * 2.1) * 0.12) * kelpStir(flow);
       float bend = h * h * 1.1;                               // local units: the instance scales y to the blade height
-      transformed.x += (uFlow.x * 1.2 + sway) * bend;
-      transformed.z += (uFlow.z * 1.2 + sway * 0.6) * bend;
+      transformed.x += (flow.x * 1.2 + sway) * bend;
+      transformed.z += (flow.z * 1.2 + sway * 0.6) * bend;
     `);
   };
   return m;
@@ -82,7 +86,7 @@ export class Environment {
     // Stable server identities, separate from draw buckets / instance ordering.
     // Read only at photo capture; no raycasts or observation work in update().
     this.observationTargets = [];
-    this.uniforms = { uTime: { value: 0 }, uFlow: { value: new THREE.Vector3() } };
+    this.uniforms = { uTime: { value: 0 }, uFlow: { value: new THREE.Vector3() }, ...createKelpFlowUniforms() };
     const key = `${world.scenario?.key || 'x'}:${world.scenario?.seed ?? ''}`;
     const R = rng(key);
     this.R = R;
@@ -471,11 +475,12 @@ export class Environment {
   }
 
   // ── per frame ─────────────────────────────────────────────────────────
-  update(dt, camera, flow = null, state = null) {
+  update(dt, camera, flow = null, state = null, flowField = null) {
     this.t = Number.isFinite(state?.t) ? state.t : this.t + dt;
     const t = this.t;
     this.uniforms.uTime.value = t;
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
+    updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
     const under = camera.position.y < 0;
     this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
     for (const { rotor, w } of this.rotors) rotor.rotation.z -= dt * w;

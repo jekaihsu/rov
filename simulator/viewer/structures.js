@@ -16,7 +16,7 @@
 //   'above'     above the waterline, out of the vehicle's reach
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {aftEnd, halfBreadth, obstacleDistance, shipHullParams} from './structure_sdf.js';
+import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
 import {structureMaterial} from './structure_materials.js';
 import {detectHardware} from './render_quality.js';
 
@@ -177,7 +177,6 @@ class StructureSet {
     mesh.userData.paintable = true;
     mesh.userData.colliders = names;
     mesh.userData.role = role;
-    mesh.receiveShadow = true;
     this.group.add(mesh);
     names.forEach((name, i) => {
       if (!this.entries.has(name) && obs[i]) this.entries.set(name, {mesh, ob: obs[i]});
@@ -413,7 +412,7 @@ function rockArmour(set, colliders, kind) {
     const axis = b.clone().sub(a).normalize();
     const side = new THREE.Vector3().crossVectors(axis, UP).normalize();
     // the armour crown: rows of rocks along the capsule, each touching the collision envelope from inside
-    const base = {high: 0.42, medium: 0.62}[set.detailName] ?? 0.75;
+    const base = set.detailName === 'low' ? 0.75 : 0.62;
     const step = base * Math.min(1, ob.radius / 0.95);
     const bury = P(ob.p0).lerp(P(ob.p1), 0.5).y - set.seabedY;
     const reach = Math.acos(Math.max(-1, Math.min(1, bury / ob.radius)));
@@ -427,7 +426,7 @@ function rockArmour(set, colliders, kind) {
       if (local < bury + 0.05) continue;
       const localReach = Math.acos(Math.max(-1, Math.min(1, bury / local)));
       for (let k = 0; k <= arcSteps; k++) {
-        const size = set.detailName === 'high' ? 0.27 + R() * 0.11 : 0.4 + R() * 0.08;
+        const size = 0.4 + R() * 0.08;
         const rho = Math.min(local * 0.45, ob.radius * size, Math.max(0.08, (local - bury) * 0.8));
         const ang = (-reach + 2 * reach * k / arcSteps) * localReach / reach + (R() - 0.5) * 0.1;
         const shell = Math.sqrt(Math.max(0, (ob.radius - 0.85 * rho) ** 2 - beyond ** 2));
@@ -818,9 +817,52 @@ function shipFor(world, ob) {
   return (world.obstacles || []).find((o) => o.type === 'ship_hull' && ob.name.startsWith(o.name));
 }
 
+/** Small snaggable seabed item (world.SnagFeature): a rock, a debris block or a rope coil inside its capsule. */
+function snagItem(set, ob) {
+  const cap = snagCapsule(ob);
+  const base = P(cap.p0);
+  const top = P(cap.p1);
+  const r = ob.radius;
+  const R = seeded(ob.name);
+  let geometry;
+  let kind = 'rock';
+  if (ob.item === 'rope') {
+    const coils = [0, 1].map((k) => {
+      const g = new THREE.TorusGeometry(r * 0.62, r * 0.18, 6, 20);
+      g.rotateX(Math.PI / 2 + (R() - 0.5) * 0.3);
+      g.translate(base.x + (R() - 0.5) * r * 0.2, base.y + r * 0.18 + k * r * 0.3, base.z + (R() - 0.5) * r * 0.2);
+      return g;
+    });
+    geometry = merged(coils);
+    kind = 'rubber';
+  } else if (ob.item === 'debris') {
+    const tall = top.y - base.y + r * 0.6;
+    geometry = new THREE.BoxGeometry(r * 1.4, Math.max(tall, r * 0.6), r * 1.2);
+    geometry.rotateY(R() * Math.PI);
+    geometry.rotateZ((R() - 0.5) * 0.3);
+    geometry.translate(base.x, base.y + Math.max(tall, r * 0.6) / 2 - 0.05, base.z);
+    kind = 'steelPlate';
+  } else {
+    // rock or boulder: a rock in each sphere of the capsule
+    const rocks = [base, top].map((c, k) => {
+      const g = unitRock(11 + k, 1).clone();
+      g.scale(r * 0.98, r * 0.98, r * 0.98);
+      g.rotateY(R() * Math.PI * 2);
+      g.translate(c.x, c.y, c.z);
+      return g;
+    });
+    geometry = merged(base.distanceTo(top) > 0.05 ? rocks : rocks.slice(0, 1));
+  }
+  set.add(geometry, kind, [ob.name], 'solid', [ob]);
+}
+
 function buildOne(set, ob, consumed) {
   if (consumed.has(ob.name)) return;
   const world = set.world;
+  if (ob.type === 'snag') {
+    snagItem(set, ob);
+    return;
+  }
   if (ob.type === 'ship_hull') {
     shipHull(set, ob);
     return;

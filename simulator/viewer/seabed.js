@@ -123,6 +123,10 @@ export function siteProfile(world) {
   const biome = world?.biome || world?.habitat?.biome;
   if (key === 'tutorial_pool') return 'pool';
   if (biome === 'reef' || biome === 'seagrass') return biome;
+  // the host's seabed type (silt model and bed roughness) picks the look when the scenario names one
+  const type = world?.scenario?.seabed_type;
+  if (type === 'mud' || type === 'fluff') return 'harbour';
+  if (type === 'silt') return 'wreck';
   if (biome === 'harbor') return 'harbour';
   const kinds = new Set((world?.obstacles || []).map((ob) => ob.kind));
   if (kinds.has('quay')) return 'harbour';
@@ -191,13 +195,11 @@ function shaderPatch(profile, maps) {
       vec3 seaCol = uSand * (0.82 + 0.3 * seaR * uRipple + 0.12 * (seaF.g - 0.5));
       float mudW = clamp(uWeights.y * (0.6 + 0.8 * (seaLow - 0.5)), 0.0, 1.0);
       seaCol = mix(seaCol, uMud * (0.9 + 0.2 * seaF.g), mudW);
-      #if SEA_QUALITY >= 1
+      #if SEA_QUALITY >= 2
       vec3 gravel = texture2D(uGravel, seaP * 0.55).rgb;
       #else
-      vec3 gravel = uMud;
-      #endif
-      #if SEA_QUALITY >= 2
-      gravel = mix(gravel, texture2D(uGravel, SEA_ROT_A * seaP * 0.21).rgb, seaMix);
+      // pebbles and grit from the field texture's grain channels: no extra read
+      vec3 gravel = mix(uMud * 0.8, vec3(0.62, 0.58, 0.5), seaF.g) * (0.85 + 0.3 * seaF.b);
       #endif
       float gravelW = uWeights.x * smoothstep(0.55, 0.75, seaMid * 0.6 + seaLow * 0.5);
       seaCol = mix(seaCol, gravel, gravelW);
@@ -229,9 +231,9 @@ const QUALITY = {low: 0, medium: 1, high: 2};
 
 /**
  * Seabed material for a profile name from siteProfile(). ``detail`` (low / medium / high) sets the shader cost:
- * low reads one texture (cost of the old single sand texture); medium three (a baked smooth-noise texture for
- * mud, gravel and rock patches, the ripple field, gravel); high adds a second ripple and gravel scale and ripple
- * shading of the normal (seven reads). No procedural noise is evaluated per pixel.
+ * low reads one texture (cost of the old single sand texture); medium two (a baked smooth-noise texture for
+ * mud, gravel and rock patches, and the ripple field); high adds a second ripple scale, the gravel texture and
+ * ripple shading of the normal (six reads). No procedural noise is evaluated per pixel.
  */
 export function seabedMaterial(name, detail = 'medium') {
   const profile = PROFILES[name] || PROFILES.offshore;

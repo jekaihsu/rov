@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="menu.css">
 <link rel="stylesheet" href="hud/tokens.css">
 <link rel="stylesheet" href="hud/hud.css">
+<link rel="stylesheet" href="hud/osd.css">
 <link rel="stylesheet" href="fidelity.css">
 </head>
 <body>
@@ -202,9 +203,9 @@ python -m qysim.server --scenario jacket_inspection</pre>
           <div class="row"><span class="hint">張力 纜盤端</span><span class="num" id="tSpool">—</span></div>
           <div class="tgauge"><div class="fill" id="tSpoolFill"></div><i class="wmark"></i></div>
         </div>
-        <label class="tog" for="autoPay">自動放纜<input type="checkbox" id="autoPay" checked></label>
+        <label class="tog" for="autoPay">自動收放纜<input type="checkbox" id="autoPay"></label>
         <div class="btns c4">
-          <button data-pay="-5">收 5 m</button><button data-pay="-1">收 1 m</button><button data-pay="1">放 1 m</button><button data-pay="5">放 5 m</button>
+          <button data-reel="haul_in">收纜</button><button data-reel="hold">煞住</button><button data-reel="free">鬆盤</button><button data-reel="pay_out">放纜</button>
         </div>
         <div id="tWraps" class="hint"></div>
       </div>

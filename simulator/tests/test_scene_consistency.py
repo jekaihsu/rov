@@ -278,19 +278,88 @@ class SiteDressingTest(unittest.TestCase):
                 self.assertGreater(hull.sdf(centre)[0], 0.0)      # in the open water under the counter
                 self.assertLess(hull.sdf(centre)[0], 6.0)
 
-    def test_seabed_props_list_snag_sized_items(self):
-        for key in ("monopile_current", "harbor_inspection", "jacket_inspection"):
-            sc = scenarios.build(key, 0)
-            world, message = world_for(sc)
-            props = message["seabed_props"]
-            names = {o.name for o in world.obstacles}
+    def test_snag_sized_seabed_fittings_are_snaggable(self):
+        """Seabed fittings that rise more than 0.2 m carry snag_hold for the tether snag model."""
+        from qysim.tether_snag import snag_hold
+        kinds = {"scour_rock", "toe_rock", "tyre", "debris_block", "debris_pipe", "cable_protection", "mudmat"}
+        for key in ("monopile_current", "jacket_inspection", "random-1"):
+            sc = scenarios.build("random", 1) if key == "random-1" else scenarios.build(key, 0)
+            fittings = [o for o in sc.obstacles if o.kind in kinds]
             with self.subTest(scenario=key):
-                self.assertTrue(props)
-                for prop in props:
-                    self.assertIn(prop["collider"], names)
-                    self.assertGreater(prop["size"][2], 0.2)
-                    self.assertEqual(len(prop["pos"]), 3)
-                    self.assertAlmostEqual(prop["pos"][2], sc.seabed_depth)
+                self.assertTrue(fittings)
+                for ob in fittings:
+                    lo = min(ob.p0[2], ob.p1[2]) - ob.radius if isinstance(ob, Cylinder) else ob.center[2] - ob.half[2]
+                    self.assertGreater(sc.seabed_depth - lo, 0.2, ob.name)
+                    hold = snag_hold(ob)
+                    self.assertIsNotNone(hold, ob.name)
+                    self.assertLess(hold[0], hold[1])
+
+    def test_snag_items_from_main_are_kept_once(self):
+        names = [o.name for o in scenarios.build("harbor_inspection", 0).obstacles]
+        for name in ("Harbor mooring block", "Harbor rope tangle", "Harbor rubble"):
+            self.assertEqual(names.count(name), 1)
+        self.assertFalse([o for o in scenarios.build("harbor_inspection", 0).obstacles
+                          if o.kind in ("tyre", "debris_block", "debris_pipe")])
+
+    def test_flow_wakes_skip_bed_fittings_and_shelter_behind_the_hull(self):
+        from qysim.flow import StructureFlow
+        from qysim.site_dressing import NO_WAKE_KINDS
+        sc = scenarios.build("monopile_current", 0)
+        flow = StructureFlow(sc.obstacles)
+        wakes = [o for o in sc.obstacles if isinstance(o, Cylinder) and o.kind not in NO_WAKE_KINDS]
+        self.assertEqual(flow.n_cyl, len(wakes))
+        self.assertTrue(any(o.kind == "monopile" for o in wakes))
+        hull = scenarios.build("hull_inspection", 0)
+        world, _ = world_for(hull)
+        flow = StructureFlow(hull.obstacles)
+        self.assertTrue(any(isinstance(b[0], ShipHull) for b in flow.boxes))
+        U = np.array([[0.5, 0.0, 0.0]])
+        behind = flow.apply(np.array([[95.0, 0.0, 5.0]]), U, np.zeros(1))      # flow runs north, bow at x 90
+        clear = flow.apply(np.array([[95.0, 40.0, 5.0]]), U, np.zeros(1))
+        self.assertLess(np.linalg.norm(behind), np.linalg.norm(clear))
+        quay = scenarios.build("harbor_inspection", 0)
+        self.assertTrue(StructureFlow(quay.obstacles).walls)
+
+    def test_compass_sees_hull_and_steel_fittings(self):
+        from qysim.sensors import steel_points
+        hull = [o for o in scenarios.build("hull_inspection", 0).obstacles if isinstance(o, ShipHull)][0]
+        pts, mass = steel_points(hull)
+        self.assertGreater(len(pts), 100)
+        self.assertGreater(mass.sum(), 0.24 * 2 * 80 * 8 * 0.5)        # at least half the side plating
+        monopile = scenarios.build("monopile_current", 0).obstacles
+        for kind in ("transition_piece", "j_tube", "boat_landing"):
+            with self.subTest(kind=kind):
+                self.assertGreater(steel_points(next(o for o in monopile if o.kind == kind))[1].sum(), 0)
+        jacket = scenarios.build("jacket_inspection", 0).obstacles
+        self.assertGreater(steel_points(next(o for o in jacket if o.kind == "anode"))[1].sum(), 0)
+        for kind in ("scour_rock", "cable_protection"):
+            with self.subTest(kind=kind):
+                self.assertEqual(steel_points(next(o for o in monopile if o.kind == kind))[1].sum(), 0)
+
+    def test_echo_sounder_rays_hit_hull_and_scour_rock(self):
+        from qysim.sensors import raycast_many
+        hull_world, _ = world_for(scenarios.build("hull_inspection", 0))
+        t, hit, _, index = raycast_many(hull_world, np.array([[50.0, 0.0, 15.0]]), np.array([[0.0, 0.0, -1.0]]), 30)
+        self.assertTrue(hit[0])
+        self.assertAlmostEqual(float(t[0]), 7.0, delta=0.1)              # keel at 8 m
+        self.assertIsInstance(hull_world.obstacles[int(index[0])], ShipHull)
+        mono = scenarios.build("monopile_current", 0)
+        mono_world, _ = world_for(mono)
+        rock = next(o for o in mono.obstacles if o.kind == "scour_rock")
+        mid = (np.asarray(rock.p0) + np.asarray(rock.p1)) / 2
+        t, hit, _, index = raycast_many(mono_world, np.array([[mid[0], mid[1], 20.0]]),
+                                        np.array([[0.0, 0.0, 1.0]]), 30)
+        self.assertTrue(hit[0])
+        self.assertEqual(mono_world.obstacles[int(index[0])].kind, "scour_rock")
+        self.assertLess(float(t[0]), mono.seabed_depth - 20.0 - 0.3)    # the crown stands above the seabed
+
+    def test_bed_roughness_follows_site_seabed_type(self):
+        from qysim.engine import Simulator
+        expect = {"harbor_inspection": 0.0002, "wreck_survey": 0.001, "jacket_inspection": 0.006,
+                  "coral_reef": 0.03, "korean_castle": 0.001}
+        for key, z0 in expect.items():
+            with self.subTest(scenario=key):
+                self.assertAlmostEqual(Simulator(key, 0).world.bed_roughness(), z0)
 
     def test_quay_fittings_stay_out_of_the_inspection_lane(self):
         sc = scenarios.build("harbor_inspection", 0)

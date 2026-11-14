@@ -1,35 +1,88 @@
-// Compact roll horizon and pitch ladder for the flight overlay; engineering ADI stays intact.
-export function drawFlightAttitude(canvas, euler) {
-  const ctx = canvas.getContext('2d');
-  const [roll, pitch] = euler || [0, 0];
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.strokeStyle = '#e8f1f5';
-  ctx.fillStyle = '#e8f1f5';
-  ctx.font = '24px system-ui';
-  ctx.textAlign = 'center';
-  ctx.rotate(roll * Math.PI / 180);
-  for (let degree = -30; degree <= 30; degree += 10) {
-    const y = (pitch - degree) * 5;
-    if (Math.abs(y) > 100) continue;
-    const length = degree === 0 ? 160 : 64;
-    ctx.beginPath();
-    ctx.moveTo(-length, y);
-    ctx.lineTo(-24, y);
-    ctx.moveTo(24, y);
-    ctx.lineTo(length, y);
-    ctx.stroke();
-    if (degree) ctx.fillText(String(degree), 0, y + 8);
-  }
-  ctx.restore();
-  ctx.strokeStyle = '#4fd1e0';
-  ctx.lineWidth = 4;
+// Centred attitude reference for the line-style HUD: side arcs, horizon bars that rotate with roll and shift
+// with pitch, a ±10°/±20° pitch ladder, and a fixed vehicle symbol. Thin lines only; never fills a panel.
+import { fitCanvas, halo, font, INK, INK_DIM, ACCENT, WARN } from './canvas.js';
+
+// Geometry is designed on a 680 × 300 box and scaled uniformly into the canvas.
+const DESIGN_WIDTH = 680;
+const DESIGN_HEIGHT = 300;
+const PX_PER_DEG = 7;
+const LADDER = [-20, -10, 10, 20];
+const STEEP_ROLL_DEG = 20;
+
+function drawArcs(ctx) {
+  ctx.strokeStyle = INK;
+  ctx.globalAlpha = 0.8;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(200, 120);
-  ctx.lineTo(240, 120);
-  ctx.lineTo(260, 130);
-  ctx.lineTo(280, 120);
-  ctx.lineTo(320, 120);
+  ctx.arc(0, 0, 176, Math.PI - 0.55, Math.PI + 0.55);
   ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, 176, -0.55, 0.55);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawLadder(ctx, pitch) {
+  ctx.strokeStyle = INK_DIM;
+  ctx.fillStyle = INK_DIM;
+  ctx.lineWidth = 1.25;
+  ctx.font = font(12);
+  ctx.textAlign = 'left';
+  ctx.setLineDash([6, 8]);
+  for (const degree of LADDER) {
+    const y = (pitch - degree) * PX_PER_DEG;
+    if (Math.abs(y) > 128) continue;
+    const half = Math.abs(degree) === 10 ? 70 : 50;
+    ctx.beginPath();
+    ctx.moveTo(-half, y);
+    ctx.lineTo(half, y);
+    ctx.stroke();
+    ctx.fillText(String(degree), half + 12, y + 4);
+  }
+  ctx.setLineDash([]);
+}
+
+function drawHorizon(ctx, pitch, steep) {
+  const y = Math.max(-140, Math.min(140, pitch * PX_PER_DEG));
+  ctx.strokeStyle = steep ? WARN : ACCENT;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-330, y);
+  ctx.lineTo(-196, y);
+  ctx.moveTo(196, y);
+  ctx.lineTo(330, y);
+  ctx.stroke();
+}
+
+function drawVehicleSymbol(ctx) {
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.75;
+  ctx.beginPath();
+  ctx.moveTo(-18, 0);
+  ctx.lineTo(-7, 0);
+  ctx.lineTo(0, 8);
+  ctx.lineTo(7, 0);
+  ctx.lineTo(18, 0);
+  ctx.stroke();
+}
+
+// euler: [roll, pitch, yaw] in degrees, as in the simulator state.
+export function drawFlightAttitude(canvas, euler) {
+  const fitted = fitCanvas(canvas);
+  if (!fitted) return;
+  const {ctx, width, height} = fitted;
+  const [roll = 0, pitch = 0] = euler || [];
+  const scale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
+  halo(ctx);
+  ctx.save();
+  ctx.translate(width / 2, height / 2);
+  ctx.scale(scale, scale);
+  drawArcs(ctx);
+  ctx.save();
+  ctx.rotate(-roll * Math.PI / 180);
+  drawLadder(ctx, pitch);
+  drawHorizon(ctx, pitch, Math.abs(roll) > STEEP_ROLL_DEG);
+  ctx.restore();
+  drawVehicleSymbol(ctx);
+  ctx.restore();
 }
