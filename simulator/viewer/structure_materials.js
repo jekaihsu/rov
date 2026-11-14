@@ -245,7 +245,7 @@ export function structureMaterial(kind, detail = 'medium') {
   const textures = structureTextures();
   const material = new THREE.MeshStandardMaterial({
     color: params.color, roughness: params.roughness, metalness: params.metalness,
-    map: params.map ? textures[params.map] : null,
+    map: params.map && (detail !== 'low' || kind === 'tiles') ? textures[params.map] : null,
   });
   if (detail === 'low') {
     // low tier: no fouling shader, the base colour is pre-mixed toward the mid-depth growth tone

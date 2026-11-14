@@ -88,7 +88,7 @@ function describe(mesh, seabed) {
 const input = JSON.parse(await readStdin());
 const result = {tolerance: SCENE_TOLERANCE, spacing: SPACING, worlds: {}};
 for (const [key, world] of Object.entries(input)) {
-  const set = buildStructures(world, {detail: 'medium', makeMaterial: stubMaterial});
+  const set = buildStructures(world, {detail: process.env.SCENE_DETAIL || 'medium', makeMaterial: stubMaterial});
   result.worlds[key] = set.group.children.filter((o) => o.isMesh).map((o) => describe(o, world.seabed_depth));
 }
 process.stdout.write(JSON.stringify(result));

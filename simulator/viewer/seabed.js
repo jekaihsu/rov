@@ -168,7 +168,7 @@ function shaderPatch(profile, maps) {
       float seaLow = 0.5;
       float seaMid = 0.5;
       float seaMix = 0.0;
-      vec4 seaF = texture2D(uField, seaRot(seaP, 0.35) * 0.16);
+      vec4 seaF = texture2D(uField, seaP * 0.16);
       float seaR = seaF.r;
       #endif
       vec3 seaCol = uSand * (0.82 + 0.3 * seaR * uRipple + 0.12 * (seaF.g - 0.5));

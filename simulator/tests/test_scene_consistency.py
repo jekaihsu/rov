@@ -5,9 +5,10 @@ scenario (and the random generator's structure kinds), and each vertex is checke
 shapes:
 
 * every underwater vertex of a solid or attached part lies inside the obstacles or at most SCENE_TOLERANCE
-  outside them (nothing visible that the vehicle or tether could pass through);
+  outside them (nothing visible that the vehicle or tether could pass through), on the medium and low tiers;
 * every exposed collider surface (underwater, above the seabed, not buried in another shape) has a solid visual
-  surface within COVER_TOLERANCE (no invisible collision bulk);
+  surface within COVER_TOLERANCE (no invisible collision bulk), on the medium tier (the low tier packs fewer,
+  larger armour rocks);
 * every structure obstacle is drawn by some part.
 
 The ship-hull test points also compare the Python and JavaScript hull distance functions. Requires Node 18.19+;
@@ -16,6 +17,7 @@ skipped (with a message) when ``node`` is not installed.
 
 import json
 import math
+import os
 import shutil
 import subprocess
 import unittest
@@ -157,21 +159,25 @@ class SceneConsistencyTest(unittest.TestCase):
     def setUpClass(cls):
         cls.worlds = scenario_worlds()
         payload = json.dumps({k: m for k, (_, m) in cls.worlds.items()})
-        run = subprocess.run([NODE, str(ROOT / "tools" / "scene_manifest.mjs")], input=payload, text=True,
-                             capture_output=True, timeout=300, cwd=ROOT)
-        if run.returncode:
-            raise AssertionError(run.stderr[-3000:])
-        manifest = json.loads(run.stdout)
-        cls.tolerance = manifest["tolerance"]
-        cls.parts = manifest["worlds"]
+        cls.tiers = {}
+        for detail in ("medium", "low"):
+            run = subprocess.run([NODE, str(ROOT / "tools" / "scene_manifest.mjs")], input=payload, text=True,
+                                 capture_output=True, timeout=300, cwd=ROOT,
+                                 env={**os.environ, "SCENE_DETAIL": detail})
+            if run.returncode:
+                raise AssertionError(run.stderr[-3000:])
+            manifest = json.loads(run.stdout)
+            cls.tolerance = manifest["tolerance"]
+            cls.tiers[detail] = manifest["worlds"]
+        cls.parts = cls.tiers["medium"]
 
     def structure_obstacles(self, world):
         return [o for o in world.obstacles if o.kind != "habitat" and o.as_dict()["type"] != "model"]
 
     def test_visible_surfaces_have_collision(self):
-        for key, (world, _) in self.worlds.items():
+        for (key, (world, _)), detail in [(w, d) for w in self.worlds.items() for d in self.tiers]:
             obstacles = self.structure_obstacles(world)
-            for part in self.parts[key]:
+            for part in self.tiers[detail][key]:
                 if part["role"] == "above":
                     continue
                 X = np.asarray(part["points"], float).reshape(-1, 3)
@@ -180,7 +186,7 @@ class SceneConsistencyTest(unittest.TestCase):
                     continue
                 d = obstacle_distance(obstacles, reachable)
                 worst = int(np.argmax(d))
-                with self.subTest(scenario=key, part=part["colliders"][:2], role=part["role"]):
+                with self.subTest(scenario=key, detail=detail, part=part["colliders"][:2], role=part["role"]):
                     self.assertLessEqual(float(d[worst]), self.tolerance + 1e-3,
                                          f"vertex {reachable[worst].tolist()} stands {d[worst]:.3f} m outside")
 

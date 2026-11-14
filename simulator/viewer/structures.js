@@ -19,7 +19,10 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams} from './structure_sdf.js';
 import {structureMaterial} from './structure_materials.js';
 
-export const SCENE_TOLERANCE = 0.1;           // m a visual surface may stand proud of its collision shape
+export const SCENE_TOLERANCE = 0.1;
+// fittings drawn as one merged mesh per material on the low tier (snag highlight then lights the whole group)
+const LOW_BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
+  'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast']);           // m a visual surface may stand proud of its collision shape
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
   low: {radial: 12, rockDetail: 0, lumps: 0, hullX: 48, hullZ: 10},
@@ -156,6 +159,13 @@ class StructureSet {
   /** Add one mesh drawn for the named colliders; the first name owns the mesh for snag highlighting. */
   add(geometry, kind, names, role = 'solid', obs = []) {
     if (!geometry) return null;
+    if (this.detailName === 'low' && LOW_BATCH_KINDS.has(obs[0]?.kind)) {
+      return this.addBatched(`${kind}:${role}`, geometry, kind, names, role, obs);
+    }
+    return this.addMesh(geometry, kind, names, role, obs);
+  }
+
+  addMesh(geometry, kind, names, role, obs) {
     const material = this.makeMaterial(kind);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.userData.paintable = true;
@@ -174,7 +184,7 @@ class StructureSet {
    * draw-call count of the low tier close to the plain primitives. Other tiers add the mesh directly.
    */
   addBatched(batch, geometry, kind, names, role, obs) {
-    if (this.detailName !== 'low') return this.add(geometry, kind, names, role, obs);
+    if (this.detailName !== 'low') return this.addMesh(geometry, kind, names, role, obs);
     if (!this.batches) this.batches = new Map();
     if (!this.batches.has(batch)) this.batches.set(batch, {kind, role, parts: [], names: [], obs: []});
     const entry = this.batches.get(batch);
@@ -186,7 +196,8 @@ class StructureSet {
 
   flushBatches() {
     for (const entry of (this.batches || new Map()).values()) {
-      this.add(merged(entry.parts), entry.kind, entry.names, entry.role, entry.obs);
+      const mesh = this.addMesh(merged(entry.parts), entry.kind, entry.names, entry.role, []);
+      for (const ob of entry.obs) this.anchor(ob, mesh);
     }
     this.batches = null;
   }
@@ -390,7 +401,7 @@ function rockArmour(set, colliders, kind) {
     const axis = b.clone().sub(a).normalize();
     const side = new THREE.Vector3().crossVectors(axis, UP).normalize();
     // the armour crown: rows of rocks along the capsule, each touching the collision envelope from inside
-    const step = 0.42 * Math.min(1, ob.radius / 0.95);
+    const step = (set.detailName === 'low' ? 0.75 : 0.42) * Math.min(1, ob.radius / 0.95);
     const bury = P(ob.p0).lerp(P(ob.p1), 0.5).y - set.seabedY;
     const reach = Math.acos(Math.max(-1, Math.min(1, bury / ob.radius)));
     const arcSteps = Math.max(2, Math.ceil(2 * reach * ob.radius / step));
@@ -400,7 +411,8 @@ function rockArmour(set, colliders, kind) {
       if (local < bury + 0.15) continue;
       const localReach = Math.acos(Math.max(-1, Math.min(1, bury / local)));
       for (let k = 0; k <= arcSteps; k++) {
-        const rho = Math.min(local * 0.45, ob.radius * (0.27 + R() * 0.11));
+        const size = set.detailName === 'low' ? 0.4 + R() * 0.08 : 0.27 + R() * 0.11;
+        const rho = Math.min(local * 0.45, ob.radius * size);
         const ang = (-reach + 2 * reach * k / arcSteps) * localReach / reach + (R() - 0.5) * 0.1;
         const shell = Math.sqrt(Math.max(0, (ob.radius - 0.85 * rho) ** 2 - beyond ** 2));
         const along = s;
