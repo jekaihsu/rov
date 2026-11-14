@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>HUD 方向稿</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: "Inter", "Noto Sans TC", system-ui, sans-serif; color: #eaf4f7; overflow: hidden; background: #021018; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Placeholder underwater backdrop: lit seabed, a jacket leg, backscatter. */
+  .water { position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 55% 60% at 50% 78%, rgba(190, 215, 190, .42), rgba(60, 120, 120, .18) 45%, transparent 72%),
+      linear-gradient(180deg, #0b3a47 0%, #0a2f3c 30%, #072430 58%, #041820 100%); }
+  .leg { position: absolute; left: 58%; top: -5%; width: 13%; height: 92%; transform: rotate(4deg);
+    background: linear-gradient(90deg, rgba(8, 26, 30, .9), rgba(70, 96, 84, .85) 38%, rgba(112, 126, 98, .8) 52%, rgba(20, 40, 42, .9));
+    filter: blur(1.2px); border-radius: 6px; }
+  .brace { position: absolute; left: 30%; top: 38%; width: 46%; height: 5%; transform: rotate(-24deg);
+    background: linear-gradient(180deg, rgba(86, 104, 88, .75), rgba(16, 36, 40, .85)); filter: blur(1.6px); border-radius: 6px; }
+  .anode { position: absolute; left: 61.5%; top: 44%; width: 6%; height: 4.2%; transform: rotate(4deg);
+    background: linear-gradient(180deg, #b9c2b0, #6f7c70); border-radius: 4px; filter: blur(.6px); }
+  .seabed { position: absolute; left: -5%; right: -5%; bottom: -8%; height: 30%;
+    background: repeating-linear-gradient(176deg, rgba(150, 170, 150, .16) 0 10px, rgba(40, 70, 70, .08) 10px 26px),
+      linear-gradient(180deg, transparent, rgba(120, 150, 135, .35) 40%, rgba(170, 190, 170, .45));
+    filter: blur(.8px); }
+  .snow { position: absolute; inset: 0; background-image:
+      radial-gradient(circle, rgba(255,255,255,.75) 0 1.2px, transparent 1.6px),
+      radial-gradient(circle, rgba(255,255,255,.5) 0 2px, transparent 2.6px),
+      radial-gradient(circle, rgba(255,255,255,.28) 0 3.4px, transparent 4.4px);
+    background-size: 173px 149px, 287px 241px, 409px 367px; background-position: 20px 30px, 110px 80px, 200px 160px; }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 55%, transparent 52%, rgba(0, 8, 12, .6) 100%); }
+  .hud { position: absolute; inset: 0; }
+  .label { position: absolute; left: 28px; bottom: 22px; font-size: 13px; letter-spacing: .16em; color: rgba(234,244,247,.55); }
+  body[data-v="a"] .b, body[data-v="a"] .c, body[data-v="b"] .a, body[data-v="b"] .c, body[data-v="c"] .a, body[data-v="c"] .b { display: none; }
+
+  /* ───────── A: line instrument ───────── */
+  .a svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .a text { fill: #eaf4f7; font-family: inherit; }
+  .a .ln { stroke: #eaf4f7; stroke-width: 1.5; fill: none; }
+  .a .dim { opacity: .55; }
+  .a .acc { stroke: #5fe0d0; fill: none; stroke-width: 2; }
+  .a .accf { fill: #5fe0d0; }
+  .a .warnf { fill: #ffc857; }
+
+  /* ───────── B: camera OSD ───────── */
+  .b { font-family: "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, monospace; text-shadow: 0 0 3px rgba(0,0,0,.9), 0 1px 0 rgba(0,0,0,.8); }
+  .b .osd { position: absolute; font-size: 21px; line-height: 1.5; letter-spacing: .04em; }
+  .b .tl { left: 4%; top: 5%; } .b .tr { right: 4%; top: 5%; text-align: right; }
+  .b .bl { left: 4%; bottom: 8%; } .b .br { right: 4%; bottom: 8%; text-align: right; }
+  .b .k { color: rgba(234,244,247,.62); }
+  .b .rec { color: #ff5a52; }
+  .b .frame { position: absolute; inset: 3%; }
+  .b .frame i { position: absolute; width: 34px; height: 34px; border: 2px solid rgba(234,244,247,.8); }
+  .b .frame i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+  .b .frame i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+  .b .frame i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+  .b .frame i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+  .b .cross { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; transform: translate(-50%, -50%); }
+  .b .cross::before, .b .cross::after { content: ""; position: absolute; background: rgba(234,244,247,.85); }
+  .b .cross::before { left: 50%; top: 0; width: 1.5px; height: 100%; } .b .cross::after { top: 50%; left: 0; height: 1.5px; width: 100%; }
+  .b .hdg { position: absolute; left: 50%; top: 5%; transform: translateX(-50%); font-size: 21px; letter-spacing: .5em; white-space: nowrap; }
+  .b .hdg b { color: #ffc857; letter-spacing: .04em; padding: 0 .4em; }
+  .b .lock { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); font-size: 21px; color: #ffc857; }
+
+  /* ───────── C: glass panels ───────── */
+  .c .glass { position: absolute; background: rgba(8, 22, 30, .46); backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    border: 1px solid rgba(190, 230, 240, .16); border-radius: 18px; box-shadow: 0 10px 40px rgba(0, 0, 0, .28); }
+  .c .top { left: 50%; top: 26px; transform: translateX(-50%); display: flex; gap: 22px; align-items: center; padding: 10px 22px; border-radius: 999px; font-size: 15px; }
+  .c .top b { font-size: 20px; color: #5fe0d0; } .c .top span { color: rgba(234,244,247,.6); }
+  .c .pill { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; background: rgba(95, 224, 208, .16); color: #8ff0e2; font-size: 13px; }
+  .c .pill.w { background: rgba(255, 200, 87, .18); color: #ffd98a; }
+  .c .depth { left: 30px; top: 50%; transform: translateY(-50%); padding: 20px 22px; width: 190px; }
+  .c small { display: block; font-size: 12px; letter-spacing: .14em; color: rgba(234,244,247,.58); margin-bottom: 4px; }
+  .c .big { font-size: 52px; font-weight: 600; line-height: 1; } .c .big u { text-decoration: none; font-size: 18px; font-weight: 400; color: rgba(234,244,247,.6); margin-left: 6px; }
+  .c .bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.14); margin-top: 14px; overflow: hidden; } .c .bar i { display: block; height: 100%; width: 72%; background: #5fe0d0; }
+  .c .bottom { left: 50%; bottom: 30px; transform: translateX(-50%); display: flex; gap: 0; padding: 14px 8px; }
+  .c .cell { padding: 0 26px; border-right: 1px solid rgba(190, 230, 240, .14); } .c .cell:last-child { border: 0; }
+  .c .cell b { font-size: 30px; font-weight: 600; } .c .cell u { text-decoration: none; font-size: 13px; color: rgba(234,244,247,.6); margin-left: 5px; }
+  .c .map { right: 30px; bottom: 30px; width: 190px; height: 190px; border-radius: 50%; }
+  .c .map svg { width: 100%; height: 100%; }
+  .c .att { right: 30px; top: 50%; transform: translateY(-50%); width: 120px; height: 120px; border-radius: 50%; overflow: hidden; }
+  .c .att::before { content: ""; position: absolute; inset: 0; background: linear-gradient(178deg, rgba(95,224,208,.22) 0 49%, rgba(255,255,255,.75) 49% 50.5%, rgba(10,30,40,.3) 50.5%); }
+  .c .att::after { content: ""; position: absolute; left: 30%; right: 30%; top: 50%; height: 2px; background: #ffc857; }
+  .c .lockc { left: 50%; top: 96px; transform: translateX(-50%); padding: 12px 22px; border-radius: 14px; border-color: rgba(255, 200, 87, .5); color: #ffd98a; font-size: 16px; }
+  .c .lockc b { font-size: 18px; margin-right: 12px; color: #fff; }
+</style>
+</head>
+<body>
+<div class="water"></div><div class="brace"></div><div class="leg"></div><div class="anode"></div><div class="seabed"></div><div class="snow"></div><div class="vignette"></div>
+
+<!-- A -->
+<div class="hud a">
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="none">
+    <!-- heading tape -->
+    <g transform="translate(800 58)">
+      <line class="ln dim" x1="-260" y1="0" x2="260" y2="0"/>
+      <g class="ln dim"><line x1="-240" y1="0" x2="-240" y2="10"/><line x1="-200" y1="0" x2="-200" y2="6"/><line x1="-160" y1="0" x2="-160" y2="10"/><line x1="-120" y1="0" x2="-120" y2="6"/><line x1="-80" y1="0" x2="-80" y2="10"/><line x1="-40" y1="0" x2="-40" y2="6"/><line x1="40" y1="0" x2="40" y2="6"/><line x1="80" y1="0" x2="80" y2="10"/><line x1="120" y1="0" x2="120" y2="6"/><line x1="160" y1="0" x2="160" y2="10"/><line x1="200" y1="0" x2="200" y2="6"/><line x1="240" y1="0" x2="240" y2="10"/></g>
+      <text class="dim num" x="-160" y="32" font-size="15" text-anchor="middle">240</text>
+      <text class="dim num" x="-80" y="32" font-size="15" text-anchor="middle">250</text>
+      <text class="dim" x="80" y="32" font-size="15" text-anchor="middle">W</text>
+      <text class="dim num" x="160" y="32" font-size="15" text-anchor="middle">280</text>
+      <path class="accf" d="M0 2 L-8 -12 L8 -12 Z"/>
+      <text class="num" x="0" y="-22" font-size="26" font-weight="600" text-anchor="middle">259°</text>
+    </g>
+    <!-- centre attitude arcs -->
+    <g transform="translate(800 470)">
+      <path class="ln" d="M-150 -92 A176 176 0 0 0 -150 92" opacity=".8"/>
+      <path class="ln" d="M150 -92 A176 176 0 0 1 150 92" opacity=".8"/>
+      <g transform="rotate(-3)">
+        <line class="acc" x1="-330" y1="0" x2="-196" y2="0"/><line class="acc" x1="196" y1="0" x2="330" y2="0"/>
+        <line class="ln dim" x1="-70" y1="-70" x2="70" y2="-70" stroke-dasharray="6 8"/><text class="dim num" x="84" y="-65" font-size="13">10</text>
+        <line class="ln dim" x1="-70" y1="70" x2="70" y2="70" stroke-dasharray="6 8"/><text class="dim num" x="84" y="75" font-size="13">-10</text>
+      </g>
+      <path class="ln" d="M-16 0 L-6 0 L0 8 L6 0 L16 0"/>
+    </g>
+    <!-- depth ladder -->
+    <g transform="translate(110 470)">
+      <line class="ln dim" x1="0" y1="-210" x2="0" y2="210"/>
+      <g class="ln dim"><line x1="0" y1="-180" x2="12" y2="-180"/><line x1="0" y1="-120" x2="12" y2="-120"/><line x1="0" y1="-60" x2="12" y2="-60"/><line x1="0" y1="60" x2="12" y2="60"/><line x1="0" y1="120" x2="12" y2="120"/><line x1="0" y1="180" x2="12" y2="180"/></g>
+      <text class="dim num" x="20" y="-175" font-size="13">9</text><text class="dim num" x="20" y="-55" font-size="13">11</text><text class="dim num" x="20" y="65" font-size="13">13</text><text class="dim num" x="20" y="185" font-size="13">15</text>
+      <path class="accf" d="M0 0 L-12 -8 L-12 8 Z"/>
+      <text class="num" x="22" y="12" font-size="40" font-weight="600">12.4</text><text class="dim" x="118" y="12" font-size="16">m</text>
+      <text class="dim" x="22" y="-26" font-size="12" letter-spacing="2">深度</text>
+      <text class="dim" x="22" y="40" font-size="13">離底 <tspan class="num" fill="#eaf4f7">3.1 m</tspan></text>
+    </g>
+    <!-- range to target -->
+    <g transform="translate(1035 400)">
+      <line class="ln dim" x1="-32" y1="0" x2="-6" y2="0"/><text class="num" x="0" y="5" font-size="17">2.3 m</text><text class="dim" x="0" y="26" font-size="12">陽極塊 A</text>
+    </g>
+    <!-- bottom telemetry: text only -->
+    <g transform="translate(800 846)" text-anchor="middle">
+      <text class="dim" x="-250" y="-22" font-size="12" letter-spacing="2">速度</text><text class="num" x="-250" y="10" font-size="28" font-weight="600">0.42<tspan class="dim" font-size="14" font-weight="400" dx="6">kn</tspan></text>
+      <text class="dim" x="-84" y="-22" font-size="12" letter-spacing="2">纜線</text><text class="num" x="-84" y="10" font-size="28" font-weight="600">38<tspan class="dim" font-size="14" font-weight="400" dx="6">m</tspan></text>
+      <text class="dim" x="84" y="-22" font-size="12" letter-spacing="2">張力</text><text class="num" x="84" y="10" font-size="28" font-weight="600">12<tspan class="dim" font-size="14" font-weight="400" dx="6">N</tspan></text>
+      <text class="dim" x="250" y="-22" font-size="12" letter-spacing="2">燈光</text><text class="num" x="250" y="10" font-size="28" font-weight="600">2<tspan class="dim" font-size="14" font-weight="400" dx="6">/ 2</tspan></text>
+    </g>
+    <!-- status, top right -->
+    <g transform="translate(1568 52)" text-anchor="end">
+      <text class="warnf" x="0" y="0" font-size="20" font-weight="600" letter-spacing="2">馬達鎖定</text>
+      <text class="dim" x="0" y="24" font-size="13">按 Space 解鎖</text>
+      <text x="0" y="60" font-size="14"><tspan class="accf">真實</tspan><tspan class="dim" dx="14">A 模式</tspan><tspan class="dim" dx="14">定深 關</tspan></text>
+    </g>
+    <text class="dim" x="32" y="56" font-size="14">J leg A 陽極塊 · 1 / 4</text>
+  </svg>
+  <div class="label">A · 線條儀表</div>
+</div>
+
+<!-- B -->
+<div class="hud b">
+  <div class="frame"><i></i><i></i><i></i><i></i></div>
+  <div class="cross"></div>
+  <div class="hdg num">240 · · 250 ·<b>HDG 259°</b>· W · · 280</div>
+  <div class="osd tl num"><span class="k">DEPTH</span>  12.4 m<br><span class="k">ALT  </span>   3.1 m<br><span class="k">TEMP </span>  18.6 °C</div>
+  <div class="osd tr num"><span class="rec">● REC</span> 00:12:47<br>2026-11-14 16:42:09<br><span class="k">DIVE 014 · JACKET A</span></div>
+  <div class="osd bl num"><span class="k">PITCH</span>  -3.0°<br><span class="k">ROLL </span>  +0.4°<br><span class="k">TILT </span>  +12°</div>
+  <div class="osd br num"><span class="k">TETHER</span> 38 m / 12 N<br><span class="k">LIGHT </span> 2 / 2<br><span class="k">MODE  </span> A · MANUAL</div>
+  <div class="lock">MOTORS LOCKED — SPACE TO ARM</div>
+  <div class="label" style="font-family:system-ui">B · 影像疊字</div>
+</div>
+
+<!-- C -->
+<div class="hud c">
+  <div class="glass top"><span>航向</span><b class="num">259°</b><span>W</span><span class="pill">真實</span><span class="pill">A 模式</span><span class="pill">定深 關</span></div>
+  <div class="glass lockc"><b>馬達鎖定</b>按 Space 解鎖</div>
+  <div class="glass depth"><small>深度</small><div class="big num">12.4<u>m</u></div><div class="bar"><i></i></div><small style="margin-top:12px">離底</small><div class="num" style="font-size:22px">3.1 <span style="font-size:13px;color:rgba(234,244,247,.6)">m</span></div></div>
+  <div class="glass att"></div>
+  <div class="glass bottom">
+    <div class="cell"><small>速度</small><b class="num">0.42</b><u>kn</u></div>
+    <div class="cell"><small>纜線</small><b class="num">38</b><u>m</u></div>
+    <div class="cell"><small>張力</small><b class="num">12</b><u>N</u></div>
+    <div class="cell"><small>燈光</small><b class="num">2</b><u>/ 2</u></div>
+    <div class="cell"><small>電量</small><b class="num">100</b><u>%</u></div>
+  </div>
+  <div class="glass map"><svg viewBox="0 0 190 190"><circle cx="95" cy="95" r="60" fill="none" stroke="rgba(190,230,240,.18)"/><circle cx="95" cy="95" r="30" fill="none" stroke="rgba(190,230,240,.18)"/><path d="M40 150 C70 120 80 110 95 95" fill="none" stroke="#e6c84f" stroke-width="2"/><rect x="118" y="52" width="14" height="14" fill="none" stroke="#eaf4f7" stroke-width="1.5"/><path d="M95 84 L102 102 L95 98 L88 102 Z" fill="#5fe0d0"/><text x="95" y="24" font-size="12" fill="rgba(234,244,247,.6)" text-anchor="middle">N</text></svg></div>
+  <div class="label">C · 玻璃面板</div>
+</div>
+<script>document.body.dataset.v = new URLSearchParams(location.search).get('v') || 'a';</script>
+</body>
+</html>
