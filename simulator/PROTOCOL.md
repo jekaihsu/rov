@@ -212,3 +212,25 @@ catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
+
+## Optional campaign layer
+
+Rooms may publish `state.campaign`: `chapter`, `index`, `node`, `status`,
+`objective`, `dialogue` (bounded radio history), `completed`, `rewards`, `results`,
+`checkpoint`, `unlocks` (earned vehicle/sticker IDs), and `chapters`. Existing clients can ignore this entire field.
+The default is idle; existing mission modes and SDK semantics are unchanged.
+
+Host-only operation actions (reply: `operation_result` with `ok` and `action`):
+
+* `campaign_start`: optional `chapter` (default `prologue`), `course` (default false), `resume` (default false; starts at the saved checkpoint in a freshly loaded scene).
+  Loads the chapter scene and the existing mission engine; unavailable/locked chapters fail.
+* `campaign_advance`: acknowledges the current dialogue only. Cannot bypass a condition.
+* `campaign_skip`: ends the run; skipping the prologue unlocks the first assignment without a rating/reward.
+* `campaign_restore`: optional `save` containing local `completed`, `rewards`, `results`, `checkpoint`.
+  Accepted only outside an active run. This is local training progress, not trusted competitive entitlement.
+
+Only the starting host's vehicle satisfies tutorial conditions; mission objectives use the
+existing shared mission engine. All pilots receive the same narrative state. Seat reconnects
+retain the room instance. `course:true` runs the same script without dialogue pauses.
+A viewer stores local progress in its existing `rov.*` preferences and exports results as JSON.
+Campaign files reserve nullable `voice` on dialogue nodes for later audio assets.

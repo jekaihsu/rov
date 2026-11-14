@@ -41,6 +41,8 @@ class Room:
         self._snapshot = None
         self._snapshot_at = 0.
         self._snapshot_tick = -1
+        from .campaign import Campaign
+        self.campaign = Campaign(self)
 
     @property
     def primary(self):
@@ -164,6 +166,8 @@ class Room:
                 self.lock(self.vehicles[p.vehicle_id])
 
     def reset(self, key=None, seed=None):
+        if self.campaign.status != "idle":
+            self.campaign.status = "interrupted"
         self._snapshot = None
         base = self.primary
         for sim in self.vehicles.values():
@@ -191,6 +195,8 @@ class Room:
         from .operations import step_objects
         step_objects(world, dt, base.t)
         self.tick += 1
+        if self.tick % 10 == 0:
+            self.campaign.update(dt * 10)
 
     def _vehicle_contacts(self):
         sims = list(self.vehicles.values())
@@ -226,6 +232,7 @@ class Room:
             self._snapshot_tick = self.tick
             self._snapshot_at = time.monotonic()
         state = dict(next(s for s in self._snapshot if s["id"] == selected.vehicle_id))
+        state["campaign"] = self.campaign.state()
         state["vehicles"] = self._snapshot
         state["tick"] = self.tick
         state["room"] = {"id": self.id, "host_id": self.host_id, "capacity": self.capacity,

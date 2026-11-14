@@ -1,0 +1,66 @@
+{
+  "id": "harbor",
+  "title": "第一章｜港灣",
+  "scenario": "harbor_inspection",
+  "mode": "inspection_coop",
+  "requires": "prologue",
+  "nodes": [
+    {
+      "id": "brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "brief.text",
+      "speaker_key": "brief.speaker"
+    },
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal.text"
+    },
+    {
+      "id": "cable",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "cable.text",
+      "speaker_key": "cable.speaker"
+    },
+    {
+      "id": "survey",
+      "type": "wait",
+      "condition": {
+        "path": "mission.status",
+        "op": "eq",
+        "value": "completed"
+      },
+      "hint_key": "survey.hint"
+    },
+    {
+      "id": "done",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "done.text",
+      "speaker_key": "done.speaker"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    },
+    {
+      "id": "reward",
+      "type": "reward",
+      "reward": "harbor_badge"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "brief.text": "第一筆案子。樁腳有舊裂痕，先替船主拍清楚。",
+      "brief.speaker": "林督導",
+      "goal.text": "依巡檢站點穩定懸停並拍照",
+      "cable.text": "阿禾在甲板上看線。繞樁之前，先想好退路。",
+      "cable.speaker": "阿禾",
+      "survey.hint": "前往 HUD 巡檢站點，穩定三秒後拍照",
+      "done.text": "三站都看過了。接著去船旁，那裡更暗。",
+      "done.speaker": "林督導"
+    }
+  }
+}

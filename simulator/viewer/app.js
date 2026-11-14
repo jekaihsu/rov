@@ -18,6 +18,7 @@ import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo} from './render_quality.js';
+import {installCampaign} from './story/campaign.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installExpeditionClient} from './expedition_client.js';
@@ -467,6 +468,7 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
+const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
@@ -509,6 +511,7 @@ function onWorld(m) {
   if(launchScene&&!REPLAY){const chosen=launchScene;launchScene=null;const seed=Number(params.get('seed')||42);if(session?.is_host&&(m.scenario?.key!==chosen||m.scenario?.seed!==seed)){send({type:'scenario',key:chosen,seed});return;}}
   if(launchControl&&!REPLAY){send({type:'operation_mode',value:launchControl});launchControl=null;}
   if(launchSticker!==null&&!REPLAY){send({type:'operation',action:'appearance',sticker:launchSticker});launchSticker=null;}
+  if(launchMission==='campaign')launchMission=null;
   if(launchMission&&!REPLAY){if(session?.is_host)send({type:'operation',action:'mission_mode',mode:launchMission});launchMission=null;}
   const firstOrNew = !W || W.scenario?.key !== m.scenario?.key || W.scenario?.seed !== m.scenario?.seed;
   W = m;
@@ -534,6 +537,7 @@ function onState(m) {
   fleet.ingest(m);cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
   missionPanel.update(m);
+  campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
