@@ -123,9 +123,28 @@ export function installCampaign({send, readOnly = false}) {
   }
   next.onclick = advance;
   skip.onclick = () => command('campaign_skip');
-  addEventListener('keydown', function onStoryKey(event) {
-    if (event.code === 'Enter' && !event.repeat && !root.hidden && event.target === document.body) advance();
-  });
+  let isHost = false;
+  // Dialogue is an input context: while it waits for confirmation the input layer gives the confirm
+  // button to these actions and withholds it from the flight action on the same button.
+  function awaitingConfirm() {
+    return !readOnly && isHost && !root.hidden && current?.node?.type === 'dialogue';
+  }
+  function bindInput(input) {
+    input.registerActions({
+      dialogueAccept: {
+        enabled: awaitingConfirm,
+        run: advance,
+      },
+      dialogueSkip: {
+        enabled: function skipAllowed() {
+          return awaitingConfirm() && !skip.disabled;
+        },
+        run: function skipTutorial() {
+          command('campaign_skip');
+        },
+      },
+    });
+  }
   report.onclick = function exportResults() {
     const blob = new Blob([JSON.stringify(current?.results || [], null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
@@ -135,12 +154,6 @@ export function installCampaign({send, readOnly = false}) {
     link.click();
     URL.revokeObjectURL(url);
   };
-  let confirmHeld = false;
-  setInterval(function readStoryController() {
-    const held = Array.from(navigator.getGamepads?.() || []).some(pad => pad?.buttons[0]?.pressed);
-    if (held && !confirmHeld && !root.hidden && current?.node?.type === 'dialogue') advance();
-    confirmHeld = held;
-  }, 50);
   setInterval(function revealText() {
     if (revealed < line.length) {
       revealed += matchMedia('(prefers-reduced-motion: reduce)').matches ? line.length : 2;
@@ -153,6 +166,7 @@ export function installCampaign({send, readOnly = false}) {
     if (!campaign || readOnly) return;
     current = campaign;
     const host = state.room?.players?.find(p => p.id === state.room.host_id)?.vehicle_id === state.vehicle_id;
+    isHost = host;
     if (host && !restoreSent && collectionReady) {
       restoreSent = true;
       let save = null;
@@ -212,7 +226,7 @@ export function installCampaign({send, readOnly = false}) {
     if (node?.id?.startsWith('move_')) {
       const axis = Number(node.condition.path.split('.').at(-1));
       const channel = MODES[state.operation_mode]?.[axis];
-      const pad = Array.from(navigator.getGamepads?.() || []).some(Boolean);
+      const pad = family !== 'keyboard';
       hint.textContent += ' · ' + (CHANNELS[channel]?.[pad ? 1 : 0] || '');
     }
     next.hidden = node?.type !== 'dialogue';
@@ -222,5 +236,5 @@ export function installCampaign({send, readOnly = false}) {
       return paragraph;
     }));
   }
-  return {update};
+  return {update, bindInput};
 }
