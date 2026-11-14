@@ -1,3 +1,4 @@
+import {installAudio, installAudioSettings} from './audio/engine.js';
 import * as THREE from 'three';
 import {Environment} from './environment.js';
 import {createVehicleModel} from './vehicle_models.js';
@@ -98,3 +99,5 @@ let last=performance.now(),elapsed=0;function frame(now){const seconds=(now-last
 window.__menu={get model(){return selected;},get stickerMeshes(){return model?.stickerGroup?.children.length||0;},get scene(){return $('menuScene').value;},get ready(){return readyModel&&readyScene;},renderer};
 addEventListener('pagehide',()=>clearInterval(padTimer));
 try{scenes=await(await fetch('scene_previews.json')).json();const preferred=['coral_reef','seagrass_meadow','harbor_inspection'];scenes.sort((a,b)=>(preferred.includes(a.key)?preferred.indexOf(a.key):99)-(preferred.includes(b.key)?preferred.indexOf(b.key):99));$('menuScene').replaceChildren(...scenes.map(s=>new Option(s.name,s.key)));$('menuScene').value=query.get('scenario')||'coral_reef';if(!$('menuScene').value)$('menuScene').selectedIndex=0;await selectScene();await selectModel(selected);}catch(error){$('menuStatus').textContent='開場預覽載入失敗，請重新整理。';console.error(error);}
+
+installAudioSettings(installAudio(), document.querySelector('#launchForm'));
