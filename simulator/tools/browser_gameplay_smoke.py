@@ -1,3 +1,4 @@
+import os
 """Real launch-menu/gameplay checks; never teleports a vehicle to fake completion."""
 import json
 import time
@@ -18,7 +19,7 @@ def wait_state(page, mode):
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(channel='chrome', headless=True, args=['--enable-unsafe-swiftshader'])
+    browser = p.chromium.launch(executable_path=os.environ.get('ROV_BROWSER', '/opt/google/chrome/chrome'), headless=True, args=['--enable-unsafe-swiftshader'])
     contexts = []
     def new_page():
         context = browser.new_context(viewport={'width':1366,'height':768}, accept_downloads=True)
@@ -35,8 +36,13 @@ with sync_playwright() as p:
     main = new_page()
     main.goto(f'{BASE}?ws={WS}&room={room}&model=falcon&scene=coral_reef&mission=inspection_coop', wait_until='domcontentloaded')
     main.wait_for_function('window.__menu?.ready', timeout=90000)
-    main.select_option('#menuScene','coral_reef')
+    main.get_by_role('button',name='進入主選單').click()
+    main.locator('.menu-screen:visible').get_by_role('button',name='開始潛航',exact=True).click()
     main.select_option('#menuMode','inspection_coop')
+    main.get_by_role('button',name='協作巡檢 ·',exact=False).click()
+    main.get_by_role('button',name='下一步').click()
+    main.select_option('#menuScene','coral_reef')
+    main.get_by_role('button',name='下一步').click()
     main.locator('#menuIntro').evaluate('(el)=>{el.checked=false}')
     main.wait_for_function('window.__menu.ready')
     assert main.locator('#menuHardware').inner_text().strip()
@@ -57,6 +63,7 @@ with sync_playwright() as p:
     wait_state(guest,'inspection_coop')
     main.wait_for_function('window.__viewer.S.vehicles.length===2')
     assert guest.evaluate('window.__viewer.S.mission.targets.map(t=>t.id)') == target_ids
+    guest.wait_for_function('window.__testSockets.some(s=>s.readyState===1)')
     guest.evaluate("window.__testSockets.find(s=>s.readyState===1).send(JSON.stringify({type:'operation',action:'mission_mode',mode:'free_explore'}))")
     guest.wait_for_function('window.__testMessages.some(m=>m.code==="host_only" || m.error==="host_only")')
     assert guest.evaluate('window.__viewer.S.mission.mode') == 'inspection_coop'
@@ -80,7 +87,13 @@ with sync_playwright() as p:
     for mode in ('free_explore','scenario_training'):
         main.click('#returnMenu')
         main.wait_for_function('window.__menu?.ready', timeout=90000)
+        main.get_by_role('button',name='進入主選單').click()
+        main.locator('.menu-screen:visible').get_by_role('button',name='開始潛航',exact=True).click()
         main.select_option('#menuMode',mode)
+        main.get_by_role('button',name='探索與工程',exact=False).click()
+        main.get_by_role('button',name='下一步').click()
+        main.get_by_role('button',name='下一步').click()
+        main.locator('#menuMode').evaluate('(el,mode)=>{el.value=mode}',mode)
         main.locator('#menuIntro').evaluate('(el)=>{el.checked=false}')
         main.click('#startDive')
         wait_state(main,mode)

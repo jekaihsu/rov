@@ -1,11 +1,426 @@
-html:not(.in-game) .app{display:none}body.menu-open{overflow:hidden;background:#06161d;color:#edf3ed}
-.menu-launch-footer{position:fixed;right:5vw;bottom:0;width:min(370px,35vw);padding:8px 0 16px;background:linear-gradient(transparent,#06161d 12%);z-index:6}.menu-launch-footer .menu-status{margin:6px 0}.menu-performance h2{color:#dfbc61}.menu-performance .menu-help{overflow-wrap:anywhere}.launch-panel{padding-bottom:90px}
-@media(max-width:850px){.menu-launch-footer{right:24px;width:calc(100% - 48px)}}
-.launch-menu{position:fixed;inset:0;overflow:auto;font:14px system-ui,sans-serif;background:#06161d}.launch-menu canvas{position:fixed;inset:0;width:100%;height:100%}.menu-shade{position:fixed;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,17,23,.15) 20%,rgba(3,17,23,.05) 44%,rgba(3,17,23,.96) 74%),linear-gradient(180deg,rgba(3,17,23,.75),transparent 35%,rgba(3,17,23,.6))}
-.menu-brand{position:absolute;top:32px;left:44px;letter-spacing:.18em;font-size:13px;font-weight:650}.menu-brand b{font-size:22px;letter-spacing:.06em;margin-right:14px}.menu-title{position:absolute;top:106px;left:44px;pointer-events:none}.menu-title small{font-size:12px;letter-spacing:.24em;color:#99bfc5}.menu-title h1{font-weight:550;font-size:clamp(42px,5vw,78px);line-height:1.08;letter-spacing:.02em;margin:15px 0}.menu-title p{color:#a3bac0;line-height:1.8;margin:0;max-width:32ch}
-.launch-panel{position:relative;margin:105px 5vw 92px auto;width:min(370px,35vw);z-index:2}.launch-panel h2{font-size:14px;font-weight:500;letter-spacing:.12em;margin:0 0 13px;color:#a4b7bb}.launch-panel section{border-top:1px solid #284048;padding:18px 0}.launch-panel label{display:block;color:#aac0c6;font-size:12px;line-height:1.5;margin:10px 0 5px}.launch-panel input,.launch-panel select{width:100%;min-height:39px;background:rgba(10,32,40,.8);border:1px solid #34505a;color:#edf3ed;padding:8px 10px;border-radius:2px;font:13px system-ui}.launch-panel .menu-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.menu-models{display:flex;gap:5px}.menu-models button{flex:1;padding:11px 5px;min-height:44px;border:1px solid #34505a;background:transparent;color:#a5b9be;transition:background .18s,color .18s}.menu-models button[aria-pressed=true]{color:#092029;background:#dfbc61;border-color:#dfbc61}.menu-models button:hover{border-color:#dfbc61}.model-description{min-height:36px;font-size:12px;line-height:1.6;color:#91aab1;margin:10px 0 0}.launch-panel details{border-top:1px solid #284048;padding:16px 0}.launch-panel summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;font-size:13px;color:#cbd9da}.launch-panel summary::after{content:'＋';color:#dfbc61}.launch-panel details[open] summary::after{content:'−'}.launch-panel .menu-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0}.launch-panel input[type=checkbox]{width:18px;min-height:18px;height:18px;accent-color:#dfbc61}.launch-panel .menu-help{font-size:11px;line-height:1.6;color:#8ba6ae;margin:6px 0}.menu-status{min-height:20px;color:#dfbc61;font-size:12px;line-height:1.6}.menu-start{width:100%;background:#dfbc61;color:#10232b;border:0;border-radius:2px;padding:15px 20px;display:flex;justify-content:space-between;font-size:16px;font-weight:650;transition:background .2s,transform .2s}.menu-start:hover{background:#f0d492;transform:translateY(-2px)}.menu-start:disabled{opacity:.5;transform:none;cursor:wait}.menu-caption{position:fixed;left:44px;bottom:34px;max-width:45vw;color:#8cabb3;font-size:12px;line-height:1.7;pointer-events:none}.menu-caption strong{display:block;color:#dfbc61;font-size:24px;font-weight:500;margin-bottom:4px}.menu-backdrop-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase}.launch-panel,.menu-title,.menu-brand{animation:menu-enter .9s both}.launch-panel{animation-delay:.18s}.menu-title{animation-delay:.08s}.launch-menu.departing{opacity:0;transform:scale(1.015);transition:opacity .5s,transform .5s}
-@keyframes menu-enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:850px){body.menu-open{overflow:auto}.launch-menu{min-height:100svh}.menu-shade{background:linear-gradient(180deg,rgba(3,17,23,.3),rgba(3,17,23,.1) 28%,#06161d 51%)}.menu-brand{left:24px;top:20px}.menu-title{top:82px;left:24px}.menu-title h1{font-size:40px}.menu-title p{display:none}.launch-panel{margin:380px 24px 34px;width:auto}.menu-caption{position:absolute;top:300px;bottom:auto;left:24px;max-width:80vw}.menu-caption strong{font-size:22px}.menu-caption .menu-help{display:none}}
-@media(prefers-reduced-motion:reduce){.launch-panel,.menu-title,.menu-brand{animation:none}.launch-menu.departing,.menu-start{transition:none}}
-@media(max-width:850px){.launch-menu canvas{position:absolute;height:400px!important}.menu-shade{background:linear-gradient(180deg,rgba(3,17,23,.25),rgba(3,17,23,.02) 260px,#06161d 400px)}}
-.in-game #scnSel,.in-game #seed,.in-game #btnLoad,.in-game #opMode,.in-game label[for=opMode]{display:none}.in-game .menu-only-settings{display:none}.in-game .session-summary strong{font-size:15px}.in-game .session-summary p{margin:5px 0;color:#8eabb5}.in-game #returnMenu{margin-top:8px;width:100%}
+html:not(.in-game) .app {
+  display: none;
+}
+body.menu-open {
+  overflow: hidden;
+  background: #04090d;
+  color: #e8f1f5;
+}
+.launch-menu {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #04090d;
+  font:
+    14px system-ui,
+    sans-serif;
+}
+.launch-menu canvas,
+.menu-shade {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.menu-shade {
+  pointer-events: none;
+}
+.menu-brand {
+  position: absolute;
+  letter-spacing: 0.18em;
+}
+.menu-brand b {
+  font-size: 22px;
+  margin-right: 16px;
+}
+.menu-status {
+  color: #8fa6b2;
+  font-size: 12px;
+}
+.menu-start {
+  padding: 16px 24px;
+  width: 100%;
+  border: 0;
+  font: inherit;
+}
+.menu-start:disabled {
+  opacity: 0.4;
+}
+.launch-menu.departing {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.menu-screen section {
+  border: 0;
+}
+.menu-toggle {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+}
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.in-game #scnSel,
+.in-game #seed,
+.in-game #btnLoad,
+.in-game #opMode,
+.in-game label[for="opMode"] {
+  display: none;
+}
+.in-game .menu-only-settings {
+  display: none;
+}
+.in-game .session-summary strong {
+  font-size: 15px;
+}
+.in-game .session-summary p {
+  margin: 5px 0;
+  color: #8eabb5;
+}
+.in-game #returnMenu {
+  margin-top: 8px;
+  width: 100%;
+}
+/* Staged frontend: the underwater renderer stays full bleed behind every screen. */
+:root {
+  --bg-0: #04090d;
+  --panel: rgba(8, 18, 26, 0.62);
+  --line: rgba(160, 205, 225, 0.18);
+  --text: #e8f1f5;
+  --text-dim: #8fa6b2;
+  --accent: #4fd1e0;
+}
+.launch-menu {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.launch-menu [hidden] {
+  display: none !important;
+}
+.menu-title,
+.launch-panel,
+.menu-caption {
+  display: none;
+}
+.menu-shade {
+  background: linear-gradient(90deg, rgba(4, 9, 13, 0.85), rgba(4, 9, 13, 0.25) 65%, rgba(4, 9, 13, 0.1));
+}
+.menu-brand {
+  left: 4vw;
+  top: 4vh;
+}
+.menu-stage {
+  position: relative;
+  margin: 15vh 4vw 18vh;
+  width: 54vw;
+  max-height: 64vh;
+  overflow: auto;
+}
+.menu-screen {
+  animation: menu-enter 0.2s ease-out;
+}
+.menu-screen > small {
+  color: var(--accent);
+  letter-spacing: 0.22em;
+}
+.menu-screen h1 {
+  font-size: clamp(30px, 3vw, 52px);
+  font-weight: 500;
+  margin: 16px 0 32px;
+}
+.menu-screen p {
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+.menu-screen button,
+.menu-navigation button {
+  display: block;
+  min-height: 48px;
+  padding: 12px 24px;
+  margin: 8px 0;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-screen button:hover,
+.menu-screen button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: rgba(35, 85, 95, 0.65);
+}
+.launch-menu :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.menu-screen input,
+.menu-screen select {
+  display: block;
+  min-height: 44px;
+  width: 100%;
+  padding: 8px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  font: inherit;
+}
+.menu-screen label {
+  display: block;
+  margin: 12px 0 8px;
+  color: var(--text-dim);
+}
+.menu-screen input[type="checkbox"] {
+  display: inline;
+  width: 24px;
+  min-height: 24px;
+}
+.menu-screen details {
+  border: 0;
+}
+.menu-screen summary {
+  display: none;
+}
+.menu-screen h2 {
+  font-size: 16px;
+  color: var(--text-dim);
+}
+.menu-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.menu-cards button {
+  margin: 0;
+  min-height: 100px;
+  line-height: 1.7;
+}
+.sea-cards {
+  max-height: 28vh;
+  overflow: auto;
+  margin: 16px 0;
+}
+.menu-screen nav {
+  display: flex;
+  gap: 8px;
+}
+.menu-screen nav button {
+  padding: 12px;
+}
+.menu-models {
+  display: flex;
+  gap: 8px;
+}
+.menu-models button {
+  flex: 1;
+}
+.menu-navigation {
+  position: fixed;
+  left: 4vw;
+  bottom: 4vh;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  color: var(--text-dim);
+}
+.menu-launch-footer {
+  right: 4vw;
+  bottom: 4vh;
+  width: 28vw;
+  background: none;
+}
+.menu-start {
+  background: var(--accent);
+  color: var(--bg-0);
+  border-radius: 10px;
+}
+.vehicle-specs {
+  font-size: 24px;
+  color: var(--accent);
+  margin: 24px 0;
+}
+body[data-screen="title"] .menu-stage {
+  width: 70vw;
+}
+@media (max-width: 850px) {
+  .menu-stage {
+    width: 88vw;
+    margin-top: 14vh;
+  }
+  .menu-launch-footer {
+    width: 40vw;
+  }
+  .menu-navigation {
+    gap: 12px;
+    font-size: 11px;
+  }
+  .menu-cards {
+    grid-template-columns: 1fr;
+  }
+  .launch-menu canvas {
+    height: 100% !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-screen {
+    animation: none;
+  }
+}
+.menu-keyboard {
+  background: #08121a;
+  color: #e8f1f5;
+  border: 1px solid #4fd1e0;
+  max-width: 650px;
+  padding: 32px;
+}
+.menu-keyboard button {
+  width: 48px;
+  height: 48px;
+  margin: 4px;
+  background: #18343e;
+  color: #e8f1f5;
+  border: 1px solid #8fa6b2;
+}
+.menu-keyboard :focus-visible {
+  outline: 3px solid #4fd1e0;
+}
+.sea-cards img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.vehicle-specs label {
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+.vehicle-specs meter {
+  width: 50%;
+  accent-color: #4fd1e0;
+}
+.pause-menu {
+  background: rgba(8, 18, 26, 0.92);
+  backdrop-filter: blur(14px);
+  color: #e8f1f5;
+  border: 1px solid #4fd1e0;
+  border-radius: 10px;
+  padding: 40px;
+  min-width: 400px;
+}
+.pause-menu button,
+.pause-menu select {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  margin: 16px 0;
+  background: #18343e;
+  color: #e8f1f5;
+  border: 1px solid #8fa6b2;
+}
+.pause-menu :focus-visible {
+  outline: 3px solid #4fd1e0;
+}
+.pause-menu::backdrop {
+  background: rgba(4, 9, 13, 0.65);
+}
+.menu-screen details > summary {
+  display: block;
+  cursor: pointer;
+  color: var(--accent);
+  padding: 16px 0;
+}
+.menu-screen details:not([open]) > button {
+  display: none;
+}
+.menu-screen details:has(#menuServer) > summary,
+.menu-screen details:has(#menuPad) > summary {
+  display: none;
+}
+.menu-stage {
+  width: 46vw;
+  max-height: 70vh;
+  margin-top: 12vh;
+}
+.menu-screen h1 {
+  margin: 12px 0 20px;
+}
+.vehicle-specs {
+  margin: 12px 0;
+  font-size: 22px;
+}
+.vehicle-specs p {
+  margin: 8px 0;
+}
+.vehicle-specs label {
+  margin: 8px 0;
+}
+.menu-models button[aria-pressed="true"] {
+  color: var(--text);
+}
+.menu-screen small {
+  font-size: 11px;
+}
+.menu-screen .model-description {
+  font-size: 12px;
+}
+.menu-screen .menu-help {
+  font-size: 12px;
+}
+.menu-status {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+@media (max-height: 760px) {
+  .menu-stage {
+    margin-top: 11vh;
+    max-height: 72vh;
+  }
+  .menu-screen h1 {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  .menu-screen button {
+    min-height: 40px;
+    padding: 8px 16px;
+  }
+  .menu-screen label {
+    margin: 6px 0;
+  }
+  .vehicle-specs {
+    font-size: 18px;
+  }
+  .menu-screen input,
+  .menu-screen select {
+    min-height: 36px;
+  }
+}
+.launch-menu canvas {
+  z-index: 0;
+}
+.menu-shade {
+  z-index: 1;
+}
+.menu-brand,
+.menu-stage {
+  z-index: 2;
+}
+.menu-launch-footer {
+  position: fixed;
+  z-index: 3;
+}
+.menu-navigation {
+  z-index: 3;
+}

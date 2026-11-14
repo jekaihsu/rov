@@ -1,3 +1,4 @@
+import os
 """Real-browser smoke checks against a separately running simulator."""
 import json
 from pathlib import Path
@@ -10,7 +11,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 def run():
     errors=[]
     with sync_playwright() as p:
-        browser=p.chromium.launch(channel='chrome',headless=True, args=['--enable-unsafe-swiftshader'])
+        browser=p.chromium.launch(executable_path=os.environ.get('ROV_BROWSER', '/opt/google/chrome/chrome'),headless=True, args=['--enable-unsafe-swiftshader'])
         contexts=[]
         pages=[]
         for i in range(3):
