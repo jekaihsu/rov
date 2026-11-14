@@ -30,6 +30,7 @@ import {inspectObservation} from './observation_camera.js';
 import {installPilotGuide} from './pilot_guide.js';
 import {drawROVAttitude} from './attitude_indicator.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
+import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
@@ -58,9 +59,10 @@ renderer.domElement.className = 'gl';
 vp.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-const waterSurf = new THREE.Color('#1d6378'), waterDeep = new THREE.Color('#01070b'), siltCol = new THREE.Color('#3b3a26');
+const waterSurf = new THREE.Color('#1d6378'), waterDeep = new THREE.Color('#01070b');
 scene.background = new THREE.Color('#0a2a38');
 scene.fog = new THREE.Fog(0x0a2a38, 0.3, 12);
+const siltFx = new SiltRenderer(scene);
 const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 2600);
 camera.position.set(-3, 1.5, -3);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -1212,11 +1214,9 @@ function frame(now) {
   hemi.intensity = 1.5; sun.intensity = 1.6;
   applyUnderwaterLighting(scene);
   fleet.update(dt);
-  _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13)).lerp(siltCol, clamp((S?.silt || 0) * .7, 0, .7));
-  scene.background.copy(_wc); scene.fog.color.copy(_wc);
-  const vis = (W?.scenario?.visibility_m || 12) * (1 - .75 * clamp(S?.silt || 0, 0, 1));
-  const real = $('optFog').checked && camMode !== 'top';
-  scene.fog.near = real ? .3 : 5; scene.fog.far = real ? vis * 1.35 : Math.max(90, cameraRig.topH * 4);
+  _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
+  siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
+    displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   surface.visible = camMode !== 'top' || camera.position.y < 0;
   for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
@@ -1262,5 +1262,5 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { THREE, scene, camera, rovG, worldG, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
