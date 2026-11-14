@@ -21,8 +21,7 @@ body .readout b { font-size: 30px; }
 body .lock, body .lock.locked { border: 1px solid var(--line); background: var(--panel); animation: none; }
 body .lock b, body .lock.locked b { font-size: 14px; }
 body .lock span, #hOp, #hMode { display: none; }
-body .sticks { display: none !important; }
-body.hud-touch .sticks { display: flex !important; }
+.sticks[hidden] { display: none; }
 .flight { position: absolute; color: var(--text); font: 12px Inter,system-ui,sans-serif;
   font-variant-numeric: tabular-nums; pointer-events: none; }
 .flight b { font-size: 30px; font-weight: 500; }
@@ -100,9 +99,13 @@ body .hud, .flight { z-index: var(--z-hud); }
 #flightPeek, #flightWarning { z-index: var(--z-notice); }
 #flightTools { z-index: var(--z-controls); }
 .banner { z-index: var(--z-banner); }
+.sticks { z-index: var(--z-controls); }
 
 /* Assist status beside the mode pill: dashed while the request waits, amber when the simulator is not flying it. */
 #flightAssistStatus[hidden] { display: none; }
 #flightAssistStatus[data-tone=pending] { color: var(--text-dim); border-style: dashed; }
 #flightAssistStatus[data-tone=warn] { color: var(--warn); border-color: var(--warn); }
 #flightAssistStatus[data-tone=ok] { color: var(--go); border-color: var(--go); }
+
+/* The controller diagnostic page is not part of the replay showcase build; replays need no controller. */
+body.replaying #controllerCheck { display: none; }

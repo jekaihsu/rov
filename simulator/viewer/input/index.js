@@ -13,6 +13,7 @@ import {
 import {createFeatureActions} from "./feature_actions.js";
 import { createDevices } from "./devices.js";
 import { renderKeyHints } from "./hints.js";
+import { installTouchSticks } from "./touch_sticks.js";
 import { createHaptics } from "./haptics.js";
 import { installSettings } from "./settings.js";
 import { getFidelity } from "../fidelity.js";
@@ -51,13 +52,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   let hudActions = {};
   let lastPadValues = "";
   let lastPadId = "";
-  const stickStyle = document.createElement("style");
-  stickStyle.textContent = "@media (pointer:fine){#sticks{visibility:hidden}}";
-  document.head.append(stickStyle);
-  document.addEventListener("rov-input-device", function devicePresentation(event) {
-    if (event.detail !== "touch") document.getElementById("sticks").style.visibility = "hidden";
-    else document.getElementById("sticks").style.visibility = "visible";
-  });
+  installTouchSticks({ element: $("sticks"), preference: $("optSticks") });
   const haptics = createHaptics(() => frame.pad, settings);
   // Assist level and flight profile belong to the fidelity profile; rc mirrors it for the transport.
   const fidelity = getFidelity();

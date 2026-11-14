@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ROV 模擬器 0.3.0 · 協作潛航</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="menu.css">
 <link rel="stylesheet" href="hud/tokens.css">
@@ -74,7 +75,7 @@
         </div>
         <div class="sl menu-only-settings"><div class="row"><label for="kbGain">鍵盤推桿幅度（Shift = 100%）</label><span id="kbGainV"></span></div><input type="range" id="kbGain" min="0.2" max="1" step="0.05" value="0.6"></div>
         <div class="hint" id="padInfo">未偵測到手把（按任一手把按鍵喚醒）。</div>
-        <a class="hint" href="controller-check.html" target="_blank" rel="noopener">檢查搖桿輸入（裝置、軸值、按鍵）</a>
+        <a class="hint" id="controllerCheck" href="controller-check.html" target="_blank" rel="noopener">檢查搖桿輸入（裝置、軸值、按鍵）</a>
         <p class="hint keys" id="keyHints"></p>
       </div>
 
@@ -152,7 +153,7 @@ python -m qysim.server --scenario jacket_inspection</pre>
         </div>
       </div>
 
-      <div class="sticks" id="sticks">
+      <div class="sticks" id="sticks" hidden>
         <div class="pad" id="padL">
           <div class="stick" id="stickL"><div class="knob"></div>
             <span class="ax up" id="lbl_left_ud_p"></span><span class="ax dn" id="lbl_left_ud_n"></span>

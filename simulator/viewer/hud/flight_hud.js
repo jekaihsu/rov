@@ -158,7 +158,6 @@ function initialize() {
   $('flightHide').onclick = function hideHUD() { document.body.classList.toggle('hud-hidden'); };
   document.addEventListener('keydown', function keyDown(event) {
     if (event.target.closest('input,select,textarea,[contenteditable=true]')) return;
-    document.body.classList.remove('hud-touch');
     if (DRAWER_KEYS.includes(event.code)) {
       event.preventDefault();
       if (!event.repeat) drawer();
@@ -173,9 +172,6 @@ function initialize() {
   window.addEventListener('blur', function blur() {
     held = false;
     active = -1;
-  });
-  document.addEventListener('pointerdown', function pointer(event) {
-    document.body.classList.toggle('hud-touch', event.pointerType === 'touch');
   });
 }
 function smooth(key, target, dt) {
@@ -324,7 +320,6 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     input.pulse?.(danger ? 'hard' : 'tension');
   }
   lastWarning = warning;
-  if (input.active) document.body.classList.remove('hud-touch');
   // The input layer reports the long press as one level; a short press of the same button never arrives here.
   const engineering = (input.actions?.engineering || 0) > .5;
   if (engineering && !engineeringHeld) drawer();
@@ -335,7 +330,6 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     if (!pressed && previous[index]) up(index);
   });
   previous = buttons;
-  if (buttons.some(Boolean)) document.body.classList.remove('hud-touch');
   if (!held && performance.now() > deadline) active = -1;
   const card = $('flightPeek');
   card.classList.toggle('visible', active >= 0 || density === 2);

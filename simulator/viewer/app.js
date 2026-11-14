@@ -558,7 +558,6 @@ function onState(m) {
   if (W) $('offline').hidden = true;
   target.pos = P(m.pos, target.pos); Q(m.q, target.q);
   if (!target.init) { rovG.position.copy(target.pos); rovG.quaternion.copy(target.q); target.init = true; }
-  updateTether(m.tether || {});
   updateRoute(m.nav);
   const ch = m.current_here || [0, 0, 0], cv = P(ch), sp = cv.length();
   if (sp > 1e-3) curArrow.setDirection(cv.clone().normalize());
@@ -1255,7 +1254,6 @@ function frame(now) {
   if (!CAPTURE) requestAnimationFrame(frame);
 }
 
-$('optSticks').onchange = () => ($('sticks').hidden = !$('optSticks').checked);
 if (matchMedia('(max-width: 720px)').matches) $('optLabels').checked = false;
 setCam(camMode); resize(); drawProfile(); loadModel(); connect();
 if (CAPTURE) {
