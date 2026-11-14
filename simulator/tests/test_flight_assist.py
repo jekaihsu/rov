@@ -27,12 +27,13 @@ class TestFlightAssist(unittest.TestCase):
                     kwargs = {'assist': 0} if explicit else {}
                     motors = c.update(.01, cmd, ('A', 'S', 'C')[i % 3], i % 19 == 0, i % 2 == 0, **kwargs)
                     expected = legacy.update(.01, cmd, ('A', 'S', 'C')[i % 3], i % 19 == 0, i % 2 == 0)
+                    np.testing.assert_array_equal(motors, expected)
                     self.assertEqual(motors.tobytes(), expected.tobytes())
                     self.assertEqual(c.last_wrench.tobytes(), legacy.last_wrench.tobytes())
 
     def test_step_and_brake_all_models_profiles(self):
         for model in MODELS:
-            for profile, reach_limit in (('cine', 8), ('normal', 10), ('sport', 12)):
+            for profile, reach_limit in (('cine', 2.0), ('normal', 1.2), ('sport', .9)):
                 with self.subTest(model=model, profile=profile):
                     v = Vehicle(model_id=model)
                     v.s.pos[2] = 20
@@ -46,8 +47,7 @@ class TestFlightAssist(unittest.TestCase):
                         motors = c.update(.01, {'surge': 1 if i < 1500 else 0}, 'A', False, False,
                                           assist=1, profile=profile)
                         _, fraction, jerk, _, _ = PROFILES[profile]
-                        amax = np.minimum(v.authority[:3] / v.M * fraction,
-                                          np.asarray(v.p.vmax) * PROFILES[profile][0] * 1.5)
+                        amax = v.authority[:3] / v.M * fraction
                         self.assertTrue(np.all(np.abs(c.acceleration - previous_a) <= amax * jerk * .01 + 1e-12))
                         previous_a = c.acceleration.copy()
                         v.step(.01, motors)
@@ -60,16 +60,16 @@ class TestFlightAssist(unittest.TestCase):
                     self.assertLess(np.max(np.abs(np.diff(actual_accelerations, axis=0))), .5)
                     limit = c.assist_state()['speed_limit'][0]
                     speeds = np.asarray(speeds)
-                    self.assertLessEqual(max(speeds), limit * 1.1)
+                    self.assertLessEqual(max(speeds), limit * (1.05 if profile == 'normal' else 1.1))
                     reach = np.flatnonzero(speeds[:1500] >= .9 * limit)
                     self.assertTrue(len(reach))
                     self.assertLess(reach[0] * .01, reach_limit)
+                    stop = np.flatnonzero(np.abs(speeds[1500:]) < .05)
+                    self.assertTrue(len(stop))
+                    self.assertLessEqual(stop[0] * .01, {'cine': 2.0, 'normal': 1.2, 'sport': 1.0}[profile])
                     if profile == 'normal':
-                        stop = np.flatnonzero(np.abs(speeds[1500:]) < .05)
-                        self.assertTrue(len(stop))
-                        self.assertLess(stop[0] * .01, 8)
-                        self.assertLess(positions[1500 + stop[0]] - positions[1499], 4)
-                        self.assertLess(max(positions) - positions[-1], .05)
+                        self.assertLessEqual(positions[1500 + stop[0]] - positions[1499], .6)
+                        self.assertLess(max(positions) - min(positions[1500 + stop[0]:]), .03)
 
     def test_current_hold_and_saturation(self):
         for model in MODELS:
@@ -174,3 +174,103 @@ class TestFlightAssist(unittest.TestCase):
         host.handle_viewer(packet, button_values=previous)
         self.assertEqual(host.sim.rc_physical.assist, 2)
         self.assertEqual(host.sim.rc_physical.profile, 'cine')
+
+    def test_integral_and_reference_remain_in_world_frame(self):
+        from qysim.physics import q_rot
+
+        for mode in ('A', 'S'):
+            v = Vehicle()
+            v.s.pos[2] = 20
+            c = FlightController(v)
+            c.update(.01, {}, mode, False, False, assist=2)
+            bias = np.array([.03, -.02, .01])
+            c.velocity_integral = bias.copy()
+            c.velocity_target = bias.copy()
+            c.acceleration = bias.copy()
+            # Reorient without translating: the learned world force must not turn.
+            v.s.q = q_from_euler(.4 if mode == 'S' else 0, .3 if mode == 'S' else 0, np.pi / 2)
+            c.q_hold = v.s.q.copy()
+            c.update(0, {}, mode, False, False, assist=2)
+            frame = v.s.q if mode == 'S' else q_from_euler(0, 0, np.pi / 2)
+            np.testing.assert_allclose(q_rot(frame, c.velocity_integral), bias, atol=1e-14)
+            np.testing.assert_allclose(q_rot(frame, c.velocity_target), bias, atol=1e-14)
+            np.testing.assert_allclose(q_rot(frame, c.acceleration), bias, atol=1e-14)
+            self.assertTrue(c.assist_state()['holding'])
+
+    def test_manual_profile_dvl_loss_and_manual_force_ceiling(self):
+        from qysim.engine import Simulator
+
+        for model in MODELS:
+            v = Vehicle(model_id=model)
+            v.s.pos[2] = 20
+            c = FlightController(v)
+            c.update(.01, {}, 'A', False, False, assist=0, profile='sport')
+            self.assertEqual(c.assist_state()['profile'], 'sport')
+            c.update(.01, {}, 'A', True, False, assist=0, profile='cine')
+            self.assertEqual(c.assist_state()['profile'], 'cine')
+            c.update(.01, {}, 'A', False, False, assist=2)
+            self.assertTrue(c.assist_state()['holding'])
+            motors = c.update(.01, {}, 'A', False, False, assist=2, dvl_valid=False)
+            manual = FlightController(v).update(.01, {}, 'A', False, False)
+            np.testing.assert_array_equal(motors, manual)
+            self.assertEqual(c.assist_state()['level'], 0)
+            self.assertFalse(c.assist_state()['holding'])
+            np.testing.assert_array_equal(c.velocity_integral, 0)
+            for i in range(100):
+                c.update(.01, {'surge': 1, 'sway': -1, 'heave': 1}, 'A', False, False,
+                         assist=1, profile='sport')
+                self.assertLessEqual(np.max(np.abs(c.last_wrench[:3])), 1)
+        sim = Simulator()
+        sim.apply_viewer_rc({'assist': 2, 'rc_lock': 0})
+        sim.vehicle.s.pos[2] = sim.world.depth_at(sim.vehicle.s.pos) - .05
+        sim.step()
+        self.assertEqual(sim.controller.assist_state()['level'], 0)
+
+    def test_internal_usb_and_bridge_keep_settings(self):
+        import asyncio
+        from qysim.engine import Simulator
+        from qysim.server import SimHost
+
+        host = SimHost(Simulator(), qirc=True)
+        host.sim.apply_viewer_rc({'assist': 2, 'profile': 'sport'})
+        asyncio.run(host.controller_sample({'right_ud': 1600}, ()))
+        self.assertEqual(host.sim.rc_physical.assist, 2)
+        self.assertEqual(host.sim.rc_physical.profile, 'sport')
+        host.handle_viewer({'type': 'rc', 'rc': {'right_ud': 1700}}, controller_bridge=True)
+        self.assertEqual(host.sim.rc_physical.assist, 2)
+        self.assertEqual(host.sim.rc_physical.profile, 'sport')
+        # A complete legacy client packet still selects the documented defaults.
+        host.qirc_enabled = False
+        host.handle_viewer({'type': 'rc', 'rc': {'right_ud': 1500}})
+        self.assertEqual(host.sim.rc_physical.assist, 0)
+        self.assertEqual(host.sim.rc_physical.profile, 'normal')
+
+    def test_profile_order_and_ten_second_step(self):
+        from tests.flight_assist_metrics import measure
+
+        for model in MODELS:
+            rows = [measure(model, profile) for profile in ('cine', 'normal', 'sport')]
+            self.assertGreater(rows[0]['rise_s'], rows[1]['rise_s'])
+            self.assertGreater(rows[1]['rise_s'], rows[2]['rise_s'])
+            self.assertGreater(rows[0]['stop_s'], rows[1]['stop_s'])
+            self.assertGreater(rows[1]['stop_s'], rows[2]['stop_s'])
+            for row in rows:
+                self.assertLessEqual(row['max_force'], 1)
+            normal = rows[1]
+            self.assertLessEqual(normal['rise_s'], 1.2)
+            self.assertLessEqual(normal['stop_s'], 1.2)
+            self.assertLessEqual(normal['stop_m'], .6)
+            self.assertLess(normal['reverse_m'], .03)
+            self.assertLessEqual(normal['peak'], normal['limit'] * 1.05)
+
+    def test_current_hold_while_yawing(self):
+        v = Vehicle()
+        v.s.pos[2] = 20
+        origin = v.s.pos.copy()
+        v.current_ned = np.array([0, .5 * .514444, 0])
+        c = FlightController(v)
+        for i in range(3000):
+            motors = c.update(.01, {'yaw': .15 if i >= 1500 else 0}, 'A', False, False, assist=2)
+            v.step(.01, motors)
+        self.assertLess(np.linalg.norm(v.s.pos - origin), .15)
+        self.assertTrue(c.assist_state()['holding'])

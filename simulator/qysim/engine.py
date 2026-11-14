@@ -188,7 +188,11 @@ class Simulator:
         operation_wrench = self.operations.step(dt)
         keep_depth = keep_depth or self.operations.altitude is not None
         v.seabed_depth = self.world.depth_at(s.pos)
-        thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist, rc.profile) * self.health
+        # Provisional simulated bottom-lock window, not a calibrated sensor model.
+        altitude = v.seabed_depth - s.pos[2]
+        dvl_valid = bool(0.1 <= altitude <= 100.0 and np.all(np.isfinite(v.world_velocity())))
+        thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist,
+                                     rc.profile, dvl_valid=dvl_valid) * self.health
         w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
         n_events = len(self.world.events)
         w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
@@ -801,10 +805,13 @@ class Simulator:
                 "thrusters": [{"name": n, "pos": list(p), "axis": list(a)} for n, p, a in self.vehicle.thrusters]}
 
     # ── viewer commands ───────────────────────────────────────────────────
-    def apply_viewer_rc(self, msg: dict) -> None:
+    def apply_viewer_rc(self, msg: dict, *, partial: bool = False) -> None:
         # Each packet must opt in, so old clients retain manual semantics.
-        self.rc_physical.assist = msg.get("assist", 0) if msg.get("assist", 0) in (0, 1, 2) else 0
-        self.rc_physical.profile = msg.get("profile", "normal")
+        default_assist = self.rc_physical.assist if partial else 0
+        default_profile = self.rc_physical.profile if partial else "normal"
+        assist = msg.get("assist", default_assist)
+        self.rc_physical.assist = int(assist) if assist in (0, 1, 2) else 0
+        self.rc_physical.profile = msg.get("profile", default_profile)
         if self.rc_physical.profile not in ("cine", "normal", "sport"):
             self.rc_physical.profile = "normal"
         for k, val in msg.items():

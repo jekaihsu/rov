@@ -122,7 +122,7 @@ class SimHost:
                     self.sim.input_latched = False
                 else:
                     values["rc_lock"] = 1
-            self.sim.apply_viewer_rc(values)
+            self.sim.apply_viewer_rc(values, partial=True)
             if not self.sim.remote_control:
                 # Preserve short press/release pairs coalesced in one USB read.
                 self.sim._buttons(self.sim.rc_physical)
@@ -468,7 +468,7 @@ class SimHost:
             for key in ("assist", "profile"):
                 if key in msg.get("rc", {}):
                     values[key] = msg["rc"][key]
-            sim.apply_viewer_rc(values)
+            sim.apply_viewer_rc(values, partial=controller_bridge)
             if not sim.remote_control:
                 # Preserve short camera button edges when several network packets
                 # arrive between physics ticks, just as the local USB reader does.
