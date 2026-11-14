@@ -17,9 +17,9 @@ and how far can a camera see through it":
   coarse silt 63 um, fine silt 15 um). Each puff settles at its class settling velocity
   (Soulsby 1997, which reduces to Stokes for silt), is advected by ``World.current_at_many``
   (the full local flow, with its terrain-aware log-law bed layer and structure wakes), spreads
-  as ``sigma**2 += 2 * K * dt`` (K: still water + current shear + decaying thruster wake) and loses mass only by deposition at the bed
-  (flux ``ws * C_bed``) or by leaving the area around the vehicles. Every kilogram is booked
-  in ``emitted = suspended + deposited + removed``.
+  as ``sigma**2 += 2 * K * dt`` (K: still water + current shear + decaying thruster wake) and
+  loses mass only by deposition at the bed (flux ``ws * C_bed``) or by leaving the area around
+  the vehicles. Every kilogram is booked in ``emitted = suspended + deposited + removed``.
 * Optics: concentration ``C`` in mg/L (= g/m3) at any point, with an optional near-bed
   turbid (nepheloid) layer per scenario; beam attenuation ``c = 4.8 / visibility_m + k * C``
   with ``k = 0.5 m2/g`` and visibility ``4.8 / c`` (Zaneveld & Pegau 2003).

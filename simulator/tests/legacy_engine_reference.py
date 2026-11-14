@@ -1,7 +1,8 @@
 """Frozen pre-sensor-layer engine paths, used only for same-runtime bitwise regression.
 
 ``LegacySimulator`` replays the step, controller wiring and every telemetry method exactly as they read
-before the shared sensor layer existed (re-frozen after the comms/power/thermal and silt work merged).
+before the shared sensor layer existed (re-frozen after the comms/power/thermal, silt, currents and
+tether-physics work merged: only sensor reads differ from the engine, each replaced by truth).
 Tests run it next to the current ``Simulator`` with sensor imperfections disabled and require identical bytes.
 """
 

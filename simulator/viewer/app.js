@@ -5,6 +5,7 @@ import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
 import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
+import {installTetherReel} from './tether_reel.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -746,8 +747,7 @@ $('btnReset').onclick = () => send({ type: 'reset' });
 $('btnPause').onclick = () => send({ type: 'pause', value: !(S && S.paused) });
 $('btnRelease').onclick = () => send({ type: 'remote_release' });
 $('opMode').onchange = () => { rememberControlLayout($('opMode').value); send({ type: 'operation_mode', value: $('opMode').value }); };
-$('autoPay').onchange = () => send({ type: 'auto_payout', value: $('autoPay').checked });
-document.querySelectorAll('[data-pay]').forEach((b) => (b.onclick = () => send({ type: 'payout', metres: +b.dataset.pay })));
+const updateTetherReel = installTetherReel({ send });
 $('kbGain').oninput = () => ($('kbGainV').textContent = Math.round($('kbGain').value * 100) + '%'); $('kbGain').oninput();
 
 // current override sliders
@@ -941,7 +941,7 @@ function updateUI() {
   else if (t.warn) { ts.textContent = '張力過高'; ts.className = 'chip warn'; }
   else if (t.snagged_on?.length) { ts.textContent = '卡纜'; ts.className = 'chip warn'; }
   else { ts.textContent = '正常'; ts.className = 'chip on'; }
-  if (document.activeElement !== $('autoPay')) $('autoPay').checked = !!t.auto_payout;
+  updateTetherReel(t, s.t);
   const wr = Object.entries(t.wraps || {}).filter(([, v]) => Math.abs(v) >= .05);
   setHTML('tWraps', [
     wr.length ? '纏繞：' + wr.map(([n, v]) => `<b style="color:${Math.abs(v) >= .25 ? 'var(--bad)' : 'var(--amber)'}">${esc(n)} ${v > 0 ? '↻' : '↺'}${Math.abs(v).toFixed(2)} 圈</b>`).join('、') : '無纏繞',

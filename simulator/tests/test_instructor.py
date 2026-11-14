@@ -227,6 +227,11 @@ class InstructorTests(unittest.TestCase):
 
         length = sim.tether.length
         self.assertIsNone(send({'type': 'payout', 'metres': 2}))
+        # Payout is a reel command now, not an instant length jump: the target is set at once and
+        # the deployed length grows at the tender feed rate while the simulation runs.
+        self.assertAlmostEqual(sim.tether.reel.target, length + 2)
+        for _ in range(20):
+            sim.tether.step(.01, 0, sim.vehicle.s.pos, sim.vehicle.s.q, np.zeros(3))
         self.assertGreater(sim.tether.length, length)
         self.assertIsNone(send({'type': 'auto_payout', 'value': False}))
         self.assertFalse(sim.tether.auto_payout)

@@ -415,6 +415,34 @@ class FluidAccelerationTests(unittest.TestCase):
         self.assertGreater(amplitudes[0], 0.6)
 
 
+    def test_tether_fluid_inertia_compiled_matches_numpy(self):
+        """The fluid-acceleration term is inside both solver paths and they stay equivalent."""
+        from qysim import _cable_accel
+        from qysim.tether import Tether, TetherParams
+        if _cable_accel.advance_batch is None:
+            self.skipTest("optional Numba is not installed")
+        runs = []
+        for accelerated in (True, False):
+            world = World(30.0)
+            clock = {"t": 0.0}
+
+            def flow(points, t=None, clock=clock):
+                u = 0.3 * math.sin(2 * math.pi * clock["t"] / 4.0)
+                return np.tile([0.0, u, 0.1 * u], (len(points), 1))
+
+            world.current_at_many = flow
+            tether = Tether(world, np.zeros(3), np.array([4.0, 0.0, 20.0]), 30.0,
+                            TetherParams(accelerated=accelerated))
+            tether.auto_payout = False
+            for i in range(150):
+                clock["t"] = i * 0.01
+                tether.step(0.01, clock["t"], np.array([4.0, 0.0, 20.0]), np.array([1.0, 0, 0, 0]), np.zeros(3))
+            self.assertGreater(float(np.abs(tether._flow_accel.value).max()), 0.1)
+            runs.append(tether)
+        np.testing.assert_allclose(runs[0].x, runs[1].x, atol=1e-8, rtol=1e-8)
+        np.testing.assert_allclose(runs[0].v, runs[1].v, atol=1e-8, rtol=1e-8)
+
+
 class NearBedProfileTests(unittest.TestCase):
     """Gap 7: log-law bed layer on the local (terrain) seabed with biome roughness."""
 

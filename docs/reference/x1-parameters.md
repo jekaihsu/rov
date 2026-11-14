@@ -28,22 +28,55 @@
 | arm_mount_body | `(0.27, 0.0, 0.16)` | estimated | Blender 重建／工程假設，非實測；見 real-rov-research.md 幾何缺口 |
 | hull_extra | `()` | estimated | Blender 重建／工程假設，非實測；見 real-rov-research.md 幾何缺口 |
 | capabilities | `('surge', 'sway', 'heave', 'roll', 'pitch', 'yaw')` | estimated | Blender 重建／工程假設，非實測；見 real-rov-research.md 幾何缺口 |
-| tether.segments | `40` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
+| tether.segments | `40` | estimated | 初始分段數；數值求解設定，非物理量；見 tether_solver.py |
+| tether.max_segments | `64` | estimated | 放纜後的分段上限，超過時合併纜盤側分段；數值求解設定，非物理量；見 tether_solver.py |
+| tether.fine_segments | `8` | estimated | ROV 端保持原長、不合併的分段數；數值求解設定，非物理量；見 tether_solver.py |
+| tether.min_segment_m | `0.5` | estimated | 初始分段最短長度；數值求解設定，非物理量；見 tether_solver.py |
+| tether.contact_sample_m | `0.35` | estimated | 長分段接觸取樣間距，小於最細斜撐直徑（0.4 m）避免穿樁；數值求解設定，非物理量；見 tether_solver.py |
 | tether.diameter | `0.0095` | reseller | real-rov-research.md: 經銷商纜線 350 m × 9.5 mm × 300 kgf |
-| tether.mass_per_m | `0.12` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.wet_weight_per_m | `0.004` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.ea | `20000.0` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.k_max | `9000.0` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.damping_ratio | `0.6` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.cd_normal | `1.2` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.cd_tangent | `0.02` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
+| tether.density | `1000.0` | estimated | TP §1 推論：小型 ROV「中性」纜多為淡水中性、海水微浮（Fathom、VideoRay）；X1 浮力等級未公開 |
+| tether.added_mass_normal | `1.0` | estimated | CD §3: Palm & Eskilsson 2020 Table 3 CMn = 1、CMt = 0；MoorDyn Can 1 / Cat 0 |
+| tether.ea | `120000.0` | estimated | TP §2 推論：300 kgf ÷ Kevlar 49 斷裂應變 2.4% ≈ 1.2e5 N；實際含結構伸長可能較軟（Falcon 4.3e4 N） |
+| tether.damping_ratio | `1.0` | estimated | CD §2/§6: MoorDyn troubleshooting 建議分段阻尼接近臨界 ζ≈1，BA = ζ(L/N)√(EA·w) |
+| tether.cd_normal | `1.25` | estimated | CD §2/§3: Buckham 2003 Table 3.4 小型 ROV 纜擬合 1.25（文獻範圍 1.2–1.65）；投影面積 d·l |
+| tether.cd_tangent | `0.02` | estimated | CD §3: Driscoll 1999 / Palm & Eskilsson 2020 CDt 0.02，以 d·l 投影面積定義（濕面積 πd·l 下為 0.0064） |
 | tether.max_length | `350.0` | reseller | real-rov-research.md: 經銷商纜線 350 m × 9.5 mm × 300 kgf |
 | tether.breaking_n | `2943.0` | reseller | real-rov-research.md: 經銷商纜線 350 m × 9.5 mm × 300 kgf |
-| tether.warn_n | `250.0` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.payout_threshold_n | `45.0` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.payout_rate | `1.0` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.node_radius | `0.03` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.friction | `0.6` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.substeps | `10` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.contact_cache_m | `0.01` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
-| tether.accelerated | `True` | estimated | 工程／數值求解假設；研究報告明列 X1 纜線質量浮力與阻力未實測 |
+| tether.termination_ratio | `0.3022222222222222` | estimated | TP §2: VideoRay 應力釋放 136 kg ÷ 纜 450 kg；X1 接頭強度未公開 |
+| tether.working_load_ratio | `0.5` | estimated | TP §2: VideoRay「工作負載不得超過斷裂強度一半」；Fathom 為 23% |
+| tether.reel_drum_mass_kg | `5.0` | estimated | SH §1：無公開纜盤慣量；空盤等效線慣量假設，捲上纜線另以 ρA×未放出長度計 |
+| tether.reel_free_drag_n | `20.0` | estimated | SH §1 Gaps：無公開纜盤阻力；自由轉動軸承與滑環阻力假設 |
+| tether.reel_brake_hold_n | `1471.5` | estimated | SH §2/§3：Imenco 離合器防過拉；取纜線工作負載，煞住的纜盤在纜線過載前打滑 |
+| tether.reel_feed_rate | `0.5` | estimated | SH §5：手放纜速率無公開值；VideoRay「慢慢放」 |
+| tether.reel_feed_force_n | `50.0` | estimated | SH §5：助手手拉纜力假設 |
+| tether.reel_haul_rate | `0.42` | reseller | SH §1: QYSEA 電動纜盤（W6）300 m／12 min 慢檔 ≈ 0.42 m/s（快檔 0.63）；非 X1 纜盤 |
+| tether.reel_pull_cap_n | `300.0` | estimated | SH §3: 收纜拉力須低於纜線強度（IMCA SF 13/14、Imenco 150 kgf 先例）；低於接頭強度 |
+| tether.reel_servo_tau | `0.3` | estimated | 收放纜速度響應時間常數假設 |
+| tether.auto_setpoint_n | `20.0` | estimated | TP §4: Zand 模擬傳統纜線管理保持水面張力約 20 N |
+| tether.auto_deadband_n | `10.0` | estimated | SH §3 推論的恆張力控制器（綜合，非廠商演算法） |
+| tether.auto_gain | `0.05` | estimated | SH §3 推論的恆張力控制器（綜合，非廠商演算法）：放纜速率 = 增益 × 超出張力 |
+| tether.auto_slack_rate | `0.15` | estimated | SH §3 推論：鬆弛時慢速收纜 |
+| tether.stall_speed | `0.02` | estimated | SH §1: Deep Trekker PoweredReel stalled 旗標；門檻假設 |
+| tether.stall_time | `1.5` | estimated | SH §1: Deep Trekker PoweredReel stalled 旗標；門檻假設 |
+| tether.gj | `0.1` | estimated | CD §2 / TP §2: Buckham 19 mm 纜 GJ 0.11、Zand 14 mm 纜 0.5 N·m² 按 d⁴ 縮至 9.5 mm ≈ 0.1 |
+| tether.node_radius | `0.03` | estimated | 接觸半徑；數值求解設定，非物理量；見 tether_solver.py |
+| tether.mu_static | `0.6` | estimated | CD §5: 無 ROV 纜摩擦實測；沿用舊值 0.6 |
+| tether.mu_kinetic | `0.45` | estimated | CD §5: 靜/動摩擦比假設（MoorDyn StatDynFricScale 概念） |
+| tether.stribeck_v | `0.05` | estimated | 靜摩擦衰減速度假設 |
+| tether.friction_regular_v | `0.01` | estimated | CD §5: Palm & Eskilsson 2020 eq. 16 tanh 正則化 Coulomb；門檻速度未公開 |
+| tether.chafe_limit_j | `20000.0` | estimated | TP §5: IMCA SF 02/23 纜線磨斷；無公開磨耗量，僅供訓練顯示 |
+| tether.chafe_failure | `False` | estimated | 磨耗不致斷纜（無資料），只回報磨耗比例 |
+| tether.snag_hook_tension_n | `8.0` | estimated | tether_snag.py：訓練用假設 |
+| tether.snag_hook_speed | `0.05` | estimated | tether_snag.py：訓練用假設 |
+| tether.snag_hook_angle_deg | `25.0` | estimated | tether_snag.py：訓練用假設 |
+| tether.snag_release_angle_deg | `10.0` | estimated | tether_snag.py：訓練用假設 |
+| tether.snag_release_s | `0.5` | estimated | tether_snag.py：訓練用假設 |
+| tether.snag_tighten_fraction | `0.4` | estimated | operations_tether_sonar.md §7 B：拉扯使卡纏收緊；比例為假設 |
+| tether.snag_tighten_rate | `0.3` | estimated | tether_snag.py：訓練用假設 |
+| tether.snag_tighten_max | `3.0` | estimated | tether_snag.py：訓練用假設 |
+| tether.snag_pin_stiffness | `3000.0` | estimated | 卡點約束彈簧；數值求解設定，非物理量；見 tether_solver.py |
+| tether.snag_pin_damping | `30.0` | estimated | 卡點約束阻尼；數值求解設定，非物理量；見 tether_solver.py |
+| tether.snag_cooldown_s | `3.0` | estimated | tether_snag.py：訓練用假設 |
+| tether.substeps | `10` | estimated | 數值求解設定，非物理量；見 tether_solver.py |
+| tether.contact_cache_m | `0.01` | estimated | 數值求解設定，非物理量；見 tether_solver.py |
+| tether.accelerated | `True` | estimated | 數值求解設定，非物理量；見 tether_solver.py |

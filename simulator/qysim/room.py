@@ -116,8 +116,7 @@ class Room:
                                       for other in self.vehicles.values() if other is not sim):
                 delta = candidate - sim.vehicle.s.pos
                 sim.vehicle.s.pos[:] = candidate
-                sim.tether.x[:] += delta
-                sim.tether.x[0] = sim.tether.spool
+                sim.tether.translate(delta)
                 return
 
     def select_model(self, vehicle_id, model_id):

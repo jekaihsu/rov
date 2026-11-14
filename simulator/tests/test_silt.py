@@ -172,6 +172,20 @@ class TransportTests(unittest.TestCase):
         self.assertGreater(start, 1.0)
         self.assertLess(world.silt_concentration_at(spot), 0.2 * start)
 
+    def test_puffs_drift_with_the_full_local_flow(self):
+        # Silt sees the same water as the vehicle and tether: World.current_at_many, structures included.
+        from qysim.world import Cylinder
+        world = mud_world()
+        calm(world)
+        world.current.surface_kn = world.current.mid_kn = world.current.bottom_kn = 1.0
+        world.current.surface_dir = world.current.mid_dir = world.current.bottom_dir = 0.0   # toward north
+        world.obstacles.append(Cylinder("pile", (0.0, 0.0, -1.0), (0.0, 0.0, 21.0), 1.0))
+        world.silt_field.add_puff([6.0, 0.0, 17.0], 0.1, 2, 0.5, 0.3)        # 3 D behind the pile
+        world.silt_field.add_puff([6.0, 30.0, 17.0], 0.1, 2, 0.5, 0.3)       # free stream, same depth
+        flow = world.silt_field.near_bed_flow()
+        np.testing.assert_allclose(flow, world.current_at_many(world.silt_field.pos, world.time))
+        self.assertLess(np.linalg.norm(flow[0, :2]), 0.8 * np.linalg.norm(flow[1, :2]))
+
     def test_legacy_clouds_follow_the_puffs(self):
         world = mud_world()
         world.emit_silt([0, 0, 10], 1, "alpha")

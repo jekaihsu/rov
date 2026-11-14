@@ -23,7 +23,7 @@ from .controller import FlightController
 from .navigation import GeoFrame, Navigator, wrap_pi
 from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_matrix, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
-from .tether import GLAND_BODY, Tether
+from .tether import GLAND_BODY, Tether, TetherParams
 from .flow import FlowAccelerometer
 from .world import World
 from .sensors import SensorConfig, SensorSuite
@@ -165,7 +165,8 @@ class Simulator:
         self.dvl_switches: dict = {}
         self.arm = "close"
         gland = self.vehicle.s.pos + q_rot(self.vehicle.s.q, np.asarray(self.vehicle.definition.gland_body))
-        self.tether = Tether(self.world, np.array(sc.spool_pos, float), gland, sc.tether_length)
+        self.tether = Tether(self.world, np.array(sc.spool_pos, float), gland, sc.tether_length,
+                             TetherParams.with_overrides(sc.tether))
         self.tether.gland_body = np.asarray(self.vehicle.definition.gland_body)
         if sc.prewrap:
             self._prewrap(sc.prewrap)

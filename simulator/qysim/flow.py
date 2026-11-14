@@ -54,6 +54,11 @@ class FlowAccelerometer:
         self.previous = None
         self.value = None
 
+    def reset(self) -> None:
+        """Forget the history (the sampled points jumped); the next update returns zero."""
+        self.previous = None
+        self.value = None
+
     def update(self, velocities: np.ndarray, dt: float) -> np.ndarray:
         v = np.array(velocities, float)
         if self.previous is None or self.previous.shape != v.shape or dt <= 0:
@@ -330,7 +335,9 @@ class StructureFlow:
 
     def __init__(self, obstacles: list):
         from .world import Box, Cylinder, FieldMesh, Wall
-        cyl = [o for o in obstacles if isinstance(o, Cylinder) and o.kind != "habitat"]
+        # Habitat props and small snaggable seabed items (SnagFeature, kind "snag") are left out: the
+        # latter sit inside the near-bed log layer, whose roughness length already stands for them.
+        cyl = [o for o in obstacles if isinstance(o, Cylinder) and o.kind not in ("habitat", "snag")]
         self.n_cyl = len(cyl)
         self.cyl_a = np.array([o.p0 for o in cyl], float).reshape(-1, 3)
         b = np.array([o.p1 for o in cyl], float).reshape(-1, 3)

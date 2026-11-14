@@ -63,7 +63,7 @@ def main():
     result = dict(scenario=args.scenario, near_bed=args.near_bed, seed=42, players=3, ticks=args.ticks,
         warmup=args.warmup, profiled=args.profile, wall_mean_ms=float(np.mean(durations)),
         wall_p95_ms=float(np.percentile(durations,95)), cpu_mean_ms=float(np.mean(cpu_durations)),
-        batch_fraction=batches/(3*args.ticks),
+        batch_fraction=batches/(3*args.ticks), real_time_factor=10.0/float(np.mean(durations)),
         positions={key:sim.vehicle.s.pos.tolist() for key,sim in room.vehicles.items()},
         tether_forces={key:sim.tether.force_on_rov.tolist() for key,sim in room.vehicles.items()},
         silt_puffs=room.primary.world.silt_field.count)
