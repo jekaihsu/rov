@@ -271,6 +271,8 @@ class SimHost:
                     "tether": self.sim.tether.x.tolist()}
         if kind == "state":
             return self.viewer_state()
+        if kind == "sonar_latest":
+            return getattr(self, "latest_sonar", None)
         if kind == "ping":
             return "pong"
         raise ValueError(f"unknown request type {kind!r}")
@@ -412,6 +414,7 @@ class SimHost:
         seen_version = self.world_version
         sonar_time = 0.0
         sonar_frame = None
+        sonar_pending = None
         while True:
             world = None
             async with self.lock:                 # snapshot under the lock, send outside it
@@ -424,16 +427,23 @@ class SimHost:
                 payload = self.viewer_payload(room, player)
             settings = getattr(self, "sonar_subscriptions", {}).get(ws)
             if settings is not None:
-                if time.monotonic() - sonar_time >= 0.2:
-                    from .sonar import scan
+                if sonar_pending is not None and sonar_pending.done():
+                    sonar_frame = sonar_pending.result()
+                    sonar_pending = None
+                    if room is self.room and sim is room.primary:
+                        self.latest_sonar = sonar_frame
+                if sonar_pending is None and time.monotonic() - sonar_time >= 0.2:
+                    from .sonar import snapshot, submit_scan
                     sim = room.vehicles[player.vehicle_id] if player else room.primary
-                    pos = sim.vehicle.s.pos.copy()
-                    q = sim.vehicle.s.q.copy()
-                    sonar_frame = await asyncio.to_thread(scan, sim.world, pos, q, **settings)
+                    world_snapshot, pos, q = snapshot(room, sim)
+                    sonar_pending = submit_scan(world_snapshot, pos, q, settings)
                     sonar_time = time.monotonic()
-                state = json.loads(payload)
-                state["sonar"] = sonar_frame
-                payload = dumps(state)
+                if sonar_frame is not None:
+                    state = json.loads(payload)
+                    state["sonar"] = sonar_frame
+                    payload = dumps(state)
+            else:
+                sonar_frame = None
             if world:
                 await ws.send(world)
             await ws.send(payload)

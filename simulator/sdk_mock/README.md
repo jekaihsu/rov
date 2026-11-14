@@ -47,3 +47,9 @@ You can also put a `qysea` symlink or copy of `sdk_mock/qysea` next to the tool.
 - `qysea.sdk.service` / `qysea.sdk.lib` exist only so vendor-style imports succeed.
 
 Tests: `cd simulator && python -m unittest tests.test_sdk_mock -v`
+
+### 声纳（模拟器扩展，非原厂 SDK 接口）
+
+`from qysea.sonar import get_latest_sonar`：读取最近的已订阅声纳扫描，未扫描时为 `None`。
+先在浏览器按 5 打开声纳并勾选固定。此方法是**模拟器扩展，非原厂 SDK 接口**。
+图像示例：`PYTHONPATH=sdk_mock python examples/sonar_image.py`。

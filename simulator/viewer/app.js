@@ -1,3 +1,4 @@
+import { createSonar } from './sonar/panel.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -254,6 +255,7 @@ function buildWorld() {
 }
 
 function buildObjectives(list) {
+  if (W?.scenario?.key === "sonar_search") list = [];
   const geometries=new Set(),materials=new Set();objG.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
   objG.clear(); objMarkers = [];
   list.forEach((o) => {
@@ -476,6 +478,7 @@ $('offUrl').textContent = WS_URL;
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
+const sonarPanel = createSonar(send);
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
@@ -526,6 +529,7 @@ function onWorld(m) {
 }
 
 function onState(m) {
+  sonarPanel.receive(m);
   if(m.model_id !== S?.model_id)needResync=true;
   if(m.control_generation !== S?.control_generation)needResync=true;
   if (lastT >= 0 && m.t < lastT - 0.5) needResync = true;    // scenario loaded / reset → server RC reset to locked

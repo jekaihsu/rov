@@ -3,6 +3,7 @@ import { drawFlightCompass } from './compass.js';
 import { forwardRange } from './range.js';
 import { drawFlightAttitude } from './attitude.js';
 const STRINGS = {
+  sonarSource: '聲納',
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
   hide: '切換 HUD', north: '北朝上', head: '機頭朝上',
@@ -208,7 +209,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   if (!ready) initialize();
   if (!s?.pos) return;
   const range = forwardRange(s, w);
-  $('flightRange').textContent = range == null ? '' : `${STRINGS.forward} ${range.toFixed(1)} m`;
+  $('flightRange').textContent = range == null ? '' : `${s.sonar ? STRINGS.sonarSource : STRINGS.forward} ${range.toFixed(1)} m`;
   $('flightRange').style.color = range < .5 ? 'var(--danger)' : 'var(--warn)';
   $('flightController').textContent = s.controller ? STRINGS.controller : '';
   const alt = w ? w.seabed_depth - s.pos[2] : null;

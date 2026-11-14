@@ -23,6 +23,7 @@ function distance(p, ob) {
   return Infinity;
 }
 export function forwardRange(s, w) {
+  if (s.sonar) return Math.min(...s.sonar.distance_m.slice(124, 132));
   const yaw = (s.euler?.[2] || 0) * Math.PI / 180;
   const pitch = (s.euler?.[1] || 0) * Math.PI / 180;
   const forward = [Math.cos(yaw) * Math.cos(pitch), Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch)];

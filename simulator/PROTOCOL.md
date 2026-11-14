@@ -234,3 +234,19 @@ existing shared mission engine. All pilots receive the same narrative state. Sea
 retain the room instance. `course:true` runs the same script without dialogue pauses.
 A viewer stores local progress in its existing `rov.*` preferences and exports results as JSON.
 Campaign files reserve nullable `voice` on dialogue nodes for later audio assets.
+
+### Optional forward imaging sonar (simulator extension)
+
+Viewer sends `{"type":"operation","action":"sonar_subscribe","enabled":true,"range_m":30,
+"noise":0.02,"multipath":0.05}`. Range: 2–50 m; noise and multipath: 0–1.
+Defaults shown above. Disable with `enabled:false`; disconnect clears the subscription.
+Only the subscribed connection receives `state.sonar`, refreshed at 5 Hz independently
+of physics. Each frame contains Unix `timestamp`, `range_m`, `fov_deg:120`, `beams:256`,
+`distance_m`, `intensity` (unsigned 8-bit integers), and `ghost_m` arrays.
+Beam indices run from -60° (port) to +60° (starboard), relative to body forward.
+Distances are slant ranges in metres; range limit means no return. First surfaces occlude
+later targets. `ghost_m` is a weak synthetic multipath return (range limit means none).
+Noise, attenuation, target sizes and multipath are illustrative training assumptions,
+not measurements of a specific instrument. This is a horizontal slice, without elevation resolution.
+The SDK RPC `{"type":"sonar_latest"}` reads the latest subscribed primary vehicle frame,
+or null before any scan. It does not enable scanning or change existing SDK calls.
