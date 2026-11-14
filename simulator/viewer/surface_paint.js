@@ -31,7 +31,7 @@ export function installSurfacePaint({THREE, scene, camera, renderer, getState, g
     <label>半徑 <output>12 cm</output><input class="paint-radius" type="range" min="3" max="30" value="12" aria-label="噴漆半徑（公分）"></label>
     <p class="hint paint-status" role="status">靠近海床或結構物 3 m 內，再點選表面；F 標記畫面中央。</p>`;
   const style=document.createElement('style');
-  style.textContent=`.surface-paint-tools{border-top:1px solid #263c48;margin-top:10px;padding-top:8px}.surface-paint-tools summary{cursor:pointer;font-size:13px;padding:4px 0}.surface-paint-tools .paint-toggle{width:100%;margin-top:8px}.surface-paint-tools .paint-toggle[aria-pressed="true"]{border-color:#f0c75e;color:#f0c75e}.surface-paint-tools .paint-colors{display:flex;gap:8px;margin:10px 0}.surface-paint-tools .paint-swatch{width:30px;height:26px;padding:0;border:2px solid transparent;border-radius:4px;box-shadow:inset 0 0 0 1px #0005}.surface-paint-tools .paint-swatch[aria-pressed="true"]{outline:2px solid #dff4ff;outline-offset:2px}.surface-paint-tools label{display:block;font-size:12px}.surface-paint-tools output{float:right}.surface-paint-tools input[type="range"]{display:block;width:100%}.surface-paint-reticle{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px;border:1px solid #f0c75e;border-radius:50%;pointer-events:none;z-index:3;box-shadow:0 0 3px #000}.surface-paint-reticle::after{content:'';position:absolute;left:7px;top:7px;width:2px;height:2px;background:#f0c75e}.surface-paint-reticle[hidden]{display:none}`;
+  style.textContent=`.surface-paint-tools{border-top:1px solid #263c48;margin-top:10px;padding-top:8px}.surface-paint-tools summary{cursor:pointer;font-size:13px;padding:4px 0}.surface-paint-tools .paint-toggle{width:100%;margin-top:8px}.surface-paint-tools .paint-toggle[aria-pressed="true"]{border-color:#f0c75e;color:#f0c75e}.surface-paint-tools .paint-colors{display:flex;gap:8px;margin:10px 0}.surface-paint-tools .paint-swatch{width:30px;height:26px;padding:0;border:2px solid transparent;border-radius:4px;box-shadow:inset 0 0 0 1px #0005}.surface-paint-tools .paint-swatch[aria-pressed="true"]{outline:2px solid #dff4ff;outline-offset:2px}.surface-paint-tools label{display:block;font-size:12px}.surface-paint-tools output{float:right}.surface-paint-tools input[type="range"]{display:block;width:100%}.surface-paint-reticle{position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px;border:1px solid #f0c75e;border-radius:50%;pointer-events:none;z-index:var(--z-scene-mark);box-shadow:0 0 3px #000}.surface-paint-reticle::after{content:'';position:absolute;left:7px;top:7px;width:2px;height:2px;background:#f0c75e}.surface-paint-reticle[hidden]{display:none}`;
   document.head.append(style);
   const host=document.querySelector('.mission-tools') || document.querySelector('aside');
   host?.append(panel);
@@ -98,6 +98,20 @@ export function installSurfacePaint({THREE, scene, camera, renderer, getState, g
   }
   canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',cancel);canvas.addEventListener('lostpointercapture',cancel);
   window.addEventListener('keydown',keydown);
+  // Once the input layer owns the spray key, the binding table decides when F sprays instead of cycling assist.
+  function bindInput(input) {
+    window.removeEventListener('keydown', keydown);
+    input.registerActions({
+      paintSpray: {
+        enabled: function sprayEnabled() {
+          return enabled && !readOnly && !disposed;
+        },
+        run: function sprayCentre() {
+          spray(0, 0);
+        },
+      },
+    });
+  }
 
   function remove(id){const old=records.get(id);if(old){if(old.geometry){old.geometry.dispose();batchDirty=true;group.userData.markCount--;}records.delete(id);}}
   function rebuildBatch(marks=[]){
@@ -151,5 +165,5 @@ export function installSurfacePaint({THREE, scene, camera, renderer, getState, g
   function dispose(){disposed=true;for(const id of records.keys())remove(id);rebuildBatch();material.dispose();texture.dispose();scene.remove(group);panel.remove();style.remove();reticle.remove();
     canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointercancel',cancel);canvas.removeEventListener('lostpointercapture',cancel);window.removeEventListener('keydown',keydown);
   }
-  return {update,dispose};
+  return {update,dispose,bindInput};
 }

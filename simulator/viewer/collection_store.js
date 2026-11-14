@@ -76,7 +76,7 @@ export function downloadCollectionFile(filename,blob){const url=URL.createObject
 function photoFallback(input,error){
   if(!(input.blob instanceof Blob))return;
   const toast=document.createElement('section');toast.className='collection-save-fallback';toast.setAttribute('role','alert');
-  Object.assign(toast.style,{position:'fixed',bottom:'18px',right:'18px',maxWidth:'380px',padding:'18px',background:'#172932',border:'1px solid #edcb64',color:'#eff5ed',zIndex:'10000',font:'14px/1.6 system-ui',boxShadow:'0 8px 30px #0008'});
+  Object.assign(toast.style,{position:'fixed',bottom:'18px',right:'18px',maxWidth:'380px',padding:'18px',background:'#172932',border:'1px solid #edcb64',color:'#eff5ed',zIndex:'var(--z-toast)',font:'14px/1.6 system-ui',boxShadow:'0 8px 30px #0008'});
   const text=document.createElement('p');text.textContent=`照片尚未存入收藏：${error.message}。請先下載原圖備份。`;toast.append(text);
   const button=document.createElement('button');button.textContent='下載原圖與拍攝資料';toast.append(button);
   const guard=e=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',guard);

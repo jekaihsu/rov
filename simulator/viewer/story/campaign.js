@@ -72,17 +72,23 @@ export function installCampaign({send, readOnly = false}) {
   report.textContent = STRINGS.export;
   menu.append(summary, label, list, resume, sticker, vehicle, skip, report, history);
   document.querySelector('.mission-tools')?.append(menu);
+  // The radio sits beside the depth scale and above the minimap, so it never covers an instrument;
+  // its layer comes from the stacking scale in hud/tokens.css.
   const style = document.createElement('style');
   style.textContent = `
-    .story-radio{position:fixed;left:4%;top:16%;width:40%;max-width:45%;max-height:60%;overflow:auto;
-      box-sizing:border-box;padding:16px 24px;
+    .story-radio{position:fixed;left:max(13%,168px);top:9%;width:31%;max-width:45%;max-height:48%;
+      overflow:auto;box-sizing:border-box;padding:16px 24px;
       background:rgba(8,18,26,.72);backdrop-filter:blur(14px);border-left:2px solid #4fd1e0;
-      color:#e8f1f5;z-index:25;pointer-events:none;transition:opacity .2s ease-out}
+      color:#e8f1f5;z-index:var(--z-story);pointer-events:none;transition:opacity .2s ease-out}
     .story-avatar{float:left;width:24px;height:24px;margin-right:8px;fill:none;stroke:#4fd1e0}
     .story-radio[hidden]{display:none}.story-radio strong{color:#4fd1e0;font-size:12px;letter-spacing:.1em}
     .story-radio p{font-size:17px;line-height:1.6;margin:8px 0}.story-radio small{color:#8fa6b2}
     .story-radio button{pointer-events:auto;float:right}.story-menu button{display:block;margin:8px 0;width:100%}
     .story-menu button:focus-visible{outline:2px solid #4fd1e0}.story-menu{padding:8px 0}
+    @media(max-width:720px){
+      .story-radio{left:4%;top:60px;width:58%;max-width:58%;max-height:250px;padding:8px 12px;pointer-events:auto}
+      .story-radio p{font-size:14px;margin:4px 0}
+    }
     @media(prefers-reduced-motion:reduce){.story-radio{transition:none}}
   `;
   document.head.append(style);
@@ -123,9 +129,28 @@ export function installCampaign({send, readOnly = false}) {
   }
   next.onclick = advance;
   skip.onclick = () => command('campaign_skip');
-  addEventListener('keydown', function onStoryKey(event) {
-    if (event.code === 'Enter' && !event.repeat && !root.hidden && event.target === document.body) advance();
-  });
+  let isHost = false;
+  // Dialogue is an input context: while it waits for confirmation the input layer gives the confirm
+  // button to these actions and withholds it from the flight action on the same button.
+  function awaitingConfirm() {
+    return !readOnly && isHost && !root.hidden && current?.node?.type === 'dialogue';
+  }
+  function bindInput(input) {
+    input.registerActions({
+      dialogueAccept: {
+        enabled: awaitingConfirm,
+        run: advance,
+      },
+      dialogueSkip: {
+        enabled: function skipAllowed() {
+          return awaitingConfirm() && !skip.disabled;
+        },
+        run: function skipTutorial() {
+          command('campaign_skip');
+        },
+      },
+    });
+  }
   report.onclick = function exportResults() {
     const blob = new Blob([JSON.stringify(current?.results || [], null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
@@ -135,12 +160,6 @@ export function installCampaign({send, readOnly = false}) {
     link.click();
     URL.revokeObjectURL(url);
   };
-  let confirmHeld = false;
-  setInterval(function readStoryController() {
-    const held = Array.from(navigator.getGamepads?.() || []).some(pad => pad?.buttons[0]?.pressed);
-    if (held && !confirmHeld && !root.hidden && current?.node?.type === 'dialogue') advance();
-    confirmHeld = held;
-  }, 50);
   setInterval(function revealText() {
     if (revealed < line.length) {
       revealed += matchMedia('(prefers-reduced-motion: reduce)').matches ? line.length : 2;
@@ -153,6 +172,7 @@ export function installCampaign({send, readOnly = false}) {
     if (!campaign || readOnly) return;
     current = campaign;
     const host = state.room?.players?.find(p => p.id === state.room.host_id)?.vehicle_id === state.vehicle_id;
+    isHost = host;
     if (host && !restoreSent && collectionReady) {
       restoreSent = true;
       let save = null;
@@ -213,7 +233,7 @@ export function installCampaign({send, readOnly = false}) {
     if (node?.id?.startsWith('move_')) {
       const axis = Number(node.condition.path.split('.').at(-1));
       const channel = MODES[state.operation_mode]?.[axis];
-      const pad = Array.from(navigator.getGamepads?.() || []).some(Boolean);
+      const pad = family !== 'keyboard';
       hint.textContent += ' · ' + (CHANNELS[channel]?.[pad ? 1 : 0] || '');
     }
     next.hidden = node?.type !== 'dialogue';
@@ -223,5 +243,5 @@ export function installCampaign({send, readOnly = false}) {
       return paragraph;
     }));
   }
-  return {update};
+  return {update, bindInput};
 }

@@ -1,4 +1,4 @@
-/* Shared flight interface palette. */
+/* Shared flight interface palette and the one stacking scale for every overlay. */
 :root {
   --bg-0: #04090d;
   --panel: rgba(8, 18, 26, .62);
@@ -11,4 +11,24 @@
   --danger: #ff5a52;
   --radius: 10px;
   --space: 8px;
+
+  /* Stacking scale, lowest to highest. Every overlay takes its z-index from this list; literal z-index
+     values elsewhere are rejected by simulator/tests/test_overlay_scale.mjs. Layers that hold only
+     read-outs keep pointer-events: none so they never intercept a control underneath them.
+     <dialog> panels (collection, controller settings) open with showModal() and therefore live in the
+     browser top layer, above every value here. */
+  --z-scene-mark: 2;   /* marks drawn over the 3D scene: paint reticle */
+  --z-hud: 10;         /* instruments: .hud groups and .flight read-outs, minimap */
+  --z-hud-alert: 14;   /* danger vignette around the viewport */
+  --z-pip: 16;         /* operator picture-in-picture */
+  --z-subtitle: 20;    /* replay subtitles and the movie lower third */
+  --z-story: 30;       /* campaign radio dialogue */
+  --z-notice: 34;      /* peek cards and warning text, shown above the radio */
+  --z-controls: 40;    /* what the pointer must reach: HUD tool buttons, replay bar, touch sticks, skip intro */
+  --z-banner: 50;      /* mission banner and movie title card */
+  --z-drawer: 60;      /* engineering drawer */
+  --z-blocker: 70;     /* offline card covering the viewport */
+  --z-menu: 80;        /* launch menu; its own panel and footer are raised inside it */
+  --z-toast: 90;       /* storage warnings */
+  --z-raised: 1;       /* local: lift a child inside its own layer (sticky headers, close buttons) */
 }

@@ -60,35 +60,33 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
       else spherical.phi = clamp(spherical.phi + value * dt * 1.6, .15, Math.PI - .15);
       goal.position.copy(controls.target).add(offset.setFromSpherical(spherical));
     }
+    // Keys, pad sources and contexts for these actions are declared in input/bindings.js.
     input.registerActions({
       cameraGimbal: {
         label: STRINGS.gimbal,
-        keys: ['KeyB'],
         run() {
           fidelity.set('gimbal', !gimbal);
         }
       },
       cameraPitchUp: {
         label: STRINGS.pitchUp,
-        keys: ['BracketRight'],
         run() {
           pitchGoal = clamp(pitchGoal + .08, -.65, .65);
         }
       },
       cameraPitchDown: {
         label: STRINGS.pitchDown,
-        keys: ['BracketLeft'],
         run() {
           pitchGoal = clamp(pitchGoal - .08, -.65, .65);
         }
       },
       cameraOrbitX: {
-        label: STRINGS.orbitX, binding: 'a2', continuous: true, consume: ['right_lr'],
+        label: STRINGS.orbitX, continuous: true, consume: ['right_lr'],
         enabled: () => mode === 'orbit',
         run: (value, dt) => orbit('x', value, dt)
       },
       cameraOrbitY: {
-        label: STRINGS.orbitY, binding: 'a3', continuous: true, consume: ['right_ud'],
+        label: STRINGS.orbitY, continuous: true, consume: ['right_ud'],
         enabled: () => mode === 'orbit',
         run: (value, dt) => orbit('y', value, dt)
       }

@@ -1,4 +1,5 @@
 // Pure binding resolution and output shaping; PWM conversion stays with the transport.
+// Default bindings for every action and context live in bindings.js.
 export const CHANNELS = ["left_ud", "left_lr", "right_ud", "right_lr", "left_wave", "right_wave"];
 export const PRESETS = {
   current: {
@@ -17,25 +18,6 @@ export const PRESETS = {
     left_wave: ["b7", "b6"],
     right_wave: ["b5", "b4"],
   },
-};
-export const BUTTONS = {
-  photo: "b0",
-  record: "b1",
-  depth: "b2",
-  lock: "b3",
-  mode: "b8",
-  light: "b9",
-  camera: "b10",
-  assist: "b11",
-  profile: "b12",
-  up: "b12",
-  down: "b13",
-  left: "b14",
-  right: "b15",
-  accept: "b0",
-  back: "b1",
-  engineering: "b8",
-  arm: "b16",
 };
 export function bindingValue(binding, snapshot) {
   if (Array.isArray(binding)) return bindingValue(binding[0], snapshot) - bindingValue(binding[1], snapshot);

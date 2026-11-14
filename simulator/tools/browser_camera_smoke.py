@@ -26,7 +26,10 @@ with sync_playwright() as playwright:
       if(camera.quaternion.angleTo(physical)>.001) throw Error('real default must retain roll');
       const actions={};
       rig.bindInput({registerActions(definitions){Object.assign(actions,definitions);}});
-      if(actions.cameraGimbal.keys.includes('KeyG')) throw Error('profile key conflict');
+      // Default keys live in the binding table; the gimbal must not share the flight profile key.
+      const {bindingRow} = await import('/input/bindings.js');
+      if(bindingRow('cameraGimbal').keys.some(key => bindingRow('profile').keys.includes(key)))
+        throw Error('profile key conflict');
       actions.cameraGimbal.run();
       for (const mode of ['chase','top','orbit','cine','onboard']) {
         rig.setMode(mode);
