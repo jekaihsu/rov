@@ -161,7 +161,7 @@ The browser sends:
 | `{"type":"payout","metres":5}` | pay out (+) / recover (−) tether |
 | `{"type":"auto_payout","value":false}` | toggle automatic payout |
 | `{"type":"operation_mode","value":"ROV_JPN"}` | ROV_USA/JPN/CHN, UAV_USA/JPN/CHN |
-| `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north). Speeds are clamped to 0–10 kn, `turbulence` (streamwise turbulence intensity σu/U) to 0–0.3 |
+| `{"type":"current","surface_kn":2,"surface_dir":90,"mid_kn":1.5,"mid_dir":100,"bottom_kn":0.5,"bottom_dir":110,"turbulence":0.2}` | override current (directions = where water flows TO, degrees from north). Speeds are clamped to 0–5 kn, `turbulence` (streamwise turbulence intensity σu/U) to 0–0.3 |
 | `{"type":"shaping","throttle_curvature":60,"throttle_limit":100,"rotate_curvature":60,"rotate_limit":100}` | stick curves |
 | `{"type":"remote_release"}` | force SDK remote control OFF (give control back to the physical RC) |
 
@@ -329,8 +329,12 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
   default 10), `index` (thruster index, default 0).
   Thruster strength reduces existing health; battery strength reduces existing charge.
   Current and visibility affect the **whole room** through existing current/scene parameters.
-  Current strength maps to 0..4 knots in all layers, retaining their directions.
-  Visibility retains at least 0.1 m. Overrides restore saved values on expiry.
+  Current strength maps to a 0..4 kn **surface** speed: the existing layer profile is multiplied (its
+  shape, shear and bed layer are kept; still water ramps in a 1 : 0.8 : 0.4 profile) and the change
+  follows a raised-cosine ramp. Optional `ramp_s` (30..120 s, default 60) sets the ramp time and
+  optional `rotate_deg` (-180..180, default 0) turns all layers over the ramp like a turning tide.
+  On expiry or cancel the profile ramps back over the same time.
+  Visibility retains at least 0.1 m. Other overrides restore saved values on expiry.
   Overlapping overrides of the same kind/scope are rejected.
   Optional `cancel_start` (finite simulation timestamp) instead restores and ends the active
   injection matching `kind`, `vehicle_id` and its exact `start`; other overrides are untouched.

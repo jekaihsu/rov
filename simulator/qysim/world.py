@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .flow import TurbulenceField, turbulence_length, turbulence_vectors
+from .flow import TurbulenceField, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors
 from .physics import KNOT, q_rot
 
 WORLD_UP = np.array([0.0, 0.0, -1.0])
@@ -266,6 +266,7 @@ class CurrentProfile:
     _turb: object = field(default=None, repr=False)
     _seabed_hint: float = field(default=30.0, repr=False)
     _layer_cache: object = field(default=None, repr=False)
+    _inj: dict | None = field(default=None, repr=False)
 
     # ── layers and mean profile ───────────────────────────────────────────
     def layer(self, which: str) -> np.ndarray:
@@ -274,13 +275,64 @@ class CurrentProfile:
         a = math.radians(d)
         return np.array([math.cos(a), math.sin(a), 0.0]) * kn * KNOT
 
+    def _base_layers(self) -> np.ndarray:
+        return np.array([self.layer("surface"), self.layer("mid"), self.layer("bottom")])
+
     def _layers(self) -> np.ndarray:
         """(3, 3) layer vectors (surface, mid, bottom) in effect now (cached per input values)."""
-        key = (self.surface_kn, self.surface_dir, self.mid_kn, self.mid_dir, self.bottom_kn, self.bottom_dir)
+        injection = self.injection()
+        key = (self.surface_kn, self.surface_dir, self.mid_kn, self.mid_dir, self.bottom_kn, self.bottom_dir,
+               injection)
         if self._layer_cache is None or self._layer_cache[0] != key:
-            layers = np.array([self.layer("surface"), self.layer("mid"), self.layer("bottom")])
+            scale, rotate, template = injection
+            layers = rotate_xy(self._base_layers(), rotate) * scale
+            if template:
+                layers = layers + rotate_xy(self._template_layers(), rotate) * template
             self._layer_cache = (key, layers)
         return self._layer_cache[1]
+
+    # ── instructor injection ──────────────────────────────────────────────
+    def _template_layers(self) -> np.ndarray:
+        """Unit-surface-speed profile shape used when injecting into still water (assumed shape)."""
+        a = math.radians(self.surface_dir)
+        unit = np.array([math.cos(a), math.sin(a), 0.0]) * KNOT
+        return np.array([unit, unit * 0.8, unit * 0.4])
+
+    def injection(self) -> tuple[float, float, float]:
+        """(profile scale, rotation deg, still-water template knots) in effect at the profile clock."""
+        inj = self._inj
+        if inj is None:
+            return (1.0, 0.0, 0.0)
+        k = cosine_ramp((self._clock - inj["start"]) / inj["ramp"])
+        return tuple(float(a + (b - a) * k) for a, b in zip(inj["from"], inj["to"]))
+
+    def inject(self, surface_kn: float, ramp_s: float = 60.0, rotate_deg: float = 0.0) -> None:
+        """Ramp the profile to a surface speed of ``surface_kn`` while keeping its shape.
+
+        The layers are multiplied, not overwritten (boundary layer and shear survive); a raised-cosine
+        ramp over ``ramp_s`` seconds avoids unphysical jumps; ``rotate_deg`` turns every layer like a
+        turning tide. Still water (surface < 0.05 kn) ramps in an assumed 1 : 0.8 : 0.4 profile.
+        """
+        start = self.injection()
+        if self.surface_kn >= 0.05:
+            target = (float(surface_kn) / self.surface_kn, float(rotate_deg), 0.0)
+        else:
+            target = (1.0, float(rotate_deg), float(surface_kn))
+        self._inj = {"from": start, "to": target, "start": self._clock, "ramp": max(float(ramp_s), 1e-3)}
+
+    def release(self, ramp_s: float = 60.0) -> None:
+        """Ramp back to the configured profile."""
+        self._inj = {"from": self.injection(), "to": (1.0, 0.0, 0.0), "start": self._clock,
+                     "ramp": max(float(ramp_s), 1e-3)}
+
+    def target_surface_knots(self) -> float:
+        """Surface speed (knots) the current injection ramp is heading for."""
+        scale, _, template = self._inj["to"] if self._inj else (1.0, 0.0, 0.0)
+        return scale * self.surface_kn + template
+
+    def surface_knots(self) -> float:
+        """Effective surface-layer speed now (knots), including injections."""
+        return float(np.linalg.norm(self._layers()[0])) / KNOT
 
     def mean_many(self, depths, seabed: float) -> np.ndarray:
         """Mean (turbulence-free) current at depths below the surface, NED m/s, shape (N, 3)."""

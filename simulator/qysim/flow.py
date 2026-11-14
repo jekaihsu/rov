@@ -20,6 +20,24 @@ import numpy as np
 COMPONENT_RATIOS = np.array([1.0, 0.7, 0.5])
 
 
+def cosine_ramp(x: float) -> float:
+    """Raised-cosine ramp 0..1: zero slope at both ends, so injected changes have bounded acceleration."""
+    x = min(1.0, max(0.0, x))
+    return 0.5 - 0.5 * math.cos(math.pi * x)
+
+
+def rotate_xy(v: np.ndarray, degrees: float) -> np.ndarray:
+    """Rotate horizontal NED vectors (last axis) by a compass angle (clockwise seen from above)."""
+    if not degrees:
+        return v
+    a = math.radians(degrees)
+    c, s = math.cos(a), math.sin(a)
+    out = np.array(v, float, copy=True)
+    out[..., 0] = c * v[..., 0] - s * v[..., 1]
+    out[..., 1] = s * v[..., 0] + c * v[..., 1]
+    return out
+
+
 def turbulence_length(seabed: float) -> float:
     """Integral length scale (m): about half the water depth, 2..15 m (Islay 11-14 m; assumed)."""
     return float(min(15.0, max(2.0, 0.5 * seabed)))
