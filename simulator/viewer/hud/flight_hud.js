@@ -15,6 +15,7 @@ import { assistPill } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
 import { pilotReadings } from './sensor_view.js';
 const STRINGS = {
+  sonarSource: '聲納',
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
   view: '切換視角 V', locked: '馬達鎖定', unlocked: '馬達解鎖',
@@ -286,8 +287,11 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   $('lockBadge').querySelector('span').textContent = s.locked ? STRINGS.unlockHint : '';
   $('flightTools').classList.toggle('controller-visible', !!input.active);
   const sensed = pilotReadings(s, w);
-  const range = sensed.range === undefined ? forwardRange(s, w) : sensed.range;
-  $('flightRange').textContent = range == null ? '' : `${STRINGS.forward} ${range.toFixed(1)} m`;
+  // One forward range: the imaging sonar's centre beams while it is scanning (labelled as such), otherwise the
+  // sensor layer's forward echo, falling back to the geometric estimate in truth mode.
+  const range = s.sonar || sensed.range === undefined ? forwardRange(s, w) : sensed.range;
+  const rangeSource = s.sonar ? STRINGS.sonarSource : STRINGS.forward;
+  $('flightRange').textContent = range == null ? '' : `${rangeSource} ${range.toFixed(1)} m`;
   $('flightRange').dataset.level = range < .5 ? 'danger' : 'warning';
   $('flightController').textContent = s.controller ? STRINGS.controller : '';
   const alt = sensed.altitude;
