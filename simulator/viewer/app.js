@@ -1,3 +1,4 @@
+import {installOnboard} from './onboard/index.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -460,13 +461,14 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
-    renderer.render(scene,camera);
+    onboardVideo.render({capture:true});
     const targets=engineeringPhotoTargets();
     const evidence=inspectObservation({scene,camera,environment:env,state:S,world:W,camMode,targets});
     const view=camMode;
     renderer.domElement.toBlob(blob=>resolve({blob,evidence,view}),'image/png');
   })});
-const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
+const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{onboardVideo.render({capture:true});renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
+const onboardVideo = installOnboard({renderer,scene,camera,getState:()=>S,getMode:()=>camMode,isRecording:()=>!!cockpit.recording});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
@@ -1277,7 +1279,7 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   audio.update(S);
-  if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
+  if (!window.__skipRender) onboardVideo.render();      // the movie renderer fast-forwards without drawing
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
