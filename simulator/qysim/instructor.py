@@ -50,6 +50,18 @@ class Instructor:
         kind = msg['kind']
         vid = msg.get('vehicle_id', 'v1')
         sim = self.room.vehicles[vid]
+        if 'cancel_start' in msg:
+            start = msg['cancel_start']
+            if isinstance(start, bool) or not isinstance(start, (int, float)) or not math.isfinite(start):
+                raise ValueError('cancel_start must be finite')
+            event = next((e for e in self.active if e['kind'] == kind
+                          and e['vehicle_id'] == vid and e['start'] == start), None)
+            if event is None:
+                raise ValueError('override no longer active')
+            self.restore(event)
+            self.active.remove(event)
+            self.room._snapshot = None
+            return
         strength = float(msg.get('strength', 1))
         duration = float(msg.get('duration', 10))
         if not math.isfinite(strength) or not 0 <= strength <= 1:
@@ -210,6 +222,11 @@ class Instructor:
         return {'version': 1, 'vehicle_id': vid, 'provisional': True, 'limits': deepcopy(self.limits),
                 'grade_limits': dict(self.grade_limits), 'elapsed': self.clock,
                 'completion': samples[-1]['completion'] if samples else None,
+                'supervision': {'phase': self.phase, 'reference': deepcopy(self.reference),
+                                'world': {'obstacles': [o.as_dict() for o in self.room.primary.world.obstacles],
+                                          'objectives': [o.as_dict() for o in self.room.primary.scenario.objectives]},
+                                'active': [{k: v for k, v in e.items() if k not in ('original', 'controls')}
+                                           for e in self.active]},
                 'matrix': matrix, 'smoothness': smoothness, 'collisions': list(collisions.values()),
                 'max_tension': max((s['tension'] for s in samples), default=0),
                 'wraps': [s['wraps'] for s in samples if s['wraps']],
