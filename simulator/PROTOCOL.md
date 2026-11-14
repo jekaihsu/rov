@@ -330,8 +330,12 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
 * `action:"report", vehicle_id:"v1"` returns `type:"training_report"`, `report` and
   prior `archive` reports. Other successes reply `type:"instructor_result", action, ok:true`.
 
-While a supervisor is connected or an override is active, pilot non-RC commands are
-rejected (`instructor_override`). The instructor's credentials never grant an SDK seat.
+While a supervisor is connected or an override is active, pilot commands that change the
+shared scene are rejected (`instructor_override`): `scenario`, `reset`, `pause`, `current`,
+`model`, and the operations `campaign_start` (it reloads the scene) and `mission_mode`.
+Everything a pilot does to their own vehicle keeps working: RC, `payout`, `auto_payout`,
+`operation_mode`, `shaping`, `remote_release` and all other operations (arm, photos,
+`campaign_advance`, `mission_photo`, ...). The instructor's credentials never grant an SDK seat.
 Existing clients omitting this entire optional extension retain their current behavior.
 
 Evidence is sampled at 1 Hz of unpaused simulation time. Reports retain a five-phase

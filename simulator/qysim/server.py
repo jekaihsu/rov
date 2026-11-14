@@ -492,7 +492,7 @@ class SimHost:
     def handle_viewer(self, msg: dict, button_values: dict | None = None, *, room=None, player=None, controller_bridge=False):
         t = msg.get("type")
         room = room or self.room
-        if (room.instructor.active or room.instructor.supervised) and t != "rc":
+        if instructor_blocks(room, msg):
             return {"type": "error", "code": "instructor_override", "message": "Instructor override active"}
         sim = room.vehicles[player.vehicle_id] if player else room.primary
         if player is not None and t in ("scenario", "reset", "pause", "current") and player.id != room.host_id:
@@ -610,6 +610,25 @@ class SimHost:
         if t in ("scenario", "reset", "pause", "current", "model"):
             return {"type": "command_result", "action": t, "ok": True}
         return None
+
+
+# While an instructor supervises a room (or an injected override is running) pilots may not
+# change the shared scene. Everything a pilot does to their own vehicle keeps working.
+INSTRUCTOR_BLOCKED_TYPES = ("scenario", "reset", "pause", "current", "model")
+# Operations that reload the scene (which would also clear the instructor's overrides and
+# evidence) or replace the shared mission engine.
+INSTRUCTOR_BLOCKED_OPERATIONS = ("campaign_start", "mission_mode")
+
+
+def instructor_blocks(room, msg):
+    """True when a supervised room must refuse this pilot command as a shared-scene change."""
+    instructor = room.instructor
+    if not (instructor.active or instructor.supervised):
+        return False
+    kind = msg.get("type")
+    if kind in INSTRUCTOR_BLOCKED_TYPES:
+        return True
+    return kind == "operation" and msg.get("action") in INSTRUCTOR_BLOCKED_OPERATIONS
 
 
 class _Static(http.server.SimpleHTTPRequestHandler):
