@@ -1,10 +1,37 @@
-"""Reproducible serialization benchmark; no physics or networking in timings."""
+"""Reproducible serialization and local transport measurements; excludes physics and WAN."""
 import json
 import statistics
+import socket
+import threading
 import time
 from pathlib import Path
 from qysim.engine import Simulator
 from qysim.server import SimHost, _json_default
+
+
+def local_transport_ms(payloads):
+    """Measure local socket transport only; excludes WebSocket framing and WAN latency."""
+    data = ''.join(payloads).encode('utf8')
+    sender, receiver = socket.socketpair()
+
+    def drain():
+        remaining = len(data)
+        while remaining:
+            chunk = receiver.recv(min(65536, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+
+    worker = threading.Thread(target=drain)
+    try:
+        worker.start()
+        start = time.perf_counter()
+        sender.sendall(data)
+        worker.join()
+        return (time.perf_counter() - start) * 1000
+    finally:
+        sender.close()
+        receiver.close()
 
 
 def benchmark():
@@ -32,13 +59,16 @@ def benchmark():
                 after.append((time.perf_counter()-start)*1000)
                 for a, b in zip(baseline, payloads):
                     assert json.loads(a) == json.loads(b), 'Wire state changed'
-        row = {'clients': 3, 'before_serialization_ms': statistics.median(before),
+        row = {'clients': 3, 'state_hz_per_client': host.view_hz,
+               'before_bytes_per_second': sum(len(s.encode()) for s in baseline)*host.view_hz,
+               'before_serialization_ms': statistics.median(before),
                'snapshot_ms': statistics.median(snapshots),
                'before_total_bytes': sum(len(s.encode()) for s in baseline)}
         if after:
             row.update(after_payload_ms=statistics.median(after),
                        after_total_bytes=sum(len(s.encode()) for s in payloads),
-                       semantic_equality=True)
+                       semantic_equality=True,
+                       after_bytes_per_second=sum(len(s.encode()) for s in payloads)*host.view_hz)
             # Senders are independent: they can land on different physics ticks.
             # Include snapshot creation for BOTH paths in this pessimistic case.
             staggered_before, staggered_after = [], []
@@ -61,6 +91,9 @@ def benchmark():
                 assert all(json.loads(a) == json.loads(b) for a, b in zip(baseline, payloads))
             row.update(staggered_before_snapshot_and_payload_ms=statistics.median(staggered_before),
                        staggered_after_snapshot_and_payload_ms=statistics.median(staggered_after))
+        row['local_socket_transport_ms'] = statistics.median(
+            local_transport_ms(payloads) for _ in range(30))
+        row['transport_scope'] = 'local socketpair; excludes WebSocket framing, WAN and scheduling'
         report[str(marks)+'_paint_marks'] = row
     target = Path(__file__).resolve().parents[1]/'output'/'network-validation'
     target.mkdir(parents=True, exist_ok=True)

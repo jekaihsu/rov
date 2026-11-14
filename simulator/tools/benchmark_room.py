@@ -1,4 +1,4 @@
-"""Reproducible three-vehicle physics benchmark; excludes rendering/network."""
+"""Reproducible one-to-three-vehicle timing and overlapping subsystem profiles."""
 import argparse
 import cProfile
 import io
@@ -22,11 +22,13 @@ def main():
     parser.add_argument('--profile', action='store_true')
     parser.add_argument('--players', type=int, choices=(1, 2, 3), default=3)
     parser.add_argument('--scenario', default='coral_reef')
+    parser.add_argument('--no-numba', action='store_true')
     args = parser.parse_args()
     room = Room(Simulator(args.scenario, seed=42), 'benchmark')
     for model in ('x1', 'bluerov2_heavy', 'falcon')[:args.players]:
         player = room.join(model, model_id=model)
         sim = room.vehicles[player.vehicle_id]
+        sim.tether.p.accelerated = not args.no_numba
         sim.rc_physical.rc_lock = 0
         sim.rc_physical.keep_depth = 1
         sim.rc_physical.right_ud = 1580
@@ -49,11 +51,33 @@ def main():
         pstats.Stats(profiler, stream=stream).sort_stats('cumulative').print_stats(30)
         print(stream.getvalue())
     result = dict(scenario=args.scenario, seed=42, players=args.players, ticks=args.ticks,
-        warmup=args.warmup, profiled=args.profile, realtime_factor=.01/(np.mean(durations)/1000), wall_mean_ms=float(np.mean(durations)),
+        warmup=args.warmup, profiled=args.profile,
+        realtime_factor=.01/(np.mean(durations)/1000), wall_mean_ms=float(np.mean(durations)),
         wall_p95_ms=float(np.percentile(durations,95)), cpu_mean_ms=float(np.mean(cpu_durations)),
         batch_fraction=batches/(args.players*args.ticks),
         positions={key:sim.vehicle.s.pos.tolist() for key,sim in room.vehicles.items()},
         tether_forces={key:sim.tether.force_on_rov.tolist() for key,sim in room.vehicles.items()})
+    if args.profile:
+        # Cumulative times intentionally overlap (e.g. tether includes current/contact queries).
+        groups = {
+            'rigid_body': ('physics.py', 'step'),
+            'tether': ('tether.py', 'step'),
+            'collision': ('world.py', 'vehicle_contact'),
+            'current': ('world.py', 'sample_many'),
+            'missions': ('scenarios.py', 'update'),
+        }
+        stats = pstats.Stats(profiler).stats
+        result['cumulative_ms_per_tick_overlapping'] = {
+            label: sum(row[3] for (path, line, name), row in stats.items()
+                       if Path(path).name == filename and name == function) * 1000 / args.ticks
+            for label, (filename, function) in groups.items()
+        }
+    result['numba_requested'] = not args.no_numba
+    result['final_cables'] = {
+        key: dict(length_m=sim.tether.length, nodes=len(sim.tether.x), broken=bool(sim.tether.broken))
+        for key, sim in room.vehicles.items()
+    }
+    result['serialization_and_network'] = 'Excluded; run tools/profile_network.py separately'
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2), encoding='utf-8')

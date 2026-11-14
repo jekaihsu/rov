@@ -308,7 +308,16 @@ class CurrentProfile:
         return v
 
     def sample(self, position: np.ndarray, seabed: float, t: float = 0.0) -> np.ndarray:
-        return self.sample_many(np.asarray(position)[None, :], seabed, t)[0]
+        # Single-point callers avoid batch clipping, masks and temporary Nx3 arrays.
+        # Match at_many's depth clipping before interpolating the same layers.
+        p = np.asarray(position)
+        depth = float(np.clip(p[2], 0.0, seabed))
+        v = self.at(depth, seabed)
+        phase = p[0] * .035 + p[1] * .027 + t * .045
+        shear = float(np.linalg.norm(v)) * .18 * np.sin(phase)
+        v[0] += shear * np.cos(p[1] * .04)
+        v[1] += shear * np.sin(p[0] * .04)
+        return v
 
     def as_dict(self):
         return {k: getattr(self, k) for k in ("surface_kn", "surface_dir", "mid_kn", "mid_dir",
