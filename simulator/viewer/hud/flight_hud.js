@@ -6,6 +6,7 @@ import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
 import { bindingRow, hintText } from '../input/bindings.js';
 import { assistPill } from './assist_pill.js';
+import { updateSystemStatus, batteryApplies } from './system_status.js';
 const STRINGS = {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -294,6 +295,8 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   $('flightCable').textContent = `${smooth('cable', s.tether?.length || 0, dt).toFixed(1)} m`;
   $('flightCable').style.color = s.tether?.warn ? 'var(--warn)' : 'var(--text)';
   $('flightBattery').textContent = smooth('battery', s.battery ?? 0, dt).toFixed(0);
+  $('flightBattery').parentElement.hidden = !batteryApplies(s);
+  updateSystemStatus(s);
   showAssist(s);
   const nearDanger = alt != null && alt < .25 || range != null && range < .25;
   const danger = !!s.tether?.broken || nearDanger;

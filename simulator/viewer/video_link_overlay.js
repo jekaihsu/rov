@@ -22,7 +22,7 @@ function layer(viewport, className) {
 function drawArtefacts(canvas, strength) {
   const ctx = canvas.getContext('2d');
   const image = ctx.createImageData(ARTEFACT_COLUMNS, ARTEFACT_ROWS);
-  const chance = 0.04 + 0.22 * strength;
+  const chance = 0.015 + 0.08 * strength;
   for (let i = 0; i < ARTEFACT_COLUMNS * ARTEFACT_ROWS; i++) {
     if (Math.random() > chance) continue;
     const tone = Math.random() < 0.5 ? 20 : 150;
@@ -60,7 +60,7 @@ export function installVideoLinkOverlay(viewport) {
     const strength = onboard && effect ? effect.artefact : 0;
     blocks.hidden = strength <= 0;
     if (strength <= 0) return;
-    blocks.style.opacity = String(0.12 + 0.3 * strength);
+    blocks.style.opacity = String(0.08 + 0.22 * strength);
     const now = performance.now();
     if (!hold && now - refreshedAt < ARTEFACT_REFRESH_MS) return;
     if (hold && refreshedAt) return;

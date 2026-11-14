@@ -87,6 +87,8 @@ class CommsLink:
         self.rearm_required = False
         self.rearm_seen_lock = False
         self.immediate = False
+        self.loss_action = self.config["failsafe_action"]
+        self.loss_delay_s = self.config["failsafe_delay_s"]
         self.clock = 0.0
         if state == "degraded":
             self.degrade(severity)
@@ -128,6 +130,9 @@ class CommsLink:
             self.frozen_rc = None if rc is None else RCState(**rc.as_dict())
         self.phase = "lost"
         self.cause = cause
+        # The policy in force when the link dropped applies, even if the configuration changes later.
+        self.loss_action = self.config["failsafe_action"]
+        self.loss_delay_s = self.config["failsafe_delay_s"]
         self.lost_at = self.clock
         self.reconnect_at = None
         self.immediate = immediate
@@ -183,9 +188,10 @@ class CommsLink:
     def step(self, sim, dt: float) -> None:
         self.clock += dt
         self._grow_lag(dt)
-        if self.phase == "lost":
+        if not self.connected:
+            # The failsafe timer keeps running while the modem reconnects: no command arrives yet.
             self._lost_step(sim)
-        elif self.phase == "reconnecting" and self.clock >= self.reconnect_at:
+        if self.phase == "reconnecting" and self.clock >= self.reconnect_at:
             self._reconnected(sim)
         elif self.phase == "connected" and self.rearm_required:
             self._watch_rearm(sim)
@@ -205,8 +211,8 @@ class CommsLink:
             # The vehicle keeps executing the last command it received.
             self.frozen_rc = RCState(**sim.rc.as_dict())
         elapsed = self.clock - self.lost_at
-        if self.failsafe is None and (self.immediate or elapsed >= self.config["failsafe_delay_s"]):
-            action = "disarm" if self.cause == "power" else self.config["failsafe_action"]
+        if self.failsafe is None and (self.immediate or elapsed >= self.loss_delay_s):
+            action = "disarm" if self.cause == "power" else self.loss_action
             self._apply_failsafe(sim, action)
 
     def _apply_failsafe(self, sim, action: str) -> None:
@@ -276,8 +282,8 @@ class CommsLink:
         if self.phase == "reconnecting":
             reconnect_in = round(max(0.0, self.reconnect_at - self.clock), 1)
         failsafe_in = None
-        if self.phase == "lost" and self.failsafe is None and not self.immediate:
-            failsafe_in = round(max(0.0, self.lost_at + self.config["failsafe_delay_s"] - self.clock), 1)
+        if not self.connected and self.failsafe is None and not self.immediate:
+            failsafe_in = round(max(0.0, self.lost_at + self.loss_delay_s - self.clock), 1)
         quality = 0.0 if not self.connected else round(1.0 - self.severity, 2)
         return {
             "state": self.state_name,

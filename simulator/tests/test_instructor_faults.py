@@ -57,6 +57,17 @@ class InstructorFaultTests(unittest.TestCase):
         self.assertEqual(sim.link.state()['phase'], 'connected')
         self.assertTrue(sim.link.rearm_required)
 
+    def test_short_loss_still_fails_safe_while_reconnecting(self):
+        sim = self.sim
+        sim.rc_physical.rc_lock = 0
+        self.instructor.inject({'kind': 'comms_loss', 'duration': .2, 'failsafe': 'depth_hold',
+                                'failsafe_delay': 1, 'reconnect': 3})
+        self.tick(.5)
+        self.assertEqual(sim.link.state()['phase'], 'reconnecting')
+        self.assertIsNone(sim.link.failsafe)
+        self.tick(1)
+        self.assertEqual(sim.link.failsafe, 'depth_hold', 'the policy at the moment of loss applies')
+
     def test_invalid_options_are_rejected(self):
         with self.assertRaises(ValueError):
             self.instructor.inject({'kind': 'comms_loss', 'failsafe': 'explode'})
