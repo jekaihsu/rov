@@ -63,6 +63,8 @@ class Scenario:
     time_limit_s: float = 900.0
     seed: int | None = None
     biome: str = "temperate"
+    # Optional simulated vehicle-link setup (see comms.CommsLink); None keeps a healthy link.
+    link: dict | None = None
 
     def summary(self) -> dict:
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,

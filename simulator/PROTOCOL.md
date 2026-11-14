@@ -193,7 +193,7 @@ rc {...}         active RC (SDK when remote_control) — same keys as the rc mes
                  reports what the controller actually applies)
 remote_control   bool (SDK has control; physical RC ignored)
 operation_mode   str      ctrl_mode "A"/"S"/"C"   locked bool   keep_depth bool   depth_hold m|null
-battery %        recording bool   photos int
+battery %        (always 100 for tether-powered vehicles; see `power`)   recording bool   photos int
 current_here [n,e,d] m/s at the ROV     current_kn
 tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tension_max (N),
         warn bool, broken bool, contact_nodes, snagged_on [names], wraps {obstacle: turns}, auto_payout}
@@ -206,6 +206,91 @@ score {score 0..100, elapsed, failed "", finished, current_index,
        penalties [{t, reason, points}], penalty_total}
 log [{t, kind, text}]   (last 8 lines, Traditional Chinese)
 ```
+
+### Optional `power`: tether power budget / battery
+
+`state.power` (and each fleet entry) is an optional addition; existing fields keep their meaning.
+
+```text
+power {type: tether|battery, available_w W|null, demand_w W, thruster_w W, lights_w W,
+       limited bool, scale 0..1, tripped bool, cutoff bool, lights_on bool,
+       voltage_v V|null, soc %|null}
+```
+
+* `type:"tether"` (X1 and the larger catalogue vehicle): no battery and no drain. Thrusters
+  (power ~ thrust^1.5), lights and a fixed electronics load share `available_w`. When the demand
+  exceeds it, every thruster command is scaled by the same factor (`scale`, `limited:true`), so all
+  thrusters together cannot reach their individual maxima. `tripped` (instructor `power_trip`)
+  removes all thrust and lights and drops the vehicle link until reset. The legacy `battery` field
+  stays at 100 so old clients see a full, non-draining value. An instructor `battery` injection on a
+  tether vehicle lowers `available_w` (supply sag) instead.
+* `type:"battery"`: the existing state-of-charge drain is unchanged. At 0% motors and lights are
+  cut off (`cutoff:true`) and re-enabled above 2%. `voltage_v` is a linear 4S estimate.
+* `lights_on:false` means the lamps are unpowered even though `rc.right_switch` is on.
+
+SDK compatibility: `QYRovNavigationManage.get_rov_data` `rov.power` keeps exactly
+`{type:"battery", battery_cap_1, battery_cap_2}` for battery vehicles. Tether vehicles report
+`type:"tether"` (a new value), `battery_cap_1`/`battery_cap_2` = 100 and `endurance` = 5000 (the
+legacy full-charge value; a tether vehicle has no endurance limit), plus optional `available_w`,
+`demand_w`, `limited`, `tripped`. Clients that only read the battery percentages keep working and
+see a full supply. `get_rov_status` reports `Battery: "Left: 100, Right: 100"` and the self-test
+battery flags stay healthy for tether vehicles. All wattages are provisional engineering
+assumptions (X1 supply power, light wattage and thruster current are unpublished); see
+`qysim/power.py` for each value's source.
+
+### Optional `thermal` and `leak`
+
+```text
+thermal {motor_c (hottest thruster), mos_c (motor drivers), housing_c, in_water bool, dry_run_s,
+         warnings [dry_run|motor_hot|electronics_hot]}
+leak {detected bool}
+```
+
+A first-order model: heat follows electrical load, cooling is strong in water and weak in air.
+`dry_run` is raised after 30 s of running thrusters out of water (vendor rule; the vehicle is out
+of water only in a deck state, `on_deck` server-side, which current scenarios never use). Sustained
+full thrust in water reaches `motor_hot` after several minutes. Warnings only, no derating. Each new
+warning is also written to `log` (kind `thermal`). Thresholds are provisional assumptions.
+`QYRovCheckManage.ego_self_test` now reports the modelled `temp` (housing) and `mos_temp` instead of
+the constants 31 / 38 (the model starts at those values in 26 °C surface water) and `leak: 0` while a
+leak is detected (1 = dry, unchanged otherwise).
+
+### Optional `link`: simulated vehicle communications link
+
+`state.link` (and each fleet entry) describes the *simulated* tether link between topside and
+the vehicle. It is a training fault model and is separate from the simulator's own network
+watchdog (0.6 s input timeout, latch and resync described above), which is unchanged.
+Clients that ignore the field behave exactly as before. The link is `healthy` unless a scenario
+(`Scenario.link`, server-side) or an instructor injection changes it; nothing degrades on its own.
+
+```text
+link {state: healthy|degraded|lost, phase: connected|lost|reconnecting, cause: comms|power|null,
+      quality 0..1, video_lag_s, video_frozen bool, artefact 0..1, telemetry_hz number|null,
+      failsafe_action: disarm|depth_hold|surface, failsafe: null|disarm|depth_hold|surface,
+      failsafe_in s|null, reconnect_in s|null, rearm_required bool}
+```
+
+* `degraded`: commands still reach the vehicle. `video_lag_s` grows toward a cap (5 s at full
+  severity), `video_frozen` is true during periodic freeze episodes (about 5 s every 20 s at full
+  severity), `artefact` is the compression-artefact level and `telemetry_hz` the reduced telemetry
+  rate (`null` means unchanged).
+* `lost` (`phase:"lost"`): no command reaches the vehicle; it keeps executing the last command
+  it received. After `failsafe_delay_s` (default 3 s) it applies `failsafe_action`: `disarm`
+  (default; the same latched lock as the network failsafe, `input_latched` and a new
+  `control_generation`), `depth_hold` (holds the depth at the moment of the failsafe) or
+  `surface` (ascends through the depth-hold loop). Video is frozen and telemetry stops
+  (`telemetry_hz: 0`). A loss caused by a power trip disarms immediately.
+* `reconnecting`: the link has been restored and the modem re-establishes for `reconnect_s`
+  (default 30 s); `state` is still `lost`. Afterwards the vehicle is locked again and
+  `rearm_required` stays true until the pilot sends a locked packet and then an unlocked one.
+  A `depth_hold`/`surface` failsafe keeps running until that re-arm.
+
+Viewer presentation: `video_lag_s` is added to the video delay, a frozen link holds the last
+rendered picture (onboard camera) and the last vehicle pose, and onboard telemetry read-outs are
+released at `telemetry_hz`. Defaults are provisional (an open-source sub autopilot's failsafe
+options and 3 s pilot-input timeout, a ~30 s reconnect figure from an earlier vehicle's vendor FAQ,
+field reports of 4–5 s lag and 5 s/20 s freezes; sources in
+`research_notes/感測器_揚沙_通訊/comms_and_power.md`); none are X1 measurements. SDK RPC telemetry is not affected by the simulated link.
 
 ## 4. World object (`type: "world"`)
 
@@ -335,6 +420,16 @@ An authenticated instructor connection accepts only `type:"instructor"` messages
   injection matching `kind`, `vehicle_id` and its exact `start`; other overrides are untouched.
   A stale/nonmatching timestamp is rejected. Omit it to retain normal injection behavior.
   Freeze uses the individual simulator pause while the room override clock keeps advancing.
+* Optional vehicle-system kinds (same `vehicle_id`, `strength`, `duration`, `cancel_start` rules,
+  per-vehicle scope; see the optional `link`, `power`, `thermal`/`leak` state sections):
+  `video_delay` (adds `strength` × 5 s of video lag, no freezes), `video_freeze` (holds the video),
+  `link_degrade` (degraded link with severity `strength`), `comms_loss` (link lost; on expiry the
+  reconnect starts), `power_trip` (all thrust, lights and the link drop and the vehicle disarms
+  immediately; on expiry power returns and the link reconnects), `leak` (leak alarm, self-test
+  `leak: 0`) and `overheat` (adds `strength` × 50 °C to motor and driver readings). `comms_loss`
+  accepts optional `failsafe` (`disarm`|`depth_hold`|`surface`), `failsafe_delay` and `reconnect`
+  (0..600 s) for that injection only. `freeze` remains a physics pause, unrelated to `video_freeze`.
+  On a tether-powered vehicle a `battery` injection lowers the supply power instead of a charge.
 * `action:"pause", value:true|false`; `action:"reset"`; `action:"scenario", key:"..."`.
   Reset archives assessment evidence and clears overrides.
 * `action:"return", vehicle_id:"v1"` redeploys the model locked at its normal start.
@@ -375,6 +470,6 @@ company baseline flights. Reaction means first changed control packet after inje
 not a validated successful recovery. Completion/failure automatically archives a report;
 reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are available.
 
-This draft does **not** yet implement tether snags, sensor or video faults, lighting
+This draft does **not** yet implement tether snags, sensor faults, lighting
 faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
 fault adapters or permanent report storage. It is not ready for training acceptance.
