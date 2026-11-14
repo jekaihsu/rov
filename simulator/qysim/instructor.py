@@ -2,6 +2,7 @@
 
 All assessment limits are provisional until calibrated by company operators.
 """
+from collections import deque
 from copy import deepcopy
 import math
 import secrets
@@ -10,6 +11,11 @@ import numpy as np
 
 PHASES = ('descent', 'transit', 'hover', 'orbit', 'dock')
 DEFAULT_LIMITS = {'path': 2., 'heading': 15., 'depth': 1., 'hover': 1., 'distance': 1., 'speed': .3}
+# Evidence is sampled at 1 Hz, so this keeps the most recent hour of each vehicle's run.
+# Older samples are dropped first; a report then covers only the retained window.
+MAX_SAMPLES_PER_VEHICLE = 3600
+# Archived reports carry their full trajectory. Only the newest ones are kept.
+MAX_REPORTS = 16
 
 
 def statistics(values, tolerance):
@@ -128,9 +134,18 @@ class Instructor:
                     event['reaction_s'] = self.clock - event['start']
                     self.events.append({'kind': 'control_response', 'vehicle_id': event['vehicle_id'],
                                         'reaction_s': event['reaction_s'], 'injection_start': event['start']})
-        if int(self.clock) != int(self.clock - dt):
+        if self.sampling and int(self.clock) != int(self.clock - dt):
             for vid, sim in self.room.vehicles.items():
                 self.sample(vid, sim)
+
+    @property
+    def sampling(self):
+        """Evidence is collected only while someone supervises or an override is running."""
+        return bool(self.supervised or self.active)
+
+    def archive(self, report):
+        self.reports.append(report)
+        del self.reports[:-MAX_REPORTS]
 
     def sample(self, vid, sim):
         state = sim.viewer_state()
@@ -152,7 +167,7 @@ class Instructor:
                                float(np.linalg.norm(sim.vehicle.s.vel)) - ref.get('speed_max', .5), 0)}
         if vid in self.finalized:
             return
-        self.samples.setdefault(vid, []).append({'t': self.clock, 'phase': self.phase,
+        self.samples.setdefault(vid, deque(maxlen=MAX_SAMPLES_PER_VEHICLE)).append({'t': self.clock, 'phase': self.phase,
             'pos': state['pos'], 'errors': errors, 'controls': [getattr(sim, 'last_pilot', {}).get(k, 0)
                 for k in ('surge', 'sway', 'heave', 'roll', 'pitch', 'yaw')],
             'tension': state['tether']['tension_rov'], 'wraps': state['tether']['wraps'],
@@ -160,11 +175,11 @@ class Instructor:
             'collisions': state['events']})
 
         if state['score'].get('finished') or state['score'].get('failed'):
-            self.reports.append(self.report(vid))
+            self.archive(self.report(vid))
             self.finalized.add(vid)
 
     def report(self, vid):
-        samples = self.samples.get(vid, [])
+        samples = list(self.samples.get(vid, []))
         matrix = {}
         for phase in PHASES:
             matrix[phase] = {}
@@ -201,7 +216,9 @@ class Instructor:
                 'events': deepcopy(self.events), 'trajectory': deepcopy(samples)}
 
     def finish(self):
-        self.reports.extend(self.report(vid) for vid in self.samples if vid not in self.finalized)
+        for vid in self.samples:
+            if vid not in self.finalized:
+                self.archive(self.report(vid))
         for event in self.active:
             self.restore(event)
         self.active.clear()

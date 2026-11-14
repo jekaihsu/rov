@@ -2,8 +2,8 @@
 import json
 import time
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'campaign-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -11,15 +11,15 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 def run():
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'), headless=True,
+        browser = launch(p, headless=True,
                                     args=['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'])
         context = browser.new_context(viewport=dict(width=1600, height=900), record_video_dir=str(OUT),
                                       record_video_size=dict(width=800, height=450))
         page = context.new_page()
         errors = []
         page.on('pageerror', lambda error: (errors.append(str(error)), print('ERROR', error, flush=True)))
-        page.goto('http://127.0.0.1:8092/?nointro&mission=campaign&control=UAV_CHN'
-                  f'&room=campaign{time.time_ns()}&quality=performance&model=bluerov2_heavy&ws=ws://127.0.0.1:8792')
+        page.goto(f'{http_base(8092)}/?nointro&mission=campaign&control=UAV_CHN'
+                  f'&room=campaign{time.time_ns()}&quality=performance&model=bluerov2_heavy&ws={ws_base(8792)}')
         page.wait_for_function('window.__menu?.ready', timeout=90000)
         page.locator('details').filter(has=page.locator('#menuIntro')).locator('summary').click()
         page.uncheck('#menuIntro')

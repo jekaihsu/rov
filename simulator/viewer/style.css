@@ -281,6 +281,6 @@ body.movie .sticks{display:none}
 @media (max-width:720px){
   body.replaying .sticks{display:none}
   body.replaying .viewport .pip{top:56px;left:8px;right:auto;width:168px;height:107px}
-  body.replaying .viewport .subtitle{left:8px;right:8px;top:172px;bottom:auto;transform:none;max-width:none;font-size:14px;padding:6px 10px}
+  body.replaying .viewport .subtitle{left:8px;right:8px;top:236px;bottom:auto;transform:none;max-width:none;font-size:14px;padding:6px 10px}
   .viewport .hud.tc{display:none}
 }

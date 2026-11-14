@@ -111,3 +111,20 @@ python -m unittest discover -s tests
 ```
 
 瀏覽器驗證用 `simulator/tools/browser_*.py`（Playwright）。前端任務至少跑 `browser_smoke.py` 與 `browser_menu_smoke.py`。
+
+```bash
+cd simulator
+python tools/run_browser_checks.py browser_smoke browser_menu_smoke   # 自動在空閒埠啟動伺服器，結束後列出通過／失敗表
+python tools/run_browser_checks.py                                    # 預設的完整檢查清單；--list 列出所有腳本
+```
+
+- 所有瀏覽器腳本一律透過 `simulator/tools/_browser.py` 啟動瀏覽器與取得網址，不要在腳本裡直接呼叫 `chromium.launch(...)` 或寫死埠號。
+- 環境變數：`ROV_CHROMIUM`（瀏覽器執行檔絕對路徑）、`ROV_HOST`／`ROV_HTTP_PORT`／`ROV_WS_PORT`（伺服器位址與埠）、`ROV_BROWSER_TIMEOUT_SCALE`（慢機器上放大等待時間）。
+
+## 輸入心跳與失聯保護
+
+RC 封包由 Web Worker 中的連線送出（`simulator/viewer/input/rc_worker.js`），畫面卡頓時仍會補送心跳：
+
+- 頁面每 33 ms 取樣一次，有變化或每 100 ms 轉交 Worker；Worker 在線路靜默約 150 ms 時重送最後一個封包。
+- 頁面停止回應時，Worker 最多代為重送 2 秒（`RC_TIMING.holdMs`），之後伺服器的 0.6 秒失聯保護才生效。也就是頁面卡死但分頁仍開著時，約 2.6 秒後上鎖；關閉分頁、當機、斷網仍是 0.6 秒。這是經使用者同意的取捨。
+- 分頁隱藏、收藏面板開啟、回放、控制器橋接、`input_latched` 重新同步時一律停止重送。不得移除這些條件。

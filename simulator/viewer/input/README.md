@@ -48,3 +48,17 @@ Run `node --test simulator/tests/*.mjs` and `python simulator/tools/browser_inpu
 from the repository root. The latter expects the implementation on :8080 and writes
 1600×900 evidence under simulator/output/t02. Pass `--before-url URL` only when a
 comparison server is available; it is not required for input regression checks. Hardware feel and vibration require physical testing.
+
+## RC link and heartbeat
+
+Controls are sampled on a 33 ms page timer (`createRcPump` in `rc_link.js`), never from the render loop. A
+packet is forwarded when it changes and otherwise every 100 ms. The simulator socket itself lives in a worker
+(`rc_worker.js`): slow software rendering keeps the page thread busy for longer than the server's 0.6 s input
+failsafe, so the worker repeats the last forwarded packet whenever the wire has been silent for 150 ms. It does
+so for at most 2 s after the page last spoke (`RC_TIMING.holdMs`); a page that stays frozen beyond that goes
+silent and the server failsafe locks the vehicle as before. Packets sent outside the pump (hidden tab, collection
+panel) cancel the repeat immediately, as does a hidden document. The worker assigns every RC `seq`, and hands
+state snapshots to the page one at a time, keeping only the newest while the page is busy. Pages without module
+workers, or whose `WebSocket` constructor has been replaced (test instrumentation), keep the socket on the page.
+All timing rules are pure functions in `rc_scheduler.js`, covered by `simulator/tests/test_rc_scheduler.mjs`;
+`simulator/tools/browser_slow_render_smoke.py` checks the behaviour in a real browser with a stalled page thread.

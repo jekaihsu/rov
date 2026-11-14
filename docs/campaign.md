@@ -8,7 +8,9 @@ Enter 顯示完整台詞，再按一次繼續。飛行輸入不會暫停。
 第一章由港樁、船殼與交班複查三項既有協作巡檢組成；三秒穩定拍照、站點、倒數完全沿用 mission_modes。
 第二章以後為不可選的大綱節點。
 
-腳本位於 simulator/campaign，schema.json 描述格式。條件路徑為 state 的點分隔路徑，
+腳本位於 simulator/campaign，schema.json 描述格式。每章必填 category（story 劇情 / incident 事故演練）
+與 order（同類內的順序，小的在前）；章節清單依（category、order）排序。自動啟動只挑 story 章節，
+第一次進入必為序章；事故演練只能從章節 / 訓練課程清單明確啟動。條件路徑為 state 的點分隔路徑，
 陣列使用數字，例如 pos.2、vel.0、mission.status。比較運算為 eq / gt / lt。
 支援 dialogue、wait、objective、hint、branch、reward、checkpoint、environment、spawn、remove。
 branch 條件成立時跳到 target；environment 目前僅支援 visibility_m。

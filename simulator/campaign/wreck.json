@@ -3,6 +3,8 @@
   "title": "第四章｜沉船",
   "scenario": "open_water",
   "mode": "free_explore",
+  "category": "story",
+  "order": 70,
   "requires": "reef",
   "placeholder": true,
   "outline": "貨輪殘骸內的額外壓艙物與失蹤的維修紀錄。",

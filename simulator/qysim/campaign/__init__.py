@@ -5,7 +5,12 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, ValidationError
 
 DATA = Path(__file__).resolve().parents[2] / 'campaign'
-SCHEMA = Draft202012Validator(json.loads((DATA / 'schema.json').read_text()))
+SCHEMA = Draft202012Validator(json.loads((DATA / 'schema.json').read_text(encoding='utf-8')))
+# Chapter list order: the story campaign first, then the standalone incident drills.
+CATEGORIES = ('story', 'incident')
+CHAPTER_FIELDS = ('id', 'title', 'requires', 'placeholder', 'outline', 'category', 'order')
+# Upper bound on script nodes handled by one update; a longer run continues on the next step.
+MAX_NODES_PER_UPDATE = 32
 TYPES = {'dialogue', 'wait', 'objective', 'hint', 'branch', 'reward', 'checkpoint', 'environment', 'spawn', 'remove'}
 
 
@@ -19,6 +24,11 @@ def validate(script):
     required = ('id', 'title', 'scenario', 'mode')
     if any(not isinstance(script.get(key), str) for key in required):
         raise ValueError('missing script metadata')
+    if script.get('category') not in CATEGORIES:
+        raise ValueError('invalid chapter category')
+    order = script.get('order')
+    if isinstance(order, bool) or not isinstance(order, int):
+        raise ValueError('invalid chapter order')
     ids = [node.get('id') for node in script['nodes']]
     if len(set(ids)) != len(ids) or any(not isinstance(i, str) for i in ids):
         raise ValueError('duplicate or invalid node id')
@@ -62,8 +72,8 @@ def condition_matches(condition, state):
 class Campaign:
     def __init__(self, room):
         self.room = room
-        self.scripts = {p.stem: validate(json.loads(p.read_text())) for p in sorted(DATA.glob('*.json'))
-                        if p.name != 'schema.json'}
+        self.scripts = {p.stem: validate(json.loads(p.read_text(encoding='utf-8')))
+                        for p in sorted(DATA.glob('*.json')) if p.name != 'schema.json'}
         self.chapter = None
         self.index = 0
         self.completed = []
@@ -82,12 +92,24 @@ class Campaign:
         self.environment_changed = False
 
     def chapter_order(self, script):
-        depth = 0
-        parent = script.get('requires')
-        while parent in self.scripts and depth < len(self.scripts):
-            depth += 1
-            parent = self.scripts[parent].get('requires')
-        return depth
+        """Explicit sort key: (category, order); the id only breaks accidental ties."""
+        return (CATEGORIES.index(script['category']), script['order'], script['id'])
+
+    def ordered_scripts(self):
+        return sorted(self.scripts.values(), key=self.chapter_order)
+
+    def next_story_chapter(self, completed=None):
+        """First playable, unfinished story chapter; incidents are never auto-started."""
+        done = self.completed if completed is None else completed
+        for script in self.ordered_scripts():
+            if script['category'] != 'story' or script.get('placeholder'):
+                continue
+            if script['id'] in done:
+                continue
+            if script.get('requires') and script['requires'] not in done:
+                continue
+            return script['id']
+        return None
 
     def command(self, msg, player):
         if player is None or player.id != self.room.host_id:
@@ -159,7 +181,17 @@ class Campaign:
             return
         self.started += dt
         self.peak_tension = max(self.peak_tension, float(sim.tether.tension_max))
-        for _ in range(32):
+        # The full viewer state is expensive: build it lazily and share it between every
+        # condition of this update. Only a script effect on the world invalidates it.
+        cache = {}
+
+        def current_state():
+            if 'state' not in cache:
+                cache['state'] = sim.viewer_state()
+            return cache['state']
+
+        waited = set()
+        for _ in range(MAX_NODES_PER_UPDATE):
             node = self.node
             if node is None:
                 self.status = 'completed'
@@ -178,7 +210,10 @@ class Campaign:
                 if not self.course:
                     return
             elif kind == 'wait':
-                if not condition_matches(node['condition'], sim.viewer_state()):
+                if self.index in waited:
+                    return
+                waited.add(self.index)
+                if not condition_matches(node['condition'], current_state()):
                     return
             elif kind in ('objective', 'hint'):
                 self.objective = node.get('text', '')
@@ -188,9 +223,14 @@ class Campaign:
             elif kind == 'checkpoint':
                 self.checkpoint = dict(chapter=self.chapter, index=self.index + 1)
             elif kind == 'branch':
-                if condition_matches(node['condition'], sim.viewer_state()):
-                    self.index = next(i for i, n in enumerate(self.scripts[self.chapter]['nodes'])
-                                      if n['id'] == node['target'])
+                if condition_matches(node['condition'], current_state()):
+                    target = next(i for i, n in enumerate(self.scripts[self.chapter]['nodes'])
+                                  if n['id'] == node['target'])
+                    if target in waited:
+                        # A poll loop is about to re-enter a wait it already passed in this update.
+                        # Nothing can change before the next step, so rest here on the branch.
+                        return
+                    self.index = target
                     continue
             elif kind == 'spawn':
                 from ..operations import ensure_objects, finite_vector
@@ -200,16 +240,19 @@ class Campaign:
                 if len(objects) < 100 and key not in objects:
                     objects[key] = dict(id=key, label=node['label'], pos=finite_vector(node['point'], 3),
                                         vel=np.zeros(3), mass=2., buoyancy_kg=1., radius=.12, held_by=None)
+                cache.clear()
             elif kind == 'remove':
                 from ..operations import ensure_objects
                 objects = ensure_objects(sim)
                 key = 'campaign-' + node['object_id']
                 if key in objects and objects[key]['held_by'] is None:
                     del objects[key]
+                cache.clear()
             elif kind == 'environment':
                 for vehicle in self.room.vehicles.values():
                     vehicle.scenario.visibility_m = max(1, min(30, float(node['visibility_m'])))
                 self.environment_changed = True
+                cache.clear()
             self.index += 1
 
     def state(self):
@@ -218,5 +261,5 @@ class Campaign:
                              rewards=self.rewards, results=self.results, checkpoint=self.checkpoint,
                              unlocks=dict(vehicles=['falcon'] if 'harbor_signoff' in self.completed else [],
                                           stickers=['dive'] if 'prologue' in self.completed else []),
-                             chapters=[{k: s.get(k) for k in ('id', 'title', 'requires', 'placeholder', 'outline')}
-                                       for s in sorted(self.scripts.values(), key=self.chapter_order)]))
+                             next_story=self.next_story_chapter(),
+                             chapters=[{k: s.get(k) for k in CHAPTER_FIELDS} for s in self.ordered_scripts()]))

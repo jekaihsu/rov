@@ -37,6 +37,38 @@ class IncidentTests(unittest.TestCase):
         self.assertEqual(room.campaign.status, 'completed')
         self.assertIn('debrief', [node['id'] for node in room.campaign.history])
 
+    def count_state_calls(self, sim):
+        calls = []
+        original = sim.viewer_state
+
+        def counted():
+            calls.append(1)
+            return original()
+
+        sim.viewer_state = counted
+        return calls
+
+    def test_poll_loop_builds_state_once_per_update(self):
+        for key in KEYS:
+            with self.subTest(key=key):
+                room, host = self.start(key)
+                sim = room.primary
+                calls = self.count_state_calls(sim)
+                for _ in range(5):
+                    del calls[:]
+                    room.campaign.update(.01)
+                    self.assertEqual(len(calls), 1)
+                    self.assertEqual(room.campaign.node['id'], 'repeat')
+                sim.tether.broken = True
+                sim.scorer.update(.01, sim)
+                del calls[:]
+                room.campaign.update(.01)
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(room.campaign.node['id'], 'failure')
+                del calls[:]
+                room.campaign.update(.01)
+                self.assertEqual(len(calls), 0)
+
     def test_completion(self):
         # Controlled poses exercise the real objective scorer, not a campaign flag.
         for key in KEYS:

@@ -252,7 +252,7 @@ function keyCardText(bindings) {
 export function updateFlightHUD(s, w, dt, input = {}) {
   if (!ready) initialize();
   if (!s?.pos) return;
-  toolIcon($('camBtn'), 'camera', STRINGS.view);
+  toolIcon($('camBtn'), 'camera', $('camBtn').dataset.label || STRINGS.view);
   $('lockBadge').querySelector('b').textContent = s.locked ? STRINGS.locked : STRINGS.unlocked;
   $('lockBadge').querySelector('span').textContent = s.locked ? STRINGS.unlockHint : '';
   $('flightTools').classList.toggle('controller-visible', !!input.active);

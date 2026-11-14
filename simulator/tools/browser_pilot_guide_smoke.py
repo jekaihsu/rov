@@ -1,20 +1,20 @@
 """Browser validation of telemetry-driven guide, mappings and persisted dismissal."""
 import json
 from pathlib import Path
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base
 
 out = Path(__file__).resolve().parents[1]/'output'/'pilot-guide-validation'
 out.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'), headless=True)
+    browser = launch(p, headless=True)
     page = browser.new_page(viewport={'width': 1280, 'height': 800})
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.route('**/__pilot-guide-test', lambda route: route.fulfill(content_type='text/html', body='''
       <html lang="zh-Hant"><head><meta charset="utf-8"><link rel="stylesheet" href="/style.css"></head>
       <body><aside style="width:290px;padding:16px"><div class="mission-tools"><div class="session-summary">Falcon · 驗證場景</div></div></aside></body></html>'''))
-    page.goto('http://127.0.0.1:8092/__pilot-guide-test')
+    page.goto(f'{http_base(8092)}/__pilot-guide-test')
     result = page.evaluate('''async()=>{
       const {installPilotGuide}=await import('/pilot_guide.js');
       const assert=(v,m)=>{if(!v)throw Error(m);};

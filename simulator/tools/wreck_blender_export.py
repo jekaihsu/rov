@@ -53,7 +53,7 @@ print('route verts', V.shape, V[:6].round(2).tolist())
 # camera + ROV lamp for reference
 for o in list(bpy.data.collections['07_CAMERAS'].objects):
     print('cam', o.name, [round(v, 1) for v in o.matrix_world.translation])
-json.dump({'labels': labels}, open(outdir + '/labels.json', 'w'))
+json.dump({'labels': labels}, open(outdir + '/labels.json', 'w', encoding='utf-8'))
 
 # visual export
 for o in bpy.data.objects: o.select_set(False)

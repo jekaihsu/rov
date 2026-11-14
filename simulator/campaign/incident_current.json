@@ -3,6 +3,8 @@
   "title": "事故訓練｜流速超過能力",
   "scenario": "incident_current",
   "mode": "scenario_training",
+  "category": "incident",
+  "order": 50,
   "nodes": [
     {
       "id": "brief",

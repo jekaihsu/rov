@@ -32,6 +32,7 @@ import {drawROVAttitude} from './attitude_indicator.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { readReplay } from './replay_store.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
+import { openRcLink, createRcPump } from './input/rc_link.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -486,10 +487,10 @@ function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + ki
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
-  try { ws = new WebSocket(WS_URL); } catch (e) { scheduleRetry(); return; }
+  try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
     wsOpen = true; retry = 0; needResync = true; session=null;inputSequence=0;
-    setConn('wait', '已連線 · 等待資料'); lastSent = '';
+    setConn('wait', '已連線 · 等待資料'); rcPump.reset();
     let token;try{token=sessionStorage.getItem(`rov.session:${WS_URL}:${cockpit.room}`);}catch{}
     send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model});
   };
@@ -638,7 +639,8 @@ function stopForCollection(){
   if(session)send({type:'rc',rc:{...rcMessage(),photo:0,record:0},seq:++inputSequence,controller_generation:S?.controller?.generation});
 }
 
-let lastSent = '', lastSentAt = 0, photoPressed=false;
+let photoPressed=false;
+const rcPump = createRcPump({ transport: () => (wsOpen ? ws : null), sequence: () => ++inputSequence });
 function rcMessage() {
   const m = {};
   for (const c of CH) m[c] = cockpit.armMode ? 1500 : Math.round(1500 + 500 * out[c]);
@@ -655,16 +657,14 @@ function inputTick() {
   if(pressed&&!photoPressed&&!REPLAY)photoClient.takePhoto();photoPressed=pressed;
   if (S?.controller) for (const c of CH) out[c] = clamp(((S.controller.axes[c] ?? 1500) - 1500) / 500, -1, 1);
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
-  const msg = rcMessage(), js = JSON.stringify(msg), now = performance.now();
-  if (!document.hidden && (js !== lastSent || now - lastSentAt > 200)) {
-    if (session && !needResync && send({ type: 'rc', rc: msg, seq:++inputSequence, controller_generation: S?.controller?.generation })) { lastSent = js; lastSentAt = now; }
-  }
+  const msg = rcMessage();
+  rcPump.offer(msg, { live: !document.hidden && !!session && !needResync, generation: S?.controller?.generation });
   $('padInfo').textContent = S?.controller
     ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
     : pad ? `手把：${pad.id.slice(0, 48)}` : '未偵測到手把（按任一手把按鍵喚醒）。';
   drawSticks(msg);
 }
-setInterval(inputTick, 33);
+rcPump.start(inputTick);
 
 function drawSticks(msg) {
   const place = (el, x, y) => { const r = el.clientWidth / 2 * .62; el.querySelector('.knob').style.transform = `translate(${x * r}px, ${-y * r}px)`; };
@@ -767,7 +767,8 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
   getAnchor: () => cameraAnchor, getObstacles: () => [seabed, ...Array.from(obstacleMeshes.values(), v => v.mesh)],
   onMode(m, name) {
     camMode = m;
-    $('camBtn').textContent = `視角：${name}（V）`;
+    $('camBtn').dataset.mode = m;
+    $('camBtn').dataset.label = `視角：${name}（V）`;
     $('xhair').hidden = m !== 'onboard';
     placeholder.visible = m !== 'onboard';
     if (activeModel) activeModel.model.visible = m !== 'onboard';

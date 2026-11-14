@@ -6,6 +6,8 @@
     "title",
     "scenario",
     "mode",
+    "category",
+    "order",
     "nodes",
     "strings"
   ],
@@ -26,6 +28,18 @@
         "scenario_training",
         "expedition"
       ]
+    },
+    "category": {
+      "description": "story chapters form the auto-started campaign; incidents are launched explicitly.",
+      "enum": [
+        "story",
+        "incident"
+      ]
+    },
+    "order": {
+      "description": "Position inside the category; lower runs first.",
+      "type": "integer",
+      "minimum": 0
     },
     "nodes": {
       "type": "array",

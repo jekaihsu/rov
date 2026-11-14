@@ -3,6 +3,8 @@
   "title": "第一章｜船殼",
   "scenario": "hull_inspection",
   "mode": "inspection_coop",
+  "category": "story",
+  "order": 30,
   "requires": "harbor",
   "nodes": [
     {

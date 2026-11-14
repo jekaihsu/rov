@@ -7,6 +7,7 @@ from pathlib import Path
 import threading
 import sys
 from playwright.sync_api import sync_playwright
+from _browser import launch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -21,7 +22,7 @@ def main():
     threading.Thread(target=server.serve_forever,daemon=True).start()
     try:
         with sync_playwright() as p:
-            browser=p.chromium.launch(channel='chrome',headless=True,args=['--enable-unsafe-swiftshader'])
+            browser=launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
             page=browser.new_page(viewport={'width':960,'height':640})
             errors=[]
             page.on('pageerror',lambda e:errors.append(str(e)))

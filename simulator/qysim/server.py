@@ -492,7 +492,7 @@ class SimHost:
     def handle_viewer(self, msg: dict, button_values: dict | None = None, *, room=None, player=None, controller_bridge=False):
         t = msg.get("type")
         room = room or self.room
-        if (room.instructor.active or room.instructor.supervised) and t != "rc":
+        if instructor_blocks(room, msg):
             return {"type": "error", "code": "instructor_override", "message": "Instructor override active"}
         sim = room.vehicles[player.vehicle_id] if player else room.primary
         if player is not None and t in ("scenario", "reset", "pause", "current") and player.id != room.host_id:
@@ -505,10 +505,10 @@ class SimHost:
             values = msg.get("rc", {})
             if not isinstance(values, dict):
                 raise ValueError("rc must be an object")
-            if "profile" in values and not isinstance(values["profile"], str):
-                raise ValueError("RC profile must be a string")
+            # Unsupported assist/profile values fall back to manual/normal in apply_viewer_rc;
+            # they never invalidate the rest of the packet.
             if any(not isinstance(v, (int, float)) or not np.isfinite(v)
-                   for k, v in values.items() if k != "profile"):
+                   for k, v in values.items() if k not in ASSIST_FIELDS):
                 raise ValueError("RC values must be finite numbers")
             bridge = self.bridges.get((room.id, player.id)) if player else None
             if bridge and not controller_bridge:
@@ -612,6 +612,28 @@ class SimHost:
         return None
 
 
+# Optional flight-assist metadata carried inside an RC packet (see PROTOCOL.md).
+ASSIST_FIELDS = ("assist", "profile")
+
+# While an instructor supervises a room (or an injected override is running) pilots may not
+# change the shared scene. Everything a pilot does to their own vehicle keeps working.
+INSTRUCTOR_BLOCKED_TYPES = ("scenario", "reset", "pause", "current", "model")
+# Operations that reload the scene (which would also clear the instructor's overrides and
+# evidence) or replace the shared mission engine.
+INSTRUCTOR_BLOCKED_OPERATIONS = ("campaign_start", "mission_mode")
+
+
+def instructor_blocks(room, msg):
+    """True when a supervised room must refuse this pilot command as a shared-scene change."""
+    instructor = room.instructor
+    if not (instructor.active or instructor.supervised):
+        return False
+    kind = msg.get("type")
+    if kind in INSTRUCTOR_BLOCKED_TYPES:
+        return True
+    return kind == "operation" and msg.get("action") in INSTRUCTOR_BLOCKED_OPERATIONS
+
+
 class _Static(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
         super().__init__(*a, directory=str(VIEWER_DIR), **k)
@@ -651,6 +673,8 @@ async def main_async(args):
         start_static(args.http_port, args.host)
     print(f"[qysim] scenario={sim.scenario.name}  SDK rpc tcp://127.0.0.1:{args.rpc_port}  "
           f"viewer ws://{args.host}:{args.ws_port}  http://{args.host}:{args.http_port}/", flush=True)
+    from ._cable_accel import solver_status_line
+    print(solver_status_line(), flush=True)
     async with rpc:
         tasks = [host.physics_loop(), rpc.serve_forever(), ws.wait_closed()]
         if args.qirc:

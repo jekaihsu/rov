@@ -810,10 +810,11 @@ class Simulator:
         default_assist = self.rc_physical.assist if partial else 0
         default_profile = self.rc_physical.profile if partial else "normal"
         assist = msg.get("assist", default_assist)
-        self.rc_physical.assist = int(assist) if assist in (0, 1, 2) else 0
-        self.rc_physical.profile = msg.get("profile", default_profile)
-        if self.rc_physical.profile not in ("cine", "normal", "sport"):
-            self.rc_physical.profile = "normal"
+        valid_assist = isinstance(assist, (int, float)) and assist in (0, 1, 2)
+        self.rc_physical.assist = int(assist) if valid_assist else 0
+        profile = msg.get("profile", default_profile)
+        valid_profile = isinstance(profile, str) and profile in ("cine", "normal", "sport")
+        self.rc_physical.profile = profile if valid_profile else "normal"
         for k, val in msg.items():
             if k in ("left_ud", "left_lr", "right_ud", "right_lr", "left_wave", "right_wave"):
                 self.rc_physical.set_channel(k, val)

@@ -1,13 +1,14 @@
 """Exercise the camera rig in real Three.js without a simulation or GPU workload."""
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base
 
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(headless=True)
+    browser = launch(playwright, headless=True)
     page = browser.new_page()
     page.route('**/camera-harness', lambda route: route.fulfill(
         content_type='text/html', body='''<script type="importmap">
         {"imports":{"three":"/vendor/three/build/three.module.js"}}</script>'''))
-    page.goto('http://127.0.0.1:8092/camera-harness')
+    page.goto(f'{http_base(8092)}/camera-harness')
     result = page.evaluate('''async () => {
       const THREE = await import('three');
       const {createCameraRig} = await import('/camera_rig.js');
@@ -25,7 +26,10 @@ with sync_playwright() as playwright:
       if(camera.quaternion.angleTo(physical)>.001) throw Error('real default must retain roll');
       const actions={};
       rig.bindInput({registerActions(definitions){Object.assign(actions,definitions);}});
-      if(actions.cameraGimbal.keys.includes('KeyG')) throw Error('profile key conflict');
+      // Default keys live in the binding table; the gimbal must not share the flight profile key.
+      const {bindingRow} = await import('/input/bindings.js');
+      if(bindingRow('cameraGimbal').keys.some(key => bindingRow('profile').keys.includes(key)))
+        throw Error('profile key conflict');
       actions.cameraGimbal.run();
       for (const mode of ['chase','top','orbit','cine','onboard']) {
         rig.setMode(mode);

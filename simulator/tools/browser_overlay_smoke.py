@@ -4,20 +4,18 @@ Every check is geometric: controls must be the element returned by document.elem
 own centre, and read-outs must not share pixels with the overlays listed next to them. Layer order is
 compared with the stacking scale in viewer/hud/tokens.css.
 
-Environment:
-  ROV_BASE_URL  HTTP address of a running simulator   (default http://127.0.0.1:8092)
-  ROV_WS_URL    WebSocket address of the same server  (default ws://127.0.0.1:8792)
-  ROV_CHROMIUM  optional path to a Chromium executable
+Browser and server addresses come from _browser.py (ROV_CHROMIUM, ROV_HOST, ROV_HTTP_PORT, ROV_WS_PORT;
+defaults http://127.0.0.1:8092 and ws://127.0.0.1:8792).
 """
-import os
 import sys
 import time
 
 from playwright.sync_api import sync_playwright
 
-BASE_URL = os.environ.get('ROV_BASE_URL', 'http://127.0.0.1:8092').rstrip('/')
-WS_URL = os.environ.get('ROV_WS_URL', 'ws://127.0.0.1:8792')
-CHROMIUM = os.environ.get('ROV_CHROMIUM') or None
+from _browser import http_base, launch, timeout, ws_base
+
+BASE_URL = http_base()
+WS_URL = ws_base()
 SIZES = [(1280, 720), (390, 844)]
 LONG_LINE = '測試用的長對話，確認無線電對話框再長也不會蓋住深度、航向、速度與小地圖。' * 4
 
@@ -105,11 +103,11 @@ def replay(browser, size):
     label = f'replay {size[0]}x{size[1]}'
     page, errors = new_page(browser, size)
     page.goto(f'{BASE_URL}/?replay=demo_recording.json&nointro&quality=performance')
-    page.wait_for_function('window.__replay?.() && document.querySelector("#flightCable")', timeout=120000)
+    page.wait_for_function('window.__replay?.() && document.querySelector("#flightCable")', timeout=timeout(120000))
     # Pause with a real, hit-tested click so the bar stays awake and the subtitle stays put.
     button = page.locator('#rpPlay').bounding_box()
     page.mouse.click(button['x'] + button['width'] / 2, button['y'] + button['height'] / 2)
-    page.wait_for_function('document.querySelector("#rpPlay").textContent === "▶"', timeout=30000)
+    page.wait_for_function('document.querySelector("#rpPlay").textContent === "▶"', timeout=timeout(30000))
     line = page.evaluate('''async () => {
       const clip = (await (await fetch('demo_recording.json')).json()).clips[0];
       const longest = [...clip.script].sort((a, b) => b.text.length - a.text.length)[0];
@@ -121,7 +119,7 @@ def replay(browser, size):
       seek.value = Math.round(fraction * 1000);
       seek.dispatchEvent(new Event('input'));
     }''', line['fraction'])
-    page.wait_for_function('!document.querySelector("#rpSub").hidden', timeout=60000)
+    page.wait_for_function('!document.querySelector("#rpSub").hidden', timeout=timeout(60000))
     page.mouse.move(size[0] / 2, size[1] / 3)
     page.wait_for_timeout(500)
     reachable(page, label, ['#rpPlay', '#rpSeek', '#rpSpeed', '#camBtn', '#flightMapMode',
@@ -154,16 +152,16 @@ def campaign(browser, size):
     page.goto(f'{BASE_URL}/?play=1&nointro&mission=campaign&quality=performance'
               f'&ws={WS_URL}&room=overlay{time.time_ns()}')
     page.wait_for_function('window.__viewer?.S?.campaign && document.querySelector("#flightCable")',
-                           timeout=120000)
+                           timeout=timeout(120000))
     page.wait_for_function('''(() => {
       const radio = document.querySelector('.story-radio');
       return radio && !radio.hidden && window.__viewer.S.campaign.node?.type === 'dialogue';
-    })()''', timeout=120000)
+    })()''', timeout=timeout(120000))
     # Let the typewriter finish, then stretch the line far beyond anything the chapters contain.
     page.wait_for_function('''(() => {
       const text = document.querySelector('.story-radio p').textContent;
       return text.length > 0 && text === window.__viewer.S.campaign.node.text;
-    })()''', timeout=60000)
+    })()''', timeout=timeout(60000))
     page.evaluate('text => { document.querySelector(".story-radio p").textContent = text; }', LONG_LINE)
     page.wait_for_timeout(300)
     disjoint(page, label, [
@@ -180,7 +178,7 @@ def campaign(browser, size):
     # The engineering drawer is opened on purpose and must cover the radio, not the other way round.
     drawer = page.locator('#flightDrawer').bounding_box()
     page.mouse.click(drawer['x'] + drawer['width'] / 2, drawer['y'] + drawer['height'] / 2)
-    page.wait_for_selector('#engineering', state='visible', timeout=30000)
+    page.wait_for_selector('#engineering', state='visible', timeout=timeout(30000))
     reachable(page, label + ' drawer', ['#engineering > button'])
     layers(page, label + ' drawer', [('#engineering', '--z-drawer')])
     covered = page.evaluate('''() => {
@@ -203,14 +201,14 @@ def menu(browser, size):
     label = f'menu {size[0]}x{size[1]}'
     page, errors = new_page(browser, size)
     page.goto(f'{BASE_URL}/?ws={WS_URL}&quality=performance')
-    page.wait_for_function('window.__menu?.ready', timeout=120000)
+    page.wait_for_function('window.__menu?.ready', timeout=timeout(120000))
     reachable(page, label, ['#startDive'])
     layers(page, label, [('#launchMenu', '--z-menu')])
     # Centre it: the nearest edge would be underneath the fixed launch footer.
     page.evaluate('document.querySelector("#menuCollection").scrollIntoView({block: "center"})')
     reachable(page, label, ['#menuCollection'])
     page.locator('#menuCollection').click()
-    page.wait_for_selector('dialog.collection-panel[open]', timeout=30000)
+    page.wait_for_selector('dialog.collection-panel[open]', timeout=timeout(30000))
     reachable(page, label + ' collection', ['.collection-close'])
     check(not errors, f'{label}: page errors {errors}')
     page.context.close()
@@ -229,8 +227,7 @@ def scale_order(browser):
 
 def run():
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(executable_path=CHROMIUM, headless=True,
-                                             args=['--enable-unsafe-swiftshader'])
+        browser = launch(playwright)
         scale_order(browser)
         for size in SIZES:
             replay(browser, size)

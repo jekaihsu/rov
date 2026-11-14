@@ -2,18 +2,18 @@
 import json
 from pathlib import Path
 from PIL import Image, ImageStat
-from shutil import which
 from playwright.sync_api import sync_playwright
+from _browser import launch, http_base, ws_base
 
 out=Path(__file__).resolve().parents[1]/'output'/'mission-validation'
 out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True,args=['--enable-unsafe-swiftshader'])
+    browser=launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
     page=browser.new_page(viewport={'width':1600,'height':1000},accept_downloads=True)
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.add_init_script("""window.__mediaLog=[];const Original=window.MediaRecorder;window.MediaRecorder=class extends Original{constructor(stream,options){super(stream,options);window.__mediaLog.push({event:'created',tracks:stream.getTracks().map(t=>({kind:t.kind,settings:t.getSettings(),readyState:t.readyState}))});for(const name of ['start','stop','error','dataavailable'])this.addEventListener(name,e=>window.__mediaLog.push({event:name,time:performance.now(),size:e.data?.size,error:e.error?.message}));}};""")
-    page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&room=training&model=falcon&nointro&play=1')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=training&model=falcon&nointro&play=1')
     page.wait_for_function('window.__viewer?.S?.model_id==="falcon" && window.__loadedModelId==="falcon" && window.__modelLoaded')
     page.click('#flightDrawer')
     page.locator('#armPanel summary').click()

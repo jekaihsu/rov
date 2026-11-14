@@ -3,6 +3,8 @@
   "title": "事故訓練｜零能見度迷航",
   "scenario": "incident_silt",
   "mode": "scenario_training",
+  "category": "incident",
+  "order": 30,
   "nodes": [
     {
       "id": "brief",
