@@ -21,7 +21,7 @@
       "condition": {
         "path": "score.elapsed",
         "op": "gt",
-        "value": 0
+        "value": -1
       }
     },
     {
