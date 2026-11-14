@@ -1,12 +1,13 @@
 """Browser validation of telemetry-driven guide, mappings and persisted dismissal."""
 import json
 from pathlib import Path
+from shutil import which
 from playwright.sync_api import sync_playwright
 
 out = Path(__file__).resolve().parents[1]/'output'/'pilot-guide-validation'
 out.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
-    browser = p.chromium.launch(channel='chrome', headless=True)
+    browser = p.chromium.launch(executable_path=which('google-chrome') or which('chromium'), headless=True)
     page = browser.new_page(viewport={'width': 1280, 'height': 800})
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))

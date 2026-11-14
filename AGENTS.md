@@ -25,7 +25,15 @@
 - 基底分支 `main`。每份任務書開一個分支 `task/<編號>-<短名>`，一個 PR。PR 標題以任務編號開頭，例如 `T02: 輸入層`。
 - PR 描述須包含：做了什麼、如何驗證（貼上實際執行的指令與結果）、未完成或有疑慮的部分。前端變更附前後截圖。
 - 不要順手做任務書以外的事。發現別的問題，寫在 PR 描述的「後續」段落。
-- 審查與合併由 Claude 負責。CI 未過不合併。
+- 審查與合併由 Claude 負責。CI 未過不合併；CI 額度用完時，由審查者在本機重跑測試代替。
+
+## CI 額度（GitHub Free，每月內含額度有限）
+
+- 開發中請開 **draft PR**，draft 不跑 CI。完成後再轉為 ready for review。
+- 不要為了觸發 CI 一直推小提交。在本機跑完測試、一次推上去。PR 描述裡貼上本機測試的指令與結果，這是必要的，不能只依賴 CI。
+- **禁止**在 `pull_request` 或 `push` 觸發 Windows／macOS runner（計費是 Linux 的數倍）。這類工作只能用 `workflow_dispatch` 手動觸發，或在推送版本 tag 時觸發。
+- 瀏覽器（Playwright）類的 CI 工作，必須用 `paths` 限定只在 `simulator/viewer/**` 變更時執行。
+- 新增 workflow 必須設 `timeout-minutes` 與 `concurrency: cancel-in-progress: true`。
 
 ## 硬性規則
 
@@ -48,6 +56,8 @@ RC 封包新增選填欄位：
 
 - `assist`：`0` 手動（現行行為，推桿即推力）；`1` 速度輔助（推桿為機體座標速度指令，鬆桿主動煞停）；`2` 定點輔助（同 1，且鬆桿後鎖定對地位置並抵抗洋流）。未提供視為 `0`。
 - `profile`：`"cine"`、`"normal"`、`"sport"`。只影響速度上限、加速度、偏航角速度與搖桿曲線。未提供視為 `"normal"`。
+
+**前端送出條件（重要）**：尚未支援輔助的伺服器會因 `profile` 是字串而拒絕整個 RC 封包（`invalid_command`），導致解鎖與操控全部失效。前端**只有在收到的 `state` 含有 `assist` 物件時**，才可以在 RC 封包中加入 `assist`／`profile`；否則一律不送。
 
 `state` 新增：
 
