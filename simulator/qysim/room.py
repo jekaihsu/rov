@@ -43,6 +43,8 @@ class Room:
         self._snapshot_tick = -1
         from .campaign import Campaign
         self.campaign = Campaign(self)
+        from .instructor import Instructor
+        self.instructor = Instructor(self)
 
     @property
     def primary(self):
@@ -57,6 +59,8 @@ class Room:
             rc.centre_sticks()
             rc.rc_lock = 1
             rc.photo = rc.record = 0
+        sim.controller.reset_assist()
+        sim.rc_physical.assist = 0
         sim.remote_control = False
         sim.nav.mode = "IDLE"
         sim.nav.hold = None
@@ -166,6 +170,7 @@ class Room:
                 self.lock(self.vehicles[p.vehicle_id])
 
     def reset(self, key=None, seed=None):
+        self.instructor.finish()
         if self.campaign.status != "idle":
             self.campaign.status = "interrupted"
         self._snapshot = None
@@ -182,9 +187,12 @@ class Room:
 
     def step(self, dt):
         base = self.primary
-        if base.paused:
+        primary_frozen = any(e['kind'] == 'freeze' and e['vehicle_id'] == 'v1'
+                             for e in self.instructor.active)
+        if base.paused and not primary_frozen:
             return
         world = base.world
+        self.instructor.update(dt)
         world.current.step_gust(dt, self.rng)
         self._vehicle_contacts()
         for sim in self.vehicles.values():

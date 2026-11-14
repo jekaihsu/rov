@@ -51,3 +51,11 @@ The old open-loop X1 top-speed test failed after restoring the coupling (4.285 k
 5. Measure tether payout, current, payload and battery/voltage during sea or tank trials. Fit one-axis step/coast-down tests and cross-axis turning tests separately. Validate held depth/heading and station-keeping drift with sensor noise and latency. Public data cannot establish these particular vehicle parameters.
 
 No large datasets or binaries were downloaded for this review. Reference websites were read on 2026-10-02.
+
+## T20 offline benchmark
+
+The optional explicit damping and motor reverse-ratio profile now lives in
+`vehicles.BENCHMARK_HEAVY`; the operator catalogue retains its existing estimates.
+See [T20 results and limitations](reference/t20-validation.md) for force-matched
+integration checks, source mapping and items that remain unverified. These checks
+are not full-vehicle or X1 experimental validation.

@@ -1,14 +1,20 @@
 """Compare unchanged peer cable work, and verify new packets still update it."""
 import json
+import argparse
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', default='http://127.0.0.1:8093/')
+parser.add_argument('--snapshot', type=Path)
+args = parser.parse_args()
 
 out = Path(__file__).resolve().parents[1] / 'output' / 'fleet-performance'
 out.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
     browser = p.chromium.launch(channel='chrome', headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page()
-    page.goto('http://127.0.0.1:8093/')
+    page.goto(args.url)
     page.wait_for_function('window.__menu?.ready')
     result = page.evaluate('''async()=>{
       const THREE=await import('three'),{Fleet}=await import('./fleet.js');
@@ -41,6 +47,36 @@ with sync_playwright() as p:
       return {previousMs,optimizedMs,previousUpdates,optimizedUpdates,finalUpdates,
         geometryChanged,peersDisposed:fleet.peers.size===0};
     }''')
+    result['bufferFrames'] = page.evaluate("""async captured => {
+      const {StateBuffer} = await import('./state_buffer.js');
+      const local = new StateBuffer();
+      const remote = new StateBuffer();
+      const nodes = Array.from({length:60}, (_, i) => [i*.1, 0, 3]);
+      function vehicle(id) {
+        return {id, pos:[0,0,3], q:[1,0,0,0], vel:[.1,0,0], tether:{nodes},
+          telemetry:{samples:Array.from({length:500}, (_, i) => i), name:'training'}};
+      }
+      const packet = captured || {...vehicle('v1'), vehicle_id:'v1', t:0,
+        vehicles:['v1','v2','v3'].map(vehicle),
+        operations:{objects:Array.from({length:20}, (_, id) => ({...vehicle(id), tether:undefined}))},
+        environment:{fish_schools:Array.from({length:20}, (_, id) => ({id, pos:[id,0,3], vel:[.1,0,0]}))}};
+      const times = [];
+      for (let frame=0; frame<660; frame++) {
+        const now = frame/60;
+        const start = performance.now();
+        if (frame%3===0) {
+          const snapshot = {...packet, t:now};
+          local.push(snapshot, now+100);
+          remote.push(snapshot, now+100);
+        }
+        local.sample(now+100, true);
+        remote.sample(now+100);
+        if (frame>=60) times.push(performance.now()-start);
+      }
+      times.sort((a,b) => a-b);
+      return {vehicles:3, frames:times.length, meanMs:times.reduce((a,b) => a+b, 0)/times.length,
+        medianMs:times[Math.floor(times.length/2)], p95Ms:times[Math.floor(times.length*.95)]};
+    }""", json.loads(args.snapshot.read_text()) if args.snapshot else None)
     quality = page.evaluate('''async()=>{
       const {configureRenderQuality,updateRenderQuality,renderQualityInfo}=await import('./render_quality.js');
       const renderer=window.__menu.renderer,canvas=renderer.domElement;

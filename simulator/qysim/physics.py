@@ -6,7 +6,7 @@ Frames
 
 The thruster layout is the X1-class vectored layout measured from the Blender
 reconstruction: four diagonal thrusters tilted in 3-D plus two longitudinal ones.
-Nominal independent-axis speeds use X1 datasheet targets (forward 4.5 kn,
+Nominal independent-axis speeds use provisional reseller targets (forward 4.5 kn,
 lateral 2.5 kn, vertical 1.5 kn) to fit drag. Coupled free-body speeds can differ;
 these fits are not experimental validation of complete vehicle motion.
 """
@@ -17,7 +17,7 @@ import math
 from dataclasses import dataclass, field
 
 import numpy as np
-from .vehicles import X1_THRUSTERS, get_vehicle_definition
+from .vehicles import X1_THRUSTERS, X1_PARAMETERS, get_vehicle_definition
 
 KNOT = 0.514444
 RHO = 1025.0
@@ -101,16 +101,19 @@ THRUSTERS = list(X1_THRUSTERS)  # Legacy imports remain compatible.
 
 @dataclass
 class VehicleParams:
-    mass: float = 30.0                    # kg in air (X1 datasheet: <= 30 kg)
-    net_buoyancy: float = 0.3 * G         # N, slightly positive
-    gm: float = 0.03                      # m, CB above CG (righting arm)
-    added_mass: tuple = (15.0, 25.0, 30.0)          # kg, surge/sway/heave
-    inertia: tuple = (1.1, 1.6, 1.8)                 # kg m^2 incl. added inertia
-    thruster_max: float = 148.0           # N per thruster; gives the 30 kgf forward thrust of the X1 datasheet
-    motor_tau: float = 0.08               # s, motor/ESC first-order lag
-    vmax: tuple = (4.5 * KNOT, 2.5 * KNOT, 1.5 * KNOT)   # m/s surge/sway/heave
-    wmax: tuple = (math.radians(120), math.radians(90), math.radians(90))  # rad/s p,q,r at full authority
-    linear_drag: tuple = (8.0, 12.0, 15.0, 1.0, 1.0, 1.0)
+    mass: float = X1_PARAMETERS["mass"]["value"]
+    net_buoyancy: float = X1_PARAMETERS["net_buoyancy"]["value"]
+    gm: float = X1_PARAMETERS["gm"]["value"]
+    added_mass: tuple = X1_PARAMETERS["added_mass"]["value"]
+    inertia: tuple = X1_PARAMETERS["inertia"]["value"]
+    thruster_max: float = X1_PARAMETERS["thruster_max"]["value"]
+    motor_tau: float = X1_PARAMETERS["motor_tau"]["value"]
+    vmax: tuple = X1_PARAMETERS["vmax"]["value"]
+    wmax: tuple = X1_PARAMETERS["wmax"]["value"]
+    quadratic_drag: tuple | None = X1_PARAMETERS["quadratic_drag"]["value"]
+    reverse_ratio: float = X1_PARAMETERS["reverse_ratio"]["value"]
+    thrust_asymmetry: bool = X1_PARAMETERS["thrust_asymmetry"]["value"]
+    linear_drag: tuple = X1_PARAMETERS["linear_drag"]["value"]
 
 
 def allocation_matrix(thrusters=None) -> np.ndarray:
@@ -185,6 +188,10 @@ class Vehicle:
         lin_r = np.array(self.p.linear_drag[3:])
         self.quad_rdrag = np.maximum((m_max - lin_r * wmax) / wmax ** 2, 0.05)
 
+        if self.p.quadratic_drag is not None:
+            self.quad_drag = np.asarray(self.p.quadratic_drag[:3], float)
+            self.quad_rdrag = np.asarray(self.p.quadratic_drag[3:], float)
+
     def _authority(self) -> np.ndarray:
         """Largest achievable force/torque along each wrench axis (thrusters saturated)."""
         out = np.zeros(6)
@@ -214,6 +221,8 @@ class Vehicle:
         p, s = self.p, self.s
         saved = (s.pos.copy(), s.q.copy(), s.vel.copy(), s.omega.copy())
         target = np.clip(np.asarray(thrust_cmd, float), -1, 1) * p.thruster_max
+        if p.thrust_asymmetry:
+            target = np.where(target < 0, target * p.reverse_ratio, target)
         s.thrust += (target - s.thrust) * min(1.0, dt / p.motor_tau)
         wrench = self.B @ s.thrust
         if extra_wrench is not None:

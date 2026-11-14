@@ -21,13 +21,19 @@ parser.add_argument('--licenses-only', action='store_true')
 options = parser.parse_args()
 distpath = options.distpath.resolve()
 
+# Internal supervision UI must not ship in the Steam backend.
+packaged_viewer = PROJECT / '.runtime' / 'steam-viewer'
+if not options.licenses_only:
+    shutil.rmtree(packaged_viewer, ignore_errors=True)
+    shutil.copytree(SIM / 'viewer', packaged_viewer, ignore=shutil.ignore_patterns('instructor'))
+
 args = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
         '--name', 'rov-sim', '--onedir', '--console',
         '--distpath', str(distpath),
         '--workpath', str(PROJECT / '.runtime' / 'pyinstaller-build'),
         '--specpath', str(PROJECT / '.runtime'),
         '--paths', str(SIM),
-        '--add-data', f'{SIM / "viewer"}:viewer',
+        '--add-data', f'{packaged_viewer}:viewer',
         '--add-data', f'{SIM / "campaign"}:campaign',
         '--add-data', f'{SIM / "qysim" / "assets"}:qysim/assets',
         '--add-data', f'{SIM / "qysim" / "_cable_accel.py"}:qysim',

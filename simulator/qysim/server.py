@@ -61,6 +61,8 @@ class SimHost:
         self._wire_snapshots = weakref.WeakKeyDictionary()
         self.sessions = {}
         self.bridges = {}
+        self.instructor_sessions = {}
+        self.instructor_code = os.environ.get("QYSIM_INSTRUCTOR_CODE", "")
         self.rpc_connections = 0
         self.rate_hz = rate_hz
         self.view_hz = view_hz
@@ -84,6 +86,8 @@ class SimHost:
             self.controller_generation += 1
         self.controller_connected = False
         self.controller_reason = reason
+        self.sim.controller.reset_assist()
+        self.sim.rc_physical.assist = 0
         self.sim.rc_physical.centre_sticks()
         self.sim.rc_physical.rc_lock = 1
         self.sim.rc_physical.photo = self.sim.rc_physical.record = 0
@@ -120,7 +124,7 @@ class SimHost:
                     self.sim.input_latched = False
                 else:
                     values["rc_lock"] = 1
-            self.sim.apply_viewer_rc(values)
+            self.sim.apply_viewer_rc(values, partial=True)
             if not self.sim.remote_control:
                 # Preserve short press/release pairs coalesced in one USB read.
                 self.sim._buttons(self.sim.rc_physical)
@@ -195,7 +199,7 @@ class SimHost:
         if room is not self.room:
             return True
         sim = room.primary
-        return bool(room.players or self.qirc_enabled or self.rpc_connections or
+        return bool(room.instructor.supervised or room.players or self.qirc_enabled or self.rpc_connections or
                     sim.remote_control or sim.nav.mode != "IDLE" or sim.nav.hold is not None or
                     sim.camera.recording_since is not None)
 
@@ -217,7 +221,10 @@ class SimHost:
                             del self.rooms[room_id]
                             continue
                         if self.should_step_room(room):
+                            override_count = len(room.instructor.active)
                             room.step(dt)
+                            if len(room.instructor.active) != override_count:
+                                self.world_version += 1
                             if room.campaign.environment_changed:
                                 self.world_version += 1
                                 room.campaign.environment_changed = False
@@ -292,7 +299,11 @@ class SimHost:
                     continue
                 async with self.lock:
                     try:
-                        if msg.get("type") == "attach_controller":
+                        if msg.get("type") == "instructor_join":
+                            reply = self.join_instructor(ws, msg)
+                        elif ws in self.instructor_sessions:
+                            reply = self.instructor_command(ws, msg)
+                        elif msg.get("type") == "attach_controller":
                             reply = self.attach_controller(ws, msg)
                             room, player, _ = self.sessions[ws]
                         elif msg.get("type") == "leave":
@@ -341,6 +352,9 @@ class SimHost:
                 sender.cancel()
                 await asyncio.gather(sender, return_exceptions=True)
             async with self.lock:
+                supervised_room = self.instructor_sessions.pop(ws, None)
+                if supervised_room and supervised_room not in self.instructor_sessions.values():
+                    supervised_room.instructor.supervised = False
                 session = self.sessions.pop(ws, None)
                 if session:
                     room, player, generation = session
@@ -351,6 +365,69 @@ class SimHost:
                     else:
                         room.disconnect(player, generation)
             self.viewers.discard(ws)
+
+    def join_instructor(self, ws, msg):
+        from .instructor import Instructor
+        if ws in self.sessions or not Instructor.authorized(self.instructor_code, msg.get("code")):
+            raise ValueError("instructor authentication failed")
+        room = self.rooms[str(msg.get("room_id", "training"))]
+        self.instructor_sessions[ws] = room
+        room.instructor.supervised = True
+        return {"type": "instructor_session", "room_id": room.id}
+
+    def instructor_command(self, ws, msg):
+        room = self.instructor_sessions[ws]
+        instructor = room.instructor
+        action = msg.get("action")
+        if msg.get("type") != "instructor":
+            raise ValueError("instructor command required")
+        if action == "inject":
+            instructor.inject(msg)
+        elif action == "report":
+            return {"type": "training_report", "report": instructor.report(msg.get("vehicle_id", "v1")),
+                    "archive": instructor.reports}
+        elif action == "pause":
+            for sim in room.vehicles.values():
+                sim.paused = bool(msg.get("value", True))
+        elif action in ("reset", "scenario"):
+            room.reset(key=msg.get("key"))
+            self.world_version += 1
+        elif action == "return":
+            vid = msg.get("vehicle_id", "v1")
+            room.select_model(vid, room.vehicles[vid].model_id)
+        elif action == "reference":
+            from .instructor import PHASES, DEFAULT_LIMITS
+            phase = msg.get("phase", instructor.phase)
+            if phase not in PHASES:
+                raise ValueError("invalid phase")
+            reference = msg.get("reference", {})
+            allowed = {"target", "path_start", "heading", "depth", "distance", "speed_min", "speed_max"}
+            if not isinstance(reference, dict) or set(reference) - allowed:
+                raise ValueError("invalid reference")
+            for key, value in reference.items():
+                if key in ("target", "path_start"):
+                    if not isinstance(value, list) or len(value) != 3:
+                        raise ValueError("target must be NED triple")
+                    values = value
+                else:
+                    values = [value]
+                if any(not isinstance(v, (int, float)) or not np.isfinite(v) for v in values):
+                    raise ValueError("reference must be finite")
+            limits = msg.get("limits", instructor.limits)
+            if set(limits) != {"still", "current"}:
+                raise ValueError("separate current and still limits required")
+            for group in limits.values():
+                if set(group) != set(DEFAULT_LIMITS) or any(
+                        not isinstance(v, (int, float)) or not np.isfinite(v) or v <= 0 for v in group.values()):
+                    raise ValueError("invalid limits")
+            instructor.phase = phase
+            instructor.reference[msg.get("vehicle_id", "v1")] = reference
+            instructor.limits = limits
+        else:
+            raise ValueError("unsupported instructor action")
+        room._snapshot = None
+        self.world_version += 1
+        return {"type": "instructor_result", "action": action, "ok": True}
 
     def attach_controller(self, ws, msg):
         if ws in self.sessions:
@@ -401,6 +478,7 @@ class SimHost:
             async with self.lock:                 # snapshot under the lock, send outside it
                 session = self.sessions.get(ws)
                 room, player = (session[0], session[1]) if session else (self.room, None)
+                room = self.instructor_sessions.get(ws, room)
                 if seen_version != self.world_version:
                     seen_version = self.world_version
                     sim = room.vehicles[player.vehicle_id] if player else room.primary
@@ -414,6 +492,8 @@ class SimHost:
     def handle_viewer(self, msg: dict, button_values: dict | None = None, *, room=None, player=None, controller_bridge=False):
         t = msg.get("type")
         room = room or self.room
+        if (room.instructor.active or room.instructor.supervised) and t != "rc":
+            return {"type": "error", "code": "instructor_override", "message": "Instructor override active"}
         sim = room.vehicles[player.vehicle_id] if player else room.primary
         if player is not None and t in ("scenario", "reset", "pause", "current") and player.id != room.host_id:
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同場景"}
@@ -425,7 +505,10 @@ class SimHost:
             values = msg.get("rc", {})
             if not isinstance(values, dict):
                 raise ValueError("rc must be an object")
-            if any(not isinstance(v, (int, float)) or not np.isfinite(v) for v in values.values()):
+            if "profile" in values and not isinstance(values["profile"], str):
+                raise ValueError("RC profile must be a string")
+            if any(not isinstance(v, (int, float)) or not np.isfinite(v)
+                   for k, v in values.items() if k != "profile"):
                 raise ValueError("RC values must be finite numbers")
             bridge = self.bridges.get((room.id, player.id)) if player else None
             if bridge and not controller_bridge:
@@ -458,7 +541,12 @@ class SimHost:
                     sim.input_latched = False
                 else:
                     values["rc_lock"] = 1
-            sim.apply_viewer_rc(values)
+            # Assistance metadata is packet-scoped, not a button edge.
+            # Keep it even when unchanged buttons were removed above.
+            for key in ("assist", "profile"):
+                if key in msg.get("rc", {}):
+                    values[key] = msg["rc"][key]
+            sim.apply_viewer_rc(values, partial=controller_bridge)
             if not sim.remote_control:
                 # Preserve short camera button edges when several network packets
                 # arrive between physics ticks, just as the local USB reader does.
