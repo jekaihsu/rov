@@ -1,3 +1,4 @@
+import { installProcedureSetting } from './procedure/index.js';
 import {installAudio, installAudioSettings} from './audio/engine.js';
 import * as THREE from 'three';
 import {CAMPAIGN_MENU_STRINGS} from './story/campaign.js';
@@ -22,6 +23,7 @@ menu.innerHTML=`<div class="menu-shade"></div><header class="menu-brand"><b>ROV<
 <details><summary>手柄與設定</summary><label for="menuPad">輸入裝置</label><select id="menuPad"><option value="auto">自動偵測手柄＋鍵盤</option><option value="keyboard">只使用鍵盤</option></select><p class="menu-help" id="menuPadInfo">連接手柄後按任一按鍵以偵測。</p><label for="menuControl">控制配置</label><select id="menuControl"><option value="UAV_CHN">ROV 雙桿：左桿前後／平移，右桿升降／轉向</option><option value="ROV_USA">X1 配置：左桿俯仰／轉向，右桿前後／橫滾</option><option value="ROV_JPN">X1 日本配置</option><option value="ROV_CHN">X1 中國配置</option></select><label for="menuQuality">畫質</label><select id="menuQuality"><option value="medium">中 · 效能優先</option><option value="high">高 · 細節優先</option></select><label class="menu-toggle">操作員小視窗<input id="menuPip" type="checkbox"></label><label class="menu-toggle">下水動畫<input id="menuIntro" type="checkbox" checked></label><label class="menu-toggle">畫面搖桿<input id="menuSticks" type="checkbox" checked></label><label class="menu-toggle">真實能見度<input id="menuFog" type="checkbox" checked></label><label class="menu-toggle">場景標籤<input id="menuLabels" type="checkbox" checked></label></details>
 <p class="menu-status" id="menuStatus" role="status">正在準備 3D 預覽…</p><button class="menu-start" id="startDive" type="submit" disabled><span>開始潛航</span><span aria-hidden="true">↗</span></button></form><div class="menu-caption"><span class="menu-backdrop-label">LIVE 3D PREVIEW / 場景預覽</span><strong id="previewTitle"></strong><span id="previewScene"></span></div>`;
 document.body.append(menu);
+installProcedureSetting($('launchForm'));
 const performanceSection=document.createElement('section');performanceSection.className='menu-performance';performanceSection.innerHTML='<h2>本機效能</h2><p id="menuHardware" class="menu-help">正在偵測目前使用的顯示卡…</p><p id="menuQualityState" class="menu-help"></p>';
 $('launchForm').prepend(performanceSection);performanceSection.append(document.querySelector('label[for="menuQuality"]'),$('menuQuality'));
 const launchFooter=document.createElement('div');launchFooter.className='menu-launch-footer';$('startDive').setAttribute('form','launchForm');launchFooter.append($('menuStatus'),$('startDive'));menu.append(launchFooter);
@@ -100,6 +102,7 @@ $('launchForm').onsubmit=event=>{
     if(location.protocol==='https:'&&server.protocol!=='wss:')throw Error('安全網頁需要使用 wss:// 伺服器。');
     const url=new URL(location.href);url.searchParams.delete('replay');url.searchParams.set('play','1');url.searchParams.set('model',selected);url.searchParams.set('ws',server.href);url.searchParams.set('room',$('menuRoom').value);url.searchParams.set('name',$('menuName').value);url.searchParams.set('scenario',$('menuScene').value);url.searchParams.set('seed','42');url.searchParams.set('control',$('menuControl').value);url.searchParams.set('pad',$('menuPad').value);
     url.searchParams.set('sticker',stickerSelect.value);localStorage.setItem('rov.sticker',stickerSelect.value);
+    url.searchParams.set('procedure',$('menuProcedure').value);
     url.searchParams.set('quality',$('menuQuality').value);window.rovDesktop?.rememberQuality($('menuQuality').value);
     url.searchParams.set('mission',$('menuMode').value);localStorage.setItem('rov.mission',$('menuMode').value);
     if($('menuIntro').checked)url.searchParams.delete('nointro');else url.searchParams.set('nointro','1');

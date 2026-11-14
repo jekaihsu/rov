@@ -419,6 +419,8 @@ class SimHost:
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同場景"}
         if t == "operation" and msg.get("action") in ("mission_mode", "expedition_start", "expedition_cancel") and (player is None or player.id != room.host_id):
             return {"type": "error", "code": "host_only", "message": "只有房主可以變更共同任務"}
+        if t == "procedure":
+            return sim.procedure.action(msg)
         if t == "rc":
             if player is not None and not room.input(player, msg.get("seq"), bridge=controller_bridge):
                 return {"type": "error", "code": "stale_input", "message": "控制封包序號已過期"}

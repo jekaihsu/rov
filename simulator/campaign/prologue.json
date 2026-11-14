@@ -6,6 +6,13 @@
   "requires": null,
   "nodes": [
     {
+      "id": "predive_brief",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "predive.text",
+      "speaker_key": "predive.speaker"
+    },
+    {
       "id": "welcome",
       "type": "dialogue",
       "voice": null,
@@ -184,7 +191,9 @@
       "photo_line.speaker": "林督導",
       "photo.hint": "P / 拍照鍵",
       "end.text": "收工。明天去港裡，船主等著我們查樁和船殼。",
-      "end.speaker": "阿禾"
+      "end.speaker": "阿禾",
+      "predive.text": "下水前先確認密封、接頭與配平。完整作業流程可在主選單開啟；入水且人員離開才解鎖，回收先上鎖。上電順序、提示音與燈號暫定，待實測。",
+      "predive.speaker": "林督導"
     }
   }
 }

@@ -1,5 +1,6 @@
 """Real-browser smoke checks against a separately running simulator."""
 import json
+import time
 from pathlib import Path
 from shutil import which
 from playwright.sync_api import sync_playwright
@@ -14,6 +15,7 @@ def run():
         browser=p.chromium.launch(executable_path=which('google-chrome') or which('chromium'),headless=True, args=['--enable-unsafe-swiftshader'])
         contexts=[]
         pages=[]
+        room_id = f"browsercheck-{time.time_ns()}"
         for i in range(3):
             print('Connecting browser',i+1,flush=True)
             context=browser.new_context(viewport={'width':960,'height':720})
@@ -21,13 +23,17 @@ def run():
             page.on('pageerror',lambda error: (errors.append(str(error)),print('PAGE ERROR',error,flush=True)))
             page.on('requestfailed',lambda request: print('REQUEST FAILED',request.url,request.failure,flush=True))
             page.on('console',lambda msg: print('CONSOLE',msg.text,flush=True) if msg.type=='error' else None)
-            page.goto('http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&model=falcon&nointro&room=browsercheck',wait_until='domcontentloaded',timeout=90000)
+            page.goto(
+                'http://127.0.0.1:8092/?ws=ws://127.0.0.1:8792&play=1&model=falcon&nointro'
+                f'&room={room_id}', wait_until='domcontentloaded', timeout=90000)
             try:page.wait_for_function('window.__viewer?.S?.vehicle_id',timeout=60000)
             except Exception:
                 print('DIAGNOSTICS',page.evaluate('({title:document.title,ready:!!window.__viewer,state:window.__viewer?.S,notice:document.querySelector("#operationNotice")?.textContent,connection:document.querySelector("#conn")?.textContent})'),flush=True)
                 page.screenshot(path=str(OUT/f'failed-{i}.png'))
                 raise
         main=pages[0]
+        # Hidden tabs stop RC heartbeats; exercise controls in the foreground tab.
+        main.bring_to_front()
         main.wait_for_function('window.__viewer.S.vehicles.length===3')
         assert main.locator('#pip').is_hidden()
         main.evaluate("const option=document.querySelector('#optPip');option.checked=true;option.dispatchEvent(new Event('change'))")
