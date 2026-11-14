@@ -3,7 +3,8 @@ import { drawFlightCompass } from './compass.js';
 import { forwardRange } from './range.js';
 import { drawFlightAttitude } from './attitude.js';
 const STRINGS = {
-  close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab', density: ['極簡', '標準', '完整'],
+  close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
+  density: ['極簡', '標準', '完整'],
   hide: '切換 HUD', north: '北朝上', head: '機頭朝上',
   cards: ['任務與目標', '載具系統', '地圖與隊友', '鍵位提示'],
   keys: 'WASD / 方向鍵 飛行\nSpace 鎖定 · H 定深 · L 燈光\n1–4 速覽 · Tab 工程',
@@ -156,7 +157,19 @@ function drawMap(canvas, s, w) {
     if (ob.center) {
       const [x, y] = point(ob.center);
       ctx.strokeStyle = '#8fa6b2';
-      ctx.strokeRect(x - 5, y - 5, 10, 10);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((ob.yaw_deg || 0) * Math.PI / 180);
+      ctx.strokeRect(-ob.half[1] * 5, -ob.half[0] * 5, ob.half[1] * 10, ob.half[0] * 10);
+      ctx.restore();
+    }
+    if (ob.type === 'wall') {
+      const angle = ob.normal_deg * Math.PI / 180;
+      const tangent = [-Math.sin(angle) * ob.width / 2, Math.cos(angle) * ob.width / 2];
+      line([
+        [ob.point[0] - tangent[0], ob.point[1] - tangent[1]],
+        [ob.point[0] + tangent[0], ob.point[1] + tangent[1]],
+      ], '#8fa6b2');
     }
   }
   line(s.tether?.nodes || [], '#4fd1e0');
@@ -167,7 +180,7 @@ function drawMap(canvas, s, w) {
     ctx.strokeRect(x - 4, y - 4, 8, 8);
   }
   for (const peer of s.vehicles || []) {
-    if (!peer.pos || peer.vehicle_id === s.vehicle_id) continue;
+    if (!peer.pos || (peer.vehicle_id || peer.id) === s.vehicle_id) continue;
     const [x, y] = point(peer.pos);
     ctx.fillStyle = '#5fd38a';
     ctx.fillRect(x - 3, y - 3, 6, 6);
