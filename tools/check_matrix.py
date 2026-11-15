@@ -24,6 +24,7 @@ DEFAULT_CHECKS = (
     'browser_collection_storage',
     'browser_audio_smoke',
     'browser_audio_review_smoke',
+    'browser_debrief_smoke',
     'browser_mission_smoke',
     'browser_gameplay_smoke',
     'browser_expedition_smoke',
