@@ -47,6 +47,23 @@ display distance when the "real visibility" toggle is off); without it the scene
 component `u` from depth `z` is `b * E(z) / (c - Kd u)` with `E(z) = exp(-Kd z)`. Distant objects tend to
 exactly this colour, so there is no seam at the horizon, and looking up is brighter than looking down.
 
+**Water type.** The scenario's optional `water_type` (`world.scenario.water_type`, PROTOCOL.md; the server
+derives it from the biome when a scenario does not set it) adds yellow substance (CDOM and detritus)
+absorption `a_g(440)`, spectrum `exp(-0.015 (lambda - 440))`, taken out of the same visibility budget:
+
+| `water_type` | Sites (default from biome) | `a_g(440)` 1/m | Look |
+|---|---|---|---|
+| `oceanic` | reef (Jerlov I-III) | 0.015 | blue-cyan |
+| `coastal` | seagrass (Jerlov coastal 1-3) | 0.08 | cyan-green |
+| `shelf` | temperate: offshore wind, jackets, wrecks, open water (coastal 3-7) | 0.2 | green / teal-green |
+| `harbour` | harbor (coastal 7-9) | 0.35 | yellow-green |
+| `fresh_clear` | pool | 0 | clear |
+
+Blue is absorbed first, so the in-scattered water colour moves from blue to green as `a_g` rises (test:
+blue/green ratio of the water colour falls oceanic > coastal > shelf > harbour). Very clear display
+visibilities (the third-person training fog) cannot make shelf water blue any more: the yellow substance
+caps the clarity. Missing or unknown type (old recordings): no yellow substance, the previous generic water.
+
 Red leaves first: in 10 m visibility daylight red is below 3 % at 10 m while green is still above 10 %
 (test). Lamp light travels lamp -> object -> camera, so near objects in the lamps keep their colour at any
 depth while daylit objects lose red with depth plus distance, as described in
@@ -61,6 +78,14 @@ moves towards its target with a first-order lag (`tau` 0.35 s, symmetric in stop
 visibly brighter than level 1 and the near-field lamp pool is not flattened to mid-grey. The upper clamp is the camera's maximum gain: at 25-32 m with the lamps off the image stays
 dark and objects read as silhouettes against slightly brighter water. No pixel is read back for rendering
 (`state.exposure()` is a synchronous diagnostic for tools only).
+
+**White balance.** The same pass runs a partial grey-world auto white balance, because small ROV cameras
+default to auto WB and real footage shows the WB setting changes the look more than depth
+(`research_notes/洋流與波浪對ROV作業/real_dive_footage.md` §8 target 9). The meter also records each cell's
+log(red / green) and log(blue / green); red and blue gains remove 60 % of the average cast, lagged like the
+exposure, limited to 3x. It cannot recover red the water removed completely, so deep shelf water stays green,
+but it takes the extreme saturation off (teal-green instead of emerald, cyan instead of deep blue). Unlit
+helpers are divided by these gains too.
 
 Unlit helpers (`MeshBasicMaterial`, lines, points, sprites: objective markers, the flow particles, lamp
 glows) are divided by the same exposure (`neutraliseExposure`), so they keep their designed screen
@@ -82,6 +107,11 @@ Everything numeric here is a visualization assumption; nothing is X1 data. Mark 
   readable, and harbour water (7 m) is clearly murkier.
 - Multiple-scattering lamp glow (0.007, cube law in `c`) and sediment scattering share `[0.85, 0.8, 0.6]`:
   visual calibration against main's silt screenshots; `silt-validation.md` has no image measurements either.
+- Water types and their `a_g(440)` values, the spectral slope 0.015/nm and the biome mapping: orders of
+  magnitude for open-ocean, coastal and estuarine water, not site data; chlorophyll absorption is not
+  modelled separately.
+- Auto white balance strength 0.6 of the log cast, gain limit 3: no measured WB behaviour of the vehicle
+  camera exists; the footage notes only show that WB matters.
 - Exposure key 0.15, partial compensation 0.65 around gain 50, range 0.3-400, lag 0.35 s, centre weighting: the research report has no measured
   auto-exposure or gain behaviour.
 - Particle sizes, density (scaled by `b`) and drift; sun shaft and caustic patterns. Size and the order of
@@ -145,6 +175,16 @@ the single-scatter path within centimetres): `uLampGlow` = lamp power x `b / c` 
 0.007, added along every camera path. It is negligible below `c` of about 1/m and saturates in a
 silt-out; calibrated so `incident_silt` with the lamps full goes near white-out (stronger than main's
 grey veil) and near black with the lamps off.
+
+### Site materials (`structure_materials.js`, `seabed.js`)
+
+Both install their own `onBeforeCompile`; `underwater_lighting.js` wraps it (calls it first, then adds the
+water light paths) and appends to its program cache key (`structure-fouling-v5-1|water-optics-v3|false`), so
+the fouling / seabed colour is applied to `diffuseColor` first and the water maths acts on the result. The flat
+look in the first `*-third-optics.jpg` review shots had two other causes: the medium tier had been reduced to a
+per-vertex depth-band tint without any texture read (#52, 13cf9fe), and the review tool took one render after
+the app had metered its own camera. Medium fouling now breaks the tint up with a cheap two-octave value noise
+(ALU only, no texture), and `browser_scene_review.py` lets exposure and white balance settle on the view.
 
 ## Observation photos
 

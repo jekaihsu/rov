@@ -75,13 +75,32 @@ class Scenario:
     bnl_mg_l: float = 0.0               # extra suspended sediment at the bed, mg/L
     water: str = "salt"                  # "salt" or "fresh": pressure-to-depth density of the site
     enclosed: bool = False               # walled pool or tank: DVL beams reverberate off the walls
+    # Optical water type for the viewer's colour (oceanic / coastal / shelf / harbour / fresh_clear);
+    # None: from the biome (water_type_for). Presentation only; it does not change physics or visibility_m.
+    water_type: str | None = None
 
     def summary(self) -> dict:
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
                 "tether_length": self.tether_length, "biome": self.biome,
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
-                "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l}
+                "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
+                "water_type": water_type_for(self.biome, self.water_type, self.water)}
+
+
+WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear")
+
+
+def water_type_for(biome: str, explicit: str | None = None, water: str = "salt") -> str:
+    """Optical water type of a site, loosely after Jerlov's classes (assumed per biome, not measured):
+    clear tropical reef water is oceanic (Jerlov I-III), seagrass flats clear coastal (1-3), temperate shelf
+    sites such as offshore wind, jackets and wrecks coastal 3-7 ("shelf"), harbours coastal 7-9; a pool is
+    clear fresh water."""
+    if explicit in WATER_TYPES:
+        return explicit
+    if water == "fresh":
+        return "fresh_clear"
+    return {"reef": "oceanic", "seagrass": "coastal", "harbor": "harbour"}.get(biome, "shelf")
 
 
 # Scenario currents are provisional assumptions, not site measurements (AGENTS.md: replace with

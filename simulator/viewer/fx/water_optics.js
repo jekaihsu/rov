@@ -247,7 +247,7 @@ function mediumContributions(scene, camera, water) {
 export function updateWaterOptics(scene, { beauty = false, camera = null } = {}) {
   const visibility = baseVisibility(scene);
   const silt = scene.userData.waterSiltTint ?? scene.userData.waterState?.silt ?? 0;
-  const base = waterCoefficients(visibility, silt);
+  const base = waterCoefficients(visibility, silt, scene.userData.waterType);
   const water = combineMedium(base, mediumContributions(scene, camera, base));
   waterUniforms.uWaterC.value.fromArray(water.c);
   waterUniforms.uWaterKd.value.fromArray(water.kd);

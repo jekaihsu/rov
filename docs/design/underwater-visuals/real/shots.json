@@ -10,14 +10,19 @@
     "pitch_deg": -12.0,
     "lamp_level": 0,
     "visibility_m": 18,
-    "seconds_per_frame": 1.127,
+    "seconds_per_frame": 0.576,
     "quality": "medium",
     "exposure": {
-      "exposure": 32.44751284843014,
-      "target": 32.336042040825575,
-      "meteredLuminance": 0.005865785087490505
+      "exposure": 22.130916442052943,
+      "target": 22.1115973467146,
+      "meteredLuminance": 0.010526280809630528,
+      "whiteBalance": [
+        3.000000059502263,
+        1,
+        1.0021655294456155
+      ]
     },
-    "bytes": 115674
+    "bytes": 101202
   },
   "seagrass": {
     "scenario": "seagrass_meadow",
@@ -30,14 +35,19 @@
     "pitch_deg": -12.0,
     "lamp_level": 0,
     "visibility_m": 12,
-    "seconds_per_frame": 1.312,
+    "seconds_per_frame": 0.515,
     "quality": "medium",
     "exposure": {
-      "exposure": 27.45872750022182,
-      "target": 27.43832256602727,
-      "meteredLuminance": 0.007552028160649416
+      "exposure": 25.0772789112328,
+      "target": 25.047229095987028,
+      "meteredLuminance": 0.00868926864386715,
+      "whiteBalance": [
+        3.000000059502263,
+        1,
+        1.4016332580177897
+      ]
     },
-    "bytes": 79878
+    "bytes": 65678
   },
   "harbour": {
     "scenario": "harbor_inspection",
@@ -50,14 +60,19 @@
     "pitch_deg": -10.6,
     "lamp_level": 1,
     "visibility_m": 7,
-    "seconds_per_frame": 1.689,
+    "seconds_per_frame": 1.549,
     "quality": "medium",
     "exposure": {
-      "exposure": 36.54822327040554,
-      "target": 36.62270599139609,
-      "meteredLuminance": 0.004843412124216171
+      "exposure": 43.05848956667898,
+      "target": 43.109192094153215,
+      "meteredLuminance": 0.0037687594577608743,
+      "whiteBalance": [
+        1.5229425367502116,
+        1,
+        1.8872525993919977
+      ]
     },
-    "bytes": 63135
+    "bytes": 63092
   },
   "wreck-lit-1": {
     "scenario": "korean_castle",
@@ -70,14 +85,19 @@
     "pitch_deg": -6.0,
     "lamp_level": 1,
     "visibility_m": 10.0,
-    "seconds_per_frame": 15.348,
+    "seconds_per_frame": 4.17,
     "quality": "medium",
     "exposure": {
-      "exposure": 68.20848624136802,
-      "target": 67.78995141621843,
-      "meteredLuminance": 0.001878208779380766
+      "exposure": 71.83844543887238,
+      "target": 71.83464320783808,
+      "meteredLuminance": 0.0017179994227653598,
+      "whiteBalance": [
+        1.3383535029040303,
+        1,
+        1.5915441243503268
+      ]
     },
-    "bytes": 162705
+    "bytes": 156715
   },
   "wreck-lit-2": {
     "scenario": "korean_castle",
@@ -90,14 +110,19 @@
     "pitch_deg": -6.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 12.596,
+    "seconds_per_frame": 4.229,
     "quality": "medium",
     "exposure": {
-      "exposure": 47.61396209282834,
-      "target": 46.96924504290776,
-      "meteredLuminance": 0.003302939001826912
+      "exposure": 49.28036803073447,
+      "target": 49.17182969449349,
+      "meteredLuminance": 0.0030780861173053905,
+      "whiteBalance": [
+        1.3254493622764307,
+        1,
+        1.578200443728658
+      ]
     },
-    "bytes": 167530
+    "bytes": 159600
   },
   "wreck-dark": {
     "scenario": "korean_castle",
@@ -110,14 +135,19 @@
     "pitch_deg": -6.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 6.611,
+    "seconds_per_frame": 2.183,
     "quality": "medium",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 9.748331202453468e-05
+      "meteredLuminance": 3.575126230690448e-05,
+      "whiteBalance": [
+        3.000000059502263,
+        1,
+        3.000000059502263
+      ]
     },
-    "bytes": 56888
+    "bytes": 48237
   },
   "silt-lamps-full": {
     "scenario": "incident_silt",
@@ -126,18 +156,23 @@
       0.0,
       11.55
     ],
-    "heading_deg": 0.1,
-    "pitch_deg": -0.0,
+    "heading_deg": 0.0,
+    "pitch_deg": 0.0,
     "lamp_level": 2,
     "visibility_m": 3,
-    "seconds_per_frame": 4.755,
+    "seconds_per_frame": 0.893,
     "quality": "medium",
     "exposure": {
-      "exposure": 6.243095989786193,
-      "target": 6.069378877744177,
-      "meteredLuminance": 0.07692792522226793
+      "exposure": 6.2482482210644426,
+      "target": 6.0744217796366415,
+      "meteredLuminance": 0.07682969831829785,
+      "whiteBalance": [
+        0.910252659770748,
+        1,
+        1.3477041941073182
+      ]
     },
-    "bytes": 35626
+    "bytes": 39710
   },
   "silt-lamps-off": {
     "scenario": "incident_silt",
@@ -146,17 +181,22 @@
       0.0,
       11.55
     ],
-    "heading_deg": 0.1,
-    "pitch_deg": -0.0,
+    "heading_deg": 0.0,
+    "pitch_deg": 0.0,
     "lamp_level": 0,
     "visibility_m": 3,
-    "seconds_per_frame": 2.121,
+    "seconds_per_frame": 0.532,
     "quality": "medium",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 3.137206638284192e-05
+      "meteredLuminance": 2.1453631570708783e-05,
+      "whiteBalance": [
+        2.5096410375213205,
+        1,
+        3.000000059502263
+      ]
     },
-    "bytes": 38081
+    "bytes": 45743
   }
 }

@@ -210,6 +210,20 @@ function foulingShader(params, textures) {
       uniform vec3 uCoat;
       uniform vec3 uBoot;
       uniform float uHasBoot;
+      float foulHash(float n) {
+        return fract(sin(n) * 43758.5453);
+      }
+      float foulNoise(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float n = i.x + i.y * 57.0 + i.z * 113.0;
+        float x00 = mix(foulHash(n), foulHash(n + 1.0), f.x);
+        float x10 = mix(foulHash(n + 57.0), foulHash(n + 58.0), f.x);
+        float x01 = mix(foulHash(n + 113.0), foulHash(n + 114.0), f.x);
+        float x11 = mix(foulHash(n + 170.0), foulHash(n + 171.0), f.x);
+        return mix(mix(x00, x10, f.y), mix(x01, x11, f.y), f.z);
+      }
       vec3 foulSample(float scale) {
         vec3 p = vFoulPos * scale;
         vec3 n = abs(vFoulNormal);
@@ -218,7 +232,14 @@ function foulingShader(params, textures) {
       }
       ` + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       #if FOUL_QUALITY < 2
-      diffuseColor.rgb = mix(diffuseColor.rgb, vFoulTint.rgb, vFoulTint.a);
+      {
+        // Medium: no texture read, but a cheap two-octave value noise breaks the per-vertex tint into patches
+        // and stains, so growth still reads as growth under the per-channel water light (fx/water_optics.js).
+        float patches = foulNoise(vFoulPos * 0.9) * 0.65 + foulNoise(vFoulPos * 3.7) * 0.35;
+        float amount = clamp(vFoulTint.a * (0.35 + 1.1 * patches), 0.0, 1.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vFoulTint.rgb, amount);
+        diffuseColor.rgb *= mix(1.0, 0.7 + 0.5 * patches, vFoulBand.z);
+      }
       diffuseColor.rgb = mix(diffuseColor.rgb, uBoot, vFoulPaint.x);
       diffuseColor.rgb = mix(diffuseColor.rgb, uCoat, vFoulPaint.y);
       #else
@@ -271,7 +292,7 @@ export function structureMaterial(kind, detail = 'medium') {
   } else {
     material.onBeforeCompile = foulingShader(params, textures);
     material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};
-    material.customProgramCacheKey = () => `structure-fouling-v4-${material.defines.FOUL_QUALITY}`;
+    material.customProgramCacheKey = () => `structure-fouling-v5-${material.defines.FOUL_QUALITY}`;
   }
   material.userData.structureKind = kind;
   return material;

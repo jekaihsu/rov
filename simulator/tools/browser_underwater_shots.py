@@ -109,6 +109,8 @@ def build_replay(name, scenario, subject, lamp):
     state['rc']['right_switch'] = lamp
     state['rc']['rc_lock'] = 0
     state['locked'] = False
+    # The vehicle is placed, not flown: show an intact, slack tether (no break / snag banners from the setup).
+    state['tether'].update({'broken': False, 'break_reason': None, 'snagged_on': [], 'warn': False})
     if subject != 'silt':
         # A tether leaving backwards and up, out of the onboard camera's view.
         back = [-math.cos(math.radians(heading)), -math.sin(math.radians(heading))]

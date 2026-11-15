@@ -39,16 +39,25 @@ rendered hull was used instead.
 Camera auto-exposure at capture (from `real/shots.json`; `exposure` is the adapted gain, `target` what
 the meter asks for, clamped to 0.3-400):
 
-| Shot | Metered luminance (linear) | Target | Exposure at capture |
-|---|---|---|---|
-| Reef | 5.9e-3 | 32.3 | 32.4 |
-| Seagrass | 7.6e-3 | 27.4 | 27.5 |
-| Harbour | 4.8e-3 | 36.6 | 36.5 |
-| Wreck, lamps 1 | 1.9e-3 | 67.8 | 68.2 |
-| Wreck, lamps 2 | 3.3e-3 | 47.0 | 47.6 |
-| Wreck, lamps off | 9.8e-5 | 400 (clamped) | 400 |
-| Silt-out, lamps full | 7.7e-2 | 6.1 | 6.2 |
-| Silt-out, lamps off | 3.1e-5 | 400 (clamped) | 400 |
+| Shot | Water type | Metered luminance (linear) | Target | Exposure at capture | White balance R / G / B |
+|---|---|---|---|---|---|
+| Reef | oceanic | 1.1e-2 | 22.1 | 22.1 | 3.0 / 1 / 1.0 |
+| Seagrass | coastal | 8.7e-3 | 25.0 | 25.1 | 3.0 / 1 / 1.4 |
+| Harbour | harbour | 3.8e-3 | 43.1 | 43.1 | 1.5 / 1 / 1.9 |
+| Wreck, lamps 1 | shelf | 1.7e-3 | 71.8 | 71.8 | 1.3 / 1 / 1.6 |
+| Wreck, lamps 2 | shelf | 3.1e-3 | 49.2 | 49.3 | 1.3 / 1 / 1.6 |
+| Wreck, lamps off | shelf | 3.6e-5 | 400 (clamped) | 400 | 3.0 / 1 / 3.0 |
+| Silt-out, lamps full | shelf | 7.7e-2 | 6.1 | 6.2 | 0.9 / 1 / 1.35 |
+| Silt-out, lamps off | shelf | 2.2e-5 | 400 (clamped) | 400 | 2.5 / 1 / 3.0 |
+
+`real/` was re-shot on `fix/optics-scenes` (origin/main `5c5dc4c` plus per-site water types and the camera's
+partial auto white balance; see `simulator/viewer/fx/README.md`). Compared with the previous `real/` (still on
+main): harbour water goes from saturated green to olive grey-green, the reef stays cyan, the seagrass bed is
+paler (its seabed material also changed with #52's per-site seabeds), the lit wreck keeps its pool with
+slightly magenta-grey dark corners (the white balance lifts red and blue there), and the silt-out with lamps
+full turns from cream to neutral grey, close to main's silt reference. Self-critique: the dark corners'
+tint and the very dark lamps-off frames (gains at the 3x limit amplify almost nothing) are white-balance
+side effects; the seagrass shot lost sand-ripple contrast.
 
 The exposure loop corrects only 65 % of the metered error (in stops, around a gain of 50), so the second
 lamp level lowers the gain (68 -> 47) but the picture still gets brighter, and the lamp pool on the hull
