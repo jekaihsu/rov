@@ -299,6 +299,9 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 .menu-choice[aria-pressed=true] { border-top-color: var(--accent); }
 .menu-choice[aria-pressed=true] strong { color: var(--accent); }
 .menu-field { display: grid; gap: 4px; margin: 0 0 16px; max-width: 560px; }
+.menu-range { display: grid; grid-template-columns: 1fr 56px; align-items: center; gap: 12px; }
+.menu-tab-pane > .menu-toggles { margin-bottom: 16px; }
+.menu-range-value { font-size: 13px; color: var(--text-dim); text-align: right; }
 .menu-embedded > summary { display: none; }
 .menu-embedded { margin: 0; }
 .menu-audio label { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: 16px; padding: 10px 0;

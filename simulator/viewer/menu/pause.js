@@ -7,6 +7,7 @@ import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './na
 import { acceptContract, contractBoard } from '../play/contracts.js';
 import { objectiveSummary } from '../play/mission_text.js';
 import { restartRun } from '../play/restart.js';
+import { mountDisplaySettings } from './display_settings.js';
 import {
   createSettingsPanel,
   element,
@@ -32,7 +33,9 @@ const STRINGS = {
   solo: '單人潛航：模擬已暫停。繼續後請先回中、再解鎖。',
   shared: '多人房間：模擬持續進行，你的操控已回中；其他人照常駕駛。',
   replay: '回放中：關閉選單即可繼續。',
-  tabs: { fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', interface: '介面' },
+  tabs: {
+    fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
+  },
   controller: '開啟手把設定（死區、曲線、綁定）',
   quality: {
     auto: ['自動', '目標 60 FPS'],
@@ -126,6 +129,7 @@ function buildSettings(input) {
           });
         },
       },
+      { id: 'display', label: STRINGS.tabs.display, mount: mountDisplaySettings },
       {
         id: 'interface',
         label: STRINGS.tabs.interface,

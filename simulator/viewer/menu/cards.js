@@ -3,6 +3,7 @@
 // (play/results_model.js), and for a locked chapter the condition that unlocks it. Buttons, so the menu
 // navigator moves between them spatially with the pad or keys.
 import { recordFor, medalLabel } from '../play/results_model.js';
+import { lengthIn, lengthUnit } from '../prefs/display.js';
 
 const STRINGS = {
   chapters: {
@@ -133,7 +134,7 @@ export function scenarioCard(facts, { readout, onChoose }) {
   const numbers = element('span', 'menu-site-numbers');
   numbers.append(
     readout(STRINGS.current, facts.current.toFixed(1), 'kn'),
-    readout(STRINGS.visibility, String(Math.round(facts.visibility ?? 0)), 'm'),
+    readout(STRINGS.visibility, String(Math.round(lengthIn(facts.visibility ?? 0))), lengthUnit()),
   );
   const foot = element('span', 'menu-card-foot');
   foot.append(medalBadge(record));

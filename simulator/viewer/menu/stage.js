@@ -7,6 +7,7 @@ import { createVehicleModel } from '../vehicle_models.js';
 import { loadGLTF } from '../glb.js';
 import { applyVehicleSticker } from '../vehicle_stickers.js';
 import { configureRenderQuality, updateRenderQuality } from '../render_quality.js';
+import { createFrameGate } from '../prefs/display.js';
 
 // Camera per screen: eye offset from the vehicle (metres, three.js axes); shift moves the vehicle right of
 // the screen centre by that many metres (the menus sit on the left), lift raises the look point.
@@ -207,7 +208,12 @@ export function createStage(host, { quality = 'auto' } = {}) {
     targetEye.copy(anchor).add(offset);
     targetLook.copy(anchor).addScaledVector(right, -shift).addScaledVector(up, lift);
   }
+  const skipFrame = createFrameGate();
   function frame(now) {
+    if (skipFrame(now)) {
+      requestAnimationFrame(frame);
+      return;
+    }
     const seconds = (now - last) / 1000;
     const dt = Math.min(0.05, seconds);
     last = now;

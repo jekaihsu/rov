@@ -58,6 +58,8 @@ import { installAchievements } from './play/achievements.js';
 import { installConnectionNotice } from './play/connection_notice.js';
 import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
 import { installObjectiveCard } from './play/objective_card.js';
+import './prefs/camera_items.js';
+import { createFrameGate, installDisplayPrefs } from './prefs/display.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -455,6 +457,8 @@ const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
+installDisplayPrefs();
+const skipFrame = createFrameGate();
 const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
 const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session, readOnly: !!REPLAY,
   onContracts: () => objectiveCard.showContracts()});
@@ -1180,6 +1184,10 @@ const audio = installAudio({
 installAudioSettings(audio, document.querySelector('.rack.left'));
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
+  if (!CAPTURE && skipFrame(now)) {
+    requestAnimationFrame(frame);
+    return;
+  }
   const frameSeconds=Math.max(0,(now-last)/1000);
   const dt = Math.min(.25, frameSeconds); last = now;
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});

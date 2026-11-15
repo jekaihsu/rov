@@ -5,6 +5,7 @@ import { getFidelity } from '../fidelity.js';
 import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
 import { MODES, siteFacts, supportsMode, vehicleSpecs } from './catalogue.js';
 import { briefingTimeLimit } from '../play/mission_text.js';
+import { lengthIn, lengthUnit } from '../prefs/display.js';
 
 const STRINGS = {
   title: 'ROV 潛航模擬器',
@@ -47,7 +48,7 @@ const STRINGS = {
   notForMode: '此玩法不提供這片海域',
   briefingTitle: '下水簡報',
   briefingNumbers: { depth: '海床深度', visibility: '能見度', current: '最大洋流', tether: '纜長', time: '時限' },
-  units2: { m: 'm', kn: 'kn', min: '分' },
+  units2: { kn: 'kn', min: '分' },
   objectives: '任務目標',
   noObjectives: '自由航行，沒有指定目標。',
   goalsTitle: '玩法',
@@ -85,10 +86,15 @@ function fixed(value, digits = 1) {
   return Number.isFinite(value) ? value.toFixed(digits).replace(/\.0$/, '') : '—';
 }
 
+// A length in the unit chosen in settings (metres or feet); unknown stays unknown.
+function metres(value) {
+  return Number.isFinite(value) ? lengthIn(value) : value;
+}
+
 // Seabed depth as one number, or a range when the rounded ends differ.
 function depthText(facts) {
-  const shallow = fixed(facts.shallow, 0);
-  const deep = fixed(facts.deep, 0);
+  const shallow = fixed(metres(facts.shallow), 0);
+  const deep = fixed(metres(facts.deep), 0);
   return shallow === deep ? deep : `${shallow}–${deep}`;
 }
 
@@ -334,8 +340,8 @@ function siteCard(scene, ctx) {
   const range = depthText(facts);
   const numbers = element('span', 'menu-site-numbers');
   numbers.append(
-    readout(STRINGS.depth, range, 'm'),
-    readout(STRINGS.visibility, fixed(facts.visibility, 0), 'm'),
+    readout(STRINGS.depth, range, lengthUnit()),
+    readout(STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()),
     readout(STRINGS.current, fixed(facts.current, 1), 'kn'),
   );
   body.append(numbers);
@@ -361,19 +367,20 @@ export function buildSites(ctx) {
   const root = screen('sites', STRINGS.sitesTitle);
   root.append(element('h2', 'menu-heading', STRINGS.sitesTitle));
   const rail = element('div', 'menu-site-rail');
-  const cards = ctx.data.sites.map(function makeCard(scene) {
-    return siteCard(scene, ctx);
-  });
-  rail.append(...cards);
+  const cards = [];
   root.append(rail);
   function enter() {
+    // Rebuilt on entry so the numbers follow the unit setting.
+    cards.splice(0, cards.length, ...ctx.data.sites.map(function makeCard(scene) {
+      return siteCard(scene, ctx);
+    }));
     // Sites the chosen mode offers come first; the others stay visible but disabled.
     const ordered = [...cards].sort(function availableFirst(a, b) {
       const mode = ctx.choice.mission;
       return Number(!supportsMode(ctx.sceneFor(a.dataset.site), mode))
         - Number(!supportsMode(ctx.sceneFor(b.dataset.site), mode));
     });
-    rail.append(...ordered);
+    rail.replaceChildren(...ordered);
     for (const card of cards) {
       const scene = ctx.sceneFor(card.dataset.site);
       const allowed = supportsMode(scene, ctx.choice.mission);
@@ -456,10 +463,10 @@ export function buildBriefing(ctx) {
     if (facts) {
       const depth = depthText(facts);
       numbers.append(
-        readout(STRINGS.briefingNumbers.depth, depth, STRINGS.units2.m),
-        readout(STRINGS.briefingNumbers.visibility, fixed(facts.visibility, 0), STRINGS.units2.m),
+        readout(STRINGS.briefingNumbers.depth, depth, lengthUnit()),
+        readout(STRINGS.briefingNumbers.visibility, fixed(metres(facts.visibility), 0), lengthUnit()),
         readout(STRINGS.briefingNumbers.current, fixed(facts.current, 1), STRINGS.units2.kn),
-        readout(STRINGS.briefingNumbers.tether, fixed(facts.tether, 0), STRINGS.units2.m),
+        readout(STRINGS.briefingNumbers.tether, fixed(metres(facts.tether), 0), lengthUnit()),
       );
       const limit = briefingTimeLimit(ctx.choice.mission, facts);
       if (limit && !chapter) {

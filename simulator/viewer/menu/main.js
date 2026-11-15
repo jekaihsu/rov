@@ -12,6 +12,7 @@ import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
 import { createStage } from './stage.js';
+import { installDisplayPrefs } from '../prefs/display.js';
 
 const STRINGS = {
   brand: 'ROV 潛航模擬器',
@@ -70,6 +71,7 @@ async function loadJson(path) {
   return response.json();
 }
 
+installDisplayPrefs();
 document.body.classList.add('menu-open');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const choice = initialChoice();

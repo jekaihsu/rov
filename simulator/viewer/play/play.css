@@ -53,7 +53,7 @@
 html[data-menu-input=pad] .results-screen :focus, html[data-menu-input=key] .results-screen :focus,
 .results-screen :focus-visible { outline: 1px solid var(--accent); outline-offset: 4px;
   box-shadow: 0 0 0 4px rgba(79, 209, 224, .12); }
-.results-footer { z-index: 1; }
+.results-footer { z-index: var(--z-raised); }
 @media (max-width: 850px) {
   .results-columns { grid-template-columns: 1fr; gap: 20px; }
   .results-card { padding: 20px; }
@@ -121,3 +121,21 @@ body.replaying .objective-card { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .objective-card { transition: none; }
 }
+
+/* ── display preferences (prefs/display.js, prefs/camera_items.js) ───────── */
+/* Brightness: the rendered scene only, never the instruments drawn over it. */
+canvas.gl, .launch-menu .menu-canvas { filter: brightness(var(--rov-brightness, 1)); }
+/* Interface and text scale: menus, overlays and the game HUD read-outs. */
+.launch-menu .menu-stack, .launch-menu .menu-header, .launch-menu .menu-footer, .pause-menu, .results-screen,
+.objective-card, .flight, .story-radio { zoom: var(--rov-ui-scale, 1); }
+/* Units: length labels written by CSS so they follow the setting without re-rendering (prefs/display.js). */
+[data-unit=length] { text-decoration: none; }
+[data-unit=length]::after { content: "m"; }
+html[data-units=imperial] [data-unit=length]::after { content: "ft"; }
+/* Colour-blind modes swap the HUD's go / warning / danger colours for distinguishable ones (Okabe–Ito). */
+html[data-color-blind=deuteranopia], html[data-color-blind=protanopia] {
+  --go: #56b4e9; --warn: #f0e442; --danger: #e69f00; }
+html[data-color-blind=tritanopia] { --go: #009e73; --warn: #cc79a7; --danger: #d55e00; }
+/* Motion comfort: decorative interface animation off (the camera side lives in camera_rig.js). */
+html.motion-comfort *, html.motion-comfort *::before, html.motion-comfort *::after {
+  animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }

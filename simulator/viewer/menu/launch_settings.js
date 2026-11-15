@@ -1,4 +1,4 @@
-// The launch menu's settings screen: 擬真設定, 控制, 音訊, 畫質 and 介面 tabs over the existing panels.
+// The launch menu's settings screen: 擬真設定, 控制, 音訊, 畫質, 顯示 and 介面 tabs over the existing panels.
 // Controller tuning reuses the input layer's own settings dialog (input/settings.js) with the same storage.
 import { BINDINGS_VERSION, migrateBindings } from '../input/bindings.js';
 import { createHaptics } from '../input/haptics.js';
@@ -7,6 +7,7 @@ import { installSettings } from '../input/settings.js';
 import { CONTROL_LAYOUTS } from '../control_layout.js';
 import { renderQualityInfo } from '../render_quality.js';
 import { rememberInterface, rememberQuality } from './preferences.js';
+import { mountDisplaySettings } from './display_settings.js';
 import {
   createSettingsPanel,
   element,
@@ -20,7 +21,9 @@ import {
 
 const STRINGS = {
   title: '設定',
-  tabs: { fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', interface: '介面' },
+  tabs: {
+    fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
+  },
   pad: '輸入裝置',
   padAuto: '自動偵測手把＋鍵盤',
   padKeyboard: '只使用鍵盤',
@@ -193,6 +196,7 @@ export function buildLaunchSettings(ctx) {
       { id: 'controls', label: STRINGS.tabs.controls, mount: controls },
       { id: 'audio', label: STRINGS.tabs.audio, mount: mountAudio },
       { id: 'quality', label: STRINGS.tabs.quality, mount: quality },
+      { id: 'display', label: STRINGS.tabs.display, mount: mountDisplaySettings },
       { id: 'interface', label: STRINGS.tabs.interface, mount: interfaceTab },
     ],
   });
