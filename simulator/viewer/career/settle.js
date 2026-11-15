@@ -1,10 +1,16 @@
 // Settling a YX work order into the career save: pay (scoring.js), reputation with the client, the logbook line
 // with real and assisted hours apart, contract progress, and what the dive newly opened on the board. Returns
-// the summary the results screen shows. Pure over the save and the data; the caller stores the save.
-import { contractStatus, gradeFor, hasLicence, licenceProgress } from './rules.js';
+// the summary the results screen shows, and the licence exam (a pass needs the whole dive at the real preset).
+// Pure over the save and the data; the caller stores the save.
+import { contractStatus, gradeFor, gradeIndex, hasLicence, licenceProgress } from './rules.js';
 import { logDive } from './save.js';
 import { payout, reputationGain } from './scoring.js';
 
+const STRINGS = {
+  examAssisted: '考核期間開啟了超出真機的設定（或未以考核模式下水）。',
+  examIncomplete: '必要交付項目沒有全部完成。',
+  examScore: '分數未達銅牌門檻。',
+};
 const MEDAL_RANK = { none: 0, bronze: 1, silver: 2, gold: 3 };
 
 function openContracts(save, data, sceneKeys) {
@@ -117,11 +123,30 @@ export function settleDive(save, data, contract, dive, { sceneKeys = null, now =
   };
 }
 
-/** Licence exams settle here once the exam rules are in (career exams step); until then none is taken. */
+/**
+ * Licence exam of a contract: it passes only when the job is complete with at least a bronze medal and the whole
+ * dive stayed at the real preset (dive.examValid); a pass grants the licence grade or endorsement. A failed exam
+ * can always be taken again.
+ */
 export function examResult(save, data, contract, pay, dive) {
-  void save;
-  void data;
-  void pay;
-  void dive;
-  return { taken: false, passed: false, reason: '', granted: '' };
+  if (!contract.exam) return { taken: false, passed: false, reason: '', granted: '' };
+  let reason = '';
+  if (!dive.examValid) reason = STRINGS.examAssisted;
+  else if (pay.outcome !== 'complete') reason = STRINGS.examIncomplete;
+  else if (pay.medal === 'none') reason = STRINGS.examScore;
+  if (reason) return { taken: true, passed: false, reason, granted: '' };
+  const granted = [];
+  const grade = contract.exam.grants;
+  if (grade) {
+    if (gradeIndex(data, grade) > gradeIndex(data, save.licence)) save.licence = grade;
+    granted.push(gradeFor(data, grade).label);
+  }
+  const endorsement = contract.exam.endorsement;
+  if (endorsement) {
+    if (!save.endorsements.includes(endorsement)) save.endorsements.push(endorsement);
+    granted.push(data.endorsements.find(function byId(entry) {
+      return entry.id === endorsement;
+    })?.label || endorsement);
+  }
+  return { taken: true, passed: true, reason: '', granted: granted.join('、') };
 }
