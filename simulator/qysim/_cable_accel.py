@@ -469,6 +469,42 @@ def _batch(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, br
     return n >= 0
 
 
+def _batch_resume(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, broken, h, ea, c_int,
+           diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
+           pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension,
+           substeps, pt_seg, pt_s, anchor, dist0, normal, pt_hard, cache_distance, radius,
+           mu_static, mu_kinetic, stribeck_v, regular_v, chafe, rov_force, peaks, start_step, pin_peak):
+    """Run until contact planes expire; return the pending substep, or substeps when done.
+
+    The caller refreshes geometry and finishes that contact pass, then resumes without
+    replaying forces or resetting the accumulated force, tension and pin peaks.
+    """
+    n = len(x) - 1
+    point = np.empty(3)
+    for step in range(start_step, substeps):
+        for axis in range(3):
+            point[axis] = gland[axis] + gland_vel[axis] * h * (step + 1)
+        out = advance(x, v, water, water_accel, l0, ms, ma, lw, spool, point, gland_vel, broken, h, ea, c_int,
+                      diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
+                      pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension)
+        for k in range(len(pin_seg)):
+            pin_peak[k] = max(pin_peak[k], pin_force[k])
+        for axis in range(3):
+            rov_force[axis] += out[axis] / substeps
+        for i in range(n):
+            peaks[0] = max(peaks[0], tension[i])
+        peaks[1] = max(peaks[1], tension[n - 1])
+        if not contact_valid(x, pt_seg, pt_s, anchor, dist0, radius, cache_distance):
+            return step
+        contact_velocity(x, v, ms, ma, broken, h, pt_seg, pt_s, anchor, dist0, normal, pt_hard, radius,
+                         mu_static, mu_kinetic, stribeck_v, regular_v, chafe)
+        integrate(x, v, h, broken)
+        project(x, broken, pt_seg, pt_s, anchor, dist0, normal, radius)
+    for k in range(len(pin_seg)):
+        pin_force[k] = pin_peak[k]
+    return substeps
+
+
 if njit is not None:
     _inv_mass_dot = njit(cache=True)(_inv_mass_dot)
     advance = njit(cache=True)(_advance)
@@ -477,6 +513,7 @@ if njit is not None:
     integrate = njit(cache=True)(_integrate)
     project = njit(cache=True)(_project)
     advance_batch = njit(cache=True)(_batch)
+    advance_batch_resume = njit(cache=True)(_batch_resume)
 else:
     advance = None
     contact_valid = None
@@ -484,6 +521,7 @@ else:
     integrate = None
     project = None
     advance_batch = None
+    advance_batch_resume = None
 
 
 FAST_REQUIREMENTS = "requirements-fast.txt"
