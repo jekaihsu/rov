@@ -1,0 +1,59 @@
+{
+  "note": "YX 公司內部執照（虛構發證單位）。時數門檻是遊戲設定的暫定值，不代表任何業界或機構的標準。",
+  "grades": [
+    {
+      "id": "none",
+      "label": "學員（未持照）",
+      "short": "學員",
+      "realHours": 0,
+      "exam": null,
+      "opens": "公司內訓與水池檢查潛"
+    },
+    {
+      "id": "trainee",
+      "label": "見習駕駛員",
+      "short": "見習",
+      "realHours": 0,
+      "exam": "p2_open_water",
+      "opens": "港內簡單檢查：碼頭 Level I、船殼、港內搜尋"
+    },
+    {
+      "id": "grade2",
+      "label": "二級駕駛員",
+      "short": "二級",
+      "realHours": 0.5,
+      "exam": "c1_signoff_exam",
+      "opens": "碼頭與船殼細部檢查、養殖場"
+    },
+    {
+      "id": "grade1",
+      "label": "一級駕駛員",
+      "short": "一級",
+      "realHours": 3,
+      "exam": null,
+      "opens": "搜救、水庫、離岸風電（後續章節）"
+    },
+    {
+      "id": "senior",
+      "label": "資深駕駛員",
+      "short": "資深",
+      "realHours": 10,
+      "exam": null,
+      "opens": "海纜、夜間、多機（後續章節）"
+    },
+    {
+      "id": "supervisor",
+      "label": "主管",
+      "short": "主管",
+      "realHours": 25,
+      "exam": null,
+      "opens": "作業級任務的監看與指揮（後續章節）"
+    }
+  ],
+  "endorsements": [
+    {
+      "id": "aquaculture",
+      "label": "箱網作業簽注"
+    }
+  ]
+}

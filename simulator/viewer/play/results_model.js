@@ -22,6 +22,7 @@ const STRINGS = localize('play.results_model', {
     chapter: '劇情',
     drill: '事故演練',
     contract: '工程委託',
+    career: 'YX 工單',
   },
   times: '{n} 次',
   noContacts: '無碰撞',
