@@ -33,3 +33,9 @@ No additional runtime library or pretrained weights are vendored. Optional exter
 onnxruntime-web (MIT); training uses PyTorch / torchvision SSD-VGG (BSD-3-Clause), Pillow (MIT-CMU),
 ONNX (Apache-2.0). Reference transport uses existing websockets (BSD-3-Clause).
 No trained weights are included. See `tools/vision/train.md` for limitations.
+
+## Chenjiao original wreck (G7)
+
+`wreck_chenjiao*.glb`: original fictional 48 m coastal freighter; all mesh geometry and rust/algae/silt
+textures authored procedurally in `cad/build_wreck_chenjiao.py`. No external models, scans, photographs,
+trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies meshopt and WebP compression.

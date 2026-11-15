@@ -843,3 +843,9 @@ Field attribution includes keys but excludes enclosing punctuation; fleet entrie
 are grouped by `vehicles[].field`. Compressed sizes use one persistent raw-deflate
 context per connection and remove the RFC 7692 sync-flush trailer, not standalone
 zlib/gzip files. Actual throughput also depends on achieved server publication rate.
+
+G7 adds optional `embedded: true` to `snag` obstacles whose geometry is already drawn by a scene GLB.
+It suppresses only the duplicate procedural visual; collision and tether snag semantics are unchanged.
+Absent means the existing standalone visual. Authored snag metadata uses the FieldMesh local frame;
+`point`, `radius`, `height`, `hold_n` and `item` map to `SnagFeature`. `direction` describes the source
+feature tangent; small sphere capsules sample angled features without changing the vertical capsule API.

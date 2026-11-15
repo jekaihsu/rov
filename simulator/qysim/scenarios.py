@@ -239,16 +239,16 @@ def wreck_debris(cx: float, cy: float, seabed: float, prefix: str = "Wreck", yaw
 
 def wreck_survey() -> Scenario:
     sea = 30.0
-    wreck = Box("Wreck 沉船", (25.0, 5.0, sea - 3.0), (18.0, 4.0, 3.0), 35.0, "wreck")
-    mast = Cylinder("Wreck mast", (22.0, 3.0, sea - 6.0), (22.5, 3.5, sea - 14.0), 0.25, "mast")
-    yard = Cylinder("Wreck mast yard", (21.4, 4.5, sea - 12.6), (23.3, 2.6, sea - 12.6), 0.12, "mast")
+    from .wreck_chenjiao import snag_features
+    wreck = FieldMesh("Chenjiao", ASSETS / "wreck_chenjiao_field.npz", origin=(25.0, 5.0, sea + 1.2),
+                      heading_deg=35.0, kind="wreck", model="models/wreck_chenjiao.glb")
     c, s = math.cos(math.radians(35)), math.sin(math.radians(35))
     pts = []
-    for lx, ly in ((20, 0), (0, 6.5), (-20, 0), (0, -6.5)):
+    for lx, ly in ((27, 0), (0, 8), (-27, 0), (0, -8)):
         pts.append((25 + c * lx - s * ly, 5 + s * lx + c * ly, sea - 4.0))
     return Scenario(
         "wreck_survey", "沉船調查", "水深 30 m、能見度 4 m，繞沉船一圈拍攝四個面。碰到海床會揚起泥沙；注意桅桿。",
-        seabed_depth=sea, obstacles=[wreck, mast, yard] + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
+        seabed_depth=sea, obstacles=[wreck] + snag_features(wreck) + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
         current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, TI_OFFSHORE),
         visibility_m=4.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=80.0,
         seabed_type="silt", bnl_height_m=1.5, bnl_mg_l=1.0,      # provisional silted wreck site
