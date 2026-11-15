@@ -921,7 +921,7 @@ function buildOne(set, ob, consumed) {
 export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   const set = new StructureSet(world, detail, makeMaterial || ((kind) => structureMaterial(kind, detail)));
   const consumed = new Set();
-  const obstacles = (world.obstacles || []).filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model');
+  const obstacles = (world.obstacles || []).filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model' && !ob.embedded);
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'scour_rock'), 'scour_rock');
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'toe_rock'), 'toe_rock');
   for (const ob of obstacles) {
