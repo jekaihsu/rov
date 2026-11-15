@@ -31,6 +31,8 @@ DEFAULT_CHECKS = (
     'browser_expedition_smoke',
     'browser_paint_smoke',
     'browser_campaign_smoke',
+    'browser_results_smoke',
+    'browser_objective_card_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
     'browser_link_smoke',

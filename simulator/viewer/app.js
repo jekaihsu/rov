@@ -58,6 +58,13 @@ import { openRcLink, createRcPump } from './input/rc_link.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
+import { installResults, resultsOpen } from './play/results.js';
+import { installAchievements } from './play/achievements.js';
+import { installConnectionNotice } from './play/connection_notice.js';
+import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
+import { installObjectiveCard } from './play/objective_card.js';
+import './prefs/camera_items.js';
+import { createFrameGate, installDisplayPrefs } from './prefs/display.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -458,7 +465,14 @@ const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
 let startPresentation=null;
+installDisplayPrefs();
+const skipFrame = createFrameGate();
+const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
+const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
+  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open)});
+const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
+const connectionNotice = installConnectionNotice({element: $('offline')});
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
@@ -481,7 +495,7 @@ function connect() {
       for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
     }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}
   };
-  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); $('offline').hidden = false; scheduleRetry(); };
+  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
   ws.onerror = () => { };
 }
 function scheduleRetry() {
@@ -508,7 +522,7 @@ function onWorld(m) {
   $('scnName').textContent = m.scenario?.name || '—';
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
-  $('offline').hidden = true;
+  connectionNotice.connected();
   if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) procedurePanel.startIntro(startIntro);
 }
 
@@ -532,6 +546,9 @@ function onState(m) {
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
   startPresentation?.update(m, W);
+  objectiveCard.update(m);
+  results.update(m);
+  achievements.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
   if(m.model_id&&m.model_id!==activeModelId){const def=W?.vehicle_catalogue?.find(d=>d.id===m.model_id);if(def)loadModel(def);}
   if (needResync && !m.remote_control && m.rc) {
@@ -539,7 +556,7 @@ function onState(m) {
     needResync = false;
   }
   setConn('run', rep ? '回放 · 錄製的訓練飛行' : m.paused ? '已連線 · 暫停' : '已連線');
-  if (W) $('offline').hidden = true;
+  if (W) connectionNotice.connected();
   target.pos = P(m.pos, target.pos); Q(m.q, target.q);
   if (!target.init) { rovG.position.copy(target.pos); rovG.quaternion.copy(target.q); target.init = true; }
   updateRoute(m.nav);
@@ -606,7 +623,7 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen || pauseMenuOpen(),
+const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
@@ -931,14 +948,13 @@ function updateUI() {
   setHTML('log', (s.log || []).slice().reverse().map((l) => `<li><span class="t">${esc(l.stamp || fmtT(l.t))}</span><span class="x">${esc(l.text)}</span></li>`).join(''));
 
   // training
-  const sc = s.score || {}, lim = W?.scenario?.time_limit_s;
-  setTxt('score', sc.score ?? '—');
+  const sc = s.score || {}, lim = missionTimeLimit(s, W);
+  setTxt('score', scoreValue(s));
   setTxt('timer', `${fmtT(sc.elapsed)} / ${lim ? fmtT(lim) : '—'}`);
   $('timeFill').style.width = lim ? clamp(100 * (sc.elapsed || 0) / lim, 0, 100) + '%' : '0%';
   $('timeFill').style.background = lim && sc.elapsed > lim * .85 ? C('--warn') : C('--jet');
   const objs = sc.objectives || [];
-  const nDone = objs.filter((o) => o.done).length;
-  setTxt('scoreState', sc.failed ? `失敗：${sc.failed}` : sc.finished ? '任務完成' : `目標 ${nDone}/${objs.length} · 扣分 ${sc.penalty_total || 0}`);
+  setTxt('scoreState', scoreSummary(s));
   setHTML('objs', objs.map((o, i) => {
     const cls = o.done ? 'done' : i === sc.current_index ? 'cur' : '';
     return `<li class="${cls}"><span class="ic">${o.done ? '✓' : i === sc.current_index ? '▶' : '○'}</span><span>${esc(o.label)}${o.hold_s ? `<span class="hint"> · 停留 ${o.hold_s}s</span>` : ''}</span><span></span><div class="track"><div class="fill" style="width:${(o.done ? 1 : o.progress || 0) * 100}%"></div></div></li>`;
@@ -1069,7 +1085,7 @@ function setReplayTime(t, {pause} = {}) {
   }
 }
 async function startReplay(url) {
-  setConn('wait', '載入回放…'); $('offline').hidden = true;
+  setConn('wait', '載入回放…'); connectionNotice.connected();
   let data;
   try { data = url.startsWith('local:')?await readReplay(url.slice(6)):await (await fetch(url)).json(); } catch (e) { setConn('stop', '回放檔載入失敗');cockpit.message({message:e.message}); return; }
   rep = { data, ci: 0, t: 0, playing: true, speed: 1, endHold: 0 };
@@ -1188,6 +1204,10 @@ const music = installMusic({engine: audio});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
+  if (!CAPTURE && skipFrame(now)) {
+    requestAnimationFrame(frame);
+    return;
+  }
   const frameSeconds=Math.max(0,(now-last)/1000);
   const dt = Math.min(.25, frameSeconds); last = now;
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});

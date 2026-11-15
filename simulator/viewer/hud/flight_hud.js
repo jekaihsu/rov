@@ -15,6 +15,7 @@ import { keyboardLayout } from '../input/keyboard_layout.js';
 import { assistPill, dvlReason } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
 import { pilotReadings } from './sensor_view.js';
+import { lengthIn } from '../prefs/display.js';
 const STRINGS = {
   sonarSource: '聲納',
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
@@ -140,8 +141,8 @@ function initialize() {
     el.hidden = false;
   });
   add('flightDepth', `<canvas id="flightLadder"></canvas><div class="depth-text"><small>${STRINGS.depth}</small>
-    <div><b id="flightDepthValue">—</b><u>m</u></div>
-    <small>${STRINGS.altitude} <span id="flightAltitude">—</span> m</small></div>`);
+    <div><b id="flightDepthValue">—</b><u data-unit="length"></u></div>
+    <small>${STRINGS.altitude} <span id="flightAltitude">—</span> <u data-unit="length"></u></small></div>`);
   add('flightAttitude', '<canvas id="flightADI"></canvas>');
   const headingValue = document.createElement('div');
   headingValue.id = 'flightHeading';
@@ -228,7 +229,7 @@ function applyStyle() {
 }
 function addReadouts() {
   document.querySelector('.readout').insertAdjacentHTML('beforeend',
-    `<span><i>${STRINGS.cable}</i><b id="flightCable"></b>m</span>`
+    `<span><i>${STRINGS.cable}</i><b id="flightCable"></b><u data-unit="length"></u></span>`
     + `<span><i>${STRINGS.tension}</i><b id="flightTension"></b>N</span>`
     + `<span><i>${STRINGS.light}</i><b id="flightLight"></b>/ 2</span>`
     + `<span><i>${STRINGS.battery}</i><b id="flightBattery"></b>%</span>`);
@@ -273,8 +274,8 @@ function readings(s, w, dt, sensed) {
 function updateLine(r, s, w) {
   setText($('flightHeading'), `${headingLabel(r.heading)}°`);
   drawHeadingTape($('tape'), r.heading);
-  setText($('flightDepthValue'), r.depth.toFixed(1));
-  setText($('flightAltitude'), r.alt == null ? '—' : r.alt.toFixed(1));
+  setText($('flightDepthValue'), lengthIn(r.depth).toFixed(1));
+  setText($('flightAltitude'), r.alt == null ? '—' : lengthIn(r.alt).toFixed(1));
   $('flightAltitude').parentElement.classList.toggle('warn', r.altWarn);
   drawDepthLadder($('flightLadder'), {
     depth: r.depth, seabed: w?.seabed_depth ?? null, hold: s.keep_depth ? s.depth_hold : null, warn: r.altWarn,
@@ -283,7 +284,7 @@ function updateLine(r, s, w) {
 }
 function updateReadout(r, s) {
   setText($('rSpd'), r.speed == null ? '—' : r.speed.toFixed(2));
-  setText($('flightCable'), r.cable.toFixed(1));
+  setText($('flightCable'), lengthIn(r.cable).toFixed(1));
   setText($('flightTension'), r.tension.toFixed(0));
   setText($('flightLight'), String(r.light));
   setText($('flightBattery'), r.battery.toFixed(0));

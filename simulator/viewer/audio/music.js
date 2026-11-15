@@ -238,6 +238,7 @@ export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BAS
     }
   }
 
+  let resultsShown = false;
   function setRequested(context) {
     requested = context;
     tick();
@@ -259,8 +260,12 @@ export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BAS
     },
     // In game: pass the displayed state snapshot every frame.
     update(state) {
-      const context = diveContext(state, memory);
+      const context = resultsShown ? 'results' : diveContext(state, memory);
       if (context !== requested) setRequested(context);
+    },
+    // The results screen (play/results.js) is up: play the results track whatever the run was.
+    showResults(open) {
+      resultsShown = !!open;
     },
     duck(seconds) {
       director.duckFor(performance.now() / 1000, seconds);

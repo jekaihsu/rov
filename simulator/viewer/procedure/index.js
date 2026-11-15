@@ -10,10 +10,11 @@ import {PROCEDURE_ITEM} from './fidelity_item.js';
 
 const STRINGS = {
   title: '潛前檢查與回收',
-  provisional: '上電順序、提示音、燈號：暫定，待實測。' +
-    '短測為模擬診斷，每顆 2 秒；禁止拋擲。',
+  provisional: '短測為模擬診斷，每顆 2 秒；禁止拋擲。',
+  // Engineering detail (hover only): the player-facing panel does not read like an unfinished product.
+  provisionalDetail: '上電順序、提示音、燈號與回收速度為暫定值，待實測。',
   checks: ['外觀、密封與穿艙件已檢查', '纜線接頭與固定環已確認', '配重與配平已確認',
-    '岸上供電與載具上電已確認（暫定）', '通訊已確認', '相機影像已確認', '燈光已確認',
+    '岸上供電與載具上電已確認', '通訊已確認', '相機影像已確認', '燈光已確認',
     '逐顆推進器短測完成', '深度零點與羅盤已確認', '入水、人員離開後才解鎖，已確認'],
   keys: ['seals', 'connector', 'trim', 'power', 'communication', 'camera', 'lights',
     'thrusters', 'instruments', 'unlock'],
@@ -31,7 +32,7 @@ const STRINGS = {
   summary: '作業紀錄：秒 / 最大深度 m / 最大纜長 m / 扣分',
   fault: '未檢項目發生故障，已扣分，必要時中止作業收纜回收。',
   dry: '離水運轉超過 30 秒，已告警並扣分。',
-  recovering: '收纜中，洋流與模擬浪況會降低回收速度（暫定）',
+  recovering: '收纜中，洋流與模擬浪況會降低回收速度',
   complete: '潛後處理完成',
   onDeck: '載具在工作船後甲板上，尚未入水；完成檢查、放入水中並確認後才能解鎖。',
 };
@@ -174,6 +175,7 @@ export function installProcedure({send, readOnly = false}) {
     title.textContent = STRINGS.title;
     const note = document.createElement('p');
     note.textContent = STRINGS.provisional;
+    note.title = STRINGS.provisionalDetail;
     const summary = document.createElement('p');
     summary.textContent = `${STRINGS.summary}：${p.elapsed} / ${p.max_depth} / ${p.max_cable} / ${p.penalty}`;
     panel.append(title, note, summary);
