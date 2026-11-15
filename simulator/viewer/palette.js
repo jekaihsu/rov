@@ -1,7 +1,7 @@
-// 配色試作開關：網址加 ?palette=631 時，在 <html> 標上 data-palette，啟用 palette_631.css。
-// 可再加 &accent=orange|violet|pink|lime 比較不同強調色。只影響選單、結算等介面的呈現色，
-// 不存檔、不影響飛行 HUD 的警示色。
-const PALETTES = ['631'];
+// 配色開關：預設是 palette_631.css 的 60/30/10 配色（強調色為安全橘）。
+// ?palette=classic 回到舊的青色配色；?accent=violet|pink|lime|orange 可比較其他強調色。
+// 只影響選單、結算等介面的呈現色，不存檔、不影響飛行 HUD 的警示色。
+const PALETTES = ['classic'];
 // ink：強調色按鈕上的文字用深色（dark）或白色（light）。
 const ACCENTS = {
   orange: {color: '#ff7a2f', ink: 'dark'},
@@ -22,8 +22,10 @@ function requestedAccent(search) {
 function applyPalette() {
   const root = document.documentElement;
   const palette = requestedPalette(location.search);
-  if (!palette) return;
-  root.dataset.palette = palette;
+  if (palette) {
+    root.dataset.palette = palette;
+    return;
+  }
   const accent = requestedAccent(location.search);
   if (!accent) return;
   root.style.setProperty('--color-accent', accent.color);
