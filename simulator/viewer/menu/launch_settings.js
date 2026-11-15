@@ -3,6 +3,7 @@
 import { BINDINGS_VERSION, migrateBindings } from '../input/bindings.js';
 import { createHaptics } from '../input/haptics.js';
 import '../input/haptics_fidelity.js';
+import { rowsFor } from '../input/keyboard_layout.js';
 import { installSettings } from '../input/settings.js';
 import { CONTROL_LAYOUTS } from '../control_layout.js';
 import { renderQualityInfo } from '../render_quality.js';
@@ -97,6 +98,7 @@ async function mountControllerDialog(container, onLayout) {
       button.textContent = STRINGS.controllerSettings;
     },
     bindings: settings.bindings,
+    rows: () => rowsFor(settings),
   };
 }
 
@@ -135,7 +137,7 @@ export function buildLaunchSettings(ctx) {
       ctx.choice.control = mode;
     }).then(function ready(mounted) {
       controller = mounted;
-      mountKeyHints(pane, mounted.bindings);
+      mountKeyHints(pane, mounted.bindings, { rows: mounted.rows() });
     });
   }
   function quality(pane) {

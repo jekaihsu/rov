@@ -96,7 +96,8 @@ function buildSettings(input) {
             byId('inputSettingsButton')?.click();
           });
           pane.append(opener);
-          mountKeyHints(pane, input.hudState().bindings);
+          const state = input.hudState();
+          mountKeyHints(pane, state.bindings, { rows: state.keyRows, operationMode: state.operationMode });
         },
       },
       { id: 'audio', label: STRINGS.tabs.audio, mount: mountAudio },

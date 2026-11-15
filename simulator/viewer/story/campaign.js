@@ -1,5 +1,6 @@
 // Radio subtitles, shared chapter selection and local campaign progress preferences.
 import {glyph, deviceFamily} from '../input/glyphs.js';
+import {BINDINGS, actionKey, axisChannel, pilotAxisKeys} from '../input/bindings.js';
 import {listCollection, saveResult} from '../collection_store.js';
 const STRINGS = {
   menuOption: '潮間帶工作隊 · 劇情與新手教學',
@@ -10,20 +11,19 @@ const STRINGS = {
   history: '無線電紀錄', pending: '籌備中', locked: '先完成前一任務', course: '公司課程（略過故事）',
   export: '匯出學員成績', complete: '任務完成。回到章節選單，準備下一次下潛。',
   retry: '先停一下，別急。我們照剛才那一步再試一次。', replay: '重玩序章',
+  // Pad names of the stick channels; keyboard keys come from the active key rows (input/keyboard_layout.js).
   channels: {
-  left_ud: ['W / S', '左桿上下'], left_lr: ['D / A', '左桿左右'],
-  right_ud: ['↑ / ↓', '右桿上下'], right_lr: ['→ / ←', '右桿左右'],
-  left_wave: ['E / Q', '左滾輪'], right_wave: ['C / Z', '右滾輪'],
-},
+    left_ud: '左桿上下', left_lr: '左桿左右', right_ud: '右桿上下', right_lr: '右桿左右',
+    left_wave: '左滾輪', right_wave: '右滾輪',
+  },
 };
 export const CAMPAIGN_MENU_STRINGS = {title: STRINGS.menuOption, brief: STRINGS.menuBrief};
 const KEY = 'rov.campaign.v1';
 const CHANNELS = STRINGS.channels;
-const MODES = {
-  ROV_USA: ['right_ud', 'right_wave', 'left_wave'], ROV_JPN: ['left_ud', 'right_wave', 'left_wave'],
-  ROV_CHN: ['left_ud', 'right_wave', 'left_wave'], UAV_USA: ['right_ud', 'right_lr', 'left_ud'],
-  UAV_JPN: ['left_ud', 'right_lr', 'right_ud'], UAV_CHN: ['left_ud', 'left_lr', 'right_ud'],
-};
+// The move_ steps of the prologue test these pilot axes, in the order of their condition paths.
+const MOVE_AXES = ['surge', 'sway', 'heave'];
+// Story steps that wait for one control: [face button index, action whose key is shown].
+const STEP_ACTIONS = {unlock: [3, 'lock'], depth: [2, 'depth'], photo: [0, 'photo']};
 
 export function installCampaign({send, readOnly = false}) {
   const root = document.createElement('section');
@@ -39,6 +39,10 @@ export function installCampaign({send, readOnly = false}) {
   const hint = document.createElement('small');
   const next = document.createElement('button');
   let family = 'keyboard';
+  let boundInput = null;
+  function keyRows() {
+    return boundInput?.keyRows?.() || BINDINGS;
+  }
   next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
   const cap = document.createElement('span');
   root.append(avatar, speaker, text, cap, hint, next);
@@ -109,8 +113,8 @@ export function installCampaign({send, readOnly = false}) {
   let savedSignature = '';
   function refreshGlyphs() {
     next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
-    const action = {unlock: [3, 'Space'], depth: [2, 'H'], photo: [0, 'P']}[current?.node?.id];
-    cap.innerHTML = action ? glyph(action[0], family, action[1]) : '';
+    const step = STEP_ACTIONS[current?.node?.id];
+    cap.innerHTML = step ? glyph(step[0], family, actionKey(step[1], keyRows())) : '';
   }
   document.addEventListener('rov-input-device', function storyDevice(event) {
     family = deviceFamily(event.detail === 'touch' ? '' : event.detail);
@@ -136,6 +140,7 @@ export function installCampaign({send, readOnly = false}) {
     return !readOnly && isHost && !root.hidden && current?.node?.type === 'dialogue';
   }
   function bindInput(input) {
+    boundInput = input;
     input.registerActions({
       dialogueAccept: {
         enabled: awaitingConfirm,
@@ -234,10 +239,11 @@ export function installCampaign({send, readOnly = false}) {
     text.textContent = '';
     hint.textContent = node?.type === 'wait' ? node.hint : '';
     if (node?.id?.startsWith('move_')) {
-      const axis = Number(node.condition.path.split('.').at(-1));
-      const channel = MODES[state.operation_mode]?.[axis];
-      const pad = family !== 'keyboard';
-      hint.textContent += ' · ' + (CHANNELS[channel]?.[pad ? 1 : 0] || '');
+      const axis = MOVE_AXES[Number(node.condition.path.split('.').at(-1))];
+      const mode = state.operation_mode || 'ROV_USA';
+      const channel = axisChannel(axis, mode)?.channel;
+      const keys = pilotAxisKeys(axis, keyRows(), mode).join(' / ');
+      hint.textContent += ' · ' + ((family !== 'keyboard' ? CHANNELS[channel] : keys) || '');
     }
     next.hidden = node?.type !== 'dialogue';
     log.replaceChildren(...campaign.dialogue.map(entry => {

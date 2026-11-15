@@ -27,6 +27,16 @@ Keyboard: F assist (F sprays instead while surface paint is on), G profile, B gi
 pitch, Tab drawer, Esc pause menu, 1–4 peek cards, Enter confirms dialogue. During dialogue A confirms and holding B skips
 the tutorial; neither reaches photo or record.
 
+Keyboard layouts (`keyboard_layout.js`, fidelity item `keyboardLayout`, preset-neutral): `console` (the `real`
+default) is the table above, where keys stand in for the hand controller's sticks and their meaning follows the
+operation mode exactly like the controller. `game` (the `assisted` and Steam default) binds the pilot axes instead:
+W/S forward/back, A/D strafe, Space/C up/down, Q/E turn, ↑/↓ pitch, T lock; the input layer turns each axis into the
+stick channel that drives it in the current operation mode (`OPERATION_AXES`, mirrored from `qysim/rc.py` and
+checked by `test_bindings.mjs`), so the RC packet and its PWM meanings are unchanged. Keys are rebound per layout in
+the controller dialog (鍵盤按鍵: click, press the new key, Esc cancels); choices are saved in `rov.input.v1` under
+`keys[layout]`, and a key already used in the same context is refused (`keyCollisions`). Help tables name stick
+channels by what they do (前進／後退), not by the stick.
+
 Menu context (launch menu, pause menu, settings): D-pad or arrow keys and the left stick move focus, A / Enter
 confirms, B / Esc goes back, LB / RB or Q / E switch tabs, the right stick turns the hangar turntable. These rows are
 fixed (not rebindable) and are read by `../menu/navigator.js`.

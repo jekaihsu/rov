@@ -12,3 +12,4 @@ import '../onboard/camera_look.js';
 import '../audio/fidelity.js';
 import '../input/haptics_fidelity.js';
 import '../start_presentation.js';
+import '../input/keyboard_layout.js';

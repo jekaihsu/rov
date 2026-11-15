@@ -1,22 +1,15 @@
 import {glyph, deviceFamily} from './input/glyphs.js';
-import {hintText} from './input/bindings.js';
+import {hintText, actionKey, axisChannel, pilotAxisKeys} from './input/bindings.js';
+import {currentKeyRows, currentOperationMode} from './input/keyboard_layout.js';
 import {controlLayoutLabel} from './control_layout.js';
 // Read-only onboarding: every check comes from received simulator telemetry.
 const STORAGE_KEY = 'rov.pilotGuide.dismissed.v1';
+// Pad names of the stick channels; keyboard keys come from the active key rows (input/keyboard_layout.js).
 const CHANNELS = {
-  left_ud: ['W / S', '左桿上下'], left_lr: ['D / A', '左桿左右'],
-  right_ud: ['↑ / ↓', '右桿上下'], right_lr: ['→ / ←', '右桿左右'],
-  left_wave: ['E / Q', '左滾輪'], right_wave: ['C / Z', '右滾輪'],
+  left_ud: '左桿上下', left_lr: '左桿左右', right_ud: '右桿上下', right_lr: '右桿左右',
+  left_wave: '左滾輪', right_wave: '右滾輪',
 };
-// Matches app.js MAP and qysim/rc.py; order is surge, sway, heave, yaw.
-const MODES = {
-  ROV_USA: ['right_ud', 'right_wave', 'left_wave', 'left_lr'],
-  ROV_JPN: ['left_ud', 'right_wave', 'left_wave', 'left_lr'],
-  ROV_CHN: ['left_ud', 'right_wave', 'left_wave', 'right_lr'],
-  UAV_USA: ['right_ud', 'right_lr', 'left_ud', 'left_lr'],
-  UAV_JPN: ['left_ud', 'right_lr', 'right_ud', 'left_lr'],
-  UAV_CHN: ['left_ud', 'left_lr', 'right_ud', 'right_lr'],
-};
+const AXES = [['surge', '前進／後退'], ['sway', '右移／左移'], ['heave', '上升／下潛'], ['yaw', '右轉／左轉']];
 
 export function installPilotGuide({getState, getWorld, readOnly = false}) {
   const host = document.querySelector('.mission-tools') || document.querySelector('aside');
@@ -48,6 +41,11 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
   </div>`;
   // Key captions come from the binding table, never from a second hand-written list.
   root.querySelector('.pilot-keys').textContent = hintText();
+  let keyRowsVersion = 0;
+  document.addEventListener('rov-key-rows', function keysChanged(event) {
+    keyRowsVersion++;
+    root.querySelector('.pilot-keys').textContent = hintText(event.detail);
+  });
   const session = host.querySelector('.session-summary');
   if (session) session.after(root); else host.prepend(root);
   document.addEventListener('rov-input-device', function updateGlyphs(event) {
@@ -85,22 +83,25 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
       progress = {unlock: false, move: false, depth: false, light: false};
     }
     lastTime = state.t;
-    const usb = !!state.controller, mode = state.operation_mode || 'ROV_USA';
-    const channels = MODES[mode] || MODES.ROV_USA;
-    const mappingKey = `${mode}:${usb}`;
+    const usb = !!state.controller, mode = state.operation_mode || currentOperationMode();
+    const surgeChannel = axisChannel('surge', mode)?.channel || 'right_ud';
+    const mappingKey = `${mode}:${usb}:${keyRowsVersion}`;
     if (mappingKey !== lastMapping) {
       lastMapping = mappingKey;
       modeLabel.textContent = `${controlLayoutLabel(mode)} · ${usb ? 'USB 遙控器接管操作軸' : '鍵盤／目前選用的手把'}`;
       table.replaceChildren();
-      ['前進／後退', '右移／左移', '上浮／下潛', '右轉／左轉'].forEach((label, i) => {
-        const dt = document.createElement('dt'), dd = document.createElement('dd');
+      for (const [axis, label] of AXES) {
+        const dt = document.createElement('dt');
+        const dd = document.createElement('dd');
+        const pad = CHANNELS[axisChannel(axis, mode)?.channel] || '';
+        const keys = pilotAxisKeys(axis, currentKeyRows(), mode).join(' / ');
         dt.textContent = label;
-        dd.textContent = usb ? CHANNELS[channels[i]][1] : `${CHANNELS[channels[i]][0]} · ${CHANNELS[channels[i]][1]}`;
+        dd.textContent = usb || !keys ? pad : `${keys} · ${pad}`;
         table.append(dt, dd);
-      });
+      }
     }
     const commanded = !state.locked && !state.paused && !state.remote_control &&
-      Math.abs((state.rc?.[channels[0]] ?? 1500) - 1500) > 80 &&
+      Math.abs((state.rc?.[surgeChannel] ?? 1500) - 1500) > 80 &&
       (state.thrust || []).some(value => Math.abs(value) > .05);
     if (!readOnly && !state.paused) {
       if (!state.locked && state.locked !== undefined) {
@@ -127,16 +128,18 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
         item.setAttribute('aria-label', `${item.textContent}：${done ? '已完成' : '未完成'}`);
       }
     }
-    const driveKey = usb ? CHANNELS[channels[0]][1] : CHANNELS[channels[0]][0];
+    const lockKey = actionKey('lock', currentKeyRows()) || 'Space';
+    const depthKey = actionKey('depth', currentKeyRows()) || 'H';
+    const driveKey = usb ? CHANNELS[surgeChannel] : pilotAxisKeys('surge', currentKeyRows(), mode).join(' / ');
     let hint;
     if (readOnly) hint = '正在回放錄製狀態。可用 V 查看不同視角；駕駛練習在即時潛航中進行。';
     else if (usb && !state.controller.connected) hint = 'USB 遙控器尚未連線。請先恢復連線，或返回主選單更換輸入裝置。';
     else if (state.paused) hint = '潛航已暫停。由房主恢復後再繼續操作。';
-    else if (state.input_latched) hint = '控制中斷後已自動鎖定。等狀態同步，再用 Space 明確解除鎖定。';
-    else if (state.locked) hint = '先確認前方淨空，再按 Space 解除馬達鎖定；停止操作時可再次鎖定。';
+    else if (state.input_latched) hint = `控制中斷後已自動鎖定。等狀態同步，再用 ${lockKey} 明確解除鎖定。`;
+    else if (state.locked) hint = `先確認前方淨空，再按 ${lockKey} 解除馬達鎖定；停止操作時可再次鎖定。`;
     else if (state.remote_control) hint = '目前由自動航線或 SDK 控制。先停止巡航，再練習手動駕駛。';
     else if (!progress.move) hint = `使用 ${driveKey} 緩慢前後移動一小段，再回中。洋流仍會使機器漂移。`;
-    else if (!progress.depth) hint = '按 H 啟用定深並回中升降桿。定深維持深度，水平方向仍可能漂移。';
+    else if (!progress.depth) hint = `按 ${depthKey} 啟用定深並回中升降桿。定深維持深度，水平方向仍可能漂移。`;
     else if (!progress.light) hint = '按 L 開啟照明，再用 V 切到機載視角觀察前方。';
     else if (state.tether?.snagged_on?.length) hint = '纜線已接觸障礙；停止加速，觀察纜線路徑再退回。';
     else if ((state.current_kn || 0) > .6) hint = '目前洋流較強。使用小幅持續修正，避免反覆大幅推桿。';

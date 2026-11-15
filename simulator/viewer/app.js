@@ -867,8 +867,6 @@ function updateUI() {
   // HUD
   const lk = $('lockBadge');
   lk.classList.toggle('locked', !!s.locked);
-  lk.querySelector('b').textContent = s.locked ? '馬達鎖定' : '馬達解鎖';
-  lk.querySelector('span').textContent = s.locked ? '按 Space / 手把 Y 解鎖' : '推進器可動作 · Space 上鎖';
   const hm = $('hMode'); hm.textContent = `${s.ctrl_mode} 模式`; hm.className = 'chip ' + (s.ctrl_mode === 'A' ? '' : s.ctrl_mode === 'S' ? 'on' : 'warn');
   const hh = $('hHold'); hh.textContent = s.keep_depth ? `定深 ${s.depth_hold != null ? s.depth_hold.toFixed(1) + ' m' : '開'}` : '定深 關'; hh.className = 'chip ' + (s.keep_depth ? 'on' : 'dim');
   setTxt('hOp', s.operation_mode==='UAV_CHN'?'ROV 雙桿':s.operation_mode);

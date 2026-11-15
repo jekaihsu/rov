@@ -3,6 +3,8 @@ import { CHANNELS as CH, radial, curve } from "./actions.js";
 import {
   BINDINGS_VERSION,
   CONTEXTS,
+  actionKey,
+  axisChannel,
   axisKeys,
   bindingRow,
   chordIds,
@@ -10,6 +12,7 @@ import {
   keyRow,
   migrateBindings,
 } from "./bindings.js";
+import { publishKeyRows, rowsFor } from "./keyboard_layout.js";
 import {createFeatureActions} from "./feature_actions.js";
 import { createDevices } from "./devices.js";
 import { renderKeyHints } from "./hints.js";
@@ -73,7 +76,25 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   }
   const hold = { photo: new Set(), record: new Set() };
   const keys = new Set();
-  const keyboardAxes = axisKeys();
+  // Keyboard rows of the active layout (console sticks or game pilot axes) with the player's rebound keys.
+  let rows = rowsFor(settings, fidelity);
+  let keyboardAxes = axisKeys(rows);
+  let operationMode = "ROV_USA";
+  let rowsSignature = "";
+  function refreshRows() {
+    const next = rowsFor(settings, fidelity);
+    const signature = JSON.stringify(next.map((row) => row.keys || []));
+    if (signature !== rowsSignature) {
+      // A held key may now mean something else; release everything rather than leave a stuck axis.
+      rowsSignature = signature;
+      rows = next;
+      keyboardAxes = axisKeys(rows);
+      keys.clear();
+    }
+    publishKeyRows(rows, operationMode);
+    renderKeyHints(document.getElementById("keyHints"), { bindings: settings.bindings, rows, operationMode });
+  }
+  fidelity.subscribe(refreshRows);
   const touch = Object.fromEntries(CH.map((c) => [c, 0]));
   const out = Object.fromEntries(CH.map((c) => [c, 0])); // combined −1..1
 
@@ -117,7 +138,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     document.dispatchEvent(new CustomEvent("rov-input-device", { detail: "" }));
     if (e.code.startsWith("Shift")) keys.add(e.code);
     // The table decides which action owns this key in the contexts that are active right now.
-    const row = keyRow(e.code, activeContexts());
+    const row = keyRow(e.code, activeContexts(), rows);
     if (!row || row.owner || row.modifier) return;
     e.preventDefault();
     if (e.repeat) return;
@@ -130,7 +151,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   });
   addEventListener("keyup", (e) => {
     keys.delete(e.code);
-    const row = keyRow(e.code, everyContext);
+    const row = keyRow(e.code, everyContext, rows);
     if (row?.action === "photo") hold.photo.delete("kb");
     if (row?.action === "record") hold.record.delete("kb");
     if (row && !row.owner && !row.modifier && !isText(e.target)) e.preventDefault();
@@ -255,8 +276,8 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   addEventListener("keydown", function openSettings(e) {
     if (e.code === "F8") document.getElementById("inputSettingsButton").click();
   });
-  const panel = installSettings(settings, save, haptics, setMode);
-  renderKeyHints(document.getElementById("keyHints"), { bindings: settings.bindings });
+  const panel = installSettings(settings, save, haptics, setMode, refreshRows);
+  refreshRows();
   function readPad() {
     const now = performance.now();
     const featureDt = Math.min(.25, (now - featureTime) / 1000);
@@ -321,13 +342,27 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     }
     return { ...Object.fromEntries(CH.map((c) => [c, actions[c] || 0])), id: frame.pad.id };
   }
+  function keyAxis(name) {
+    const [positive, negative] = keyboardAxes[name] || [];
+    return +keys.has(positive) - +keys.has(negative);
+  }
+  // Game-layout pilot axes drive the stick channel that moves that axis in the current operation mode.
+  function pilotChannels() {
+    const result = Object.fromEntries(CH.map((c) => [c, 0]));
+    for (const row of rows) {
+      if (!row.pilot || !row.keys?.length) continue;
+      const drive = axisChannel(row.action, operationMode);
+      if (drive) result[drive.channel] += drive.sign * keyAxis(row.action);
+    }
+    return result;
+  }
   function sample() {
     const pad = readPad();
     const g = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 1 : gain();
+    const pilot = pilotChannels();
     CH.forEach((c) => {
-      const [positive, negative] = keyboardAxes[c];
-      const value =
-        blocked() || panel.open() ? 0 : (+keys.has(positive) - +keys.has(negative)) * g + touch[c] + (pad?.[c] || 0);
+      const keyboard = (keyAxis(c) + pilot[c]) * g;
+      const value = blocked() || panel.open() ? 0 : keyboard + touch[c] + (pad?.[c] || 0);
       out[c] = curve(clamp(value, -1, 1), settings.channels[c]);
     });
     return pad;
@@ -335,6 +370,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   let lastImpact = "";
   let tensionHigh = false;
   function feedback(state) {
+    if (state?.operation_mode && state.operation_mode !== operationMode) {
+      operationMode = state.operation_mode;
+      refreshRows();
+    }
     const impact = state?.events?.at?.(-1);
     if (impact && JSON.stringify(impact) !== lastImpact) {
       lastImpact = JSON.stringify(impact);
@@ -353,6 +392,8 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
           frame.snapshot.buttons.some((value) => value > 0.5)),
       pulse: haptics.pulse,
       bindings: settings.bindings,
+      keyRows: rows,
+      operationMode,
     };
   }
   // Feature modules supply behaviour only; the default key, pad source and context come from the table.
@@ -382,5 +423,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     feedback,
     hudState,
     registerActions,
+    keyRows: () => rows,
+    keyFor: (action) => actionKey(action, rows),
   };
 }
