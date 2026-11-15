@@ -42,6 +42,7 @@ import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo} from './render_quality.js';
 import {installCampaign} from './story/campaign.js';
+import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installExpeditionClient} from './expedition_client.js';
@@ -462,6 +463,7 @@ const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
 const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
+const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
@@ -544,6 +546,7 @@ function onState(m) {
   missionPanel.update(m);
   procedurePanel.update(m);
   campaignPanel.update(m);
+  chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
   startPresentation?.update(m, W);
