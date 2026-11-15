@@ -1,7 +1,9 @@
-// Career part of the results screen (play/results.js) for a YX work order: the pay slip (base × quality −
+// Career part of the results screen (play/results.js) for a YX work order. On the screen itself
+// (careerHeadline): the net payout as the one huge number, one line of licence progress with a thick bar, and
+// what the work order opened as short chips. Behind 明細 (renderCareerPanel): the pay slip (base × quality −
 // itemised deductions = net), reputation with the client, the logbook hours of this dive (real and assisted
-// apart) and in total, the licence progress bar with the next exam, the exam verdict, newly opened work orders
-// and equipment, and the deliverable record with its readings. DOM only; the numbers come from settle.js.
+// apart) and in total, the licence progress with the next exam, the exam verdict, newly opened work orders and
+// equipment, and the deliverable record with its readings. DOM only; the numbers come from settle.js.
 
 const STRINGS = {
   pay: '報酬',
@@ -16,6 +18,9 @@ const STRINGS = {
   hours: '本次駕駛 真實 {real} · 輔助 {assisted}',
   hoursTotal: '日誌累計 真實 {real} h · 輔助 {assisted} h',
   licence: '執照',
+  progress: '{current} → {next}',
+  progressHours: '真實 {have} / {need} h',
+  moreUnlocks: '+{n}',
   licenceTop: '已是目前最高可取得的執照',
   nextLicence: '下一張：{label}',
   hoursNeed: '真實時數 {have} / {need} h',
@@ -27,6 +32,8 @@ const STRINGS = {
   deliverables: '交付紀錄',
   minutes: '{m} 分',
 };
+
+const MAX_UNLOCK_CHIPS = 3;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -69,7 +76,6 @@ function paySlip(summary) {
   for (const entry of pay.penalties) box.append(line(entry.label, `−${money(entry.amount)}`, 'career-slip-minus'));
   if (pay.deduction > 0 && !pay.penalties.length) box.append(line('', `−${money(pay.deduction)}`));
   const net = line(STRINGS.net, `${money(pay.net)} ${STRINGS.moneyUnit}`, 'career-slip-net');
-  net.id = 'resultsPay';
   box.append(net);
   box.append(element('p', 'menu-help', STRINGS.balance.replace('{money}', money(summary.money))));
   return box;
@@ -90,7 +96,6 @@ function standing(summary) {
 
 function licenceBox(summary) {
   const box = element('section', 'career-licence');
-  box.id = 'resultsLicence';
   const progress = summary.licence.progress;
   box.append(element('h3', 'menu-label', STRINGS.licence));
   box.append(element('strong', 'career-licence-name', progress.current.label));
@@ -120,8 +125,8 @@ function licenceBox(summary) {
   return box;
 }
 
-function unlocksBox(summary) {
-  const items = [
+function unlockTexts(summary) {
+  return [
     ...summary.unlocks.contracts.map(function contract(entry) {
       return STRINGS.unlockContract.replace('{title}', entry.title);
     }),
@@ -129,9 +134,12 @@ function unlocksBox(summary) {
       return STRINGS.unlockItem.replace('{label}', entry.label);
     }),
   ];
+}
+
+function unlocksBox(summary) {
+  const items = unlockTexts(summary);
   if (!items.length) return null;
   const box = element('section', 'career-unlocks');
-  box.id = 'resultsUnlocks';
   box.append(element('h3', 'menu-label', STRINGS.unlocks));
   const list = element('ul');
   list.append(...items.map(function row(text) {
@@ -139,6 +147,50 @@ function unlocksBox(summary) {
   }));
   box.append(list);
   return box;
+}
+
+// One line for the results screen: the licence held, the next one and the real hours toward it, over a thick bar.
+function licenceLine(summary) {
+  const box = element('div', 'career-progress');
+  box.id = 'resultsLicence';
+  const progress = summary.licence.progress;
+  const parts = [];
+  if (summary.exam.passed) parts.push(STRINGS.granted.replace('{label}', summary.exam.granted));
+  if (!progress.next) {
+    parts.push(progress.current.label);
+    box.append(element('p', 'career-progress-text', parts.join(' · ')));
+    return box;
+  }
+  parts.push(STRINGS.progress.replace('{current}', progress.current.label).replace('{next}', progress.next.label));
+  if (progress.requiredHours > 0) {
+    parts.push(STRINGS.progressHours.replace('{have}', progress.realHours.toFixed(2))
+      .replace('{need}', String(progress.requiredHours)));
+  }
+  const bar = element('div', 'career-bar');
+  const fill = element('i');
+  fill.style.width = `${Math.round(progress.fraction * 100)}%`;
+  bar.append(fill);
+  box.append(element('p', 'career-progress-text', parts.join(' · ')), bar);
+  return box;
+}
+
+/**
+ * What the results screen itself shows for a work order, or null for any other outcome:
+ * {pay: [label, value, unit], licence: element, unlocks: [text]} with at most three unlock chips.
+ */
+export function careerHeadline(outcome) {
+  const summary = outcome?.career;
+  if (!summary) return null;
+  const texts = unlockTexts(summary);
+  const unlocks = texts.slice(0, MAX_UNLOCK_CHIPS);
+  if (texts.length > unlocks.length) {
+    unlocks.push(STRINGS.moreUnlocks.replace('{n}', String(texts.length - unlocks.length)));
+  }
+  return {
+    pay: [STRINGS.net, money(summary.pay.net), STRINGS.moneyUnit],
+    licence: licenceLine(summary),
+    unlocks,
+  };
 }
 
 /** The deliverable record for the rewards column: [text] with ✓/✗ and readings. */

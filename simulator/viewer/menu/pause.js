@@ -8,6 +8,7 @@ import { acceptContract, contractBoard } from '../play/contracts.js';
 import { objectiveSummary } from '../play/mission_text.js';
 import { restartRun } from '../play/restart.js';
 import { mountDisplaySettings } from './display_settings.js';
+import { fitTitle, primaryButton } from './big_picture.js';
 import {
   createSettingsPanel,
   element,
@@ -19,8 +20,7 @@ import {
 } from './settings.js';
 
 const STRINGS = {
-  kicker: '暫停',
-  title: '潛航暫停',
+  title: '暫停',
   resume: '繼續',
   restart: '重新開始',
   restartConfirm: '再按一次確認重新開始',
@@ -30,9 +30,10 @@ const STRINGS = {
   accept: '接取：{label}',
   settings: '設定',
   home: '返回主選單',
-  solo: '單人潛航：模擬已暫停。繼續後請先回中、再解鎖。',
-  shared: '多人房間：模擬持續進行，你的操控已回中；其他人照常駕駛。',
-  replay: '回放中：關閉選單即可繼續。',
+  // [short line on the screen, full explanation as its tooltip]
+  solo: ['模擬已暫停 · 繼續後先回中再解鎖', '單人潛航：模擬已暫停。繼續後請先回中、再解鎖。'],
+  shared: ['多人房間 · 模擬持續進行', '多人房間：模擬持續進行，你的操控已回中；其他人照常駕駛。'],
+  replay: ['回放中 · 關閉選單即可繼續', '回放中：關閉選單即可繼續。'],
   tabs: {
     fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
   },
@@ -52,6 +53,9 @@ const STRINGS = {
   },
   prompts: { move: '移動', accept: '確認', back: '返回', tabs: '分頁' },
 };
+
+// While the menu is up the flight instruments are hidden, so the paused scene behind it is clean (big_picture.css).
+const OPEN_CLASS = 'pause-open';
 
 let open = false;
 
@@ -165,17 +169,19 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
   root.setAttribute('aria-modal', 'true');
   root.setAttribute('aria-label', STRINGS.title);
   const side = element('div', 'pause-side');
-  side.append(element('p', 'menu-kicker', STRINGS.kicker), element('h2', 'menu-heading', STRINGS.title));
-  const note = element('p', 'menu-help');
+  // Big-picture layout (big_picture.js): one status line, a large title, 繼續 as the primary button.
+  const note = element('p', 'bp-kicker');
+  const heading = element('h2', 'bp-title');
+  fitTitle(heading, STRINGS.title);
   const list = element('nav', 'menu-list');
   const objective = element('section', 'pause-objective');
   objective.id = 'pauseObjective';
   const objectiveLines = element('ul', 'pause-objective-lines');
   const offers = element('div', 'pause-offers');
-  objective.append(element('h3', 'menu-label', STRINGS.objective), objectiveLines, offers);
+  objective.append(element('h3', 'bp-kicker', STRINGS.objective), objectiveLines, offers);
   const main = element('div', 'pause-main');
   const footer = element('footer', 'pause-footer');
-  side.append(note, list, objective);
+  side.append(note, heading, list, objective);
   root.append(side, main, footer);
   document.body.append(root);
   let settings = null;
@@ -285,10 +291,11 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
       message = STRINGS.solo;
       if (!current.paused) pausedByMenu = send({ type: 'pause', value: true });
     }
-    note.textContent = message;
+    [note.textContent, note.title] = message;
     renderObjective();
     renderRestart();
     root.hidden = false;
+    document.body.classList.add(OPEN_CLASS);
     navigator?.setActive(true);
     navigator?.start();
     showList();
@@ -297,12 +304,15 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     if (!open) return;
     open = false;
     root.hidden = true;
+    document.body.classList.remove(OPEN_CLASS);
     navigator?.setActive(false);
     navigator?.stop();
     if (pausedByMenu) send({ type: 'pause', value: false });
     pausedByMenu = false;
   }
-  const resume = entry('pauseResume', STRINGS.resume, hide);
+  const { button: resume } = primaryButton('pauseResume', STRINGS.resume, { cap: false });
+  resume.addEventListener('click', hide);
+  list.append(resume);
   const restart = entry('pauseRestart', STRINGS.restart, function restartPressed() {
     if (!restartArmed) {
       restartArmed = true;
