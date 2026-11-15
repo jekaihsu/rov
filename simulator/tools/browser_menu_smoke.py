@@ -31,6 +31,8 @@ with sync_playwright() as p:
     to_briefing(page, mode='free_explore', site='seagrass_meadow', model='bluerov2_heavy')
     page.wait_for_function('window.__menu.ready && window.__menu.scene==="seagrass_meadow"', timeout=timeout(60000))
     assert not sockets, sockets
+    kicker = page.locator('.menu-briefing-main .menu-kicker').text_content()
+    assert 'YX Model O · Block 1' in kicker and 'BlueROV' not in kicker, kicker
     page.screenshot(path=str(out / 'seagrass.png'))
     page.set_viewport_size({'width': 390, 'height': 844})
     page.screenshot(path=str(out / 'mobile.png'), full_page=True)

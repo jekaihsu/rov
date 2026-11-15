@@ -8,6 +8,7 @@ import numpy as np
 from qysim import scenarios
 from qysim.controller import FlightController
 from qysim.engine import Simulator
+from qysim.fleet_names import WRECK_NAME
 from qysim.physics import KNOT, Vehicle, q_from_euler, q_rot
 from qysim.rc import RCState, Shaping, pilot_command
 from qysim.tether import GLAND_BODY, Tether
@@ -285,7 +286,7 @@ class TestSdkFormats(unittest.TestCase):
 
 
 class TestWreck(unittest.TestCase):
-    """Korean Castle: the distance-field wreck collides with the hull and the tether."""
+    """korean_castle (碧海號): the distance-field wreck collides with the hull and the tether."""
 
     def test_field_matches_model_frame(self):
         sc = scenarios.build("korean_castle")
@@ -318,7 +319,7 @@ class TestWreck(unittest.TestCase):
         for _ in range(1500):
             sim.step(0.01)
         names = {e.obstacle for e in sim.world.events}
-        self.assertIn("Korean Castle", names)
+        self.assertIn(WRECK_NAME, names)
         d, _ = wreck.sdf(sim.vehicle.s.pos)
         self.assertGreater(d, -0.05)                         # stopped at the plating, not inside it
 

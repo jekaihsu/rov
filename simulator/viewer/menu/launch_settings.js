@@ -32,9 +32,9 @@ const STRINGS = {
   padNone: '未偵測到手把，仍可使用鍵盤。按手把任一鍵以喚醒。',
   control: '控制配置',
   layouts: {
-    ROV_USA: 'X1 配置：左桿俯仰／轉向，右桿前後／橫滾',
-    ROV_JPN: 'X1 日本配置',
-    ROV_CHN: 'X1 中國配置',
+    ROV_USA: 'ROV 標準配置：左桿俯仰／轉向，右桿前後／橫滾',
+    ROV_JPN: 'ROV 日本配置',
+    ROV_CHN: 'ROV 中國配置',
     UAV_USA: 'UAV_USA',
     UAV_JPN: 'UAV_JPN',
     UAV_CHN: 'ROV 雙桿：左桿前後／平移，右桿升降／轉向',

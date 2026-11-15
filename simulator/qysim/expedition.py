@@ -7,10 +7,12 @@ import math
 import secrets
 from datetime import datetime, timezone
 import numpy as np
+from .fleet_names import vehicle_name, vehicle_role
 from .physics import q_rot, q_conj
 
 SCENES = {'coral_reef', 'seagrass_meadow', 'harbor_inspection'}
 LABELS = {'inspect':'定點巡檢', 'recover':'海底物件回收', 'deploy':'觀測儀部署'}
+_ARM_NEEDED = f'需要一台在線 {vehicle_name("falcon")}（{vehicle_role("falcon")}，機械臂）'
 BIOLOGY = {'coral':'珊瑚', 'seastar':'海星', 'kelp':'海帶', 'seagrass':'海草', 'fish_school':'魚群'}
 
 
@@ -62,7 +64,7 @@ class Expedition:
         limit=sum(ob.get('task_kind')=='deploy' and ob.get('task_id') is None for ob in sim.world.work_objects.values())>=20
         offered=[dict(kind=kind, label=label, enabled=supported and (kind=='inspect' or arm),
                      reason='' if supported and (kind=='inspect' or arm) else
-                        '此海域尚未提供工程合約' if not supported else '需要一台在線 Falcon 機械臂 ROV')
+                        '此海域尚未提供工程合約' if not supported else _ARM_NEEDED)
                 for kind,label in LABELS.items()]
         if limit:
             offered[2].update(enabled=False,reason='本次潛航已部署 20 台觀測儀，請重開場景後再部署')
@@ -78,7 +80,7 @@ class Expedition:
 
     def _sites(self, sim, count=3):
         # Route is explicit: travel at the deployment depth, then descend.
-        # A 0.8 m clearance envelope exceeds the Falcon hull extent in FRD.
+        # A 0.8 m clearance envelope exceeds the falcon hull extent in FRD.
         origin = np.asarray(sim.scenario.start_pos, float)
         from .operations import arm_points
         reach=arm_points([0.,45.,-15.,0.])[-1]

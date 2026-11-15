@@ -2,10 +2,11 @@
 import {glyph, deviceFamily} from '../input/glyphs.js';
 import {BINDINGS, actionKey, axisChannel, pilotAxisKeys} from '../input/bindings.js';
 import {listCollection, saveResult} from '../collection_store.js';
+import {vehicleName} from '../fleet_names.js';
 const STRINGS = {
   menuOption: '潮間帶工作隊 · 劇情與新手教學',
   menuBrief: '從水池練習開始，解鎖港灣與船殼巡檢。章節與課程可在任務面板重玩。',
-  sticker: '裝上首次下潛貼紙', vehicle: '部署解鎖的作業載具',
+  sticker: '裝上首次下潛貼紙', vehicle: `部署解鎖的作業載具 ${vehicleName('falcon')}`,
   resume: '從存檔點繼續', saveFailed: '進度儲存失敗，請匯出學員成績備份。',
   title: '潮間帶工作隊', chapters: '章節 / 訓練課程', next: '繼續', skip: '跳過教學',
   history: '無線電紀錄', pending: '籌備中', locked: '先完成前一任務', course: '公司課程（略過故事）',

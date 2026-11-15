@@ -3,6 +3,7 @@
 // contract results), the medal thresholds, and the local best-score record the menu lists read back.
 // No DOM here, so node --test can load it. Medals and the chapter/contract scores are a presentation layer only:
 // scenario scores stay the server's, and nothing here is a training standard.
+import { vehicleName, vehicleRole } from '../fleet_names.js';
 
 const STRINGS = {
   rows: {
@@ -41,7 +42,7 @@ const STRINGS = {
   unlockSticker: '機身貼紙解鎖：{name}',
   unlockVehicle: '作業載具解鎖：{name}',
   stickers: { dive: '潛水旗' },
-  vehicles: { falcon: '工作級載具' },
+  vehicles: { falcon: `${vehicleName('falcon')}（${vehicleRole('falcon')}）` },
   unknownReward: '獎勵：{id}',
 };
 

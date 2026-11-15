@@ -4,7 +4,7 @@ Writes two files into simulator/viewer:
   scene_previews.json   one world description per catalogue scenario (the live 3D background and site cards)
   menu_catalogue.json   vehicle specs and campaign chapters (hangar, story and incident lists)
 
-X1 entries are marked provisional because vehicles.py holds no measured X1 value yet
+The x1 entry (shown as YX Model R) is marked provisional because vehicles.py holds no measured X1 value yet
 (see docs/reference/x1-measurement-checklist.md). Run again whenever scenarios, vehicles or chapters change.
 """
 import json
@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from qysim.campaign import CHAPTER_FIELDS, Campaign  # noqa: E402
 from qysim.engine import Simulator  # noqa: E402
+from qysim.fleet_names import vehicle_name, vehicle_role  # noqa: E402
 from qysim.scenarios import catalogue  # noqa: E402
 from qysim.server import _json_default  # noqa: E402
 from qysim.vehicles import VEHICLE_DEFINITIONS, X1_PARAMETERS  # noqa: E402
@@ -49,7 +50,8 @@ def vehicle_entry(definition):
     params = public['params']
     return {
         'id': definition.id,
-        'name': definition.name,
+        'name': vehicle_name(definition.id),       # player-facing YX fleet name, not the definition name
+        'role': vehicle_role(definition.id),
         'mass': params.get('mass'),
         'vmax': params.get('vmax'),
         'wmax': params.get('wmax'),
