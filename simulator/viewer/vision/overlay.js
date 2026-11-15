@@ -43,6 +43,14 @@ export function drawDetections(ctx, detections, width, height) {
   }
 }
 
+// Detector name, latency and rate are developer read-outs: shown only while the engineering drawer is open or the
+// page was opened with ?vision-debug, never on the player's picture.
+function showsDebugLine() {
+  if (new URLSearchParams(location.search).has('vision-debug')) return true;
+  const drawer = document.getElementById('engineering');
+  return !!drawer && !drawer.hidden;
+}
+
 function unit(value) {
   return Math.max(0, Math.min(1, Number(value) || 0));
 }
@@ -172,7 +180,11 @@ export function installVision({send, canvas, getContext}) {
     clipOutsideInstruments(ctx, rect, rect.width, rect.height, now);
     drawDetections(ctx, tracked, rect.width, rect.height);
     ctx.restore();
-    ctx.fillText(`${api.mode || STRINGS.oracle} · ${api.latency?.toFixed(1) || 0} ms · ${hz.toFixed(0)} Hz`, 24, 90);
+    ctx.font = '13px monospace';
+    ctx.fillStyle = '#e8f1f5';
+    if (showsDebugLine()) {
+      ctx.fillText(`${api.mode || STRINGS.oracle} · ${api.latency?.toFixed(1) || 0} ms · ${hz.toFixed(0)} Hz`, 24, 90);
+    }
     if (api.detections.length) ctx.fillText(STRINGS.available, 24, 112);
   };
   api.configure = function configure({mode = 'oracle', frequency = 10, ...config} = {}) {
