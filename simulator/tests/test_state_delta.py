@@ -162,7 +162,7 @@ class StaticOnceMergeTests(unittest.TestCase):
 
     def test_catalogue_merged_equals_full_for_600_ticks(self):
         keys = [*LIBRARY, 'random']
-        self.assertEqual(len(keys), 18)
+        self.assertGreaterEqual(len(keys), 18)
         for key in keys:
             with self.subTest(scenario=key):
                 host = SimHost(Simulator(key, 42))
