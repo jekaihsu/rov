@@ -91,7 +91,8 @@ export async function installCareerMenu(ctx, screens) {
     const exam = !!contract.exam;
     choice.mission = contract.runtime === 'chapter' ? 'campaign' : 'free_explore';
     choice.chapter = contract.campaignChapter || '';
-    choice.scenario = contract.scenario;
+    // launchScenario: a variant of the site for this order (start point, slack-water current), same physics.
+    choice.scenario = contract.launchScenario || contract.scenario;
     choice.model = model;
     choice.multiplayer = false;
     choice.contract = contract.id;

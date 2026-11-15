@@ -151,3 +151,22 @@ test('settling a dive pays, logs hours apart, records the medal and lists newly 
   assert.equal(save.contracts.p1_pool_checkout.attempts, 2);
   assert.equal(save.contracts.p1_pool_checkout.medal, 'gold', 'a bad run never lowers the best medal');
 });
+
+test('a lift deliverable counts each object of its kind raised by the arm once', () => {
+  const contract = {id: 'lift', deliverables: [
+    {id: 'fish', kind: 'lift', label: 'fish', object_kind: 'dead_fish', below: 15.3, count: 2},
+  ]};
+  const tracker = createTracker(contract);
+  function held(id, depth, kind = 'dead_fish') {
+    return state([0, 0, 15], 0, {operations: {arm: {held: id}, objects: [{id, kind, pos: [0, 0, depth]}]}});
+  }
+  tracker.observe(held('mort-0', 15.8), 0.1);
+  assert.equal(tracker.snapshot().items[0].progress, 0, 'held on the net floor is not lifted yet');
+  tracker.observe(held('mort-0', 15.0), 0.1);
+  tracker.observe(held('mort-0', 14.0), 0.1);
+  assert.equal(tracker.snapshot().items[0].progress, 0.5);
+  tracker.observe(held('rock', 10, 'debris'), 0.1);
+  assert.equal(tracker.snapshot().items[0].done, false);
+  tracker.observe(held('mort-1', 15.1), 0.1);
+  assert.equal(tracker.snapshot().items[0].done, true);
+});

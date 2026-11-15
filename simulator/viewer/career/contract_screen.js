@@ -62,7 +62,7 @@ export function buildContractScreen(ctx) {
   const root = element('section', 'menu-screen');
   root.dataset.screen = 'contract';
   const panel = element('div', 'menu-briefing career-detail');
-  const main = element('div', 'menu-briefing-main');
+  const main = element('div', 'career-detail-main');
   const kicker = element('p', 'menu-kicker');
   const heading = element('h2', 'menu-heading menu-heading-large');
   heading.id = 'contractTitle';

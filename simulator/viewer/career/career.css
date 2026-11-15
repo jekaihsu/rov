@@ -11,7 +11,9 @@
 .career-backup { display: flex; gap: 12px; margin-top: 8px; }
 
 /* contract detail */
-.career-detail .menu-briefing-main { max-height: calc(100% - 24px); overflow: auto; }
+.career-detail-main { max-width: min(760px, 62vw); max-height: calc(100% - 24px); overflow: auto; padding: 24px 28px;
+  border-left: 1px solid var(--accent); background: linear-gradient(90deg, rgba(8, 18, 26, .5), rgba(8, 18, 26, 0));
+  backdrop-filter: blur(6px); }
 .career-detail-columns { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; }
 .career-checks { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; }
 .career-check { position: relative; padding-left: 20px; color: var(--text-dim); }
@@ -69,8 +71,19 @@
 .career-bar i { display: block; height: 100%; background: var(--accent); }
 .career-unlocks ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 .career-unlocks li { padding-left: 8px; border-left: 2px solid var(--go); }
-.results-screen[data-kind=career] .results-rewards li { font-size: 12px; padding: 5px 10px; }
-.results-screen[data-kind=career] .results-score { margin-top: 10px; }
+.results-screen[data-kind=career] .results-card { padding-top: 18px; padding-bottom: 18px; }
+.results-screen[data-kind=career] .menu-heading-large { font-size: clamp(28px, 2.6vw, 38px); margin-bottom: 4px; }
+.results-screen[data-kind=career] .results-score { margin: 8px 0 2px; gap: 18px; }
+.results-screen[data-kind=career] .results-medal { width: 64px; height: 64px; }
+.results-screen[data-kind=career] .results-medal-label { font-size: 12px; letter-spacing: .1em; }
+.results-screen[data-kind=career] .results-score .menu-readout-value b { font-size: 40px; }
+.results-screen[data-kind=career] .results-best { margin-bottom: 8px; }
+.results-screen[data-kind=career] .results-rows th, .results-screen[data-kind=career] .results-rows td {
+  padding-top: 5px; padding-bottom: 5px; }
+.results-screen[data-kind=career] .results-rewards ul { gap: 4px; }
+.results-screen[data-kind=career] .results-rewards li { padding: 3px 10px; }
+.results-screen[data-kind=career] .results-actions { margin-top: 14px; }
+.results-screen[data-kind=career] .results-career { margin-top: 10px; padding-top: 10px; }
 
 /* main menu career summary */
 .career-summary { position: absolute; right: 0; top: 0; display: grid; gap: 2px; width: min(380px, 40vw);

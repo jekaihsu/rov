@@ -243,7 +243,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     rewards.replaceChildren(...[...outcome.rewards, ...career].map(function item(text) {
       return element('li', '', text);
     }));
-    if (!outcome.rewards.length) rewards.append(element('li', 'menu-help', STRINGS.noRewards));
+    if (!outcome.rewards.length && !career.length) rewards.append(element('li', 'menu-help', STRINGS.noRewards));
   }
   function show(next) {
     outcome = next;

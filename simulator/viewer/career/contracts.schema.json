@@ -59,7 +59,7 @@
       "properties": {
         "id": {"$ref": "#/$defs/id"},
         "kind": {"enum": ["state", "checkpoint", "station_keep", "inspect", "photo", "measure", "probe", "confirm",
-          "surface"]},
+          "surface", "lift"]},
         "label": {"type": "string", "minLength": 1},
         "required": {"type": "boolean"},
         "point": {"$ref": "#/$defs/point"},
@@ -69,7 +69,10 @@
         "condition": {"$ref": "#/$defs/condition"},
         "equipment": {"$ref": "#/$defs/id"},
         "reading": {"type": "string"},
-        "after": {"$ref": "#/$defs/id"}
+        "after": {"$ref": "#/$defs/id"},
+        "object_kind": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
+        "below": {"type": "number", "minimum": 0},
+        "count": {"type": "integer", "minimum": 1}
       },
       "allOf": [
         {
@@ -79,7 +82,8 @@
         },
         {"if": {"properties": {"kind": {"const": "state"}}}, "then": {"required": ["condition"]}},
         {"if": {"properties": {"kind": {"enum": ["measure", "probe"]}}}, "then": {"required": ["equipment", "reading"]}},
-        {"if": {"properties": {"kind": {"const": "photo"}}}, "then": {"required": ["standoff"]}}
+        {"if": {"properties": {"kind": {"const": "photo"}}}, "then": {"required": ["standoff"]}},
+        {"if": {"properties": {"kind": {"const": "lift"}}}, "then": {"required": ["object_kind", "below"]}}
       ]
     },
     "hazard": {
@@ -109,6 +113,7 @@
         "clientName": {"type": "string", "minLength": 1},
         "job": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
         "scenario": {"type": "string", "minLength": 1},
+        "launchScenario": {"type": "string", "minLength": 1},
         "runtime": {"enum": ["deliverables", "chapter"]},
         "campaignChapter": {"$ref": "#/$defs/id"},
         "vehicles": {"type": "array", "minItems": 1, "uniqueItems": true,

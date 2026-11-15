@@ -13,6 +13,7 @@ export const DELIVERABLE_KIND_LABELS = {
   measure: '量測',
   probe: '探測',
   confirm: '確認',
+  lift: '回收',
   surface: '回收',
 };
 

@@ -156,7 +156,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   }
   function inScene(state) {
     const world = getWorld();
-    if (world?.scenario?.key !== contract.scenario) return false;
+    if (world?.scenario?.key !== (contract.launchScenario || contract.scenario)) return false;
     if (contract.runtime !== 'chapter') return true;
     return state.campaign?.chapter === contract.campaignChapter && state.campaign?.status === 'active';
   }
@@ -402,6 +402,16 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     // Browser checks drive the tracker with scripted states (tools/browser_career_smoke.py).
     observe(state) {
       update(state);
+    },
+    photoAt(state) {
+      lastState = state;
+      return photo();
+    },
+    get exam() {
+      return exam();
+    },
+    get real() {
+      return realNow(fidelity, lastState);
     },
     snapshot() {
       return tracker?.snapshot() || null;

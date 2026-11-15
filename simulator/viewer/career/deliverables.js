@@ -1,6 +1,6 @@
 // In-dive deliverable tracker of a YX work order: turns the state stream into the contract's checklist —
 // procedure steps, points reached, station keeping, photos with the target in frame, laser-scaler measurements,
-// contact probes (CP / UT) and manual confirmations (LOTO) — plus the contacts, tether overloads, tether wraps
+// contact probes (CP / UT), objects lifted with the arm and manual confirmations (LOTO) — plus the contacts, tether overloads, tether wraps
 // and safety violations the score deducts. Pure (no DOM): the dive module feeds it states and photo events.
 // It only reads what the server already sends; scoring here is a presentation layer and never touches physics.
 // Readings (growth thickness, CP potential, wall thickness) are scenario data shown when the work is done.
@@ -121,6 +121,7 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     return [item.def.id, item];
   }));
   const penalties = [];
+  const lifted = new Map();
   const seenEvents = new Set();
   const violated = new Set();
   const wrapped = new Set();
@@ -181,7 +182,24 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
       hold(item, gap >= near && gap <= far && facing && speed(state) < MEASURE_SPEED, dt);
     } else if (def.kind === 'probe') {
       hold(item, within(state, item, def.radius || PROBE_CONTACT_M) && speed(state) < PROBE_SPEED, dt);
+    } else if (def.kind === 'lift') {
+      trackLift(item, state);
     }
+  }
+  // An object of def.object_kind held by the arm (state.operations) and raised above def.below (depth, m)
+  // counts once per object; def.count objects complete the item.
+  function trackLift(item, state) {
+    const held = state.operations?.arm?.held;
+    const object = (state.operations?.objects || []).find(function byId(entry) {
+      return entry.id === held;
+    });
+    const set = lifted.get(item) || new Set();
+    lifted.set(item, set);
+    const raised = object && object.kind === item.def.object_kind && Number(object.pos?.[2]) < item.def.below;
+    if (raised) set.add(object.id);
+    const count = item.def.count || 1;
+    item.progress = Math.min(1, set.size / count);
+    if (set.size >= count) finish(item);
   }
   function trackEvents(state) {
     for (const event of state.events || []) {

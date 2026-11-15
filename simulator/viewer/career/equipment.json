@@ -5,7 +5,7 @@
       "id": "laser_scaler",
       "kind": "equipment",
       "label": "雷射比例尺",
-      "price": 15000,
+      "price": 4000,
       "licence": "none",
       "vehicles": ["x1", "bluerov2_heavy", "falcon"],
       "block": true,
