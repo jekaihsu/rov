@@ -7,6 +7,7 @@
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from '../menu/navigator.js';
 import { readout } from '../menu/screens.js';
 import { createFlightLog } from './flight_log.js';
+import { DELIVERABLES_TITLE, deliverableLines, renderCareerPanel } from '../career/results_panel.js';
 import {
   createOutcomeWatcher,
   formatTime,
@@ -120,7 +121,11 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   const actions = element('nav', 'results-actions');
   const note = element('p', 'menu-help results-note');
   note.setAttribute('role', 'status');
-  card.append(kicker, heading, title, reason, scoreRow, best, columns, actions, note);
+  // A YX work order adds its pay slip, reputation, logbook hours and licence progress (career/results_panel.js).
+  const careerBox = element('div', 'results-career');
+  careerBox.hidden = true;
+  const rewardsTitle = rewardsBox.querySelector('h3');
+  card.append(kicker, heading, title, reason, scoreRow, best, columns, careerBox, actions, note);
   const footer = element('footer', 'pause-footer results-footer');
   root.append(card, footer);
   document.body.append(root);
@@ -233,7 +238,9 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     }
   }
   function renderRewards() {
-    rewards.replaceChildren(...outcome.rewards.map(function item(text) {
+    const career = outcome.career ? deliverableLines(outcome.career) : [];
+    rewardsTitle.textContent = outcome.career ? DELIVERABLES_TITLE : STRINGS.rewards;
+    rewards.replaceChildren(...[...outcome.rewards, ...career].map(function item(text) {
       return element('li', '', text);
     }));
     if (!outcome.rewards.length) rewards.append(element('li', 'menu-help', STRINGS.noRewards));
@@ -260,6 +267,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     best.dataset.new = String(record.isBest);
     renderRows();
     renderRewards();
+    renderCareerPanel(careerBox, outcome);
     renderActions();
     open = true;
     root.hidden = false;
