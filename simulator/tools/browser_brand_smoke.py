@@ -68,7 +68,7 @@ def check_menu(page, base):
     wait_screen(page, 'sites')
     page.click('[data-site="coral_reef"]')
     wait_screen(page, 'briefing')
-    kicker = page.locator('.menu-briefing .menu-kicker')
+    kicker = page.locator('.menu-briefing-main .menu-kicker')
     assert kicker.locator('svg[data-symbol="V"]').count() == 1, 'briefing kicker carries the symbol'
     assert 'YX Model V · Block 1' in kicker.text_content(), kicker.text_content()
     page.screenshot(path=str(OUT / 'briefing.png'))

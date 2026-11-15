@@ -66,7 +66,7 @@ function decorateHangar(menu) {
 
 // The briefing rewrites its kicker text on entry; the symbol is put back in front of it each time.
 function decorateBriefing(menu, getModel) {
-  const kicker = menu.querySelector('.menu-briefing .menu-kicker');
+  const kicker = menu.querySelector('.menu-briefing-main .menu-kicker');
   if (!kicker) return;
   function addSymbol() {
     const model = getModel();
