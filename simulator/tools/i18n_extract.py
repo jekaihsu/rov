@@ -55,6 +55,16 @@ def flatten(value, prefix=''):
     return {prefix: value}
 
 
+def report_changed_sources(path, baseline):
+    """List keys whose source text changed: their translations are looked up by key and are now stale."""
+    if not path.exists():
+        return
+    previous = flatten(json.loads(path.read_text(encoding='utf8')))
+    for key, text in flatten(baseline).items():
+        if key in previous and previous[key] != text:
+            print(f'  source changed, retranslate: {key}: {previous[key]!r} -> {text!r}')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--csv', type=Path)
@@ -74,6 +84,7 @@ def main():
             path.write_text(json.dumps(baseline, ensure_ascii=False, indent=2) + '\n', encoding='utf8')
         elif not path.exists() or json.loads(path.read_text(encoding='utf8')) != baseline:
             print(f'Stale baseline: {namespace}')
+            report_changed_sources(path, baseline)
             errors += 1
         keys = flatten(baseline)
         translations = {}
