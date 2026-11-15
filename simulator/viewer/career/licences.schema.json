@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ROV Solution YX licence ladder (viewer/career/licences.json)",
+  "type": "object",
+  "required": ["grades", "endorsements"],
+  "additionalProperties": false,
+  "properties": {
+    "note": {"type": "string"},
+    "grades": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "short", "realHours", "exam", "opens"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_]{1,32}$"},
+          "label": {"type": "string", "minLength": 1},
+          "short": {"type": "string", "minLength": 1},
+          "realHours": {"type": "number", "minimum": 0},
+          "exam": {"type": ["string", "null"]},
+          "opens": {"type": "string"}
+        }
+      }
+    },
+    "endorsements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "additionalProperties": false,
+        "properties": {"id": {"type": "string"}, "label": {"type": "string"}}
+      }
+    }
+  }
+}

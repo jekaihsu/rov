@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- 章節標題卡試作：左半實景、右半該章的抽象符號。?c=0|1|2 選章節。以 Playwright 截成 16:9。 -->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #efebe2; }
+  .card { position: relative; width: 1920px; height: 1080px; background: #efebe2; color: #0b1a26; overflow: hidden;
+    font-family: "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, monospace; }
+  .photo { position: absolute; inset: 0 50% 0 0; background-size: cover; background-position: 50% 50%;
+    filter: saturate(.85) contrast(1.05); }
+  .right { position: absolute; inset: 0 0 0 50%; }
+  .no { position: absolute; left: 80px; top: 70px; font-size: 17px; letter-spacing: .16em; }
+  .title { position: absolute; left: 80px; bottom: 120px; font: 300 64px/1.15 "Noto Sans TC", "Noto Sans CJK TC", sans-serif;
+    letter-spacing: .08em; }
+  .sub { position: absolute; left: 80px; bottom: 74px; font-size: 17px; letter-spacing: .16em; }
+  .client { position: absolute; right: 80px; top: 70px; font-size: 17px; letter-spacing: .16em; }
+  .grain { position: absolute; inset: 0; mix-blend-mode: multiply; opacity: .45; pointer-events: none; }
+  svg.symbol { position: absolute; left: 180px; top: 170px; }
+</style></head>
+<body><div class="card">
+  <div class="photo" id="photo"></div>
+  <div class="right">
+    <div class="no" id="no"></div><div class="client" id="client"></div>
+    <svg class="symbol" id="symbol" viewBox="0 0 600 600" width="600" height="600" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="title" id="title"></div><div class="sub" id="sub"></div>
+  </div>
+  <svg class="grain" width="1920" height="1080"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9"
+    numOctaves="2" seed="9"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .5 0"/></filter>
+    <rect width="1920" height="1080" filter="url(#n)"/></svg>
+</div>
+<script>
+const DEFS = `<defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="4"/>
+  <feDisplacementMap in="SourceGraphic" scale="2.4"/></filter></defs>`;
+const INK = 'fill="none" stroke="#0b1a26" stroke-linecap="round" filter="url(#rough)"';
+const CHAPTERS = [
+  {photo: 'ch0.png', no: '序章 / 00', client: 'YX · 訓練中心', title: '水池', sub: 'CHECKOUT DIVE · 見習駕駛員',
+    // 水池：一個矩形、一條水線、一個下潛的點
+    symbol: `<g ${INK}><rect x="90" y="170" width="420" height="260" stroke-width="7"/>
+      <path d="M90 230H510" stroke-width="3"/><path d="M300 110V330" stroke-width="3"/></g>
+      <circle cx="300" cy="330" r="16" fill="#ff7a2f"/>`},
+  {photo: 'ch1.jpg', no: '第一章 / 01', client: '港務單位 · 船東', title: '港口與船舶', sub: 'PILES · HULL · 二級駕駛員',
+    // 港口：水線、三根樁、一道船殼弧
+    symbol: `<g ${INK}><path d="M60 180H540" stroke-width="3"/>
+      <path d="M170 110V490M300 110V490M430 110V490" stroke-width="7"/>
+      <path d="M60 180C160 330 440 330 540 180" stroke-width="4"/></g>
+      <circle cx="300" cy="360" r="16" fill="#ff7a2f"/>`},
+  {photo: 'ch2.jpg', no: '第二章 / 02', client: '養殖業者', title: '養殖場', sub: 'NET PEN · MORT RECOVERY · 二級駕駛員',
+    // 箱網：浮框圓環、網衣的斜線、一個破洞
+    symbol: `<g ${INK}><circle cx="300" cy="300" r="210" stroke-width="7"/><circle cx="300" cy="300" r="186" stroke-width="2"/>
+      <g stroke-width="2"><path d="M170 180L430 440M230 140L470 380M130 240L370 480"/></g></g>
+      <circle cx="372" cy="382" r="20" fill="#efebe2" stroke="#ff7a2f" stroke-width="6"/>`},
+];
+const chapter = CHAPTERS[Number(new URLSearchParams(location.search).get('c')) || 0];
+document.getElementById('photo').style.backgroundImage = `url(${chapter.photo})`;
+for (const key of ['no', 'client', 'title', 'sub']) document.getElementById(key).textContent = chapter[key];
+document.getElementById('symbol').innerHTML = DEFS + chapter.symbol;
+</script></body></html>

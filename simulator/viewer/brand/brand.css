@@ -1,0 +1,613 @@
+/* YX identity in the game: the mark on the title, header and loading screen, fleet symbols in the hangar and
+   briefing, the chapter title card, the licence certificate and the component sheet (brand/demo.html).
+   Colours come from the 60/30/10 palette tokens (palette_631.css) with literal fallbacks for pages that do not
+   load it; the only addition is the warm-white print stock. Fonts are the existing stacks. The paper grain is an
+   inline SVG noise tile, so nothing here loads an image except the chapter plates. Orange appears only as the
+   mark's single accent stroke and as one small dot per symbol or card. */
+:root {
+  --brand-paper: #efebe2;
+  --brand-ink: var(--color-main, #06121c);
+  --brand-ice: var(--color-second, #eef3f0);
+  --brand-accent: var(--color-accent, #ff7a2f);
+  --brand-mono: var(--f-osd, "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, monospace);
+  --brand-sans: Inter, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --brand-grain: url("\
+data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id\
+='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='5'/%3E%3CfeColorM\
+atrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='240' heigh\
+t='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── shared pieces ────────────────────────────────────────────────────────────────────────────────────────── */
+.brand-paper {
+  position: relative;
+  isolation: isolate;
+  background: var(--brand-paper);
+  color: var(--brand-ink);
+}
+.brand-paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--z-raised) + 2);
+  background-image: var(--brand-grain);
+  mix-blend-mode: multiply;
+  opacity: .42;
+  pointer-events: none;
+}
+.brand-caption {
+  margin: 0;
+  font: 500 12px/1.5 var(--brand-mono);
+  letter-spacing: .16em;
+}
+.yx-mark,
+.yx-symbol {
+  display: block;
+  overflow: visible;
+}
+.yx-mark .yx-accent {
+  stroke: var(--brand-accent);
+}
+.brand-fleet-symbol {
+  display: inline-block;
+  flex: none;
+}
+.brand-fleet-symbol svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── title, header and loading ────────────────────────────────────────────────────────────────────────────── */
+.brand-lockup {
+  height: clamp(64px, 8.4vw, 124px);
+  margin: 0 0 clamp(20px, 2.6vw, 36px);
+  color: var(--brand-ice);
+}
+.brand-lockup svg {
+  width: auto;
+  height: 100%;
+}
+.brand-lockup [data-part=hub] {
+  fill: var(--brand-ink);
+}
+.menu-brand.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-header .yx-mark {
+  width: auto;
+  height: 15px;
+  color: var(--brand-ice);
+}
+.brand-loading-mark {
+  display: block;
+  height: 46px;
+  margin-bottom: 6px;
+  color: var(--brand-ice);
+}
+.brand-loading-mark svg {
+  width: auto;
+  height: 100%;
+}
+
+/* ── hangar and briefing ──────────────────────────────────────────────────────────────────────────────────── */
+/* Sits at the start of the line above the vehicle name. */
+.menu-vehicle-title .brand-fleet-symbol-title {
+  width: 54px;
+  height: 54px;
+  margin: 0 2px 0 0;
+  color: var(--brand-ice);
+}
+.menu-chip.brand-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-fleet-symbol-chip {
+  width: 22px;
+  height: 22px;
+}
+.menu-kicker.brand-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-fleet-symbol-kicker {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── chapter title card ───────────────────────────────────────────────────────────────────────────────────── */
+/* The overlay (or any box that holds a .brand-card) is the size container; the card's type scales with it. */
+.brand-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-menu) + 5);
+  container-type: size;
+  background: var(--brand-ink);
+  animation: brand-fade-in .35s ease-out both;
+}
+.brand-card-overlay.leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease-out;
+}
+.brand-card-static {
+  animation: none;
+}
+.brand-card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  font-family: var(--brand-sans);
+}
+.brand-card-photo {
+  position: relative;
+  overflow: hidden;
+  background: var(--brand-ink);
+  color: var(--brand-ice);
+}
+.brand-card-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(.85) contrast(1.05);
+}
+.brand-card-drawing {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-image: linear-gradient(rgba(238, 243, 240, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(238, 243, 240, .06) 1px, transparent 1px);
+  background-size: 5cqh 5cqh;
+}
+.brand-card-drawing svg {
+  width: auto;
+  height: 46cqh;
+  opacity: .72;
+}
+.brand-card-paper {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 6.5cqh 4.2cqw;
+}
+.brand-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqw;
+}
+.brand-card .brand-caption {
+  font-size: clamp(9px, 1.6cqh, 18px);
+}
+.brand-card-symbol {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+.brand-card-symbol svg {
+  width: auto;
+  height: min(46cqh, 34cqw);
+}
+/* Leaves room for the small mark in the paper's corner. */
+.brand-card-foot {
+  padding-right: 8cqw;
+}
+.brand-card-title {
+  margin: 0 0 1.8cqh;
+  font-weight: 300;
+  font-size: clamp(20px, 6cqh, 76px);
+  line-height: 1.15;
+  letter-spacing: .08em;
+}
+.brand-card-mark {
+  position: absolute;
+  right: 4.2cqw;
+  bottom: 6.5cqh;
+  height: clamp(12px, 2.6cqh, 30px);
+}
+.brand-card-mark svg {
+  width: auto;
+  height: 100%;
+}
+.brand-card-skip {
+  position: absolute;
+  left: 3cqw;
+  bottom: 4cqh;
+  color: rgba(238, 243, 240, .82);
+  font-size: clamp(9px, 1.4cqh, 14px);
+  text-shadow: 0 1px 6px rgba(6, 18, 28, .8);
+}
+@container (max-aspect-ratio: 1/1) {
+  .brand-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: 38% 62%;
+  }
+  .brand-card-symbol svg {
+    height: min(26cqh, 56cqw);
+  }
+  .brand-card-title {
+    font-size: clamp(20px, 4.4cqh, 56px);
+  }
+  .brand-card-paper {
+    padding: 3.5cqh 6cqw;
+  }
+  .brand-card-mark {
+    right: 6cqw;
+    bottom: 3.5cqh;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .brand-card-overlay:not(.brand-card-static) .brand-card-photo img {
+    animation: brand-plate-settle 3.6s ease-out both;
+  }
+  .brand-card-overlay:not(.brand-card-static) .brand-card-paper {
+    animation: brand-paper-in .55s cubic-bezier(.2, .7, .2, 1) both;
+  }
+  .brand-card-overlay:not(.brand-card-static) .brand-card-symbol {
+    animation: brand-rise .6s .25s ease-out both;
+  }
+  .brand-card-overlay:not(.brand-card-static) .brand-card-foot {
+    animation: brand-rise .6s .4s ease-out both;
+  }
+}
+@keyframes brand-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes brand-plate-settle {
+  from { transform: scale(1.06); }
+  to { transform: scale(1); }
+}
+@keyframes brand-paper-in {
+  from { transform: translateX(7%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes brand-rise {
+  from { transform: translateY(1.6cqh); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ── licence certificate ──────────────────────────────────────────────────────────────────────────────────── */
+/* The certificate is its own inline-size container: every measure inside is a fraction of its width. */
+.brand-licence {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: 12.5% 1fr;
+  width: 100%;
+  max-width: 1180px;
+  aspect-ratio: 1.6 / 1;
+  box-sizing: border-box;
+  font-family: var(--brand-sans);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 0 rgba(6, 18, 28, .25), 0 28px 70px rgba(6, 18, 28, .35);
+}
+.brand-licence .brand-caption {
+  font-size: clamp(7px, 1.12cqw, 13px);
+}
+.brand-licence-stub {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  gap: 1.6cqw;
+  padding: 3.6cqw 0;
+}
+/* Perforation between the stub and the certificate. */
+.brand-licence-stub::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -.45cqw;
+  bottom: 0;
+  width: .9cqw;
+  background: radial-gradient(circle, var(--brand-ink) 0 .26cqw, transparent .3cqw) center / .9cqw 1.5cqw repeat-y;
+  opacity: .8;
+}
+.brand-licence-stub-index {
+  font-weight: 200;
+  font-size: 4.6cqw;
+  line-height: 1;
+}
+.brand-licence-stub-text,
+.brand-licence-stub-serial {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+.brand-licence-stub-text {
+  align-self: center;
+  opacity: .6;
+}
+.brand-licence-body {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+  padding: 3.6cqw 4.4cqw 3.4cqw 4.6cqw;
+  background-image: linear-gradient(rgba(6, 18, 28, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 18, 28, .055) 1px, transparent 1px);
+  background-size: 3.2cqw 3.2cqw;
+  background-position: 4.6cqw 3.6cqw;
+}
+.brand-licence-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.brand-licence-issuer {
+  display: flex;
+  align-items: center;
+  gap: 1.6cqw;
+}
+.brand-licence-issuer .yx-mark {
+  width: auto;
+  height: 3.6cqw;
+}
+.brand-licence-issuer strong {
+  display: block;
+  font-weight: 500;
+  font-size: 1.7cqw;
+  letter-spacing: .12em;
+}
+.brand-licence-number {
+  text-align: right;
+}
+.brand-licence-number b {
+  display: block;
+  font: 500 1.9cqw/1.3 var(--brand-mono);
+  letter-spacing: .1em;
+}
+.brand-licence-main {
+  position: relative;
+  z-index: var(--z-raised);
+  align-self: end;
+  margin-bottom: 4.2cqw;
+}
+.brand-licence-heading {
+  margin: 0 0 .4cqw;
+  font-size: 1.9cqw;
+  letter-spacing: .3em;
+}
+.brand-licence-grade {
+  margin: 1.6cqw 0 1cqw;
+  font-weight: 200;
+  font-size: 7.8cqw;
+  line-height: 1.05;
+  letter-spacing: .06em;
+}
+.brand-licence-ladder {
+  display: flex;
+  gap: 0;
+  margin: 2.6cqw 0 0;
+  padding: 0;
+  list-style: none;
+}
+.brand-licence-ladder li {
+  position: relative;
+  width: 7.4cqw;
+  padding-top: 1.3cqw;
+  border-top: 1px solid rgba(6, 18, 28, .35);
+  opacity: .5;
+}
+.brand-licence-ladder li[aria-current] {
+  border-top-color: var(--brand-ink);
+  opacity: 1;
+}
+.brand-licence-ladder li[aria-current]::before {
+  content: "";
+  position: absolute;
+  top: -.5cqw;
+  left: 0;
+  width: 1cqw;
+  height: 1cqw;
+  border-radius: 50%;
+  background: var(--brand-accent);
+}
+/* The grade's index number, outlined, as the certificate's large figure. */
+.brand-licence-figure {
+  position: absolute;
+  top: 10.5cqw;
+  right: 4cqw;
+  font-weight: 200;
+  font-size: 23cqw;
+  line-height: .8;
+  letter-spacing: -.02em;
+  color: transparent;
+  -webkit-text-stroke: max(1px, .16cqw) var(--brand-ink);
+  opacity: .9;
+}
+.brand-licence-fields {
+  position: relative;
+  z-index: var(--z-raised);
+  display: grid;
+  grid-template-columns: 1.5fr 1.1fr 1fr 1fr;
+  border-top: 1px solid var(--brand-ink);
+}
+.brand-licence-field {
+  padding: 1.3cqw 1.4cqw 0 0;
+}
+.brand-licence-field + .brand-licence-field {
+  padding-left: 1.4cqw;
+  border-left: 1px solid rgba(6, 18, 28, .25);
+}
+.brand-licence-field span {
+  display: block;
+  opacity: .7;
+}
+.brand-licence-field b {
+  display: block;
+  margin-top: .5cqw;
+  font-weight: 400;
+  font-size: 2.5cqw;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.brand-licence-field small {
+  margin-left: .5cqw;
+  font: 500 1.2cqw var(--brand-mono);
+}
+/* Registration marks in the corners: a ring with a cross through it. */
+.brand-registration {
+  position: absolute;
+  z-index: calc(var(--z-raised) + 1);
+  width: 1.5cqw;
+  height: 1.5cqw;
+  border: 1px solid var(--brand-ink);
+  border-radius: 50%;
+  background: linear-gradient(var(--brand-ink), var(--brand-ink)) center / 180% 1px no-repeat,
+    linear-gradient(var(--brand-ink), var(--brand-ink)) center / 1px 180% no-repeat;
+  opacity: .55;
+}
+.brand-registration-tl { top: 1.1cqw; left: 13.6cqw; }
+.brand-registration-tr { top: 1.1cqw; right: 1.1cqw; }
+.brand-registration-bl { bottom: 1.1cqw; left: 13.6cqw; }
+.brand-registration-br { right: 1.1cqw; bottom: 1.1cqw; }
+.brand-licence-stage {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 6vh 6vw;
+  background: radial-gradient(ellipse at 50% 40%, #0c2434, var(--brand-ink) 70%);
+}
+.brand-licence-stage .brand-licence {
+  width: min(1180px, 76vw, 128vh);
+}
+
+/* ── component sheet (brand/demo.html and ?brandDemo) ─────────────────────────────────────────────────────── */
+.brand-demo-page {
+  margin: 0;
+  background: var(--brand-paper);
+}
+.brand-demo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-menu) + 4);
+  overflow: auto;
+  background: var(--brand-paper);
+}
+.brand-demo-close {
+  position: fixed;
+  top: 20px;
+  right: 28px;
+  z-index: calc(var(--z-raised) + 3);
+  padding: 8px 16px;
+  border: 1px solid var(--brand-ink);
+  background: transparent;
+  color: var(--brand-ink);
+  font: 500 12px var(--brand-mono);
+  letter-spacing: .16em;
+  cursor: pointer;
+}
+.brand-demo {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 56px clamp(24px, 6vw, 96px) 96px;
+  font-family: var(--brand-sans);
+}
+.brand-demo-title {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+.brand-demo-title h1 {
+  margin: 0;
+  font-weight: 200;
+  font-size: 44px;
+  letter-spacing: .06em;
+}
+.brand-demo-section {
+  margin-top: 56px;
+}
+.brand-demo-head {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  margin-bottom: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--brand-ink);
+}
+.brand-demo-head h2 {
+  margin: 0;
+  font-weight: 300;
+  font-size: 24px;
+  letter-spacing: .08em;
+}
+.brand-demo-index {
+  font: 500 12px var(--brand-mono);
+  letter-spacing: .16em;
+}
+.brand-demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px 44px;
+  align-items: flex-end;
+}
+.brand-demo-swatch {
+  display: grid;
+  place-items: center;
+  width: min(520px, 100%);
+  height: 300px;
+  border: 1px solid rgba(6, 18, 28, .2);
+}
+.brand-demo-swatch svg {
+  width: auto;
+  height: 190px;
+}
+.brand-demo-swatch-dark {
+  background: var(--brand-ink);
+  color: var(--brand-ice);
+}
+.brand-demo-swatch-dark svg {
+  height: 110px;
+}
+.brand-demo-tile {
+  margin: 0;
+}
+.brand-demo-sizes {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.brand-demo-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 28px;
+}
+.brand-demo-card {
+  position: relative;
+  container-type: size;
+  aspect-ratio: 16 / 9;
+  box-shadow: 0 18px 50px rgba(6, 18, 28, .25);
+}
+.brand-demo-play {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: calc(var(--z-raised) + 3);
+  padding: 4px 10px;
+  border: 1px solid rgba(238, 243, 240, .6);
+  background: rgba(6, 18, 28, .5);
+  color: var(--brand-ice);
+  font-size: 10px;
+  cursor: pointer;
+}
+.brand-demo-licences {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  gap: 36px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-card-overlay.leaving {
+    transition-duration: .2s;
+  }
+}

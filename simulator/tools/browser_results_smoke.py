@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, set_intro, wait_screen
+from _menu import open_main, set_intro, wait_screen, wait_title_card_gone
 from _campaign_drive import hold_until_advanced, wait_left
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'results-validation'
@@ -51,6 +51,7 @@ def run():
         set_intro(page, False)
         page.click('#startDive')
         page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(90000))
+        wait_title_card_gone(page)
         assert page.locator('#resultsScreen').is_hidden(), 'no results card while flying'
         play_prologue(page)
         page.wait_for_selector('#resultsScreen:not([hidden])', timeout=timeout(15000))

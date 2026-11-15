@@ -2,6 +2,8 @@
 // the flow title → main menu → mode → hangar → dive site → briefing → launch (or the training, multiplayer
 // and settings branches). Every step is a full-screen layer; back is always available. Exposes window.__menu
 // for the browser checks and the desktop smoke test.
+// career/boot.js runs first: it restores settings an exam forced before any module reads the fidelity store.
+import '../career/boot.js';
 import { installCollectionPanel } from '../collection_panel.js';
 import { genericVehicle } from '../asset_config.js';
 import { vehicleDetail, vehicleName, vehicleTitle } from '../fleet_names.js';
@@ -22,9 +24,13 @@ import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
 import { SHOWCASE, createStage } from './stage.js';
+import { createBackdrop } from './big_picture.js';
+import { previewKey } from './cards.js';
 import { installDisplayPrefs } from '../prefs/display.js';
 import { installAudio } from '../audio/engine.js';
 import { installMusic } from '../audio/music.js';
+import { installCareerMenu } from '../career/menu.js';
+import { installBrandMenu } from '../brand/menu_brand.js';
 
 const STRINGS = {
   brand: 'ROV Solution',
@@ -55,7 +61,7 @@ const ROUTES = {
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
-const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training']);
+const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'shop']);
 const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
@@ -126,6 +132,8 @@ try {
 }
 setLoading(0.35, STRINGS.loading.scene);
 const stage = createStage(menu, { quality: choice.quality });
+// The game-rendered site picture that covers the stage while it switches site (big_picture.js).
+const backdrop = createBackdrop(menu, shade);
 // Player-facing YX fleet names come from fleet_names.js; ?assets=generic keeps the name of the art variant
 // it draws and shows its own detail line.
 for (const vehicle of catalogue.vehicles) {
@@ -241,8 +249,13 @@ function show(name) {
     navigator.focusFirst(next.element);
   });
 }
+// A screen with sceneKey() names the site behind it (the focused contract's); the others keep the chosen site.
 function showBackdrop(name) {
-  if (SHOWCASE_SCREENS.has(name)) stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
+  if (SHOWCASE_SCREENS.has(name)) {
+    clearTimeout(previewTimer);
+    backdrop.hide();
+    stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
+  } else if (screens[name].sceneKey) previewScene(screens[name].sceneKey());
   else if (stage.showcase) stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
 }
 function go(name) {
@@ -254,10 +267,16 @@ function back() {
   show(history.pop());
 }
 
+// Shows the site's preview picture at once, switches the 3D stage a moment later and then fades the picture
+// away; a site this build has no scene for keeps its picture.
 function previewScene(key) {
   clearTimeout(previewTimer);
+  const entry = sceneFor(key);
+  if (!entry || stage.showcase || stage.state.sceneKey !== key) backdrop.show(`menu/previews/${previewKey(key)}.jpg`);
   previewTimer = setTimeout(function switchScene() {
-    stage.setScene(sceneFor(key));
+    if (!entry) return;
+    stage.setScene(entry);
+    backdrop.reveal();
   }, PREVIEW_DELAY_MS);
 }
 function selectModel(id) {
@@ -384,6 +403,7 @@ const ctx = {
   },
 };
 
+const careerMenu = await installCareerMenu(ctx, screens);
 screens.title = buildTitle(ctx);
 screens.main = buildMain(ctx);
 screens.modes = buildModes(ctx);
@@ -393,7 +413,9 @@ screens.briefing = buildBriefing(ctx);
 screens.training = buildTraining(ctx);
 screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
+Object.assign(screens, careerMenu.buildScreens());
 for (const screen of Object.values(screens)) stack.append(screen.element);
+installBrandMenu({ menu, getModel: () => choice.model });
 
 stage.setScene(sceneFor(SHOWCASE.scene) || sceneFor(choice.scenario) || data.sites[0], { showcase: true });
 stage.setSticker(choice.sticker);
@@ -412,10 +434,22 @@ openRequestedScreen();
 navigator.setActive(true);
 navigator.start();
 
-// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link).
+// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link);
+// ?menu=board opens the YX contract board (the results screen's 下一張委託).
 function openRequestedScreen() {
   const query = new URLSearchParams(location.search);
-  if (query.get('menu') !== 'training') return;
+  const requested = query.get('menu');
+  if (requested === 'shop') {
+    go('main');
+    ctx.openShop();
+    return;
+  }
+  if (requested === 'board') {
+    go('main');
+    ctx.openBoard(query.get('tab') || '');
+    return;
+  }
+  if (requested !== 'training') return;
   go('main');
   ctx.openTraining(query.get('tab') || 'story');
 }
@@ -438,6 +472,9 @@ window.__menu = {
   },
   get choice() {
     return { ...choice };
+  },
+  get career() {
+    return ctx.career?.save || null;
   },
   get stickerMeshes() {
     return stage.stickerMeshes;

@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, Error
 from _browser import launch, http_base, ws_base, timeout
-from _menu import open_main, set_intro, wait_screen
+from _menu import open_main, set_intro, wait_screen, wait_title_card_gone
 from _campaign_drive import hold_until_advanced, wait_left
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'campaign-validation'
@@ -42,6 +42,7 @@ def run():
         set_intro(page, False)
         page.click('#startDive')
         page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(90000))
+        wait_title_card_gone(page)
         page.wait_for_timeout(1500)
         page.screenshot(path=str(OUT / 'prologue.png'))
 

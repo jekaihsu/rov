@@ -4,11 +4,13 @@ import {createMap} from './map.js';
 import {buildDebriefHtml, downloadDebriefHtml} from '../debrief/report.js';
 import {STRINGS as DEBRIEF_S} from '../debrief/strings.js';
 import {extractEventsFromFrames} from '../debrief/events.js';
+import {createStateMerger, VIEWER_CAPS} from '../state_merge.js';
 const root = document.querySelector('#app');
 let socket;
 let authenticated = false;
 let lastStateAt = 0;
 let state = {};
+const stateMerger = createStateMerger();
 let report;
 let pending = false;
 let reportPending = false;
@@ -103,6 +105,7 @@ login.addEventListener('submit', function join(event) {
   reportPending = false;
   report = null;
   state = {};
+  stateMerger.reset();
   cards.clear();
   fleet.replaceChildren();
   target.replaceChildren();
@@ -120,7 +123,9 @@ login.addEventListener('submit', function join(event) {
   updateAvailability();
   connection.onopen = function authenticate() {
     if (socket !== connection) return;
-    connection.send(JSON.stringify({type: 'instructor_join', room_id: room.value.trim(), code: secret}));
+    connection.send(JSON.stringify({
+      type: 'instructor_join', room_id: room.value.trim(), code: secret, caps: VIEWER_CAPS,
+    }));
   };
   connection.onmessage = function message(event) {
     if (socket === connection) receive(JSON.parse(event.data));
@@ -410,6 +415,7 @@ function receive(message) {
     } else refreshReport();
     updateAvailability();
   }
+  if (message.type === 'state') message = stateMerger.merge(message);
   if (message.type !== 'state' || !authenticated) return;
   state = message;
   lastStateAt = Date.now();

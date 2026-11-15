@@ -266,3 +266,9 @@ python tools/run_browser_checks.py browser_smoke observation_smoke browser_gamep
 
 `aquaculture_pen` 使用與碰撞同源的透明網衣薄面板、浮框及繫泊系統；
 [重建、任務資料、預算與截圖](aquaculture/README.md)。網衣擺動僅在前端，位移限制在一致性容差內。
+
+## 箱網與珊瑚礁外觀修正（scene-looks）
+
+審查後對 `aquaculture_pen` 與 `coral_reef` 的外觀修正（水色、網衣、養殖魚與死魚、任務環造成的半透明帶、
+珊瑚群體外形與顏色、碎塊、沙紋、礁魚）、前後截圖與效能見 [scene-looks](../scene-looks/README.md)。
+
