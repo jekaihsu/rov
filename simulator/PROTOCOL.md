@@ -761,3 +761,9 @@ RPC `{"type":"vision_results"}` reads the primary simulator vehicle's latest rep
 after one second, returns `{"available":false,"detections":[]}`. Requires an active reporting viewer.
 This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
 Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.
+
+G7 adds optional `embedded: true` to `snag` obstacles whose geometry is already drawn by a scene GLB.
+It suppresses only the duplicate procedural visual; collision and tether snag semantics are unchanged.
+Absent means the existing standalone visual. Authored snag metadata uses the FieldMesh local frame;
+`point`, `radius`, `height`, `hold_n` and `item` map to `SnagFeature`. `direction` describes the source
+feature tangent; small sphere capsules sample angled features without changing the vertical capsule API.
