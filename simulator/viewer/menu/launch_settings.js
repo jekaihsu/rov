@@ -2,6 +2,7 @@
 // Controller tuning reuses the input layer's own settings dialog (input/settings.js) with the same storage.
 import { BINDINGS_VERSION, migrateBindings } from '../input/bindings.js';
 import { createHaptics } from '../input/haptics.js';
+import '../input/haptics_fidelity.js';
 import { installSettings } from '../input/settings.js';
 import { CONTROL_LAYOUTS } from '../control_layout.js';
 import { renderQualityInfo } from '../render_quality.js';

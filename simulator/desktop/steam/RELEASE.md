@@ -34,13 +34,14 @@ complete conflict-recovery guarantee. Snapshots are local and currently unbounde
 
 ## Steam Input defaults and checks
 
-For Xbox, PlayStation, Switch Pro and Steam Deck select Valve's built-in
+See `docs/steam/steam-input.md` and the action-set template
+`simulator/desktop/steam/game_actions_TEMPLATE.vdf` (rename to `game_actions_<AppID>.vdf`
+before upload). For Xbox, PlayStation, Switch Pro and Steam Deck select Valve's built-in
 **Gamepad** template, enable Steam Input for each family, and publish each as the
-recommended configuration. Use joystick move/look, standard ABXY, triggers and
+recommended configuration. Use joystick move/look, standard face buttons, triggers and
 bumpers with no keyboard or mouse emulation; disable Nintendo button swapping
-for the standard positional mapping. These are setup instructions, not uploaded
-controller configurations. A verified exported VDF still needs real controllers.
-In Electron DevTools verify navigator.getGamepads(): mapping === 'standard',
+for the standard positional mapping. A verified exported configuration still needs real
+controllers. In Electron DevTools verify navigator.getGamepads(): mapping === 'standard',
 axes 0..3 and buttons 0..16 against the physical controller on all four families.
 
 Focus loss and Shift+Tab conservatively neutralize outgoing desktop RC packets;

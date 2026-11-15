@@ -17,6 +17,7 @@ import { installTouchSticks } from "./touch_sticks.js";
 import { createHaptics } from "./haptics.js";
 import { installSettings } from "./settings.js";
 import { getFidelity } from "../fidelity.js";
+import "./haptics_fidelity.js";
 const database = await fetch(new URL("./controller-db.json", import.meta.url)).then((r) => r.json());
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const desktopSettings = await window.rovDesktop?.readInput?.();
@@ -53,9 +54,9 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   let lastPadValues = "";
   let lastPadId = "";
   installTouchSticks({ element: $("sticks"), preference: $("optSticks") });
-  const haptics = createHaptics(() => frame.pad, settings);
-  // Assist level and flight profile belong to the fidelity profile; rc mirrors it for the transport.
+  // Assist level, flight profile and pad haptics belong to the fidelity profile.
   const fidelity = getFidelity();
+  const haptics = createHaptics(() => frame.pad, settings, fidelity);
   const rc = { rc_lock: 1, keep_depth: 0, left_switch: 0, right_switch: 0 };
   function mirrorFidelity() {
     rc.assist = fidelity.get("assistLevel");
