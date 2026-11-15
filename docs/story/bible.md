@@ -3,8 +3,11 @@
 依據：`docs/design/game-plan.md` §9–§10、`research_notes/遊戲設計/real_rov_jobs_missions.md`、
 `research_notes/遊戲設計/sim_game_patterns.md`、既有 `simulator/campaign/*.json`。
 
-> 註：目前 `game-plan.md` 止於 §10（機型命名與第一版範圍）。下文以 §9–§10 為準；
-> 若之後補上 §11，以擁有者新決定覆寫本文件衝突處。
+> 審查註記（2026-11-15）：本文件撰寫時 `game-plan.md` 只到 §10。§11（擁有者訪談）已補上，衝突處以 §11 為準：
+> - **工作船**：選單與下水都在實際使用的**小艇**上（見 `docs/prompts/M3.md`），不是 24 m 工作船。「向潮號」的船名可沿用，
+>   但尺寸、甲板吊、控制室貨櫃、廚房等描述與相關台詞（例如吊鉤口令）在實作前要改成小艇的做法。
+> - **失敗代價**：中止仍可推進，但要賠維修費、聲譽下降。
+> - **預設難度**為真實；考照強制真實。
 
 本文件只定故事與台詞規範，**不改程式**。實作時台詞進 `simulator/campaign/*.json` 的
 `strings`／多語字串表；配音由 `lines.csv` 產製。
