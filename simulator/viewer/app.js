@@ -25,6 +25,7 @@ import {installPhotoFeedback} from './hud/photo_feedback.js';
 import * as THREE from 'three';
 import {installAudio, installAudioSettings} from './audio/engine.js';
 import {installMusic} from './audio/music.js';
+import {installVoice} from './audio/voice.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { placeSceneModel } from './scene_models.js';
@@ -1202,6 +1203,7 @@ const audio = installAudio({
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
+installVoice({engine: audio, music});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
