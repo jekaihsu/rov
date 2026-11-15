@@ -71,3 +71,13 @@
 .career-unlocks li { padding-left: 8px; border-left: 2px solid var(--go); }
 .results-screen[data-kind=career] .results-rewards li { font-size: 12px; padding: 5px 10px; }
 .results-screen[data-kind=career] .results-score { margin-top: 10px; }
+
+/* main menu career summary */
+.career-summary { position: absolute; right: 0; top: 0; display: grid; gap: 2px; width: min(380px, 40vw);
+  padding: 14px 18px; border-left: 1px solid var(--accent); background: rgba(8, 18, 26, .45); backdrop-filter: blur(6px); }
+.career-summary .menu-kicker { margin-bottom: 4px; }
+.career-summary-licence { font-size: 22px; font-weight: 300; letter-spacing: .06em; }
+.career-summary-money { margin: 2px 0; font-size: 15px; }
+.career-summary .menu-help { margin: 2px 0; }
+.career-summary .career-bar[hidden] { display: none; }
+.career-summary .career-resume { position: static; width: auto; margin-top: 8px; }

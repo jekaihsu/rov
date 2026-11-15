@@ -10,6 +10,7 @@ import { introForLaunch } from '../menu/preferences.js';
 import { buildBoard } from './board.js';
 import { buildContractScreen } from './contract_screen.js';
 import { buildShop } from './shop.js';
+import { buildCareerSummary } from './summary.js';
 import { stickerAvailable, updateBlocks } from './shop_rules.js';
 import { careerDataFrom, loadCareerData } from './data.js';
 import { loadCareer, storeCareer } from './save.js';
@@ -72,6 +73,9 @@ export async function installCareerMenu(ctx, screens) {
   ctx.openContract = function openContract(contract) {
     screens.contract.show(contract);
     ctx.go('contract');
+  };
+  ctx.careerSummary = function careerSummary() {
+    return buildCareerSummary(ctx);
   };
   ctx.openShop = function openShop() {
     ctx.go('shop');

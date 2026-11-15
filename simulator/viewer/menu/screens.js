@@ -190,7 +190,11 @@ export function buildMain(ctx) {
     ctx.quickStart();
   });
   root.append(list, describe, quick);
+  // The YX career summary and 繼續職涯 (career/summary.js), when the career data loaded.
+  const career = ctx.careerSummary?.() || null;
+  if (career) root.append(career.element);
   function enter() {
+    career?.refresh();
     ctx.choice.multiplayer = false;
     ctx.choice.contract = '';
     ctx.choice.exam = false;
