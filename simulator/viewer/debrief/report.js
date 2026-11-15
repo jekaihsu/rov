@@ -24,7 +24,8 @@ export function buildDebriefHtml({
   const noteText = notes || report.debrief?.notes || s.notesPlaceholder;
   const rows = events.map(function row(event) {
     const label = s[event.kind] || event.kind;
-    return `<tr><td>${esc(event.t)} ${esc(s.seconds)}</td><td>${esc(label)}</td><td>${esc(event.detail || '')}</td></tr>`;
+    const time = `<td>${esc(event.t)} ${esc(s.seconds)}</td>`;
+    return `<tr>${time}<td>${esc(label)}</td><td>${esc(event.detail || '')}</td></tr>`;
   }).join('') || `<tr><td colspan="3">${esc(s.missing)}</td></tr>`;
   const shots = (screenshots.length ? screenshots : [{caption: s.noScreenshot}]).map(function figure(shot) {
     const caption = esc(shot.caption ?? shot.t ?? '');
@@ -68,7 +69,7 @@ img{max-width:100%;height:auto;display:block}
 </section>
 <h2>${esc(s.events)}</h2>
 <table>
-<thead><tr><th>t</th><th>kind</th><th>detail</th></tr></thead>
+<thead><tr><th>${esc(s.colTime)}</th><th>${esc(s.colKind)}</th><th>${esc(s.colDetail)}</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>
 <h2>${esc(s.notes)}</h2>
