@@ -103,6 +103,22 @@ registerFidelityItem({
 
 ## 本機執行
 
+H4 共用選測入口（在儲存庫根目錄執行，審查者與代理皆使用）：
+
+```bash
+python tools/run_checks.py --changed                 # main 分歧點到工作樹，含未追蹤檔；快速層
+python tools/run_checks.py --changed --tier full     # 相同變更路徑的完整層
+python tools/run_checks.py --tier full              # 全部單元、Node 與標準瀏覽器檢查
+python simulator/tools/run_browser_checks.py --tier quick
+python simulator/tools/run_browser_checks.py --tier full
+```
+
+先安裝 `simulator/requirements.txt`、`numba`、`playwright` 與 Node 22，並執行
+`python -m playwright install chromium`。使用 `--base <ref>` 可指定比較基底。
+選測規則在 `tools/check_matrix.py`；`--changed` 不取代下列完整單元測試規則。
+時間與分層範圍見 `docs/ci/timings.md`。完整瀏覽器層需要先執行
+`node simulator/desktop/test_collection_store.cjs` 產生測試用收藏資料。
+
 ```bash
 cd simulator
 pip install -r requirements.txt

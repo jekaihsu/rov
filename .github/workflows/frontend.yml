@@ -12,6 +12,7 @@ on:
       - "simulator/tools/sync_version.py"
       - "simulator/tools/check_changed_js.py"
       - "VERSION"
+      - "tools/**"
       - ".github/workflows/frontend.yml"
   workflow_dispatch:
 concurrency:
@@ -19,9 +20,12 @@ concurrency:
   cancel-in-progress: true
 jobs:
   frontend:
+    concurrency:
+      group: frontend-frontend-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,18 +37,13 @@ jobs:
           for f in $(find simulator/viewer -name '*.js' -not -path '*/vendor/*') simulator/desktop/*.cjs; do
             node --check "$f"
           done
-      - name: Node tests
-        run: |
-          set -e
-          node --test simulator/tests/*.mjs
-          node simulator/desktop/test_collection_store.cjs
-          node simulator/desktop/test_steam.cjs
-          node simulator/desktop/test_desktop.cjs
-          node simulator/desktop/test_backend_lifecycle.cjs
-          node simulator/desktop/test_input_guard.cjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Node tests
+        run: |
+          set -e
+          python tools/run_checks.py --kind node --tier quick
       - run: python -m unittest discover -s simulator/tests -p test_vendor_manifest.py
       - run: python simulator/tools/vendor_manifest.py --check
       - run: python simulator/tools/sync_version.py --check

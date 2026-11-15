@@ -10,6 +10,7 @@ are handed to the scripts through ROV_HTTP_PORT / ROV_WS_PORT (see _browser.py).
 output/browser-checks/.
 """
 import argparse
+import json
 import os
 import signal
 import socket
@@ -22,36 +23,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / 'tools'
 LOGS = ROOT / 'output' / 'browser-checks'
-# Checks that need nothing but a stock server. Performance and visual review scripts are not pass/fail checks
-# and browser_expedition_perf.py starts its own fixture server, so they only run when named explicitly.
-# browser_input_smoke.py asserts RC packets carry no assist fields, which needs a host that predates flight
-# assistance; run it by name against such a host. browser_collection_storage.py needs the archive written by
-# `node desktop/test_collection_store.cjs`, and browser_campaign_smoke.py records video (Playwright ffmpeg).
-DEFAULT_CHECKS = (
-    'browser_smoke',
-    'browser_menu_smoke',
-    'browser_menu_gamepad_smoke',
-    'browser_slow_render_smoke',
-    'browser_connection_smoke',
-    'browser_hud_smoke',
-    'browser_overlay_smoke',
-    'browser_camera_smoke',
-    'browser_camera_input_smoke',
-    'browser_attitude_smoke',
-    'browser_pilot_guide_smoke',
-    'browser_collection_storage',
-    'browser_audio_smoke',
-    'browser_audio_review_smoke',
-    'browser_mission_smoke',
-    'browser_gameplay_smoke',
-    'browser_expedition_smoke',
-    'browser_paint_smoke',
-    'browser_campaign_smoke',
-    'observation_smoke',
-    # Starts its own server with a private instructor code so it can inject link faults.
-    'browser_link_smoke',
-    'browser_vehicle_assets_smoke',
-)
+sys.path.insert(0, str(ROOT.parent / 'tools'))
+from check_matrix import DEFAULT_CHECKS, browser_checks, changed_paths
 
 
 def available_scripts():
@@ -150,6 +123,9 @@ def last_line(path):
 
 
 def print_table(results):
+    if not results:
+        print('No browser checks selected (no matching viewer changes).')
+        return
     width = max(len(name) for name, *_ in results)
     print()
     print(f"{'script'.ljust(width)}  result   seconds  detail")
@@ -164,13 +140,19 @@ def main():
     parser.add_argument('scripts', nargs='*', help='script names without .py; default is the standard check list')
     parser.add_argument('--list', action='store_true', help='list runnable scripts and exit')
     parser.add_argument('--timeout', type=int, default=900, help='seconds allowed per script (default 900)')
+    parser.add_argument('--tier', choices=('quick', 'full'), default='full')
+    parser.add_argument('--changed', action='store_true')
+    parser.add_argument('--base', default='origin/main')
+    parser.add_argument('--report', type=Path)
     args = parser.parse_args()
     known = available_scripts()
     if args.list:
         for name in known:
             print(name + ('' if name in DEFAULT_CHECKS else '  (only when named)'))
         return 0
-    names = [name.removesuffix('.py') for name in args.scripts] or list(DEFAULT_CHECKS)
+    paths = changed_paths(args.base) if args.changed else None
+    names = [name.removesuffix('.py') for name in args.scripts]
+    names = names or browser_checks(args.tier, paths)
     unknown = [name for name in names if name not in known]
     if unknown:
         parser.error(f"unknown script(s): {', '.join(unknown)}; use --list")
@@ -181,6 +163,9 @@ def main():
         status, seconds, detail = run_script(name, args.timeout)
         print(f'  {status} in {seconds:.0f} s', flush=True)
         results.append((name, status, seconds, detail))
+    if args.report:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps(results, indent=2) + '\n')
     print_table(results)
     return 0 if all(status == 'PASS' for _, status, *_ in results) else 1
 
