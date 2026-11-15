@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { Environment } from '../environment.js';
 import { buildStructures } from '../structures.js';
 import { createVehicleModel } from '../vehicle_models.js';
-import { loadGLTF } from '../glb.js';
+import { placeSceneModelLow } from '../scene_models.js';
 import { applyVehicleSticker } from '../vehicle_stickers.js';
 import { configureRenderQuality, updateRenderQuality } from '../render_quality.js';
 
@@ -136,10 +136,13 @@ export function createStage(host, { quality = 'auto' } = {}) {
     for (const point of points) siteFocus.add(point);
     siteFocus.divideScalar(points.length);
     seabed = -world.seabed_depth;
-    siteFocus.y = Math.max(seabed + 1.5, Math.min(-2, siteFocus.y));
+    // Lift the look point off the sand so a half-buried wreck's deck stays in frame.
+    siteFocus.y = Math.max(seabed + 4, Math.min(-2, siteFocus.y + 3));
     let spread = 0;
     for (const point of points) spread = Math.max(spread, point.distanceTo(siteFocus));
-    siteExtent = Math.max(8, Math.min(26, spread * 1.3 + 6));
+    // Single authored models need a mid-hull overview inside the menu fog far plane.
+    const floor = spread > 1 ? 8 : 14;
+    siteExtent = Math.max(floor, Math.min(26, spread * 1.3 + 6));
   }
   function placeAnchor(world) {
     anchor.copy(P(world.start_pos || [0, 0, 0]));
@@ -166,13 +169,10 @@ export function createStage(host, { quality = 'auto' } = {}) {
     structures.add(buildStructures(world, { detail: 'low' }).group);
     for (const obstacle of world.obstacles || []) {
       if (obstacle.type === 'model') {
-        loadGLTF(obstacle.model).then(function placeModel(gltf) {
-          if (ticket !== sceneTicket) return;
-          const heading = obstacle.heading_deg * Math.PI / 180;
-          gltf.scene.position.copy(P(obstacle.origin));
-          gltf.scene.rotation.y = Math.atan2(-Math.cos(heading), -Math.sin(heading));
-          structures.add(gltf.scene);
-        }).catch(function ignoreMissingModel() {});
+        // Menu background always uses the farthest authored LOD so card previews stay cheap.
+        placeSceneModelLow(obstacle, structures, P, function current() {
+          return ticket === sceneTicket;
+        });
       }
     }
     placeAnchor(world);
@@ -233,6 +233,14 @@ export function createStage(host, { quality = 'auto' } = {}) {
     }
     camera.position.copy(eye);
     camera.lookAt(look);
+    // Site overview cards need a longer fog reach than the hangar turntable.
+    if (pose.site) {
+      scene.fog.near = Math.max(4, siteExtent * 0.35);
+      scene.fog.far = Math.max(40, siteExtent * 3);
+    } else {
+      scene.fog.near = 7;
+      scene.fog.far = 36;
+    }
     environment?.update(dt, camera, new THREE.Vector3(0.1, 0, 0));
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
@@ -242,6 +250,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
   requestAnimationFrame(frame);
   return {
     renderer,
+    scene,
+    camera,
     state,
     setModel,
     setScene,
