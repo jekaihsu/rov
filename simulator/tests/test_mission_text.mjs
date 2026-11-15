@@ -4,9 +4,11 @@ import assert from "node:assert/strict";
 import {
   briefingTimeLimit,
   missionTimeLimit,
+  objectiveSummary,
   scoreSummary,
   scoreValue,
 } from "../viewer/play/mission_text.js";
+import { restartMessages } from "../viewer/play/restart.js";
 
 const WORLD = { scenario: { time_limit_s: 900 } };
 const EMPTY = { score: 0, elapsed: 12, objectives: [], penalties: [], penalty_total: 0 };
@@ -40,4 +42,24 @@ test("scenario training and co-op keep their limit, score and objective count", 
 test("a running chapter shows its own objective", () => {
   const state = { mission: { mode: "free_explore" }, campaign: { status: "active", objective: "解除馬達鎖定" } };
   assert.equal(scoreSummary(state), "解除馬達鎖定");
+});
+
+test("the pause menu summary names the current objective per mode", () => {
+  const training = { mission: { mode: "scenario_training" },
+    score: { objectives: [{ label: "A", done: true }, { label: "B", done: false }], penalty_total: 0 } };
+  assert.deepEqual(objectiveSummary(training), ["下一步：B", "目標 1/2 · 扣分 0"]);
+  const chapter = { campaign: { status: "active", chapter: "harbor", objective: "穩定懸停並拍照",
+    chapters: [{ id: "harbor", title: "第一章｜港灣" }] } };
+  assert.deepEqual(objectiveSummary(chapter), ["第一章｜港灣", "穩定懸停並拍照"]);
+  const sea = { mission: { mode: "expedition" }, expedition: { active: null } };
+  assert.equal(objectiveSummary(sea).length, 2);
+  assert.deepEqual(objectiveSummary({ mission: { mode: "free_explore" } }), ["自由探索 · 不計時、不扣分"]);
+});
+
+test("restart repeats the chapter, or resets the scene and restores its play mode", () => {
+  assert.deepEqual(restartMessages({ campaign: { status: "active", chapter: "hull" } }),
+    [{ type: "operation", action: "campaign_start", chapter: "hull" }]);
+  assert.deepEqual(restartMessages({ mission: { mode: "scenario_training" } }), [{ type: "reset" }]);
+  assert.deepEqual(restartMessages({ mission: { mode: "free_explore" } }),
+    [{ type: "reset" }, { type: "operation", action: "mission_mode", mode: "free_explore" }]);
 });

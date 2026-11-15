@@ -1,8 +1,12 @@
-// In-game pause menu (Esc, or hold Start; both from the `pause` row of input/bindings.js): resume, settings
-// and back to the launch menu. While it is open the input layer is blocked, so the pilot's own sticks are
+// In-game pause menu (Esc, or hold Start; both from the `pause` row of input/bindings.js): resume, restart
+// (host, confirmed with a second press), settings and back to the launch menu, beside a summary of the current
+// objective and, in the expedition sea, the contracts on offer (play/contracts.js). While it is open the input layer is blocked, so the pilot's own sticks are
 // centred and held buttons released. A solo host also pauses the simulation; in a shared room the simulation
 // keeps running for everyone else. Settings reuse the launch menu's tabs over the in-game controls.
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
+import { acceptContract, contractBoard } from '../play/contracts.js';
+import { objectiveSummary } from '../play/mission_text.js';
+import { restartRun } from '../play/restart.js';
 import {
   createSettingsPanel,
   element,
@@ -17,6 +21,12 @@ const STRINGS = {
   kicker: '暫停',
   title: '潛航暫停',
   resume: '繼續',
+  restart: '重新開始',
+  restartConfirm: '再按一次確認重新開始',
+  restartHost: '只有房主可以重新開始。',
+  objective: '目前目標',
+  contracts: '工程委託',
+  accept: '接取：{label}',
   settings: '設定',
   home: '返回主選單',
   solo: '單人潛航：模擬已暫停。繼續後請先回中、再解鎖。',
@@ -151,15 +161,21 @@ export function installPauseMenu({ input, send, state, replay = false }) {
   side.append(element('p', 'menu-kicker', STRINGS.kicker), element('h2', 'menu-heading', STRINGS.title));
   const note = element('p', 'menu-help');
   const list = element('nav', 'menu-list');
+  const objective = element('section', 'pause-objective');
+  objective.id = 'pauseObjective';
+  const objectiveLines = element('ul', 'pause-objective-lines');
+  const offers = element('div', 'pause-offers');
+  objective.append(element('h3', 'menu-label', STRINGS.objective), objectiveLines, offers);
   const main = element('div', 'pause-main');
   const footer = element('footer', 'pause-footer');
-  side.append(note, list);
+  side.append(note, list, objective);
   root.append(side, main, footer);
   document.body.append(root);
   let settings = null;
   let view = 'list';
   let pausedByMenu = false;
   let navigator = null;
+  let restartArmed = false;
   function entry(id, label, handler) {
     const button = element('button', 'menu-entry');
     button.type = 'button';
@@ -181,6 +197,40 @@ export function installPauseMenu({ input, send, state, replay = false }) {
     main.hidden = true;
     prompts();
     resume.focus({ preventScroll: true });
+  }
+  function host(current) {
+    return isHost(current) && !replay;
+  }
+  // The objective summary and, in the expedition sea, contracts the host can accept with the pad.
+  function renderObjective() {
+    const current = state();
+    const lines = current ? objectiveSummary(current) : [];
+    objectiveLines.replaceChildren(...lines.map(function line(text) {
+      return element('li', '', text);
+    }));
+    objective.hidden = !lines.length;
+    offers.replaceChildren();
+    const board = replay ? null : contractBoard(current, host(current));
+    for (const offer of board?.offers || []) {
+      const button = element('button', 'menu-chip menu-chip-small', STRINGS.accept.replace('{label}', offer.label));
+      button.type = 'button';
+      button.dataset.contract = offer.kind;
+      button.disabled = !offer.enabled;
+      button.title = offer.reason || offer.help;
+      button.addEventListener('click', function accept() {
+        const error = acceptContract(send, offer.kind);
+        if (error) note.textContent = error;
+        else hide();
+      });
+      offers.append(button);
+    }
+  }
+  function renderRestart() {
+    const current = state();
+    restart.disabled = replay || !host(current);
+    restart.title = restart.disabled && !replay ? STRINGS.restartHost : '';
+    restartArmed = false;
+    restartLabel.textContent = STRINGS.restart;
   }
   function showSettings() {
     if (!settings) {
@@ -213,6 +263,8 @@ export function installPauseMenu({ input, send, state, replay = false }) {
       if (!current.paused) pausedByMenu = send({ type: 'pause', value: true });
     }
     note.textContent = message;
+    renderObjective();
+    renderRestart();
     root.hidden = false;
     navigator?.setActive(true);
     navigator?.start();
@@ -228,6 +280,21 @@ export function installPauseMenu({ input, send, state, replay = false }) {
     pausedByMenu = false;
   }
   const resume = entry('pauseResume', STRINGS.resume, hide);
+  const restart = entry('pauseRestart', STRINGS.restart, function restartPressed() {
+    if (!restartArmed) {
+      restartArmed = true;
+      restartLabel.textContent = STRINGS.restartConfirm;
+      return;
+    }
+    const current = state();
+    hide();
+    restartRun(send, current);
+  });
+  const restartLabel = restart.querySelector('.menu-entry-label');
+  restart.addEventListener('blur', function disarm() {
+    restartArmed = false;
+    restartLabel.textContent = STRINGS.restart;
+  });
   entry('pauseSettings', STRINGS.settings, showSettings);
   entry('pauseHome', STRINGS.home, function home() {
     hide();
@@ -250,7 +317,7 @@ export function installPauseMenu({ input, send, state, replay = false }) {
       database,
       handlers: {
         scope() {
-          return view === 'settings' ? main : list;
+          return view === 'settings' ? main : side;
         },
         back() {
           if (view === 'settings') showList();

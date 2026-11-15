@@ -340,6 +340,14 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 .pause-side { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
 .pause-side .menu-help { max-width: 40ch; }
 .pause-main { min-height: 0; }
+.pause-objective { margin-top: 18px; padding: 12px 14px; border-left: 1px solid var(--accent);
+  background: rgba(8, 18, 26, .4); max-width: 44ch; }
+.pause-objective[hidden] { display: none; }
+.pause-objective-lines { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px;
+  line-height: 1.6; }
+.pause-offers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pause-offers:empty { display: none; }
+.pause-offers button:disabled { opacity: .4; }
 .pause-footer { position: fixed; left: 6vmin; right: 6vmin; bottom: 3vmin; display: flex; gap: 20px;
   padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--text-dim); }
 

@@ -11,6 +11,9 @@ const STRINGS = {
   expedition: '海洋探索 · 自由航行，可接工程委託',
   contract: '委託：{label}',
   waiting: '尚未開始',
+  next: '下一步：{label}',
+  offers: '可在任務卡或下方接取工程委託。',
+  chapter: '{title}',
 };
 const UNTIMED = new Set(['free_explore', 'expedition']);
 
@@ -61,4 +64,38 @@ export function scoreSummary(state) {
   }).length;
   return STRINGS.progress.replace('{done}', String(done)).replace('{total}', String(objectives.length))
     .replace('{penalty}', String(score.penalty_total || 0));
+}
+
+// Current objective for the pause menu: a heading line and up to three detail lines.
+export function objectiveSummary(state) {
+  const lines = [];
+  const campaign = state?.campaign;
+  if (campaign?.status === 'active') {
+    const chapter = (campaign.chapters || []).find(function byId(entry) {
+      return entry.id === campaign.chapter;
+    });
+    if (chapter) lines.push(STRINGS.chapter.replace('{title}', chapter.title));
+    const hint = campaign.objective || campaign.node?.hint;
+    if (hint) lines.push(hint);
+    return lines;
+  }
+  const mode = state?.mission?.mode;
+  if (mode === 'expedition') {
+    const active = state.expedition?.active;
+    lines.push(scoreSummary(state));
+    const step = active?.steps?.find(function open(entry) {
+      return !entry.completed;
+    });
+    if (step) lines.push(STRINGS.next.replace('{label}', step.label));
+    if (!active) lines.push(STRINGS.offers);
+    return lines;
+  }
+  if (mode === 'free_explore') return [scoreSummary(state)];
+  const objectives = state?.score?.objectives || [];
+  const current = objectives.find(function open(objective) {
+    return !objective.done;
+  });
+  if (current?.label) lines.push(STRINGS.next.replace('{label}', current.label));
+  lines.push(scoreSummary(state));
+  return lines;
 }
