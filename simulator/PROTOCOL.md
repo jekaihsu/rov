@@ -344,7 +344,12 @@ current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbul
                       (turbulence = streamwise intensity σu/U; optional tide object only when the scenario
                       has one; see "Ocean current model" below)
 scenario {key, name, brief, seed, visibility_m, time_limit_s, tether_length,
-          biome, seabed_type, bnl_height_m, bnl_mg_l}       (the last three optional, see §4a)
+          biome, seabed_type, bnl_height_m, bnl_mg_l,       (the last three optional, see §4a)
+          water_type}       (optional: oceanic | coastal | shelf | harbour | fresh_clear; the optical water
+                            type the viewer colours the water with, loosely after Jerlov's classes; default
+                            from the biome: reef oceanic, seagrass coastal, harbor harbour, fresh water
+                            fresh_clear, otherwise shelf. Presentation only: physics and visibility_m are
+                            unchanged; clients that do not know it use their generic water.)
 spool [n,e,d]         tether spool / deployment point on the surface
 start_pos [n,e,d]     ROV start position (the viewer's deployment intro ends here)
 catalogue [{key, name, brief}]  scenarios for a picker (includes "random")

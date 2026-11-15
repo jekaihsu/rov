@@ -85,3 +85,20 @@ test('medium contributors add extinction and coloured backscatter on top of the 
   assert.deepEqual(cloud.kd, water.kd);
   assert.ok(cloud.c[1] > water.c[1]);
 });
+
+test('water type moves the water colour from blue (oceanic) to green (shelf, harbour)', async function () {
+  const {WATER_TYPES} = await import('../viewer/fx/water_model.js');
+  const ratio = function blueOverGreen(type, visibility = 10) {
+    const rgb = waterRadianceAtInfinity(10, 0, waterCoefficients(visibility, 0, type));
+    return rgb[2] / rgb[1];
+  };
+  assert.ok(ratio('oceanic') > ratio('coastal'));
+  assert.ok(ratio('coastal') > ratio('shelf'));
+  assert.ok(ratio('shelf') > ratio('harbour'));
+  assert.ok(ratio('oceanic', 18) > 0.9, `clear oceanic reef water stays blue-cyan: ${ratio('oceanic', 18)}`);
+  assert.ok(ratio('shelf') < 0.6, `shelf water is green: ${ratio('shelf')}`);
+  assert.deepEqual(waterCoefficients(10, 0, 'unknown'), waterCoefficients(10));
+  assert.ok(Object.keys(WATER_TYPES).includes('fresh_clear'));
+  // Visibility still sets the green attenuation when the water type leaves room for it.
+  assert.ok(Math.abs(waterCoefficients(10, 0, 'shelf').c[1] - 0.48) < 1e-9);
+});

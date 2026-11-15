@@ -229,8 +229,10 @@ A = 改動前的樣子在同一頁重建（每個主構件一個單色圖元、�
 
 `*-after.jpg` 是合併 main @ 73c0904 之前拍的（舊的線性霧），與 `*-before.jpg` 是同一條繪圖路徑，可以直接比較。
 合併後 main 的水下光學（#49）改用逐通道的水體模型，同一機位的畫面整體偏藍、紅色在深處被吸收（例如船殼的防污漆），
-這是光學模型的結果，不是材質改變；`<潛點>-third-optics.jpg`（hull、harbor、monopile、jacket）是合併後中畫質、
-能見度 52 m 的第三人稱總覽。合併後的機載機位（真實能見度、載具與燈仍在出發點）在目標處只剩水色，所以沒有重拍；
+這是光學模型的結果，不是材質改變；`<潛點>-third-optics.jpg`（hull、harbor、monopile、jacket）是中畫質、
+能見度 52 m 的第三人稱總覽，已在 `fix/optics-scenes` 重拍：場址水型（`world.scenario.water_type`，
+陸棚／港灣水偏綠、灰綠）、相機部分自動白平衡、中畫質附著生物加上低成本雜訊斑塊，且截圖前讓曝光與白平衡在該機位收斂
+（見 `simulator/viewer/fx/README.md`「Site materials」）。合併後的機載機位（真實能見度、載具與燈仍在出發點）在目標處只剩水色，所以沒有重拍；
 程式檢查過結構與海床材質都被 `underwater_lighting.js` 安裝（`userData.waterLighting`）。截圖時會暫時隱藏巡檢用的
 線框球與格線（新光學不再對 `MeshBasicMaterial` 加霧，會蓋滿畫面）。
 

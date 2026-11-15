@@ -147,6 +147,7 @@ export class SiltRenderer {
     this.environment = environment || null;
     this.visibilityM = world?.scenario?.visibility_m || 12;
     this.seabed = world?.seabed_depth ?? 30;
+    this.waterType = world?.scenario?.water_type ?? null;
     if (rov) {
       this._lamp.set(0, 0, 0.36).applyQuaternion(rov.quaternion).add(rov.position);
       this._lampDir.set(0, 0, 1).applyQuaternion(rov.quaternion);
@@ -191,6 +192,7 @@ export class SiltRenderer {
   // What the optics tiers need: clean-water visibility and the sediment extinction at the camera.
   _publishMedium(real, modern, visibility, displayFar, share) {
     const data = this.scene.userData;
+    data.waterType = this.waterType;
     if (real && modern) {
       data.waterVisibility = this.visibilityM;
       data.waterSiltTint = 0;

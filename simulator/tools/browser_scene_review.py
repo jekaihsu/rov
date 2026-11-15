@@ -73,7 +73,10 @@ CAPTURE = '''([view, real, width, height, quality, frames]) => {
   });
   for (const o of helpers) o.visible = false;
   const gl = renderer.getContext(), pixel = new Uint8Array(4);
-  renderer.render(scene, camera);
+  // Let the camera's auto-exposure and white balance (fx/exposure.js) settle on this view: between captures the
+  // app renders its own camera, so a single render would use the gain metered on a different picture.
+  const settle = quality ? 12 : 1;
+  for (let i = 0; i < settle; i++) renderer.render(scene, camera);
   const times = [];
   for (let i = 0; i < frames; i++) {
     const t0 = performance.now();

@@ -19,6 +19,19 @@ const SCATTER_SHARE = 0.8;
 // Dissolved and particulate absorption rises towards blue (yellow substance); silt tints it further.
 const PARTICLE_ABSORPTION_SPECTRUM = Object.freeze([0.6, 1.0, 1.7]);
 const SILT_ABSORPTION_SPECTRUM = Object.freeze([0.0, 0.25, 0.9]);
+// Optical water types (world.scenario.water_type), loosely after Jerlov's classes. Each adds coloured dissolved
+// organic matter and detritus ("yellow substance") absorption, a_g(440 nm) in 1/m, which takes blue first and so
+// turns the water from blue (oceanic) through green (shelf) to yellow-green (harbour). Assumed per class from
+// the order of magnitude of open-ocean, coastal and estuarine values; not site measurements.
+export const WATER_TYPES = Object.freeze({
+  oceanic: 0.015,
+  coastal: 0.08,
+  shelf: 0.2,
+  harbour: 0.35,
+  fresh_clear: 0.0
+});
+// a_g(lambda) = a_g(440) exp(-0.015 (lambda - 440)) at the three band centres (620 / 540 / 470 nm).
+const YELLOW_SUBSTANCE_SPECTRUM = Object.freeze([0.067, 0.223, 0.638]);
 const MIN_VISIBILITY_M = 0.3;
 const MAX_VISIBILITY_M = 80;
 
@@ -26,20 +39,23 @@ function clamp(value, low, high) {
   return Math.max(low, Math.min(high, value));
 }
 
-// Returns {c, b, a, kd} (arrays of three, 1/m) for a horizontal visibility in metres and silt 0..1.
-// The green channel's beam attenuation is tied to visibility, so distant objects vanish at that range.
-export function waterCoefficients(visibility, silt = 0) {
+// Returns {c, b, a, kd} (arrays of three, 1/m) for a horizontal visibility in metres, silt 0..1 and an optional
+// water type. The green channel's beam attenuation is tied to visibility, so distant objects vanish at that
+// range; the yellow substance of the water type comes out of the same budget (a very clear visibility in
+// shelf water is therefore capped by the water itself). Unknown or missing type: no yellow substance.
+export function waterCoefficients(visibility, silt = 0, type = null) {
   const range = clamp(Number(visibility) || 12, MIN_VISIBILITY_M, MAX_VISIBILITY_M);
   const cloud = clamp(Number(silt) || 0, 0, 1);
+  const yellow = WATER_TYPES[type] ?? 0;
   const green = VISIBILITY_CONTRAST / range;
-  const rest = Math.max(0.01, green - PURE_WATER_ABSORPTION[1]);
+  const rest = Math.max(0.01, green - PURE_WATER_ABSORPTION[1] - yellow * YELLOW_SUBSTANCE_SPECTRUM[1]);
   const b = SCATTER_SHARE * rest;
   const a = [];
   const c = [];
   const kd = [];
   for (let i = 0; i < 3; i++) {
     const spectrum = PARTICLE_ABSORPTION_SPECTRUM[i] + cloud * SILT_ABSORPTION_SPECTRUM[i];
-    a[i] = PURE_WATER_ABSORPTION[i] + (1 - SCATTER_SHARE) * rest * spectrum;
+    a[i] = PURE_WATER_ABSORPTION[i] + yellow * YELLOW_SUBSTANCE_SPECTRUM[i] + (1 - SCATTER_SHARE) * rest * spectrum;
     c[i] = a[i] + b;
     // Diffuse light is mostly absorbed on the way down; only a little is scattered out of the beam.
     kd[i] = 1.1 * a[i] + 0.15 * b;
