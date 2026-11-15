@@ -149,7 +149,12 @@ class SnagTracker:
                 hook.s_rov = self._closest_s_rov(x, l0, hook.target)
             if hook.tension_n > p.tighten_fraction * hook.hold_n:
                 grow = p.tighten_rate * (hook.tension_n - p.tighten_fraction * hook.hold_n) * dt
+                before = hook.hold_n
                 hook.hold_n = min(hook.hold_n + grow, p.tighten_max * hook.base_hold_n)
+                # First clear grow past the drawn hold: a tighten event for the pilot log / stream.
+                if before <= hook.base_hold_n * 1.01 < hook.hold_n:
+                    self.events.append({"t": round(t_now, 2), "type": "tether_snag_tightened",
+                                        "obstacle": hook.name, "hold_n": round(hook.hold_n, 1)})
             node = seg + (1 if frac > 0.5 else 0)
             bend = chord_bend(x, l0, node)
             unwound = hook.sense * bend < math.radians(p.release_angle_deg)
