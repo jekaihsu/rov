@@ -82,29 +82,36 @@ with sync_playwright() as p:
         }""", timeout_ms=timeout(60000), allies=(peer,))
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['far_surface_rejected'] = True
-        # Drive heave through touch + rc_lock so blur/visibility failsafe cannot cancel the dive mid-wait.
+        # Drive heave via touch + keyboard. Never click #bLock here: it toggles, so set-then-click
+        # would re-lock every pump turn. Keep peer silent; re-assert unlock/heave each turn so
+        # visibility/blur failsafe cannot leave thrusters cancelled mid-dive.
         peer.evaluate('window.__skipRender = true')
         page.bring_to_front()
         page.locator('.viewport canvas').first.click(force=True, no_wait_after=True)
-        pump_until(page, """() => {
-          const v = window.__viewer;
-          if (!v?.S || !v.touch) return false;
-          v.rc.rc_lock = 0;
-          v.touch.left_wave = -1;
-          const altitude = v.S.sensors?.altitude;
-          if (Number.isFinite(altitude) && altitude < 2.2) return true;
-          const start = new v.THREE.Vector3(-v.S.pos[1], -v.S.pos[2], v.S.pos[0]);
-          const meshes = [];
-          v.scene.traverse(o => { if (o.isMesh && o.userData.paintable && o.visible) meshes.push(o); });
-          const hits = new v.THREE.Raycaster(start, new v.THREE.Vector3(0, -1, 0)).intersectObjects(meshes, false);
-          return !!(hits.length && hits[0].distance < 2.2);
-        }""", timeout_ms=timeout(180000), allies=(peer,))
-        page.evaluate("""() => {
-          const v = window.__viewer;
-          if (!v) return;
-          v.touch.left_wave = 0;
-          v.rc.rc_lock = 1;
-        }""")
+        page.evaluate('() => { window.__viewer.rc.rc_lock = 0; window.__viewer.touch.left_wave = -1; }')
+        page.keyboard.down('q')
+        try:
+            pump_until(page, """() => {
+              const v = window.__viewer;
+              if (!v?.S || !v.touch) return false;
+              v.rc.rc_lock = 0;
+              v.touch.left_wave = -1;
+              const altitude = v.S.sensors?.altitude;
+              if (Number.isFinite(altitude) && altitude < 2.2) return true;
+              const start = new v.THREE.Vector3(-v.S.pos[1], -v.S.pos[2], v.S.pos[0]);
+              const meshes = [];
+              v.scene.traverse(o => { if (o.isMesh && o.userData.paintable && o.visible) meshes.push(o); });
+              const hits = new v.THREE.Raycaster(start, new v.THREE.Vector3(0, -1, 0)).intersectObjects(meshes, false);
+              return !!(hits.length && hits[0].distance < 2.2);
+            }""", timeout_ms=timeout(180000), allies=(peer,))
+        finally:
+            page.keyboard.up('q')
+            page.evaluate("""() => {
+              const v = window.__viewer;
+              if (!v) return;
+              v.touch.left_wave = 0;
+              v.rc.rc_lock = 1;
+            }""")
         soft_click(page, '#btnPause')
         pump_until(page, '() => window.__viewer.S.paused', timeout_ms=timeout(60000), allies=(peer,))
         results['paint_vehicle_position'] = page.evaluate('window.__viewer.S.pos')
