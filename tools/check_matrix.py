@@ -12,6 +12,7 @@ DEFAULT_CHECKS = (
     'browser_smoke',
     'browser_menu_smoke',
     'browser_menu_gamepad_smoke',
+    'browser_gamepad_matrix_smoke',
     'browser_slow_render_smoke',
     'browser_connection_smoke',
     'browser_hud_smoke',

@@ -21,10 +21,12 @@ export const PRESETS = {
 };
 export function bindingValue(binding, snapshot) {
   if (Array.isArray(binding)) return bindingValue(binding[0], snapshot) - bindingValue(binding[1], snapshot);
-  const match = /^(-?)([ab])(\d+)(~?)$/.exec(binding || "");
+  // Optional leading "+" is SDL half-axis notation and matches an unsigned axis/button read.
+  const match = /^([+-]?)([ab])(\d+)(~?)$/.exec(binding || "");
   if (!match) return 0;
   const value = (match[2] === "a" ? snapshot.axes : snapshot.buttons)[Number(match[3])] || 0;
-  return (match[1] ? -1 : 1) * (match[4] ? (value > 0.5 ? 1 : 0) : value);
+  const sign = match[1] === "-" ? -1 : 1;
+  return sign * (match[4] ? (value > 0.5 ? 1 : 0) : value);
 }
 export function radial(x, y, inner = 0.08, outer = 0.02) {
   const length = Math.hypot(x, y);
