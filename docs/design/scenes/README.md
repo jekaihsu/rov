@@ -266,3 +266,8 @@ python tools/run_browser_checks.py browser_smoke observation_smoke browser_gamep
 
 `aquaculture_pen` 使用與碰撞同源的透明網衣薄面板、浮框及繫泊系統；
 [重建、任務資料、預算與截圖](aquaculture/README.md)。網衣擺動僅在前端，位移限制在一致性容差內。
+
+## M2 水庫進水口
+
+`reservoir_intake` 新增淡水綠水、護坡碼頭、攔污柵與局部吸入流演練；
+[重建、限制、資產與截圖](reservoir/README.md)。

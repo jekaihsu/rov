@@ -1,0 +1,50 @@
+{
+  "embankment_overlook": {
+    "eye": [
+      -16,
+      -18,
+      -12
+    ],
+    "target": [
+      16,
+      0,
+      -1
+    ]
+  },
+  "dock_equipment": {
+    "eye": [
+      1,
+      -5,
+      -2.3
+    ],
+    "target": [
+      5,
+      -2,
+      -0.6
+    ]
+  },
+  "reservoir_overlook": {
+    "eye": [
+      -16,
+      -18,
+      -12
+    ],
+    "target": [
+      16,
+      0,
+      -1
+    ]
+  },
+  "reservoir_equipment": {
+    "eye": [
+      1,
+      -5,
+      -2.3
+    ],
+    "target": [
+      5,
+      -2,
+      -0.6
+    ]
+  }
+}

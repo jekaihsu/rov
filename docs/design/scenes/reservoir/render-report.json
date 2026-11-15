@@ -1,0 +1,48 @@
+{
+  "medium-assets": {
+    "residentTrianglesIncludingHidden": 251679,
+    "visibleTriangles": 131756,
+    "residentMeshesIncludingHidden": 418,
+    "textureRGBAWithMipBytes": 349526
+  },
+  "medium-embankment-overlook": {
+    "calls": 125,
+    "triangles": 121800,
+    "ms": 16152.100000000093,
+    "minMs": 16152.100000000093,
+    "medianMs": 16152.100000000093
+  },
+  "medium-dock-equipment": {
+    "calls": 119,
+    "triangles": 115624,
+    "ms": 12059,
+    "minMs": 12059,
+    "medianMs": 12059
+  },
+  "performance-assets": {
+    "residentTrianglesIncludingHidden": 202353,
+    "visibleTriangles": 82432,
+    "residentMeshesIncludingHidden": 415,
+    "textureRGBAWithMipBytes": 349526
+  },
+  "performance-embankment-overlook": {
+    "calls": 119,
+    "triangles": 78234,
+    "ms": 1125.3999999999069,
+    "minMs": 1125.3999999999069,
+    "medianMs": 1125.3999999999069
+  },
+  "high-assets": {
+    "residentTrianglesIncludingHidden": 251679,
+    "visibleTriangles": 131756,
+    "residentMeshesIncludingHidden": 418,
+    "textureRGBAWithMipBytes": 349526
+  },
+  "high-embankment-overlook": {
+    "calls": 125,
+    "triangles": 121800,
+    "ms": 4387.200000000186,
+    "minMs": 4387.200000000186,
+    "medianMs": 4387.200000000186
+  }
+}

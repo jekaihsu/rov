@@ -1,0 +1,16 @@
+{
+  "default": {
+    "portable_triangles": {
+      "above": 58988,
+      "underwater": 6068
+    },
+    "bytes": 936072
+  },
+  "low": {
+    "portable_triangles": {
+      "above": 24116,
+      "underwater": 5180
+    },
+    "bytes": 383980
+  }
+}

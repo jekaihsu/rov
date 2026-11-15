@@ -871,3 +871,22 @@ feature tangent; small sphere capsules sample angled features without changing t
 load and release semantics apply. New scenario objective kinds are `pen_lap`,
 `pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
 Net visual motion is bounded to 0.05 m and never changes server collision shapes.
+
+### M2：區域流場（選填）
+
+`world.scenario.regional_flows` 是選填陣列，未提供或 `[]` 完全保留原有流場。
+每項為 `{"center":[19,0,10],"radii":[4,4,4],"velocity":[0.35,0,0]}`：
+中心 NED 公尺、三個有限正橢球半軸公尺、中心流速 NED m/s。所有向量必須為三個有限數值。
+令 `r = norm((position-center)/radii)`，`x = clamp(1-r,0,1)`，額外流速為 `velocity*x*x*(3-2*x)`；邊界及外部為零，
+多個區域相加，再套用既有結構物流場與固體遮蔽。這是平滑有界的訓練近似，並非質量守恆 CFD。
+由 `World.current_at_many` 統一供載具、纜線、泥沙及工作物件使用；不改 RC／SDK 命令。
+`reservoir_intake` 的弱吸入流指向攔污柵；正常維護應停機隔離，這是未完全隔離的危險演練假設。
+
+水型新增 `fresh_green`（光學假設），壓力換算密度仍由既有 `water="fresh"` 決定，能見度 3 m。
+`world.scenario.camera_anchors` 選填具名物件，`eye`／`target` 為 NED 公尺；
+`embankment_overlook` 與 `dock_equipment` 供選單取用，不能用來開啟真實模式的額外視角。
+`reservoir_photo` 目標須在第一個目標完成後拍照，距堵塞受檢面 0.6–2.8 m、
+前向內積 >0.94 且通視無遮擋才完成；沿用現有拍照命令。
+
+`scenario.reservoir_decoration` 選填，只含完全離水的裝飾原語（既有 box/cylinder 格式），
+不加入水下物理。水線交界的浮筒、船體與所有水下物件仍在 `world.obstacles`。

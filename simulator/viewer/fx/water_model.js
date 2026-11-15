@@ -28,6 +28,7 @@ export const WATER_TYPES = Object.freeze({
   coastal: 0.08,
   shelf: 0.2,
   harbour: 0.35,
+  fresh_green: 0.55,
   fresh_clear: 0.0
 });
 // a_g(lambda) = a_g(440) exp(-0.015 (lambda - 440)) at the three band centres (620 / 540 / 470 nm).

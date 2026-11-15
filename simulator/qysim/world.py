@@ -652,6 +652,7 @@ class World:
         self.paint_last_at: dict[str, float] = {}
         self.obstacles: list = []
         self.current = CurrentProfile()
+        self.regional_flows = []
         self.k_contact = 25000.0      # N/m
         self.c_contact = 500.0        # N s/m
         self.mu = 0.4
@@ -717,6 +718,8 @@ class World:
                 bed = np.full(len(P), self.seabed_depth)
                 bed[low] = self.terrain.sample_many(P[low])[0]
         U = self.current.sample_many(P, self.seabed_depth, bed=bed, z0=self.bed_roughness())
+        for region in self.regional_flows:
+            U += region.sample_many(P)
         flow = self.structure_flow()
         if flow.empty:
             return U

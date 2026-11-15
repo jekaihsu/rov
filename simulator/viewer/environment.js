@@ -1,3 +1,4 @@
+import {buildReservoirSurface} from './reservoir.js';
 // Shared server habitat; older recordings fall back to decorative surroundings.
 //   under water  seabed with a per-site material (seabed.js), rock outcrops, scattered steel debris,
 //                kelp that sways with the current, fish schools circling the structures, kelp and
@@ -415,6 +416,13 @@ export class Environment {
   _surface(R) {
     const S = (this.surf = new THREE.Group());
     this.group.add(S);
+    if (this.world.scenario?.key === 'reservoir_intake') {
+      this.rotors = [];
+      this.buoys = [];
+      this.vessels = [];
+      buildReservoirSurface(S, this.detail);
+      return;
+    }
     const c = this.centre;
     // coastline and islands on the horizon: low-poly mountains, hazed by the fog
     const rockM = M(0x5d6b5a, { flatShading: true, roughness: 1 }), cliffM = M(0x77705f, { flatShading: true, roughness: 1 });
