@@ -14,6 +14,7 @@ const STRINGS = {
   entries: {
     dive: ['開始潛航', '選擇玩法、載具與海域，從水面下潛。'],
     story: ['劇情與教學', '從水池練習開始，跟著工作隊解鎖港灣與船殼巡檢。'],
+    contracts: ['工程委託', '在海洋探索海域接取巡檢、回收與部署委託；下水後在右上任務卡接案。'],
     training: ['訓練情境', '事故演練與依難度排列的場景訓練。'],
     multiplayer: ['多人', '建立或加入房間，最多三人共用同一片海域。'],
     collection: ['圖鑑與收藏', '照片、生物圖鑑與工程紀錄。'],
@@ -132,6 +133,9 @@ export function buildMain(ctx) {
     },
     story: function story() {
       ctx.openTraining('story');
+    },
+    contracts: function contracts() {
+      ctx.openContracts();
     },
     training: function training() {
       ctx.openTraining('drills');

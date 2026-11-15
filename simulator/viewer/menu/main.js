@@ -303,6 +303,11 @@ const ctx = {
   openCollection() {
     collection.open();
   },
+  // Expedition contracts as their own entry: the expedition sea, then vehicle and site as usual.
+  openContracts() {
+    choice.route = 'dive';
+    ctx.chooseMode('expedition');
+  },
   chooseMode(mode) {
     if (mode === 'scenario_training') {
       screens.training.show('scenarios');

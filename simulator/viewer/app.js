@@ -57,6 +57,7 @@ import { installResults, resultsOpen } from './play/results.js';
 import { installAchievements } from './play/achievements.js';
 import { installConnectionNotice } from './play/connection_notice.js';
 import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
+import { installObjectiveCard } from './play/objective_card.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -454,7 +455,9 @@ const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
-const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session, readOnly: !!REPLAY});
+const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
+const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session, readOnly: !!REPLAY,
+  onContracts: () => objectiveCard.showContracts()});
 const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
 const connectionNotice = installConnectionNotice({element: $('offline')});
@@ -530,6 +533,7 @@ function onState(m) {
   campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
+  objectiveCard.update(m);
   results.update(m);
   achievements.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
