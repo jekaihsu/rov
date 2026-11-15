@@ -47,7 +47,7 @@ import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
-import { installDebrief } from './debrief/install.js';
+import { installDebrief, shouldInstallDebrief } from './debrief/install.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
@@ -1073,10 +1073,15 @@ async function startReplay(url) {
   addEventListener('keydown', wake);
   $('rpPlay').addEventListener('click', wake);
   wake();
-  debrief = installDebrief({
-    replayBar: $('replayBar'), getReplay: () => rep, setReplayTime, setCam, feed: feedReplay,
-    capture() { renderer.render(scene, camera); return renderer.domElement; },
-  });
+  if (shouldInstallDebrief(url, data)) {
+    debrief = installDebrief({
+      replayBar: $('replayBar'), getReplay: () => rep, setReplayTime, setCam, feed: feedReplay,
+      capture() { renderer.render(scene, camera); return renderer.domElement; },
+    });
+  } else {
+    debrief = null;
+    document.body.classList.remove('debriefing');
+  }
   loadClip(0);
 }
 const clipNow = () => rep.data.clips[rep.ci];

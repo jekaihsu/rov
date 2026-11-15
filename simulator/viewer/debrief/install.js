@@ -1,10 +1,13 @@
 /* Wire debrief timeline, viewpoint and report export into an active replay session.
-   RC must stay silent: this module never opens a socket or sends commands. */
+   RC must stay silent: this module never opens a socket or sends commands.
+   Public demo replays stay on the plain replay bar; only instructor / training records open this panel. */
 import {STRINGS, SEEK_LEAD_S} from './strings.js';
 import {eventsForRecording, seekTime} from './events.js';
 import {installTimeline} from './timeline.js';
-import {installViewpoint, VIEW_STUDENT, studentDisplayTime} from './viewpoint.js';
+import {installViewpoint, VIEW_GOD, VIEW_STUDENT, studentDisplayTime} from './viewpoint.js';
 import {buildDebriefHtml, downloadDebriefHtml} from './report.js';
+import {installDebriefControls} from './controls.js';
+import {getFidelity} from '../fidelity.js';
 
 function el(tag, className, parent, text) {
   const node = document.createElement(tag);
@@ -28,6 +31,16 @@ function nearestFrame(frames, time) {
   return best;
 }
 
+/** Public showcase demos stay on the plain replay chrome; training / instructor clips open debrief. */
+export function shouldInstallDebrief(url, data) {
+  const source = String(url || '');
+  if (/(^|[/?#&=])demo_recording\.json(\b|$)/i.test(source)) return false;
+  if (source.endsWith('demo_recording.json')) return false;
+  if (data?.debrief || data?.clips?.some((clip) => clip?.debrief)) return true;
+  // local: training imports and unnamed fixtures without a demo basename still get the panel.
+  return !/demo_recording/i.test(source);
+}
+
 export function installDebrief({
   replayBar,
   getReplay,
@@ -35,6 +48,7 @@ export function installDebrief({
   setCam,
   feed,
   capture,
+  fidelity = getFidelity(),
 }) {
   if (!replayBar) return null;
   document.body.classList.add('debriefing');
@@ -76,6 +90,11 @@ export function installDebrief({
     return eventsForRecording(rep.data, rep.ci);
   }
 
+  function baseVideoDelaySec() {
+    const ms = Number(fidelity?.get?.('videoDelayMs'));
+    return Number.isFinite(ms) && ms > 0 ? ms / 1000 : 0;
+  }
+
   const timeline = installTimeline({
     bar: timelineHost,
     getDuration() {
@@ -101,7 +120,7 @@ export function installDebrief({
     if (viewpoint.mode !== VIEW_STUDENT) return rep.t;
     const absolute = (current.frames?.[0]?.t || 0) + rep.t;
     const frame = nearestFrame(current.frames, absolute);
-    const delayed = studentDisplayTime(absolute, frame);
+    const delayed = studentDisplayTime(absolute, frame, baseVideoDelaySec());
     return Math.max(0, delayed - (current.frames?.[0]?.t || 0));
   }
 
@@ -139,6 +158,7 @@ export function installDebrief({
     const current = clip();
     const eventList = events();
     const screenshots = [];
+    const captureMode = viewpoint.mode;
     if (capture && eventList.length) {
       const previous = rep.t;
       const previousPlaying = rep.playing;
@@ -155,6 +175,7 @@ export function installDebrief({
             t: event.t,
             caption: `${STRINGS[event.kind] || event.kind} @ ${event.t.toFixed(1)}s`,
             src,
+            view: captureMode,
           });
         }
       }
@@ -163,6 +184,8 @@ export function installDebrief({
       refreshFeed();
     }
     const score = current?.frames?.at?.(-1)?.score || {};
+    const showBanner = captureMode === VIEW_GOD
+      || screenshots.some(function godShot(shot) { return shot.view === VIEW_GOD; });
     const html = buildDebriefHtml({
       report: {
         vehicle_id: current?.frames?.[0]?.vehicle_id || 'replay',
@@ -173,12 +196,14 @@ export function installDebrief({
       events: eventList,
       notes: notes.value,
       screenshots,
+      showViewpointBanner: showBanner,
     });
     downloadDebriefHtml('debrief-report.html', html);
   });
 
   timeline.renderEvents();
   timeline.paint();
+  installDebriefControls({panel, viewpoint}).catch(function ignore() {});
 
   return {
     viewpoint,
