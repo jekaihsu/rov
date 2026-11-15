@@ -81,9 +81,10 @@ def main():
     print(json.dumps({'draws_before': {k: v.get('calls') for k, v in before.items()},
                       'draws_after': {k: v.get('calls') for k, v in after.items()},
                       'mean_channel_delta': scores}, indent=2))
-    # Overview views must stay under 2 %; thruster close-up allows 8 % (cage wire quantisation).
-    limits = {'front34': 0.03, 'side': 0.02, 'top': 0.02, 'thruster': 0.09}
-    bad = [view for view, score in scores.items() if score > limits.get(view, 0.02)]
+    # Same size and centre as the baseline: overview views stay under 0.5 %; the thruster close-up allows 1 %
+    # (rotor rest phase and normal quantisation). A rescaled or shifted LOD0 scores several percent.
+    limits = {'front34': 0.005, 'side': 0.005, 'top': 0.005, 'thruster': 0.01}
+    bad = [view for view, score in scores.items() if score > limits.get(view, 0.005)]
     if bad:
         raise SystemExit(f'LOD0 differs too much from baseline in: {", ".join(bad)} ({scores})')
 

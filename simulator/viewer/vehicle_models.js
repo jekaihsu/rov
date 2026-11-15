@@ -230,6 +230,16 @@ async function loadTrainingX1Lod(minLod = 0) {
   return wrap;
 }
 
+// Centre the pre-I1 rov.glb had under the loose (per-mesh) Box3: its sheared node scales inflated the box to
+// 0.600 x 0.415 x 0.790 m around this point, while the true geometry is 0.560 x 0.400 x 0.790 m. The packed LODs
+// keep the true geometry, so reuse the old centre instead of measuring (and never rescale the mesh).
+const TRAINING_X1_LEGACY_CENTRE = [0, 0.1925, -0.01008];
+
+function legacyX1Centre(model, loadError) {
+  if (!loadError) return new THREE.Vector3(...TRAINING_X1_LEGACY_CENTRE);
+  return new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
+}
+
 /**
  * Load an independent vehicle instance. Lighting intentionally lives outside root.
  * options.assets ('training' | 'generic') overrides the ?assets= query; options.lod picks a LOD.
@@ -252,16 +262,7 @@ export async function createVehicleModel(definition='x1', options={}) {
     model = fallback(id);
   }
   // Preserve the legacy X1 centring convention; fleet GLBs are authored about CG.
-  // Pre-I1 Box3 under X1_GEOMETRY's non-uniform scale reported ~0.600×0.415×0.790;
-  // the packed mesh is the same world geometry but shear-free, so rescale to that footprint.
-  if (legacyX1) {
-    const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    model.position.sub(box.getCenter(new THREE.Vector3()));
-    if (size.x > 0.01 && size.y > 0.01 && size.z > 0.01) {
-      model.scale.multiply(new THREE.Vector3(0.6 / size.x, 0.415 / size.y, 0.79 / size.z));
-    }
-  }
+  if (legacyX1) model.position.sub(legacyX1Centre(model, loadError));
   root.add(model); root.updateMatrixWorld(true);
   const rotors = collectRotors(model, def);
   if (legacyX1) matchLegacyRotors(rotors, def.thrusters);
