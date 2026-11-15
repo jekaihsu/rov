@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import {installAudio, installAudioSettings} from './audio/engine.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
-import { loadGLTF } from './glb.js';
+import { placeSceneModel } from './scene_models.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
 import { buildStructures, structureDetail } from './structures.js';
@@ -213,25 +213,6 @@ const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
 let structureSet = null;                // structures.js: detailed meshes drawn inside the collision shapes
 
-// Structures that come as a 3D model (e.g. the Korean Castle wreck): the physics uses a distance
-// field of the collision meshes, the viewer shows the full model. Local frame: X along the hull,
-// Y across, Z up; placed at ``origin`` (NED) with local +X towards ``heading_deg``.
-const modelCache = new Map();
-function placeModel(ob) {
-  const holder = new THREE.Group();
-  const a = ob.heading_deg * DEG;
-  P(ob.origin, holder.position);
-  holder.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a));
-  worldG.add(holder);
-  if (!modelCache.has(ob.model)) modelCache.set(ob.model, loadGLTF(ob.model).catch((e) => { console.warn('model', ob.model, e?.message || e); return null; }));
-  modelCache.get(ob.model).then((g) => {
-    if (!g || holder.parent !== worldG) return;              // world rebuilt meanwhile
-    const m = g.scene.clone(true);
-    m.traverse((o) => { if (o.isMesh) { o.userData.paintable=true; o.castShadow = false; o.receiveShadow = true; o.frustumCulled = true; } });
-    holder.add(m);
-  });
-}
-
 let spoolMarker = [];
 let env = null;
 function buildWorld() {
@@ -249,7 +230,7 @@ function buildWorld() {
   structureSet = buildStructures(W, {detail});
   worldG.add(structureSet.group);
   for (const [name, entry] of structureSet.entries) obstacleMeshes.set(name, entry);
-  for (const ob of W.obstacles || []) if (ob.type === 'model') placeModel(ob);
+  for (const ob of W.obstacles || []) if (ob.type === 'model') placeSceneModel(ob, worldG, P, detail);
   // spool / deployment point
   const sp = P(W.spool || [0, 0, 0]);
   const drum = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, .7, 20), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: .5 }));

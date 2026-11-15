@@ -1,0 +1,96 @@
+{
+  "id": "course_a01",
+  "title": "A01｜進階｜導管架中止決策",
+  "scenario": "incident_jacket",
+  "mode": "scenario_training",
+  "category": "course",
+  "order": 90,
+  "source_chapters": [
+    "incident_jacket"
+  ],
+  "training": {
+    "level": "進階",
+    "simulator_minutes": 60,
+    "pass_status": "暫定，待資深操作員基準航次校準",
+    "goal": "評估強流、人手不足與纜線路徑，選擇開放出口",
+    "criteria": "經西側出口回投放點；及早中止並說明人手與信標風險",
+    "injection": "人手不足與信標詢問風險用口頭通報"
+  },
+  "nodes": [
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal"
+    },
+    {
+      "id": "poll",
+      "type": "wait",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      }
+    },
+    {
+      "id": "failed",
+      "type": "branch",
+      "condition": {
+        "path": "score.failed",
+        "op": "gt",
+        "value": ""
+      },
+      "target": "failure"
+    },
+    {
+      "id": "finished",
+      "type": "branch",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "target": "success"
+    },
+    {
+      "id": "repeat",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "poll"
+    },
+    {
+      "id": "failure",
+      "type": "objective",
+      "text_key": "failure"
+    },
+    {
+      "id": "after_failure",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "save"
+    },
+    {
+      "id": "success",
+      "type": "objective",
+      "text_key": "success"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "goal": "A01｜評估強流、人手不足與纜線路徑，選擇開放出口。合格門檻：暫定，待資深操作員基準航次校準。程序與證據由教官評核。",
+      "success": "場景節點完成；不代表考核合格。經西側出口回投放點；及早中止並說明人手與信標風險。暫定，待資深操作員基準航次校準。請匯出證據並由教官簽核。",
+      "failure": "場景失敗：停止本航次，記錄失敗原因，匯出證據並檢討後重試。暫定，待資深操作員基準航次校準。"
+    }
+  }
+}

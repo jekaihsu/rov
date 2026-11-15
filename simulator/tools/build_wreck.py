@@ -9,10 +9,14 @@ The field is sampled on a 0.3 m grid in the wreck's own frame (X bow->stern, Y t
 Z up, origin at the bow on the seabed) and stored as uint8 in 5 cm steps (clamped at 12.75 m),
 so a vehicle sphere or tether node only needs a trilinear lookup at run time.
 Needs scipy (build time only).
+
+For another authored wreck, pass --asset NAME to write NAME_field.npz from the same collision_tris.npy
+format. Only the default Korean Castle export consumes route_verts.npy and writes its historical metadata.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -54,7 +58,11 @@ def route_waypoints(V: np.ndarray) -> list[list[float]]:
 
 
 def main() -> None:
-    src = Path(sys.argv[1])
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source", type=Path)
+    parser.add_argument("--asset", default="korean_castle")
+    args = parser.parse_args()
+    src = args.source
     tris = np.load(src / "collision_tris.npy").astype(np.float64)
     lo = tris.reshape(-1, 3).min(0) - PAD
     hi = tris.reshape(-1, 3).max(0) + PAD
@@ -69,12 +77,14 @@ def main() -> None:
     for i, x in enumerate(gx):                     # slab by slab keeps memory small
         Y, Z = np.meshgrid(gy, gz, indexing="ij")
         q = np.stack([np.full(Y.size, x), Y.ravel(), Z.ravel()], 1)
-        d, _ = tree.query(q, workers=-1, distance_upper_bound=255 * QUANT)
+        d, _ = tree.query(q, workers=4, distance_upper_bound=255 * QUANT)
         d = np.minimum(np.nan_to_num(d, posinf=255 * QUANT), 255 * QUANT)
         field[i] = np.round(d / QUANT).reshape(Y.shape).astype(np.uint8)
     out = ROOT / "qysim" / "assets"
     out.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(out / "korean_castle_field.npz", field=field, origin=lo, spacing=H, quant=QUANT)
+    np.savez_compressed(out / f"{args.asset}_field.npz", field=field, origin=lo, spacing=H, quant=QUANT)
+    if args.asset != "korean_castle":
+        return
     meta = {
         "name": "Korean Castle",
         "status": "ILLUSTRATIVE_NOT_FOR_NAVIGATION (poster reconstruction, not surveyed)",
@@ -86,7 +96,7 @@ def main() -> None:
         "collision_bounds": [lo.round(2).tolist(), hi.round(2).tolist()],
     }
     (out / "korean_castle.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
-    print("wrote", out / "korean_castle_field.npz", (out / "korean_castle_field.npz").stat().st_size / 1e6, "MB")
+    print("wrote", out / f"{args.asset}_field.npz", (out / f"{args.asset}_field.npz").stat().st_size / 1e6, "MB")
 
 
 if __name__ == "__main__":

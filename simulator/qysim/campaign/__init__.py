@@ -6,8 +6,8 @@ from jsonschema import Draft202012Validator, ValidationError
 
 DATA = Path(__file__).resolve().parents[2] / 'campaign'
 SCHEMA = Draft202012Validator(json.loads((DATA / 'schema.json').read_text(encoding='utf-8')))
-# Chapter list order: the story campaign first, then the standalone incident drills.
-CATEGORIES = ('story', 'incident')
+# Chapter list order: the story campaign first, then the standalone incident drills, then company courses (D3).
+CATEGORIES = ('story', 'incident', 'course')
 CHAPTER_FIELDS = ('id', 'title', 'requires', 'placeholder', 'outline', 'category', 'order')
 # Upper bound on script nodes handled by one update; a longer run continues on the next step.
 MAX_NODES_PER_UPDATE = 32

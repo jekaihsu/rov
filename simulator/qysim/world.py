@@ -275,7 +275,7 @@ class SnagFeature(Cylinder):
     data on small-ROV tether snag strength exists (research_notes/臍帶纜物理與收放文獻/tether_properties.md §5)."""
 
     def __init__(self, name: str, point: tuple, radius: float = 0.25, height: float = 0.4,
-                 hold_n: tuple = (150.0, 400.0), kind: str = "snag", item: str = "rock"):
+                 hold_n: tuple = (150.0, 400.0), kind: str = "snag", item: str = "rock", embedded: bool = False):
         base = tuple(float(v) for v in point)
         top = (base[0], base[1], base[2] - max(float(height) - float(radius), 0.0))
         super().__init__(name, base, top, float(radius), kind)
@@ -283,6 +283,7 @@ class SnagFeature(Cylinder):
         self.height = float(height)
         self.hold_n = tuple(hold_n)
         self.item = item
+        self.embedded = embedded
 
     @property
     def snag_hold(self) -> tuple:
@@ -290,7 +291,8 @@ class SnagFeature(Cylinder):
 
     def as_dict(self):
         return {"type": "snag", "name": self.name, "point": list(self.point), "radius": self.radius,
-                "height": self.height, "kind": self.kind, "item": self.item}
+                "height": self.height, "kind": self.kind, "item": self.item,
+                **({"embedded": True} if self.embedded else {})}
 
 
 @functools.lru_cache(maxsize=4)

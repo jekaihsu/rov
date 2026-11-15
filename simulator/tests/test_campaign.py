@@ -51,10 +51,13 @@ class CampaignTests(unittest.TestCase):
         ids = [entry['id'] for entry in state['chapters']]
         story = [entry['id'] for entry in state['chapters'] if entry['category'] == 'story']
         incidents = [entry['id'] for entry in state['chapters'] if entry['category'] == 'incident']
-        self.assertEqual(ids, story + incidents)
+        courses = [entry['id'] for entry in state['chapters'] if entry['category'] == 'course']
+        self.assertEqual(ids, story + incidents + courses)
         self.assertEqual(story, STORY_CHAIN)
         self.assertTrue(all(not entry.get('placeholder') for entry in state['chapters']
                             if entry['category'] == 'story'))
+        self.assertEqual(len(courses), 12)
+        self.assertTrue(all(key.startswith('course_') for key in courses))
         self.assertEqual(len(incidents), 5)
         self.assertTrue(all(key.startswith('incident_') for key in incidents))
         self.assertEqual(state['next_story'], 'prologue')
@@ -66,7 +69,7 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(self.campaign.status, 'completed')
         self.assertEqual(self.campaign.state()['next_story'], 'harbor')
         self.assertEqual(self.viewer_auto_start(self.campaign.completed), 'harbor')
-        self.campaign.completed = story + incidents
+        self.campaign.completed = story + incidents + courses
         self.assertIsNone(self.campaign.state()['next_story'])
 
     def test_incidents_stay_launchable_explicitly(self):
