@@ -22,13 +22,21 @@ html[data-palette="631"] .results-screen .menu-start {
   background: var(--color-accent);
   color: var(--color-main);
 }
+html[data-palette="631"][data-accent-ink="light"] .menu-start,
+html[data-palette="631"][data-accent-ink="light"] .results-screen .menu-start,
+html[data-palette="631"][data-accent-ink="light"] #titleStart,
+html[data-palette="631"][data-accent-ink="light"] .menu-start .menu-cap,
+html[data-palette="631"][data-accent-ink="light"] #titleStart .menu-cap {
+  color: #fff;
+  border-color: rgba(255, 255, 255, .6);
+}
 html[data-palette="631"] .menu-start .menu-cap {
   color: var(--color-main);
   border-color: rgba(6, 18, 28, .55);
 }
 html[data-palette="631"] .menu-start:hover,
 html[data-palette="631"] .menu-start:focus {
-  box-shadow: 0 0 0 1px var(--color-accent), 0 10px 30px rgba(200, 245, 60, .22);
+  box-shadow: 0 0 0 1px var(--color-accent), 0 10px 30px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 /* 標題畫面的主要行動是「開始」。 */
 html[data-palette="631"] #titleStart {
