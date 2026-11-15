@@ -38,8 +38,9 @@ for (const tier of ['low', 'medium', 'high']) {
     if (o.isMesh) landscape += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3
       * (o.isInstancedMesh ? o.count : 1);
   });
-  report.tiers[tier] = {structure, landscape, aboveConservative: above + landscape, underwaterConservative: underwater};
-  if (above + landscape > 200000 || underwater > 150000) throw new Error(`budget exceeded: ${tier}`);
+  report.tiers[tier] = {structure, landscape, aboveConservative: above + landscape,
+    underwaterConservative: underwater + landscape, underwaterStructures: underwater};
+  if (above + landscape > 200000 || underwater + landscape > 150000) throw new Error(`budget exceeded: ${tier}`);
   set.dispose();
 }
 for (const tier of ['default', 'low']) {

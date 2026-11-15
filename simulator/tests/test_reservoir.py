@@ -1,7 +1,7 @@
 """Regional flow compatibility, actual environment wiring and reservoir evidence rules."""
 import unittest
 import numpy as np
-from qysim.local_current import sample_regions
+from qysim.regional_flow import RegionalFlow
 from qysim.engine import Simulator
 from qysim.world import World, CurrentProfile
 from qysim.reservoir import photo
@@ -9,21 +9,21 @@ from qysim.reservoir import photo
 
 class ReservoirTests(unittest.TestCase):
     def test_region_support_direction_addition_and_validation(self):
-        region = dict(center=[0,0,5],radius_m=2,velocity=[.4,0,0])
+        region = RegionalFlow((0,0,5),(2,2,2),(.4,0,0))
         points = [[0,0,5],[1,0,5],[2,0,5],[3,0,5]]
-        values = sample_regions(points,[region])
-        np.testing.assert_allclose(values[:,0],[.4,.225,0,0])
+        values = region.sample_many(points)
+        np.testing.assert_allclose(values[:,0],[.4,.2,0,0])
         np.testing.assert_array_equal(values[:,1:],0)
-        np.testing.assert_allclose(sample_regions(points,[region,region]),values*2)
+        np.testing.assert_allclose(region.sample_many(points) + region.sample_many(points),values*2)
         for radius in (0,-1,float('nan')):
             with self.assertRaises(ValueError):
-                sample_regions(points,[dict(region,radius_m=radius)])
+                RegionalFlow((0,0,5),(radius,2,2),(.4,0,0))
 
     def test_legacy_world_and_scalar_batch(self):
         world = World()
         world.current = CurrentProfile(0,0,0,0,0,0,0)
         np.testing.assert_array_equal(world.current_at([0,0,5]),[0,0,0])
-        world.local_currents = [dict(center=[0,0,5],radius_m=2,velocity=[.4,0,0])]
+        world.regional_flows = [RegionalFlow((0,0,5),(2,2,2),(.4,0,0))]
         np.testing.assert_allclose(world.current_at([0,0,5]),[.4,0,0])
         np.testing.assert_allclose(world.current_at_many([[0,0,5]])[0],world.current_at([0,0,5]))
 

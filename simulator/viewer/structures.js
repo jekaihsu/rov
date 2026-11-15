@@ -15,7 +15,7 @@
 //   'attached'  thin dressing on a collider's surface (within SCENE_TOLERANCE outside it)
 //   'above'     above the waterline, out of the vehicle's reach
 import * as THREE from 'three';
-import {reservoirMaterial, buildReservoirPart} from './reservoir.js';
+import {reservoirMaterial, buildReservoirPart, isReservoirKind} from './reservoir.js';
 import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
@@ -864,7 +864,7 @@ function snagItem(set, ob) {
 function buildOne(set, ob, consumed) {
   if (consumed.has(ob.name)) return;
   const world = set.world;
-  if (ob.kind?.startsWith('res_')) {
+  if (isReservoirKind(ob.kind)) {
     buildReservoirPart(set, ob);
     return;
   }
@@ -933,7 +933,7 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   const rockHex = siteRockColor(world);
   const baseMaterial = makeMaterial || ((kind) => structureMaterial(kind, detail));
   const paint = (kind) => {
-    const material = kind.startsWith('res_') ? reservoirMaterial(kind)
+    const material = isReservoirKind(kind) ? reservoirMaterial(kind)
       : kind.startsWith('pen_') ? penMaterial(kind) : baseMaterial(kind);
     // Rock armour and snag rocks share the site's seabed sand/mud tint.
     if (kind === 'rock' && material.color?.setHex) material.color.setHex(rockHex);
@@ -941,7 +941,7 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   };
   const set = new StructureSet(world, detail, paint);
   const consumed = new Set();
-  const source = [...(world.obstacles || []), ...(world.scenario?.surface_dressing || [])];
+  const source = [...(world.obstacles || []), ...(world.scenario?.reservoir_decoration || [])];
   const obstacles = source.filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model' && !ob.embedded);
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'scour_rock'), 'scour_rock');
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'toe_rock'), 'toe_rock');

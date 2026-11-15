@@ -12,7 +12,7 @@
 `qysim/reservoir.py` 定義護坡、階梯、標尺、浮筒、欄杆繩索、兩艘作業平台船、控制箱、
 工具箱、螢光黃綠臍帶纜、進水口、閘門導槽、柵條與沉木。柵條、堵塞枝條與沉木有 snag_hold。
 水下沿用 Box／Cylinder（膠囊）碰撞；護坡以 0.5 m 階梯段近似斜面，沒有新增碰撞型別。
-水上完全離水的裝飾透過 `scenario.surface_dressing` 傳送，避免讓設備纜圈加入水下物理。
+水上完全離水的裝飾透過 `scenario.reservoir_decoration` 傳送，避免讓設備纜圈加入水下物理。
 護坡六角接縫為程序 WebP，沒有浮雕位移；低能見度近距離可看到階梯近似。
 
 `viewer/reservoir.js` 從相同原語批次繪製水下實體；山坡使用低面數曲面與少量實例樹冠，
@@ -56,15 +56,15 @@ GLB 是包含遠景的可攜原語預覽，執行時使用同源原語與實例�
 指定 `game-plan.md` 在基底只有 §1–10，沒有 §11；以使用者規格、§5／8、作業研究 §2.7、
 場景 README 與箱網場景做法補足。自有量測目錄目前僅有合成資料，未引用為現場證據。
 
-資產報告：[asset-report.json](asset-report.json)。標準版保守計數水上 97,550／水下 14,568；
-低版水上 49,094／水下 9,600 三角形。跨水線材質批次同時計入兩者，含樹冠實例數。
+資產報告：[asset-report.json](asset-report.json)。標準版保守計數水上 97,550／水下 60,830；
+低版水上 49,094／水下 27,062 三角形。水下上界把整個遠景也計入；實際水下結構為 14,568／9,600。跨水線材質批次同時計入兩者，含樹冠實例數。
 一張 256² RGB WebP 以 RGBA 加 mipmap 計為 0.333 MiB；加四張共用海床貼圖為 1.667 MiB。
 不含共用載具與後製 framebuffer；沒有將 WebP 壓縮檔大小當 GPU 記憶體。
 
 ## 驗證
 
 完整後端回歸：`cd simulator && OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m unittest discover -s tests -v`，
-473/473 通過，675.513 s。限制 BLAS 執行緒僅減少小矩陣運算的執行緒負擔，沒有跳過或放寬測試。
+479/479 通過，667.221 s（整合原 PR 初模後重跑）。限制 BLAS 執行緒僅減少小矩陣運算的執行緒負擔，沒有跳過或放寬測試。
 
 - `node --test simulator/tests/*.mjs`：211/211 通過。
 - `cd simulator && python -m unittest discover -s tests -p test_reservoir.py`：3/3 通過，
@@ -73,7 +73,7 @@ GLB 是包含遠景的可攜原語預覽，執行時使用同源原語與實例�
 - `python simulator/tools/run_browser_checks.py browser_reservoir_launch`：1/1 通過，正常 URL 進場。
 - `python simulator/tools/run_browser_checks.py browser_reservoir_review browser_reservoir_onboard browser_reservoir_menu`：2/2 通過，
   最後山林位置調整後獨立重跑 `browser_reservoir_review` 亦通過（70.4 s）。
-- `python simulator/tools/run_browser_checks.py browser_reservoir_menu`：通過（40.7 s），輸出原生選單潛點縮圖與兩張具名機位圖。
+- `python simulator/tools/run_browser_checks.py browser_reservoir_menu`：通過（43.4 s，整合後重跑），輸出原生選單潛點縮圖與兩張具名機位圖。
 - M1 相同四項瀏覽器：`observation_smoke`（11.8 s）、`browser_tether_smoke`（21.5 s）、
   `browser_menu_smoke`（206.7 s）通過；`browser_smoke` 首次等待燈光狀態逾時，單獨重跑通過（190.3 s）。
   另以未修改的 `main@138c242` 對照，smoke 也在點擊步驟逾時；兩者失敗位置不同，不能證明同一原因。
@@ -81,10 +81,18 @@ GLB 是包含遠景的可攜原語預覽，執行時使用同源原語與實例�
 - `python simulator/tools/check_changed_js.py origin/main`、`python simulator/tools/vendor_manifest.py --check`、
   `git diff --check` 通過。
 
-最終可攜 GLB（含山林與橋梁）標準 936,076 bytes、低版 383,984 bytes。
+最終可攜 GLB（含山林與橋梁）標準 936,072 bytes、低版 383,980 bytes。
 
 水上截圖最後由 `browser_reservoir_menu` 更新，使用原生選單的水上照明，未套水下自動曝光。
 `render-report.json` 仍量測飛行頁面的完整場景渲染（含其後製），不是選單的 FPS。
 
 淡水沿用既有 `water="fresh"` 的壓力換算密度；載具水動力仍使用專案既有共用 RHO=1025 模型，
 本次未重標定載具／纜線的淡水浮力。
+
+整合原 draft PR #80 的初模提交後，沿用其 `regional_flows` 與 `reservoir_decoration` 契約，
+保留 `reservoir_overlook`／`reservoir_equipment` 相機別名、舊 `reservoir_*` 繪圖種類及所有原有流場／任務測試。
+原初模 GLB 由本次含山林、橋與程序貼圖的標準／低版替代，舊版本保留在 Git 歷史。
+同工具版本重建的幾何邊界與三角數一致，但本機兩次壓縮 payload 有位元差異，不保證 GLB 雜湊完全一致。
+
+整合後 `browser_reservoir_launch browser_reservoir_review browser_reservoir_onboard browser_reservoir_menu`
+四項一起重跑，4/4 通過（13.0／54.9／69.0／43.4 s）；Node 211/211 亦重跑通過。

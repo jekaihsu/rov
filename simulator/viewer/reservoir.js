@@ -2,12 +2,18 @@
 import * as THREE from 'three';
 
 const COLORS = {concrete: 0x817e6b, steel: 0x485651, wood: 0x554332, white: 0xd5d6c7,
-  blue: 0x216bb5, orange: 0xe17c32, lime: 0xc5ed26};
+  blue: 0x216bb5, orange: 0xe17c32, lime: 0xc5ed26,
+  rope: 0x9d9876, cable: 0xc5ed26, red: 0x9e3429};
+
+export function isReservoirKind(kind) {
+  return kind?.startsWith('res_') || kind?.startsWith('reservoir_');
+}
 
 export function reservoirMaterial(kind) {
-  const material = new THREE.MeshStandardMaterial({color: COLORS[kind.slice(4)] || 0x718268, roughness: .87});
+  const key = kind.slice(kind.startsWith('reservoir_') ? 10 : 4);
+  const material = new THREE.MeshStandardMaterial({color: COLORS[key] || 0x718268, roughness: .87});
   material.userData.structureKind = kind;
-  if (kind === 'res_concrete' && typeof document !== 'undefined') {
+  if (key === 'concrete' && typeof document !== 'undefined') {
     const texture = new THREE.TextureLoader().load('models/reservoir/concrete.webp');
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.colorSpace = THREE.SRGBColorSpace;

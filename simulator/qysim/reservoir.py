@@ -2,11 +2,14 @@
 import math
 import numpy as np
 from .world import Box, Cylinder, CurrentProfile
+from .regional_flow import RegionalFlow
 
 STRINGS = dict(name='水庫進水口', brief='沿護坡下潛，拍攝攔污柵堵塞，再返回碼頭。留意吸入流與沉木勾纜。',
                descend='沿護坡下潛到進水口', photo='檢查攔污柵並拍下堵塞處', home='回到碼頭')
 CAMERAS = dict(embankment_overlook=dict(eye=[-16,-18,-12], target=[16,0,-1]),
                dock_equipment=dict(eye=[1,-5,-2.3], target=[5,-2,-.6]))
+CAMERAS['reservoir_overlook'] = CAMERAS['embankment_overlook']
+CAMERAS['reservoir_equipment'] = CAMERAS['dock_equipment']
 TARGET = (19.3,0.,10.)
 
 
@@ -81,7 +84,7 @@ def scenario():
         obstacles=[o for o in layout() if o.aabb()[1][2] >= 0],current=CurrentProfile(0,0,0,0,0,0,.08),
         water='fresh',water_type='fresh_green',
         biome='reservoir',visibility_m=3,seabed_type='mud',start_pos=(3,0,1.5),spool_pos=(3,-1,-.6),
-        tether_length=4,local_currents=[dict(center=[19,0,10],radius_m=4,velocity=[.35,0,0])],
+        tether_length=4,regional_flows=[RegionalFlow((19,0,10),(4,4,4),(.35,0,0))],
         objectives=[Objective('checkpoint',STRINGS['descend'],(17,0,9),1.5),
                     Objective('reservoir_photo',STRINGS['photo'],(18,0,10),1.5),
                     Objective('surface',STRINGS['home'],(3,0,.5),2)])

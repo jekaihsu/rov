@@ -130,8 +130,8 @@ class Simulator:
         self.world = shared_world if shared_world is not None else World(sc.seabed_depth)
         if shared_world is None:
             self.world.obstacles = list(sc.obstacles)
+            self.world.regional_flows = list(sc.regional_flows)
             self.world.current = sc.current
-            self.world.local_currents = sc.local_currents
             self.world.current.reseed(sc.seed or 0)
             clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)

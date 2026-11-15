@@ -7,24 +7,27 @@
       "structure": 32928,
       "landscape": 17462,
       "aboveConservative": 49094,
-      "underwaterConservative": 9600
+      "underwaterConservative": 27062,
+      "underwaterStructures": 9600
     },
     "medium": {
       "structure": 53448,
       "landscape": 46262,
       "aboveConservative": 97550,
-      "underwaterConservative": 14568
+      "underwaterConservative": 60830,
+      "underwaterStructures": 14568
     },
     "high": {
       "structure": 53448,
       "landscape": 46262,
       "aboveConservative": 97550,
-      "underwaterConservative": 14568
+      "underwaterConservative": 60830,
+      "underwaterStructures": 14568
     }
   },
   "portable": {
     "default": {
-      "bytes": 936076,
+      "bytes": 936072,
       "extensions": [
         "EXT_meshopt_compression",
         "EXT_texture_webp",
@@ -32,7 +35,7 @@
       ]
     },
     "low": {
-      "bytes": 383984,
+      "bytes": 383980,
       "extensions": [
         "EXT_meshopt_compression",
         "EXT_texture_webp",

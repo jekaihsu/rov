@@ -8,16 +8,16 @@
   "medium-embankment-overlook": {
     "calls": 125,
     "triangles": 121800,
-    "ms": 20639.199999999953,
-    "minMs": 20639.199999999953,
-    "medianMs": 20639.199999999953
+    "ms": 16152.100000000093,
+    "minMs": 16152.100000000093,
+    "medianMs": 16152.100000000093
   },
   "medium-dock-equipment": {
     "calls": 119,
     "triangles": 115624,
-    "ms": 15719.09999999986,
-    "minMs": 15719.09999999986,
-    "medianMs": 15719.09999999986
+    "ms": 12059,
+    "minMs": 12059,
+    "medianMs": 12059
   },
   "performance-assets": {
     "residentTrianglesIncludingHidden": 202353,
@@ -28,9 +28,9 @@
   "performance-embankment-overlook": {
     "calls": 119,
     "triangles": 78234,
-    "ms": 1723.8000000000466,
-    "minMs": 1723.8000000000466,
-    "medianMs": 1723.8000000000466
+    "ms": 1125.3999999999069,
+    "minMs": 1125.3999999999069,
+    "medianMs": 1125.3999999999069
   },
   "high-assets": {
     "residentTrianglesIncludingHidden": 251679,
@@ -41,8 +41,8 @@
   "high-embankment-overlook": {
     "calls": 125,
     "triangles": 121800,
-    "ms": 4247.899999999907,
-    "minMs": 4247.899999999907,
-    "medianMs": 4247.899999999907
+    "ms": 4387.200000000186,
+    "minMs": 4387.200000000186,
+    "medianMs": 4387.200000000186
   }
 }

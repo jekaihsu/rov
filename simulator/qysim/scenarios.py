@@ -80,7 +80,7 @@ class Scenario:
     # None: from the biome (water_type_for). Presentation only; it does not change physics or visibility_m.
     water_type: str | None = None
 
-    local_currents: list = field(default_factory=list)
+    regional_flows: list = field(default_factory=list)
 
     def summary(self) -> dict:
         from .aquaculture import layout
@@ -90,9 +90,10 @@ class Scenario:
                 "tether_length": self.tether_length, "biome": self.biome,
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
-                "local_currents": self.local_currents,
+                **({"regional_flows": [r.as_dict() for r in self.regional_flows]} if self.regional_flows else {}),
                 **({"camera_anchors": CAMERAS,
-                    "surface_dressing": [o.as_dict() for o in reservoir_layout() if o.aabb()[1][2] < 0]}
+                    "reservoir_decoration": [dict(o.as_dict(), above_water=True)
+                                             for o in reservoir_layout() if o.aabb()[1][2] < 0]}
                    if self.key == "reservoir_intake" else {}),
                 "water_type": water_type_for(self.biome, self.water_type, self.water),
                 **({"aquaculture": layout()[1]}
