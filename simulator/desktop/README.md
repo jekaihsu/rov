@@ -68,6 +68,9 @@ executable to run the hidden renderer check. It writes model/state loading resul
 and a neighbouring `.png`, then closes. The backend smoke script separately verifies
 local assets and a live Falcon multiplayer session using the frozen executable.
 
+GPU benches (`tools/browser_gpu_bench.py --desktop`) set `ROV_DESKTOP_BENCH=1` so
+Playwright can evaluate over CDP; that flag is never set in player builds.
+
 For a small launcher/viewer-only change, `node refresh_portable.cjs` refreshes the
 existing portable archive and viewer without downloading or duplicating Electron.
 Backend Python changes still require rebuilding the frozen backend. Set

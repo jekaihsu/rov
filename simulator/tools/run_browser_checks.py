@@ -24,9 +24,11 @@ TOOLS = ROOT / 'tools'
 LOGS = ROOT / 'output' / 'browser-checks'
 # Checks that need nothing but a stock server. Performance and visual review scripts are not pass/fail checks
 # and browser_expedition_perf.py starts its own fixture server, so they only run when named explicitly.
-# browser_input_smoke.py asserts RC packets carry no assist fields, which needs a host that predates flight
-# assistance; run it by name against such a host. browser_collection_storage.py needs the archive written by
-# `node desktop/test_collection_store.cjs`, and browser_campaign_smoke.py records video (Playwright ffmpeg).
+# browser_gpu_bench.py is the Steam GPU frame-time harness (optional; defaults to a short smoke matrix and
+# works on software GL). browser_input_smoke.py asserts RC packets carry no assist fields, which needs a host
+# that predates flight assistance; run it by name against such a host. browser_collection_storage.py needs the
+# archive written by `node desktop/test_collection_store.cjs`, and browser_campaign_smoke.py records video
+# (Playwright ffmpeg).
 DEFAULT_CHECKS = (
     'browser_smoke',
     'browser_menu_smoke',

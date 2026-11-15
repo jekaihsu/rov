@@ -107,14 +107,18 @@ app.whenReady().then(async()=>{
       inlineHashes.push(`'sha256-${hash}'`);
     }
   }
-  window.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    if (!details.url.startsWith(origin + '/')) return callback({});
-    callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [
-      `default-src 'self'; script-src 'self' ${inlineHashes.join(' ')}; style-src 'self' 'unsafe-inline'; ` +
-      "img-src 'self' data: blob:; connect-src 'self' ws: wss: https:; " +
-      "worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-src 'none'"
-    ] } });
-  });
+  // ROV_DESKTOP_BENCH=1 drops CSP so Playwright CDP can page.evaluate during GPU benches.
+  // Shipping builds never set that variable; the strict policy below remains the default.
+  if (!process.env.ROV_DESKTOP_BENCH) {
+    window.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      if (!details.url.startsWith(origin + '/')) return callback({});
+      callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [
+        `default-src 'self'; script-src 'self' ${inlineHashes.join(' ')}; style-src 'self' 'unsafe-inline'; ` +
+        "img-src 'self' data: blob:; connect-src 'self' ws: wss: https:; " +
+        "worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-src 'none'"
+      ] } });
+    });
+  }
   const collection=new CollectionStore(path.join(data,'collection'));
   ipcMain.handle('rov:collection',async(event,method,payload)=>{
     let allowed=false;try{allowed=event.sender===window.webContents&&event.senderFrame===window.webContents.mainFrame&&new URL(event.senderFrame.url).origin===`http://127.0.0.1:${http}`;}catch{}
