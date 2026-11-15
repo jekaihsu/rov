@@ -47,6 +47,14 @@ def create_habitat(world, biome: str, seed: int, keep_clear=()):
     rng = np.random.default_rng(np.random.SeedSequence([seed, 8271]))
     entities = []
     schools = []
+    if biome == "aquaculture":
+        for k in range(8):
+            phase = k * math.tau / 8
+            home = np.array([24., 0., 6. + (k % 3) * 3.])
+            pos = home + np.array([math.cos(phase) * 10, math.sin(phase) * 10, 0.])
+            schools.append(dict(id=f"pen-school-{k}", pos=pos, home=home,
+                                vel=np.zeros(3), count=48, phase=phase, variant=k % 3, pen=True))
+        return entities, schools
     reef = biome == "reef"
     grass = biome == "seagrass"
     counts = {"rock": 18, "coral": 72 if reef else 0,
@@ -96,7 +104,8 @@ def step_schools(world, dt, vehicles):
     for school in world.fish_schools:
         p, phase = school["pos"], school["phase"]
         angle = world.time * .06 + phase
-        target = school["home"] + np.array([math.cos(angle)*5, math.sin(angle)*5, math.sin(angle*.7)*.6])
+        radius = 10 if school.get("pen") else 5
+        target = school["home"] + np.array([math.cos(angle) * radius, math.sin(angle) * radius, math.sin(angle*.7)*.6])
         desired = (target - p) * .25
         desired += world.current_at(p, world.time) * .35
         for vehicle in vehicles:
@@ -104,6 +113,12 @@ def step_schools(world, dt, vehicles):
             distance = np.linalg.norm(away)
             if distance < 5:
                 desired += away / max(distance, .1) * (5-distance) * .4
+        if school.get("pen"):
+            for vehicle in vehicles:
+                away = p - np.asarray(vehicle["pos"], float)
+                distance = np.linalg.norm(away)
+                if vehicle.get("light", 0) and distance < 8:
+                    desired += away / max(distance, .1) * (8 - distance) * .25
         d, normal, _ = world.sdf(p)
         if d < 3:
             desired += normal * (3-d) * 1.5
@@ -117,4 +132,10 @@ def step_schools(world, dt, vehicles):
         if nd < 2.0:
             nxt += nn * (2.0-nd)
         nxt[2] = max(1.5, nxt[2])
+        if school.get("pen"):
+            offset = nxt[:2] - [24., 0.]
+            radius = np.linalg.norm(offset)
+            if radius > 14:
+                nxt[:2] = [24., 0.] + offset * 14 / radius
+            nxt[2] = np.clip(nxt[2], 3., 13.)
         school["pos"] = nxt
