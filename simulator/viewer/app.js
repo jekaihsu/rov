@@ -46,6 +46,7 @@ import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
+import { installDebrief } from './debrief/install.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
@@ -653,7 +654,8 @@ function inputTick() {
   if (S?.controller) for (const c of CH) out[c] = clamp(((S.controller.axes[c] ?? 1500) - 1500) / 500, -1, 1);
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage();
-  rcPump.offer(msg, { live: !document.hidden && !!session && !needResync, generation: S?.controller?.generation });
+  // Replay must not send RC or keep the worker repeating a packet (AGENTS.md input heartbeat).
+  rcPump.offer(msg, { live: !REPLAY && !document.hidden && !!session && !needResync, generation: S?.controller?.generation });
   $('padInfo').textContent = S?.controller
     ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
     : pad ? `手把：${pad.id.slice(0, 48)}` : '未偵測到手把（按任一手把按鍵喚醒）。';
@@ -1053,10 +1055,21 @@ $('closePip').onclick=()=>{$('optPip').checked=false;togglePip();};
 ensurePip();
 /* ═════════════════════════ replay (recorded demo flights, no server) ═════════════════════════ */
 let rep = null;
+let debrief = null;
 function prepClip(c) {
   let r = null;                                 // the recorder stores the route only when it changes
   for (const f of c.frames) { if ('route' in f.nav) r = f.nav.route; else f.nav.route = r; }
   c.dur = Math.max(.01,c.frames.at(-1).t-c.frames[0].t);
+}
+function setReplayTime(t, {pause} = {}) {
+  if (!rep) return;
+  if (introActive()) intro.skip();
+  rep.t = Math.max(0, Math.min(clipNow().dur, t));
+  rep.endHold = 0;
+  if (pause) {
+    rep.playing = false;
+    $('rpPlay').textContent = '▶';
+  }
 }
 async function startReplay(url) {
   setConn('wait', '載入回放…'); $('offline').hidden = true;
@@ -1069,7 +1082,7 @@ async function startReplay(url) {
   $('rpClips').innerHTML = data.clips.map((c, i) => `<button data-i="${i}">${i + 1}. ${esc(c.title)}</button>`).join('');
   $('rpClips').onclick = (e) => { const i = e.target.dataset?.i; if (i != null) loadClip(+i); };
   $('rpPlay').onclick = () => { rep.playing = !rep.playing; $('rpPlay').textContent = rep.playing ? '❚❚' : '▶'; };
-  $('rpSeek').oninput = (e) => { if (introActive()) intro.skip(); rep.t = +e.target.value / 1000 * clipNow().dur; rep.endHold = 0; };
+  $('rpSeek').oninput = (e) => { setReplayTime(+e.target.value / 1000 * clipNow().dur); };
   $('rpSpeed').onchange = (e) => { rep.speed = +e.target.value; };
   // the bar fades out while watching and comes back on any mouse / touch / key activity
   let idleTimer = 0;
@@ -1081,6 +1094,33 @@ async function startReplay(url) {
   addEventListener('keydown', wake);
   $('rpPlay').addEventListener('click', wake);
   wake();
+  debrief = installDebrief({
+    replayBar: $('replayBar'),
+    getReplay: () => rep,
+    setReplayTime,
+    setCam,
+    sampleSnapshots,
+    onFeed(state) {
+      onState(state);
+      const c = clipNow();
+      const line = [...c.script].reverse().find((l) => l.t <= state.t + 0.05);
+      const show = !!line && state.t - line.t < 7 && !introActive();
+      $('rpSub').hidden = !show; if (show) $('rpSub').textContent = line.text;
+      $('rpSeek').value = Math.round(rep.t / c.dur * 1000);
+      $('rpTime').textContent = `${fmtT(rep.t)} / ${fmtT(c.dur)}`;
+    },
+    captureScreenshot() {
+      return new Promise(function blobToDataUrl(resolve) {
+        renderer.render(scene, camera);
+        renderer.domElement.toBlob(function read(blob) {
+          if (!blob) { resolve(null); return; }
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.72);
+      });
+    },
+  });
   loadClip(0);
 }
 const clipNow = () => rep.data.clips[rep.ci];
@@ -1089,9 +1129,14 @@ function loadClip(i) {
   [...$('rpClips').children].forEach((b, j) => b.classList.toggle('on', j === i));
   const c = clipNow();
   onWorld({ ...c.world, type: 'world' });
+  debrief?.timeline.renderEvents();
   feedReplay();
 }
 function feedReplay() {
+  if (debrief) {
+    debrief.refreshFeed();
+    return;
+  }
   const c = clipNow(), fr = c.frames, time = fr[0].t + rep.t;
   const s = { ...sampleSnapshots(fr, time), type: 'state', paused: false };
   onState(s);
@@ -1250,6 +1295,7 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options),
+  get debrief() { return debrief; }, get rep() { return rep; } };
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;
