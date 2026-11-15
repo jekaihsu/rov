@@ -61,9 +61,10 @@ CD＝cable_dynamics_models.md、TP＝tether_properties.md、SH＝shipboard_handl
 ## 協定變更
 
 全部為選填新增（見 `simulator/PROTOCOL.md`）：`{"type":"reel","command":...}` 訊息；`state.tether.reel`、
-`turns`、`snags`、`chafe`、`working_load_n`、`gland_working_load_n`、`break_reason`；世界物件 `type:"snag"`。
-既有 `payout`／`auto_payout` 保留並對應到纜盤模型。行為改變：`payout` 不再瞬間生效；`warn` 改依額定工作負載；
-`nodes` 數量可變；新主機預設纜盤為 `free`（被動放纜），舊版預設自動放纜。
+`turns`、`snags`、`chafe`、`working_load_n`、`gland_working_load_n`、`break_reason`、`events`（最近 32 筆求解器事件）；
+世界物件 `type:"snag"`。既有 `payout`／`auto_payout` 保留並對應到纜盤模型。行為改變：`payout` 不再瞬間生效；
+`warn` 改依額定工作負載；`nodes` 數量可變；新主機預設纜盤為 `free`（被動放纜），舊版預設自動放纜。
+物理參數與驗證數值不變；`events` 只是狀態串流，不影響力。
 
 ## 尚未驗證（需要 X1 實測）
 

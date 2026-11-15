@@ -1,0 +1,8 @@
+.git
+.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+simulator/integrations/ros2/build
+simulator/integrations/ros2/install
+simulator/integrations/ros2/log

@@ -1,0 +1,3 @@
+# Optional, offline analysis only (PNG reports); BSD-3-Clause (SciPy), PSF-based license (Matplotlib).
+scipy>=1.10
+matplotlib>=3.7

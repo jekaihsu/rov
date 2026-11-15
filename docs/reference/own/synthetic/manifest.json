@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "seed": 51,
+  "dry_mass_kg": 30.0,
+  "motor_tau_s": 0.08,
+  "bias_force_n": {
+    "surge": 0,
+    "sway": 0,
+    "heave": 0
+  },
+  "conditions": "Still water, isolated axis, buoyancy compensated, no tether/contact; initial thrust zero.",
+  "noise": {
+    "velocity_sigma_m_s": 0.001,
+    "thrust_sigma_n": 0.01
+  },
+  "truth": {
+    "surge": {
+      "added_mass": 15.0,
+      "linear_drag": 8.0,
+      "quadratic_drag": 51.25559698298346,
+      "thrust_linear": 293.2097861145065,
+      "thrust_quadratic": 0
+    },
+    "sway": {
+      "added_mass": 25.0,
+      "linear_drag": 12.0,
+      "quadratic_drag": 168.17018049385734,
+      "thrust_linear": 293.6000725623438,
+      "thrust_quadratic": 0
+    },
+    "heave": {
+      "added_mass": 30.0,
+      "linear_drag": 15.0,
+      "quadratic_drag": 686.6263604455424,
+      "thrust_linear": 420.4393009334901,
+      "thrust_quadratic": 0
+    }
+  }
+}

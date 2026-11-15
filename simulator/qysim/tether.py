@@ -37,6 +37,11 @@ from .vehicles import X1_PARAMETERS, X1_TETHER_PARAMETERS
 from .flow import FlowAccelerometer
 from .world import World
 
+# Rolling stream of solver events for clients (optional state.tether.events). Matches the radio-window
+# length used by tether_ops so a late-joining viewer still sees the recent break / snag / stall / twist.
+EVENT_LIMIT = 32
+TWIST_WARN_TURNS = 2.0          # same console threshold as tether_ops (warning only; no extra force)
+
 GLAND_BODY = np.array(X1_PARAMETERS["gland_body"]["value"])     # tether strain-relief gland, rear of the hull
 
 
@@ -184,6 +189,7 @@ class Tether:
         self.wraps: dict[str, float] = {}
         self.events: list[dict] = []
         self.turns = 0.0
+        self._twist_warned = False
         self._heading = None
         self._seg_tension = np.zeros(count)
         self.last_batch_complete = False
@@ -305,6 +311,7 @@ class Tether:
         self.snags.clear()
         self.snags.events.clear()
         self.turns = 0.0
+        self._twist_warned = False
         self._heading = None
 
     # ── discretisation ────────────────────────────────────────────────────
@@ -610,6 +617,12 @@ class Tether:
         self.reel.events.clear()
         self.events.extend(self.snags.events)
         self.snags.events.clear()
+        # Warn past ±2 turns; re-arm below 1.75 so yaw jitter at the threshold does not repeat the event.
+        twist_warning = abs(self.turns) > TWIST_WARN_TURNS or (self._twist_warned and abs(self.turns) > 1.75)
+        if twist_warning and not self._twist_warned:
+            self.events.append({"t": round(t_now, 2), "type": "tether_twist",
+                                "turns": round(self.turns, 2)})
+        self._twist_warned = twist_warning
 
     def _break(self, t_now: float, reason: str, tension: float) -> None:
         self.broken = True
@@ -647,6 +660,8 @@ class Tether:
             "working_load_n": round(self.p.warn_n, 1),
             "gland_working_load_n": round(self.p.gland_warn_n, 1),
             "break_reason": self.break_reason or None,
+            # Optional: recent solver events. Absent on older hosts; clients that ignore it keep working.
+            "events": list(self.events[-EVENT_LIMIT:]),
         }
 
 

@@ -4,6 +4,7 @@ The real fidelity preset selects the full procedure. Buttons are clicked with th
 must sit on the --z-controls layer. Screenshots go to output/procedure-validation/.
 Browser and server addresses come from _browser.py (ROV_CHROMIUM, ROV_HOST, ROV_HTTP_PORT, ROV_WS_PORT).
 """
+import json
 import sys
 from pathlib import Path
 
@@ -62,6 +63,8 @@ def run():
         with page.expect_download() as download:
             panel.get_by_role('button', name='匯出日誌').click()
         download.value.save_as(OUT / 'dive-log.json')
+        exported = json.loads((OUT / 'dive-log.json').read_text(encoding='utf-8'))
+        assert exported.get('pilot_log'), 'dive-log export must carry the pilot log lines'
         page.screenshot(path=str(OUT / 'complete.png'))
         assert page.evaluate('window.__viewer.S.procedure.notes') == 'T23 browser full procedure'
         assert not errors, errors
