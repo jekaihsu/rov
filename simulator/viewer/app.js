@@ -1000,26 +1000,36 @@ function endIntroUI() {
   vp.classList.remove('intro'); $('skipIntro').hidden = true;
   tetherLine.visible = true;
 }
-async function startIntro() {
-  if (!W || !$('optIntro').checked || params.has('nointro')) return;
+// held: open on the aft deck and wait; the returned function starts the launch (deployment procedure).
+async function startIntro(held = false) {
+  if (!W || !$('optIntro').checked || params.has('nointro')) return null;
   if (MOVIE && movie.introDone) return;
   const assets = await loadIntroAssets();
   introStarts++;
   if (intro) { intro.dispose(); intro = null; }
   intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: startPresentation.introStart(W, S?.pos || [0, 0, 3]), seabed: W.seabed_depth || 30, assets });
   intro.showVehicle(() => activeModel?.model);       // the onboard view hides the hull; the intro shows it
-  vp.classList.add('intro'); $('skipIntro').hidden = false;
-  const wasPaused = !!S?.paused;
-  if (!wasPaused) send({ type: 'pause', value: true });
+  vp.classList.add('intro'); $('skipIntro').hidden = held;
+  let wasPaused = !!S?.paused;
+  if (!wasPaused && !held) send({ type: 'pause', value: true });
   intro.play(rovG, camera, () => {
     endIntroUI();
     target.init = false;                        // snap back to the simulated pose
     if (!wasPaused) send({ type: 'pause', value: false });
   });
+  if (!held) return null;
+  const heldIntro = intro;
+  heldIntro.hold();
+  return function launchFromDeck() {
+    wasPaused = !!S?.paused;
+    if (!wasPaused) send({ type: 'pause', value: true });
+    $('skipIntro').hidden = false;
+    heldIntro.release();
+  };
 }
 $('skipIntro').onclick = () => intro?.skip();
 let introStarts = 0;
-window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts };
+window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) { e.preventDefault(); intro.skip(); } });
 async function ensurePip() {
   const on = $('optPip').checked && !params.has('nopip');

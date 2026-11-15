@@ -2,9 +2,9 @@
 // gates (qysim/procedure.py); this module only renders the current phase and sends the operator's confirmations.
 // Whether the full procedure runs is the `deployProcedure` fidelity item (real: full, assisted: quick); `?nointro`
 // always skips it. Gamepad navigation uses the menu-context rows of input/bindings.js while the panel is open.
-// Order with the launch intro (deploy_intro.js): checklist first; the A-frame launch cinematic plays when the
-// operator lowers the vehicle (phase launch -> water_check), then the water check and dive follow. Without the
-// procedure the intro plays at scenario start exactly as before.
+// Order with the launch intro (deploy_intro.js): the intro opens on the aft deck and holds during the checklist;
+// the A-frame launch cinematic plays when the operator lowers the vehicle (phase launch -> water_check), then the
+// water check and dive follow. Without the procedure the intro plays at scenario start exactly as before.
 import {getFidelity} from '../fidelity.js';
 import {PROCEDURE_ITEM} from './fidelity_item.js';
 
@@ -33,6 +33,7 @@ const STRINGS = {
   dry: '離水運轉超過 30 秒，已告警並扣分。',
   recovering: '收纜中，洋流與模擬浪況會降低回收速度（暫定）',
   complete: '潛後處理完成',
+  onDeck: '載具在工作船後甲板上，尚未入水；完成檢查、放入水中並確認後才能解鎖。',
 };
 const STYLE = `
   #procedurePanel{position:fixed;right:4%;top:12%;z-index:var(--z-controls);max-height:76vh;overflow:auto;
@@ -143,6 +144,11 @@ export function installProcedure({send, readOnly = false}) {
     };
   }
   function renderPhase(p) {
+    if (p.phase === 'checks' || p.phase === 'launch') {
+      const deck = document.createElement('p');
+      deck.textContent = STRINGS.onDeck;
+      panel.append(deck);
+    }
     if (p.phase === 'checks') renderChecks(p);
     if (p.phase === 'launch') {
       button(STRINGS.tender, 'tender').disabled = p.confirmed;
@@ -232,10 +238,17 @@ export function installProcedure({send, readOnly = false}) {
       }},
     });
   }
-  // With the procedure the intro waits for the launch step; otherwise it plays now.
+  // With the procedure the intro opens on the aft deck and holds there through the checklist, so the operator
+  // sees the vehicle where it really is; lowering it releases the launch. Without the procedure it plays now.
   function startIntro(play) {
-    if (wanted()) launchIntro = play;
-    else play();
+    if (!wanted()) {
+      play();
+      return;
+    }
+    launchIntro = null;
+    Promise.resolve(play(true)).then(function heldOnDeck(release) {
+      launchIntro = release || null;
+    });
   }
   return {update, startIntro, bindInput};
 }
