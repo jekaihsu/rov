@@ -1,0 +1,96 @@
+{
+  "id": "course_i02",
+  "title": "I02｜中級｜抗流懸停與模式降級",
+  "scenario": "monopile_current",
+  "mode": "scenario_training",
+  "category": "course",
+  "order": 60,
+  "source_chapters": [
+    "offshore"
+  ],
+  "training": {
+    "level": "中級",
+    "simulator_minutes": 60,
+    "pass_status": "暫定，待資深操作員基準航次校準",
+    "goal": "判斷推力裕度，交叉檢查定深、定向與站位",
+    "criteria": "完成站位目標或正確中止並記錄未完成；能說明降級選擇",
+    "injection": "另次練習注入單推進器衰減；DVL 失鎖只用口頭通報"
+  },
+  "nodes": [
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal"
+    },
+    {
+      "id": "poll",
+      "type": "wait",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      }
+    },
+    {
+      "id": "failed",
+      "type": "branch",
+      "condition": {
+        "path": "score.failed",
+        "op": "gt",
+        "value": ""
+      },
+      "target": "failure"
+    },
+    {
+      "id": "finished",
+      "type": "branch",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "target": "success"
+    },
+    {
+      "id": "repeat",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "poll"
+    },
+    {
+      "id": "failure",
+      "type": "objective",
+      "text_key": "failure"
+    },
+    {
+      "id": "after_failure",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "save"
+    },
+    {
+      "id": "success",
+      "type": "objective",
+      "text_key": "success"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "goal": "I02｜判斷推力裕度，交叉檢查定深、定向與站位。合格門檻：暫定，待資深操作員基準航次校準。程序與證據由教官評核。",
+      "success": "場景節點完成；不代表考核合格。完成站位目標或正確中止並記錄未完成；能說明降級選擇。暫定，待資深操作員基準航次校準。請匯出證據並由教官簽核。",
+      "failure": "場景失敗：停止本航次，記錄失敗原因，匯出證據並檢討後重試。暫定，待資深操作員基準航次校準。"
+    }
+  }
+}

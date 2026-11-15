@@ -1,0 +1,96 @@
+{
+  "id": "course_i04",
+  "title": "I04｜中級｜羅盤失準處置",
+  "scenario": "incident_compass",
+  "mode": "scenario_training",
+  "category": "course",
+  "order": 80,
+  "source_chapters": [
+    "incident_compass"
+  ],
+  "training": {
+    "level": "中級",
+    "simulator_minutes": 60,
+    "pass_status": "暫定，待資深操作員基準航次校準",
+    "goal": "辨認不可信航向，退出定向並後退離開鋼構",
+    "criteria": "依序完成撤離回收；教官確認未追逐錯誤航向",
+    "injection": "口頭通報羅盤失準；讀數本身不變"
+  },
+  "nodes": [
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal"
+    },
+    {
+      "id": "poll",
+      "type": "wait",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      }
+    },
+    {
+      "id": "failed",
+      "type": "branch",
+      "condition": {
+        "path": "score.failed",
+        "op": "gt",
+        "value": ""
+      },
+      "target": "failure"
+    },
+    {
+      "id": "finished",
+      "type": "branch",
+      "condition": {
+        "path": "score.finished",
+        "op": "eq",
+        "value": true
+      },
+      "target": "success"
+    },
+    {
+      "id": "repeat",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "poll"
+    },
+    {
+      "id": "failure",
+      "type": "objective",
+      "text_key": "failure"
+    },
+    {
+      "id": "after_failure",
+      "type": "branch",
+      "condition": {
+        "path": "score.elapsed",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "save"
+    },
+    {
+      "id": "success",
+      "type": "objective",
+      "text_key": "success"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "goal": "I04｜辨認不可信航向，退出定向並後退離開鋼構。合格門檻：暫定，待資深操作員基準航次校準。程序與證據由教官評核。",
+      "success": "場景節點完成；不代表考核合格。依序完成撤離回收；教官確認未追逐錯誤航向。暫定，待資深操作員基準航次校準。請匯出證據並由教官簽核。",
+      "failure": "場景失敗：停止本航次，記錄失敗原因，匯出證據並檢討後重試。暫定，待資深操作員基準航次校準。"
+    }
+  }
+}
