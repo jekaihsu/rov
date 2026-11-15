@@ -12,6 +12,8 @@ import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
 import { createStage } from './stage.js';
+import { installAudio } from '../audio/engine.js';
+import { installMusic } from '../audio/music.js';
 
 const STRINGS = {
   brand: 'ROV 潛航模擬器',
@@ -41,6 +43,7 @@ const ROUTES = {
   scenario: ['training', 'hangar', 'briefing'],
 };
 const PREVIEW_DELAY_MS = 280;
+const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -204,6 +207,7 @@ function show(name) {
   next.enter?.();
   next.element.dataset.active = '';
   menu.dataset.screen = name;
+  music.setScreen(name);
   stage.setPose(next.pose || name);
   renderSteps();
   renderPromptsFor(navigator.family);
@@ -268,6 +272,7 @@ function launch() {
   setStatus(STRINGS.launching);
   menu.classList.add('departing');
   stage.setPose('launch');
+  music.setScreen(null);
   setTimeout(function leaveMenu() {
     location.assign(url);
   }, reduced ? 0 : 650);
