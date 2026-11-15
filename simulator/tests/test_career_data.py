@@ -30,6 +30,16 @@ class CareerDataTest(unittest.TestCase):
     def test_contracts_match_the_schema(self):
         self.validate("contracts.json", "contracts.schema.json")
 
+    def test_equipment_and_licences_match_their_schemas(self):
+        self.validate("equipment.json", "equipment.schema.json")
+        self.validate("licences.json", "licences.schema.json")
+
+    def test_cosmetic_stickers_are_accepted_by_the_server(self):
+        from qysim.operations import STICKERS
+        for item in load("equipment.json")["items"]:
+            if item["kind"] == "cosmetic":
+                self.assertIn(item["sticker"], STICKERS, item["id"])
+
     def test_schema_rejects_a_broken_contract(self):
         schema = load("contracts.schema.json")
         data = load("contracts.json")

@@ -9,6 +9,8 @@ import { vehicleTitle } from '../fleet_names.js';
 import { introForLaunch } from '../menu/preferences.js';
 import { buildBoard } from './board.js';
 import { buildContractScreen } from './contract_screen.js';
+import { buildShop } from './shop.js';
+import { stickerAvailable, updateBlocks } from './shop_rules.js';
 import { careerDataFrom, loadCareerData } from './data.js';
 import { loadCareer, storeCareer } from './save.js';
 import { REPEAT_RATE } from './scoring.js';
@@ -38,6 +40,7 @@ export async function installCareerMenu(ctx, screens) {
     return careerDataFrom({});
   });
   let save = loadCareer();
+  updateBlocks(save, data);
   const career = {
     data,
     sceneKeys: new Set(ctx.data.scenes.map(function key(scene) {
@@ -70,6 +73,12 @@ export async function installCareerMenu(ctx, screens) {
     screens.contract.show(contract);
     ctx.go('contract');
   };
+  ctx.openShop = function openShop() {
+    ctx.go('shop');
+  };
+  ctx.stickerAvailable = function stickerOpen(preset) {
+    return stickerAvailable(save, data, preset);
+  };
   ctx.titleFor = function titleFor(vehicle) {
     return vehicleTitle(vehicle.id, save);
   };
@@ -96,6 +105,7 @@ export async function installCareerMenu(ctx, screens) {
       return {
         board: buildBoard(ctx),
         contract: buildContractScreen(ctx),
+        shop: buildShop(ctx),
       };
     },
   };

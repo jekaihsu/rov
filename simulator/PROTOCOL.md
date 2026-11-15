@@ -45,6 +45,9 @@ heartbeat cannot automatically restart the vehicle.
 ```
 
 Changing a model redeploys only the requesting pilot's vehicle in a locked state.
+`{"type":"operation","action":"appearance","sticker":"none|hazard|dive|number|yx_logo|yx_stripe"}` sets the
+sender's hull sticker (appearance only, shown to every viewer as `state.appearance.sticker`). `yx_logo` and
+`yx_stripe` were added as optional values for the career's cosmetics; the earlier values are unchanged.
 `operation` requests are handled by the vehicle's operations controller and reply
 with `{"type":"operation_result","ok":true,"action":"..."}` or `ok:false` and a
 `message`. Scenario changes, reset, pause and current overrides require the host.

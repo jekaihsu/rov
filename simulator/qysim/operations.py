@@ -16,7 +16,8 @@ ARM_BASE = np.array([.30, -.12, .40])
 ARM_LENGTHS = (.32, .30, .12)
 JOINT_LIMITS = ((-95., 95.), (-65., 75.), (-120., 120.), (-100., 100.))
 PAINT_COLORS = frozenset(("#f0c75e", "#ee704f", "#62cfe2", "#eef3e8"))
-STICKERS = frozenset(("none", "hazard", "dive", "number"))
+# yx_logo / yx_stripe: cosmetics from the viewer's YX equipment department (appearance only).
+STICKERS = frozenset(("none", "hazard", "dive", "number", "yx_logo", "yx_stripe"))
 MAX_PAINT_MARKS = 300
 
 

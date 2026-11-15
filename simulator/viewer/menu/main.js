@@ -58,7 +58,7 @@ const ROUTES = {
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
-const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'board']);
+const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'board', 'shop']);
 const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
@@ -422,6 +422,11 @@ navigator.start();
 function openRequestedScreen() {
   const query = new URLSearchParams(location.search);
   const requested = query.get('menu');
+  if (requested === 'shop') {
+    go('main');
+    ctx.openShop();
+    return;
+  }
   if (requested === 'board') {
     go('main');
     ctx.openBoard(query.get('tab') || '');

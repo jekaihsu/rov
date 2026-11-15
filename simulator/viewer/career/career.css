@@ -45,3 +45,9 @@
 .career-status:empty { display: none; }
 .career-status[data-warn=true] { color: var(--warn); }
 .career-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* shop */
+.career-fleet { position: absolute; right: 0; bottom: 0; text-align: right; }
+.career-item-line { font-size: 12px; line-height: 1.5; color: var(--text-dim); }
+.career-item[data-status=owned] .menu-card-lock { color: var(--go); }
+.career-buy { color: var(--accent); letter-spacing: .1em; }

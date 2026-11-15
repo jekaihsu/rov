@@ -1,3 +1,82 @@
 {
-  "items": []
+  "note": "YX 裝備部：只賣真實存在、能開放工作能力的配件，不改變任何物理數值（推力、燈光、感測器規格照舊）；外觀只是貼紙。價格為遊戲數值。",
+  "items": [
+    {
+      "id": "laser_scaler",
+      "kind": "equipment",
+      "label": "雷射比例尺",
+      "price": 15000,
+      "licence": "none",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "block": true,
+      "use": "兩道平行雷射點打在目標上，影像裡就有已知間距，可以量尺寸。",
+      "unlocks": "海生物厚度、缺陷尺寸等量測交付（Level II 工單）"
+    },
+    {
+      "id": "imaging_sonar",
+      "kind": "equipment",
+      "label": "成像聲納",
+      "price": 18000,
+      "licence": "trainee",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "block": true,
+      "use": "能見度不足時以聲波成像找目標與結構，再用相機確認。",
+      "unlocks": "港內掉落物等搜尋工單"
+    },
+    {
+      "id": "cp_probe",
+      "kind": "equipment",
+      "label": "陰極防蝕（CP）探針",
+      "price": 12000,
+      "licence": "trainee",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "block": true,
+      "use": "探針頂住鋼構，讀取對參考電極的電位，判斷防蝕是否足夠。",
+      "unlocks": "鋼板樁、鋼構的 CP 量測交付"
+    },
+    {
+      "id": "ut_gauge",
+      "kind": "equipment",
+      "label": "超音波測厚儀（UT）",
+      "price": 14000,
+      "licence": "trainee",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "block": true,
+      "use": "探頭貼住鋼板量剩餘壁厚，找出腐蝕減薄處。",
+      "unlocks": "船殼與鋼構的測厚交付"
+    },
+    {
+      "id": "gripper",
+      "kind": "equipment",
+      "label": "作業夾爪套件",
+      "price": 20000,
+      "licence": "grade2",
+      "vehicles": ["falcon"],
+      "block": true,
+      "use": "YX Model V 機械臂的作業夾爪與收集籃，回收類工單的標準配備。",
+      "unlocks": "死魚、掉落物等回收工單"
+    },
+    {
+      "id": "sticker_yx_logo",
+      "kind": "cosmetic",
+      "label": "YX 公司標誌貼紙",
+      "price": 2000,
+      "licence": "none",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "block": false,
+      "use": "機身兩側的 YX 標誌。客戶在甲板上一眼就知道是誰家的機子。",
+      "sticker": "yx_logo"
+    },
+    {
+      "id": "sticker_yx_stripe",
+      "kind": "cosmetic",
+      "label": "YX 橘白塗裝條紋",
+      "price": 3000,
+      "licence": "trainee",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "block": false,
+      "use": "公司船隊的橘白斜紋，在混水裡比較好找。",
+      "sticker": "yx_stripe"
+    }
+  ]
 }
