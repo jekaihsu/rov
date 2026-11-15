@@ -304,16 +304,25 @@ export class Environment {
   }
 
   _sharedFish(schools) {
-    this.sharedSchools=[];
-    const geo=marineGeometry('fish');
-    for(const school of schools) {
-      const R=rng(school.id+':'+this.world.world_seed);
-      const fish=Array.from({length:school.count},()=>({offset:new THREE.Vector3((R()-.5)*2.1,(R()-.5)*.8,(R()-.5)*2.1),phase:R()*Math.PI*2,scale:.65+R()*.75}));
-      const mesh=new THREE.InstancedMesh(geo,M([0x9caaa1,0x8d9784,0x94919e][school.variant],{metalness:.25,roughness:.45}),school.count);
-      mesh.userData.observationEntities=fish.map(()=>({entity_id:school.id,category:'fish_school'}));
-      this.observationTargets.push({entity_id:school.id,category:'fish_school',mesh,instanceIds:fish.map((_,i)=>i)});
-      mesh.frustumCulled=false;this.group.add(mesh);
-      this.sharedSchools.push({id:school.id,mesh,fish,pos:P(school.pos),target:P(school.pos),vel:new THREE.Vector3(0,0,.3)});
+    this.sharedSchools = [];
+    const geo = marineGeometry('fish');
+    const farm = this.world.scenario?.key === 'aquaculture_pen';
+    const fraction = farm ? {low: .25, medium: .6, high: 1}[this.detail] || 1 : 1;
+    for (const school of schools) {
+      const R = rng(school.id + ':' + this.world.world_seed);
+      const fish = Array.from({length: Math.ceil(school.count * fraction)}, () => ({
+        offset: new THREE.Vector3((R() - .5) * 2.1, (R() - .5) * .8, (R() - .5) * 2.1),
+        phase: R() * Math.PI * 2, scale: .65 + R() * .75,
+      }));
+      const material = M([0x9caaa1, 0x8d9784, 0x94919e][school.variant], {metalness: .25, roughness: .45});
+      const mesh = new THREE.InstancedMesh(geo, material, fish.length);
+      mesh.userData.observationEntities = fish.map(() => ({entity_id: school.id, category: 'fish_school'}));
+      this.observationTargets.push({entity_id: school.id, category: 'fish_school', mesh,
+        instanceIds: fish.map((_, i) => i)});
+      mesh.frustumCulled = false;
+      this.group.add(mesh);
+      this.sharedSchools.push({id: school.id, mesh, fish, pos: P(school.pos), target: P(school.pos),
+        vel: new THREE.Vector3(0, 0, .3)});
     }
   }
 
@@ -503,7 +512,9 @@ export class Environment {
         p.copy(school.pos).add(f.offset);
         p.y+=Math.sin(t*1.7+f.phase)*.12;
         q.setFromEuler(e.set(0,heading+Math.sin(t*6+f.phase)*.07,Math.sin(t*5+f.phase)*.04));
-        s.setScalar(f.scale);m4.compose(p,q,s);school.mesh.setMatrixAt(i,m4);
+        s.setScalar(f.scale * (this.world.scenario?.key === 'aquaculture_pen' ? 2 : 1));
+        m4.compose(p, q, s);
+        school.mesh.setMatrixAt(i, m4);
       });
       school.mesh.instanceMatrix.needsUpdate=true;
     }

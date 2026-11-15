@@ -63,7 +63,10 @@ def check_default(browser):
     result = page.evaluate(INSPECT)
     assert not result['hull'], 'default asset set must keep the training x1 model'
     assert any(url.endswith('/models/rov.glb') for url in requests), requests
+    assert any(url.endswith('/models/rov_lod1.glb') for url in requests), requests
+    assert any(url.endswith('/models/rov_lod2.glb') for url in requests), requests
     assert not any('observation_rov' in url for url in requests), requests
+    assert result['rotors'] == 6 and sorted(result['mapped']) == list(range(6)), result
     page.close()
     assert not errors, errors
     return result

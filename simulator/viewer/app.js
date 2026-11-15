@@ -30,6 +30,7 @@ import { DeployIntro } from './deploy_intro.js';
 import { placeSceneModel } from './scene_models.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
+import {updatePenNet} from './aquaculture.js';
 import { buildStructures, structureDetail } from './structures.js';
 import { obstacleDistance } from './structure_sdf.js';
 import { createFlowField } from './flow_field.js';
@@ -1250,6 +1251,7 @@ function frame(now) {
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
+  updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {

@@ -10,6 +10,13 @@ const defaults = {
   falcon: { id: 'falcon', model: 'models/falcon.glb', camera_body: [.485, 0, -.175], lamp_body: [[.418, -.225, .025], [.418, .225, .025]], gland_body: [-.25, 0, -.27], arm_mount_body: [.30, -.12, .40] },
 };
 
+// Training X1 LODs (nearest first). Distances are metres from the camera.
+const TRAINING_X1_LODS = [
+  { url: 'models/rov.glb', distance: 0 },
+  { url: 'models/rov_lod1.glb', distance: 12 },
+  { url: 'models/rov_lod2.glb', distance: 40 },
+];
+
 function matchLegacyRotors(rotors, thrusters) {
   // Legacy X1 exports have swapped L/R names, so use the original spatial match.
   const positions=(thrusters?.map((t)=>t.pos) || [[.250,-.193,.032],[.250,.193,.032],[-.251,-.171,-.035],[-.251,.171,-.035],[-.061,-.205,.068],[-.061,.205,.068]]).map(point);
@@ -116,9 +123,126 @@ function fallback(id) {
   return root;
 }
 
+function collectRotors(model, def) {
+  const rotors = [];
+  model.traverse((o) => {
+    if (o.userData.role !== 'rotor') return;
+    const worldQ = o.getWorldQuaternion(new THREE.Quaternion());
+    let axis;
+    if (Number.isInteger(o.userData.thruster_index)) {
+      // Blender +Z local spin axis is glTF +Y after export's axis conversion.
+      const t = def.thrusters?.[o.userData.thruster_index];
+      axis = t
+        ? point(t.axis).applyQuaternion(worldQ.clone().invert()).normalize()
+        : new THREE.Vector3(0, 1, 0);
+    } else {
+      axis = new THREE.Vector3(...(o.userData.axis || [0, 0, 1]))
+        .applyQuaternion(worldQ.clone().invert())
+        .normalize();
+    }
+    rotors.push({
+      o,
+      base: o.quaternion.clone(),
+      axis,
+      pos: o.getWorldPosition(new THREE.Vector3()),
+      ang: 0,
+      thrusterIndex: o.userData.thruster_index,
+    });
+  });
+  return rotors;
+}
+
+function findRotorNodes(root) {
+  const rotors = [];
+  root.traverse((o) => {
+    if (o.userData.role === 'rotor') rotors.push(o);
+  });
+  return rotors;
+}
+
+function disposeObject(object) {
+  object.traverse((o) => {
+    o.geometry?.dispose?.();
+    for (const material of [].concat(o.material || [])) {
+      material?.dispose?.();
+    }
+  });
+  object.removeFromParent();
+}
+
+/**
+ * Load training-X1 LOD files into a THREE.LOD. Spinning rotors are lifted out of
+ * every level and kept at the nearest level's detail so app.js still sees six
+ * thruster-mapped rotors. options.lod >= 1 skips nearer static levels so peer
+ * vehicles start at LOD1 (and may still drop to LOD2 by distance).
+ */
+async function loadTrainingX1Lod(minLod = 0) {
+  const start = Math.max(0, Math.min(minLod, TRAINING_X1_LODS.length - 1));
+  const candidates = TRAINING_X1_LODS.slice(start);
+  const loaded = [];
+  for (const level of candidates) {
+    try {
+      loaded.push({ level, gltf: await loadGLTF(level.url) });
+    } catch (error) {
+      // Sidecar LODs may be absent during packing / compare renders; keep going.
+      if (loaded.length === 0) throw error;
+      console.warn(`X1 LOD unavailable (${level.url}); using ${loaded.length} level(s)`, error);
+      break;
+    }
+  }
+  const wrap = new THREE.Group();
+  wrap.name = 'X1Visual';
+  const rotorRoot = new THREE.Group();
+  rotorRoot.name = 'X1Rotors';
+  wrap.add(rotorRoot);
+
+  const attachNearestRotors = (scene) => {
+    scene.updateMatrixWorld(true);
+    for (const rotor of findRotorNodes(scene)) {
+      // Object3D.attach keeps the world transform while reparenting.
+      rotorRoot.attach(rotor);
+    }
+  };
+
+  const stripRotors = (scene) => {
+    for (const rotor of findRotorNodes(scene)) disposeObject(rotor);
+  };
+
+  if (loaded.length === 1) {
+    const scene = loaded[0].gltf.scene;
+    attachNearestRotors(scene);
+    wrap.add(scene);
+    return wrap;
+  }
+
+  const lod = new THREE.LOD();
+  lod.name = 'X1LOD';
+  loaded.forEach((entry, index) => {
+    const scene = entry.gltf.scene;
+    scene.name = `LOD${start + index}`;
+    if (index === 0) attachNearestRotors(scene);
+    else stripRotors(scene);
+    // Peer vehicles omit LOD0: their first entry is LOD1 at distance 0.
+    const distance = index === 0 ? 0 : entry.level.distance;
+    lod.addLevel(scene, distance);
+  });
+  wrap.add(lod);
+  return wrap;
+}
+
+// Centre the pre-I1 rov.glb had under the loose (per-mesh) Box3: its sheared node scales inflated the box to
+// 0.600 x 0.415 x 0.790 m around this point, while the true geometry is 0.560 x 0.400 x 0.790 m. The packed LODs
+// keep the true geometry, so reuse the old centre instead of measuring (and never rescale the mesh).
+const TRAINING_X1_LEGACY_CENTRE = [0, 0.1925, -0.01008];
+
+function legacyX1Centre(model, loadError) {
+  if (!loadError) return new THREE.Vector3(...TRAINING_X1_LEGACY_CENTRE);
+  return new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
+}
+
 /**
  * Load an independent vehicle instance. Lighting intentionally lives outside root.
- * options.assets ('training' | 'generic') overrides the ?assets= query; options.lod picks a generic LOD.
+ * options.assets ('training' | 'generic') overrides the ?assets= query; options.lod picks a LOD.
  */
 export async function createVehicleModel(definition='x1', options={}) {
   const id=typeof definition==='string'?definition:definition.id || 'x1';
@@ -129,24 +253,19 @@ export async function createVehicleModel(definition='x1', options={}) {
   const legacyX1 = id === 'x1' && !genericUrl;
   if (genericUrl) def.model = genericUrl;
   let model, loadError=null;
-  try { model=(await loadGLTF(def.model)).scene; }
-  catch(e) { loadError=e; console.warn(`Vehicle model ${id} unavailable; using fallback`,e); model=fallback(id); }
+  try {
+    if (legacyX1) model = await loadTrainingX1Lod(options.lod ?? 0);
+    else model = (await loadGLTF(def.model)).scene;
+  } catch (e) {
+    loadError = e;
+    console.warn(`Vehicle model ${id} unavailable; using fallback`, e);
+    model = fallback(id);
+  }
   // Preserve the legacy X1 centring convention; fleet GLBs are authored about CG.
-  if(legacyX1) { const box=new THREE.Box3().setFromObject(model); model.position.sub(box.getCenter(new THREE.Vector3())); }
+  if (legacyX1) model.position.sub(legacyX1Centre(model, loadError));
   root.add(model); root.updateMatrixWorld(true);
-  const rotors=[];
-  model.traverse((o) => {
-    if(o.userData.role!=='rotor') return;
-    const worldQ=o.getWorldQuaternion(new THREE.Quaternion());
-    let axis;
-    if(Number.isInteger(o.userData.thruster_index)) {
-      // Blender +Z local spin axis is glTF +Y after export's axis conversion.
-      const t=def.thrusters?.[o.userData.thruster_index];
-      axis=t?point(t.axis).applyQuaternion(worldQ.clone().invert()).normalize():new THREE.Vector3(0,1,0);
-    } else axis=new THREE.Vector3(...(o.userData.axis || [0,0,1])).applyQuaternion(worldQ.clone().invert()).normalize();
-    rotors.push({o,base:o.quaternion.clone(),axis,pos:o.getWorldPosition(new THREE.Vector3()),ang:0,thrusterIndex:o.userData.thruster_index});
-  });
-  if(legacyX1) matchLegacyRotors(rotors,def.thrusters);
+  const rotors = collectRotors(model, def);
+  if (legacyX1) matchLegacyRotors(rotors, def.thrusters);
   const arm=id==='falcon'?(bindModelArm(root,model) || manipulator(def.arm_mount_body)):null;
   if(arm && arm.root.parent!==root) root.add(arm.root);
   const lampAnchors=(def.lamp_body || []).map((p) => ({position:point(p),direction:new THREE.Vector3(0,-.055,1).normalize()}));

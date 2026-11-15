@@ -43,6 +43,10 @@ def ensure_objects(sim):
     world = sim.world
     if hasattr(world, "work_objects"):
         return world.work_objects
+    if getattr(sim.scenario, "key", None) == "aquaculture_pen":
+        from .aquaculture import work_objects
+        world.work_objects = work_objects()
+        return world.work_objects
     objects = {}
     origin = np.asarray(sim.scenario.start_pos, float)
     for i, (label, mass, buoyancy) in enumerate((("樣品容器", 2., 1.5), ("回收工具", 4., 1.), ("重型回收物", 14., 2.))):
