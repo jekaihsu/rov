@@ -24,6 +24,8 @@ import { DeployIntro } from './deploy_intro.js';
 import { loadGLTF } from './glb.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
+import { buildStructures, structureDetail } from './structures.js';
+import { obstacleDistance } from './structure_sdf.js';
 import { createFlowField } from './flow_field.js';
 import { PilotPiP } from './pilot_pip.js';
 import { createVehicleModel } from './vehicle_models.js';
@@ -207,7 +209,7 @@ const worldG = new THREE.Group(); scene.add(worldG);
 const obstacleMeshes = new Map();       // name → {mesh, ob}
 const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
-const OB_COL = { pile: 0x6f6a58, monopile: 0x7c6f4f, jacket_leg: 0xb38a3a, brace: 0x9a7c44, mast: 0x5d5d5d, hull: 0x5a2626, wreck: 0x4e4234, wall: 0x5b605a };
+let structureSet = null;                // structures.js: detailed meshes drawn inside the collision shapes
 
 // Structures that come as a 3D model (e.g. the Korean Castle wreck): the physics uses a distance
 // field of the collision meshes, the viewer shows the full model. Local frame: X along the hull,
@@ -236,33 +238,16 @@ function buildWorld() {
   fleet.reset(W);
   worldG.clear(); obstacleMeshes.clear();
   if (env) env.dispose();
-  env = params.has('noenv') ? null : new Environment(scene, W);
+  const detail = structureDetail(renderer);
+  env = params.has('noenv') ? null : new Environment(scene, W, {detail});
   seabed.userData.plane.visible = !env;                         // the environment brings its own sand
   seabed.userData.plane.userData.paintable=true;
   seabed.position.y = -W.seabed_depth;
-  for (const ob of W.obstacles || []) {
-    if(ob.kind === 'habitat')continue;
-    const mat = new THREE.MeshStandardMaterial({ color: OB_COL[ob.kind] ?? 0x666666, roughness: .85, metalness: .1 });
-    let mesh;
-    if (ob.type === 'cylinder') {
-      const a = P(ob.p0), b = P(ob.p1), len = a.distanceTo(b);
-      mesh = new THREE.Mesh(new THREE.CylinderGeometry(ob.radius, ob.radius, len, 24, 1), mat);
-      mesh.position.copy(a).add(b).multiplyScalar(.5);
-      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
-    } else if (ob.type === 'box') {
-      const [hx, hy, hz] = ob.half;
-      mesh = new THREE.Mesh(new THREE.BoxGeometry(2 * hy, 2 * hz, 2 * hx), mat);   // local: x=−starboard-ish, y=up, z=along heading
-      P(ob.center, mesh.position); mesh.rotation.y = -ob.yaw_deg * DEG;
-    } else if (ob.type === 'wall') {
-      const h = W.seabed_depth - ob.top, a = ob.normal_deg * DEG, th = 0.6;
-      mesh = new THREE.Mesh(new THREE.BoxGeometry(ob.width, h, th), mat);
-      const nrm = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a));
-      P([ob.point[0], ob.point[1], (ob.top + W.seabed_depth) / 2], mesh.position).addScaledVector(nrm, -th / 2);
-      mesh.rotation.y = -a;
-    }
-    if (ob.type === 'model') { placeModel(ob); continue; }
-    if (mesh) { mesh.userData.paintable=true; worldG.add(mesh); obstacleMeshes.set(ob.name, { mesh, ob }); }
-  }
+  structureSet?.dispose();
+  structureSet = buildStructures(W, {detail});
+  worldG.add(structureSet.group);
+  for (const [name, entry] of structureSet.entries) obstacleMeshes.set(name, entry);
+  for (const ob of W.obstacles || []) if (ob.type === 'model') placeModel(ob);
   // spool / deployment point
   const sp = P(W.spool || [0, 0, 0]);
   const drum = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, .7, 20), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: .5 }));
@@ -331,25 +316,7 @@ contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh)
 const wrapG = new THREE.Group(); scene.add(wrapG);
 
 
-function distToObstacle(p, ob) {        // p NED; approximate surface distance
-  if (ob.type === 'cylinder') {
-    const a = ob.p0, b = ob.p1, ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
-    const L = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2, t = clamp((ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / L, 0, 1);
-    return Math.hypot(ap[0] - ab[0] * t, ap[1] - ab[1] * t, ap[2] - ab[2] * t) - ob.radius;
-  }
-  if (ob.type === 'box') {
-    const y = ob.yaw_deg * DEG, r = [p[0] - ob.center[0], p[1] - ob.center[1], p[2] - ob.center[2]];
-    const l = [r[0] * Math.cos(y) + r[1] * Math.sin(y), -r[0] * Math.sin(y) + r[1] * Math.cos(y), r[2]];
-    const q = l.map((v, i) => Math.max(Math.abs(v) - ob.half[i], 0));
-    return Math.hypot(...q);
-  }
-  if (ob.type === 'wall') {
-    const a = ob.normal_deg * DEG, n = [Math.cos(a), Math.sin(a)], r = [p[0] - ob.point[0], p[1] - ob.point[1]];
-    if (Math.abs(-r[0] * n[1] + r[1] * n[0]) > ob.width / 2 || p[2] < ob.top) return 1e3;
-    return Math.abs(r[0] * n[0] + r[1] * n[1]);
-  }
-  return 1e3;
-}
+const distToObstacle = obstacleDistance;  // p NED; approximate surface distance (structure_sdf.js)
 
 const _c = new THREE.Color(), _m = new THREE.Matrix4();
 let wrapLabels = [];
@@ -393,10 +360,7 @@ function updateTether(t) {
   contactMesh.count = k; contactMesh.instanceMatrix.needsUpdate = true;
   // snag / wrap highlight
   const snag = new Set(t.snagged_on || []), wraps = t.wraps || {};
-  for (const [name, { mesh }] of obstacleMeshes) {
-    const hot = snag.has(name) || Math.abs(wraps[name] || 0) >= .25;
-    mesh.material.emissive.setHex(hot ? 0x4a0a10 : 0x000000);
-  }
+  structureSet?.highlight(new Set([...snag, ...Object.keys(wraps).filter((name) => Math.abs(wraps[name]) >= .25)]));
   for(const ring of wrapG.children)ring.visible=false;wrapLabels = [];
   for (const [name, turns] of Object.entries(wraps)) {
     const e = obstacleMeshes.get(name); if (!e || Math.abs(turns) < .05) continue;
@@ -794,7 +758,7 @@ $('btnCur').onclick = () => {
 
 /* ═════════════════════════ camera modes ═════════════════════════ */
 const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, params, fidelity: getFidelity(),
-  getAnchor: () => cameraAnchor, getObstacles: () => [seabed, ...Array.from(obstacleMeshes.values(), v => v.mesh)],
+  getAnchor: () => cameraAnchor, getObstacles: () => [seabed, ...(structureSet?.raycastMeshes() || [])],
   onMode(m, name) {
     camMode = m;
     $('camBtn').dataset.mode = m;
@@ -1288,3 +1252,4 @@ if (CAPTURE) {
 } else requestAnimationFrame(frame);
 window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
+window.__viewer.renderer = renderer;

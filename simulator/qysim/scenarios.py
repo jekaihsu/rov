@@ -16,6 +16,7 @@ import numpy as np
 import json
 from pathlib import Path
 
+from . import site_dressing as dressing
 from .flow import Tide
 from .silt import seabed_type_for as silt_seabed_type
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, SnagFeature, Wall
@@ -159,6 +160,7 @@ def jacket_inspection() -> Scenario:
     obs = jacket(20.0, 0.0, sea)
     legs = [o for o in obs if o.kind == "jacket_leg"]
     objs = [_inspect_leg(l, d, 20.0, 0.0, f"{l.name} 陽極塊 @{d:.0f}m") for l, d in zip(legs, (6, 12, 16, 10))]
+    obs += dressing.dress_jacket(obs, 20.0, 0.0, sea, {l.name: (d, 24.0) for l, d in zip(legs, (6, 12, 16, 10))})
     return Scenario(
         "jacket_inspection", "導管架樁腿巡檢", "四腳導管架＋水平/X 斜撐，表層 1.5 kn 洋流。逐一在 0.8–2.5 m 距離內面向樁腿陽極塊停留 5 秒。注意斜撐會卡纜。",
         seabed_depth=sea, obstacles=obs, current=CurrentProfile(1.5, 80, 1.0, 95, 0.4, 110, TI_OFFSHORE,
@@ -173,8 +175,8 @@ def monopile_current() -> Scenario:
     stand = (15.0 - 3.0 - 1.5, 0.0, 12.0)
     return Scenario(
         "monopile_current", "單樁抗流懸停", "直徑 6 m 單樁，1.8 kn 橫流（纜線拖曳會吃掉大半推力）。在樁前 1.5 m、深 12 m 處抗流懸停 30 秒，不可碰樁。",
-        seabed_depth=sea, obstacles=[pile], current=CurrentProfile(1.8, 180, 1.6, 185, 0.8, 190, TI_TIDAL,
-                                                                 tide=Tide()),
+        seabed_depth=sea, obstacles=[pile] + dressing.dress_monopile(pile, sea),
+        current=CurrentProfile(1.8, 180, 1.6, 185, 0.8, 190, TI_TIDAL, tide=Tide()),
         visibility_m=10.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=30.0,
         objectives=[Objective("station_keep", "樁前 12 m 懸停 30 秒", stand, radius=1.0, hold_s=30.0,
                               face_point=(15.0, 0.0, 12.0))])
@@ -195,11 +197,11 @@ def tether_untangle() -> Scenario:
 
 def hull_inspection() -> Scenario:
     sea = 20.0
-    hull = Box("Hull 貨輪船殼", (50.0, 0.0, 4.0), (40.0, 9.0, 4.0), 0.0, "hull")
+    hull = dressing.ship_hull("Hull 貨輪船殼", (50.0, 0.0), 0.0, 80.0, 18.0, 8.0)
     pts = [(18, 0, 9.5), (45, 0, 9.5), (70, -6, 9.5), (70, 6, 9.5), (50, 12, 5)]
     return Scenario(
         "hull_inspection", "船殼底部檢查", "80 m 貨輪吃水 8 m。從船底下穿過沿龍骨檢查，再繞到右舷。纜線可能卡在船底邊緣。",
-        seabed_depth=sea, obstacles=[hull], current=CurrentProfile(0.6, 0, 0.5, 10, 0.2, 20, TI_SHELTERED),
+        seabed_depth=sea, obstacles=hull, current=CurrentProfile(0.6, 0, 0.5, 10, 0.2, 20, TI_SHELTERED),
         visibility_m=7.0, start_pos=(0, 0, 3), spool_pos=(-5, 0, 0), tether_length=70.0,
         objectives=[Objective("checkpoint", f"船底 {i + 1}", p, radius=1.8) for i, p in enumerate(pts)])
 
@@ -220,13 +222,14 @@ def wreck_survey() -> Scenario:
     sea = 30.0
     wreck = Box("Wreck 沉船", (25.0, 5.0, sea - 3.0), (18.0, 4.0, 3.0), 35.0, "wreck")
     mast = Cylinder("Wreck mast", (22.0, 3.0, sea - 6.0), (22.5, 3.5, sea - 14.0), 0.25, "mast")
+    yard = Cylinder("Wreck mast yard", (21.4, 4.5, sea - 12.6), (23.3, 2.6, sea - 12.6), 0.12, "mast")
     c, s = math.cos(math.radians(35)), math.sin(math.radians(35))
     pts = []
     for lx, ly in ((20, 0), (0, 6.5), (-20, 0), (0, -6.5)):
         pts.append((25 + c * lx - s * ly, 5 + s * lx + c * ly, sea - 4.0))
     return Scenario(
         "wreck_survey", "沉船調查", "水深 30 m、能見度 4 m，繞沉船一圈拍攝四個面。碰到海床會揚起泥沙；注意桅桿。",
-        seabed_depth=sea, obstacles=[wreck, mast] + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
+        seabed_depth=sea, obstacles=[wreck, mast, yard] + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
         current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, TI_OFFSHORE),
         visibility_m=4.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=80.0,
         seabed_type="silt", bnl_height_m=1.5, bnl_mg_l=1.0,      # provisional silted wreck site
@@ -258,7 +261,8 @@ def korean_castle() -> Scenario:
         "二號貨艙與艉樓窗框。不要進入貨艙：纜線很容易卡在艙口圍板。模型為海報推估的示意，非實測。",
         seabed_depth=sea, obstacles=[wreck], current=CurrentProfile(0.9, 250, 0.6, 260, 0.3, 270, TI_OFFSHORE),
         visibility_m=10.0, start_pos=(0.0, 0.0, 4.0), start_heading_deg=90.0, spool_pos=(-4.0, 0.0, 0.0),
-        tether_length=90.0, objectives=objs, time_limit_s=1500.0)
+        tether_length=90.0, objectives=objs, time_limit_s=1500.0,
+        seabed_type="silt")                      # silted wreck site, as wreck_survey (assumed)
 
 
 def korean_castle_route() -> list:
@@ -295,9 +299,12 @@ def random_scenario(seed: int | None = None) -> Scenario:
         cx, cy = float(rng.uniform(15, 30)), float(rng.uniform(-8, 8))
         obs = jacket(cx, cy, sea)
         legs = [o for o in obs if o.kind == "jacket_leg"]
+        anodes: dict = {}
         for l in rng.permutation(len(legs))[:3]:
             d = float(rng.uniform(5, sea - 5))
             objs.append(_inspect_leg(legs[int(l)], d, cx, cy, f"{legs[int(l)].name} @{d:.0f}m"))
+            anodes[legs[int(l)].name] = (d,)
+        obs += dressing.dress_jacket(obs, cx, cy, sea, anodes)
     elif kind == "piles":
         for i in range(int(rng.integers(3, 7))):
             p = (float(rng.uniform(8, 35)), float(rng.uniform(-15, 15)))
@@ -309,13 +316,16 @@ def random_scenario(seed: int | None = None) -> Scenario:
     elif kind == "hull":
         L, B, T = float(rng.uniform(40, 120)), float(rng.uniform(10, 24)), float(rng.uniform(4, 10))
         cx = L / 2 + 8
-        obs.append(Box("Hull 船殼", (cx, 0.0, T / 2), (L / 2, B / 2, T / 2), float(rng.uniform(-20, 20)), "hull"))
+        obs += dressing.ship_hull("Hull 船殼", (cx, 0.0), float(rng.uniform(-20, 20)), L, B, T)
         for i in range(3):
             objs.append(Objective("checkpoint", f"船底 {i + 1}", (float(rng.uniform(10, L)), float(rng.uniform(-B / 3, B / 3)), T + 1.5), 1.8))
     else:
-        obs.append(Wall("Quay 岸壁", (float(rng.uniform(12, 25)), 0.0, 0.0), 180.0, 120.0, -2.0, "wall"))
+        obs.append(Wall("Quay 岸壁", (float(rng.uniform(12, 25)), 0.0, 0.0), 180.0, 120.0, -2.0, "quay"))
         for i in range(3):
             objs.append(Objective("checkpoint", f"岸壁 {i + 1}", (obs[0].point[0] - 1.8, float(rng.uniform(-20, 20)), float(rng.uniform(3, sea - 3))), 1.5))
+        lane = tuple(-o.point[1] for o in objs)
+        obs += dressing.dress_quay(obs[0], sea, keep_clear=lane)
+        obs += dressing.quay_debris(obs[0], sea)
     # Legacy draws keep every seed's layout, visibility and tether length unchanged.
     dirs = rng.uniform(0, 360, 3)
     rng.uniform(0.0, 3.0, 6)
@@ -324,7 +334,8 @@ def random_scenario(seed: int | None = None) -> Scenario:
         "random", f"隨機情境 #{seed}", f"隨機生成（{kind}），水深 {sea:.0f} m、表層流 {base:.1f} kn。完成所有檢查點，避免碰撞與纜線過載。",
         seabed_depth=sea, obstacles=obs, current=current, visibility_m=float(rng.uniform(3, 14)),
         start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=float(rng.uniform(40, 120)),
-        objectives=objs, time_limit_s=1200, seed=seed)
+        objectives=objs, time_limit_s=1200, seed=seed,
+        seabed_type="mud" if kind == "wall" else None)          # harbour quay: muddy bed (assumed)
 
 
 def coral_reef() -> Scenario:
@@ -347,18 +358,31 @@ def seagrass_meadow() -> Scenario:
                                 Objective("surface", "返回投放區", (-2, 0, .5), 3)])
 
 
+def harbor_obstacles(sea: float) -> list:
+    """Quay wall with its fittings, two rows of jetty piles under a deck, and debris off the quay toe."""
+    quay = Wall("Quay", (42, 0, 0), 180, 70, -2, "quay")
+    obs = [quay,
+           Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
+           Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)]
+    for row, y in (("A", -10), ("B", 10)):
+        for k, x in ((2, 27), (3, 33)):
+            obs.append(Cylinder(f"Harbor pile {row}{k}", (x, y, -2), (x, y, sea), .65))
+        obs.append(Box(f"Jetty deck {row}", (30.5, y, -2.4), (11.5, 2.2, .4), 0, "deck"))
+    obs += dressing.dress_quay(quay, sea, keep_clear=(0.0,))
+    # snaggable debris off the quay (mooring block, rope, rubble), placed on main with the tether snag model
+    obs += [SnagFeature("Harbor mooring block", (24, -6, sea), .5, .6, item="debris"),
+            SnagFeature("Harbor rope tangle", (30, 4, sea), .25, .3, item="rope"),
+            SnagFeature("Harbor rubble", (36, -2, sea), .4, .5, item="rock")]
+    return obs
+
+
 def harbor_inspection() -> Scenario:
     sea = 18.
     return Scenario("harbor_inspection", "港灣協作巡檢", "在港樁與碼頭邊分工巡檢，留意橫流、纜線與低能見度。",
                     seabed_depth=sea, biome="harbor", visibility_m=7, seabed_type="mud",
                     # Provisional near-bed turbid layer: about half the mid-water visibility at 0.5 m altitude.
                     bnl_height_m=2.0, bnl_mg_l=2.0,
-                    obstacles=[Wall("Quay", (42, 0, 0), 180, 70, -2),
-                               Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
-                               Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65),
-                               SnagFeature("Harbor mooring block", (24, -6, sea), .5, .6, item="debris"),
-                               SnagFeature("Harbor rope tangle", (30, 4, sea), .25, .3, item="rope"),
-                               SnagFeature("Harbor rubble", (36, -2, sea), .4, .5, item="rock")],
+                    obstacles=harbor_obstacles(sea),
                     current=CurrentProfile(.8, 90, .55, 95, .15, 110, TI_SHELTERED, tide=Tide()),
                     start_pos=(0, 0, 3), tether_length=75,
                     objectives=[Objective("inspect", "港樁 A", (18, -10, 8), 1.5, hold_s=6, face_point=(21,-10,8)),
@@ -402,11 +426,17 @@ INCIDENT_STRINGS = {
 }
 
 
+def _dressed_jacket(cx: float, cy: float, sea: float, prefix: str) -> list:
+    obs = jacket(cx, cy, sea, prefix=prefix)
+    legs = [o for o in obs if o.kind == "jacket_leg"]
+    return obs + dressing.dress_jacket(obs, cx, cy, sea, {l.name: (10.0, 24.0) for l in legs})
+
+
 def incident_jacket() -> Scenario:
     name, brief = INCIDENT_STRINGS["incident_jacket"]
     return Scenario(
         "incident_jacket", name, brief, seabed_depth=32,
-        obstacles=jacket(0, 0, 32, prefix="Training"),
+        obstacles=_dressed_jacket(0, 0, 32, "Training"),
         current=CurrentProfile(2, 90, 1.8, 90, 1, 90, TI_TIDAL, tide=Tide()),
         start_pos=(0, 0, 12), spool_pos=(-12, 0, 0), tether_length=40,
         objectives=[Objective("checkpoint", INCIDENT_STRINGS["exit"], (-8, 0, 12)),
@@ -422,7 +452,7 @@ def incident_wreck() -> Scenario:
         current=CurrentProfile(0.5, 200, 0.4, 210, 0.3, 220, TI_SHELTERED),     # weak deep-water current
         obstacles=[Box("Training wreck", (20, 0, 134), (6, 3, 3), 0, "wreck"), snag]
                   + wreck_debris(20.0, 0.0, 138.0, "Training"),
-        start_pos=(8, 2.8, 128), spool_pos=(0, 0, 0), tether_length=160,
+        start_pos=(8, 2.8, 128), spool_pos=(0, 0, 0), tether_length=160, seabed_type="silt",
         prewrap={"pile": "Training snag", "turns": 1.25, "depth": 128},
         objectives=[Objective("untangle", INCIDENT_STRINGS["untangle"], target="Training snag"),
                     Objective("surface", INCIDENT_STRINGS["return"], (0, 0, .5), radius=3)],

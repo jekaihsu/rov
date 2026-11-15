@@ -49,9 +49,13 @@ STRINGS = {
 WATER_DENSITY = {"fresh": 997.0, "salt": 1029.0}
 
 # Steel tube wall thickness per cylinder kind, metres [assumption: typical offshore tubulars].
-STEEL_WALL_M = {"jacket_leg": 0.04, "brace": 0.02, "monopile": 0.06, "pile": 0.02, "mast": 0.01}
+STEEL_WALL_M = {"jacket_leg": 0.04, "brace": 0.02, "monopile": 0.06, "pile": 0.02, "mast": 0.01,
+                # inspection-site steel fittings (site_dressing.py) [assumption]; solid bars use radius / 2
+                # (same mass per metre as a tube of that wall); anodes count only their steel insert core
+                "transition_piece": 0.06, "j_tube": 0.015, "boat_landing": 0.012, "anode": 0.004,
+                "anode_strap": 0.0175, "shaft": 0.125, "bilge_keel": 0.01}
 # Steel per square metre of a box hull or wreck shell, tonnes [assumption: 15 mm plate plus framing].
-STEEL_SHELL_T_PER_M2 = {"hull": 0.24, "wreck": 0.24}
+STEEL_SHELL_T_PER_M2 = {"hull": 0.24, "wreck": 0.24, "rudder": 0.24}
 # Geometrics rule of thumb: 1 t of steel gives about 1 nT at 100 ft, cubic in distance [snippet].
 STEEL_REFERENCE_M = 30.48
 
@@ -242,7 +246,28 @@ def steel_points(ob) -> tuple[np.ndarray, np.ndarray]:
         return box_shell_points(ob, STEEL_SHELL_T_PER_M2[kind])
     if hasattr(ob, "F") and kind in STEEL_SHELL_T_PER_M2:
         return field_shell_points(ob, STEEL_SHELL_T_PER_M2[kind])
+    if hasattr(ob, "hp") and kind in STEEL_SHELL_T_PER_M2:
+        return hull_shell_points(ob, STEEL_SHELL_T_PER_M2[kind])
     return np.zeros((0, 3)), np.zeros(0)
+
+
+def hull_shell_points(ob, t_per_m2: float, spacing: float = 2.0):
+    """Plate cells of a parametric ship hull (world.ShipHull): both sides and the flat bottom."""
+    from .world import _half_breadth
+    hp = ob.hp
+    xs = np.arange(-hp["length"] / 2 + spacing / 2, hp["length"] / 2, spacing)
+    zs = np.arange(hp["top"] + spacing / 2, hp["draft"], spacing)
+    X, Z = np.meshgrid(xs, zs, indexing="ij")
+    hb, fwd = _half_breadth(X.ravel(), Z.ravel(), hp)
+    ok = (hb > 0) & (X.ravel() <= fwd)
+    side = [np.column_stack([X.ravel()[ok], s * hb[ok], Z.ravel()[ok]]) for s in (-1.0, 1.0)]
+    hb_bottom, _ = _half_breadth(xs, np.full(len(xs), hp["draft"]), hp)
+    bottom = []
+    for x, w in zip(xs, hb_bottom):
+        for y in np.arange(-w + spacing / 2, w, spacing):
+            bottom.append((x, y, hp["draft"]))
+    local = np.vstack(side + [np.asarray(bottom, float).reshape(-1, 3)])
+    return ob.world_point(local), np.full(len(local), spacing * spacing * t_per_m2)
 
 
 def box_shell_points(ob, t_per_m2: float, spacing: float = 2.0):

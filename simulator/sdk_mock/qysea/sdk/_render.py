@@ -83,6 +83,8 @@ class Scene:
                 c[2] = (top + bottom) / 2
                 half = np.array([thick / 2, float(ob.get("width", 60.0)) / 2, (bottom - top) / 2])
                 self.prims.append((kind, self._box(c, half, n_deg)))
+            elif t == "ship_hull":
+                self.prims.append((kind, self._ship_hull(ob)))
 
     @staticmethod
     def _capsule(a, b, r):
@@ -103,6 +105,37 @@ class Scene:
             q = np.abs((P - c) @ R) - h
             out = np.maximum(q, 0.0)
             return np.sqrt(np.einsum("ij,ij->i", out, out)) + np.minimum(q.max(axis=1), 0.0)
+        return f
+
+    @staticmethod
+    def _ship_hull(ob):
+        """Parametric hull; same proportions as qysim.world.ship_hull_params (PROTOCOL.md, ship_hull)."""
+        L, B, T = float(ob["length"]), float(ob["beam"]), float(ob["draft"])
+        top = float(ob.get("top", -max(2.0, 0.6 * T)))
+        rb, bow, stern, rake = min(0.12 * B, 0.3 * T), 0.32 * L, 0.30 * L, 0.04 * L
+        aperture, counter, fair = 0.075 * L, 0.3 * T, 0.6
+        c, R = np.asarray(ob["center"], float), yaw_matrix(float(ob.get("yaw_deg", 0)))
+
+        def aft_end(z):
+            t = np.clip((z - counter) / fair, 0.0, 1.0)
+            return -L / 2 + aperture * t * t * (3 - 2 * t)
+
+        def half_breadth(x, z):
+            fwd_end = L / 2 - rake * np.clip(z / T, 0.0, 1.0)
+            u_bow = np.clip((x - (L / 2 - bow)) / np.maximum(fwd_end - (L / 2 - bow), 1e-6), 0.0, 1.0)
+            u_aft = np.clip(((-L / 2 + stern) - x) / np.maximum((-L / 2 + stern) - aft_end(z), 1e-6), 0.0, 1.0)
+            s = np.clip(z - (T - rb), 0.0, rb)
+            bilge = rb - np.sqrt(np.maximum(rb * rb - s * s, 0.0))
+            return (1 - u_bow ** 2) * (1 - u_aft ** 2) * B / 2 - bilge, fwd_end
+
+        def f(P):
+            x, y, z = ((P - c) @ R).T
+            hb, fwd_end = half_breadth(x, z)
+            e = 0.05
+            hx = (half_breadth(x + e, z)[0] - half_breadth(x - e, z)[0]) / (2 * e)
+            hz = (half_breadth(x, z + e)[0] - half_breadth(x, z - e)[0]) / (2 * e)
+            side = (np.abs(y) - hb) / np.minimum(np.sqrt(1 + hx * hx + hz * hz), 6.0)
+            return np.maximum.reduce([side, z - T, top - z, x - fwd_end, aft_end(z) - x])
         return f
 
     def sdf(self, P: np.ndarray) -> np.ndarray:

@@ -1,4 +1,5 @@
 // Read-only forward proximity estimate against known world geometry in NED metres.
+import { shipHullDistance } from '../structure_sdf.js';
 function distance(p, ob) {
   if (ob.type === 'cylinder') {
     const ab = ob.p1.map((v, i) => v - ob.p0[i]);
@@ -20,6 +21,7 @@ function distance(p, ob) {
     if (Math.abs(-n * Math.sin(a) + e * Math.cos(a)) > ob.width / 2 || p[2] < ob.top) return Infinity;
     return Math.abs(n * Math.cos(a) + e * Math.sin(a));
   }
+  if (ob.type === 'ship_hull') return shipHullDistance(p, ob);
   return Infinity;
 }
 // Nearest return in the eight centre beams (about ±2° of the bow); null when nothing is inside the range.

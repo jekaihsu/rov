@@ -20,6 +20,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .site_dressing import APPURTENANCE_KINDS
 from .world import Cylinder, SnagFeature, Wall
 
 
@@ -190,7 +191,8 @@ def wrap_counts(world, x: np.ndarray, cand: list[int], node_touch: np.ndarray,
     out = {}
     for i in cand:
         ob = world.obstacles[i]
-        if ob.kind == "habitat" or isinstance(ob, Wall):
+        # fittings (anodes, J-tubes, scour rock...) are touched and snagged but do not report turns
+        if ob.kind == "habitat" or ob.kind in APPURTENANCE_KINDS or isinstance(ob, Wall):
             continue
         if isinstance(ob, SnagFeature):
             turns = _contact_turning(x, node_touch, node_obstacle, i)

@@ -333,11 +333,13 @@ field reports of 4–5 s lag and 5 s/20 s freezes; sources in
 
 ```text
 seabed_depth m
-obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast}
-          | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck}      (hx along heading yaw_deg)
-          | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall}               (vertical face; extends from `top` down to the seabed)
-          | {type:"snag", name, point [n,e,d], radius, height, kind: snag, item: rock|boulder|debris|rope} ]
+obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast|...}
+          | {type:"box", name, center [n,e,d], half [hx,hy,hz], yaw_deg, kind: hull|wreck|...}      (hx along heading yaw_deg)
+          | {type:"wall", name, point [n,e,d], normal_deg, width, top, kind: wall|quay}          (vertical face; extends from `top` down to the seabed)
+          | {type:"snag", name, point [n,e,d], radius, height, kind: snag, item: rock|boulder|debris|rope}
                                 (optional: small snaggable seabed item standing on `point`; clients that do not know the type may skip it)
+          | {type:"ship_hull", name, center [n,e,d], yaw_deg, length, beam, draft, top, kind: hull}   (optional, see below)
+          | {type:"model", ...} ]
 current {surface_kn, surface_dir, mid_kn, mid_dir, bottom_kn, bottom_dir, turbulence, tide?}
                       (turbulence = streamwise intensity σu/U; optional tide object only when the scenario
                       has one; see "Ocean current model" below)
@@ -349,6 +351,28 @@ catalogue [{key, name, brief}]  scenarios for a picker (includes "random")
 objectives [...]      same shape as in score.objectives
 thrusters [{name, pos [x,y,z] body FRD, axis [x,y,z]}]
 ```
+
+Structure details (optional, added with the dressed inspection sites). Clients that only know the three
+original shapes keep working: details are ordinary `cylinder`/`box` obstacles, and `kind` values they do not
+know can be drawn with a default colour.
+
+* Detail kinds on `cylinder`: `anode`, `anode_strap` (jacket legs), `transition_piece`, `boat_landing`, `j_tube`,
+  `cable_protection`, `scour_rock` (buried horizontal capsules forming the rock berm round a monopile),
+  `fender`, `bollard`, `toe_rock` (quays), `debris_pipe`, `bilge_keel`, `shaft`, `propeller` (ship hulls).
+  On `box`: `mudmat`, `ladder`, `tyre`, `debris_block`, `deck`, `rudder`. Wrap counts (`tether.wraps`) only
+  count primary members (`pile`, `monopile`, `jacket_leg`, `brace`, `mast`), not these fittings.
+* `wall` with `kind:"quay"` is a harbour quay (concrete face); other walls (e.g. the training pool) keep `wall`.
+* `ship_hull` replaces the old hull `box` in the hull scenarios: a flat-bottomed hull with round bilges, a bow
+  taper with raked stem and a counter stern over the propeller aperture. `center` is midships on the waterline,
+  `yaw_deg` the bow heading, `top` the deck (negative = above water). The exact proportions and the signed
+  distance are in `qysim/world.py` (`ship_hull_params`, `ship_hull_local_sdf`) and mirrored in
+  `viewer/structure_sdf.js`. The propeller, rudder and bilge keels are separate obstacles named
+  `<hull name> propeller ...`, `<hull name> rudder`, `<hull name> bilge keel ...`.
+* Seabed fittings taller than about 0.2 m (scour and toe rock, mud mats, tyres, blocks, pipes, cable protection)
+  carry the tether snag model's `snag_hold` on the host, like `snag` items and the Korean Castle wreck; they are
+  ordinary obstacles in the world message. Fittings that sit in the near-bed layer (scour and toe rock, cable
+  protection, seabed debris, mud mats) and small attachments (anode straps, propeller blades) make no wake in
+  the structure flow; a `ship_hull` gives the box-like lee shelter of its hull envelope.
 
 ### 4a. Sediment and turbidity (optional fields)
 

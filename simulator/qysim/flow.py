@@ -33,6 +33,10 @@ BED_ROUGHNESS_M = {"mud": 0.0002, "sand": 0.0004, "rippled_sand": 0.006, "gravel
 # Seabed type assumed for each habitat biome (assumption, not a survey).
 BIOME_BED = {"harbor": "mud", "seagrass": "rippled_sand", "reef": "rock", "temperate": "rippled_sand"}
 DEFAULT_Z0 = BED_ROUGHNESS_M["rippled_sand"]
+# Roughness length per site seabed type (silt.SEABED_TYPES, the same type the silt model and the viewer's seabed
+# use), metres. Assumptions after Soulsby (1990): fluff and mud 0.2 mm, silt 1 mm, sand taken as rippled 6 mm
+# (the previous default for every non-harbour site), gravel 10 mm, rock 30 mm.
+SEABED_Z0 = {"fluff": 0.0002, "mud": 0.0002, "silt": 0.001, "sand": 0.006, "gravel": 0.01, "rock": 0.03}
 STROUHAL = 0.2                       # high-Re circular cylinder (assumed constant)
 # Fluid acceleration fed to the inertia terms is clipped to this magnitude (m/s^2). Natural
 # currents and gusts stay far below it; it only guards instant host overrides.
@@ -334,10 +338,13 @@ class StructureFlow:
     use_compiled = True                  # numba loop when available; the NumPy path is the reference
 
     def __init__(self, obstacles: list):
-        from .world import Box, Cylinder, FieldMesh, Wall
+        from .site_dressing import NO_WAKE_KINDS
+        from .world import Box, Cylinder, FieldMesh, ShipHull, Wall
         # Habitat props and small snaggable seabed items (SnagFeature, kind "snag") are left out: the
-        # latter sit inside the near-bed log layer, whose roughness length already stands for them.
-        cyl = [o for o in obstacles if isinstance(o, Cylinder) and o.kind not in ("habitat", "snag")]
+        # latter sit inside the near-bed log layer, whose roughness length already stands for them. So are
+        # the inspection-site fittings that sit in that layer or are too small to shed a wake (NO_WAKE_KINDS).
+        skip = {"habitat", "snag"} | NO_WAKE_KINDS
+        cyl = [o for o in obstacles if isinstance(o, Cylinder) and o.kind not in skip]
         self.n_cyl = len(cyl)
         self.cyl_a = np.array([o.p0 for o in cyl], float).reshape(-1, 3)
         b = np.array([o.p1 for o in cyl], float).reshape(-1, 3)
@@ -348,9 +355,17 @@ class StructureFlow:
         self.cyl_phase = np.arange(self.n_cyl) * 2.399963          # decorrelate neighbouring wakes
         self.boxes = []
         for o in obstacles:
-            if isinstance(o, Box) and o.kind != "habitat":
+            if isinstance(o, Box) and o.kind not in skip:
                 self.boxes.append((o, np.asarray(o.center, float), np.asarray(o.half, float),
                                    math.radians(o.yaw_deg), True))
+            elif isinstance(o, ShipHull):
+                # the hull's bounding box below the waterline: lee shelter and front blocking like a box;
+                # not solid, since the box is larger than the hull at bow, stern and bilges
+                hp = o.hp
+                top = max(hp["top"], 0.0)
+                centre = o.world_point((0.0, 0.0, (top + hp["draft"]) / 2))
+                half = np.array([hp["length"] / 2, hp["beam"] / 2, (hp["draft"] - top) / 2])
+                self.boxes.append((o, centre, half, math.radians(o.yaw_deg), False))
             elif isinstance(o, FieldMesh):
                 centre_local = 0.5 * (o.lo + o.hi)
                 half = 0.5 * (o.hi - o.lo)

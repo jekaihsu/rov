@@ -2,6 +2,7 @@
 // and one camera pose per screen that the camera glides between. Owns the menu's WebGL renderer.
 import * as THREE from 'three';
 import { Environment } from '../environment.js';
+import { buildStructures } from '../structures.js';
 import { createVehicleModel } from '../vehicle_models.js';
 import { loadGLTF } from '../glb.js';
 import { applyVehicleSticker } from '../vehicle_stickers.js';
@@ -36,27 +37,6 @@ function disposeTree(group) {
     for (const material of materials) material?.dispose();
   });
   group.clear();
-}
-
-function structureMesh(obstacle) {
-  if (obstacle.type === 'cylinder') {
-    const a = P(obstacle.p0);
-    const b = P(obstacle.p1);
-    const geometry = new THREE.CylinderGeometry(obstacle.radius, obstacle.radius, a.distanceTo(b), 12);
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x647474, roughness: 0.9 }));
-    mesh.position.copy(a).lerp(b, 0.5);
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.sub(a).normalize());
-    return mesh;
-  }
-  if (obstacle.type === 'box') {
-    const half = obstacle.half;
-    const geometry = new THREE.BoxGeometry(half[1] * 2, half[2] * 2, half[0] * 2);
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x53686c }));
-    mesh.position.copy(P(obstacle.center));
-    mesh.rotation.y = -obstacle.yaw_deg * Math.PI / 180;
-    return mesh;
-  }
-  return null;
 }
 
 export function createStage(host, { quality = 'auto' } = {}) {
@@ -138,7 +118,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     for (const obstacle of world.obstacles || []) {
       if (obstacle.kind === 'habitat') continue;
       if (obstacle.type === 'cylinder') points.push(P(obstacle.p0).lerp(P(obstacle.p1), 0.5));
-      else if (obstacle.type === 'box') points.push(P(obstacle.center));
+      else if (obstacle.type === 'box' || obstacle.type === 'ship_hull') points.push(P(obstacle.center));
       else if (obstacle.type === 'model') points.push(P(obstacle.origin));
     }
     if (!points.length) {
@@ -182,8 +162,9 @@ export function createStage(host, { quality = 'auto' } = {}) {
     environment?.dispose();
     environment = new Environment(scene, world);
     disposeTree(structures);
+    // the same dressed structures as the dive (low tier), so the site cards and the background match the game
+    structures.add(buildStructures(world, { detail: 'low' }).group);
     for (const obstacle of world.obstacles || []) {
-      if (obstacle.kind === 'habitat') continue;
       if (obstacle.type === 'model') {
         loadGLTF(obstacle.model).then(function placeModel(gltf) {
           if (ticket !== sceneTicket) return;
@@ -192,10 +173,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
           gltf.scene.rotation.y = Math.atan2(-Math.cos(heading), -Math.sin(heading));
           structures.add(gltf.scene);
         }).catch(function ignoreMissingModel() {});
-        continue;
       }
-      const mesh = structureMesh(obstacle);
-      if (mesh) structures.add(mesh);
     }
     placeAnchor(world);
     placeSiteFocus(world);

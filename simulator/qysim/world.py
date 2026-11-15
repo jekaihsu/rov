@@ -22,7 +22,8 @@ from typing import ClassVar
 import numpy as np
 
 from ._flow_accel import turbulence as _compiled_turbulence
-from .flow import (BED_ROUGHNESS_M, BIOME_BED, COMPONENT_RATIOS, DEFAULT_Z0, StructureFlow, Tide, TurbulenceField,
+from .flow import (COMPONENT_RATIOS, DEFAULT_Z0, SEABED_Z0, StructureFlow, Tide,
+                   TurbulenceField,
                    bed_factor, bed_reference_height, cosine_ramp, rotate_xy, turbulence_length, turbulence_vectors)
 from .physics import KNOT, q_rot
 
@@ -159,6 +160,112 @@ class Wall:
                 "width": self.width, "top": self.top, "kind": self.kind}
 
 
+def ship_hull_params(length: float, beam: float, draft: float, top: float | None = None) -> dict:
+    """Derived proportions of the parametric ship hull, shared by ``ShipHull`` and its appendages.
+
+    The viewer (viewer/structure_sdf.js) builds its mesh from the same numbers, so changing a proportion here
+    must be mirrored there; tests/test_scene_consistency.py compares both.
+    """
+    return {
+        "length": float(length), "beam": float(beam), "draft": float(draft),
+        "top": float(-max(2.0, 0.6 * draft) if top is None else top),
+        "bilge": min(0.12 * beam, 0.3 * draft),       # bilge radius
+        "bow": 0.32 * length,                          # length of the bow taper
+        "stern": 0.30 * length,                        # length of the stern taper (counter)
+        "rake": 0.04 * length,                         # stem rake: the stem foot sits this far aft
+        "aperture": 0.075 * length,                    # propeller aperture under the counter
+        "counter": 0.3 * draft,                        # depth of the counter's underside
+        "fair": 0.6,                                   # m over which the stern closes in under the counter
+    }
+
+
+def ship_hull_local_sdf(L: np.ndarray, hp: dict) -> np.ndarray:
+    """Approximate signed distance (m) of local hull points (x forward, y starboard, z down from the waterline).
+
+    The hull is the intersection of a side surface |y| = hb(x, z) with the deck, the keel plane and its end
+    planes; the side distance is scaled by the surface slope. Below the counter the stern ends at the
+    propeller aperture instead of the transom (``_aft_end``), which opens the space for propeller and rudder.
+    """
+    x, y, z = L[:, 0], L[:, 1], L[:, 2]
+    hb, fwd_end = _half_breadth(x, z, hp)
+    e = 0.05
+    hx = (_half_breadth(x + e, z, hp)[0] - _half_breadth(x - e, z, hp)[0]) / (2 * e)
+    hz = (_half_breadth(x, z + e, hp)[0] - _half_breadth(x, z - e, hp)[0]) / (2 * e)
+    slope = np.minimum(np.sqrt(1 + hx * hx + hz * hz), 6.0)
+    side = (np.abs(y) - hb) / slope
+    return np.maximum.reduce([side, z - hp["draft"], hp["top"] - z, x - fwd_end, _aft_end(z, hp) - x])
+
+
+def _aft_end(z, hp):
+    """Local x of the stern: the transom above the counter, the propeller aperture below it."""
+    t = np.clip((z - hp["counter"]) / hp["fair"], 0.0, 1.0)
+    return -hp["length"] / 2 + hp["aperture"] * t * t * (3 - 2 * t)
+
+
+def _half_breadth(x, z, hp):
+    half = hp["length"] / 2
+    fwd_mid = half - hp["bow"]
+    aft_mid = -half + hp["stern"]
+    fwd_end = half - hp["rake"] * np.clip(z / hp["draft"], 0.0, 1.0)
+    u_bow = np.clip((x - fwd_mid) / np.maximum(fwd_end - fwd_mid, 1e-6), 0.0, 1.0)
+    u_aft = np.clip((aft_mid - x) / np.maximum(aft_mid - _aft_end(z, hp), 1e-6), 0.0, 1.0)
+    width = (1 - u_bow ** 2) * (1 - u_aft ** 2)
+    rb = hp["bilge"]
+    s = np.clip(z - (hp["draft"] - rb), 0.0, rb)
+    bilge = rb - np.sqrt(np.maximum(rb * rb - s * s, 0.0))
+    return width * hp["beam"] / 2 - bilge, fwd_end
+
+
+class ShipHull:
+    """Parametric displacement hull (flat bottom, round bilge, tapered bow and counter stern).
+
+    ``center`` is the NED point on the waterline at midships, ``yaw_deg`` the heading of the bow. Appendages
+    (bilge keels, propeller, rudder) are separate Cylinder/Box obstacles from ``site_dressing.ship_hull``.
+    """
+
+    def __init__(self, name: str, center: tuple, yaw_deg: float, length: float, beam: float, draft: float,
+                 top: float | None = None, kind: str = "hull"):
+        self.name, self.kind = name, kind
+        self.center = tuple(float(v) for v in center)
+        self.yaw_deg = float(yaw_deg)
+        self.hp = ship_hull_params(length, beam, draft, top)
+        a = math.radians(self.yaw_deg)
+        self.R = np.array([[math.cos(a), -math.sin(a), 0.0], [math.sin(a), math.cos(a), 0.0], [0.0, 0.0, 1.0]])
+
+    def to_local(self, X: np.ndarray) -> np.ndarray:
+        return (np.atleast_2d(X) - np.asarray(self.center, float)) @ self.R
+
+    def world_point(self, local) -> np.ndarray:
+        return np.asarray(local, float) @ self.R.T + np.asarray(self.center, float)
+
+    def sdf_many(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        L = self.to_local(X)
+        d = ship_hull_local_sdf(L, self.hp)
+        n_local = np.zeros((len(L), 3))
+        n_local[:, 2] = -1.0
+        near = d < 0.6
+        if np.any(near):
+            Ln, e = L[near], 0.02
+            grad = np.stack([ship_hull_local_sdf(Ln + off, self.hp) - ship_hull_local_sdf(Ln - off, self.hp)
+                             for off in (np.array([e, 0, 0]), np.array([0, e, 0]), np.array([0, 0, e]))], 1)
+            n_local[near] = grad / np.maximum(np.linalg.norm(grad, axis=1), 1e-9)[:, None]
+        return d, n_local @ self.R.T
+
+    def sdf(self, x: np.ndarray) -> tuple[float, np.ndarray]:
+        d, n = self.sdf_many(np.asarray(x, float)[None, :])
+        return float(d[0]), n[0]
+
+    def aabb(self) -> tuple[np.ndarray, np.ndarray]:
+        hp = self.hp
+        r = math.hypot(hp["length"] / 2, hp["beam"] / 2)
+        c = np.asarray(self.center, float)
+        return np.array([c[0] - r, c[1] - r, hp["top"]]), np.array([c[0] + r, c[1] + r, hp["draft"]])
+
+    def as_dict(self):
+        hp = self.hp
+        return {"type": "ship_hull", "name": self.name, "kind": self.kind, "center": list(self.center),
+                "yaw_deg": self.yaw_deg, "length": hp["length"], "beam": hp["beam"], "draft": hp["draft"],
+                "top": hp["top"]}
 class SnagFeature(Cylinder):
     """Small snaggable seabed item: a vertical capsule standing on the seabed at ``point``.
 
@@ -614,10 +721,10 @@ class World:
         return flow.apply(P, U, self.current.shedding_travel(P[:, 2], self.seabed_depth))
 
     def bed_roughness(self) -> float:
-        """Roughness length z0 (m): the profile's own value, else the biome's assumed bed type."""
+        """Roughness length z0 (m): the profile's own value, else the site's seabed type (the silt model's)."""
         if self.current.z0 is not None:
             return float(self.current.z0)
-        return BED_ROUGHNESS_M[BIOME_BED.get(self.biome, "rippled_sand")]
+        return SEABED_Z0.get(self.silt_field.seabed_type, DEFAULT_Z0)
 
     def current_at(self, point, t: float | None = None) -> np.ndarray:
         """Single-point ``current_at_many``."""

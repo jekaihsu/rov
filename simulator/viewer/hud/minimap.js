@@ -31,12 +31,14 @@ function drawObstacles(ctx, obstacles, point, scale, line) {
       ctx.arc(x, y, Math.max(2, (ob.radius || 0) * scale), 0, Math.PI * 2);
       ctx.stroke();
     }
-    if (ob.center && ob.half) {
+    // ship_hull: footprint from length and beam
+    const half = ob.half || (ob.type === 'ship_hull' ? [ob.length / 2, ob.beam / 2] : null);
+    if (ob.center && half) {
       const [x, y] = point(ob.center);
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate((ob.yaw_deg || 0) * Math.PI / 180);
-      ctx.strokeRect(-ob.half[1] * scale, -ob.half[0] * scale, ob.half[1] * 2 * scale, ob.half[0] * 2 * scale);
+      ctx.strokeRect(-half[1] * scale, -half[0] * scale, half[1] * 2 * scale, half[0] * 2 * scale);
       ctx.restore();
     }
     if (ob.type === 'wall') {
