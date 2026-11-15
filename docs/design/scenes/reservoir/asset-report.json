@@ -1,0 +1,43 @@
+{
+  "seed": 71,
+  "textureRGBAWithMipsMiB": 1.6666666666666667,
+  "textureScope": "one reservoir texture + four shared seabed textures; excludes shared vehicle and render targets",
+  "tiers": {
+    "low": {
+      "structure": 32928,
+      "landscape": 17462,
+      "aboveConservative": 49094,
+      "underwaterConservative": 9600
+    },
+    "medium": {
+      "structure": 53448,
+      "landscape": 46262,
+      "aboveConservative": 97550,
+      "underwaterConservative": 14568
+    },
+    "high": {
+      "structure": 53448,
+      "landscape": 46262,
+      "aboveConservative": 97550,
+      "underwaterConservative": 14568
+    }
+  },
+  "portable": {
+    "default": {
+      "bytes": 936076,
+      "extensions": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ]
+    },
+    "low": {
+      "bytes": 383984,
+      "extensions": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ]
+    }
+  }
+}

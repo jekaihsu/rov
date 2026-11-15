@@ -63,3 +63,10 @@ trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies mes
 沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
 GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
 固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
+
+## M2 Reservoir
+
+`reservoir/`、`cad/build_reservoir.py` 與 `viewer/reservoir.js`：本專案原創程式建模與程序貼圖，CC0-1.0。
+參考照片僅供目視構圖對照，未複製、裁切、投影或作為資產；無真實地名、標誌、人物或品牌。
+Blender (GPL，工具，授權不傳遞至輸出)、glTF Transform 4.5.1 (MIT)、meshoptimizer (MIT)、
+Pillow (HPND)、WebP (BSD) 為建置工具；未加入第三方模型或照片。

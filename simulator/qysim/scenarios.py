@@ -76,23 +76,30 @@ class Scenario:
     bnl_mg_l: float = 0.0               # extra suspended sediment at the bed, mg/L
     water: str = "salt"                  # "salt" or "fresh": pressure-to-depth density of the site
     enclosed: bool = False               # walled pool or tank: DVL beams reverberate off the walls
-    # Optical water type for the viewer's colour (oceanic / coastal / shelf / harbour / fresh_clear);
+    # Optical water type for the viewer's colour (oceanic / coastal / shelf / harbour / fresh_clear / fresh_green);
     # None: from the biome (water_type_for). Presentation only; it does not change physics or visibility_m.
     water_type: str | None = None
 
+    local_currents: list = field(default_factory=list)
+
     def summary(self) -> dict:
         from .aquaculture import layout
+        from .reservoir import CAMERAS, layout as reservoir_layout
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
                 "tether_length": self.tether_length, "biome": self.biome,
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
+                "local_currents": self.local_currents,
+                **({"camera_anchors": CAMERAS,
+                    "surface_dressing": [o.as_dict() for o in reservoir_layout() if o.aabb()[1][2] < 0]}
+                   if self.key == "reservoir_intake" else {}),
                 "water_type": water_type_for(self.biome, self.water_type, self.water),
                 **({"aquaculture": layout()[1]}
                    if self.key == "aquaculture_pen" else {})}
 
 
-WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear")
+WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear", "fresh_green")
 
 
 def water_type_for(biome: str, explicit: str | None = None, water: str = "salt") -> str:
@@ -530,7 +537,13 @@ def aquaculture_pen() -> Scenario:
                     Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
 
 
+def reservoir_intake() -> Scenario:
+    from .reservoir import scenario
+    return scenario()
+
+
 LIBRARY = {
+    "reservoir_intake": reservoir_intake,
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
     "incident_silt": incident_silt,

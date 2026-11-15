@@ -131,6 +131,7 @@ class Simulator:
         if shared_world is None:
             self.world.obstacles = list(sc.obstacles)
             self.world.current = sc.current
+            self.world.local_currents = sc.local_currents
             self.world.current.reseed(sc.seed or 0)
             clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
@@ -440,6 +441,8 @@ class Simulator:
         ensure_mission(self).photo(self)
         from .aquaculture import photo
         photo(self)
+        from .reservoir import photo as reservoir_photo
+        reservoir_photo(self)
         self._log("photo", f"拍照 {f['name']} @ {self.depth:.1f} m")
         return f
 

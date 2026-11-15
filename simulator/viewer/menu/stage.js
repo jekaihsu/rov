@@ -217,6 +217,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     state.sceneKey = entry.key;
     const ticket = ++sceneTicket;
     const world = entry.world;
+    siteCameras = world.scenario?.camera_anchors || null;
     environment?.dispose();
     environment = new Environment(scene, world, { detail: hero ? 'high' : 'medium' });
     disposeTree(structures);
@@ -247,7 +248,15 @@ export function createStage(host, { quality = 'auto' } = {}) {
     spinVelocity = value * 2.4;
     spin += spinVelocity * dt;
   }
+  let siteCameras = null;
   function poseTargets() {
+    if (siteCameras && (pose.site || siteCameras[poseName])) {
+      const view = siteCameras[poseName] || siteCameras.embankment_overlook;
+      targetEye.copy(P(view.eye));
+      targetLook.copy(P(view.target));
+      setSea([0xa6b7b4, 180, 900]);
+      return;
+    }
     const narrow = innerWidth < NARROW;
     const orbit = reduced ? 0 : elapsed * pose.orbit;
     const up = new THREE.Vector3(0, 1, 0);
