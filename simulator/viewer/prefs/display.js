@@ -53,16 +53,24 @@ export function normaliseDisplay(input = {}) {
 
 export function createDisplayPrefs({ storage = globalThis.localStorage } = {}) {
   let values;
+  // The language is stored only once the player picks one; until then the Steam or browser language
+  // decides (i18n/index.js). Saving the default with another preference would pin Traditional Chinese.
+  let languageChosen = false;
   try {
-    values = normaliseDisplay(JSON.parse(storage?.getItem(DISPLAY_KEY) || '{}'));
+    const stored = JSON.parse(storage?.getItem(DISPLAY_KEY) || '{}');
+    values = normaliseDisplay(stored);
+    languageChosen = values.language === stored?.language;
   } catch {
     values = normaliseDisplay();
   }
   const listeners = new Set();
   function set(id, value) {
     values = normaliseDisplay({ ...values, [id]: value });
+    if (id === 'language') languageChosen = true;
+    const saved = { ...values };
+    if (!languageChosen) delete saved.language;
     try {
-      storage?.setItem(DISPLAY_KEY, JSON.stringify(values));
+      storage?.setItem(DISPLAY_KEY, JSON.stringify(saved));
     } catch {
       // Storage may be unavailable; the choice still applies to this page.
     }
