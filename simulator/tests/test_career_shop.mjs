@@ -18,6 +18,19 @@ async function careerData() {
     equipmentFile: await json('equipment.json')});
 }
 
+test('every piece of equipment opens a deliverable or work order, and nothing boosts a stat', async () => {
+  const data = await careerData();
+  const used = new Set();
+  for (const contract of data.contracts) {
+    for (const id of contract.equipment || []) used.add(id);
+    for (const entry of contract.deliverables) if (entry.equipment) used.add(entry.equipment);
+  }
+  for (const item of data.items) {
+    assert.ok(item.kind === 'cosmetic' || used.has(item.id), `${item.id} opens nothing`);
+    assert.doesNotMatch(`${item.label}${item.use}${item.unlocks || ''}`, /推力|速度\s*\+|亮度|燈|%/, item.id);
+  }
+});
+
 test('buying needs the money and the licence, and is a one-off', async () => {
   const data = await careerData();
   const save = defaultSave();

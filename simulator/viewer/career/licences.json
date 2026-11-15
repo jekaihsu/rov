@@ -22,7 +22,7 @@
       "label": "二級駕駛員",
       "short": "二級",
       "realHours": 0.5,
-      "exam": null,
+      "exam": "c1_signoff_exam",
       "opens": "碼頭與船殼細部檢查、養殖場"
     },
     {
