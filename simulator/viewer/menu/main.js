@@ -2,6 +2,8 @@
 // the flow title → main menu → mode → hangar → dive site → briefing → launch (or the training, multiplayer
 // and settings branches). Every step is a full-screen layer; back is always available. Exposes window.__menu
 // for the browser checks and the desktop smoke test.
+// career/boot.js runs first: it restores settings an exam forced before any module reads the fidelity store.
+import '../career/boot.js';
 import { installCollectionPanel } from '../collection_panel.js';
 import { genericVehicle } from '../asset_config.js';
 import { vehicleDetail, vehicleName, vehicleTitle } from '../fleet_names.js';
@@ -25,6 +27,7 @@ import { SHOWCASE, createStage } from './stage.js';
 import { installDisplayPrefs } from '../prefs/display.js';
 import { installAudio } from '../audio/engine.js';
 import { installMusic } from '../audio/music.js';
+import { installCareerMenu } from '../career/menu.js';
 
 const STRINGS = {
   brand: 'ROV Solution',
@@ -55,7 +58,7 @@ const ROUTES = {
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
-const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training']);
+const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'board']);
 const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
@@ -384,6 +387,7 @@ const ctx = {
   },
 };
 
+const careerMenu = await installCareerMenu(ctx, screens);
 screens.title = buildTitle(ctx);
 screens.main = buildMain(ctx);
 screens.modes = buildModes(ctx);
@@ -393,6 +397,7 @@ screens.briefing = buildBriefing(ctx);
 screens.training = buildTraining(ctx);
 screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
+Object.assign(screens, careerMenu.buildScreens());
 for (const screen of Object.values(screens)) stack.append(screen.element);
 
 stage.setScene(sceneFor(SHOWCASE.scene) || sceneFor(choice.scenario) || data.sites[0], { showcase: true });
@@ -412,10 +417,17 @@ openRequestedScreen();
 navigator.setActive(true);
 navigator.start();
 
-// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link).
+// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link);
+// ?menu=board opens the YX contract board (the results screen's 下一張委託).
 function openRequestedScreen() {
   const query = new URLSearchParams(location.search);
-  if (query.get('menu') !== 'training') return;
+  const requested = query.get('menu');
+  if (requested === 'board') {
+    go('main');
+    ctx.openBoard(query.get('tab') || '');
+    return;
+  }
+  if (requested !== 'training') return;
   go('main');
   ctx.openTraining(query.get('tab') || 'story');
 }
@@ -438,6 +450,9 @@ window.__menu = {
   },
   get choice() {
     return { ...choice };
+  },
+  get career() {
+    return ctx.career?.save || null;
   },
   get stickerMeshes() {
     return stage.stickerMeshes;

@@ -1,0 +1,33 @@
+/* Career screens: YX 委託看板, contract detail, YX 裝備部, the main-menu career summary, the in-flight checklist
+   and the results career panel. Same visual language as menu.css (thin lines, translucent panels, accent cyan). */
+
+/* board */
+.career-board-head { display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap; }
+.career-strip { margin: 0; font-size: 13px; letter-spacing: .06em; color: var(--text-dim); }
+.career-card-kicker { font-size: 11px; letter-spacing: .14em; color: var(--accent); }
+.career-card[aria-disabled=true] { opacity: .6; }
+.career-card[aria-disabled=true] img { filter: grayscale(.8) brightness(.7); }
+.career-card[data-status=done] .menu-row-status { color: var(--go); }
+.career-backup { display: flex; gap: 12px; margin-top: 8px; }
+
+/* contract detail */
+.career-detail .menu-briefing-main { max-height: calc(100% - 24px); overflow: auto; }
+.career-detail-columns { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; }
+.career-checks { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; }
+.career-check { position: relative; padding-left: 20px; color: var(--text-dim); }
+.career-check::before { content: "✗"; position: absolute; left: 0; color: var(--warn); }
+.career-check[data-ok=true] { color: var(--text); }
+.career-check[data-ok=true]::before { content: "✓"; color: var(--go); }
+.career-medals { margin-top: 10px; }
+.career-actions { width: min(360px, 32vw); justify-items: stretch; padding: 16px; background: rgba(8, 18, 26, .62);
+  backdrop-filter: blur(6px); }
+.career-actions .menu-start { justify-content: center; letter-spacing: .16em; }
+.career-actions .menu-start:disabled { background: var(--line); color: var(--text-dim); box-shadow: none; transform: none; }
+.career-actions .menu-start[data-confirming=true] { background: var(--warn); }
+.career-actions .menu-next { margin: 0; }
+.career-exam { padding: 12px 14px; border-left: 2px solid var(--warn); background: rgba(8, 18, 26, .55);
+  font-size: 13px; line-height: 1.6; }
+.career-exam[hidden] { display: none; }
+.career-exam strong { color: var(--warn); letter-spacing: .12em; font-size: 12px; }
+.career-exam p { margin: 6px 0 0; color: var(--text-dim); }
+.career-exam .career-exam-grant { color: var(--text); }

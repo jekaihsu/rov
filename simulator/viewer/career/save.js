@@ -155,8 +155,11 @@ function normalizeActive(value) {
   return {
     id: text(value.id, 96),
     contract: text(value.contract, 64),
+    title: text(value.title, 120),
+    site: text(value.site, 64),
     startedAt: text(value.startedAt, 40),
     vehicle: text(value.vehicle, 32),
+    block: Math.max(1, Math.round(finite(value.block, 1))),
     exam: !!value.exam,
     real_s: Math.max(0, finite(value.real_s)),
     assisted_s: Math.max(0, finite(value.assisted_s)),

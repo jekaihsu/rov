@@ -1,0 +1,176 @@
+{
+  "note": "YX 委託看板的工單資料。座標為 NED（北、東、向下為正，公尺），與 qysim/scenarios.py 的場景一致。報酬與聲譽為遊戲數值。",
+  "clients": {
+    "yx": {"label": "YX 工作隊"},
+    "harbor": {"label": "港務"},
+    "shipping": {"label": "船東與船管"},
+    "marine_works": {"label": "海事工程"},
+    "aquaculture": {"label": "養殖業者"}
+  },
+  "jobs": {
+    "training": "公司內訓",
+    "checkout": "下水檢查潛",
+    "familiarization": "開放水域熟悉",
+    "gvi": "一般目視檢查（GVI）",
+    "marine_growth": "海生物量測（Level II）",
+    "fouling": "船殼附著評級",
+    "search": "搜尋與確認",
+    "cp": "陰極防蝕量測（CP）",
+    "ut": "超音波測厚（UT）",
+    "net": "網衣巡檢",
+    "recovery": "回收作業",
+    "mooring": "繫泊檢查"
+  },
+  "chapters": [
+    {
+      "id": "prologue",
+      "title": "序章 · 見習之前",
+      "summary": "公司水池與開放水域：把基本功練熟，拿下見習駕駛員執照。"
+    },
+    {
+      "id": "ch1",
+      "title": "第一章 · 港口與船舶",
+      "summary": "漁港碼頭、貨輪船殼與港內搜尋。章末交班複查是二級駕駛員考核。"
+    },
+    {
+      "id": "ch2",
+      "title": "第二章 · 養殖場",
+      "summary": "外海箱網：網衣、死魚與繫泊。需要二級駕駛員執照。",
+      "scenario": "aquaculture_pen"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "p0_induction",
+      "chapter": "prologue",
+      "order": 0,
+      "title": "新人內訓：水池操作課",
+      "client": "yx",
+      "clientName": "YX 訓練組",
+      "job": "training",
+      "scenario": "tutorial_pool",
+      "runtime": "chapter",
+      "campaignChapter": "prologue",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "licence": "none",
+      "pay": 1500,
+      "reputation": 5,
+      "optional": true,
+      "summary": "林督導帶你在公司水池走一遍：解鎖、移動、定深、照明、拍照。",
+      "brief": "人事說新人第一週要上完水池操作課才能領裝備。林督導會在無線電裡一步一步帶，照做就好；做錯不扣分，水池也不會跑掉。",
+      "radio": {
+        "speaker": "林督導",
+        "start": "水池課，不計時。先把手放在搖桿上，聽我說。",
+        "done": "可以，基本功在了。下午去把水池檢查潛的單子簽掉。"
+      },
+      "deliverables": []
+    },
+    {
+      "id": "p1_pool_checkout",
+      "chapter": "prologue",
+      "order": 10,
+      "title": "水池檢查潛",
+      "client": "yx",
+      "clientName": "YX 設備組",
+      "job": "checkout",
+      "scenario": "tutorial_pool",
+      "runtime": "deliverables",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "licence": "none",
+      "pay": 3000,
+      "reputation": 5,
+      "partial": 0.5,
+      "summary": "保養完的機子要下水檢查：解鎖、懸停、三面池壁各拍一張、回到投放點。",
+      "brief": "設備組剛換完推進器軸封，出貨前要一份下水檢查紀錄。照檢查表做：解鎖推進器，在池中央懸停 20 秒看有沒有漂，北、東、南三面池壁各拍一張帶疊字的照片，最後回到投放點等回收。照片要拍得到牆，不要拍到一片藍。",
+      "radio": {
+        "speaker": "設備組 阿哲",
+        "start": "軸封是新的，有異音就跟我說，不要硬開。",
+        "done": "紀錄收到。機子沒問題，你也沒問題。",
+        "partial": "拿到一半的紀錄，先簽部分。剩下的明天補。"
+      },
+      "deliverables": [
+        {"id": "unlock", "kind": "state", "label": "解鎖推進器", "condition": {"path": "locked", "op": "eq", "value": false}},
+        {"id": "hover", "kind": "station_keep", "label": "池中央懸停 20 秒（偏移 < 0.6 m）", "point": [0, 4, 3],
+          "radius": 0.6, "hold_s": 20},
+        {"id": "photo_north", "kind": "photo", "label": "北池壁照片", "point": [12, 0, 4], "standoff": [1, 9]},
+        {"id": "photo_east", "kind": "photo", "label": "東池壁照片", "point": [0, 12, 4], "standoff": [1, 9]},
+        {"id": "photo_south", "kind": "photo", "label": "南池壁照片", "point": [-12, 0, 4], "standoff": [1, 9]},
+        {"id": "depth_hold", "kind": "state", "label": "定深功能確認", "required": false,
+          "condition": {"path": "keep_depth", "op": "eq", "value": true}},
+        {"id": "recover", "kind": "surface", "label": "回投放點，準備回收", "point": [0, 0, 0.6], "radius": 2.5}
+      ]
+    },
+    {
+      "id": "p2_open_water",
+      "chapter": "prologue",
+      "order": 20,
+      "title": "開放水域熟悉（見習考核）",
+      "client": "yx",
+      "clientName": "YX 訓練組",
+      "job": "familiarization",
+      "scenario": "open_water",
+      "runtime": "deliverables",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "licence": "none",
+      "requires": ["p1_pool_checkout"],
+      "pay": 4000,
+      "reputation": 5,
+      "exam": {"grants": "trainee"},
+      "partial": 0.5,
+      "summary": "見習考核：四個檢查點、定深、鬆桿看漂移，再回投放點。全程真實模式。",
+      "brief": "這是見習駕駛員的考核潛。外面不是水池：有微弱洋流，推桿是推力不是速度，鬆桿以後機子會繼續漂。依序通過四個檢查點，途中開定深；在第二、三點之間停下來懸停 15 秒，感受一下漂移，再回到投放點。考核用真實設定，沒有定點輔助，也沒有外部視角。",
+      "radio": {
+        "speaker": "林督導",
+        "start": "考官是我，但我只看紀錄。慢慢來，流不大。",
+        "done": "通過。見習證下午去人事那邊拿，記得帶照片。",
+        "partial": "這樣不能發證。沒關係，休息一下，明天再考一次。"
+      },
+      "deliverables": [
+        {"id": "unlock", "kind": "state", "label": "解鎖推進器", "condition": {"path": "locked", "op": "eq", "value": false}},
+        {"id": "cp1", "kind": "checkpoint", "label": "檢查點 1", "point": [10, 0, 6], "radius": 1.5},
+        {"id": "depth_hold", "kind": "state", "label": "開啟定深", "condition": {"path": "keep_depth", "op": "eq", "value": true}},
+        {"id": "cp2", "kind": "checkpoint", "label": "檢查點 2", "point": [10, 10, 10], "radius": 1.5},
+        {"id": "drift", "kind": "station_keep", "label": "懸停 15 秒，觀察漂移", "point": [5, 10, 12], "radius": 1.2,
+          "hold_s": 15},
+        {"id": "cp3", "kind": "checkpoint", "label": "檢查點 3", "point": [0, 10, 14], "radius": 1.5},
+        {"id": "cp4", "kind": "checkpoint", "label": "檢查點 4", "point": [0, 0, 8], "radius": 1.5},
+        {"id": "recover", "kind": "surface", "label": "回投放點上浮", "point": [-2, 0, 0.5], "radius": 3}
+      ]
+    },
+    {
+      "id": "c1_pier_level1",
+      "chapter": "ch1",
+      "order": 10,
+      "title": "碼頭外的第一張工單",
+      "client": "harbor",
+      "clientName": "北堤漁港管理處",
+      "job": "gvi",
+      "scenario": "harbor_inspection",
+      "runtime": "deliverables",
+      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "licence": "trainee",
+      "pay": 8000,
+      "reputation": 10,
+      "partial": 0.5,
+      "summary": "Level I 巡視：棧橋六根樁各拍一張樁身照，纜線不要繞樁。",
+      "brief": "管理處要在颱風季前做一次 Level I 巡視，只要覆蓋、不要量測。棧橋下 A、B 兩列共六根樁，每根在水深約 6 m 拍一張樁身照，看得到樁就算。橫流偏東，繞樁前先想好怎麼退，回收時纜線不能纏在樁上。碼頭壁面有空就順手拍一張，管理處會很感激（但不會多付錢）。",
+      "radio": {
+        "speaker": "林督導",
+        "start": "第一張外面的單子。阿禾在甲板看線，你專心看樁。",
+        "done": "管理處說照片很清楚。他們以前收過一整卷只拍到泥巴的。",
+        "partial": "先交這些。剩下的樁我跟管理處說改天補。"
+      },
+      "deliverables": [
+        {"id": "pile_a1", "kind": "photo", "label": "A 列 1 號樁", "point": [21, -10, 6], "standoff": [1, 4.5]},
+        {"id": "pile_a2", "kind": "photo", "label": "A 列 2 號樁", "point": [27, -10, 6], "standoff": [1, 4.5]},
+        {"id": "pile_a3", "kind": "photo", "label": "A 列 3 號樁", "point": [33, -10, 6], "standoff": [1, 4.5]},
+        {"id": "pile_b1", "kind": "photo", "label": "B 列 1 號樁", "point": [21, 10, 6], "standoff": [1, 4.5]},
+        {"id": "pile_b2", "kind": "photo", "label": "B 列 2 號樁", "point": [27, 10, 6], "standoff": [1, 4.5]},
+        {"id": "pile_b3", "kind": "photo", "label": "B 列 3 號樁", "point": [33, 10, 6], "standoff": [1, 4.5]},
+        {"id": "quay", "kind": "photo", "label": "碼頭壁面概況（加分）", "required": false, "point": [42, 0, 8],
+          "standoff": [1.5, 5]},
+        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
+      ]
+    }
+  ]
+}
