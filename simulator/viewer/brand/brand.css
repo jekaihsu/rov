@@ -92,12 +92,11 @@ t='240' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* ── hangar and briefing ──────────────────────────────────────────────────────────────────────────────────── */
-/* Sits on the first line of the vehicle title, which may wrap to two. */
+/* Sits at the start of the line above the vehicle name. */
 .menu-vehicle-title .brand-fleet-symbol-title {
-  align-self: flex-start;
   width: 54px;
   height: 54px;
-  margin: 8px 2px 0 0;
+  margin: 0 2px 0 0;
   color: var(--brand-ice);
 }
 .menu-chip.brand-chip {

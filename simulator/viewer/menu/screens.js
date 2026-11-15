@@ -311,6 +311,7 @@ export function buildHangar(ctx) {
   root.classList.add('bp-screen');
   const hero = createHero({ titleTag: 'h3' });
   hero.title.classList.add('menu-vehicle-name');
+  hero.kicker.classList.add('menu-vehicle-title');
   const role = element('span', '');
   const marker = element('span', 'menu-provisional', STRINGS.provisional);
   marker.title = STRINGS.provisionalHelp;
