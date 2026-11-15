@@ -3,12 +3,11 @@
 > **警告：Cursor Cloud／SwiftShader，非實體 GPU。不可作 Steam 預設依據。**
 > 重跑：`ROV_CHROMIUM=… ROV_BROWSER_GL=gpu python tools/browser_gpu_bench.py --full --machine <代號> --duration 30 --desktop`
 
-- 量測時間（台北時間）：2026-11-15 10:46（Asia/Taipei）；UTC 2026-11-15T02:46:26Z
-- 取樣 4 s（軟體算圖縮短；GPU 機請用 30 s）
-
-- 量測時間（UTC）：2026-11-15T02:46:26Z
+- 量測時間：2026-11-15 10:46（Asia/Taipei）；UTC 2026-11-15T02:46:26Z
 - GL 模式：`software`（實際 WebGL：ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)）
-- 取樣：穩定 4.0 s 的 rAF 間隔；`?nointro`；固定機位或重負載回放
+- 取樣：穩定 4.0 s 的 rAF 間隔（軟體算圖縮短；GPU 機請用 30 s）；`?nointro`；
+  各情境 seed=1 起始姿態（只切換機載／追蹤相機）或重負載回放
+- `wreck_survey` 各列量於 G7 沉船模型合併之前（舊方塊船體）
 - 視埠：1280×720，deviceScaleFactor=1
 
 ## 機器規格
@@ -220,4 +219,7 @@
 1. 在至少一台整合式 GPU 與一台獨顯上以 `--full --duration 30 --desktop` 重跑，取代本檔數字。
 2. 依 GPU 數字決定 Steam 預設畫質、Deck 預設，以及 `render_quality.js` auto 起始層。
 3. 對 mean > 16.7 ms 的光學檔用 Spector.js 標出 pass 成本（曝光、背景、粒子、結構）。
-4. 第三人稱 draw calls 在軟體算圖下常 >500（遠距把整場畫進去）；GPU 上需確認是否要為訓練視角加距離剔除。
+4. 第三人稱比機載多出的成本幾乎全是載具模型本身：各情境、各畫質第三人稱減去機載都是 +464～473 draw calls、
+   +486k～488k 三角形（例如 open_water performance：36 → 504、31,458 → 518,397），正好等於 X1 `rov.glb`
+   的 468 draw calls／486k 三角形（見 `docs/design/vehicle/README.md`）；機載視角不畫自己的機體。
+   這不是場景遠距剔除的問題。後續應為 X1 第三人稱模型做 LOD 或合併材質（渲染程式不在本 PR 修改）。

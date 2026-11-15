@@ -43,20 +43,12 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_ROOT = ROOT / 'output' / 'gpu-bench'
 TOOLS = Path(__file__).resolve().parent
 
-# Same sites as browser_scene_review; fixed poses keep the sample reproducible.
-SITES = {
-    'jacket_inspection': {'third': ((4, -17, 7), (20, 0, 15)), 'onboard': ((26.6, 6.6, 6), (25.1, 5.1, 6.3))},
-    'monopile_current': {'third': ((-2, -14, 5), (15, 0, 16)), 'onboard': ((10.5, 0, 12), (15, 0, 12.4))},
-    'tether_untangle': {'third': ((-4, -9, 6), (8, 0, 14)), 'onboard': ((8, 2.8, 10), (8, 0, 10.3))},
-    'hull_inspection': {'third': ((2, -22, 13), (40, 0, 6)), 'onboard': ((18, 0, 9.5), (30, 0, 7.5))},
-    'wreck_survey': {'third': ((8, -12, 20), (25, 5, 27)), 'onboard': ((41.4, 16.5, 26), (30, 9, 27))},
-    'korean_castle': {'third': ((-6, -20, 14), (20, -40, 26)), 'onboard': ((13.2, -24.5, 26), (17.6, -24.5, 26))},
-    'harbor_inspection': {'third': ((14, -18, 6), (36, 0, 12)), 'onboard': ((39, 0, 10), (42, 0, 10.3))},
-    'tutorial_pool': {'third': ((-9, -9, 2), (8, 6, 7)), 'onboard': ((6, 0, 4), (12, 0, 5))},
-    'coral_reef': {'third': ((2, -18, 6), (18, -6, 13)), 'onboard': ((16, -12, 9), (22, -10, 12.5))},
-    'seagrass_meadow': {'third': ((0, -14, 3), (16, -6, 8.5)), 'onboard': ((14, -9, 6), (20, -8, 8.5))},
-    'open_water': {'third': ((-6, -10, 6), (14, 4, 22)), 'onboard': ((10, 0, 6), (16, 2, 12))},
-}
+# Same sites as browser_scene_review. Each page starts at the scenario's seed=1 start pose and only switches the
+# camera mode (onboard / chase); free-camera poses would fight camera_rig every frame.
+SITES = (
+    'jacket_inspection', 'monopile_current', 'tether_untangle', 'hull_inspection', 'wreck_survey',
+    'korean_castle', 'harbor_inspection', 'tutorial_pool', 'coral_reef', 'seagrass_meadow', 'open_water',
+)
 TIERS = ('performance', 'medium', 'high', 'ultra')
 VIEWS = ('onboard', 'third')
 HEAVY = (
@@ -320,7 +312,8 @@ def write_markdown(report, path):
     if software or report.get('host', {}).get('gl_mode_requested') != 'gpu':
         lines += [
             '> **警告：本輪 WebGL 為軟體算圖或未開 `ROV_BROWSER_GL=gpu`。數字不可作為 Steam 預設／最低需求。**',
-            '> 實體 GPU：`ROV_CHROMIUM=… ROV_BROWSER_GL=gpu python tools/browser_gpu_bench.py --full --machine <代號> --duration 30 --desktop`',
+            '> 實體 GPU：`ROV_CHROMIUM=… ROV_BROWSER_GL=gpu python tools/browser_gpu_bench.py '
+            '--full --machine <代號> --duration 30 --desktop`',
             '',
         ]
     lines += [
