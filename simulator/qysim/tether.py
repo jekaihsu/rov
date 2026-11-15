@@ -27,7 +27,7 @@ from dataclasses import dataclass, fields
 import numpy as np
 
 from . import tether_contact, tether_solver
-from ._cable_accel import (advance as _advance_compiled, advance_batch as _advance_batch,
+from ._cable_accel import (advance as _advance_compiled, advance_batch_resume as _advance_batch,
                            contact_valid as _valid_compiled, contact_velocity as _contact_compiled,
                            integrate as _integrate_compiled, project as _project_compiled)
 from .physics import G, RHO, cross3, q_conj, q_rot
@@ -187,6 +187,7 @@ class Tether:
         self._heading = None
         self._seg_tension = np.zeros(count)
         self.last_batch_complete = False
+        self.last_batch_refreshes = 0
         self._stepped = False
         self._laid_out = False
         self._contacts = None
@@ -495,22 +496,33 @@ class Tether:
     def _run_batch(self, contacts, water, water_accel, ms, ma, lw, gland, gland_vel, h, reel, pin_seg, pin_s,
                    pin_target, pin_k, pin_c, pin_cap, pin_force, tension):
         p = self.p
-        saved = (self.x.copy(), self.v.copy(), self.l0.copy(), reel.copy(), self.chafe.copy())
         f_rov = np.zeros(3)
         peaks = np.zeros(2)
+        pin_peak = np.zeros(len(pin_seg))
         ea, damping, diameter, cdn, cdt, wet, rho, cap = self._solver_scalars()
         radius, mu_s, mu_k, v_s, v_reg = self._friction()
-        c = contacts
-        ok = _advance_batch(self.x, self.v, water, water_accel, self.l0, ms, ma, lw, self.spool, gland, gland_vel,
-                            self.broken, h, ea, damping, diameter, cdn, cdt, wet, rho, cap, reel,
-                            pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension,
-                            p.substeps, c.seg, c.s, c.anchor, c.dist0, c.normal, c.hard, p.contact_cache_m,
-                            radius, mu_s, mu_k, v_s, v_reg, self.chafe, f_rov, peaks)
-        if not ok:
-            self.x, self.v, self.l0 = saved[0], saved[1], saved[2]
-            reel[:] = saved[3]
-            self.chafe = saved[4]
-        return ok, f_rov, peaks, contacts
+        start = 0
+        self.last_batch_refreshes = 0
+        while start < p.substeps:
+            c = contacts
+            pending = _advance_batch(
+                self.x, self.v, water, water_accel, self.l0, ms, ma, lw, self.spool, gland, gland_vel,
+                self.broken, h, ea, damping, diameter, cdn, cdt, wet, rho, cap, reel,
+                pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension,
+                p.substeps, c.seg, c.s, c.anchor, c.dist0, c.normal, c.hard, p.contact_cache_m,
+                radius, mu_s, mu_k, v_s, v_reg, self.chafe, f_rov, peaks, start, pin_peak)
+            if pending == p.substeps:
+                break
+            self.last_batch_refreshes += 1
+            contacts = self._build_contacts()
+            c = contacts
+            _contact_compiled(self.x, self.v, ms, ma, self.broken, h, c.seg, c.s, c.anchor, c.dist0,
+                              c.normal, c.hard, radius, mu_s, mu_k, v_s, v_reg, self.chafe)
+            _integrate_compiled(self.x, self.v, h, self.broken)
+            _project_compiled(self.x, self.broken, c.seg, c.s, c.anchor, c.dist0, c.normal, radius)
+            start = pending + 1
+        pin_force[:] = pin_peak
+        return True, f_rov, peaks, contacts
 
     def _run_loop(self, contacts, water, water_accel, ms, ma, lw, gland, gland_vel, h, reel, pin_seg, pin_s,
                   pin_target, pin_k, pin_c, pin_cap, pin_force, tension):
