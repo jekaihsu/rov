@@ -39,6 +39,9 @@ export const STRINGS = {
   objective_done: '任務目標完成',
   penalty: '考核扣分',
   missing: '—',
+  colTime: '時間',
+  colKind: '事件',
+  colDetail: '說明',
 };
 
 export const SEEK_LEAD_S = 5;

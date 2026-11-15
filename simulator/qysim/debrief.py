@@ -56,6 +56,9 @@ STRINGS = {
     'objective_done': '任務目標完成',
     'penalty': '考核扣分',
     'missing': '—',
+    'colTime': '時間',
+    'colKind': '事件',
+    'colDetail': '說明',
 }
 
 
@@ -343,7 +346,7 @@ img{{max-width:100%;height:auto;display:block}}
 </section>
 <h2>{escape(s['events'])}</h2>
 <table>
-<thead><tr><th>t</th><th>kind</th><th>detail</th></tr></thead>
+<thead><tr><th>{escape(s['colTime'])}</th><th>{escape(s['colKind'])}</th><th>{escape(s['colDetail'])}</th></tr></thead>
 <tbody>
 {''.join(rows) or f"<tr><td colspan='3'>{escape(s['missing'])}</td></tr>"}
 </tbody>
