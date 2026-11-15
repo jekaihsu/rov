@@ -33,6 +33,8 @@ const STRINGS = {
   moreScenarios: '其他場景訓練',
   moreDrills: '其他事故演練',
   nextContract: '接下一項委託',
+  nextWorkOrder: '下一張委託',
+  retryWorkOrder: '重接此委託',
   keepExploring: '繼續探索',
   debrief: '講評回放',
   menu: '返回主選單',
@@ -82,7 +84,10 @@ function buildMedal() {
 
 // send, getState, getWorld, getSession: app.js accessors. onContracts(): open the in-flight contract board.
 // onVisible(open): the card was shown or hidden (app.js switches the music to the results context).
-export function installResults({ send, getState, getWorld, getSession, onContracts, onVisible, readOnly = false }) {
+// career: optional career/dive.js runtime; it turns a story-chapter outcome of a work order into a career outcome
+// (decorate) and restarts a work order (retry). Career outcomes (kind 'career') also come straight from it.
+export function installResults({ send, getState, getWorld, getSession, onContracts, onVisible, readOnly = false,
+  career = null }) {
   const watcher = createOutcomeWatcher();
   const log = createFlightLog({ getWorld });
   const root = element('section', 'results-screen');
@@ -143,7 +148,8 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     send({ type: 'operation', action, ...extra });
   }
   function retry() {
-    if (outcome.kind === 'chapter' || outcome.kind === 'drill') command('campaign_start', { chapter: outcome.id });
+    if (outcome.kind === 'career') career?.retry();
+    else if (outcome.kind === 'chapter' || outcome.kind === 'drill') command('campaign_start', { chapter: outcome.id });
     else {
       send({ type: 'reset' });
       if (outcome.kind === 'coop') command('mission_mode', { mode: 'inspection_coop' });
@@ -182,7 +188,12 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     actions.replaceChildren();
     const lead = host();
     const kind = outcome.kind;
-    if (kind === 'chapter' && outcome.next) {
+    if (kind === 'career') {
+      button('resultsNext', STRINGS.nextWorkOrder, function nextWorkOrder() {
+        location.assign(menuUrl(location.href, 'board'));
+      }, { primary: true });
+      button('resultsRetry', STRINGS.retryWorkOrder, retry, { disabled: !lead });
+    } else if (kind === 'chapter' && outcome.next) {
       const text = STRINGS.nextChapter.replace('{title}', outcome.next.title);
       button('resultsNext', text, nextChapter, { primary: true, disabled: !lead });
     } else if (kind === 'contract') {
@@ -192,7 +203,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
       }, { primary: true });
       button('resultsClose', STRINGS.keepExploring, hide);
     }
-    if (kind !== 'contract') {
+    if (kind !== 'contract' && kind !== 'career') {
       const retryText = kind === 'chapter' || kind === 'drill' ? STRINGS.retryChapter : STRINGS.retry;
       const primary = !actions.querySelector('.results-primary');
       button('resultsRetry', retryText, retry, { primary, disabled: !lead });
@@ -233,7 +244,8 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     root.dataset.kind = outcome.kind;
     root.dataset.success = String(outcome.success);
     kicker.textContent = [kindLabel(outcome.kind), formatTime(outcome.elapsed)].join(' · ');
-    if (outcome.kind === 'contract') heading.textContent = STRINGS.contractDone;
+    if (outcome.heading) heading.textContent = outcome.heading;
+    else if (outcome.kind === 'contract') heading.textContent = STRINGS.contractDone;
     else heading.textContent = outcome.success ? STRINGS.success : STRINGS.failure;
     title.textContent = outcome.title;
     reason.textContent = outcome.reason;
@@ -265,7 +277,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     if (readOnly) return;
     log.update(state);
     const ended = watcher.observe(state, getWorld());
-    if (ended) show(ended);
+    if (ended) show(career ? career.decorate(ended) : ended);
   }
   loadControllerDatabase().then(function ready(database) {
     navigator = createMenuNavigator({

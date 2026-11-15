@@ -31,3 +31,17 @@
 .career-exam strong { color: var(--warn); letter-spacing: .12em; font-size: 12px; }
 .career-exam p { margin: 6px 0 0; color: var(--text-dim); }
 .career-exam .career-exam-grant { color: var(--text); }
+
+/* in-flight checklist (objective card) */
+.objective-career[hidden] { display: none; }
+.career-radio { margin: 0 0 8px; padding-left: 8px; border-left: 2px solid var(--accent); font-size: 12px;
+  line-height: 1.5; color: var(--text); }
+.career-radio[hidden] { display: none; }
+.career-radio strong { display: block; font-size: 10px; letter-spacing: .14em; color: var(--accent); font-weight: 400; }
+.career-steps li small { font-size: 11px; color: var(--text-dim); }
+.career-steps li[data-complete=true] small { color: var(--go); }
+.career-steps li[data-optional=true] { opacity: .8; }
+.career-status { margin: 0 0 6px; font-size: 11px; color: var(--text-dim); }
+.career-status:empty { display: none; }
+.career-status[data-warn=true] { color: var(--warn); }
+.career-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
