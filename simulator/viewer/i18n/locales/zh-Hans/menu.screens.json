@@ -1,0 +1,131 @@
+{
+  "title": "ROV Solution",
+  "company": "YX",
+  "tagline": "YX 水下工程 · ROV 操作员",
+  "pressStart": "开始",
+  "version": "开发版 0.3",
+  "entries": {
+    "dive": [
+      "开始潜航",
+      "选择玩法、载具与海域，从水面下潜。"
+    ],
+    "story": [
+      "剧情与教学",
+      "加入 YX 工作队：从水池练习开始，接下港湾与船壳巡检。"
+    ],
+    "contracts": [
+      "工程委托",
+      "接 YX 派发的巡检、回收与部署委托；下水后在右上任务卡接案。"
+    ],
+    "training": [
+      "训练情境",
+      "事故演练与依难度排列的场景训练。"
+    ],
+    "multiplayer": [
+      "多人",
+      "创建或加入房间，最多三人共用同一片海域。"
+    ],
+    "collection": [
+      "图鉴与收藏",
+      "照片、生物图鉴与工程纪录。"
+    ],
+    "settings": [
+      "设置",
+      "拟真程度、控制、音频、画质与界面。"
+    ]
+  },
+  "quick": "快速开始",
+  "quickNone": "完成一次下水后，可一键沿用上次设置。",
+  "modesTitle": "选择玩法",
+  "modes": {
+    "expedition": [
+      "海洋探索与工程",
+      "探索海域、拍摄生物与自由接案；回收与部署需要机械臂。",
+      "1–3 人"
+    ],
+    "free_explore": [
+      "自由探索",
+      "不计时、不扣分，练习操控、机械臂与标记。",
+      "1–3 人"
+    ],
+    "inspection_coop": [
+      "协作巡检",
+      "分工靠近三个站点，稳定悬停后拍照，12 分钟内完成。",
+      "1–3 人"
+    ],
+    "scenario_training": [
+      "场景训练",
+      "照各场景原本的训练目标、时限与评分进行。",
+      "1 人起"
+    ]
+  },
+  "hangarTitle": "载具",
+  "provisional": "暂定",
+  "provisionalHelp": "此机型参数尚未实测，数值为暂定估算，待实测补齐。",
+  "estimated": "工程估算",
+  "numbers": {
+    "mass": "质量",
+    "thrusters": "推进器",
+    "speed": "前进极速",
+    "arm": "机械臂"
+  },
+  "units": {
+    "mass": "kg",
+    "thrusters": "具",
+    "speed": "kn"
+  },
+  "armYes": "有",
+  "armNo": "无",
+  "bars": {
+    "speed": "速度",
+    "thrust": "总推力",
+    "yaw": "转向",
+    "axes": "可控自由度"
+  },
+  "sticker": "机身贴纸",
+  "next": "下一步",
+  "sitesTitle": "潜航海域",
+  "sitesMore": "共 {n} 处海域 · 左右移动浏览",
+  "depth": "海床",
+  "visibility": "能见度",
+  "current": "最大洋流",
+  "notForMode": "此玩法不提供这片海域",
+  "briefingTitle": "下水演示文稿",
+  "briefingNumbers": {
+    "depth": "海床深度",
+    "visibility": "能见度",
+    "current": "最大洋流",
+    "tether": "缆长",
+    "time": "时限"
+  },
+  "units2": {
+    "kn": "kn",
+    "min": "分"
+  },
+  "objectives": "任务目标",
+  "noObjectives": "自由航行，没有指定目标。",
+  "goalsTitle": "玩法",
+  "modeGoals": {
+    "free_explore": [
+      "自由航行：不计时、不扣分。",
+      "练习操控、机械臂与标记，随时可以返回主菜单。"
+    ],
+    "expedition": [
+      "探索海域、拍摄生物登录图鉴。",
+      "下水后可在任务卡接取巡检、回收或部署委托。"
+    ],
+    "inspection_coop": [
+      "分工靠近三个巡检站点（下水后标出）。",
+      "在站点低速稳定 3 秒后拍照。"
+    ]
+  },
+  "hostNote": "加入既有房间时，以房主的场景与玩法为准。",
+  "room": "房间",
+  "intro": "下水动画",
+  "procedure": "潜前检查与下水流程",
+  "procedureOff": "关闭时直接从水中开始，略过潜前检查（拟真设置「下水流程」为完整作业时）。",
+  "introOff": "关闭时直接从水中开始。",
+  "launch": "下水",
+  "chapter": "章节",
+  "campaign": "剧情与教学"
+}

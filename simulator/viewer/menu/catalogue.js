@@ -1,7 +1,9 @@
 // Launch-menu data: dive sites, vehicles, story chapters, incident drills and training scenarios.
 // Pure functions over the exported scene_previews.json and menu_catalogue.json (tools/build_menu_previews.py),
 // so the menu can show everything before it opens any connection. No DOM and no three.js here.
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.catalogue', {
   activities: {
     photo: '生態攝影',
     inspect: '結構巡檢',
@@ -13,7 +15,7 @@ const STRINGS = {
     expedition: '探索接案',
   },
   difficulty: ['入門', '進階', '困難'],
-};
+});
 
 const KNOT = 0.514444;
 // Engineering sites with an expedition contract set (qysim/expedition.py work areas).

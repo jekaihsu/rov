@@ -1,0 +1,71 @@
+{
+  "kicker": "暫停",
+  "title": "潛航暫停",
+  "resume": "繼續",
+  "restart": "重新開始",
+  "restartConfirm": "再按一次確認重新開始",
+  "restartHost": "只有房主可以重新開始。",
+  "objective": "目前目標",
+  "contracts": "工程委託",
+  "accept": "接取：{label}",
+  "settings": "設定",
+  "home": "返回主選單",
+  "solo": "單人潛航：模擬已暫停。繼續後請先回中、再解鎖。",
+  "shared": "多人房間：模擬持續進行，你的操控已回中；其他人照常駕駛。",
+  "replay": "回放中：關閉選單即可繼續。",
+  "tabs": {
+    "fidelity": "擬真設定",
+    "controls": "控制",
+    "audio": "音訊",
+    "quality": "畫質",
+    "display": "顯示",
+    "interface": "介面"
+  },
+  "controller": "開啟手把設定（死區、曲線、綁定）",
+  "quality": {
+    "auto": [
+      "自動",
+      "目標 60 FPS"
+    ],
+    "performance": [
+      "流暢",
+      "降低解析度"
+    ],
+    "medium": [
+      "標準",
+      "原生解析度"
+    ],
+    "high": [
+      "高",
+      "細節優先"
+    ]
+  },
+  "interface": {
+    "optFog": [
+      "真實能見度",
+      "關閉後水體較清澈，超出真機影像。"
+    ],
+    "optFlow": [
+      "洋流粒子",
+      "水中懸浮粒子隨洋流移動。"
+    ],
+    "optLabels": [
+      "場景標籤",
+      "在結構物旁顯示名稱。"
+    ],
+    "optSticks": [
+      "畫面搖桿",
+      "只在觸控裝置上顯示。"
+    ],
+    "optPip": [
+      "操作員小視窗",
+      "在畫面角落顯示岸上操作員。"
+    ]
+  },
+  "prompts": {
+    "move": "移動",
+    "accept": "確認",
+    "back": "返回",
+    "tabs": "分頁"
+  }
+}

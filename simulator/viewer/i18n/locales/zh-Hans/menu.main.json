@@ -1,0 +1,36 @@
+{
+  "brand": "ROV Solution",
+  "loading": {
+    "data": "读取海域与载具数据…",
+    "scene": "创建水下场景…",
+    "model": "加载载具模型…",
+    "ready": "准备完成",
+    "failed": "开场数据加载失败，请刷新。"
+  },
+  "modelFailed": "模型加载失败，请重新选择机型。",
+  "launching": "正在下水…",
+  "steps": {
+    "modes": "玩法",
+    "training": "课程",
+    "multiplayer": "房间",
+    "hangar": "载具",
+    "sites": "海域",
+    "briefing": "演示文稿"
+  },
+  "prompts": {
+    "move": "移动",
+    "accept": "确认",
+    "back": "返回",
+    "tabs": "选项卡",
+    "rotate": "旋转",
+    "start": "开始",
+    "close": "关闭"
+  },
+  "modes": {
+    "campaign": "剧情与教学",
+    "expedition": "海洋探索与工程",
+    "free_explore": "自由探索",
+    "inspection_coop": "协作巡检",
+    "scenario_training": "场景训练"
+  }
+}

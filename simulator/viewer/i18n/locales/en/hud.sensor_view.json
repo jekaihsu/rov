@@ -1,0 +1,4 @@
+{
+  "truthTelemetry": "Simulation ground-truth instruments",
+  "truthTelemetryHelp": "Show information unavailable on real vehicles: actual current, water-relative speed, flat-bottom altitude and true heading/depth. When off, show sensor estimates only."
+}

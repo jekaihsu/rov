@@ -1,0 +1,36 @@
+{
+  "brand": "ROV Solution",
+  "loading": {
+    "data": "海域と機体データを読込中…",
+    "scene": "水中シーンを構築中…",
+    "model": "機体モデルを読込中…",
+    "ready": "準備完了",
+    "failed": "開始データを読み込めません。再読み込みしてください。"
+  },
+  "modelFailed": "モデルを読み込めません。機体を選び直してください。",
+  "launching": "着水中…",
+  "steps": {
+    "modes": "モード",
+    "training": "コース",
+    "multiplayer": "ルーム",
+    "hangar": "機体",
+    "sites": "海域",
+    "briefing": "ブリーフィング"
+  },
+  "prompts": {
+    "move": "移動",
+    "accept": "決定",
+    "back": "戻る",
+    "tabs": "タブ",
+    "rotate": "回転",
+    "start": "開始",
+    "close": "閉じる"
+  },
+  "modes": {
+    "campaign": "ストーリーとチュートリアル",
+    "expedition": "海洋探索と水中作業",
+    "free_explore": "自由探索",
+    "inspection_coop": "協力点検",
+    "scenario_training": "シナリオ訓練"
+  }
+}

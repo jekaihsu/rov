@@ -1,0 +1,33 @@
+{
+  "label": "機体システム",
+  "link": {
+    "healthy": "通信 正常",
+    "degraded": "通信 品質低下",
+    "lost": "通信 断絶"
+  },
+  "quality": "品質",
+  "reconnecting": "再接続中",
+  "videoLag": "映像遅延",
+  "videoFrozen": "映像停止",
+  "failsafe": {
+    "disarm": "通信断保護：ディスアーム",
+    "depth_hold": "通信断保護：深度保持",
+    "surface": "通信断保護：浮上"
+  },
+  "failsafeIn": "通信断保護まで",
+  "rearm": "再アームが必要",
+  "power": "電力",
+  "powerLimited": "電力制限中",
+  "tripped": "電源遮断",
+  "cutoff": "バッテリー切れ：モーターと照明を遮断",
+  "temperature": "温度",
+  "warnings": {
+    "dry_run": "モーターの空転時間超過",
+    "motor_hot": "モーター過熱",
+    "electronics_hot": "電子機器容器の過熱"
+  },
+  "leak": "浸水警報",
+  "seconds": "s",
+  "watts": "W",
+  "volts": "V"
+}

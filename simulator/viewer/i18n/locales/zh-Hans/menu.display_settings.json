@@ -1,0 +1,47 @@
+{
+  "language": "语言",
+  "languageHelp": "语言切换后，尚未更新的画面会在返回主菜单后生效。",
+  "window": "显示模式",
+  "modes": {
+    "windowed": "窗口",
+    "borderless": "无边框窗口",
+    "fullscreen": "全屏幕"
+  },
+  "resolution": "分辨率",
+  "apply": "套用显示设置",
+  "applied": "已套用。",
+  "failed": "无法套用：{reason}",
+  "browserFullscreen": [
+    "全屏幕",
+    "浏览器版以浏览器的全屏幕显示；分辨率跟随屏幕。"
+  ],
+  "brightness": "亮度",
+  "brightnessHelp": "只调整水下画面，不影响仪表文本。",
+  "uiScale": "界面与文本缩放",
+  "fpsCap": "帧率上限",
+  "fps": {
+    "0": "不限制",
+    "30": "30 FPS",
+    "60": "60 FPS",
+    "120": "120 FPS"
+  },
+  "colorBlind": "色盲辅助（警示颜色）",
+  "colorBlindModes": {
+    "off": "关闭",
+    "deuteranopia": "绿色弱（Deuteranopia）",
+    "protanopia": "红色弱（Protanopia）",
+    "tritanopia": "蓝色弱（Tritanopia）"
+  },
+  "units": "单位",
+  "unitModes": {
+    "metric": "公制（m）",
+    "imperial": "英制（ft）"
+  },
+  "unitsHelp": "套用于游戏 HUD 与菜单；机载 OSD 照真机维持公制。",
+  "fov": "外部视角视野（FOV）",
+  "fovHelp": "追踪、环绕、俯视视角；机载镜头维持真实镜头。",
+  "comfort": [
+    "动态舒适",
+    "关闭追踪视角随速度拉远与视野放大，并减少界面动画。"
+  ]
+}

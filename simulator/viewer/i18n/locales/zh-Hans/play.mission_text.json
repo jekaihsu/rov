@@ -1,0 +1,12 @@
+{
+  "failed": "失败：{reason}",
+  "finished": "任务完成",
+  "progress": "目标 {done}/{total} · 扣分 {penalty}",
+  "free": "自由探索 · 不计时、不扣分",
+  "expedition": "海洋探索 · 自由航行，可接工程委托",
+  "contract": "委托：{label}",
+  "waiting": "尚未开始",
+  "next": "下一步：{label}",
+  "offers": "可在任务卡或下方接取工程委托。",
+  "chapter": "{title}"
+}

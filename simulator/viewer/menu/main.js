@@ -26,7 +26,9 @@ import { installDisplayPrefs } from '../prefs/display.js';
 import { installAudio } from '../audio/engine.js';
 import { installMusic } from '../audio/music.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.main', {
   brand: 'ROV Solution',
   loading: {
     data: '讀取海域與載具資料…',
@@ -46,7 +48,7 @@ const STRINGS = {
     inspection_coop: '協作巡檢',
     scenario_training: '場景訓練',
   },
-};
+});
 const ROUTES = {
   dive: ['modes', 'hangar', 'sites', 'briefing'],
   join: ['multiplayer', 'hangar', 'briefing'],

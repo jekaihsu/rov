@@ -7,7 +7,9 @@ import { normaliseServer, validRoom } from './preferences.js';
 import { vehicleName } from '../fleet_names.js';
 import { field, mountToggles } from './settings.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.multiplayer', {
   title: '多人',
   name: '操作員名稱',
   room: '房間代碼',
@@ -28,7 +30,7 @@ const STRINGS = {
   unsupported: '此伺服器不提供房間查詢；仍可直接加入。',
   offline: '目前找不到這個房間的主機；仍可建立新房間或直接加入。',
   createHint: '建立後把房間代碼告訴隊友。',
-};
+});
 const QUERY_TIMEOUT_MS = 10000;
 
 function element(tag, className, text) {

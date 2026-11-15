@@ -8,7 +8,9 @@ import { briefingTimeLimit } from '../play/mission_text.js';
 import { lengthIn, lengthUnit } from '../prefs/display.js';
 import { introForLaunch } from './preferences.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.screens', {
   title: 'ROV Solution',
   // The player works for YX, which also issues the in-game licences (docs/design/game-plan.md §9).
   company: 'YX',
@@ -70,7 +72,7 @@ const STRINGS = {
   launch: '下水',
   chapter: '章節',
   campaign: '劇情與教學',
-};
+});
 
 function element(tag, className, text) {
   const node = document.createElement(tag);

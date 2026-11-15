@@ -1,0 +1,17 @@
+{
+  "activities": {
+    "photo": "生態撮影",
+    "inspect": "構造物点検",
+    "station": "潮流下の定点保持",
+    "tether": "テザー絡まり解除",
+    "route": "航路チェックポイント",
+    "free": "自由探索",
+    "coop": "協力点検",
+    "expedition": "探索と受注"
+  },
+  "difficulty": [
+    "初級",
+    "上級",
+    "高難度"
+  ]
+}

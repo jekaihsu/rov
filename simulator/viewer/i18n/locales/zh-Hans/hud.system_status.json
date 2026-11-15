@@ -1,0 +1,33 @@
+{
+  "label": "载具系统",
+  "link": {
+    "healthy": "链路 正常",
+    "degraded": "链路 劣化",
+    "lost": "链路 中断"
+  },
+  "quality": "品质",
+  "reconnecting": "重新连接中",
+  "videoLag": "影像延迟",
+  "videoFrozen": "影像冻结",
+  "failsafe": {
+    "disarm": "失联保护：已上锁",
+    "depth_hold": "失联保护：定深",
+    "surface": "失联保护：上浮"
+  },
+  "failsafeIn": "失联保护倒数",
+  "rearm": "需重新解锁",
+  "power": "功率",
+  "powerLimited": "功率受限",
+  "tripped": "电源跳脱",
+  "cutoff": "电池耗尽，马达与灯光已切断",
+  "temperature": "温度",
+  "warnings": {
+    "dry_run": "马达离水运转过久",
+    "motor_hot": "马达过热",
+    "electronics_hot": "电子舱过热"
+  },
+  "leak": "漏水警报",
+  "seconds": "s",
+  "watts": "W",
+  "volts": "V"
+}

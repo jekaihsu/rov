@@ -15,7 +15,9 @@ import {
   recordResult,
 } from './results_model.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.results', {
   success: '任務完成',
   failure: '任務失敗',
   contractDone: '委託完成',
@@ -40,7 +42,7 @@ const STRINGS = {
   hostOnly: '只有房主可以重試或開始下一章。',
   noReplay: '這次潛航沒有可回放的航段。',
   prompts: { move: '移動', accept: '確認', back: '關閉' },
-};
+});
 
 let open = false;
 

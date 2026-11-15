@@ -5,7 +5,9 @@
 // scenario scores stay the server's, and nothing here is a training standard.
 import { vehicleName, vehicleRole } from '../fleet_names.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.results_model', {
   rows: {
     objectives: '任務目標',
     time: '時間',
@@ -44,7 +46,7 @@ const STRINGS = {
   stickers: { dive: '潛水旗' },
   vehicles: { falcon: `${vehicleName('falcon')}（${vehicleRole('falcon')}）` },
   unknownReward: '獎勵：{id}',
-};
+});
 
 // Medal thresholds as data (score 0–100). A failed run never earns a medal.
 export const MEDALS = [

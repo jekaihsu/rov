@@ -1,0 +1,12 @@
+{
+  "guide": "首次潛航練習",
+  "guideDone": "基本操作完成，開始探索吧！",
+  "hideGuide": "不再顯示練習",
+  "contracts": "工程委託",
+  "accept": "接取",
+  "cancel": "取消委託",
+  "active": "進行中",
+  "collapse": "收合",
+  "expand": "展開",
+  "meters": "{d} m"
+}

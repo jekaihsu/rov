@@ -1,0 +1,11 @@
+{
+  "move": "移動",
+  "stickNames": {
+    "a0": "L",
+    "a1": "L",
+    "a2": "R",
+    "a3": "R"
+  },
+  "keyboardMove": "↑↓←→",
+  "padMove": "✛"
+}

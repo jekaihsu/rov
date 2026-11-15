@@ -2,7 +2,9 @@
 // Self-contained: the HUD mounts it with one call per frame. Reads optional state fields only; an older
 // server without `link`/`power`/`thermal`/`leak` shows nothing. Never sends vehicle controls.
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('hud.system_status', {
   label: '載具系統',
   link: {healthy: '鏈路 正常', degraded: '鏈路 劣化', lost: '鏈路 中斷'},
   quality: '品質',
@@ -22,7 +24,7 @@ const STRINGS = {
   seconds: 's',
   watts: 'W',
   volts: 'V',
-};
+});
 // The pills stack under the lock state and mode chips in the top-right status column (.hud.tl), so a taller lock
 // line (locked + unlock hint) pushes them down instead of printing over them. Without that column they float.
 const STYLE = `

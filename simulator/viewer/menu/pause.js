@@ -18,7 +18,9 @@ import {
   mountToggles,
 } from './settings.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.pause', {
   kicker: '暫停',
   title: '潛航暫停',
   resume: '繼續',
@@ -51,7 +53,7 @@ const STRINGS = {
     optPip: ['操作員小視窗', '在畫面角落顯示岸上操作員。'],
   },
   prompts: { move: '移動', accept: '確認', back: '返回', tabs: '分頁' },
-};
+});
 
 let open = false;
 

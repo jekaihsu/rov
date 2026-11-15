@@ -1,0 +1,49 @@
+{
+  "rows": {
+    "objectives": "任務目標",
+    "time": "時間",
+    "tether": "纜線管理",
+    "contacts": "碰撞與接觸",
+    "procedure": "作業程序",
+    "other": "其他扣分"
+  },
+  "kinds": {
+    "scenario": "場景訓練",
+    "coop": "協作巡檢",
+    "chapter": "劇情",
+    "drill": "事故演練",
+    "contract": "工程委託"
+  },
+  "times": "{n} 次",
+  "noContacts": "無碰撞",
+  "tetherBroken": "纜線斷裂",
+  "tetherClean": "張力正常",
+  "overload": "過載 {n} 次",
+  "contract": "委託完成",
+  "medals": {
+    "gold": "金牌",
+    "silver": "銀牌",
+    "bronze": "銅牌",
+    "none": "無獎章"
+  },
+  "rewards": {
+    "first_dive": "首次下潛徽章",
+    "harbor_badge": "港灣巡檢徽章",
+    "hull_badge": "船殼巡檢徽章",
+    "harbor_signoff_badge": "交班複查徽章",
+    "offshore_badge": "離岸作業徽章",
+    "reef_badge": "礁區作業徽章",
+    "wreck_badge": "沉船調查徽章",
+    "ending_open_question": "結局：留下未解的問題",
+    "ending_evidence_complete": "結局：證據齊全"
+  },
+  "unlockSticker": "機身貼紙解鎖：{name}",
+  "unlockVehicle": "作業載具解鎖：{name}",
+  "stickers": {
+    "dive": "潛水旗"
+  },
+  "vehicles": {
+    "falcon": "YX Model V（輕作業型）"
+  },
+  "unknownReward": "獎勵：{id}"
+}

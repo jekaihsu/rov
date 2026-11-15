@@ -1,6 +1,7 @@
 """Shared browser launch and server address helpers for the smoke scripts in this directory.
 
 Environment variables (all optional):
+  ROV_BROWSER_LOCALE        browser test locale (default zh-TW, matching existing Chinese assertions)
   ROV_CHROMIUM              absolute path of the Chromium/Chrome executable to use
   ROV_HOST                  simulator host, default 127.0.0.1
   ROV_HTTP_PORT             simulator HTTP port, overrides each script's own default
@@ -91,8 +92,23 @@ def launch(playwright, **kwargs):
 
 def _start(playwright, path, kwargs):
     if path is None:
-        return playwright.chromium.launch(**kwargs)
-    return playwright.chromium.launch(executable_path=path, **kwargs)
+        browser = playwright.chromium.launch(**kwargs)
+    else:
+        browser = playwright.chromium.launch(executable_path=path, **kwargs)
+    original_page = browser.new_page
+    original_context = browser.new_context
+
+    def new_page(**options):
+        options.setdefault('locale', os.environ.get('ROV_BROWSER_LOCALE', 'zh-TW'))
+        return original_page(**options)
+
+    def new_context(**options):
+        options.setdefault('locale', os.environ.get('ROV_BROWSER_LOCALE', 'zh-TW'))
+        return original_context(**options)
+
+    browser.new_page = new_page
+    browser.new_context = new_context
+    return browser
 
 
 def host():

@@ -1,0 +1,49 @@
+{
+  "rows": {
+    "objectives": "任務目標",
+    "time": "時間",
+    "tether": "テザー管理",
+    "contacts": "衝突・接触",
+    "procedure": "作業手順",
+    "other": "その他の減点"
+  },
+  "kinds": {
+    "scenario": "シナリオ訓練",
+    "coop": "協力点検",
+    "chapter": "ストーリー",
+    "drill": "事故対応訓練",
+    "contract": "水中作業の依頼"
+  },
+  "times": "{n} 回",
+  "noContacts": "衝突なし",
+  "tetherBroken": "テザー破断",
+  "tetherClean": "張力正常",
+  "overload": "過負荷 {n} 回",
+  "contract": "依頼完了",
+  "medals": {
+    "gold": "金",
+    "silver": "銀",
+    "bronze": "銅",
+    "none": "メダルなし"
+  },
+  "rewards": {
+    "first_dive": "初潜航バッジ",
+    "harbor_badge": "港湾点検バッジ",
+    "hull_badge": "船体点検バッジ",
+    "harbor_signoff_badge": "交代引継ぎ点検バッジ",
+    "offshore_badge": "洋上作業バッジ",
+    "reef_badge": "サンゴ礁作業バッジ",
+    "wreck_badge": "沈船調査バッジ",
+    "ending_open_question": "結末：残された疑問",
+    "ending_evidence_complete": "結末：証拠完備"
+  },
+  "unlockSticker": "機体ステッカー解放：{name}",
+  "unlockVehicle": "作業機体解放：{name}",
+  "stickers": {
+    "dive": "潜水旗"
+  },
+  "vehicles": {
+    "falcon": "YX Model V（軽作業級）"
+  },
+  "unknownReward": "報酬：{id}"
+}

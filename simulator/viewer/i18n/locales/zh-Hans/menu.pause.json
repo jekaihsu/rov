@@ -1,0 +1,71 @@
+{
+  "kicker": "暂停",
+  "title": "潜航暂停",
+  "resume": "继续",
+  "restart": "重新开始",
+  "restartConfirm": "再按一次确认重新开始",
+  "restartHost": "只有房主可以重新开始。",
+  "objective": "目前目标",
+  "contracts": "工程委托",
+  "accept": "接取：{label}",
+  "settings": "设置",
+  "home": "返回主菜单",
+  "solo": "单人潜航：仿真已暂停。继续后请先回中、再解锁。",
+  "shared": "多人房间：仿真持续进行，你的操控已回中；其他人照常驾驶。",
+  "replay": "回放中：关闭菜单即可继续。",
+  "tabs": {
+    "fidelity": "拟真设置",
+    "controls": "控制",
+    "audio": "音频",
+    "quality": "画质",
+    "display": "显示",
+    "interface": "界面"
+  },
+  "controller": "打开手柄设置（死区、曲线、绑定）",
+  "quality": {
+    "auto": [
+      "自动",
+      "目标 60 FPS"
+    ],
+    "performance": [
+      "流畅",
+      "降低分辨率"
+    ],
+    "medium": [
+      "标准",
+      "原生分辨率"
+    ],
+    "high": [
+      "高",
+      "细节优先"
+    ]
+  },
+  "interface": {
+    "optFog": [
+      "真实能见度",
+      "关闭后水体较清澈，超出真机影像。"
+    ],
+    "optFlow": [
+      "洋流粒子",
+      "水中悬浮粒子随洋流移动。"
+    ],
+    "optLabels": [
+      "场景标签",
+      "在结构物旁显示名称。"
+    ],
+    "optSticks": [
+      "画面摇杆",
+      "只在触摸设备上显示。"
+    ],
+    "optPip": [
+      "操作员小窗口",
+      "在画面角落显示岸上操作员。"
+    ]
+  },
+  "prompts": {
+    "move": "移动",
+    "accept": "确认",
+    "back": "返回",
+    "tabs": "选项卡"
+  }
+}

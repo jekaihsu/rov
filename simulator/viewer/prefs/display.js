@@ -5,9 +5,18 @@
 // fidelity items instead (prefs/camera_items.js) because the camera rig reads the fidelity store.
 // The instrument OSD keeps metric units: it mirrors the real vehicle's overlay.
 
+const STRINGS = {
+  languages: { 'zh-Hant': '繁體中文', en: 'English', 'zh-Hans': '简体中文', ja: '日本語' },
+};
+
 export const DISPLAY_KEY = 'rov.display.v1';
 // Languages offered in settings. T09 adds entries here and the string tables behind them.
-export const LANGUAGES = [{ value: 'zh-Hant', label: '繁體中文', htmlLang: 'zh-Hant' }];
+export const LANGUAGES = [
+  { value: 'zh-Hant', label: STRINGS.languages['zh-Hant'], htmlLang: 'zh-Hant' },
+  { value: 'en', label: STRINGS.languages['en'], htmlLang: 'en' },
+  { value: 'zh-Hans', label: STRINGS.languages['zh-Hans'], htmlLang: 'zh-Hans' },
+  { value: 'ja', label: STRINGS.languages['ja'], htmlLang: 'ja' },
+];
 export const DISPLAY_DEFAULTS = Object.freeze({
   language: 'zh-Hant',
   brightness: 1,
@@ -57,7 +66,7 @@ export function createDisplayPrefs({ storage = globalThis.localStorage } = {}) {
     } catch {
       // Storage may be unavailable; the choice still applies to this page.
     }
-    for (const listener of listeners) listener(values);
+    for (const listener of listeners) listener(values, id);
   }
   return {
     get(id) {
@@ -111,7 +120,7 @@ export function createFrameGate(getCap = function cap() {
   };
 }
 
-function apply(values, root) {
+function apply(values, root, changed) {
   const language = LANGUAGES.find(function byValue(entry) {
     return entry.value === values.language;
   });
@@ -120,15 +129,15 @@ function apply(values, root) {
   root.style.setProperty('--rov-ui-scale', String(values.uiScale));
   root.dataset.colorBlind = values.colorBlind;
   root.dataset.units = values.units;
-  document.dispatchEvent(new CustomEvent('rov-display-change', { detail: values }));
+  document.dispatchEvent(new CustomEvent('rov-display-change', { detail: { ...values, changed } }));
 }
 
 // Applies the stored preferences to the page now and whenever they change.
 export function installDisplayPrefs(root = document.documentElement) {
   const prefs = getDisplayPrefs();
   apply(prefs.values, root);
-  prefs.subscribe(function changed(values) {
-    apply(values, root);
+  prefs.subscribe(function changed(values, id) {
+    apply(values, root, id);
   });
   return prefs;
 }

@@ -1,0 +1,12 @@
+{
+  "failed": "失敗：{reason}",
+  "finished": "任務完了",
+  "progress": "目標 {done}/{total} · 減点 {penalty}",
+  "free": "自由探索 · 時間制限・減点なし",
+  "expedition": "海洋探索 · 自由航行、水中作業を受注可能",
+  "contract": "依頼：{label}",
+  "waiting": "未開始",
+  "next": "次：{label}",
+  "offers": "任務カードまたは下部から水中作業を受注できます。",
+  "chapter": "{title}"
+}
