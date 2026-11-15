@@ -187,6 +187,7 @@ class Tether:
         self._heading = None
         self._seg_tension = np.zeros(count)
         self.last_batch_complete = False
+        self.last_batch_refreshes = 0
         self._stepped = False
         self._laid_out = False
         self._contacts = None
