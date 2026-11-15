@@ -21,7 +21,7 @@ NAV = "QYRovNavigationManage"
 def scrub(value):
     """Drop wall-clock timestamps, which differ between two calls by design."""
     if isinstance(value, dict):
-        return {k: scrub(v) for k, v in value.items() if k not in ("timestamp", "time")}
+        return {k: scrub(v) for k, v in value.items() if k not in ("timestamp", "time", "stamp")}
     if isinstance(value, list):
         return [scrub(v) for v in value]
     return value

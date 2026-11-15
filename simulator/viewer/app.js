@@ -3,6 +3,7 @@ import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
 import { updateTetherOperations } from './tether/operations.js';
 import { tensionColor, warnLoad, gaugePercent } from './tether/tension.js';
+import { cableTensionColor } from './tether/snag_focus.js';
 import { installProcedure } from './procedure/index.js';
 import { createSonar } from './sonar/panel.js';
 import { hidesTargets } from './sonar/scenario.js';
@@ -324,14 +325,12 @@ function updateTether(t) {
   const nodes = t.nodes || [];
   const n = Math.min(nodes.length, MAXN);
   const pts = []; for (let i = 0; i < n; i++) pts.push(P(nodes[i]));
-  const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  const warnN = warnLoad(t);
-  const Tat = (s) => { const T = ts + (tr - ts) * s; return t.warn ? Math.max(T, warnN) : T; };
-  // polyline (always visible)
+  // polyline (always visible); colour via tether/snag_focus (assisted snag hotspot optional)
   const lp = tetherLine.geometry.attributes.position.array, lc = tetherLine.geometry.attributes.color.array;
   for (let i = 0; i < n; i++) {
     lp[i * 3] = pts[i].x; lp[i * 3 + 1] = pts[i].y; lp[i * 3 + 2] = pts[i].z;
-    tensionColor(Tat(i / Math.max(1, n - 1)), _c, warnN); lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
+    cableTensionColor(t, i / Math.max(1, n - 1), pts, _c);
+    lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
   }
   tetherLine.geometry.setDrawRange(0, n);
   tetherLine.geometry.attributes.position.needsUpdate = true; tetherLine.geometry.attributes.color.needsUpdate = true;
@@ -938,7 +937,7 @@ function updateUI() {
   setHTML('events', ev.length ? ev.map((e) => `<li><span class="t">${fmtT(e.t)}</span><span class="sev ${esc(e.severity)}">${SEV[e.severity] || esc(e.severity)}</span><span class="x">${esc(e.obstacle)} · ${(+e.speed || 0).toFixed(2)} m/s${e.where ? ' · ' + esc(e.where) : ''}</span></li>`).join('') : '<li class="hint">無碰撞紀錄</li>');
   const dm = (s.damage || []).slice().reverse();
   setHTML('damage', dm.map((d) => `<li><span class="t">${fmtT(d.t)}</span><span class="sev severe">損傷</span><span class="x">${esc(typeof d.thruster === 'number' ? thrLabel(W?.thrusters?.[d.thruster]?.name ?? 'T' + (d.thruster + 1)) : thrLabel(d.thruster))} 健康 ${Math.round((d.health ?? 0) * 100)}%</span></li>`).join(''));
-  setHTML('log', (s.log || []).slice().reverse().map((l) => `<li><span class="t">${fmtT(l.t)}</span><span class="x">${esc(l.text)}</span></li>`).join(''));
+  setHTML('log', (s.log || []).slice().reverse().map((l) => `<li><span class="t">${esc(l.stamp || fmtT(l.t))}</span><span class="x">${esc(l.text)}</span></li>`).join(''));
 
   // training
   const sc = s.score || {}, lim = W?.scenario?.time_limit_s;
@@ -1002,9 +1001,7 @@ function renderTether(dt) {
   for (let i = 0; i < n; i++) { lp[i * 3] = tetherDisp[i].x; lp[i * 3 + 1] = tetherDisp[i].y; lp[i * 3 + 2] = tetherDisp[i].z; }
   tetherLine.geometry.attributes.position.needsUpdate = true;
   if (t.broken) { cable.hide(); return; }
-  const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  const warnN = warnLoad(t);
-  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, warnN) : T, out, warnN); });
+  cable.update(tetherDisp, (s, out) => cableTensionColor(t, s, tetherDisp, out));
 }
 
 /* ═════════════════════════ deploy intro + pilot PiP ═════════════════════════ */

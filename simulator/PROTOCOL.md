@@ -214,7 +214,8 @@ tether {nodes [[n,e,d]...], length, max_length, tension_rov, tension_spool, tens
         snags [{name, point [n,e,d], held bool, since s, hold_n, tension_n}]   hooked snag points,
         chafe 0..1       worst segment chafe work / provisional limit,
         working_load_n, gland_working_load_n   rated working loads behind `warn`,
-        break_reason     null | "gland" | "cable" | "chafe"}
+        break_reason     null | "gland" | "cable" | "chafe",
+        events [{t, type, ...}]   optional: last 32 solver events (see below); absent on older hosts}
 ```
 
 Tether notes (since the reel / physical-stiffness model; see `docs/reference/tether-validation.md`):
@@ -225,8 +226,12 @@ Tether notes (since the reel / physical-stiffness model; see `docs/reference/tet
 * `warn` now means the rated working load is exceeded: half the breaking strength on any segment, or
   half the termination (gland) strength at the vehicle end. It used to be a fixed 250 N. The scorer
   still deducts 10 points per over-tension episode.
-* Server-side `Tether.events` (not streamed) record `tether_break` with `where` (`gland`, `cable` or `chafe`),
-  `tether_snag`, `tether_snag_released` and `reel_stall`; clients read the state fields above.
+* `tether.events` (optional) streams the solver's recent events. Types: `tether_break` with `where`
+  (`gland` / `cable` / `chafe`) and `tension_n`; `tether_snag` / `tether_snag_tightened` /
+  `tether_snag_released` with `obstacle` (and `hold_n` when hooked or tightened); `reel_stall` with
+  `tension_n`; `tether_twist` with `turns` (console warning beyond ±2 turns, same threshold as
+  `tether_ops.twist_warning`). Clients that ignore the field keep working. The same events are also
+  written into `state.log` (kinds `tether`, plus silt-out / power-trip edges as `silt` / `power`).
 * `auto_payout` is `true` only in reel mode `auto`. A new host starts in reel mode `free`.
 
 ```text
@@ -241,7 +246,8 @@ nav {mode: IDLE|H_NAVI|V_NAVI|VCCM, nav_status, vccm, route [[n,e,d]...], route_
 score {score 0..100, elapsed, failed "", finished, current_index,
        objectives [{kind, label, point [n,e,d], radius, hold_s, done, progress 0..1, target}],
        penalties [{t, reason, points}], penalty_total}
-log [{t, kind, text}]   (last 8 lines, Traditional Chinese)
+log [{t, kind, text, stamp?}]   (last 8 lines, Traditional Chinese; optional `stamp` is wall-clock
+     `%Y/%m/%d %H:%M:%S`, same form as photo `create_time` — assumed App dive-log layout)
 ```
 
 ### Optional `power`: tether power budget / battery
