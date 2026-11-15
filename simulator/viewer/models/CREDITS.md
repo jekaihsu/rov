@@ -55,3 +55,11 @@ No trained weights are included. See `tools/vision/train.md` for limitations.
 `wreck_chenjiao*.glb`: original fictional 48 m coastal freighter; all mesh geometry and rust/algae/silt
 textures authored procedurally in `cad/build_wreck_chenjiao.py`. No external models, scans, photographs,
 trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies meshopt and WebP compression.
+
+## J1 養殖箱網（原創，CC0-1.0）
+
+`aquaculture/net.webp`、`aquaculture/pen.glb`、`aquaculture/mission.json` 以及
+`cad/build_aquaculture_pen.py` 產生的幾何／菱形網目均為本次自行程式製作，資產以 CC0-1.0 釋出。
+沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
+GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
+固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。

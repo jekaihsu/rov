@@ -1,0 +1,62 @@
+{
+  "medium-assets": {
+    "residentTrianglesIncludingHidden": 603626,
+    "visibleTriangles": 113310,
+    "residentMeshesIncludingHidden": 593,
+    "textureRGBAWithMipBytes": 349526
+  },
+  "medium-onboard-real": {
+    "calls": 36,
+    "triangles": 113316,
+    "ms": 1285.2999999998137,
+    "minMs": 1285.2999999998137,
+    "medianMs": 1285.2999999998137
+  },
+  "medium-third-assisted": {
+    "calls": 43,
+    "triangles": 114355,
+    "ms": 18246.59999999986,
+    "minMs": 18246.59999999986,
+    "medianMs": 18246.59999999986
+  },
+  "medium-net-close-real": {
+    "calls": 34,
+    "triangles": 111780,
+    "ms": 1386.5999999998603,
+    "minMs": 1386.5999999998603,
+    "medianMs": 1386.5999999998603
+  },
+  "medium-mort-hole-real": {
+    "calls": 33,
+    "triangles": 112347,
+    "ms": 1058.1000000000931,
+    "minMs": 1058.1000000000931,
+    "medianMs": 1058.1000000000931
+  },
+  "performance-assets": {
+    "residentTrianglesIncludingHidden": 587164,
+    "visibleTriangles": 96850,
+    "residentMeshesIncludingHidden": 590,
+    "textureRGBAWithMipBytes": 349526
+  },
+  "performance-third-assisted": {
+    "calls": 35,
+    "triangles": 95843,
+    "ms": 790.1999999999534,
+    "minMs": 790.1999999999534,
+    "medianMs": 790.1999999999534
+  },
+  "high-assets": {
+    "residentTrianglesIncludingHidden": 622018,
+    "visibleTriangles": 131702,
+    "residentMeshesIncludingHidden": 593,
+    "textureRGBAWithMipBytes": 349526
+  },
+  "high-third-assisted": {
+    "calls": 43,
+    "triangles": 134795,
+    "ms": 1270.1999999999534,
+    "minMs": 1270.1999999999534,
+    "medianMs": 1270.1999999999534
+  }
+}

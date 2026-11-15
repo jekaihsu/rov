@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {marineGeometry} from './marine_registry.js';
 import {createVehicleModel} from './vehicle_models.js';
 import {Cable} from './cable.js';
 import {applyVehicleSticker} from './vehicle_stickers.js';
@@ -19,7 +20,7 @@ export class Fleet {
         const cable=new Cable(new THREE.MeshStandardMaterial({color:0xe4bd32,roughness:.8}),{segments:90,radial:5});this.scene.add(cable.mesh);
         p={root,cable,modelId:v.model_id,samples:[],dead:false,lights:[]};this.peers.set(id,p);
         const def=this.world?.vehicle_catalogue?.find(d=>d.id===v.model_id)||{id:v.model_id,model:'models/rov.glb'};
-        // Peers use LOD1 when the generic asset set is active; the training set has a single LOD.
+        // Peers start at LOD1 (training X1 uses THREE.LOD; generic observation ROV loads LOD1 URL).
         createVehicleModel(def,{lod:1}).then(model=>{if(p.dead){model.dispose();return;}p.model=model;p.root.add(model.root);});
         for(const anchor of def.lamp_body||[[.36,-.12,.02],[.36,.12,.02]]){
           const light=new THREE.SpotLight(0xfff2dc,0,22,.5,.55,1.3);light.position.copy(P(anchor));light.target.position.copy(light.position).add(new THREE.Vector3(0,-.25,6));root.add(light,light.target);p.lights.push(light);
@@ -33,6 +34,13 @@ export class Fleet {
     for(const ob of s.operations?.objects||[]){
       visible.add(ob.id);let mesh=this.objects.get(ob.id);
       if(!mesh){mesh=new THREE.Mesh(new THREE.CylinderGeometry(ob.radius,ob.radius,ob.radius*1.8,12),new THREE.MeshStandardMaterial({color:ob.mass>10?0x555d61:ob.mass>2?0xd09130:0xc9dadb,metalness:.45,roughness:.5}));this.scene.add(mesh);this.objects.set(ob.id,mesh);}
+      if (ob.kind === 'dead_fish' && !mesh.userData.mort) {
+        mesh.geometry.dispose();
+        mesh.geometry = marineGeometry('fish');
+        mesh.geometry.scale(1.6, 1.6, 1.6);
+        mesh.rotation.z = Math.PI / 2;
+        mesh.userData.mort = true;
+      }
       mesh.position.copy(P(ob.pos));
     }
     for(const[id,mesh]of this.objects)if(!visible.has(id)){this.scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();this.objects.delete(id);}
