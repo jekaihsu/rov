@@ -261,3 +261,8 @@ python tools/run_browser_checks.py browser_smoke observation_smoke browser_gamep
 
 `wreck_survey` 改用原創 48 m 沉礁貨船的 GLB、同源距離場與勾纏特徵。
 [建置步驟、預算與比較截圖](chenjiao/README.md)。本頁上方的方塊描述與效能表是先前版本紀錄。
+
+## J1 養殖場
+
+`aquaculture_pen` 使用與碰撞同源的透明網衣薄面板、浮框及繫泊系統；
+[重建、任務資料、預算與截圖](aquaculture/README.md)。網衣擺動僅在前端，位移限制在一致性容差內。

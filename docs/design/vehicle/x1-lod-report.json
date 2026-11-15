@@ -1,0 +1,578 @@
+{
+  "source": "simulator/output/x1-lod/baseline/rov.glb",
+  "baseline": {
+    "file": "rov.glb",
+    "bytes": 1378116,
+    "triangles_drawn": 486000,
+    "materials": 15,
+    "nodes": 482,
+    "mesh_nodes": 466,
+    "draw_calls": 466,
+    "rotors": [
+      {
+        "name": "ROTOR PORT_AFT | animate local Z",
+        "extras": {
+          "animation_axis": "local Z",
+          "grp": "thrPA",
+          "axis": [
+            -0.48228,
+            -0.82929,
+            -0.28228
+          ],
+          "pos": [
+            -0.18264,
+            0.18406,
+            -0.25847
+          ],
+          "role": "rotor"
+        },
+        "hasMesh": false,
+        "primitives": 0,
+        "children": 12
+      },
+      {
+        "name": "ROTOR PORT_FRONT | animate local Z",
+        "extras": {
+          "animation_axis": "local Z",
+          "grp": "thrPF",
+          "axis": [
+            -0.53554,
+            0.78174,
+            0.3195
+          ],
+          "pos": [
+            -0.20601,
+            0.15731,
+            0.25826
+          ],
+          "role": "rotor"
+        },
+        "hasMesh": false,
+        "primitives": 0,
+        "children": 12
+      },
+      {
+        "name": "ROTOR PORT_LONG | animate local Z",
+        "extras": {
+          "animation_axis": "local Z",
+          "grp": "thrPL",
+          "axis": [
+            0,
+            0,
+            -1
+          ],
+          "pos": [
+            -0.20537,
+            0.10199,
+            -0.0865
+          ],
+          "role": "rotor"
+        },
+        "hasMesh": false,
+        "primitives": 0,
+        "children": 12
+      },
+      {
+        "name": "ROTOR STBD_AFT | animate local Z",
+        "extras": {
+          "animation_axis": "local Z",
+          "grp": "thrSA",
+          "axis": [
+            0.48228,
+            -0.82929,
+            -0.28228
+          ],
+          "pos": [
+            0.18264,
+            0.18406,
+            -0.25847
+          ],
+          "role": "rotor"
+        },
+        "hasMesh": false,
+        "primitives": 0,
+        "children": 12
+      },
+      {
+        "name": "ROTOR STBD_FRONT | animate local Z",
+        "extras": {
+          "animation_axis": "local Z",
+          "grp": "thrSF",
+          "axis": [
+            0.53554,
+            0.78174,
+            0.3195
+          ],
+          "pos": [
+            0.20601,
+            0.15731,
+            0.25826
+          ],
+          "role": "rotor"
+        },
+        "hasMesh": false,
+        "primitives": 0,
+        "children": 12
+      },
+      {
+        "name": "ROTOR STBD_LONG | animate local Z",
+        "extras": {
+          "animation_axis": "local Z",
+          "grp": "thrSL",
+          "axis": [
+            0,
+            0,
+            -1
+          ],
+          "pos": [
+            0.20537,
+            0.10199,
+            -0.0865
+          ],
+          "role": "rotor"
+        },
+        "hasMesh": false,
+        "primitives": 0,
+        "children": 12
+      }
+    ],
+    "extensions": [
+      "EXT_meshopt_compression",
+      "KHR_materials_specular",
+      "KHR_mesh_quantization"
+    ]
+  },
+  "lods": [
+    {
+      "file": "rov.glb",
+      "bytes": 3175156,
+      "triangles_drawn": 486000,
+      "materials": 15,
+      "nodes": 23,
+      "mesh_nodes": 21,
+      "draw_calls": 33,
+      "rotors": [
+        {
+          "name": "ROTOR PORT_AFT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPA",
+            "axis": [
+              -0.48228,
+              -0.82929,
+              -0.28228
+            ],
+            "pos": [
+              -0.18264,
+              0.18406,
+              -0.25847
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR PORT_FRONT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPF",
+            "axis": [
+              -0.53554,
+              0.78174,
+              0.3195
+            ],
+            "pos": [
+              -0.20601,
+              0.15731,
+              0.25826
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR PORT_LONG | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPL",
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "pos": [
+              -0.20537,
+              0.10199,
+              -0.0865
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_AFT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSA",
+            "axis": [
+              0.48228,
+              -0.82929,
+              -0.28228
+            ],
+            "pos": [
+              0.18264,
+              0.18406,
+              -0.25847
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_FRONT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSF",
+            "axis": [
+              0.53554,
+              0.78174,
+              0.3195
+            ],
+            "pos": [
+              0.20601,
+              0.15731,
+              0.25826
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_LONG | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSL",
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "pos": [
+              0.20537,
+              0.10199,
+              -0.0865
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        }
+      ],
+      "extensions": [
+        "EXT_meshopt_compression",
+        "KHR_materials_specular",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "file": "rov_lod1.glb",
+      "bytes": 647480,
+      "triangles_drawn": 80002,
+      "materials": 15,
+      "nodes": 23,
+      "mesh_nodes": 21,
+      "draw_calls": 33,
+      "rotors": [
+        {
+          "name": "ROTOR PORT_AFT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPA",
+            "axis": [
+              -0.48228,
+              -0.82929,
+              -0.28228
+            ],
+            "pos": [
+              -0.18264,
+              0.18406,
+              -0.25847
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR PORT_FRONT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPF",
+            "axis": [
+              -0.53554,
+              0.78174,
+              0.3195
+            ],
+            "pos": [
+              -0.20601,
+              0.15731,
+              0.25826
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR PORT_LONG | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPL",
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "pos": [
+              -0.20537,
+              0.10199,
+              -0.0865
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_AFT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSA",
+            "axis": [
+              0.48228,
+              -0.82929,
+              -0.28228
+            ],
+            "pos": [
+              0.18264,
+              0.18406,
+              -0.25847
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_FRONT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSF",
+            "axis": [
+              0.53554,
+              0.78174,
+              0.3195
+            ],
+            "pos": [
+              0.20601,
+              0.15731,
+              0.25826
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_LONG | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSL",
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "pos": [
+              0.20537,
+              0.10199,
+              -0.0865
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        }
+      ],
+      "extensions": [
+        "EXT_meshopt_compression",
+        "KHR_materials_specular",
+        "KHR_mesh_quantization"
+      ]
+    },
+    {
+      "file": "rov_lod2.glb",
+      "bytes": 309668,
+      "triangles_drawn": 26096,
+      "materials": 15,
+      "nodes": 23,
+      "mesh_nodes": 21,
+      "draw_calls": 33,
+      "rotors": [
+        {
+          "name": "ROTOR PORT_AFT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPA",
+            "axis": [
+              -0.48228,
+              -0.82929,
+              -0.28228
+            ],
+            "pos": [
+              -0.18264,
+              0.18406,
+              -0.25847
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR PORT_FRONT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPF",
+            "axis": [
+              -0.53554,
+              0.78174,
+              0.3195
+            ],
+            "pos": [
+              -0.20601,
+              0.15731,
+              0.25826
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR PORT_LONG | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrPL",
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "pos": [
+              -0.20537,
+              0.10199,
+              -0.0865
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_AFT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSA",
+            "axis": [
+              0.48228,
+              -0.82929,
+              -0.28228
+            ],
+            "pos": [
+              0.18264,
+              0.18406,
+              -0.25847
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_FRONT | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSF",
+            "axis": [
+              0.53554,
+              0.78174,
+              0.3195
+            ],
+            "pos": [
+              0.20601,
+              0.15731,
+              0.25826
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        },
+        {
+          "name": "ROTOR STBD_LONG | animate local Z",
+          "extras": {
+            "animation_axis": "local Z",
+            "grp": "thrSL",
+            "axis": [
+              0,
+              0,
+              -1
+            ],
+            "pos": [
+              0.20537,
+              0.10199,
+              -0.0865
+            ],
+            "role": "rotor"
+          },
+          "hasMesh": true,
+          "primitives": 3,
+          "children": 0
+        }
+      ],
+      "extensions": [
+        "EXT_meshopt_compression",
+        "KHR_materials_specular",
+        "KHR_mesh_quantization"
+      ]
+    }
+  ],
+  "draw_call_budget": 40,
+  "notes": {
+    "draw_calls_lod0": 33,
+    "lod0_over_2mb_reason": "Joining previously instanced thruster parts duplicates vertex data; dequantize-before-bake keeps float attributes until meshopt recompresses. Still under the observation_rov LOD0 (3.16 MB) and justified for the I1 draw-call cut."
+  }
+}

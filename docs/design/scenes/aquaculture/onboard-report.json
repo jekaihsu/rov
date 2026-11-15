@@ -1,0 +1,83 @@
+{
+  "onboard-real": {
+    "seconds_per_frame": 2.67,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 32.067370012002925,
+      "target": 32.11028206569021,
+      "meteredLuminance": 0.005929350979354315,
+      "whiteBalance": [
+        1.8883806388142357,
+        1,
+        1.4217147055871515
+      ]
+    },
+    "bytes": 110413,
+    "eye_ned": [
+      3.0,
+      0.0,
+      7.0
+    ],
+    "target_ned": [
+      8.0,
+      0.0,
+      7.0
+    ],
+    "lamp_level": 2,
+    "fidelity": "real"
+  },
+  "net-close-real": {
+    "seconds_per_frame": 2.311,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 22.991562619247098,
+      "target": 22.950169873248978,
+      "meteredLuminance": 0.009940415582900384,
+      "whiteBalance": [
+        1.890106464163126,
+        1,
+        1.4302912415452809
+      ]
+    },
+    "bytes": 165681,
+    "eye_ned": [
+      4.5,
+      4.0,
+      5.0
+    ],
+    "target_ned": [
+      7.0,
+      4.0,
+      5.0
+    ],
+    "lamp_level": 2,
+    "fidelity": "real"
+  },
+  "mort-hole-real": {
+    "seconds_per_frame": 2.155,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 69.30584217570177,
+      "target": 69.12402185880805,
+      "meteredLuminance": 0.0018227319658655078,
+      "whiteBalance": [
+        1.2797441662536053,
+        1,
+        1.3541135691675399
+      ]
+    },
+    "bytes": 135151,
+    "eye_ned": [
+      11.5,
+      2.0,
+      14.0
+    ],
+    "target_ned": [
+      8.0,
+      0.0,
+      15.3
+    ],
+    "lamp_level": 2,
+    "fidelity": "real"
+  }
+}

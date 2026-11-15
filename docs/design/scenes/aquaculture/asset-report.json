@@ -1,0 +1,38 @@
+{
+  "tiers": {
+    "low": {
+      "structureTriangles": 74128,
+      "fishTriangles": 12100,
+      "totalTriangles": 86228,
+      "structureDrawCalls": 6,
+      "fishDrawCalls": 12
+    },
+    "medium": {
+      "structureTriangles": 74128,
+      "fishTriangles": 28556,
+      "totalTriangles": 102684,
+      "structureDrawCalls": 6,
+      "fishDrawCalls": 12
+    },
+    "high": {
+      "structureTriangles": 74128,
+      "fishTriangles": 46948,
+      "totalTriangles": 121076,
+      "structureDrawCalls": 6,
+      "fishDrawCalls": 12
+    }
+  },
+  "files": {
+    "pen.glb": 113524,
+    "net.webp": 21464,
+    "mission.json": 897
+  },
+  "referenceGLBTriangles": 11224,
+  "referenceGLBRequiredExtensions": [
+    "EXT_meshopt_compression",
+    "EXT_texture_webp",
+    "KHR_mesh_quantization"
+  ],
+  "netTextureRGBAWithMipsMiB": 0.3333333333333333,
+  "siteTextureWithSharedSeabedMiB": 1.6666666666666665
+}

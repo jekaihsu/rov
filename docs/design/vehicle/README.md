@@ -91,6 +91,13 @@ the menu label changes):
 
 ![](in-game-generic.png)
 
+## X1 training LODs (I1)
+
+The training X1 itself is now packed into three LODs (`rov.glb`, `rov_lod1.glb`, `rov_lod2.glb`) by
+`cad/pack_x1_rov.py`. See [`x1-lod-report.json`](x1-lod-report.json) and the before/after shots under
+[`x1-lod/`](x1-lod/). LOD0 keeps the 486k-triangle appearance bar while cutting draw calls from ~468 to
+≤ 40; peers start at LOD1 via `THREE.LOD`.
+
 ## Verdict against the X1 bar
 
 **Where it meets or exceeds the bar**

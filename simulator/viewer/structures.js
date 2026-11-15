@@ -15,6 +15,7 @@
 //   'attached'  thin dressing on a collider's surface (within SCENE_TOLERANCE outside it)
 //   'above'     above the waterline, out of the vehicle's reach
 import * as THREE from 'three';
+import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
 import {structureMaterial} from './structure_materials.js';
@@ -862,6 +863,10 @@ function snagItem(set, ob) {
 function buildOne(set, ob, consumed) {
   if (consumed.has(ob.name)) return;
   const world = set.world;
+  if (ob.kind?.startsWith('pen_')) {
+    buildPenPart(set, ob);
+    return;
+  }
   if (ob.type === 'snag') {
     snagItem(set, ob);
     return;
@@ -923,7 +928,7 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   const rockHex = siteRockColor(world);
   const baseMaterial = makeMaterial || ((kind) => structureMaterial(kind, detail));
   const paint = (kind) => {
-    const material = baseMaterial(kind);
+    const material = kind.startsWith('pen_') ? penMaterial(kind) : baseMaterial(kind);
     // Rock armour and snag rocks share the site's seabed sand/mud tint.
     if (kind === 'rock' && material.color?.setHex) material.color.setHex(rockHex);
     return material;
