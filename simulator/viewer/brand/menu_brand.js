@@ -1,8 +1,13 @@
 // Identity marks on the launch menu, added from outside so menu/screens.js keeps its structure:
 // the YX mark on the title screen and in the header, the fleet symbol beside the hangar's vehicle title and on
-// each vehicle chip, and a small symbol in the briefing kicker.
+// each vehicle chip, a small symbol in the briefing kicker, and the hidden ?brandDemo component sheet.
 // menu/main.js calls installBrandMenu() once after the screens are built; everything else follows the DOM.
 import {fleetSymbol, svgNode, yxMark} from './marks.js';
+
+export const STRINGS = {
+  demoClose: '關閉',
+  demoLabel: 'YX 識別元件',
+};
 
 const TITLE_MARK_SIZE = 120;
 const HANGAR_SYMBOL_SIZE = 64;
@@ -75,10 +80,33 @@ function decorateBriefing(menu, getModel) {
   addSymbol();
 }
 
-/** Decorate the launch menu. menu: the menu root element; getModel: returns the chosen model id. */
-export function installBrandMenu({menu, getModel}) {
+async function openDemo() {
+  const {buildBrandDemo} = await import('./demo.js');
+  const overlay = element('div', 'brand-demo-overlay');
+  overlay.id = 'brandDemo';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-label', STRINGS.demoLabel);
+  const close = element('button', 'brand-demo-close', STRINGS.demoClose);
+  close.type = 'button';
+  close.addEventListener('click', function closeDemo() {
+    overlay.remove();
+  });
+  overlay.append(close, buildBrandDemo());
+  document.body.append(overlay);
+}
+
+/**
+ * Decorate the launch menu. menu: the menu root element; getModel: returns the chosen model id;
+ * search: the page query (defaults to the current one), where `brandDemo` opens the component sheet.
+ */
+export function installBrandMenu({menu, getModel, search = location.search}) {
   decorateTitle(menu);
   decorateHeader(menu);
   decorateHangar(menu);
   decorateBriefing(menu, getModel);
+  if (new URLSearchParams(search).has('brandDemo')) {
+    openDemo().catch(function demoFailed(error) {
+      console.error(error);
+    });
+  }
 }
