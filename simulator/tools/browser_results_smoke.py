@@ -2,7 +2,8 @@
 
 Launches the prologue from the menu, drives it with physical key presses (as browser_campaign_smoke.py does),
 then checks the results card: outcome, medal, score rows, rewards earned, the local best-score record and
-gamepad/keyboard focus on the actions. Pressing the primary action must start the next story chapter.
+gamepad/keyboard focus on the actions. Pressing the primary action must start the next story chapter. Finally
+the story cards in the menu must show the chapter's medal and best score, and chapter one unlocked.
 """
 import time
 from pathlib import Path
@@ -79,6 +80,17 @@ def run():
         page.wait_for_selector('#resultsScreen', state='hidden', timeout=timeout(5000))
         page.wait_for_function('window.__viewer.S.campaign.chapter === "harbor" && '
                                'window.__viewer.S.campaign.status === "active"', timeout=timeout(30000))
+        page.click('#flightDrawer')
+        page.click('#returnMenu')
+        page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
+        open_main(page)
+        page.click('#entry-story')
+        wait_screen(page, 'training')
+        card = page.locator('[data-chapter="prologue"]')
+        assert card.get_attribute('data-medal') == outcome['medal'], card.get_attribute('data-medal')
+        assert str(outcome['score']) in card.inner_text(), card.inner_text()
+        assert page.locator('[data-chapter="harbor"]').is_enabled()
+        page.screenshot(path=str(OUT / 'story-after.jpg'), type='jpeg', quality=80)
         assert not errors, errors
         browser.close()
     print('Results screen smoke passed:', OUT)

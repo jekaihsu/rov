@@ -4,6 +4,8 @@
 // the active contract's steps or the contracts on offer with an accept button. Collapsible; never shown during a
 // chapter (the story radio teaches the same steps) or a replay.
 import { acceptContract, cancelContract, contractBoard } from './contracts.js';
+import { recordLine } from '../menu/cards.js';
+import { recordFor } from './results_model.js';
 
 const STRINGS = {
   guide: '首次潛航練習',
@@ -158,6 +160,10 @@ export function installObjectiveCard({ send, getSession, readOnly = false }) {
       const row = element('div', 'objective-offer');
       const text = element('span', 'objective-offer-text');
       text.append(element('strong', '', offer.label), element('small', '', offer.reason || offer.help));
+      const record = recordFor(`contract:${offer.kind}`);
+      const best = element('small', 'objective-record', recordLine(record));
+      best.dataset.medal = record?.medal || 'none';
+      text.append(best);
       const accept = element('button', 'objective-accept', STRINGS.accept);
       accept.type = 'button';
       accept.dataset.contract = offer.kind;

@@ -105,6 +105,8 @@ body.replaying .objective-card { opacity: 0; pointer-events: none; }
   border-top: 1px solid var(--line); }
 .objective-offer-text { display: grid; gap: 2px; }
 .objective-offer-text small { color: var(--text-dim); font-size: 11px; line-height: 1.5; }
+.objective-offer-text .objective-record { color: var(--accent); }
+.objective-offer-text .objective-record[data-medal=none] { color: var(--text-dim); }
 .objective-card .objective-accept { flex: none; padding: 6px 12px; border: 1px solid var(--accent);
   color: var(--accent); letter-spacing: .1em; }
 .objective-card .objective-accept:disabled { opacity: .35; cursor: default; }
