@@ -16,3 +16,4 @@ import '../start_presentation.js';
 import '../input/keyboard_layout.js';
 import '../prefs/camera_items.js';
 import '../career/fidelity_item.js';
+import '../brand/chapter_card.js';

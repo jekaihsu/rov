@@ -28,6 +28,7 @@ import { installDisplayPrefs } from '../prefs/display.js';
 import { installAudio } from '../audio/engine.js';
 import { installMusic } from '../audio/music.js';
 import { installCareerMenu } from '../career/menu.js';
+import { installBrandMenu } from '../brand/menu_brand.js';
 
 const STRINGS = {
   brand: 'ROV Solution',
@@ -399,6 +400,7 @@ screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
 Object.assign(screens, careerMenu.buildScreens());
 for (const screen of Object.values(screens)) stack.append(screen.element);
+installBrandMenu({ menu, getModel: () => choice.model });
 
 stage.setScene(sceneFor(SHOWCASE.scene) || sceneFor(choice.scenario) || data.sites[0], { showcase: true });
 stage.setSticker(choice.sticker);

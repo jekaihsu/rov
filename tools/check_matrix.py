@@ -38,6 +38,7 @@ DEFAULT_CHECKS = (
     # Starts its own server with a private instructor code so it can inject link faults.
     'browser_link_smoke',
     'browser_vehicle_assets_smoke',
+    'browser_brand_smoke',
 )
 
 
@@ -51,6 +52,9 @@ TIERS = {
 # Narrow islands with known coverage. Other viewer changes conservatively run the tier's entire set.
 BROWSER_PATHS = {
     'simulator/viewer/hud/': ('browser_hud_smoke', 'browser_overlay_smoke', 'browser_attitude_smoke'),
+    # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
+    'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
+                                'browser_campaign_smoke'),
 }
 
 
