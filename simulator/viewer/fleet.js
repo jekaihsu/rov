@@ -19,7 +19,7 @@ export class Fleet {
         const cable=new Cable(new THREE.MeshStandardMaterial({color:0xe4bd32,roughness:.8}),{segments:90,radial:5});this.scene.add(cable.mesh);
         p={root,cable,modelId:v.model_id,samples:[],dead:false,lights:[]};this.peers.set(id,p);
         const def=this.world?.vehicle_catalogue?.find(d=>d.id===v.model_id)||{id:v.model_id,model:'models/rov.glb'};
-        // Peers use LOD1 when the generic asset set is active; the training set has a single LOD.
+        // Peers start at LOD1 (training X1 uses THREE.LOD; generic observation ROV loads LOD1 URL).
         createVehicleModel(def,{lod:1}).then(model=>{if(p.dead){model.dispose();return;}p.model=model;p.root.add(model.root);});
         for(const anchor of def.lamp_body||[[.36,-.12,.02],[.36,.12,.02]]){
           const light=new THREE.SpotLight(0xfff2dc,0,22,.5,.55,1.3);light.position.copy(P(anchor));light.target.position.copy(light.position).add(new THREE.Vector3(0,-.25,6));root.add(light,light.target);p.lights.push(light);
