@@ -1,9 +1,13 @@
 // Visual asset set selection. `?assets=generic` swaps vehicle visuals for the original Steam-edition models;
 // anything else (the default) keeps the internal training models. Physics ids, SDK semantics and the
 // fidelity setting are untouched: this only changes which GLB is drawn for a vehicle id.
+// The generic observation ROV is the art variant of YX Model R: same player-facing name (fleet_names.js),
+// its own hangar detail line.
+
+import { vehicleName } from './fleet_names.js';
 
 export const STRINGS = {
-  observationName: '觀測型 ROV',
+  observationName: vehicleName('x1'),
   observationDetail: '六推進器 · 開放框架',
 };
 
@@ -48,7 +52,7 @@ export function genericVehicleUrl(id, lod = 0, set = assetSet()) {
   return entry.lods[index];
 }
 
-/** Rename menu entries in place when the generic set swaps their visual (never show the training name). */
+/** Relabel menu entries in place when the generic set swaps their visual (art-variant name and detail line). */
 export function applyGenericLabels(models, set = assetSet()) {
   for (const [id, entry] of Object.entries(models)) {
     const generic = genericVehicle(id, set);

@@ -20,6 +20,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from qysim.engine import Simulator          # noqa: E402
+from qysim.fleet_names import WRECK_NAME     # noqa: E402
 from qysim.navigation import Waypoint, wrap_pi  # noqa: E402
 from qysim import scenarios as sc_mod          # noqa: E402
 from qysim.server import _json_default       # noqa: E402
@@ -215,7 +216,7 @@ def clip_monopile(sim_hz: float, rec_hz: float):
 
 
 def clip_wreck(sim_hz: float, rec_hz: float):
-    """Korean Castle: descend, lights on, then the four inspection points; climb over the
+    """korean_castle (碧海號): descend, lights on, then the four inspection points; climb over the
     gunwale between them instead of cutting through the hull."""
     sim = Simulator("korean_castle", seed=2)
     _take_control(sim)
@@ -233,8 +234,8 @@ def clip_wreck(sim_hz: float, rec_hz: float):
         ([(88.0, 19.0, 16.0), (108.5, 21.0, 9.0), (108.5, 16.8, 7.0)], (108.5, 12.8, 7.0), 2),
         ([(122.0, 18.0, 12.0), (137.0, 14.0, 12.0)], (137.0, 10.2, 12.0), 3),
     ]
-    texts = ["往 X1-BOW-C05：左舷艏段斷裂面", "爬升越過舷牆 → X1-MID-C07 二號貨艙（艙外俯視）",
-             "繞到右舷 → X1-STERN-C11 艉段斷裂面", "X1-STERN-C14 艉樓窗框"]
+    texts = ["往 BOW-C05：左舷艏段斷裂面", "爬升越過舷牆 → MID-C07 二號貨艙（艙外俯視）",
+             "繞到右舷 → STERN-C11 艉段斷裂面", "STERN-C14 艉樓窗框"]
     sim.nav.speed = 1.1
     leg, stage, lights = 0, "go", False
 
@@ -279,7 +280,7 @@ CLIPS = {
     "jacket": ("導管架碰撞與纜線勾掛", clip_jacket),
     "untangle": ("纜線纏繞脫困", clip_untangle),
     "monopile": ("強流中樁前懸停", clip_monopile),
-    "wreck": ("Korean Castle 沉船調查", clip_wreck),
+    "wreck": (f"{WRECK_NAME}沉船調查", clip_wreck),
 }
 
 

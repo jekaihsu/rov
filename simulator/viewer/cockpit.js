@@ -1,10 +1,21 @@
 // Operator tools keep the diving canvas clear; all mutations go to the server.
 import {saveReplay} from './replay_store.js';
 import {configureRenderQuality} from './render_quality.js';
+import {vehicleName, vehicleRole} from './fleet_names.js';
 const $ = id => document.getElementById(id);
 export function downloadFile(name, blob) {
   const url = URL.createObjectURL(blob), a = document.createElement('a');
   a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+// Player-facing fleet names (fleet_names.js); option values stay the internal model ids.
+const FLEET_OPTIONS = ['x1', 'bluerov2_heavy', 'falcon'];
+function vehicleLabel(modelId) {
+  return [vehicleName(modelId), vehicleRole(modelId)].filter(Boolean).join(' · ');
+}
+function vehicleOptions() {
+  return FLEET_OPTIONS.map(function option(id) {
+    return `<option value="${id}">${vehicleLabel(id)}</option>`;
+  }).join('');
 }
 export function installCockpit({send, getState, getWorld, getSession, wsUrl, canvas, renderer, capturePhoto, takePhoto, openCollection, rememberVehicle=true, readOnly=false}) {
   const rack = document.querySelector('aside');
@@ -15,7 +26,7 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
     <p id="serverHint" class="hint">線上主機可填 https://網域；區域網路可填 ws://主機IP:8765。</p>
     <label for="roomCode">房間代碼</label><div class="row gap"><input id="roomCode" maxlength="32" value="training"><button id="joinRoom">加入</button></div>
     <p id="roomStatus" class="hint" aria-live="polite">正在連線</p><button id="pairController">配對 USB 遙控器</button>
-    <div class="row gap"><select id="vehicleSelect" aria-label="ROV 機型"><option value="x1">X1</option><option value="bluerov2_heavy">BlueROV2 Heavy</option><option value="falcon">Falcon + 機械臂</option></select><button id="changeVehicle">換機</button></div>
+    <div class="row gap"><select id="vehicleSelect" aria-label="ROV 機型">${vehicleOptions()}</select><button id="changeVehicle">換機</button></div>
     <p class="hint">換機會回到投放點並鎖定馬達。</p></div>
     <details><summary>巡檢與航線</summary>
       <div class="row gap"><input id="markerLabel" maxlength="80" placeholder="巡檢標記名稱"><button id="addMarker">標記</button></div>
@@ -26,7 +37,7 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
       <div class="row gap"><input id="altitudeTarget" type="number" min="0.5" max="30" step="0.5" value="2" aria-label="定高公尺"><button id="holdAltitude">定高</button><button id="stopAltitude">取消</button></div>
       <p id="missionStatus" class="hint"></p>
     </details>
-    <details id="armPanel"><summary>機械臂</summary><p class="hint">Falcon 作業臂 · 參數為訓練估算</p>
+    <details id="armPanel"><summary>機械臂</summary><p class="hint">${vehicleName('falcon')} 作業臂 · 參數為訓練估算</p>
       <label class="tog">手臂操作模式<input id="armMode" type="checkbox"></label>
       <div id="armJoints"></div><div class="btns c2"><button id="gripOpen">張開</button><button id="gripClose">夾取</button></div><p id="armStatus" class="hint"></p>
     </details>
@@ -173,7 +184,7 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
       $('missionStatus').textContent=`${s.operations?.markers?.length||0} 個標記 · ${s.operations?.waypoints?.length||0} 個航點${s.operations?.altitude!=null?` · 定高 ${s.operations.altitude} m`:''}`;
       if(s.model_id&&s.model_id!==lastModel){
         lastModel=s.model_id;preferredModel=s.model_id;$('vehicleSelect').value=s.model_id;
-        $('activeVehicleName').textContent={x1:'X1',falcon:'Falcon · 機械臂',bluerov2_heavy:'BlueROV2 Heavy'}[s.model_id]||'ROV';
+        $('activeVehicleName').textContent=vehicleLabel(s.model_id);
         if(rememberVehicle){try{
           localStorage.setItem('rov.vehicle',s.model_id);
           window.rovDesktop?.rememberModel(s.model_id);

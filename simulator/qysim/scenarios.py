@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 
 from . import site_dressing as dressing
+from .fleet_names import WRECK_NAME
 from .flow import Tide
 from .silt import seabed_type_for as silt_seabed_type
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, SnagFeature, Wall
@@ -256,27 +257,27 @@ def wreck_survey() -> Scenario:
 
 
 def korean_castle() -> Scenario:
-    """Korean Castle wreck (illustrative poster reconstruction, not a survey): 150 m cargo ship
-    broken in three on a 32 m seabed. Inspection targets use the model's X1 grid cells
-    (C01-C15 every 10 m bow to stern, R01-R04 across)."""
+    """The korean_castle wreck, shown to players as WRECK_NAME (illustrative poster reconstruction, not a
+    survey): 150 m cargo ship broken in three on a 32 m seabed. Inspection targets use the model's grid
+    cells (C01-C15 every 10 m bow to stern, R01-R04 across)."""
     sea = 32.0
     # local frame: X bow->stern, Y across, Z up from the seabed; bow to the west, stern to the east
-    wreck = FieldMesh("Korean Castle", ASSETS / "korean_castle_field.npz", origin=(28.0, -70.0, sea),
+    wreck = FieldMesh(WRECK_NAME, ASSETS / "korean_castle_field.npz", origin=(28.0, -70.0, sea),
                       heading_deg=90.0, kind="wreck", model="models/korean_castle.glb", snag_hold=(250.0, 700.0))
     W = lambda x, y, z: tuple(float(v) for v in wreck.world_point((x, y, z)).round(2))
     objs = [
-        Objective("inspect", "X1-BOW-C05 艏段斷裂面（左舷）", W(45.5, -14.8, 6.0), radius=1.6, hold_s=5.0,
+        Objective("inspect", "BOW-C05 艏段斷裂面（左舷）", W(45.5, -14.8, 6.0), radius=1.6, hold_s=5.0,
                   face_point=W(45.5, -10.4, 6.0)),
-        Objective("checkpoint", "X1-MID-C07 二號貨艙開口（艙外俯視，勿入艙）", W(61.0, 1.5, 15.0), radius=2.5, hold_s=5.0),
-        Objective("inspect", "X1-STERN-C11 艉段斷裂面（右舷）", W(108.5, 16.8, 7.0), radius=1.6, hold_s=5.0,
+        Objective("checkpoint", "MID-C07 二號貨艙開口（艙外俯視，勿入艙）", W(61.0, 1.5, 15.0), radius=2.5, hold_s=5.0),
+        Objective("inspect", "STERN-C11 艉段斷裂面（右舷）", W(108.5, 16.8, 7.0), radius=1.6, hold_s=5.0,
                   face_point=W(108.5, 12.8, 7.0)),
-        Objective("inspect", "X1-STERN-C14 艉樓窗框", W(137.0, 14.0, 12.0), radius=1.6, hold_s=5.0,
+        Objective("inspect", "STERN-C14 艉樓窗框", W(137.0, 14.0, 12.0), radius=1.6, hold_s=5.0,
                   face_point=W(137.0, 10.2, 12.0)),
         Objective("surface", "回投放點上浮", (-2.0, 0.0, 0.5), radius=3.0),
     ]
     return Scenario(
-        "korean_castle", "Korean Castle 沉船調查",
-        "150 m 貨輪斷成三截躺在 32 m 海床，船身長滿附著物、貨艙開口朝上。依 X1 格網編號檢查兩處斷裂面、"
+        "korean_castle", f"{WRECK_NAME}沉船調查",
+        "150 m 貨輪斷成三截躺在 32 m 海床，船身長滿附著物、貨艙開口朝上。依格網編號檢查兩處斷裂面、"
         "二號貨艙與艉樓窗框。不要進入貨艙：纜線很容易卡在艙口圍板。模型為海報推估的示意，非實測。",
         seabed_depth=sea, obstacles=[wreck], current=CurrentProfile(0.9, 250, 0.6, 260, 0.3, 270, TI_OFFSHORE),
         visibility_m=10.0, start_pos=(0.0, 0.0, 4.0), start_heading_deg=90.0, spool_pos=(-4.0, 0.0, 0.0),

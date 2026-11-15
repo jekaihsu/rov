@@ -1,9 +1,17 @@
+import {FLEET_IDS, siteName, vehicleName} from './fleet_names.js';
 import {COLLECTION_CATEGORIES,listCollection,getPhotoBlob,setCover,exportCollection,importCollection,downloadCollectionFile} from './collection_store.js';
 
 const element=(tag,text,className)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
 const date=value=>{const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'日期未記錄';};
 const categoryName=value=>COLLECTION_CATEGORIES[value]||'紀念照';
 const valueText=value=>typeof value==='string'||typeof value==='number'?String(value):value?.name||value?.label||'—';
+// Photos store internal keys; show the player-facing fleet and site names (fleet_names.js).
+function modelText(value) {
+  return FLEET_IDS.includes(value) ? vehicleName(value) : valueText(value);
+}
+function sceneText(value) {
+  return siteName(value) || valueText(value);
+}
 
 export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose=()=>{}}={}){
   if(!document.querySelector('link[data-rov-collection]')){const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./collection.css',import.meta.url).href;css.dataset.rovCollection='';document.head.append(css);}
@@ -47,7 +55,7 @@ export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose
     const facts=element('dl');
     const row=(label,value)=>{facts.append(element('dt',label),element('dd',value));};
     row('拍攝時間',date(photo.createdAt));row('分類',category?'機載有效觀測':'紀念照');
-    row('場景',valueText(photo.metadata.scenario||photo.metadata.scene));row('機型',valueText(photo.metadata.model||photo.metadata.modelId||photo.metadata.model_id||photo.metadata.vehicle));
+    row('場景',sceneText(photo.metadata.scenario||photo.metadata.scene));row('機型',modelText(photo.metadata.model||photo.metadata.modelId||photo.metadata.model_id||photo.metadata.vehicle));
     const position=photo.metadata.position||photo.metadata.pos||photo.metadata.pose?.pos,depth=photo.metadata.depth??(Array.isArray(position)?position[2]:null);if(Number.isFinite(depth))row('深度',`${depth.toFixed(2)} m`);
     row('原圖',`${(photo.bytes/1024/1024).toFixed(2)} MiB · ${photo.mime==='image/png'?'PNG':'JPEG'}`);info.append(facts);
     const buttons=element('div',undefined,'collection-detail-buttons');
