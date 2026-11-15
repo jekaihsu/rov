@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'output' / 'upgrade-validation'
 OUT.mkdir(parents=True, exist_ok=True)
 
+# Arm speed is 1 unit per simulated second: half the travel takes 0.5 s; allow state-sampling slack.
+ARM_BUDGET_S = 2.0
+
+
 def run():
     errors=[]
     with sync_playwright() as p:
@@ -55,13 +59,22 @@ def run():
         assert main.locator('#armPanel').is_visible()
         main.locator('#armPanel summary').click(no_wait_after=True)
         # Wait on sim time + arm state, not a fixed wall sleep: grip closes at 1 unit per sim-second.
-        t0 = main.evaluate('window.__viewer.S.t')
         main.click('#gripClose',no_wait_after=True)
         main.evaluate('window.__skipRender = true')
-        main.wait_for_function(
-            '(t0)=>window.__viewer.S.t>t0+0.5 && window.__viewer.S.operations.arm.grip<.5',
-            arg=t0, timeout=timeout(180000))
+        # Timed in simulated seconds from the moment the grip starts to move (the click itself may take long
+        # under software GL): it must pass .5 within ARM_BUDGET_S. The wall timeout is only a stalled-server
+        # watchdog, so a slow host cannot hide an arm that never closes or closes too slowly.
+        arm = main.wait_for_function("""budget => {
+          const state = window.__viewer.S;
+          const grip = state.operations.arm.grip;
+          if (grip >= 1) return false;
+          window.__armStart ??= state.t;
+          const elapsed = state.t - window.__armStart;
+          if (grip >= .5 && elapsed <= budget) return false;
+          return {grip, elapsed, latched: state.input_latched};
+        }""", arg=ARM_BUDGET_S, timeout=timeout(180000)).json_value()
         main.evaluate('window.__skipRender = false')
+        assert arm['grip'] < .5, f'arm did not close within {ARM_BUDGET_S} simulated s: {arm}'
         main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')
         main.wait_for_function('window.__viewer.S.rc.right_switch===2', timeout=timeout(120000))
         # Lamp meshes update on a drawn frame; wait for intensity after leaving __skipRender.

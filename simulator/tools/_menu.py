@@ -16,8 +16,12 @@ def wait_screen(page, name, timeout=30000):
 
 
 def soft_click(page, selector):
-    """Activate a control without waiting on soft-GL paint frames (Playwright actionability stalls under load)."""
-    page.locator(selector).click(force=True, no_wait_after=True)
+    """A real click that keeps Playwright's actionability checks (visible, enabled, not covered).
+
+    Under software GL those checks wait on paint frames, so the timeout follows ROV_BROWSER_TIMEOUT_SCALE
+    instead of being bypassed with force=True; no click here navigates, so no navigation wait either.
+    """
+    page.locator(selector).click(timeout=scaled(30000), no_wait_after=True)
 
 
 def open_main(page):
