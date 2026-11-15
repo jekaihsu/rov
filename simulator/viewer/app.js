@@ -1,4 +1,5 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
+import { createStateMerger, VIEWER_CAPS } from './state_merge.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
 import { updateTetherOperations } from './tether/operations.js';
@@ -439,6 +440,8 @@ const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, 
 const videoLinkOverlay = installVideoLinkOverlay(vp);
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
+// Live join declares static_once; replay keeps full frames and never declares caps.
+const stateMerger = createStateMerger();
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
@@ -483,15 +486,21 @@ function connect() {
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
     wsOpen = true; retry = 0; needResync = true; session=null;inputSequence=0;
+    stateMerger.reset();
     setConn('wait', '已連線 · 等待資料'); rcPump.reset();
     let token;try{token=sessionStorage.getItem(`rov.session:${WS_URL}:${cockpit.room}`);}catch{}
-    send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model});
+    send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model,
+      caps:VIEWER_CAPS});
   };
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
-    if (m.type === 'world' && session) onWorld(m); else if (m.type === 'state' && session) onState(m);
+    if (m.type === 'world' && session) {
+      stateMerger.reset();
+      onWorld(m);
+    } else if (m.type === 'state' && session) onState(stateMerger.merge(m));
     else if(m.type === 'session'){
-      session=m;needResync=true;try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
+      session=m;needResync=true;stateMerger.reset();
+      try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
       for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
     }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}
   };
