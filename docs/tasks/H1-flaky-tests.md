@@ -15,4 +15,4 @@
 5. **paint / flightDrawer**：`#flightTools` 疊在工程抽屜之上，測試以 `elementFromPoint` 驗證可點；下潛等待兼看 `sensors.altitude` 與 raycast，並在 `__skipRender` 下保持 RC 取樣。
 6. **campaign 錄影**：無 ffmpeg 時跳過錄影並印原因，其餘步驟照跑。
 7. **選單點擊／逾時**：`_menu.soft_click` 避開軟體 GL 下 Playwright 等 paint 卡住；`_browser.timeout()` 在主機飽和且未設 `ROV_BROWSER_TIMEOUT_SCALE` 時自動 ×3（斷言不變）。
-8. **高負載排程**：`pump_until`／`without_render` 讓等待控制回覆或模擬進度時背景軟體 GL 分頁不搶 CPU；paint 下潛改以 `touch.left_wave` 驅動並在同一 turn 內 snap 俯視相機再噴漆，避免 spring follow 與 blur 失聯保護造成假失敗。
+8. **高負載排程**：`pump_until`／`without_render` 讓等待控制回覆或模擬進度時背景軟體 GL 分頁不搶 CPU；paint 下潛以 `touch.left_wave` 與鍵盤 Q 驅動，並在同一 turn 內 snap 俯視相機再噴漆。下潛等待只寫入 `rc.rc_lock = 0`，不點 `#bLock`（該鍵是 toggle，set-then-click 會每輪重新上鎖）。
