@@ -21,10 +21,11 @@ export const PRESETS = {
 };
 export function bindingValue(binding, snapshot) {
   if (Array.isArray(binding)) return bindingValue(binding[0], snapshot) - bindingValue(binding[1], snapshot);
-  // Optional leading "+" is SDL half-axis notation and matches an unsigned axis/button read.
+  // Leading "+" is SDL positive half-axis notation: only the positive half of the raw value counts.
   const match = /^([+-]?)([ab])(\d+)(~?)$/.exec(binding || "");
   if (!match) return 0;
-  const value = (match[2] === "a" ? snapshot.axes : snapshot.buttons)[Number(match[3])] || 0;
+  const raw = (match[2] === "a" ? snapshot.axes : snapshot.buttons)[Number(match[3])] || 0;
+  const value = match[1] === "+" ? Math.max(0, raw) : raw;
   const sign = match[1] === "-" ? -1 : 1;
   return sign * (match[4] ? (value > 0.5 ? 1 : 0) : value);
 }

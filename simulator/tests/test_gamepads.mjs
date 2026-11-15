@@ -38,6 +38,7 @@ test('signed and half-axis SDL forms resolve from raw snapshots', () => {
   const snapshot = {axes: [0.2, -0.5, 0, 0, 0.25, 0.9], buttons: [0, 0.8]};
   assert.equal(bindingValue('+a5', snapshot), 0.9);
   assert.equal(bindingValue('-a1', snapshot), 0.5);
+  assert.equal(bindingValue('+a1', snapshot), 0, 'positive half-axis ignores the negative half');
   assert.equal(bindingValue('b1~', snapshot), 1);
 });
 
