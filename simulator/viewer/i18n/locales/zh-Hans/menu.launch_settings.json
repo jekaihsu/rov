@@ -9,10 +9,10 @@
     "interface": "界面"
   },
   "pad": "输入设备",
-  "padAuto": "自动侦测手柄＋键盘",
+  "padAuto": "自动检测手柄＋键盘",
   "padKeyboard": "只使用键盘",
-  "padFound": "已侦测 {n} 支手柄",
-  "padNone": "未侦测到手柄，仍可使用键盘。按手柄任一键以唤醒。",
+  "padFound": "已检测 {n} 支手柄",
+  "padNone": "未检测到手柄，仍可使用键盘。按手柄任一键以唤醒。",
   "control": "控制配置",
   "layouts": {
     "ROV_USA": "ROV 标准配置：左杆俯仰／转向，右杆前后／横滚",
@@ -22,7 +22,7 @@
     "UAV_JPN": "UAV_JPN",
     "UAV_CHN": "ROV 双杆：左杆前后／平移，右杆升降／转向"
   },
-  "controllerSettings": "高端手柄设置：死区、曲线、绑定与对应精灵",
+  "controllerSettings": "高级手柄设置：死区、曲线、绑定与映射向导",
   "quality": {
     "auto": [
       "自动",
@@ -41,8 +41,8 @@
       "细节优先，含阴影"
     ]
   },
-  "qualityState": "目前渲染比例 {scale}%",
-  "detecting": "正在侦测目前使用的显卡…",
+  "qualityState": "当前渲染比例 {scale}%",
+  "detecting": "正在检测当前使用的显卡…",
   "adaptive": "依画面性能调整",
   "interface": {
     "intro": [
@@ -51,7 +51,7 @@
     ],
     "alwaysIntro": [
       "每次都播放下水动画",
-      "关闭时只在第一次下潜播放，之后直接从水中开始（演示文稿可再勾选）。"
+      "关闭时只在第一次下潜播放，之后直接从水中开始（简报可再勾选）。"
     ],
     "pip": [
       "操作员小窗口",

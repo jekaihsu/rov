@@ -12,7 +12,8 @@
     "coop": "協力点検",
     "chapter": "ストーリー",
     "drill": "事故対応訓練",
-    "contract": "水中作業の依頼"
+    "contract": "水中作業の依頼",
+    "career": "YX 作業指示"
   },
   "times": "{n} 回",
   "noContacts": "衝突なし",

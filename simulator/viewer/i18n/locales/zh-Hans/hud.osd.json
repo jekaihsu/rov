@@ -10,7 +10,7 @@
   "dive": "DIVE",
   "hold": "D-HOLD",
   "nav": "NAV",
-  "paused": "仿真已暂停",
+  "paused": "模拟已暂停",
   "heading": "HDG",
   "levels": [
     "MANUAL",

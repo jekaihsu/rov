@@ -5,10 +5,10 @@
     "degraded": "链路 劣化",
     "lost": "链路 中断"
   },
-  "quality": "品质",
+  "quality": "质量",
   "reconnecting": "重新连接中",
-  "videoLag": "影像延迟",
-  "videoFrozen": "影像冻结",
+  "videoLag": "视频延迟",
+  "videoFrozen": "视频冻结",
   "failsafe": {
     "disarm": "失联保护：已上锁",
     "depth_hold": "失联保护：定深",

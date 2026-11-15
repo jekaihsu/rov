@@ -1,0 +1,8 @@
+{
+  "needLicence": "需要「{licence}」執照",
+  "needContract": "先完成「{title}」",
+  "needEquipment": "需要裝備「{item}」（YX 裝備部）",
+  "needReputation": "需要{client}聲譽 {need}（目前 {have}）",
+  "needHours": "需要真實模式時數 {need} h（目前 {have} h）",
+  "unknownItem": "{id}"
+}

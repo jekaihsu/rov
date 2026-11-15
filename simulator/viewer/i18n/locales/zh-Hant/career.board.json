@@ -1,0 +1,35 @@
+{
+  "title": "YX 委託看板",
+  "status": {
+    "open": "可接案",
+    "locked": "未開放",
+    "done": "已完成"
+  },
+  "optional": "支線",
+  "exam": "執照考核",
+  "pay": "報酬",
+  "current": "洋流",
+  "depth": "海床",
+  "best": "{medal} · {score} 分",
+  "moneyUnit": "元",
+  "summary": "{licence} · {money} 元",
+  "open": "查看工單",
+  "otherTab": "其他",
+  "otherTitle": "其他委託與存檔",
+  "expedition": [
+    "海洋探索委託",
+    "在探索海域自由接巡檢、回收與部署的小委託；下水後在右上任務卡接案。"
+  ],
+  "expeditionKicker": "自由接案",
+  "expeditionChips": [
+    "巡檢",
+    "回收",
+    "部署"
+  ],
+  "expeditionOpen": "前往",
+  "backupHelp": "匯出成 JSON 備份，或從備份還原（會取代目前的職涯）。",
+  "exportButton": "匯出存檔",
+  "importButton": "匯入存檔",
+  "imported": "已匯入職涯存檔。",
+  "exported": "已匯出職涯存檔。"
+}

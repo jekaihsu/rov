@@ -5,19 +5,19 @@
   "modes": {
     "windowed": "窗口",
     "borderless": "无边框窗口",
-    "fullscreen": "全屏幕"
+    "fullscreen": "全屏"
   },
   "resolution": "分辨率",
-  "apply": "套用显示设置",
-  "applied": "已套用。",
-  "failed": "无法套用：{reason}",
+  "apply": "应用显示设置",
+  "applied": "已应用。",
+  "failed": "无法应用：{reason}",
   "browserFullscreen": [
-    "全屏幕",
-    "浏览器版以浏览器的全屏幕显示；分辨率跟随屏幕。"
+    "全屏",
+    "浏览器版以浏览器的全屏显示；分辨率跟随屏幕。"
   ],
   "brightness": "亮度",
-  "brightnessHelp": "只调整水下画面，不影响仪表文本。",
-  "uiScale": "界面与文本缩放",
+  "brightnessHelp": "只调整水下画面，不影响仪表文字。",
+  "uiScale": "界面与文字缩放",
   "fpsCap": "帧率上限",
   "fps": {
     "0": "不限制",
@@ -37,7 +37,7 @@
     "metric": "公制（m）",
     "imperial": "英制（ft）"
   },
-  "unitsHelp": "套用于游戏 HUD 与菜单；机载 OSD 照真机维持公制。",
+  "unitsHelp": "应用于游戏 HUD 与菜单；机载 OSD 照真机维持公制。",
   "fov": "外部视角视野（FOV）",
   "fovHelp": "追踪、环绕、俯视视角；机载镜头维持真实镜头。",
   "comfort": [

@@ -1,6 +1,5 @@
 {
-  "kicker": "Pause",
-  "title": "Dive paused",
+  "title": "Paused",
   "resume": "Resume",
   "restart": "Restart",
   "restartConfirm": "Press again to confirm restart",
@@ -10,9 +9,18 @@
   "accept": "Accept: {label}",
   "settings": "Settings",
   "home": "Main menu",
-  "solo": "Solo dive: simulation paused. Centre controls before re-arming when you resume.",
-  "shared": "Multiplayer: simulation continues. Your controls are neutral; other players can keep piloting.",
-  "replay": "Replay: close this menu to continue.",
+  "solo": [
+    "Simulation paused · Centre sticks, then arm",
+    "Solo dive: simulation paused. Centre controls before re-arming when you resume."
+  ],
+  "shared": [
+    "Multiplayer room · Simulation still running",
+    "Multiplayer: simulation continues. Your controls are neutral; other players can keep piloting."
+  ],
+  "replay": [
+    "Replay · Close the menu to continue",
+    "Replay: close this menu to continue."
+  ],
   "tabs": {
     "fidelity": "Realism",
     "controls": "Controls",

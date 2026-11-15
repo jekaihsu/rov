@@ -14,11 +14,11 @@
   "locked": "解锁后生效",
   "autopilot": "自动航线中停用",
   "inactive": "未生效",
-  "inactiveHelp": "仿真器目前以手动飞行。定点与速度辅助需要 DVL 对底有效；离底过高或过近时会暂停。",
+  "inactiveHelp": "模拟器当前以手动飞行。定点与速度辅助需要 DVL 对底有效；离底过高或过近时会暂停。",
   "limited": "推力饱和",
   "limitedHelp": "推力不足以维持指令，例如洋流过强。",
   "holding": "定点中",
-  "manualOverride": "仿真器回报辅助仍在作用",
+  "manualOverride": "模拟器报告辅助仍在作用",
   "dvl": {
     "too_high": [
       "离底太高",
@@ -72,7 +72,7 @@
     ],
     "fault": [
       "DVL 故障",
-      "DVL 回报故障",
+      "DVL 报告故障",
       "改用手动飞行，结束后检修。"
     ]
   },

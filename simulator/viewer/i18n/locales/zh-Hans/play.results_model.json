@@ -4,7 +4,7 @@
     "time": "时间",
     "tether": "缆线管理",
     "contacts": "碰撞与接触",
-    "procedure": "作业进程",
+    "procedure": "作业程序",
     "other": "其他扣分"
   },
   "kinds": {
@@ -12,13 +12,14 @@
     "coop": "协作巡检",
     "chapter": "剧情",
     "drill": "事故演练",
-    "contract": "工程委托"
+    "contract": "工程委托",
+    "career": "YX 工单"
   },
   "times": "{n} 次",
   "noContacts": "无碰撞",
   "tetherBroken": "缆线断裂",
   "tetherClean": "张力正常",
-  "overload": "重载 {n} 次",
+  "overload": "过载 {n} 次",
   "contract": "委托完成",
   "medals": {
     "gold": "金牌",

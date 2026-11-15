@@ -7,11 +7,11 @@
     "route": "航线检查点",
     "free": "自由探索",
     "coop": "协作巡检",
-    "expedition": "探索接案"
+    "expedition": "探索接单"
   },
   "difficulty": [
     "入门",
-    "高端",
+    "进阶",
     "困难"
   ]
 }

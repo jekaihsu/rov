@@ -12,7 +12,8 @@
     "coop": "Co-op inspection",
     "chapter": "Story",
     "drill": "Incident drills",
-    "contract": "Engineering contracts"
+    "contract": "Engineering contracts",
+    "career": "YX work order"
   },
   "times": "{n} times",
   "noContacts": "No collisions",
