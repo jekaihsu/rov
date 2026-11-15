@@ -1,0 +1,153 @@
+"In Game Actions"
+{
+	"actions"
+	{
+		"Flight"
+		{
+			"title"			"#Set_Flight"
+			"legacy_set"		"1"
+			"StickPadGyro"
+			{
+				"Move"
+				{
+					"title"		"#Action_Move"
+					"input_mode"	"joystick_move"
+				}
+				"Look"
+				{
+					"title"		"#Action_Look"
+					"input_mode"	"joystick_move"
+				}
+			}
+			"AnalogTrigger"
+			{
+				"LeftWheel"		"#Action_LeftWheel"
+				"RightWheel"		"#Action_RightWheel"
+			}
+			"Button"
+			{
+				"Photo"			"#Action_Photo"
+				"Record"		"#Action_Record"
+				"DepthHold"		"#Action_DepthHold"
+				"Lock"			"#Action_Lock"
+				"Mode"			"#Action_Mode"
+				"Engineering"		"#Action_Engineering"
+				"Light"			"#Action_Light"
+				"Pause"			"#Action_Pause"
+				"Camera"		"#Action_Camera"
+				"Assist"		"#Action_Assist"
+				"Profile"		"#Action_Profile"
+				"PeekMission"		"#Action_PeekMission"
+				"PeekSystems"		"#Action_PeekSystems"
+				"PeekMap"		"#Action_PeekMap"
+				"PeekKeys"		"#Action_PeekKeys"
+				"Arm"			"#Action_Arm"
+				"Settings"		"#Action_Settings"
+			}
+		}
+		"Menu"
+		{
+			"title"			"#Set_Menu"
+			"legacy_set"		"0"
+			"StickPadGyro"
+			{
+				"Navigate"
+				{
+					"title"		"#Action_Navigate"
+					"input_mode"	"joystick_move"
+				}
+				"Rotate"
+				{
+					"title"		"#Action_Rotate"
+					"input_mode"	"joystick_move"
+				}
+			}
+			"Button"
+			{
+				"MenuUp"		"#Action_MenuUp"
+				"MenuDown"		"#Action_MenuDown"
+				"MenuLeft"		"#Action_MenuLeft"
+				"MenuRight"		"#Action_MenuRight"
+				"Accept"		"#Action_Accept"
+				"Back"			"#Action_Back"
+				"TabPrevious"		"#Action_TabPrevious"
+				"TabNext"		"#Action_TabNext"
+			}
+		}
+	}
+	"localization"
+	{
+		"english"
+		{
+			"Set_Flight"			"Flight"
+			"Set_Menu"			"Menu"
+			"Action_Move"			"Move"
+			"Action_Look"			"Look / camera"
+			"Action_LeftWheel"		"Left wheel"
+			"Action_RightWheel"		"Right wheel"
+			"Action_Photo"			"Photo"
+			"Action_Record"			"Record (hold)"
+			"Action_DepthHold"		"Depth hold"
+			"Action_Lock"			"Arm / disarm"
+			"Action_Mode"			"A/S/C mode"
+			"Action_Engineering"		"Engineering panel (hold)"
+			"Action_Light"			"Lights"
+			"Action_Pause"			"Pause (hold)"
+			"Action_Camera"			"Camera view"
+			"Action_Assist"			"Assist level"
+			"Action_Profile"		"Flight profile (hold)"
+			"Action_PeekMission"		"Mission peek"
+			"Action_PeekSystems"		"Systems peek"
+			"Action_PeekMap"		"Map peek"
+			"Action_PeekKeys"		"Keys peek"
+			"Action_Arm"			"Arm mode"
+			"Action_Settings"		"Controller settings"
+			"Action_Navigate"		"Move focus"
+			"Action_Rotate"			"Rotate showcase"
+			"Action_MenuUp"			"Up"
+			"Action_MenuDown"		"Down"
+			"Action_MenuLeft"		"Left / decrease"
+			"Action_MenuRight"		"Right / increase"
+			"Action_Accept"			"Confirm"
+			"Action_Back"			"Back"
+			"Action_TabPrevious"		"Previous tab"
+			"Action_TabNext"		"Next tab"
+		}
+		"tchinese"
+		{
+			"Set_Flight"			"飛行"
+			"Set_Menu"			"選單"
+			"Action_Move"			"移動"
+			"Action_Look"			"視角"
+			"Action_LeftWheel"		"左滾輪"
+			"Action_RightWheel"		"右滾輪"
+			"Action_Photo"			"拍照"
+			"Action_Record"			"錄影（按住）"
+			"Action_DepthHold"		"定深"
+			"Action_Lock"			"鎖定／解鎖"
+			"Action_Mode"			"A/S/C 模式"
+			"Action_Engineering"		"工程面板（長按）"
+			"Action_Light"			"燈光"
+			"Action_Pause"			"暫停（長按）"
+			"Action_Camera"			"切換視角"
+			"Action_Assist"			"輔助等級"
+			"Action_Profile"		"飛行檔位（長按）"
+			"Action_PeekMission"		"任務速覽"
+			"Action_PeekSystems"		"系統速覽"
+			"Action_PeekMap"		"地圖速覽"
+			"Action_PeekKeys"		"鍵位速覽"
+			"Action_Arm"			"手臂模式"
+			"Action_Settings"		"手把設定"
+			"Action_Navigate"		"移動焦點"
+			"Action_Rotate"			"旋轉展示"
+			"Action_MenuUp"			"上一項"
+			"Action_MenuDown"		"下一項"
+			"Action_MenuLeft"		"減少／上一個選項"
+			"Action_MenuRight"		"增加／下一個選項"
+			"Action_Accept"			"確認"
+			"Action_Back"			"返回"
+			"Action_TabPrevious"		"上一分頁"
+			"Action_TabNext"		"下一分頁"
+		}
+	}
+}

@@ -35,14 +35,16 @@ Assist level and flight profile belong to the fidelity profile (`../fidelity.js`
 at assist 0. Both RC fields are omitted until telemetry advertises an assist object. Selecting the drone
 preset also selects UAV_USA channel interpretation; current selects ROV_USA. No PWM meaning changes.
 
-Unknown controllers are neutral until calibrated. In the wizard move the first
-four requested controls in the positive directions (right/down/right/down), then
-press each requested standard button. Release between steps. Extra axes and
+Unknown controllers are neutral until calibrated (`input/calibrate.js`). In the wizard
+move the first four requested controls in the positive directions (right/down/right/down),
+then press each requested standard button. Release between steps. Extra axes and
 buttons may be assigned to any requested control; optional buttons may be skipped.
-The profile is saved by device ID. Calibrate again when changing driver/browser:
-SDL indices vary across platforms, especially hat switches. The compact database
-contains Linux axis records; unsupported SDL hat descriptors produce no action,
-so calibrate a custom profile when the live display differs from the device.
+The profile is saved under `rov.input.v1` → `custom[pad.id]`. Calibrate again when
+changing driver/browser: SDL indices vary across platforms, especially hat switches.
+The compact database contains Linux axis records; unsupported SDL hat descriptors
+produce no action, so calibrate a custom profile when the live display differs from
+the device. Compatibility notes: `research_notes/手把/compatibility.md`. Steam Input
+partner setup: `docs/steam/steam-input.md`.
 
 Browser preferences use `rov.input.v1`; desktop mirrors them in the existing
 userData/preferences.json mechanism and restores them across dynamic server ports.
