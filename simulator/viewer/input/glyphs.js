@@ -23,9 +23,11 @@ export function glyph(index, family = 'generic', key = '') {
   const label = family === 'keyboard'
     ? key.replace(/[<>&"]/g, '')
     : faceLabels(family)[index] || String(index + 1);
+  // Long key names (Space, Enter) widen the cap so the caption never spills onto the text beside it.
+  const width = Math.max(36, Math.round(String(label).length * 8 + 16));
   return (
-    `<svg width="36" height="24" viewBox="0 0 36 24" role="img" aria-label="${label}">` +
-    `<rect x="1" y="1" width="34" height="22" rx="7" fill="none" stroke="currentColor"/>` +
-    `<text x="18" y="17" text-anchor="middle" fill="currentColor" font-size="13">${label}</text></svg>`
+    `<svg width="${width}" height="24" viewBox="0 0 ${width} 24" role="img" aria-label="${label}">` +
+    `<rect x="1" y="1" width="${width - 2}" height="22" rx="7" fill="none" stroke="currentColor"/>` +
+    `<text x="${width / 2}" y="17" text-anchor="middle" fill="currentColor" font-size="13">${label}</text></svg>`
   );
 }

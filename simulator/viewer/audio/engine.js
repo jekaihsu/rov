@@ -174,6 +174,10 @@ class AudioEngine {
     if (!this.ctx || this.ctx.state !== 'running' || document.hidden || this.isPaused()) return;
     if (layer === 'underwater' && !this.underwaterOn()) return;
     for (const listener of this.cueListeners) listener(kind);
+    if (kind === 'shutter') {
+      this.shutter();
+      return;
+    }
     const severity = {touch: 1, hard: 2, severe: 3, warn: 2, broken: 3}[kind];
     if (['touch', 'hard', 'severe', 'photos'].includes(kind)) this.impact(severity || 0.5, layer);
     const frequency = severity ? 320 - severity * 45
@@ -203,6 +207,26 @@ class AudioEngine {
       oscillator.onended = function disconnect() {
         oscillator.disconnect();
         gain.disconnect();
+      };
+    }
+  }
+
+  // The topside App's camera shutter: two short filtered clicks. The viewer plays it when the photo is captured and
+  // the simulator's photo counter echoes it a moment later, so a second request inside the window is dropped.
+  shutter() {
+    const at = this.ctx.currentTime;
+    if (at - (this.lastShutter ?? -10) < 1.5) return;
+    this.lastShutter = at;
+    for (const offset of [0, 0.07]) {
+      const click = this.noiseLayer(0, 5200, this.buses.ui);
+      click.level.gain.setValueAtTime(0.0001, at + offset);
+      click.level.gain.linearRampToValueAtTime(0.16, at + offset + 0.004);
+      click.level.gain.exponentialRampToValueAtTime(0.0001, at + offset + 0.045);
+      click.source.stop(at + offset + 0.1);
+      click.source.onended = function disconnect() {
+        click.source.disconnect();
+        click.filter.disconnect();
+        click.level.disconnect();
       };
     }
   }

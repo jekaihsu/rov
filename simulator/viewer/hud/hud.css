@@ -141,6 +141,9 @@ body[data-hud-style] #labels .lbl.bad { color: var(--danger); }
 
 /* ── Density, hiding and modes ─────────────────────────────────────────── */
 body.hud-minimal #flightMapBox, body.hud-minimal #flightAttitude { display: none; }
+/* The pitch ladder and crosshair describe the onboard camera; a chase, orbit or top view does not look along it. */
+body[data-view]:not([data-view=onboard]) #flightAttitude, body[data-view]:not([data-view=onboard]) #xhair {
+  display: none; }
 body[data-hud-style=line]:not(.hud-minimal) #xhair { display: none; }
 body.hud-hidden .hud, body.hud-hidden .flight, body.hud-hidden #labels { visibility: hidden; }
 body.hud-hidden #flightTools { visibility: visible; }

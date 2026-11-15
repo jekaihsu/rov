@@ -29,7 +29,10 @@ def run():
                   f'&ws={ws_base()}')
         panel = page.locator('#procedurePanel')
         panel.wait_for(state='visible', timeout=timeout(90000))
-        page.wait_for_function('window.__intro?.() == null || !window.__intro().playing')
+        # The vehicle is on the aft deck during the checklist: the launch intro opens there and holds its first frame.
+        page.wait_for_function('window.__intro?.()?.held === true', timeout=timeout(90000))
+        assert page.evaluate('window.__intro().t') == 0, 'the held deck frame must not advance'
+        assert page.evaluate('window.__viewer.S.pos[2]') < 0, 'the full procedure starts on deck, above the water'
         z_index = panel.evaluate('(el) => getComputedStyle(el).zIndex')
         controls = page.evaluate('getComputedStyle(document.documentElement).getPropertyValue("--z-controls").trim()')
         assert z_index == controls, (z_index, controls)
@@ -46,10 +49,12 @@ def run():
             page.wait_for_function(f'window.__viewer.S.procedure.checked.length === {index + 1}')
             print('Confirmed check', index + 1, flush=True)
         panel.get_by_role('button', name='與纜線手確認就緒').click()
-        assert page.evaluate('window.__intro() === null'), 'the launch intro must wait for the lowering step'
+        held = page.evaluate('window.__intro()')
+        assert held['held'] and held['t'] == 0, 'the launch intro must wait on deck for the lowering step'
         panel.get_by_role('button', name='選上游點，以纜線緩放入水').click()
         # Procedure first, then the A-frame launch cinematic at the lowering step; skip it to keep the check short.
-        page.wait_for_function('window.__intro?.()?.starts > 0', timeout=timeout(90000))
+        page.wait_for_function('window.__intro?.()?.starts > 0 && window.__intro().held === false',
+                               timeout=timeout(90000))
         page.evaluate('document.querySelector("#skipIntro").click()')
         page.wait_for_function('!window.__intro().playing', timeout=timeout(60000))
         panel.get_by_role('button', name='影像、配平與功能正常；人員已離開').click()

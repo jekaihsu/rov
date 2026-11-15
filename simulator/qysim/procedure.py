@@ -42,6 +42,8 @@ class Procedure:
             sim.vehicle.s.pos[2] = -.5
             sim.vehicle.s.vel[:] = 0
             sim.rc_physical.rc_lock = sim.rc_sdk.rc_lock = 1
+            # The sensors read the deck, not the water the scenario would have started in.
+            sim.sensors.reset(sim)
         elif action == 'check' and self.phase == 'checks':
             key = msg.get('key')
             if key != CHECKS[len(self.checked)]:
@@ -86,6 +88,7 @@ class Procedure:
             sim.tether = Tether(sim.world, sim.tether.spool, gland,
                                 sim.tether.length, gland_body=sim.tether.gland_body)
             sim.tether.settle(2., sim.vehicle.s.pos, sim.vehicle.s.q)
+            sim.sensors.reset(sim)
         elif action == 'water_confirm' and self.phase == 'water_check':
             self.phase = 'diving'
         elif action == 'recover' and self.phase == 'diving':

@@ -155,14 +155,15 @@ export function mountToggles(container, items) {
 }
 
 // A readable table of the flight bindings, generated from the table so it cannot drift from the real keys.
-export function mountKeyHints(container, bindings) {
+// keys: {rows, operationMode} of the active keyboard layout (input/keyboard_layout.js); rows name actions, not sticks.
+export function mountKeyHints(container, bindings, keys = {}) {
   const section = element('section', 'menu-hints');
   section.append(element('h3', 'menu-label', STRINGS.hintsTitle));
   const table = element('table');
   const head = element('tr');
   for (const text of [STRINGS.action, STRINGS.keys, STRINGS.pad]) head.append(element('th', '', text));
   table.append(head);
-  for (const item of hintItems({ axes: true, contexts: ['flight', 'tool', 'dialogue'], bindings })) {
+  for (const item of hintItems({ axes: true, contexts: ['flight', 'tool', 'dialogue'], bindings, ...keys })) {
     const row = element('tr');
     const label = item.note ? `${item.label}（${item.note}）` : item.label;
     row.append(element('td', '', label), element('td', '', item.keys.join(' ')), element('td', '', item.pad));
