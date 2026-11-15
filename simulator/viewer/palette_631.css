@@ -1,0 +1,85 @@
+/* 60/30/10 配色試作（?palette=631）：兩個基底色做九成的事，一個意外的強調色只給主要行動按鈕。
+   主色 60% 深海藍黑、第二色 30% 冰白、強調色 10% 高能見度萊姆綠（離岸工作服的安全色）。
+   只在 html[data-palette="631"] 下生效，不影響預設配色與飛行 HUD 的警示色。 */
+html[data-palette="631"] {
+  --color-main: #06121c;
+  --color-second: #eef3f0;
+  --color-accent: #c8f53c;
+  --bg-0: var(--color-main);
+  --text: var(--color-second);
+  --text-dim: rgba(238, 243, 240, .58);
+  --line: rgba(238, 243, 240, .16);
+  /* 選單與結算原本到處使用的青色，一律改回第二色；強調色只在下方明確指定的位置出現。 */
+  --accent: rgba(238, 243, 240, .78);
+}
+html[data-palette="631"] .menu-loading {
+  background: var(--color-main);
+}
+
+/* 主要行動按鈕：每個畫面只有一顆。 */
+html[data-palette="631"] .menu-start,
+html[data-palette="631"] .results-screen .menu-start {
+  background: var(--color-accent);
+  color: var(--color-main);
+}
+html[data-palette="631"] .menu-start .menu-cap {
+  color: var(--color-main);
+  border-color: rgba(6, 18, 28, .55);
+}
+html[data-palette="631"] .menu-start:hover,
+html[data-palette="631"] .menu-start:focus {
+  box-shadow: 0 0 0 1px var(--color-accent), 0 10px 30px rgba(200, 245, 60, .22);
+}
+/* 標題畫面的主要行動是「開始」。 */
+html[data-palette="631"] #titleStart {
+  padding: 12px 22px;
+  background: var(--color-accent);
+  color: var(--color-main);
+}
+html[data-palette="631"] #titleStart .menu-cap {
+  color: var(--color-main);
+  border-color: rgba(6, 18, 28, .55);
+}
+
+/* 極小的品牌點綴：選中分頁底線、目前步驟、載入進度。 */
+html[data-palette="631"] .menu-tab[aria-selected=true] {
+  border-bottom-color: var(--color-accent);
+}
+html[data-palette="631"] .menu-steps li[aria-current=step] {
+  border-top-color: var(--color-accent);
+}
+html[data-palette="631"] .menu-steps li[aria-current=step]::after {
+  background: var(--color-accent);
+}
+html[data-palette="631"] .menu-loading-bar i {
+  background: var(--color-accent);
+}
+
+/* 次要按鈕：第二色外框，不塗強調色。 */
+html[data-palette="631"] .menu-next,
+html[data-palette="631"] .objective-card .objective-accept {
+  border-color: rgba(238, 243, 240, .55);
+  color: var(--color-second);
+}
+html[data-palette="631"] .menu-next:hover {
+  background: rgba(238, 243, 240, .08);
+}
+
+/* 原本寫死的青色半透明，改為第二色。 */
+html[data-palette="631"] .menu-steps li.done {
+  border-top-color: rgba(238, 243, 240, .4);
+}
+html[data-palette="631"] .launch-menu :focus-visible,
+html[data-palette="631"] .pause-menu :focus-visible,
+html[data-palette="631"] .results-screen :focus-visible {
+  box-shadow: 0 0 0 4px rgba(238, 243, 240, .1);
+}
+html[data-palette="631"] .menu-card[aria-pressed=true],
+html[data-palette="631"] .menu-site[aria-pressed=true] {
+  border-top-color: rgba(238, 243, 240, .6);
+}
+html[data-palette="631"] .menu-row:hover,
+html[data-palette="631"] .menu-row:focus,
+html[data-palette="631"] .results-rewards li {
+  background: rgba(238, 243, 240, .05);
+}
