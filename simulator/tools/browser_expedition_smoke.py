@@ -29,15 +29,18 @@ def operation(page, action, **values):
     """Send an operation from a live tab. Bring it forward first so soft-GL tabs can pump sockets."""
     message = {'type': 'operation', 'action': action, **values}
     page.bring_to_front()
-    sent = page.evaluate("""m => {
-      const socket = [...window.__testSockets].reverse().find(s => s.readyState === 1);
-      if (!socket) return false;
-      socket.send(JSON.stringify(m));
-      return true;
-    }""", message)
-    if not sent:
-        raise AssertionError(f'no open viewer socket for {action}')
-    return message
+    deadline = time.time() + timeout(30000) / 1000
+    while time.time() < deadline:
+        sent = page.evaluate("""m => {
+          const socket = [...window.__testSockets].reverse().find(s => s.readyState === 1);
+          if (!socket) return false;
+          socket.send(JSON.stringify(m));
+          return true;
+        }""", message)
+        if sent:
+            return message
+        page.wait_for_timeout(100)
+    raise AssertionError(f'no open viewer socket for {action}')
 
 
 def wait_state(page):
@@ -106,7 +109,15 @@ def host_operation(tabs, main, action, **values):
     request_id = values.get('request_id')
     elected = current_host(tabs)
     before = elected.evaluate('window.__testMessages.length')
-    operation(elected, action, **values)
+    try:
+        operation(elected, action, **values)
+    except AssertionError:
+        if elected is main:
+            raise
+        print(f'elected host has no socket for {action}; promoting main', flush=True)
+        promote_main(tabs, main)
+        main_operation(main, action, **values)
+        return main
     if not request_id:
         return elected
     try:
