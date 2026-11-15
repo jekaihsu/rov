@@ -108,12 +108,13 @@ function renderOptics(state, original, scene, camera) {
 
 export { addMediumContributor } from './water_optics.js';
 
-export function installUnderwaterPipeline(renderer, { surface = null } = {}) {
+export function installUnderwaterPipeline(renderer, { surface = null, surfacePresentation = null } = {}) {
   if (pipelines.has(renderer)) return pipelines.get(renderer);
   if (isLowMode(renderer)) return null;
   const original = renderer.render.bind(renderer);
   const state = {
-    renderer, surface, scenes: new Set(), composer: null, busy: false, cameraPass: null, width: 0, height: 0,
+    renderer, surface, surfacePresentation, scenes: new Set(), composer: null, busy: false,
+    cameraPass: null, width: 0, height: 0,
     background: createWaterBackground(), optics: false, fogColour: new THREE.Color(),
     get enhancements() {
       return beautifyEnabled();
@@ -153,7 +154,7 @@ export function installUnderwaterPipeline(renderer, { surface = null } = {}) {
   };
   renderer.render = function renderWithEffects(scene, camera) {
     if (state.busy || renderer.getRenderTarget() || !scene?.isScene) return original(scene, camera);
-    if (legacyWaterLook(renderer)) {
+    if (legacyWaterLook(renderer) || state.surfacePresentation?.(camera)) {
       if (state.optics) leaveOptics(state, scene, camera, renderer);
       state.optics = false;
       return original(scene, camera);

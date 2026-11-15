@@ -1,0 +1,17 @@
+{
+  "triangles": 16740,
+  "images": [
+    [
+      "small_boat.teak",
+      "image/webp",
+      23524,
+      512,
+      512,
+      1398101.3333333333
+    ]
+  ],
+  "bytes": 174664,
+  "gpu_bytes": 1398101.3333333333,
+  "materials": 6,
+  "meshes": 6
+}

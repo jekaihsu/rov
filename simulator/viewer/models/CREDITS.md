@@ -63,3 +63,14 @@ trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies mes
 沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
 GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
 固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
+
+## Small swim-platform boat (M3)
+
+- `small_boat.glb`: original procedural geometry and seeded teak texture, dedicated to **CC0-1.0** by this
+  contribution. Rebuild: `cad/build_small_boat.py` (Blender 4.3.2), then the existing `compress()` helper
+  (`@gltf-transform/cli@4.5.1`, MIT; meshopt + WebP). No .blend source is required.
+- Simplified launch arms and distant wind-farm / jack-up silhouettes: original procedural geometry,
+  **CC0-1.0**, in `swim_platform_intro.js`. Existing YX Model R vehicle and sea normal assets retain their
+  existing credits above.
+- User reference photographs are visual references only: not distributed, embedded, cropped, projected,
+  or used as textures. No photographed vehicle branding is reproduced.

@@ -16,7 +16,7 @@ review (current tree or an older checkout) to /, so before and after renders use
 </head><body><div id="pip"></div>
 <script type="module">
 import * as THREE from 'three';
-import { DeployIntro } from './deploy_intro.js';
+import { launchIntroClass } from './swim_platform_intro.js';
 import { Humanoid } from './humanoid.js';
 import { PilotPiP } from './pilot_pip.js';
 import { createVehicleModel } from './vehicle_models.js';
@@ -24,6 +24,7 @@ import { createVehicleModel } from './vehicle_models.js';
 const W = 1600;
 const H = 900;
 const query = new URLSearchParams(location.search);
+const DeployIntro = launchIntroClass(query.get('launchMode'));
 const asset = query.get('asset') || 'boat';
 const view = query.get('view') || 'quarter';
 
@@ -184,6 +185,7 @@ async function renderIntro() {
   scene.add(rov);
   const camera = new THREE.PerspectiveCamera(55, W / H, 0.05, 2600);       // the viewer's camera
   addDaylight(scene, intro.boat.position);
+  window.__assetIntro = intro;
   intro.play(rov, camera, () => {});
   const step = 1 / 30;
   for (let t = 0; t + step / 2 < at && intro.playing; t += step) intro.update(step);
