@@ -10,6 +10,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    concurrency:
+      group: pages-build-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
@@ -23,6 +26,9 @@ jobs:
         with:
           path: docs
   deploy:
+    concurrency:
+      group: pages-deploy-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     timeout-minutes: 10
     needs: build
     runs-on: ubuntu-latest

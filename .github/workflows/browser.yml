@@ -5,62 +5,54 @@ on:
     paths:
       - "simulator/viewer/**"
   workflow_dispatch:
+permissions:
+  contents: read
 concurrency:
-  group: browser-${{ github.ref }}
+  group: browser-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  NUMBA_CACHE_DIR: ${{ github.workspace }}/.runtime/numba
 jobs:
   browser:
-    name: Browser smoke (advisory)
+    concurrency:
+      group: browser-browser-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review') && 60 || 5 }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install -r simulator/requirements.txt playwright
-      - run: python -m playwright install --with-deps chrome
-      - name: Browser smoke tests (SwiftShader)
-        working-directory: simulator
-        run: |
-          python -m qysim.server --http-port 8092 --ws-port 8792 > /tmp/server.log 2>&1 &
-          trap 'cat /tmp/server.log' EXIT
-          python - <<'PYTHON'
-          import time, urllib.request
-          for attempt in range(60):
-              try:
-                  urllib.request.urlopen('http://127.0.0.1:8092/')
-                  break
-              except OSError:
-                  time.sleep(1)
-          else:
-              raise SystemExit('Server did not start')
-          PYTHON
-      - name: Multi-window smoke (advisory)
-        id: smoke
-        continue-on-error: true
-        working-directory: simulator
-        run: python tools/browser_smoke.py
-      - name: Menu smoke (advisory)
-        id: menu
-        continue-on-error: true
-        working-directory: simulator
-        run: python tools/browser_menu_smoke.py
-      - name: Report advisory results
-        if: always()
-        env:
-          SMOKE_RESULT: ${{ steps.smoke.outcome }}
-          MENU_RESULT: ${{ steps.menu.outcome }}
-        run: |
-          echo "### Advisory browser checks" >> "$GITHUB_STEP_SUMMARY"
-          echo "Multi-window: $SMOKE_RESULT; menu: $MENU_RESULT" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$SMOKE_RESULT" != success ] || [ "$MENU_RESULT" != success ]; then
-            echo "::warning::Advisory browser failure; inspect logs and browser-validation artifacts."
-            echo "Software-rendered multi-window smoke times out on the arm grip assertion; see T08 PR." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - uses: actions/upload-artifact@v4
-        if: always()
+          cache: pip
+          cache-dependency-path: simulator/requirements*.txt
+      - uses: actions/cache@v4
         with:
-          name: browser-validation
-          path: simulator/output/
+          path: ${{ env.NUMBA_CACHE_DIR }}
+          key: numba-${{ runner.os }}-${{ runner.arch }}-py311-${{ hashFiles('simulator/requirements*.txt', 'simulator/qysim/**/*.py') }}
+          restore-keys: numba-${{ runner.os }}-${{ runner.arch }}-py311-
+      - run: python -m pip install -r simulator/requirements.txt numba playwright
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: python -m playwright install --with-deps chromium
+      - run: node simulator/desktop/test_collection_store.cjs
+      - name: Run selected tier
+        env:
+          TIER: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review') && 'full' || 'quick' }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          args=()
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            args+=(--changed --base "$BASE_SHA")
+          fi
+          python simulator/tools/run_browser_checks.py --tier "$TIER" "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-logs
+          path: simulator/output/browser-checks/
