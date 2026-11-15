@@ -1,6 +1,9 @@
 // Controller setup, live shaping preview and sequential calibration; flight is suspended while open.
 import { CHANNELS, PRESETS, curve, radial, bindingValue } from "./actions.js";
 import { actionLabel, bindingRow, defaultPadBindings, findCollisions, inputIds } from "./bindings.js";
+import {
+  CALIBRATION_STEPS, captureCalibrationStep, buildCustomMapping, isNeutral
+} from "./calibrate.js";
 const STRINGS = {
   title: "手把設定",
   close: "返回",
@@ -181,14 +184,13 @@ export function installSettings(settings, save, haptics, setMode) {
   let release = false;
   let pad = null;
   const prompt = element("p", "");
-  const steps = [...["leftx", "lefty", "rightx", "righty"], ...Array.from({ length: 17 }, (_, i) => `b${i}`)];
   function next(binding) {
     wizard.values.push(binding);
     prompt.dataset.step = wizard.values.length;
     release = true;
     prompt.dataset.ready = "false";
-    if (wizard.values.length === steps.length) {
-      settings.custom[pad.id] = { axes: wizard.values.slice(0, 4), buttons: wizard.values.slice(4) };
+    if (wizard.values.length === CALIBRATION_STEPS.length) {
+      settings.custom[pad.id] = buildCustomMapping(wizard.values);
       wizard = null;
       save();
       prompt.textContent = STRINGS.done;
@@ -220,18 +222,18 @@ export function installSettings(settings, save, haptics, setMode) {
     if (!root.open) return;
     live.textContent = JSON.stringify(frame.snapshot || {});
     if (pad && wizard) {
-      prompt.textContent = STRINGS.prompt + steps[wizard.values.length];
+      prompt.textContent = STRINGS.prompt + CALIBRATION_STEPS[wizard.values.length];
       const axes = pad.axes.map((v, i) => v - (wizard.baseline[i] || 0));
-      const index = axes.findIndex((v) => Math.abs(v) > 0.65);
       const pressed = pad.buttons.findIndex((b) => b.pressed);
       if (release) {
-        if (index < 0 && pressed < 0) {
+        if (isNeutral(axes, pressed)) {
           release = false;
           prompt.dataset.ready = "true";
         }
-      } else if (wizard.values.length < 4 && index >= 0) next(`${axes[index] < 0 ? "-" : ""}a${index}`);
-      else if (wizard.values.length >= 4 && pressed >= 0) next(`b${pressed}`);
-      else if (wizard.values.length >= 4 && index >= 0) next(`${axes[index] < 0 ? "-" : ""}a${index}`);
+      } else {
+        const captured = captureCalibrationStep(wizard.values.length, axes, pressed);
+        if (captured) next(captured);
+      }
       return;
     }
     if (pad && !frame.snapshot.known) prompt.textContent = STRINGS.unknown;

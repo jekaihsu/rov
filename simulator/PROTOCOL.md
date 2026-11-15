@@ -628,9 +628,33 @@ company baseline flights. Reaction means first changed control packet after inje
 not a validated successful recovery. Completion/failure automatically archives a report;
 reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are available.
 
-This draft does **not** yet implement tether snags, sensor faults, lighting
-faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
-fault adapters or permanent report storage. It is not ready for training acceptance.
+### Optional debrief / replay annotations (G6)
+
+Training review uses the existing offline replay document (`format:"qysim-replay-2"`) plus
+optional metadata. Clients that ignore the new fields keep today's behaviour.
+
+* Top-level or per-clip optional `debrief`:
+  `{version:1, events:[{kind,t,detail,...}], notes:"...", seek_lead_s:5, injections:[...]}`.
+  `events` may be precomputed; if omitted the viewer/host derive markers from frames.
+  `injections` mirrors public instructor injection rows (`kind`, `start`/`t`, `vehicle_id`) so a
+  recording can mark instructor injects without embedding credentials.
+* Event `kind` values: `instructor_inject`, `collision`, `tether_warn`, `tether_snag`,
+  `tether_break`, `silt_whiteout`, `dvl_lost`, `comms_loss`, `objective_done`, `penalty`.
+  Jumping to a marker seeks to `max(clip_start, t - seek_lead_s)` (default lead 5 s).
+* Frames may optionally include the existing live fields `sensors` and `link` (same shapes as
+  `state`). Present → student debrief view can show delayed/sensed readings; absent → legacy
+  truth-only frames still play. Debrief god-view may contrast `pos` / `current_*` with `sensors`
+  when both exist. Debrief viewpoints are an instructor tool and are **not** fidelity items; the
+  UI must label god-view as non-student imagery.
+* A `training_report` may be converted into a minimal replay (`qysim.debrief.report_to_replay`)
+  whose `clips[0].frames` are the 1 Hz trajectory samples; `debrief.events` carries the markers.
+* Printable debrief HTML (browser print-to-PDF) includes score, event list, optional screenshots
+  and instructor notes. Visible strings stay in the debrief `STRINGS` tables. Instructor codes are
+  never written into reports or recordings.
+
+This draft does **not** yet implement lighting faults, course scheduling/aggregate grades,
+SDK measurement fault adapters or permanent report storage. It is not ready for formal
+training acceptance.
 
 ## Ocean current model
 
