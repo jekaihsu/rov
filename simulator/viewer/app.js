@@ -56,6 +56,7 @@ import { installVideoLinkOverlay } from './video_link_overlay.js';
 import { installResults, resultsOpen } from './play/results.js';
 import { installAchievements } from './play/achievements.js';
 import { installConnectionNotice } from './play/connection_notice.js';
+import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -932,14 +933,13 @@ function updateUI() {
   setHTML('log', (s.log || []).slice().reverse().map((l) => `<li><span class="t">${esc(l.stamp || fmtT(l.t))}</span><span class="x">${esc(l.text)}</span></li>`).join(''));
 
   // training
-  const sc = s.score || {}, lim = W?.scenario?.time_limit_s;
-  setTxt('score', sc.score ?? '—');
+  const sc = s.score || {}, lim = missionTimeLimit(s, W);
+  setTxt('score', scoreValue(s));
   setTxt('timer', `${fmtT(sc.elapsed)} / ${lim ? fmtT(lim) : '—'}`);
   $('timeFill').style.width = lim ? clamp(100 * (sc.elapsed || 0) / lim, 0, 100) + '%' : '0%';
   $('timeFill').style.background = lim && sc.elapsed > lim * .85 ? C('--warn') : C('--jet');
   const objs = sc.objectives || [];
-  const nDone = objs.filter((o) => o.done).length;
-  setTxt('scoreState', sc.failed ? `失敗：${sc.failed}` : sc.finished ? '任務完成' : `目標 ${nDone}/${objs.length} · 扣分 ${sc.penalty_total || 0}`);
+  setTxt('scoreState', scoreSummary(s));
   setHTML('objs', objs.map((o, i) => {
     const cls = o.done ? 'done' : i === sc.current_index ? 'cur' : '';
     return `<li class="${cls}"><span class="ic">${o.done ? '✓' : i === sc.current_index ? '▶' : '○'}</span><span>${esc(o.label)}${o.hold_s ? `<span class="hint"> · 停留 ${o.hold_s}s</span>` : ''}</span><span></span><div class="track"><div class="fill" style="width:${(o.done ? 1 : o.progress || 0) * 100}%"></div></div></li>`;

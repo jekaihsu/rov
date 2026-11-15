@@ -1,0 +1,43 @@
+// Free exploration never shows a time limit, objectives or "目標 0/0"; scored modes keep their numbers.
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  briefingTimeLimit,
+  missionTimeLimit,
+  scoreSummary,
+  scoreValue,
+} from "../viewer/play/mission_text.js";
+
+const WORLD = { scenario: { time_limit_s: 900 } };
+const EMPTY = { score: 0, elapsed: 12, objectives: [], penalties: [], penalty_total: 0 };
+
+test("free exploration and the expedition sea are untimed and unscored", () => {
+  for (const mode of ["free_explore", "expedition"]) {
+    const state = { mission: { mode }, score: EMPTY };
+    assert.equal(missionTimeLimit(state, WORLD), null, mode);
+    assert.equal(scoreValue(state), "—", mode);
+    assert.doesNotMatch(scoreSummary(state), /0\/0/, mode);
+    assert.equal(briefingTimeLimit(mode, { timeLimit: 900 }), null, mode);
+  }
+  assert.match(scoreSummary({ mission: { mode: "free_explore" }, score: EMPTY }), /不計時/);
+  const contract = { mission: { mode: "expedition" }, expedition: { active: { label: "巡檢三個站點" } } };
+  assert.equal(scoreSummary(contract), "委託：巡檢三個站點");
+});
+
+test("scenario training and co-op keep their limit, score and objective count", () => {
+  const score = { score: 80, objectives: [{ done: true }, { done: false }], penalty_total: 5 };
+  const training = { mission: { mode: "scenario_training" }, score };
+  assert.equal(missionTimeLimit(training, WORLD), 900);
+  assert.equal(scoreValue(training), 80);
+  assert.equal(scoreSummary(training), "目標 1/2 · 扣分 5");
+  assert.equal(scoreSummary({ ...training, score: { ...score, failed: "超過時間限制" } }), "失敗：超過時間限制");
+  const coop = { mission: { mode: "inspection_coop", time_limit: 720 }, score };
+  assert.equal(missionTimeLimit(coop, WORLD), 720);
+  assert.equal(briefingTimeLimit("inspection_coop", { timeLimit: 900 }), 720);
+  assert.equal(briefingTimeLimit("scenario_training", { timeLimit: 900 }), 900);
+});
+
+test("a running chapter shows its own objective", () => {
+  const state = { mission: { mode: "free_explore" }, campaign: { status: "active", objective: "解除馬達鎖定" } };
+  assert.equal(scoreSummary(state), "解除馬達鎖定");
+});

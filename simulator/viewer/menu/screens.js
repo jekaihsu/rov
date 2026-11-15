@@ -4,6 +4,7 @@ import { STICKERS } from '../vehicle_stickers.js';
 import { getFidelity } from '../fidelity.js';
 import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
 import { MODES, siteFacts, supportsMode, vehicleSpecs } from './catalogue.js';
+import { briefingTimeLimit } from '../play/mission_text.js';
 
 const STRINGS = {
   title: 'ROV 潛航模擬器',
@@ -48,6 +49,12 @@ const STRINGS = {
   units2: { m: 'm', kn: 'kn', min: '分' },
   objectives: '任務目標',
   noObjectives: '自由航行，沒有指定目標。',
+  goalsTitle: '玩法',
+  modeGoals: {
+    free_explore: ['自由航行：不計時、不扣分。', '練習操控、機械臂與標記，隨時可以返回主選單。'],
+    expedition: ['探索海域、拍攝生物登錄圖鑑。', '下水後可在任務卡接取巡檢、回收或部署委託。'],
+    inspection_coop: ['分工靠近三個巡檢站點（下水後標出）。', '在站點低速穩定 3 秒後拍照。'],
+  },
   hostNote: '加入既有房間時，以房主的場景與玩法為準。',
   room: '房間',
   intro: '下水動畫',
@@ -449,16 +456,22 @@ export function buildBriefing(ctx) {
         readout(STRINGS.briefingNumbers.visibility, fixed(facts.visibility, 0), STRINGS.units2.m),
         readout(STRINGS.briefingNumbers.current, fixed(facts.current, 1), STRINGS.units2.kn),
         readout(STRINGS.briefingNumbers.tether, fixed(facts.tether, 0), STRINGS.units2.m),
-        readout(STRINGS.briefingNumbers.time, fixed((facts.timeLimit || 0) / 60, 0), STRINGS.units2.min),
       );
+      const limit = briefingTimeLimit(ctx.choice.mission, facts);
+      if (limit && !chapter) {
+        numbers.append(readout(STRINGS.briefingNumbers.time, fixed(limit / 60, 0), STRINGS.units2.min));
+      }
     }
-    const labels = (scene?.world?.objectives || []).map(function label(objective) {
+    // Only scenario training plays the scene's own objectives; the other modes say what the mode is about.
+    const goals = chapter ? null : STRINGS.modeGoals[ctx.choice.mission];
+    const labels = goals || (scene?.world?.objectives || []).map(function label(objective) {
       return objective.label;
     }).filter(Boolean).slice(0, 5);
     objectives.replaceChildren(...labels.map(function item(text) {
       return element('li', '', text);
     }));
     if (!labels.length) objectives.append(element('li', 'menu-help', STRINGS.noObjectives));
+    objectivesTitle.textContent = goals ? STRINGS.goalsTitle : STRINGS.objectives;
     objectivesTitle.hidden = !!chapter;
     objectives.hidden = !!chapter;
     note.textContent = ctx.choice.multiplayer ? STRINGS.hostNote : '';
