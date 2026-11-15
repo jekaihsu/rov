@@ -1,0 +1,15 @@
+services:
+  simulator:
+    image: rov-ros2:humble
+    build:
+      context: ../../..
+      dockerfile: simulator/integrations/ros2/Dockerfile
+    working_dir: /simulator
+    command: ["python3", "-m", "qysim.server", "--host", "0.0.0.0", "--scenario", "open_water", "--seed", "1"]
+    ports: ["8080:8080", "8765:8765"]
+  bridge:
+    image: rov-ros2:humble
+    network_mode: "service:simulator"
+    depends_on: [simulator]
+    environment:
+      ROS_DOMAIN_ID: "42"

@@ -10,7 +10,7 @@ const SIZE = 256;
 let textures = null;
 
 // weights: sand, gravel, mud, shell, rock outcrop; colours in linear-ish sRGB hex
-const PROFILES = {
+export const PROFILES = {
   offshore: {sand: 0xb3a57f, mud: 0x6f6650, gravel: .35, mud_w: .1, shell: .45, rock: .12, ripple: 1},
   harbour: {sand: 0x7d735c, mud: 0x4b4639, gravel: .25, mud_w: .75, shell: .55, rock: 0, ripple: .25},
   wreck: {sand: 0x8f866b, mud: 0x575142, gravel: .4, mud_w: .55, shell: .3, rock: .08, ripple: .45},
@@ -18,6 +18,15 @@ const PROFILES = {
   seagrass: {sand: 0xbfb48f, mud: 0x6b6450, gravel: .1, mud_w: .45, shell: .35, rock: 0, ripple: .5},
   pool: {sand: 0xdfe8ea, mud: 0xdfe8ea, gravel: 0, mud_w: 0, shell: 0, rock: 0, ripple: 0, tiles: 1},
 };
+
+/** Hex colour for seabed rocks at a site: sand→mud blend so snag rocks match the floor. */
+export function siteRockColor(world) {
+  const profile = PROFILES[siteProfile(world)] || PROFILES.offshore;
+  const mud = profile.mud_w || 0;
+  const sand = new THREE.Color(profile.sand);
+  const dirt = new THREE.Color(profile.mud);
+  return sand.lerp(dirt, 0.35 + 0.45 * mud).getHex();
+}
 
 function hash2(x, y) {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;

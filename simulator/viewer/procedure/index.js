@@ -62,6 +62,32 @@ function downloadJson(data, name) {
   }, 1000);
 }
 
+/**
+ * Pilot-log lines (tether, silt, link, power, sensor...) gathered from `state.log` during the dive. The server
+ * only streams the last 8 lines, so they are accumulated here for the dive-log export.
+ */
+function createPilotLog(limit = 2000) {
+  const rows = [];
+  const seen = new Set();
+  function collect(log) {
+    for (const row of log || []) {
+      const key = `${row.t}|${row.kind}|${row.text}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+    if (rows.length > limit) rows.splice(0, rows.length - limit);
+  }
+  function clear() {
+    rows.length = 0;
+    seen.clear();
+  }
+  function lines() {
+    return rows.slice();
+  }
+  return {collect, clear, lines};
+}
+
 export function installProcedure({send, readOnly = false}) {
   const query = new URLSearchParams(location.search);
   const fidelity = getFidelity();
@@ -70,6 +96,7 @@ export function installProcedure({send, readOnly = false}) {
   let launchIntro = null;
   let lastPhase = null;
   let signature;
+  const pilotLog = createPilotLog();
   installStyle();
   const panel = document.createElement('section');
   panel.id = 'procedurePanel';
@@ -130,7 +157,7 @@ export function installProcedure({send, readOnly = false}) {
     if (p.phase === 'complete') {
       panel.append(STRINGS.complete);
       button(STRINGS.export).onclick = function exportLog() {
-        downloadJson(latest, 'dive-log.json');
+        downloadJson({...latest, pilot_log: pilotLog.lines()}, 'dive-log.json');
       };
     }
   }
@@ -156,6 +183,7 @@ export function installProcedure({send, readOnly = false}) {
     if (query.get('mission') === 'campaign' && !state.campaign?.chapter) return;
     if (begunGeneration !== state.control_generation) {
       begunGeneration = state.control_generation;
+      pilotLog.clear();
       if (wanted() && !state.procedure?.active) command('begin');
     }
     const p = state.procedure;
@@ -164,6 +192,7 @@ export function installProcedure({send, readOnly = false}) {
       return;
     }
     latest = p;
+    pilotLog.collect(state.log);
     if (p.phase === 'water_check' && lastPhase === 'launch' && launchIntro) {
       const play = launchIntro;
       launchIntro = null;

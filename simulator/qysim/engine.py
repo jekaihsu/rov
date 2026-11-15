@@ -178,6 +178,10 @@ class Simulator:
         self._prev_buttons = {"record": 0, "photo": 0}
         self.damage_events: list[dict] = []
         self.log: list[dict] = []
+        self._seen_tether_events = 0
+        self._logged_tether = None
+        self._silt_out_logged = False
+        self._power_trip_logged = False
         self.tool_wrench = np.zeros(6)
         from .operations import VehicleOperations
         self.operations = VehicleOperations(self)
@@ -209,9 +213,44 @@ class Simulator:
         pts.append(gland)
         self.tether.layout(pts)
 
+    # Pilot-log lines. ``stamp`` uses the same wall-clock form as photo ``create_time``
+    # (`%Y/%m/%d %H:%M:%S`); assumption — no public X1 App dive-log sample was available.
+    _TETHER_LOG = {
+        "tether_snag": lambda e: f"勾纏：{e.get('obstacle', '')}",
+        "tether_snag_tightened": lambda e: f"勾纏收緊：{e.get('obstacle', '')}",
+        "tether_snag_released": lambda e: f"勾纏脫開：{e.get('obstacle', '')}",
+        "tether_break": lambda e: f"斷纜（{e.get('where', '')}）",
+        "reel_stall": lambda e: "絞車失速",
+        "tether_twist": lambda e: f"扭轉警示（{e.get('turns', 0):+.1f} 圈）",
+    }
+
     def _log(self, kind: str, text: str) -> None:
-        self.log.append({"t": round(self.t, 2), "kind": kind, "text": text})
+        self.log.append({"t": round(self.t, 2), "kind": kind, "text": text,
+                         "stamp": time.strftime("%Y/%m/%d %H:%M:%S")})
         self.log = self.log[-200:]
+
+    def _log_tether_and_environment(self) -> None:
+        """Write tether solver events and silt-out / power-trip edges into the pilot log."""
+        events = self.tether.events
+        # The deployment procedure swaps in a fresh Tether on relaunch; start counting its events from zero.
+        if self.tether is not self._logged_tether or self._seen_tether_events > len(events):
+            self._logged_tether = self.tether
+            self._seen_tether_events = 0
+        for event in events[self._seen_tether_events:]:
+            formatter = self._TETHER_LOG.get(event.get("type"))
+            if formatter:
+                self._log("tether", formatter(event))
+        self._seen_tether_events = len(events)
+        visibility = self.camera_turbidity()["visibility_m"]
+        # Log below 0.5 m; re-arm only once it clears 0.6 m so a pilot hovering at the edge is not spammed.
+        silt_out = visibility < 0.5 or (self._silt_out_logged and visibility < 0.6)
+        if silt_out and not self._silt_out_logged:
+            self._log("silt", "揚沙全白")
+        self._silt_out_logged = silt_out
+        tripped = bool(self.power.tripped)
+        if tripped and not self._power_trip_logged:
+            self._log("power", "電源跳脫")
+        self._power_trip_logged = tripped
 
     # ── derived state ─────────────────────────────────────────────────────
     @property
@@ -310,6 +349,7 @@ class Simulator:
             step_objects(self.world, dt, self.t)
         self._damage(n_events)
         self._thermal(dt)
+        self._log_tether_and_environment()
 
         if not self.power.tether:
             load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max

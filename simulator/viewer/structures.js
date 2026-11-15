@@ -19,11 +19,12 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
 import {structureMaterial} from './structure_materials.js';
 import {detectHardware} from './render_quality.js';
+import {siteRockColor} from './seabed.js';
 
 export const SCENE_TOLERANCE = 0.1;           // m a visual surface may stand proud of its collision shape
 // fittings drawn as one merged mesh per material (labels keep per-obstacle anchors; a snag lights the group)
 const BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
-  'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast']);
+  'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast', 'snag']);
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
   low: {radial: 12, rockDetail: -1, lumps: 0, hullX: 40, hullZ: 8},
@@ -919,7 +920,15 @@ function buildOne(set, ob, consumed) {
  * ``makeMaterial(kind)`` defaults to the procedural structure materials (browser only).
  */
 export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
-  const set = new StructureSet(world, detail, makeMaterial || ((kind) => structureMaterial(kind, detail)));
+  const rockHex = siteRockColor(world);
+  const baseMaterial = makeMaterial || ((kind) => structureMaterial(kind, detail));
+  const paint = (kind) => {
+    const material = baseMaterial(kind);
+    // Rock armour and snag rocks share the site's seabed sand/mud tint.
+    if (kind === 'rock' && material.color?.setHex) material.color.setHex(rockHex);
+    return material;
+  };
+  const set = new StructureSet(world, detail, paint);
   const consumed = new Set();
   const obstacles = (world.obstacles || []).filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model');
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'scour_rock'), 'scour_rock');
