@@ -2,7 +2,8 @@
 import math
 import unittest
 
-from rov_sim_bridge.conversion import CommandGate, frd_to_flu, ned_to_enu, quaternion, velocity_rc
+from rov_sim_bridge.conversion import (CommandGate, dvl_usable, estimated_pose, euler_to_quaternion, frd_to_flu,
+                                      ned_to_enu, quaternion, range_reading, velocity_rc)
 
 
 class ConversionTests(unittest.TestCase):
@@ -47,6 +48,47 @@ class ConversionTests(unittest.TestCase):
             quaternion([0, 0, 0, 0])
         with self.assertRaises(ValueError):
             velocity_rc([0]*6, [0, 1, 1])
+
+
+class SensorLayerTests(unittest.TestCase):
+    """Hosts with the optional state.sensors layer: publish what the vehicle measures, not truth."""
+
+    STATE = {'pos': [10, 20, 5], 'q': [1, 0, 0, 0], 'euler': [0, 0, 0], 'vel': [0, 0, 0],
+             'sensors': {'heading': 90, 'depth': 4.9, 'pos_est': [9, 21, 5.2],
+                         'dvl': {'status': 'locked'}}}
+
+    def test_estimated_pose_uses_sensor_layer(self):
+        pos, q, depth, source = estimated_pose(self.STATE)
+        self.assertEqual(source, 'sensors')
+        self.assertEqual(pos, (9.0, 21.0, 4.9))
+        self.assertEqual(depth, 4.9)
+        for actual, expected in zip(q, [math.sqrt(.5), 0, 0, math.sqrt(.5)]):
+            self.assertAlmostEqual(actual, expected)
+
+    def test_legacy_host_falls_back_to_truth(self):
+        legacy = {k: v for k, v in self.STATE.items() if k != 'sensors'}
+        pos, q, depth, source = estimated_pose(legacy)
+        self.assertEqual(source, 'truth')
+        self.assertEqual(pos, (10.0, 20.0, 5.0))
+        self.assertEqual(depth, 5.0)
+
+    def test_euler_quaternion_matches_yaw(self):
+        for actual, expected in zip(euler_to_quaternion(0, 0, 355.5), [math.cos(math.radians(-2.25)), 0, 0,
+                                                                       math.sin(math.radians(-2.25))]):
+            self.assertAlmostEqual(actual, expected)
+
+    def test_dvl_gate_follows_lock_status(self):
+        self.assertTrue(dvl_usable(self.STATE, {}))
+        lost = dict(self.STATE, sensors=dict(self.STATE['sensors'], dvl={'status': 'lost'}))
+        self.assertFalse(dvl_usable(lost, {'seabed_depth': 30}))
+        legacy = {'pos': [0, 0, 5]}
+        self.assertTrue(dvl_usable(legacy, {'seabed_depth': 30}))
+        self.assertFalse(dvl_usable(legacy, {'seabed_depth': 200}))
+
+    def test_range_no_echo_and_blind_zone(self):
+        self.assertEqual(range_reading(50.0, 50.0), math.inf)
+        self.assertEqual(range_reading(0.3, 50.0), -math.inf)
+        self.assertEqual(range_reading(2.5, 50.0), 2.5)
 
 
 class GateTests(unittest.TestCase):

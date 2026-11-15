@@ -11,7 +11,6 @@
 ```bash
 git clone https://github.com/jekaihsu/rov.git
 cd rov
-git switch task/D4-ros2-bridge
 docker compose -f simulator/integrations/ros2/compose.yaml up --build -d
 docker compose -f simulator/integrations/ros2/compose.yaml logs bridge
 # 開啟相同網路與 ROS_DOMAIN_ID=42 的終端
@@ -82,16 +81,17 @@ ros2 launch rov_sim_bridge bridge.launch.py rviz:=true
 ```
 
 Launch 參數：ws_url、rpc_host、rviz。節點另有 rpc_port（9760）、command_timeout
-（0.4 s，允許 0.1–0.5）、odom_frame、base_frame。Topic 都可用標準 ROS remapping 改名。
+（0.4 s，允許 0.1–0.5）、odom_frame、base_frame、publish_truth（預設 false）。Topic 都可用標準 ROS remapping 改名。
 
 ## Topic 與座標
 
 | 方向 | Topic | 訊息 | 語意 |
 |---|---|---|---|
-| 發布 | odom、/tf | nav_msgs/Odometry、TF | odom ENU → base_link FLU，模擬真值 |
-| 發布 | depth | std_msgs/Float64 | 水面以下正值，m |
-| 發布 | dvl/velocity | geometry_msgs/TwistStamped | SDK 理想 DVL 線速度，FLU，m/s；角速度未提供 |
-| 發布 | range/forward、range/down | sensor_msgs/Range | 理想射線，m；上限 50/100，未命中 +Inf |
+| 發布 | odom、/tf | nav_msgs/Odometry、TF | odom ENU → base_link FLU，感測器估計（見下） |
+| 發布 | ground_truth/odom | nav_msgs/Odometry | 僅 publish_truth:=true；物理真值，超出真機，供評估估測器 |
+| 發布 | depth | std_msgs/Float64 | 壓力深度估計，水面以下正值，m |
+| 發布 | dvl/velocity | geometry_msgs/TwistStamped | SDK DVL 線速度，FLU，m/s；失鎖時為 0；角速度未提供 |
+| 發布 | range/forward、range/down | sensor_msgs/Range | SDK 測距，m；25° 錐、盲區 0.3 m；無回波 +Inf、盲區內 −Inf |
 | 發布 | diagnostics | diagnostic_msgs/DiagnosticArray | 纜長 m、張力 N、纏繞、斷纜、鎖定、RC 回讀 |
 | 訂閱 | cmd_vel | geometry_msgs/Twist | 機體 FLU 線速度 m/s、角速度 rad/s |
 | 訂閱 | depth/setpoint | std_msgs/Float64 | 非負深度 m；啟用既有定深迴路 |
@@ -101,10 +101,12 @@ Launch 參數：ws_url、rpc_host、rviz。節點另有 rpc_port（9760）、com
 NED `[n,e,d]` → ENU `[e,n,-d]`，FRD `[f,r,d]` → FLU `[f,-r,-d]`。
 四元數同時轉換世界與機體基底並正規化。Range 原點為機體前方 0.4 m、下方 0.2 m，
 由 tf_static 提供，各感測 frame 的 +X 軸沿量測方向。
-ULTRASOUND 標籤與零視角代表理想單射線，沒有聲學波束／雜訊模型。
+Range 的視角與盲區依主機感測器層（`PROTOCOL.md`「Optional sensor layer」）。
 
-Odometry 的 pose / 線速度為真值（零 covariance）；WS 沒有角速度，填零並設角速度
-covariance=1e6，請勿當成角速度量測。SDK DVL 無噪聲或品質／失鎖旗標。
+主機送出選填 `state.sensors` 時，odom 位置為航位推算 `pos_est`（垂直改用壓力深度），
+航向為融合估計，roll/pitch 照串流；線速度與角速度不填（covariance=1e6），速度請用 dvl/velocity。
+舊主機沒有感測器層時退回真值並在 diagnostics 標示 `truth`。`QYSIM_SENSORS=ideal` 時估計等於真值。
+pose covariance 未估計（填 0），不可當成定位品質。
 時間戳是接收時的 ROS 系統時間，**沒有 /clock，勿設 use_sim_time=true**。
 模擬時間可能慢於牆鐘，重置時 pose 可能跳變，需重新初始化定位。
 WS 遙測約 10 Hz，SDK 約 5 Hz；可靠 QoS、keep-last 10，指令 keep-last 1。
@@ -122,14 +124,15 @@ WS 遙測約 10 Hz，SDK 約 5 Hz；可靠 QoS、keep-last 10，指令 keep-last
 * 每 0.1 s 發 RC，沒有另外重送舊命令的執行緒。節點卡住或斷線時，
   伺服器原有 0.6 s watchdog 仍生效。input_latched / control_generation 改變時
   清空控制並以 locked RC 確認；等待 latch 清除後才接受新的明確 arm。
-* 遙測過期 0.3 s、暫停、斷纜、SDK 接管、缺 assistance、離底超出 0.1–100 m 均鎖定。
+* 遙測過期 0.3 s、暫停、斷纜、SDK 接管、缺 assistance、DVL 失鎖（`state.sensors.dvl.status == lost`；
+  舊主機為離底超出 0.1–100 m）均鎖定：伺服器在失鎖時會退回手動推力，速度指令將不再是速度。
   不呼叫 remote takeover/release，不停用任何保護。勿同時接 USB 控制器或其他控制程式。
 
 ## 相機、聲納與 nav2 邊界
 
 目前 WS / RPC 沒有影像像素流。camera_view 是場景描述，SDK mock 需在客戶端合成 BGR；
 此獨立套件不攜帶渲染器，因此**不發布 Image**。
-主線只有 T15 任務書，沒有 state.sonar／掃描資料，因此**不發布 LaserScan**。
+主線已有選填前視聲納（`state.sonar`，需 `sonar_subscribe`），本套件尚未橋接，因此**不發布聲納影像／LaserScan**。
 Range 不是聲納掃描。
 
 rviz2、rosbag2 和自訂節點可直接連接。nav2 可接 odom / TF / cmd_vel，但需自行提供

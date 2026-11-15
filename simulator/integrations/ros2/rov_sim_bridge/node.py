@@ -14,7 +14,8 @@ from std_msgs.msg import Bool, Float64, UInt8
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 import websocket
 
-from .conversion import CommandGate, frd_to_flu, ned_to_enu, quaternion
+from .conversion import (CommandGate, dvl_usable, estimated_pose, frd_to_flu, ned_to_enu, quaternion,
+                         range_reading)
 
 STRINGS = {
     "connected": "Simulator session connected; explicit arm required",
@@ -22,7 +23,7 @@ STRINGS = {
     "command": "Command rejected: {}",
     "seat": "Bridge requires training/v1; free the first pilot seat and restart",
     "tether": "Simulator tether and control state",
-    "ok": "Telemetry connected (simulator truth)",
+    "ok": "Telemetry connected ({})",
     "stale": "Telemetry unavailable; controls locked",
     "rpc": "SDK telemetry unavailable: {}",
 }
@@ -37,7 +38,7 @@ class Bridge(Node):
         super().__init__("rov_sim_bridge")
         defaults = {"ws_url": "ws://127.0.0.1:8765", "rpc_host": "127.0.0.1",
                     "rpc_port": 9760, "command_timeout": 0.4,
-                    "odom_frame": "odom", "base_frame": "base_link"}
+                    "odom_frame": "odom", "base_frame": "base_link", "publish_truth": False}
         for key, value in defaults.items():
             self.declare_parameter(key, value)
         self.config = {key: self.get_parameter(key).value for key in defaults}
@@ -57,6 +58,11 @@ class Bridge(Node):
         self.led = 0
         self.rpc_id = 0
         self.odom = self.create_publisher(Odometry, "odom", 10)
+        # Physics truth exceeds what the vehicle knows; only on request, for evaluating estimators.
+        self.truth = None
+        if self.config["publish_truth"]:
+            self.truth = self.create_publisher(Odometry, "ground_truth/odom", 10)
+        self.pose_source = "truth"
         self.depth = self.create_publisher(Float64, "depth", 10)
         self.dvl = self.create_publisher(TwistStamped, "dvl/velocity", 10)
         self.front = self.create_publisher(Range, "range/forward", 10)
@@ -74,9 +80,8 @@ class Bridge(Node):
 
     def ready(self):
         state = self.state or {}
-        altitude = self.world.get("seabed_depth", -math.inf) - state.get("pos", [0, 0, 0])[2]
         return (self.session and time.monotonic() - self.last_state < 0.3
-                and isinstance(state.get("assist"), dict) and 0.1 < altitude < 100
+                and isinstance(state.get("assist"), dict) and dvl_usable(state, self.world)
                 and not state.get("input_latched", True) and not state.get("remote_control", True)
                 and state.get("operation_mode") == "ROV_USA" and not state.get("paused", True)
                 and not state.get("tether", {}).get("broken", True))
@@ -180,27 +185,37 @@ class Bridge(Node):
             self.disconnect()
             self.publish_diagnostics(False)
 
-    def publish_state(self):
-        state = self.state
+    def odometry(self, pos, q_wxyz, velocity=None):
         msg = Odometry()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = self.config["odom_frame"]
         msg.child_frame_id = self.config["base_frame"]
-        xyz(msg.pose.pose.position, ned_to_enu(state["pos"]))
+        xyz(msg.pose.pose.position, ned_to_enu(pos))
         q = msg.pose.pose.orientation
-        q.x, q.y, q.z, q.w = quaternion(state["q"])
-        xyz(msg.twist.twist.linear, frd_to_flu(state["vel"]))
-        # Truth pose/linear velocity; angular velocity isn't supplied by this stream.
-        for i in (3, 4, 5):
+        q.x, q.y, q.z, q.w = quaternion(q_wxyz)
+        # Angular velocity is never streamed; linear velocity only for truth (estimates: use dvl/velocity).
+        unknown = (3, 4, 5) if velocity is not None else range(6)
+        if velocity is not None:
+            xyz(msg.twist.twist.linear, frd_to_flu(velocity))
+        for i in unknown:
             msg.twist.covariance[i * 6 + i] = 1e6
+        return msg
+
+    def publish_state(self):
+        state = self.state
+        pos, q_wxyz, depth, self.pose_source = estimated_pose(state)
+        truth_only = self.pose_source == "truth"
+        msg = self.odometry(pos, q_wxyz, state["vel"] if truth_only else None)
         self.odom.publish(msg)
         transform = TransformStamped()
         transform.header = msg.header
         transform.child_frame_id = msg.child_frame_id
-        xyz(transform.transform.translation, ned_to_enu(state["pos"]))
-        transform.transform.rotation = q
+        xyz(transform.transform.translation, ned_to_enu(pos))
+        transform.transform.rotation = msg.pose.pose.orientation
         self.tf.sendTransform(transform)
-        self.depth.publish(Float64(data=float(state["pos"][2])))
+        self.depth.publish(Float64(data=float(depth)))
+        if self.truth is not None:
+            self.truth.publish(self.odometry(state["pos"], state["q"], state["vel"]))
 
     def publish_diagnostics(self, fresh):
         msg = DiagnosticArray()
@@ -212,7 +227,7 @@ class Bridge(Node):
         status.level = DiagnosticStatus.OK if fresh else DiagnosticStatus.STALE
         if fresh and (tether.get("warn") or tether.get("broken")):
             status.level = DiagnosticStatus.ERROR if tether.get("broken") else DiagnosticStatus.WARN
-        status.message = STRINGS["ok"] if fresh else STRINGS["stale"]
+        status.message = STRINGS["ok"].format(self.pose_source) if fresh else STRINGS["stale"]
         values = {**tether, "bridge_armed": self.gate.armed, "ready": bool(self.ready())}
         for key in ("locked", "input_latched", "control_generation", "rc"):
             values[key] = (self.state or {}).get(key)
@@ -262,10 +277,10 @@ class Bridge(Node):
                 measurement.header = msg.header
                 measurement.header.frame_id = self.config["base_frame"] + "/" + frame
                 measurement.radiation_type = Range.ULTRASOUND
-                measurement.field_of_view = 0.0  # ideal single ray, not a beam model
-                measurement.min_range = 0.0
+                measurement.field_of_view = math.radians(25.0)  # host echo-sounder cone (PROTOCOL sensor layer)
+                measurement.min_range = 0.3                      # blind zone; readings inside it are -Inf
                 measurement.max_range = maximum
-                measurement.range = math.inf if value >= maximum else float(value)
+                measurement.range = range_reading(value, maximum)
                 publisher.publish(measurement)
         except (OSError, ValueError, KeyError) as error:
             self.get_logger().warning(STRINGS["rpc"].format(error), throttle_duration_sec=5.0)

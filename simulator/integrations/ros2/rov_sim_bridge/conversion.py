@@ -32,6 +32,52 @@ def quaternion(q):
     return (s*(x+y), s*(x-y), s*(w-z), s*(w+z))  # ROS xyzw
 
 
+def euler_to_quaternion(roll_deg, pitch_deg, yaw_deg):
+    """NED/FRD body->world quaternion [w, x, y, z] from ZYX Euler angles in degrees."""
+    roll, pitch, yaw = (math.radians(v) for v in finite((roll_deg, pitch_deg, yaw_deg)))
+    cr, sr = math.cos(roll / 2), math.sin(roll / 2)
+    cp, sp = math.cos(pitch / 2), math.sin(pitch / 2)
+    cy, sy = math.cos(yaw / 2), math.sin(yaw / 2)
+    q = (cr*cp*cy + sr*sp*sy, sr*cp*cy - cr*sp*sy, cr*sp*cy + sr*cp*sy, cr*cp*sy - sr*sp*cy)
+    return q if q[0] >= 0 else tuple(-v for v in q)
+
+
+def estimated_pose(state):
+    """Pose the vehicle's own instruments report: ``(pos_ned, q_wxyz, depth_m, source)``.
+
+    Uses the optional ``state.sensors`` layer (dead-reckoned position, pressure depth, fused heading)
+    when the host sends it; roll and pitch stay as streamed, as on the SDK. Older hosts without the
+    layer fall back to physics truth and report ``source == "truth"``.
+    """
+    sensors = state.get("sensors")
+    if not isinstance(sensors, dict) or sensors.get("pos_est") is None or sensors.get("heading") is None:
+        return finite(state["pos"]), finite(state["q"]), float(state["pos"][2]), "truth"
+    roll, pitch = finite(state["euler"][:2])
+    q = euler_to_quaternion(roll, pitch, sensors["heading"])
+    north, east, _ = finite(sensors["pos_est"])
+    depth = float(sensors.get("depth", state["pos"][2]))
+    return (north, east, depth), q, depth, "sensors"
+
+
+def dvl_usable(state, world):
+    """Velocity assistance needs bottom lock; the server falls back to manual thrust while it is lost."""
+    sensors = state.get("sensors")
+    if isinstance(sensors, dict) and isinstance(sensors.get("dvl"), dict):
+        return sensors["dvl"].get("status") != "lost"
+    altitude = world.get("seabed_depth", -math.inf) - state.get("pos", [0, 0, 0])[2]
+    return 0.1 < altitude < 100
+
+
+def range_reading(value, maximum, blind=0.3):
+    """SDK echo-sounder value -> REP 117 Range: +Inf for no echo, -Inf inside the blind zone."""
+    value, = finite([value])
+    if value >= maximum:
+        return math.inf
+    if value <= blind + 1e-6:
+        return -math.inf
+    return value
+
+
 def pwm(value):
     return int(round(1500 + 500 * max(-1.0, min(1.0, value))))
 
