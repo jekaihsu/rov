@@ -175,7 +175,18 @@ def controller_replay(rows):
             'tracking_rmse': np.sqrt(np.mean(tracking**2, axis=0)).tolist()}, simulated
 
 
+def plotting_available():
+    """Matplotlib is optional (PSF-based licence, outside the core dependency list); without it no PNGs."""
+    try:
+        import matplotlib  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def plot(path, time, measured, simulated, label, residual=False):
+    if not plotting_available():
+        return
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt

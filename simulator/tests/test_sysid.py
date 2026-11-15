@@ -7,7 +7,7 @@ import unittest
 
 import numpy as np
 
-from tools.sysid.core import analyze, fit_axis, fit_thrust, tether, trajectory
+from tools.sysid.core import plotting_available, analyze, fit_axis, fit_thrust, tether, trajectory
 from tools.sysid.import_data import telemetry_control, video_motion
 from tools.sysid.synthetic import generate
 
@@ -40,7 +40,8 @@ class SysidTests(unittest.TestCase):
         self.assertLess(self.report['controller']['heading_rmse_deg'], .1)
         for image in (Path(self.temp.name)/'report').glob('*.png'):
             self.assertEqual(image.read_bytes()[:8], b'\x89PNG\r\n\x1a\n')
-        self.assertEqual(len(list((Path(self.temp.name)/'report').glob('*.png'))), 8)
+        expected = 8 if plotting_available() else 0
+        self.assertEqual(len(list((Path(self.temp.name)/'report').glob('*.png'))), expected)
 
     def test_nonzero_asymmetric_curve_and_irregular_time(self):
         anchor = [{'command': u, 'force_n': (80 if u > 0 else 60)*u+20*u*abs(u)}

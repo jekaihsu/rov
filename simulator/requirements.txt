@@ -7,5 +7,6 @@ opencv-python>=4.8
 # Campaign script schema validation (MIT)
 jsonschema>=4.18
 
-# Offline measurement identification and PNG reports
--r tools/sysid/requirements.txt
+# Offline measurement identification (BSD-3-Clause). PNG reports also need the optional
+# tools/sysid/requirements.txt (Matplotlib, PSF-based licence), which is not part of the core install.
+scipy>=1.10
