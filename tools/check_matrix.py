@@ -76,13 +76,36 @@ def browser_checks(tier, paths=None):
     return [name for name in names if name in selected]
 
 
+def inert_for_python(path):
+    """True only for paths no Python test reads: prose docs and Node test files.
+
+    Python tests also read viewer files, PROTOCOL.md, campaign/example data and
+    docs/reference scripts, so anything not listed here selects the tier's whole set.
+    """
+    if path.startswith('docs/reference/'):
+        return False
+    if path.startswith('docs/'):
+        return True
+    if path.startswith('simulator/tests/') and path.endswith('.mjs'):
+        return True
+    return '/' not in path and path.endswith('.md')
+
+
+def changed_test_module(path):
+    """Return the module name for a changed simulator/tests/test_*.py file, else None."""
+    name = Path(path).name
+    if path.startswith('simulator/tests/') and name.startswith('test_') and name.endswith('.py'):
+        return name.removesuffix('.py')
+    return None
+
+
 def unit_checks(tier, paths=None):
     all_names = sorted(p.stem for p in (ROOT / 'simulator/tests').glob('test_*.py'))
     names = list(TIERS[tier]['units'] or all_names)
     if paths is None:
         return names
-    broad = ('simulator/qysim/', 'simulator/sdk_mock/', 'simulator/requirements',
-             'tools/', 'simulator/tools/', '.github/workflows/')
-    if any(p.startswith(broad) for p in paths):
-        return names
-    return [n for n in names if f'simulator/tests/{n}.py' in paths]
+    changed = {changed_test_module(p) for p in paths} - {None}
+    product = [p for p in paths if not inert_for_python(p) and changed_test_module(p) is None]
+    selected = set(names) if product else set()
+    selected.update(name for name in changed if name in all_names)
+    return [n for n in all_names if n in selected]

@@ -30,6 +30,23 @@ class SelectionTests(unittest.TestCase):
     def test_changed_test_selected(self):
         self.assertEqual(unit_checks('full', ['simulator/tests/test_core.py']), ['test_core'])
 
+    def test_changed_test_added_to_quick_tier(self):
+        selected = unit_checks('quick', ['simulator/tests/test_core.py'])
+        self.assertEqual(selected, ['test_core'])
+        selected = unit_checks('quick', ['simulator/qysim/engine.py', 'simulator/tests/test_core.py'])
+        self.assertIn('test_core', selected)
+        self.assertIn('test_encoding', selected)
+
+    def test_files_read_by_python_tests_select_units(self):
+        all_units = unit_checks('full')
+        for path in ('simulator/viewer/app.js', 'simulator/PROTOCOL.md', 'simulator/campaign/prologue.json',
+                     'simulator/examples/demo.py', 'docs/reference/fit_measurements.py',
+                     'simulator/tests/fixtures/data.json'):
+            self.assertEqual(unit_checks('full', [path]), all_units, path)
+
+    def test_node_tests_do_not_select_units(self):
+        self.assertEqual(unit_checks('full', ['simulator/tests/test_menu.mjs', 'AGENTS.md']), [])
+
     def test_diff_includes_worktree_and_untracked(self):
         with patch('check_matrix.subprocess.check_output', side_effect=[
             'mergebase\n', b'simulator/viewer/hud/osd.js\0', b'new file.py\0'

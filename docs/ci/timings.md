@@ -26,7 +26,8 @@ numba 使用本機預設磁碟快取，包含首次編譯與後續命中，未�
 - `--changed` 比較 merge-base(base, HEAD) 到工作樹，加上未追蹤檔，包含 staged／unstaged／刪除。
   沒有共同祖先時直接報錯，不會靜默跳過。預設 base 是 `origin/main`，CI 使用 PR base SHA。
 - HUD-only：full 選 HUD、overlay、attitude；quick 選 HUD。其他 viewer 路徑或同時變更後端／依賴時保守選該層全套。
-  qysim/sdk_mock/依賴/檢查工具變更選該層 Python 全套；單獨測試檔變更選該層中的該檔；純文件不跑產品測試。
+  Python 只在 `docs/`（`docs/reference/` 除外）、根目錄 `*.md` 與 `.mjs` 變更時略過；其他路徑（含 viewer、
+  PROTOCOL.md、campaign、examples）都會被 Python 測試讀到，選該層全套；變更的 `test_*.py` 一律加選，quick 亦同。
 - `--changed` 仍執行選測器本身的回歸測試。Node 在 viewer、desktop、tests、檢查工具／workflow 變更時執行。
 - 手動指定瀏覽器腳本名稱是本機診斷覆寫；不受 tier 過濾。其餘 15 支診斷／截圖／效能／歷史相容腳本
   保留原本 explicit-only 行為，全部另行量測如下；未偷偷刪除或放寬測試。
