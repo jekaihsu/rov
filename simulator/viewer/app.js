@@ -16,6 +16,7 @@ import { updateFlightHUD } from './hud/flight_hud.js';
 import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
 import {installTetherReel} from './tether_reel.js';
 import {thrusterLabel} from './hud/thruster_names.js';
+import {installStartPresentation} from './start_presentation.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -451,6 +452,7 @@ const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
+let startPresentation=null;
 $('offUrl').textContent = WS_URL;
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
@@ -524,6 +526,7 @@ function onState(m) {
   campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
+  startPresentation?.update(m, W);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
   if(m.model_id&&m.model_id!==activeModelId){const def=W?.vehicle_catalogue?.find(d=>d.id===m.model_id);if(def)loadModel(def);}
   if (needResync && !m.remote_control && m.rc) {
@@ -604,6 +607,7 @@ const input = installInput({blocked: () => collectionOpen || pauseMenuOpen(),
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
+startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 installPauseMenu({input, send, state: () => S, replay: !!REPLAY});
 
 document.addEventListener('visibilitychange',()=>{
@@ -1002,7 +1006,7 @@ async function startIntro() {
   const assets = await loadIntroAssets();
   introStarts++;
   if (intro) { intro.dispose(); intro = null; }
-  intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: W.start_pos || S?.pos || [0, 0, 3], seabed: W.seabed_depth || 30, assets });
+  intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: startPresentation.introStart(W, S?.pos || [0, 0, 3]), seabed: W.seabed_depth || 30, assets });
   intro.showVehicle(() => activeModel?.model);       // the onboard view hides the hull; the intro shows it
   vp.classList.add('intro'); $('skipIntro').hidden = false;
   const wasPaused = !!S?.paused;

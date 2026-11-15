@@ -767,6 +767,18 @@ peak cable length and notes. Physics enforces locked flight outside `diving`, in
 (training assumption); missing communication checks may cause control loss and forced cable recovery.
 Recovery rate and wave modulation are provisional training approximations, not measured vessel limits.
 
+## Optional start point (assisted presentation)
+
+`{"type":"start","point":"near_target"}` asks the host to move this vehicle to a spawn point a few metres short of
+the scenario's first work point, at least 2.5 m above the bed, facing it. It is accepted only while the vehicle is
+locked and has not opted into the deployment procedure; otherwise it returns the existing error envelope. The reply
+is `{"type":"start_result","ok":bool,"start":{"pos":[n,e,d],"heading":deg}|null}` (`ok:false` when the scenario
+offers no such point). Only the spawn point changes, as with the multiplayer spawn spread: the tether is re-laid
+from the spool and the sensor estimates restart at the new pose; dynamics, RC and SDK semantics are unchanged.
+The world object adds the optional `near_start` (same `pos`/`heading` shape) for scenarios that offer the point
+(`qysim/start_point.py`); clients must tolerate its absence. Older hosts ignore the message. The viewer sends it
+only from the `assisted` presentation (`nearStart` fidelity item, off in `real`), solo, before the first unlock.
+
 ## Optional forward imaging sonar (simulator extension)
 
 Viewer sends `{"type":"operation","action":"sonar_subscribe","enabled":true,"range_m":30,

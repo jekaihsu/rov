@@ -11,7 +11,7 @@ import { resolveHudStyle } from './hud_style.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
 import { bindingRow, hintText } from '../input/bindings.js';
-import { assistPill } from './assist_pill.js';
+import { assistPill, dvlReason } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
 import { pilotReadings } from './sensor_view.js';
 const STRINGS = {
@@ -236,6 +236,11 @@ function addReadouts() {
   document.querySelector('.chips').append(fidelityChip, chip, status);
   showFidelity();
 }
+// The DVL warning names the reason in the player's words when the sensor layer reports one.
+function dvlWarning(s) {
+  const reason = dvlReason(s);
+  return reason ? `${STRINGS.dvlLost}（${reason.status}）` : STRINGS.dvlLost;
+}
 function setText(el, text) {
   if (el.textContent !== text) el.textContent = text;
 }
@@ -328,7 +333,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     : s.tether?.warn ? STRINGS.warn
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
       : batteryApplies(s) && s.battery < 20 ? STRINGS.lowBattery
-        : sensed.dvlLost && s.rc?.assist ? STRINGS.dvlLost : '';
+        : sensed.dvlLost && s.rc?.assist ? dvlWarning(s) : '';
   $('flightWarning').textContent = warning;
   $('flightWarning').dataset.level = danger ? 'danger'
     : warning === STRINGS.lowBattery ? 'info' : 'warning';
