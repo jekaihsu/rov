@@ -197,7 +197,8 @@ body.replaying #replayBar.idle { pointer-events: none; }
 /* Stacking: every layer takes its z-index from the scale in tokens.css. */
 body .hud, .flight { z-index: var(--z-hud); }
 #flightPeek, #flightWarning { z-index: var(--z-notice); }
-#flightTools { z-index: var(--z-controls); }
+/* Stay above the engineering drawer so Tab / the tool button can always close it. */
+#flightTools { z-index: calc(var(--z-drawer) + 1); }
 .banner { z-index: var(--z-banner); }
 .sticks { z-index: var(--z-controls); }
 

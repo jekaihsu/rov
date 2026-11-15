@@ -1,7 +1,9 @@
 """Capture the campaign radio and drive onboarding through physical browser inputs."""
 import json
+import os
 import time
 from pathlib import Path
+from shutil import which
 from playwright.sync_api import sync_playwright
 from _browser import launch, http_base, ws_base
 from _menu import open_main, set_intro, wait_screen
@@ -10,12 +12,30 @@ OUT = Path(__file__).resolve().parents[1] / 'output' / 'campaign-validation'
 OUT.mkdir(parents=True, exist_ok=True)
 
 
+def _playwright_ffmpeg_available():
+    """Playwright records WebM only when its bundled ffmpeg (or PATH ffmpeg) is present."""
+    if which('ffmpeg'):
+        return True, 'PATH ffmpeg'
+    cache = Path(os.environ.get('PLAYWRIGHT_BROWSERS_PATH') or (Path.home() / '.cache' / 'ms-playwright'))
+    matches = sorted(cache.glob('ffmpeg-*/ffmpeg-linux')) + sorted(cache.glob('ffmpeg-*/ffmpeg-*'))
+    if matches:
+        return True, str(matches[0])
+    return False, None
+
+
 def run():
     with sync_playwright() as p:
         browser = launch(p, headless=True,
                                     args=['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'])
-        context = browser.new_context(viewport=dict(width=1600, height=900), record_video_dir=str(OUT),
-                                      record_video_size=dict(width=800, height=450))
+        record_video, ffmpeg_note = _playwright_ffmpeg_available()
+        context_opts = dict(viewport=dict(width=1600, height=900))
+        if record_video:
+            context_opts.update(record_video_dir=str(OUT), record_video_size=dict(width=800, height=450))
+        else:
+            print('Skipping campaign video capture: ffmpeg not available '
+                  f'(looked on PATH and under {Path.home() / ".cache" / "ms-playwright"}). '
+                  'Other campaign steps still run.', flush=True)
+        context = browser.new_context(**context_opts)
         page = context.new_page()
         errors = []
         page.on('pageerror', lambda error: (errors.append(str(error)), print('ERROR', error, flush=True)))
@@ -72,11 +92,13 @@ def run():
         assert 'prologue' in result['completed'], result
         assert not errors, errors
         page.screenshot(path=str(OUT / 'prologue-completed.png'))
-        (OUT / 'results.json').write_text(json.dumps(dict(visited=visited, state=result, errors=errors),
-                                                    ensure_ascii=False, indent=2))
-        video = page.video
+        payload = dict(visited=visited, state=result, errors=errors, video_recorded=bool(record_video),
+                       ffmpeg=ffmpeg_note)
+        (OUT / 'results.json').write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+        video = page.video if record_video else None
         context.close()
-        Path(video.path()).replace(OUT / 'prologue.webm')
+        if video is not None:
+            Path(video.path()).replace(OUT / 'prologue.webm')
         browser.close()
     print('Campaign browser input proof passed:', OUT)
 

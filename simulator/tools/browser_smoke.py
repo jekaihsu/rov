@@ -26,7 +26,9 @@ def run():
             page.on('pageerror',lambda error: (errors.append(str(error)),print('PAGE ERROR',error,flush=True)))
             page.on('requestfailed',lambda request: print('REQUEST FAILED',request.url,request.failure,flush=True))
             page.on('console',lambda msg: print('CONSOLE',msg.text,flush=True) if msg.type=='error' else None)
-            page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&play=1&model=falcon&nointro&room=browsercheck',wait_until='domcontentloaded',timeout=timeout(90000))
+            page.goto(
+                f'{http_base(8092)}/?ws={ws_base(8792)}&play=1&model=falcon&nointro&room=browsercheck&quality=performance',
+                wait_until='domcontentloaded', timeout=timeout(90000))
             # Render-speed dependent: the first state needs the model and scene loaded while other viewers render.
             try:page.wait_for_function('window.__viewer?.S?.vehicle_id',timeout=timeout(120000))
             except Exception:
@@ -34,25 +36,39 @@ def run():
                 page.screenshot(path=str(OUT/f'failed-{i}.png'))
                 raise
         main=pages[0]
-        main.wait_for_function('window.__viewer.S.vehicles.length===3')
+        # Three soft-GL tabs share one CPU: pause draws on guests so state / arm waits can pump.
+        for guest in pages[1:]:
+            guest.evaluate('window.__skipRender = true')
+        main.wait_for_function('window.__viewer.S.vehicles.length===3', timeout=timeout(120000))
         assert main.locator('#pip').is_hidden()
         main.evaluate("const option=document.querySelector('#optPip');option.checked=true;option.dispatchEvent(new Event('change'))")
         main.wait_for_function('document.querySelector(".pilot-pip-canvas")',timeout=timeout(60000))
         # Render-speed dependent: a click waits for the element to hold still across animation frames. None of
         # these clicks navigate, so do not also wait for a navigation that never happens.
-        main.locator('#closePip').click(no_wait_after=True)
+        main.locator('#closePip').click(force=True, no_wait_after=True)
         assert main.locator('#pip').is_hidden()
         assert main.evaluate('localStorage.getItem("rov.operatorVisible")')=='false'
         # Vehicle is selected before entering the game via the launch URL.
-        main.wait_for_function('window.__viewer.S.model_id==="falcon"')
+        main.wait_for_function('window.__viewer.S.model_id==="falcon"', timeout=timeout(60000))
         main.wait_for_timeout(1000)
         main.click('#flightDrawer',no_wait_after=True)
         assert main.locator('#armPanel').is_visible()
         main.locator('#armPanel summary').click(no_wait_after=True)
+        # Wait on sim time + arm state, not a fixed wall sleep: grip closes at 1 unit per sim-second.
+        t0 = main.evaluate('window.__viewer.S.t')
         main.click('#gripClose',no_wait_after=True)
-        main.wait_for_function('window.__viewer.S.operations.arm.grip<.5')
+        main.evaluate('window.__skipRender = true')
+        main.wait_for_function(
+            '(t0)=>window.__viewer.S.t>t0+0.5 && window.__viewer.S.operations.arm.grip<.5',
+            arg=t0, timeout=timeout(180000))
+        main.evaluate('window.__skipRender = false')
         main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')
-        main.wait_for_function('window.__viewer.S.rc.right_switch===2')
+        main.wait_for_function('window.__viewer.S.rc.right_switch===2', timeout=timeout(120000))
+        # Lamp meshes update on a drawn frame; wait for intensity after leaving __skipRender.
+        main.wait_for_function("""() => {
+          const groups = window.__viewer.rovG.children.filter(g => g.children.some(o => o.isSpotLight));
+          return groups.some(g => g.visible && g.children.some(o => o.isSpotLight && o.intensity > 0));
+        }""", timeout=timeout(60000))
         lights=main.evaluate('window.__viewer.rovG.children.filter(g=>g.children.some(o=>o.isSpotLight)).map(g=>({visible:g.visible,intensity:g.children.filter(o=>o.isSpotLight).map(l=>l.intensity)}))')
         assert any(x['visible'] and max(x['intensity'])>0 for x in lights),lights
         main.screenshot(path=str(OUT/'onboard-lights.png'))

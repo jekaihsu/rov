@@ -6,12 +6,14 @@ Environment variables (all optional):
   ROV_HTTP_PORT             simulator HTTP port, overrides each script's own default
   ROV_WS_PORT               simulator WebSocket port, overrides each script's own default
   ROV_BEFORE_HTTP_PORT / ROV_BEFORE_WS_PORT  comparison server used by browser_audio_smoke.py
-  ROV_BROWSER_TIMEOUT_SCALE multiplier for timeouts obtained through timeout(), default 1
+  ROV_BROWSER_TIMEOUT_SCALE multiplier for timeouts obtained through timeout(); when unset and the
+                            host is CPU-saturated, timeout() auto-scales (assertions unchanged)
   ROV_BROWSER_GL            software (default) or gpu: software forces SwiftShader; gpu keeps hardware
                             acceleration (pair with ROV_CHROMIUM pointing at a local Chrome build)
   ROV_BROWSER_EXTRA_ARGS    space-separated extra Chromium flags appended after the GL mode args
 """
 import os
+import time
 from pathlib import Path
 from shutil import which
 
@@ -21,6 +23,9 @@ SOFTWARE_GL_ARGS = ('--enable-unsafe-swiftshader',)
 GPU_GL_ARGS = ('--enable-gpu', '--ignore-gpu-blocklist')
 FALLBACK_CHROMIUM = Path('/opt/pw-browsers/chromium')
 _resolved = {}
+_timeout_scale = None
+# Soft-GL smokes under a fully busy host still check the same conditions; they only need more wall time.
+_AUTO_LOAD_SCALE = 3.0
 
 
 class BrowserNotFound(RuntimeError):
@@ -122,6 +127,116 @@ def ws_query():
     return f'&ws={ws_base()}' if os.environ.get('ROV_WS_PORT') else ''
 
 
+def _host_cpu_saturated(spin_s=0.01, stretch_limit=0.022, trials=6):
+    """Same busy-host probe as the SDK wall-clock FPS skip: stretched busy-wait or high loadavg."""
+    spins = []
+    for _ in range(trials):
+        start = time.perf_counter()
+        target = start + spin_s
+        while time.perf_counter() < target:
+            pass
+        spins.append(time.perf_counter() - start)
+    spins.sort()
+    median = spins[len(spins) // 2]
+    if median > stretch_limit:
+        return True, f"busy-wait({spin_s}) median {median:.3f}s"
+    if hasattr(os, "getloadavg"):
+        load1 = os.getloadavg()[0]
+        cpus = os.cpu_count() or 1
+        if load1 >= max(1.0, cpus * 0.85):
+            return True, f"loadavg1={load1:.2f} cpus={cpus}"
+    return False, ""
+
+
+def timeout_scale():
+    """Effective ROV_BROWSER_TIMEOUT_SCALE, with a one-shot auto bump when the host is saturated."""
+    global _timeout_scale
+    if _timeout_scale is not None:
+        return _timeout_scale
+    configured = os.environ.get('ROV_BROWSER_TIMEOUT_SCALE')
+    if configured:
+        _timeout_scale = float(configured)
+        return _timeout_scale
+    saturated, reason = _host_cpu_saturated()
+    if saturated:
+        _timeout_scale = _AUTO_LOAD_SCALE
+        print(f'ROV_BROWSER_TIMEOUT_SCALE auto={_timeout_scale} ({reason})', flush=True)
+    else:
+        _timeout_scale = 1.0
+    return _timeout_scale
+
+
 def timeout(milliseconds):
     """Scale a timeout for slow machines; software rendering can run at a few frames per second."""
-    return int(milliseconds * float(os.environ.get('ROV_BROWSER_TIMEOUT_SCALE') or 1))
+    return int(milliseconds * timeout_scale())
+
+
+def skip_render(page, enabled=True):
+    """Toggle the viewer's __skipRender flag so waits can pump sockets/input without soft-GL cost."""
+    page.evaluate('(on) => { window.__skipRender = !!on; }', enabled)
+
+
+class without_render:
+    """Context manager: keep the animation/input loop, skip WebGL draws for the duration."""
+
+    def __init__(self, *pages):
+        self.pages = pages
+
+    def __enter__(self):
+        for page in self.pages:
+            skip_render(page, True)
+        return self.pages[0] if len(self.pages) == 1 else self.pages
+
+    def __exit__(self, exc_type, exc, tb):
+        for page in self.pages:
+            try:
+                skip_render(page, False)
+            except Exception:
+                pass
+        return False
+
+
+def pump_until(page, expression, *, timeout_ms, arg=None, allies=(), skip_page_render=True):
+    """Bring page forward, skip soft-GL on allies, and poll until expression is truthy.
+
+    Under a fully busy host, background software-GL tabs can starve the active tab's socket
+    and input pumps for minutes. Assertions stay the same; only scheduling changes.
+    Set skip_page_render=False when the wait itself needs the active tab's animation/camera
+    update (for example a spring settle); allies still skip draw.
+    """
+    deadline = time.monotonic() + (timeout_ms / 1000)
+    for ally in allies:
+        try:
+            skip_render(ally, True)
+        except Exception:
+            pass
+    if skip_page_render:
+        skip_render(page, True)
+    page.bring_to_front()
+    last_error = None
+    try:
+        while time.monotonic() < deadline:
+            page.bring_to_front()
+            try:
+                if arg is None:
+                    if page.evaluate(expression):
+                        return True
+                elif page.evaluate(expression, arg):
+                    return True
+            except Exception as error:
+                last_error = error
+            page.wait_for_timeout(100)
+    finally:
+        if skip_page_render:
+            try:
+                skip_render(page, False)
+            except Exception:
+                pass
+        for ally in allies:
+            try:
+                skip_render(ally, False)
+            except Exception:
+                pass
+    if last_error:
+        raise last_error
+    raise TimeoutError(f'pump_until exceeded {timeout_ms} ms')
