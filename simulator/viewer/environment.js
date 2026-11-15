@@ -110,7 +110,7 @@ export class Environment {
 
   // ── sessile life on structures: kelp in the top metres, anemones deeper (registry kinds, no collision) ──
   _structureLife(world, detail) {
-    const counts = {low: [0, 0], medium: [26, 10], high: [48, 22]}[detail] || [26, 10];
+    const counts = {low: [0, 0], medium: [0, 0], high: [48, 22]}[detail] || [0, 0];   // structure life on high only
     const hosts = (world.obstacles || []).filter((ob) => ob.type === 'cylinder' &&
       ['jacket_leg', 'pile', 'monopile', 'transition_piece'].includes(ob.kind));
     if (!hosts.length || !counts[0]) return;

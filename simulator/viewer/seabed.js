@@ -148,10 +148,18 @@ function shaderPatch(profile, maps) {
   };
   return function onBeforeCompile(shader) {
     Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = 'varying vec3 vSeaPos;\n' + shader.vertexShader.replace('#include <project_vertex>',
+    shader.vertexShader = `varying vec3 vSeaPos;
+      varying vec3 vSeaN;
+      uniform sampler2D uNoise;
+      ` + shader.vertexShader.replace('#include <project_vertex>',
       `vSeaPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+      #if SEA_QUALITY == 1
+      // medium: the 160 m noise is smooth enough to read per vertex, leaving one read per pixel
+      vSeaN = texture2D(uNoise, vSeaPos.xz * 0.00625).rgb;
+      #endif
       #include <project_vertex>`);
     shader.fragmentShader = `varying vec3 vSeaPos;
+      varying vec3 vSeaN;
       uniform sampler2D uField;
       uniform sampler2D uGravel;
       uniform sampler2D uTiles;
@@ -171,7 +179,11 @@ function shaderPatch(profile, maps) {
       vec4 seaF = texture2D(uField, seaP * 0.16);
       vec3 seaCol = mix(uSand, uMud, uWeights.y * 0.6) * (0.82 + 0.3 * seaF.r * uRipple);
       #else
+      #if SEA_QUALITY >= 2
       vec3 seaN = texture2D(uNoise, seaP * 0.00625).rgb;   // 160 m tile of smooth noise
+      #else
+      vec3 seaN = vSeaN;
+      #endif
       float seaLow = seaN.r;
       float seaMid = seaN.g;
       float seaMix = smoothstep(0.3, 0.7, seaN.b);
@@ -204,9 +216,10 @@ const QUALITY = {low: 0, medium: 1, high: 2};
 
 /**
  * Seabed material for a profile name from siteProfile(). ``detail`` (low / medium / high) sets the shader cost:
- * low reads one texture (cost of the old single sand texture); medium two (a baked smooth-noise texture for
- * mud, gravel and rock patches, and the ripple field); high adds the gravel texture (three reads). Ripples
- * are shading only (no normal perturbation). No procedural noise is evaluated per pixel.
+ * low reads one texture (cost of the old single sand texture) with a constant sand / mud mix; medium also reads one
+ * per pixel (the ripple field) and takes the mud, gravel and rock patches from a baked smooth-noise texture read
+ * per vertex; high reads the noise per pixel and adds the gravel texture (three reads). Ripples are shading only
+ * (no normal perturbation). No procedural noise is evaluated per pixel.
  */
 export function seabedMaterial(name, detail = 'medium') {
   const profile = PROFILES[name] || PROFILES.offshore;
@@ -214,7 +227,7 @@ export function seabedMaterial(name, detail = 'medium') {
   material.onBeforeCompile = shaderPatch(profile, sharedTextures());
   material.defines = {SEA_QUALITY: QUALITY[detail] ?? 1};
   if (profile.tiles) material.defines.SEA_TILES = 1;
-  material.customProgramCacheKey = () => `seabed-site-v3-${material.defines.SEA_QUALITY}-${profile.tiles ? 1 : 0}`;
+  material.customProgramCacheKey = () => `seabed-site-v4-${material.defines.SEA_QUALITY}-${profile.tiles ? 1 : 0}`;
   material.userData.seabedProfile = name;
   return material;
 }

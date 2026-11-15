@@ -26,8 +26,8 @@ const BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', '
   'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast']);
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
-  low: {radial: 12, rockDetail: -1, lumps: 0, hullX: 48, hullZ: 10},
-  medium: {radial: 16, rockDetail: -1, lumps: 60, hullX: 64, hullZ: 12},
+  low: {radial: 12, rockDetail: -1, lumps: 0, hullX: 40, hullZ: 8},
+  medium: {radial: 16, rockDetail: -1, lumps: 0, hullX: 40, hullZ: 8},
   high: {radial: 28, rockDetail: 0, lumps: 90, hullX: 140, hullZ: 22},
 };
 
