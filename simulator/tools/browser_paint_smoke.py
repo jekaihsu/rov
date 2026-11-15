@@ -71,7 +71,8 @@ with sync_playwright() as p:
         page.click('#bLock')
         # Descend until a paintable surface is within reach. Budgeted in simulated seconds (the old wait was
         # 180 s of wall time, which on an idle host is about 180 simulated s); see _campaign_drive.py.
-        hold_until(page, 'q', NEAR_SURFACE, lambda: page.click('#bLock'), 'descent to the seabed', budget=150)
+        hold_until(page, 'q', NEAR_SURFACE, lambda: page.click('#bLock'), 'descent to the seabed', budget=150,
+                   allies=(peer,))
         page.click('#bLock')
         page.click('#btnPause')
         page.wait_for_function('window.__viewer.S.paused')
