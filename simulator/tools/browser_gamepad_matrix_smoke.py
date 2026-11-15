@@ -115,7 +115,9 @@ with sync_playwright() as playwright:
     press(page, 13)
     page.wait_for_function('document.documentElement.dataset.menuInput === "pad"', timeout=timeout(10000))
     glyph = page.evaluate(
-        'document.querySelector("#menuPrompts [data-action=\\"accept\\"] svg")?.getAttribute("aria-label") || ""'
+        # The title screen shows its accept prompt inside the start button (the footer copy was removed).
+        'document.querySelector("#titleStart [data-action=\\"accept\\"] svg, '
+        '#menuPrompts [data-action=\\"accept\\"] svg")?.getAttribute("aria-label") || ""'
     )
     assert glyph == 'A', f'Xbox family glyph was {glyph!r}'
     results['xbox_glyph'] = glyph
