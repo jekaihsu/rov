@@ -16,7 +16,7 @@ export const STRINGS = {
   task: '任務步驟', complete: '任務完成', failed: '任務失敗', idle: '自由操作', batteryLevel: '電量',
   mapHelp: '北向上 · 滾輪縮放 / 拖曳平移', zoomIn: '放大', zoomOut: '縮小', fit: '全域',
   legend: '實線：纜線　虛線：航跡　圓環：目標　灰線：結構物', north: 'N', east: 'E',
-  report: '更新報告', json: '下載 JSON', csv: '軌跡 CSV', html: '可列印 HTML',
+  report: '更新報告', json: '下載 JSON', csv: '軌跡 CSV', html: '講評報告 HTML',
   provisional: '門檻暫定 · 未取樣不評級 · 評分每 2 秒更新', noReport: '等待考核取樣',
   descent: '下潛', transit: '轉場', hover: '懸停', orbit: '繞行', dock: '對接',
   speedError: '速度誤差', path: '航線偏差', heading: '航向誤差', distance: '距離偏差', still: '無流', flow: '有流',

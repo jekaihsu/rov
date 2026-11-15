@@ -1,0 +1,213 @@
+/* Instructor debrief overlays. Keep the replay bar short so HUD overlay geometry still holds. */
+
+.debrief-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  order: -1;
+}
+
+.debrief-viewpoint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.debrief-viewpoint-label {
+  font: 600 10px/1 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ec9b0;
+}
+
+.debrief-view-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8f6ff;
+  border: 1px solid rgba(159, 227, 255, 0.3);
+  border-radius: 5px;
+  padding: 3px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.debrief-view-btn.on {
+  background: #1f6b4a;
+  border-color: #3ecf8e;
+  color: #eafff4;
+  font-weight: 700;
+}
+
+.debrief-details {
+  font: 11px system-ui, sans-serif;
+  color: #cfe9f7;
+}
+
+.debrief-details summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.debrief-details[open] {
+  flex: 1 1 180px;
+}
+
+.debrief-notes {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  min-height: 36px;
+  resize: vertical;
+  background: rgba(0, 0, 0, 0.35);
+  color: #e8f6ff;
+  border: 1px solid rgba(159, 227, 255, 0.25);
+  border-radius: 5px;
+  padding: 4px 6px;
+  font: inherit;
+}
+
+.debrief-export {
+  background: #f2b705;
+  color: #111;
+  border: 0;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font: 700 11px system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.debrief-timeline {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.debrief-timeline-label {
+  display: none;
+}
+
+.debrief-rail {
+  position: relative;
+  height: 0;
+}
+
+.debrief-markers {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  height: 10px;
+  pointer-events: none;
+  z-index: var(--z-raised);
+}
+
+.debrief-marker {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 10px;
+  margin-left: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: #f0c75e;
+  cursor: pointer;
+}
+
+.debrief-marker.kind-collision,
+.debrief-marker.kind-tether_break,
+.debrief-marker.kind-penalty {
+  background: #e4572e;
+}
+
+.debrief-marker.kind-instructor_inject,
+.debrief-marker.kind-comms_loss,
+.debrief-marker.kind-dvl_lost {
+  background: #5b8def;
+}
+
+.debrief-marker.kind-objective_done {
+  background: #3ecf8e;
+}
+
+.debrief-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: 100%;
+  max-height: 22px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  order: 2;
+  font: 10px/1.2 system-ui, sans-serif;
+  color: #cfe9f7;
+}
+
+.debrief-event {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(159, 227, 255, 0.16);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.debrief-event-time {
+  background: transparent;
+  border: 0;
+  color: #f2b705;
+  font: 700 10px ui-monospace, monospace;
+  cursor: pointer;
+  padding: 0;
+}
+
+.debrief-event-label {
+  white-space: nowrap;
+}
+
+/* God-view callouts float on the scene, not inside the replay bar. */
+.viewport > .debrief-banner {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 56px;
+  z-index: var(--z-subtitle);
+  background: #1c3a2c;
+  color: #e8f5ec;
+  border-left: 3px solid #3ecf8e;
+  padding: 6px 10px;
+  font: 600 12px/1.35 system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.viewport > .debrief-compare {
+  position: absolute;
+  left: 12px;
+  top: 96px;
+  z-index: var(--z-subtitle);
+  display: grid;
+  gap: 2px;
+  max-width: min(420px, calc(100% - 24px));
+  font: 11px/1.35 ui-monospace, monospace;
+  color: #cfe9f7;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 6px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+body.debriefing .viewport .replay {
+  /* One extra compact toolbar row; stay well below HUD map / tools. */
+  padding-top: 10px;
+}
