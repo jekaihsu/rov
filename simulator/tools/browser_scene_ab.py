@@ -8,7 +8,7 @@ alternates frame by frame inside one page, so both sides see the same load:
      the old canvas sand texture on the seabed, no structure life (kelp and anemones on structures)
   B  the current scene for the chosen quality tier (structures.js, seabed.js, structure life)
 
-Everything else (vehicle, fish, habitat, silt, HUD canvas) is shared. For each site, tier and view it renders
+Everything else (vehicle, fish, habitat, silt, HUD canvas, the effects pipeline on medium and high) is shared. For each site, tier and view it renders
 A and B alternately (``ROV_AB_FRAMES`` pairs, default 20) at 800x450 with a pixel read-back after each frame
 and reports the median ms of each side. ``ROV_AB_SIDES=A,B,C,D`` adds two diagnostics: C is the current
 structures over the old sand seabed, D the old primitives over the current seabed.
@@ -117,8 +117,13 @@ RUN = '''([view, real, pairs, sides]) => {
   camera.updateMatrixWorld();
   scene.fog.near = real ? .3 : 5;
   scene.fog.far = real ? (v.W?.scenario?.visibility_m || 12) * 1.35 : 70;
+  // the optics pipeline (fx/water_optics.js) takes visibility from what the silt module publishes
+  keep.visibility = scene.userData.waterVisibility;
+  scene.userData.waterVisibility = scene.fog.far / 1.35;
   const gl = renderer.getContext(), pixel = new Uint8Array(4);
   const times = {}, info = {};
+  // the effects pipeline (fx/pipeline.js) renders several passes per frame: count all of them
+  renderer.info.autoReset = false;
   for (const side of sides) {                // warm every program
     times[side] = [];
     window.__ab.set(side);
@@ -128,6 +133,7 @@ RUN = '''([view, real, pairs, sides]) => {
   for (let i = 0; i < pairs; i++) {
     for (const side of (i % 2 ? sides.slice().reverse() : sides)) {
       window.__ab.set(side);
+      renderer.info.reset();
       const t0 = performance.now();
       renderer.render(scene, camera);
       gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
@@ -136,6 +142,7 @@ RUN = '''([view, real, pairs, sides]) => {
     }
   }
   window.__ab.set('B');
+  renderer.info.autoReset = true;
   renderer.setPixelRatio(keep.ratio);
   renderer.setSize(keep.size.x, keep.size.y, false);
   camera.position.copy(keep.pos);
@@ -145,6 +152,7 @@ RUN = '''([view, real, pairs, sides]) => {
   camera.updateProjectionMatrix();
   scene.fog.near = keep.near;
   scene.fog.far = keep.far;
+  scene.userData.waterVisibility = keep.visibility;
   window.__skipRender = false;
   const median = (a) => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];
   return Object.fromEntries(sides.map((side) => [side, {...info[side], ms: median(times[side])}]));

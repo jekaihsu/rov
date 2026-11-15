@@ -63,6 +63,15 @@ CAPTURE = '''([view, real, width, height, quality, frames]) => {
   const vis = v.W?.scenario?.visibility_m || 12;
   scene.fog.near = real ? .3 : 5;
   scene.fog.far = real ? vis * 1.35 : 70;
+  // the optics pipeline (fx/water_optics.js) takes visibility from what the silt module publishes
+  keep.visibility = scene.userData.waterVisibility;
+  scene.userData.waterVisibility = scene.fog.far / 1.35;
+  // inspection helpers (wireframe target spheres, grids) are not part of the site; the water model no longer fogs them
+  const helpers = [];
+  scene.traverse((o) => {
+    if (o.visible && (o.isGridHelper || o.material?.wireframe)) helpers.push(o);
+  });
+  for (const o of helpers) o.visible = false;
   const gl = renderer.getContext(), pixel = new Uint8Array(4);
   renderer.render(scene, camera);
   const times = [];
@@ -87,6 +96,8 @@ CAPTURE = '''([view, real, width, height, quality, frames]) => {
   camera.updateProjectionMatrix();
   scene.fog.near = keep.near;
   scene.fog.far = keep.far;
+  scene.userData.waterVisibility = keep.visibility;
+  for (const o of helpers) o.visible = true;
   window.__skipRender = false;
   return {image, info};
 }'''
