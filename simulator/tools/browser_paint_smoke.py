@@ -58,10 +58,27 @@ with sync_playwright() as p:
         soft_click(page, '.surface-paint-tools summary')
         soft_click(page, '.paint-toggle')
         page.evaluate("window.__viewer.setCam('top')")
-        # At deployment the actual seabed is too far: no server mark may appear.
-        page.locator('canvas').first.click(position={'x':20,'y':20}, force=True, no_wait_after=True)
-        page.keyboard.press('f')
-        assert '距離太遠' in page.locator('.paint-status').inner_text()
+        # Wait until the top camera is actually above the ROV before the far-surface check.
+        pump_until(page, """() => {
+          const v = window.__viewer;
+          if (!v?.rovG) return false;
+          v.setCam('top');
+          return v.camera.position.y > v.rovG.position.y + 4;
+        }""", timeout_ms=timeout(60000), allies=(peer,))
+        # Corner spray while still on the surface: seabed hit is beyond the 3 m limit.
+        status = page.evaluate("""() => {
+          const canvas = document.querySelector('.viewport canvas');
+          const rect = canvas.getBoundingClientRect();
+          const x = rect.left + 20, y = rect.top + 20;
+          canvas.dispatchEvent(new PointerEvent('pointerdown', {
+            button: 0, clientX: x, clientY: y, pointerId: 1, bubbles: true
+          }));
+          canvas.dispatchEvent(new PointerEvent('pointerup', {
+            button: 0, clientX: x, clientY: y, pointerId: 1, bubbles: true
+          }));
+          return document.querySelector('.paint-status')?.textContent || '';
+        }""")
+        assert '距離太遠' in status, status
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['far_surface_rejected'] = True
         # Drive heave through touch + rc_lock so blur/visibility failsafe cannot cancel the dive mid-wait.
