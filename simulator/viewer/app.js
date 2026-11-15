@@ -15,6 +15,7 @@ import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
 import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
 import {installTetherReel} from './tether_reel.js';
+import {thrusterLabel} from './hud/thruster_names.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -830,8 +831,7 @@ function drawProfile() {
 }
 
 let thrRows = [];
-const THR_ZH = { PORT_FRONT: '左前', STBD_FRONT: '右前', PORT_AFT: '左後', STBD_AFT: '右後', PORT_LONG: '左縱', STBD_LONG: '右縱' };
-function thrLabel(name) { const [t, k] = String(name).split(' '); return `${t} ${THR_ZH[k] || k || ''}`; }
+const thrLabel = thrusterLabel;
 function buildThrBars() {
   const host = $('thrBars'); host.innerHTML = ''; thrRows = [];
   (W?.thrusters || []).forEach((t) => {

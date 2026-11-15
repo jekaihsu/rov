@@ -1,5 +1,6 @@
 import {glyph, deviceFamily} from './input/glyphs.js';
 import {hintText} from './input/bindings.js';
+import {controlLayoutLabel} from './control_layout.js';
 // Read-only onboarding: every check comes from received simulator telemetry.
 const STORAGE_KEY = 'rov.pilotGuide.dismissed.v1';
 const CHANNELS = {
@@ -42,7 +43,7 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
     <p class="pilot-context" role="status" aria-live="polite"></p>
     <ol aria-label="首次潛航練習"><li data-step="unlock">解除馬達鎖定</li><li data-step="move">操控移動一小段</li><li data-step="depth">啟用定深</li><li data-step="light">開啟照明</li></ol>
     <details><summary>目前鍵位與視角</summary><p class="pilot-mode"></p><dl></dl>
-      <p class="pilot-shortcuts"><span class="pilot-keys"></span><br>V 切換追蹤、環繞、俯視、機載視角。俯視時以滾輪縮放。<br>需更換手柄或控制配置時，返回主選單。</p>
+      <p class="pilot-shortcuts"><span class="pilot-keys"></span><br>V 切換追蹤、環繞、俯視、機載視角。俯視時以滾輪縮放。<br>需更換手把或控制配置時，返回主選單。</p>
     </details><button type="button" class="pilot-dismiss" id="pilotGuideDismiss">收起提示，下次不自動展開</button>
   </div>`;
   // Key captions come from the binding table, never from a second hand-written list.
@@ -89,7 +90,7 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
     const mappingKey = `${mode}:${usb}`;
     if (mappingKey !== lastMapping) {
       lastMapping = mappingKey;
-      modeLabel.textContent = `${mode === 'UAV_CHN' ? 'ROV 雙桿' : mode} · ${usb ? 'USB 遙控器接管操作軸' : '鍵盤／目前選用的手柄'}`;
+      modeLabel.textContent = `${controlLayoutLabel(mode)} · ${usb ? 'USB 遙控器接管操作軸' : '鍵盤／目前選用的手把'}`;
       table.replaceChildren();
       ['前進／後退', '右移／左移', '上浮／下潛', '右轉／左轉'].forEach((label, i) => {
         const dt = document.createElement('dt'), dd = document.createElement('dd');

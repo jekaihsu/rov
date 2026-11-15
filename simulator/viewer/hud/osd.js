@@ -1,7 +1,9 @@
 // Camera on-screen display (OSD) for the real preset seen from the onboard camera: monospace text burned in
 // at the four corners like inspection video, a text heading tape, a centre cross, frame corner marks and the
 // motor lock message. Shows only what the simulator state provides; a field it does not report (water
-// temperature, camera tilt) is left out rather than invented.
+// temperature, camera tilt) is left out rather than invented. Field labels stay short English abbreviations
+// like real inspection overlays (docs/reference/real-rov-research.md: VideoRay burns in "H" and "D"); the
+// lock and pause lines are instructions to the player, not burn-in, so they are in the player's language.
 const STRINGS = {
   depth: 'DEPTH',
   alt: 'ALT',
@@ -14,10 +16,10 @@ const STRINGS = {
   dive: 'DIVE',
   hold: 'D-HOLD',
   nav: 'NAV',
-  paused: 'PAUSED',
+  paused: '模擬已暫停',
   heading: 'HDG',
   levels: ['MANUAL', 'VEL ASSIST', 'POS HOLD'],
-  locked: 'MOTORS LOCKED — {key} TO ARM',
+  locked: '馬達鎖定 · 按 {key} 解鎖',
   cardinals: {0: 'N', 90: 'E', 180: 'S', 270: 'W'},
 };
 const TAPE_HALF_DEG = 30;

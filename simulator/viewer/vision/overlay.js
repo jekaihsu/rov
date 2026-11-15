@@ -12,7 +12,14 @@ const STRINGS = {
   mark: '標記偵測目標',
   confirm: '請先在機載畫面確認偵測目標再拍照。',
   oracle: 'Oracle · 模擬真值',
+  // Detector classes are internal keys; the picture shows the player's word for each.
+  classes: {coral: '珊瑚', seastar: '海星', seagrass: '海草', kelp: '海藻', fish_school: '魚群',
+    engineering: '作業目標', cable: '纜線', unknown: '未知目標'},
 };
+
+export function classLabel(cls) {
+  return STRINGS.classes[cls] || STRINGS.classes.unknown;
+}
 export const VISION_ITEM = 'aiOverlay';
 
 registerFidelityItem({
@@ -30,7 +37,7 @@ export function drawDetections(ctx, detections, width, height) {
   for (const detection of detections) {
     const [x, y, w, h] = detection.box;
     ctx.strokeRect(x * width, y * height, w * width, h * height);
-    const label = `${detection.cls} ${(detection.score * 100).toFixed(0)}%`;
+    const label = `${classLabel(detection.cls)} ${(detection.score * 100).toFixed(0)}%`;
     ctx.fillText(label, x * width, Math.max(14, y * height - 4));
   }
 }
