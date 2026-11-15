@@ -95,30 +95,29 @@ with sync_playwright() as p:
         assert '距離太遠' in status, status
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['far_surface_rejected'] = True
-        # Drive heave via touch + keyboard. Never click #bLock here: it toggles, so set-then-click
-        # would re-lock every pump turn. Keep peer silent; re-assert unlock/heave each turn so
-        # visibility/blur failsafe cannot leave thrusters cancelled mid-dive.
+        # Drive heave via touch only (a held Q key cannot be cleared from the pump predicate).
+        # Never click #bLock: it toggles, so set-then-click re-locks every turn.
         peer.evaluate('window.__skipRender = true')
         page.bring_to_front()
         page.locator('.viewport canvas').first.click(force=True, no_wait_after=True)
         page.evaluate('() => { window.__viewer.rc.rc_lock = 0; window.__viewer.touch.left_wave = -1; }')
-        page.keyboard.down('q')
         try:
             pump_until(page, """() => {
               const v = window.__viewer;
               if (!v?.S || !v.touch) return false;
               v.rc.rc_lock = 0;
-              v.touch.left_wave = -1;
               const altitude = v.S.sensors?.altitude;
-              if (Number.isFinite(altitude) && altitude < 2.2) return true;
               const start = new v.THREE.Vector3(-v.S.pos[1], -v.S.pos[2], v.S.pos[0]);
               const meshes = [];
               v.scene.traverse(o => { if (o.isMesh && o.userData.paintable && o.visible) meshes.push(o); });
               const hits = new v.THREE.Raycaster(start, new v.THREE.Vector3(0, -1, 0)).intersectObjects(meshes, false);
-              return !!(hits.length && hits[0].distance < 2.2);
+              const near = (Number.isFinite(altitude) && altitude < 2.2)
+                || !!(hits.length && hits[0].distance < 2.2);
+              // Stop heave as soon as we are near; keep diving only while still high.
+              v.touch.left_wave = near ? 0 : -1;
+              return near;
             }""", timeout_ms=timeout(180000), allies=(peer,))
         finally:
-            page.keyboard.up('q')
             page.evaluate("""() => {
               const v = window.__viewer;
               if (!v) return;
@@ -195,8 +194,16 @@ with sync_playwright() as p:
         page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
         page.mouse.down();page.mouse.move(box['x']+box['width']/2+40,box['y']+box['height']/2+20);page.mouse.up()
         assert page.evaluate('window.__viewer.S.paint_marks.length')==1
-        canvas.click(position={'x':box['width']/2+8,'y':box['height']/2}, force=True, no_wait_after=True)
-        page.wait_for_function('window.__viewer.S.paint_marks.length===2', timeout=timeout(120000))
+        # Second mark: same snap+offset spray as the first sand hit (raw centre click hits the
+        # hull when the dive ends low). Drag filter above already covered pointer filtering.
+        status = ''
+        for offset in (35, 55, 75, 100, 140):
+            status = spray_center_with_top_cam(offset, height=22)
+            if '已送出' in status or '確認' in status:
+                break
+        assert '已送出' in status or '確認' in status, status
+        pump_until(page, '() => window.__viewer.S.paint_marks.length===2',
+                   timeout_ms=timeout(120000), allies=(peer,))
         page.wait_for_function(PAINT_COUNT+'===2', timeout=timeout(120000))
         peer.wait_for_function(PAINT_COUNT+'===2', timeout=timeout(120000))
         results['click_and_drag_filter'] = True
