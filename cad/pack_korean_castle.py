@@ -87,10 +87,13 @@ def main() -> None:
             run(cli, "simplify", current, current, "--ratio", "0.95", "--error", "0.002")
         elif "lod2" in target_name:
             run(cli, "simplify", current, current, "--ratio", "0.9", "--error", "0.004")
-        run(cli, "webp", current, current, "--quality", "78", "--effort", "70")
+        # Quality 78: softer albedo edges than 70 (fewer WebP blocks) while staying small on disk.
+        run(cli, "webp", current, current, "--quality", "78", "--effort", "90")
         run(cli, "prune", current, current)
         target = MODELS / target_name
-        run(cli, "meshopt", current, target, "--level", "medium")
+        # LOD0 stays above the 2 MB new-asset soft limit (tris + 1K atlases); see PR description.
+        level = "high" if source_name.startswith("lod0") else "medium"
+        run(cli, "meshopt", current, target, "--level", level)
         info = describe(target)
         assert info["triangles"] <= tri_budget, (target_name, info["triangles"], tri_budget)
         assert info["texture_bytes_with_mips"] <= tex_budget, (

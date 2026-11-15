@@ -1,17 +1,17 @@
 [
   {
     "file": "korean_castle.glb",
-    "bytes": 7094596,
-    "triangles": 268092,
-    "draw_calls": 62,
-    "materials": 5,
+    "bytes": 5572304,
+    "triangles": 248341,
+    "draw_calls": 61,
+    "materials": 7,
     "textures": [
       {
         "name": "encrusted_steel_normal",
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 254942,
+        "bytes": 232076,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -19,7 +19,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 81178,
+        "bytes": 32378,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -27,7 +27,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 86110,
+        "bytes": 57920,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -35,7 +35,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 210022,
+        "bytes": 196598,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -43,15 +43,15 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 356160,
+        "bytes": 256018,
         "gpu_rgba8_mips": 5592405
       },
       {
-        "name": "seabed_basecolor",
+        "name": "I4_rock_basecolor",
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 18812,
+        "bytes": 46534,
         "gpu_rgba8_mips": 5592405
       }
     ],
@@ -66,17 +66,17 @@
   },
   {
     "file": "korean_castle_lod1.glb",
-    "bytes": 3804812,
-    "triangles": 89495,
-    "draw_calls": 62,
-    "materials": 5,
+    "bytes": 3549076,
+    "triangles": 83120,
+    "draw_calls": 61,
+    "materials": 7,
     "textures": [
       {
         "name": "encrusted_steel_normal",
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 254942,
+        "bytes": 232076,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -84,7 +84,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 81178,
+        "bytes": 32378,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -92,7 +92,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 86110,
+        "bytes": 57920,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -100,7 +100,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 210022,
+        "bytes": 196598,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -108,15 +108,15 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 356160,
+        "bytes": 256018,
         "gpu_rgba8_mips": 5592405
       },
       {
-        "name": "seabed_basecolor",
+        "name": "I4_rock_basecolor",
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 18812,
+        "bytes": 46534,
         "gpu_rgba8_mips": 5592405
       }
     ],
@@ -131,17 +131,17 @@
   },
   {
     "file": "korean_castle_lod2.glb",
-    "bytes": 1768856,
-    "triangles": 17963,
-    "draw_calls": 62,
-    "materials": 5,
+    "bytes": 1591916,
+    "triangles": 17965,
+    "draw_calls": 61,
+    "materials": 7,
     "textures": [
       {
         "name": "encrusted_steel_normal",
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 254942,
+        "bytes": 232076,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -149,7 +149,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 81178,
+        "bytes": 32378,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -157,7 +157,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 86110,
+        "bytes": 57920,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -165,7 +165,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 210022,
+        "bytes": 196598,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -173,15 +173,15 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 356160,
+        "bytes": 256018,
         "gpu_rgba8_mips": 5592405
       },
       {
-        "name": "seabed_basecolor",
+        "name": "I4_rock_basecolor",
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 18812,
+        "bytes": 46534,
         "gpu_rgba8_mips": 5592405
       }
     ],
