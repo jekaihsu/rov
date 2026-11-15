@@ -53,29 +53,81 @@ class LegacyCompatibilityTests(unittest.TestCase):
 
 
 class StaticOnceMergeTests(unittest.TestCase):
+    @staticmethod
+    def _fill(previous, incoming, fields):
+        merged = dict(incoming)
+        if previous:
+            for field in fields:
+                if field not in incoming and field in previous:
+                    merged[field] = previous[field]
+        return merged
+
     def _merge(self, previous, incoming):
         """Python mirror of viewer/state_merge.js for cross-check in server tests."""
-        if previous is None:
-            return dict(incoming)
-        merged = dict(previous)
-        merged.update(incoming)
-        for field in STATIC_ONCE_FIELDS:
-            if field not in incoming and field in previous:
-                merged[field] = previous[field]
+        if not incoming.get('delta') or previous is None:
+            merged = dict(incoming)
+            merged.pop('delta', None)
+            return merged
+        merged = self._fill(previous, incoming, STATIC_ONCE_FIELDS)
+        merged.pop('delta', None)
         if 'vehicles' in incoming:
             prior = {(v.get('vehicle_id') or v.get('id')): v for v in previous.get('vehicles', [])}
-            fleet = []
-            for entry in incoming['vehicles']:
-                key = entry.get('vehicle_id') or entry.get('id')
-                base = dict(prior.get(key, {}))
-                base.update(entry)
-                previous_entry = prior.get(key, {})
-                for field in STATIC_ONCE_VEHICLE_FIELDS:
-                    if field not in entry and field in previous_entry:
-                        base[field] = previous_entry[field]
-                fleet.append(base)
-            merged['vehicles'] = fleet
+            merged['vehicles'] = [
+                self._fill(prior.get(entry.get('vehicle_id') or entry.get('id')), entry,
+                           STATIC_ONCE_VEHICLE_FIELDS)
+                for entry in incoming['vehicles']]
         return merged
+
+    def test_removed_allowlisted_field_sends_unmarked_full_state(self):
+        tracker = StaticOnceTracker()
+        base = {'t': 0, 'vehicle': {'id': 'x1'}, 'remote_control': {'owner': 'sdk'},
+                'vehicles': [{'vehicle_id': 'v1', 'vehicle': {'id': 'x1'}}]}
+        tracker.strip(base)
+        second = tracker.strip({**base, 't': 1})
+        self.assertTrue(second['delta'])
+        self.assertNotIn('remote_control', second)
+        removed = {key: value for key, value in base.items() if key != 'remote_control'}
+        third = tracker.strip({**removed, 't': 2})
+        self.assertNotIn('delta', third)
+        self.assertIn('vehicle', third)
+        merged = self._merge(self._merge(base, second), third)
+        self.assertNotIn('remote_control', merged)
+
+    def test_departed_seat_forces_full_state(self):
+        tracker = StaticOnceTracker()
+        seat = {'vehicle_id': 'v2', 'vehicle': {'id': 'falcon'}}
+        tracker.strip({'t': 0, 'vehicles': [{'vehicle_id': 'v1'}, seat]})
+        left = tracker.strip({'t': 1, 'vehicles': [{'vehicle_id': 'v1'}]})
+        self.assertNotIn('delta', left)
+        back = tracker.strip({'t': 2, 'vehicles': [{'vehicle_id': 'v1'}, seat]})
+        self.assertEqual(back['vehicles'][1]['vehicle'], {'id': 'falcon'})
+
+    def test_new_explicit_null_is_forwarded(self):
+        tracker = StaticOnceTracker()
+        tracker.strip({'t': 0, 'vehicle': {'id': 'x1'}})
+        second = tracker.strip({'t': 1, 'vehicle': {'id': 'x1'}, 'depth_hold': None})
+        self.assertIn('depth_hold', second)
+        self.assertIsNone(second['depth_hold'])
+
+    def test_non_allowlisted_key_removal_is_not_retained(self):
+        previous = {'type': 'state', 'vehicle': {'id': 'x1'}, 'procedure': {'phase': 'checks'}}
+        merged = self._merge(previous, {'type': 'state', 'delta': True, 't': 1})
+        self.assertEqual(merged['vehicle'], {'id': 'x1'})
+        self.assertNotIn('procedure', merged)
+
+    def test_caps_are_per_socket(self):
+        host = SimHost(Simulator('open_water', 42))
+        pilot = host.room.join('Pilot')
+        declared = object()
+        legacy = object()
+        host.remember_caps(declared, {'caps': [STATIC_ONCE]})
+        host.remember_caps(legacy, {})
+        for _ in range(5):
+            host.room.step(.01)
+            host.viewer_payload(host.room, pilot, ws=declared)
+            wire = json.loads(host.viewer_payload(host.room, pilot, ws=legacy))
+            self.assertNotIn('delta', wire)
+            self.assertIn('vehicle', wire)
 
     def test_tracker_omits_unchanged_allowlisted_fields(self):
         host = SimHost(Simulator('open_water', 42))
@@ -160,6 +212,13 @@ class SessionCapsTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNotNone(first)
                 self.assertIn('vehicle', first)
                 self.assertIn('campaign', first)
+                await ws.send(dumps({'type': 'join', 'room_id': 'training', 'name': 'Pilot',
+                                     'model_id': 'x1'}))
+                while True:
+                    legacy_session = json.loads(await ws.recv())
+                    if legacy_session['type'] == 'session':
+                        break
+                self.assertNotIn('caps', legacy_session)
 
 
 if __name__ == '__main__':

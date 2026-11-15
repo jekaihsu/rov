@@ -19,10 +19,11 @@ underscores or hyphens. Missing rooms are created. Supported model IDs are publi
 in `world.vehicle_catalogue`. A successful join replies:
 
 ```json
-{"type":"session","protocol":2,"room_id":"training","player_id":"opaque-id","vehicle_id":"v1","resume_token":"private-token","generation":1,"is_host":true,"capacity":3,"caps":[]}
+{"type":"session","protocol":2,"room_id":"training","player_id":"opaque-id","vehicle_id":"v1","resume_token":"private-token","generation":1,"is_host":true,"capacity":3}
 ```
 
-`caps` echoes the accepted capability names (empty when omitted or unknown).
+When the join carried `caps`, the reply adds `"caps"` with the accepted names (empty
+when all were unknown). Without `caps` the reply is unchanged.
 
 Keep the resume token private and resend it to recover the same seat after a
 disconnect. Disconnected seats remain reserved for 30 seconds. A replacement
@@ -830,17 +831,21 @@ read-only `hello` (before or without joining):
 {"type":"hello","caps":["static_once"]}
 ```
 
-Unknown capability names are ignored. The session / `instructor_session` /
-`hello_ack` reply echoes the accepted list as `"caps":["static_once"]`. Omitting
-`caps` or sending `[]` retains full snapshots for that connection, byte-compatible
-with older hosts.
+Unknown capability names are ignored. When the request carried `caps`, the
+session / `instructor_session` reply echoes the accepted list as
+`"caps":["static_once"]`; `hello_ack` always does. Omitting `caps` or sending `[]`
+retains full snapshots for that connection, byte-compatible with older hosts. A
+later `join` / `hello` replaces the connection's caps.
 
 Only connections that accepted `static_once` may receive states with allowlisted
 fields omitted when the value is unchanged since the last state sent on **that**
-socket. The first state after join / hello / instructor_join, and the first state
-after each `world` message (scenario, reset, model, membership), is always a
-complete snapshot. Explicit `null` and value changes are always forwarded.
-Removed fleet seats are simply absent from `vehicles` (the array is authoritative).
+socket. Such a state carries `"delta":true`. A state **without** `delta` is always
+a complete snapshot and replaces whatever the client retained. The host sends a
+complete snapshot for the first state after join / hello / instructor_join, after
+each `world` message (scenario, reset, model, membership), and whenever a field or
+fleet seat sent earlier is no longer present (removal). Explicit `null` and value
+changes are always forwarded on the tick they happen; there is no rate limit, so
+power trips, leaks and thermal warnings are never delayed.
 
 Allowlisted top-level fields (omit only when unchanged):
 
@@ -859,7 +864,12 @@ above that exist on fleet entries). High-rate pose, tether, sensors, score and
 environment continue on every tick.
 
 **Client responsibility:** a `static_once` client must merge each state into a
-retained complete snapshot before use (`viewer/state_merge.js`). The live pilot
+retained complete snapshot before use (`viewer/state_merge.js`): on a `delta`
+state, take every key from the message and fill only the omitted allowlisted keys
+(top level and per `vehicles[]` entry, matched by `vehicle_id`) from the retained
+snapshot; keys outside the allowlist are never carried over. Merge every state on
+the socket, including ones received before the `session` reply, and clear the
+retained snapshot only when a new socket opens. The live pilot
 viewer and the instructor console declare the capability and merge. Replay does
 **not** declare it: mission recordings store complete merged snapshots so older
 replay tools keep working. `StateBuffer` receives already-merged frames.

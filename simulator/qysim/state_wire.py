@@ -128,13 +128,21 @@ def _scalar(value):
     return value
 
 
+# Fingerprint stand-in for "never sent", so a newly present explicit null is forwarded.
+_MISSING = object()
+
+# Marker on states that omit fields. Unmarked states are complete snapshots.
+DELTA_KEY = 'delta'
+
+
 class StaticOnceTracker:
     """Per-connection omit state for the static_once capability.
 
     The first state after construction or ``reset()`` is always a full snapshot.
-    Later messages drop allowlisted fields whose fingerprint matches the last send.
-    Explicit nulls and value changes are always forwarded. Fleet entries are keyed by
-    ``vehicle_id`` / ``id`` so a removed seat is simply absent from ``vehicles``.
+    Later messages drop allowlisted fields whose fingerprint matches the last send and
+    carry ``"delta": true``. Explicit nulls and value changes are always forwarded.
+    When a previously sent allowlisted field (or a whole fleet seat) disappears, the
+    state is sent complete and unmarked, so clients replace their retained snapshot.
     """
 
     def __init__(self):
@@ -147,48 +155,77 @@ class StaticOnceTracker:
 
     def strip(self, state):
         """Return a state dict safe to encode; never mutates ``state`` or shared arrays."""
-        if self._force_full:
+        if self._force_full or self._removed(state):
+            self._last.clear()
             self._remember(state)
             self._force_full = False
             return state
         out = {}
+        omitted = False
         for key, value in state.items():
             if key == 'vehicles' and isinstance(value, list):
-                out[key] = self._strip_fleet(value)
+                fleet, fleet_omitted = self._strip_fleet(value)
+                out[key] = fleet
+                omitted = omitted or fleet_omitted
                 continue
             if key in STATIC_ONCE_FIELDS and self._unchanged(('top', key), key, value):
+                omitted = True
                 continue
             out[key] = value
             if key in STATIC_ONCE_FIELDS:
                 self._last[('top', key)] = _fingerprint(key, value)
+        if omitted:
+            out[DELTA_KEY] = True
         return out
 
     def _strip_fleet(self, fleet):
         result = []
+        omitted = False
         for entry in fleet:
-            vehicle_id = entry.get('vehicle_id') or entry.get('id')
+            vehicle_id = _vehicle_key(entry)
             item = {}
             for key, value in entry.items():
                 path = ('vehicle', vehicle_id, key)
                 if key in STATIC_ONCE_VEHICLE_FIELDS and self._unchanged(path, key, value):
+                    omitted = True
                     continue
                 item[key] = value
                 if key in STATIC_ONCE_VEHICLE_FIELDS:
                     self._last[path] = _fingerprint(key, value)
             result.append(item)
-        return result
+        return result, omitted
 
     def _unchanged(self, path, name, value):
-        return self._last.get(path) == _fingerprint(name, value)
+        return self._last.get(path, _MISSING) == _fingerprint(name, value)
+
+    def _paths(self, state):
+        paths = set()
+        for key, value in state.items():
+            if key == 'vehicles' and isinstance(value, list):
+                for entry in value:
+                    vehicle_id = _vehicle_key(entry)
+                    paths.update(('vehicle', vehicle_id, field) for field in entry
+                                 if field in STATIC_ONCE_VEHICLE_FIELDS)
+            elif key in STATIC_ONCE_FIELDS:
+                paths.add(('top', key))
+        return paths
+
+    def _removed(self, state):
+        """True when a remembered field or seat is absent now (explicit removal)."""
+        return not self._paths(state).issuperset(self._last)
 
     def _remember(self, state):
         for key, value in state.items():
             if key == 'vehicles' and isinstance(value, list):
                 for entry in value:
-                    vehicle_id = entry.get('vehicle_id') or entry.get('id')
+                    vehicle_id = _vehicle_key(entry)
                     for field, field_value in entry.items():
                         if field in STATIC_ONCE_VEHICLE_FIELDS:
                             self._last[('vehicle', vehicle_id, field)] = _fingerprint(field, field_value)
                 continue
             if key in STATIC_ONCE_FIELDS:
                 self._last[('top', key)] = _fingerprint(key, value)
+
+
+def _vehicle_key(entry):
+    return entry.get('vehicle_id') or entry.get('id')

@@ -447,7 +447,10 @@ class SimHost:
         self.instructor_sessions[ws] = room
         room.instructor.supervised = True
         caps = self.remember_caps(ws, msg)
-        return {"type": "instructor_session", "room_id": room.id, "caps": list(caps)}
+        reply = {"type": "instructor_session", "room_id": room.id}
+        if "caps" in msg:
+            reply["caps"] = list(caps)
+        return reply
 
     def instructor_command(self, ws, msg):
         room = self.instructor_sessions[ws]
@@ -563,7 +566,8 @@ class SimHost:
             old_room, old_player, old_generation = self.sessions[ws]
             if old_room.id == room_id:
                 reply = old_room.session(old_player)
-                reply["caps"] = list(caps)
+                if "caps" in msg:
+                    reply["caps"] = list(caps)
                 return reply
         if room_id not in self.rooms:
             if len(self.rooms) >= 8:
@@ -577,7 +581,8 @@ class SimHost:
         self.world_version += 1
         self.reset_static_once(room)
         reply = room.session(player)
-        reply["caps"] = list(caps)
+        if "caps" in msg:
+            reply["caps"] = list(caps)
         return reply
 
     async def _viewer_sender(self, ws):
