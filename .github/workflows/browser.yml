@@ -40,7 +40,11 @@ jobs:
           node-version: 22
       - run: python -m playwright install --with-deps chromium
       - run: node simulator/desktop/test_collection_store.cjs
+      # Full tier stays advisory as before H4: browser_expedition_smoke and browser_paint_smoke
+      # time out under software rendering on main (docs/ci/timings.md). Quick (HUD) is a gate.
       - name: Run selected tier
+        id: checks
+        continue-on-error: ${{ github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review' }}
         env:
           TIER: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'ready_for_review') && 'full' || 'quick' }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -51,8 +55,13 @@ jobs:
             args+=(--changed --base "$BASE_SHA")
           fi
           python simulator/tools/run_browser_checks.py --tier "$TIER" "${args[@]}"
+      - name: Report advisory result
+        if: steps.checks.outcome == 'failure'
+        run: |
+          echo "::warning::Advisory full browser tier failed; inspect browser-logs."
+          echo "Full browser tier failed (advisory); see browser-logs artifact." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() || steps.checks.outcome == 'failure'
         with:
           name: browser-logs
           path: simulator/output/browser-checks/

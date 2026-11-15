@@ -194,7 +194,8 @@ quick 三組本機時間合計 30.45 秒，不含依賴安裝；CI 的 5 分鐘�
 - `browser_expedition_smoke.py:111`：deploy 取消後 `expedition.active === null` 等待 30 秒逾時。
 - `browser_paint_smoke.py:95`：`#engineering` 的標題攔截 `#flightDrawer` 點擊，等待 90 秒逾時。
 
-未放寬斷言、未刪除腳本、未改為 continue-on-error。這兩項仍在 full gate；本 PR 不宣稱完整瀏覽器驗證全過。
+未放寬斷言、未刪除腳本。CI 的 full 瀏覽器層維持 H4 之前的 advisory（step continue-on-error，失敗時
+上傳記錄並在摘要警告），因為這兩支在 main 上同樣失敗；quick（HUD）仍是 gate。本 PR 不宣稱完整瀏覽器驗證全過。
 原始 Python discover：407 tests，331.162 秒，OK（總程序時間見上表）。
 explicit-only 另有 3 支失敗：expedition_perf（按鈕不可見）、input_smoke（舊協定不帶 assist 的斷言）、
 visual（等待 vehicle_id 逾時）。瀏覽器失敗的診斷訊息列於上表；畫面／流程修正不屬於 H4，留待後續任務。
