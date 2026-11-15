@@ -36,6 +36,7 @@ from .rc import CHANNELS
 from .reel import MODES as REEL_MODES
 from .qirc import QircControls
 from .room import Room
+from .state_wire import STATIC_ONCE, StaticOnceTracker, parse_caps
 
 ROOT = Path(__file__).resolve().parents[1]
 VIEWER_DIR = ROOT / "viewer"
@@ -66,6 +67,9 @@ class SimHost:
         self.bridges = {}
         self.instructor_sessions = {}
         self.instructor_code = os.environ.get("QYSIM_INSTRUCTOR_CODE", "")
+        # Optional wire capabilities per WebSocket (join / hello / instructor_join).
+        self.client_caps = {}
+        self.static_once = {}
         self.sonar_subscriptions = {}       # viewer ws -> scan settings (optional T15 extension)
         self.latest_sonar = None            # newest primary-vehicle frame, for the SDK RPC
         self.vision_results = weakref.WeakKeyDictionary()
@@ -171,16 +175,24 @@ class SimHost:
                              "connected": p.connected} for p in room.players.values()]},
                 "is_host": player is not None and player.id == room.host_id}
 
-    def viewer_payload(self, room=None, player=None):
+    def viewer_payload(self, room=None, player=None, ws=None):
         """Encode a fleet snapshot once while retaining the complete v2 wire state.
 
         Each viewer still receives its own top-level telemetry and every fleet
         member. Only immutable serialized fragments are shared between senders;
         room membership and USB controller metadata are read on every call.
         Call while holding the host lock, like viewer_state().
+
+        When ``ws`` negotiated ``static_once``, unchanged allowlisted fields are
+        omitted for that connection only. Legacy callers (no ``ws``) keep full
+        snapshots byte-compatible with the pre-delta encoder.
         """
         room = room or self.room
         state = self.viewer_state(room, player)
+        tracker = self.static_once.get(ws) if ws is not None else None
+        if tracker is not None:
+            stripped = tracker.strip(state)
+            return dumps({"type": "state", **stripped})
         fleet = state.pop("vehicles")
         cached = self._wire_snapshots.get(room)
         if cached is None or cached[0] is not fleet:
@@ -199,6 +211,43 @@ class SimHost:
         else:
             body = dumps(state)[1:-1]
         return '{"type":"state",' + body + ',"vehicles":' + cached[2] + "}"
+
+    def remember_caps(self, ws, msg):
+        """Store negotiated caps for this socket; reset static_once on (re)negotiation."""
+        caps = parse_caps(msg.get("caps"))
+        self.client_caps[ws] = caps
+        if STATIC_ONCE in caps:
+            tracker = self.static_once.get(ws)
+            if tracker is None:
+                tracker = StaticOnceTracker()
+                self.static_once[ws] = tracker
+            tracker.reset()
+        else:
+            self.static_once.pop(ws, None)
+        return caps
+
+    def reset_static_once(self, room=None):
+        """Force a full snapshot after a shared-scene change (world / reset / model)."""
+        for ws, tracked_room in list(self.instructor_sessions.items()):
+            if room is None or tracked_room is room:
+                tracker = self.static_once.get(ws)
+                if tracker is not None:
+                    tracker.reset()
+        for ws, session in list(self.sessions.items()):
+            if room is None or session[0] is room:
+                tracker = self.static_once.get(ws)
+                if tracker is not None:
+                    tracker.reset()
+        for ws, caps in list(self.client_caps.items()):
+            if STATIC_ONCE not in caps:
+                continue
+            if ws in self.sessions or ws in self.instructor_sessions:
+                continue
+            # Observers of the default room (hello without join).
+            if room is None or room is self.room:
+                tracker = self.static_once.get(ws)
+                if tracker is not None:
+                    tracker.reset()
 
     def should_step_room(self, room):
         """Retain the local SDK room without spending CPU on an unused simulator."""
@@ -312,7 +361,10 @@ class SimHost:
                     continue
                 async with self.lock:
                     try:
-                        if msg.get("type") == "instructor_join":
+                        if msg.get("type") == "hello":
+                            caps = self.remember_caps(ws, msg)
+                            reply = {"type": "hello_ack", "caps": list(caps)}
+                        elif msg.get("type") == "instructor_join":
                             reply = self.join_instructor(ws, msg)
                         elif ws in self.instructor_sessions:
                             reply = self.instructor_command(ws, msg)
@@ -382,6 +434,8 @@ class SimHost:
                     else:
                         room.disconnect(player, generation)
             self.sonar_subscriptions.pop(ws, None)
+            self.client_caps.pop(ws, None)
+            self.static_once.pop(ws, None)
             self.viewers.discard(ws)
 
     def join_instructor(self, ws, msg):
@@ -391,7 +445,8 @@ class SimHost:
         room = self.rooms[str(msg.get("room_id", "training"))]
         self.instructor_sessions[ws] = room
         room.instructor.supervised = True
-        return {"type": "instructor_session", "room_id": room.id}
+        caps = self.remember_caps(ws, msg)
+        return {"type": "instructor_session", "room_id": room.id, "caps": list(caps)}
 
     def instructor_command(self, ws, msg):
         room = self.instructor_sessions[ws]
@@ -502,10 +557,13 @@ class SimHost:
             raise ValueError("房間代碼須為 1–32 個英數字、底線或連字號")
         model_id = str(msg.get("model_id", "x1"))
         get_vehicle_definition(model_id)
+        caps = self.remember_caps(ws, msg)
         if ws in self.sessions:
             old_room, old_player, old_generation = self.sessions[ws]
             if old_room.id == room_id:
-                return old_room.session(old_player)
+                reply = old_room.session(old_player)
+                reply["caps"] = list(caps)
+                return reply
         if room_id not in self.rooms:
             if len(self.rooms) >= 8:
                 raise ValueError("server_rooms_full")
@@ -516,7 +574,10 @@ class SimHost:
             old_room.disconnect(old_player, old_generation)
         self.sessions[ws] = (room, player, player.generation)
         self.world_version += 1
-        return room.session(player)
+        self.reset_static_once(room)
+        reply = room.session(player)
+        reply["caps"] = list(caps)
+        return reply
 
     async def _viewer_sender(self, ws):
         seen_version = self.world_version
@@ -532,9 +593,11 @@ class SimHost:
                 room = self.instructor_sessions.get(ws, room)
                 if seen_version != self.world_version:
                     seen_version = self.world_version
-                    sim = room.vehicles[player.vehicle_id] if player else room.primary
+                    tracker = self.static_once.get(ws)
+                    if tracker is not None:
+                        tracker.reset()
                     world = dumps({"type": "world", **self.world_description(room, player)})
-                payload = self.viewer_payload(room, player)
+                payload = self.viewer_payload(room, player, ws=ws)
             settings = self.sonar_subscriptions.get(ws)
             if settings is not None:
                 if sonar_pending is not None and sonar_pending.done():

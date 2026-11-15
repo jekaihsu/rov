@@ -113,6 +113,8 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
     recorder.onstop=()=>{const blob=new Blob(chunks,{type:recorder.mimeType});if(blob.size>128)downloadFile(`ROV-${Date.now()}.webm`,blob);else notify('錄製時間太短，沒有可用影像，請重新錄製。');stream.getTracks().forEach(t=>t.stop());$('saveVideo').textContent='錄製畫面';};
     recorder.start(1000); $('saveVideo').textContent='停止並下載';
   };
+  // Mission recordings store complete merged snapshots (getState is post-merge), so
+  // older replay tools keep reading them without static_once. Deltas are never written.
   let flight=null,lastRecorded=-1,flightBytes=0;
   const byteLength=value=>new TextEncoder().encode(JSON.stringify(value)).byteLength;
   function finishFlight(){
