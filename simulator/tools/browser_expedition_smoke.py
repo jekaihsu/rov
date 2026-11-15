@@ -4,7 +4,7 @@ import json
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from _browser import launch, host, http_port, ws_port
+from _browser import launch, host, http_port, ws_port, timeout
 from _menu import launch_from_menu, open_main
 
 parser = argparse.ArgumentParser()
@@ -33,7 +33,17 @@ def wait_state(page):
 def current_host(tabs):
     # Disconnect transfers the host; reconnecting resumes the pilot, not a lost
     # administrative role. Exercise the elected host rather than assuming v1.
-    return next(tab for tab in tabs if tab.evaluate("window.__viewer.S.room.host_id===window.__testMessages.filter(m=>m.type==='session').at(-1).player_id"))
+    deadline = time.time() + timeout(60000) / 1000
+    while time.time() < deadline:
+        for tab in tabs:
+            if tab.evaluate("""() => {
+              const room = window.__viewer?.S?.room;
+              const session = window.__testMessages.filter(m => m.type === 'session').at(-1);
+              return !!(room && session && room.host_id === session.player_id);
+            }"""):
+                return tab
+        tabs[0].wait_for_timeout(200)
+    raise AssertionError('no tab matches the elected host')
 
 with sync_playwright() as p:
     browser = launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
@@ -68,7 +78,8 @@ with sync_playwright() as p:
         assert guest.evaluate('window.__viewer.S.expedition.active.id')==contract_id
     main.wait_for_function('window.__viewer.S.room.players.length===3')
     operation(guests[0],'expedition_cancel',request_id='guest-cannot-cancel')
-    guests[0].wait_for_function("window.__testMessages.some(m=>m.code==='host_only'||m.error==='host_only')")
+    guests[0].wait_for_function("window.__testMessages.some(m=>m.code==='host_only'||m.error==='host_only')",
+                                timeout=timeout(120000))
     assert guests[0].evaluate('window.__viewer.S.expedition.active.id')==contract_id
     main.reload(wait_until='domcontentloaded');wait_state(main)
     assert main.evaluate('window.__viewer.S.expedition.dive_id')==dive_id

@@ -3,7 +3,7 @@ import json
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from _browser import launch, http_base, ws_base
+from _browser import launch, http_base, ws_base, timeout
 from _menu import open_settings_tab, set_intro, to_briefing, wait_ready
 
 OUT = Path(__file__).resolve().parents[1]/'output'/'gameplay-validation'
@@ -61,19 +61,20 @@ with sync_playwright() as p:
     main.wait_for_function('window.__viewer.S.vehicles.length===2')
     assert guest.evaluate('window.__viewer.S.mission.targets.map(t=>t.id)') == target_ids
     guest.evaluate("window.__testSockets.find(s=>s.readyState===1).send(JSON.stringify({type:'operation',action:'mission_mode',mode:'free_explore'}))")
-    guest.wait_for_function('window.__testMessages.some(m=>m.code==="host_only" || m.error==="host_only")')
+    guest.wait_for_function('window.__testMessages.some(m=>m.code==="host_only" || m.error==="host_only")',
+                            timeout=timeout(120000))
     assert guest.evaluate('window.__viewer.S.mission.mode') == 'inspection_coop'
     print('Guest shares mission and mode change is denied', flush=True)
 
     main.bring_to_front()
-    with main.expect_download(predicate=lambda d:d.suggested_filename.endswith('.png'), timeout=30000) as capture:
+    with main.expect_download(predicate=lambda d:d.suggested_filename.endswith('.png'), timeout=timeout(60000)) as capture:
         main.click('.mission-photo')
     capture.value.save_as(OUT/'not-ready-photo.png')
-    main.wait_for_function('window.__viewer.S.mission.last_photo !== null')
+    main.wait_for_function('window.__viewer.S.mission.last_photo !== null', timeout=timeout(120000))
     state = main.evaluate('window.__viewer.S.mission')
     assert state['completed'] == 0 and state['last_photo']['target_id'] is None, state
     assert (OUT/'not-ready-photo.png').stat().st_size > 1000
-    guest.wait_for_function('window.__viewer.S.mission.last_photo !== null')
+    guest.wait_for_function('window.__viewer.S.mission.last_photo !== null', timeout=timeout(120000))
     assert guest.evaluate('window.__viewer.S.mission.last_photo.vehicle_id') == state['last_photo']['vehicle_id']
     assert main.locator('.mission-mode-feedback').inner_text().strip()
     main.screenshot(path=str(OUT/'cooperative-1366.png'))

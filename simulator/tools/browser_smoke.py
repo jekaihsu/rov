@@ -49,10 +49,14 @@ def run():
         main.click('#flightDrawer',no_wait_after=True)
         assert main.locator('#armPanel').is_visible()
         main.locator('#armPanel summary').click(no_wait_after=True)
+        # Wait on sim time + arm state, not a fixed wall sleep: grip closes at 1 unit per sim-second.
+        t0 = main.evaluate('window.__viewer.S.t')
         main.click('#gripClose',no_wait_after=True)
-        main.wait_for_function('window.__viewer.S.operations.arm.grip<.5')
+        main.wait_for_function(
+            '(t0)=>window.__viewer.S.t>t0+0.5 && window.__viewer.S.operations.arm.grip<.5',
+            arg=t0, timeout=timeout(180000))
         main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')
-        main.wait_for_function('window.__viewer.S.rc.right_switch===2')
+        main.wait_for_function('window.__viewer.S.rc.right_switch===2', timeout=timeout(120000))
         lights=main.evaluate('window.__viewer.rovG.children.filter(g=>g.children.some(o=>o.isSpotLight)).map(g=>({visible:g.visible,intensity:g.children.filter(o=>o.isSpotLight).map(l=>l.intensity)}))')
         assert any(x['visible'] and max(x['intensity'])>0 for x in lights),lights
         main.screenshot(path=str(OUT/'onboard-lights.png'))

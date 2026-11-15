@@ -92,7 +92,17 @@ with sync_playwright() as p:
         assert results['shared_first_mark'] == peer.evaluate('window.__viewer.S.paint_marks[0]')
         print('Real terrain F paint and peer rendering passed', flush=True)
 
+        # Engineering drawer must not cover the HUD tool that toggles it closed.
+        assert page.evaluate("""() => {
+          const btn = document.querySelector('#flightDrawer');
+          const panel = document.querySelector('#engineering');
+          if (!btn || !panel || panel.hidden) return false;
+          const r = btn.getBoundingClientRect();
+          const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !!(top && (top === btn || btn.contains(top)));
+        }"""), 'open #engineering covered #flightDrawer'
         page.click('#flightDrawer')
+        assert page.evaluate('document.querySelector("#engineering").hidden')
         canvas=page.locator('.viewport canvas').first
         box=canvas.bounding_box()
         page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
@@ -103,6 +113,7 @@ with sync_playwright() as p:
         page.wait_for_function(PAINT_COUNT+'===2')
         peer.wait_for_function(PAINT_COUNT+'===2')
         results['click_and_drag_filter'] = True
+        results['flight_drawer_above_engineering'] = True
         page.screenshot(path=str(OUT/'terrain-paint.png'))
 
         results['paint_performance'] = page.evaluate("""async()=>{
