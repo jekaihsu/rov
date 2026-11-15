@@ -64,8 +64,8 @@ def aim_at_snag(page, point, *, hide_snags=False):
         structures?.traverse((o) => {
           if (!o.isMesh) return;
           const names = o.userData?.colliders || [];
-          if (names.length && names.every((n) => (v.W.obstacles || []).some((ob) => ob.name === n && ob.type === 'snag')))
-            o.visible = false;
+          const isSnag = (n) => (v.W.obstacles || []).some((ob) => ob.name === n && ob.type === 'snag');
+          if (names.length && names.every(isSnag)) o.visible = false;
         });
       }
       const at = new THREE.Vector3(-point[1], -point[2], point[0]);

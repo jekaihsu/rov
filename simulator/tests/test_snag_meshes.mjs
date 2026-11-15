@@ -45,8 +45,10 @@ function sampleMesh(mesh, spacing = 0.2) {
 const SNAGS = [
   {type: 'snag', name: 'Harbor rubble', point: [36, -2, 10], radius: 0.4, height: 0.5, kind: 'snag', item: 'rock'},
   {type: 'snag', name: 'Harbor rope tangle', point: [30, 4, 10], radius: 0.25, height: 0.3, kind: 'snag', item: 'rope'},
-  {type: 'snag', name: 'Harbor mooring block', point: [24, -6, 10], radius: 0.5, height: 0.6, kind: 'snag', item: 'debris'},
-  {type: 'snag', name: 'Wreck boulder 3', point: [12, 6.5, 30], radius: 0.45, height: 0.7, kind: 'snag', item: 'boulder'},
+  {type: 'snag', name: 'Harbor mooring block', point: [24, -6, 10], radius: 0.5, height: 0.6, kind: 'snag',
+    item: 'debris'},
+  {type: 'snag', name: 'Wreck boulder 3', point: [12, 6.5, 30], radius: 0.45, height: 0.7, kind: 'snag',
+    item: 'boulder'},
 ];
 
 for (const detail of ['low', 'medium', 'high']) {
