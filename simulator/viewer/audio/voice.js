@@ -1,6 +1,9 @@
 // Radio dialogue voice clips: play an Opus file when a line appears, duck music via the existing
 // radio UI hold, and fall back to text-only (plus ambient noise) when the clip is missing.
 // Presentation layer only — not a fidelity item. Volume uses the engine `voice` bus.
+// Why no fidelity item: the speakers are the boat crew (supervisor, tether hand, client) talking to the
+// pilot over the deck radio, which a real pilot hears during a dive; it adds no capability the vehicle
+// lacks. A voice that is not crew radio (narrator, AI co-pilot) would need registerFidelityItem().
 import {createHash} from './voice_hash.js';
 
 export const VOICE_BASE = new URL('./voice/', import.meta.url).href;

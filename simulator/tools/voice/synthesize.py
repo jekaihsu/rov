@@ -143,11 +143,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument('--chapter', action='append', default=[])
-    parser.add_argument('--language', action='append', default=['zh-TW'])
+    parser.add_argument('--language', action='append', default=[],
+                        help='Language codes to synthesize (repeatable). Defaults to zh-TW.')
     parser.add_argument('--force', action='store_true', help='Regenerate even if the file exists.')
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args(argv)
 
+    if not args.language:
+        args.language = ['zh-TW']
     api_key = None if args.dry_run else require_api_key()
     table = load_json(CHARACTERS)
     model = table.get('model') or 'gpt-4o-mini-tts'
