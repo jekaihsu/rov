@@ -1,0 +1,20 @@
+{
+  "low": {
+    "underwaterTriangles": 15856,
+    "aboveWaterTriangles": 6628,
+    "drawCallsBeforeFrustumCulling": 9,
+    "proceduralTextureUpperBoundBytes": 1747626.6666666667
+  },
+  "medium": {
+    "underwaterTriangles": 83980,
+    "aboveWaterTriangles": 8860,
+    "drawCallsBeforeFrustumCulling": 11,
+    "proceduralTextureUpperBoundBytes": 1747626.6666666667
+  },
+  "high": {
+    "underwaterTriangles": 211616,
+    "aboveWaterTriangles": 14986,
+    "drawCallsBeforeFrustumCulling": 66,
+    "proceduralTextureUpperBoundBytes": 1747626.6666666667
+  }
+}

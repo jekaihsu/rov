@@ -674,6 +674,8 @@ class World:
         self.obstacles = [o for o in self.obstacles if o.kind != "habitat"]
         relief = 1.4 if biome == "reef" else .5 if biome == "seagrass" else 0.0
         self.terrain = SeabedTerrain(self.seabed_depth, self.world_seed, relief)
+        if any(o.kind == "wind_tower" for o in self.obstacles):
+            self.terrain.wind_scour([o for o in self.obstacles if o.kind == "jacket_leg"])
         self.habitat_entities, self.fish_schools = create_habitat(self, biome, self.world_seed, keep_clear)
         self._obstacle_bounds = None
 
@@ -819,6 +821,7 @@ class World:
                       np.array([b[1] for b in bounds]).reshape(-1, 3))
             self._obstacle_bounds = cached
             self._cylinder_mask = np.array([isinstance(ob, Cylinder) for ob in self.obstacles], bool)
+            self._box_mask = np.array([isinstance(ob, Box) for ob in self.obstacles], bool)
             self._cylinder_a = np.array([ob.p0 if isinstance(ob, Cylinder) else (0,0,0) for ob in self.obstacles], float).reshape(-1,3)
             b = np.array([ob.p1 if isinstance(ob, Cylinder) else (0,0,0) for ob in self.obstacles], float).reshape(-1,3)
             self._cylinder_ab = b - self._cylinder_a
@@ -866,7 +869,18 @@ class World:
             n = delta[rows,choice] / np.maximum(lengths[rows,choice,None],1e-9)
             n[lengths[rows,choice] < 1e-9] = [1.,0.,0.]
             dist[hit], normal[hit], idx[hit] = closest[hit], n[hit], cylinders[choice[hit]]
-        for i in ids[~self._cylinder_mask[ids]]:
+        other_ids = ids[~self._cylinder_mask[ids]]
+        if len(X) and len(other_ids):
+            # A lower bound for exact Box SDFs. Approximate hull/field SDFs must not use this bound.
+            # If even this lower bound is farther than
+            # every current nearest hit, that obstacle cannot change any distance, normal or index.
+            # This keeps dry platform grillage out of underwater sonar's repeated SDF queries.
+            lo, hi = self._bounds()
+            gap = np.maximum(np.maximum(lo[other_ids] - X.max(axis=0), X.min(axis=0) - hi[other_ids]), 0)
+            lower_bound = np.linalg.norm(gap, axis=1)
+            keep = ~self._box_mask[other_ids] | (lower_bound <= max(0.0, float(dist.max())))
+            other_ids = other_ids[keep]
+        for i in other_ids:
             ob = self.obstacles[i]
             d, n = ob.sdf_many(X)
             closer = d < dist

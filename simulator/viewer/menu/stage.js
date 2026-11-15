@@ -1,6 +1,7 @@
 // The live 3D background behind every menu screen: the chosen dive site, the chosen vehicle on a turntable,
 // and one camera pose per screen that the camera glides between. Owns the menu's WebGL renderer.
 import * as THREE from 'three';
+import { WIND_JACKET_CAMERAS } from '../wind_jacket.js';
 import { Environment } from '../environment.js';
 import { buildStructures } from '../structures.js';
 import { createVehicleModel } from '../vehicle_models.js';
@@ -248,6 +249,13 @@ export function createStage(host, { quality = 'auto' } = {}) {
     spin += spinVelocity * dt;
   }
   function poseTargets() {
+    if (showcase && (poseName === 'title' || poseName === 'main')) {
+      const view = WIND_JACKET_CAMERAS[poseName === 'title' ? 'boatApproach' : 'underwaterBraces'];
+      targetEye.copy(P(view.eye));
+      targetLook.copy(P(view.target));
+      setSea(poseName === 'title' ? ['#99bacd', 150, 1800] : SHOWCASE.fog);
+      return;
+    }
     const narrow = innerWidth < NARROW;
     const orbit = reduced ? 0 : elapsed * pose.orbit;
     const up = new THREE.Vector3(0, 1, 0);

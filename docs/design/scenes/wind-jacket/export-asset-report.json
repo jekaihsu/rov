@@ -1,0 +1,22 @@
+{
+  "seed": 1101,
+  "textures": "original procedural 256x256",
+  "tiers": {
+    "high": {
+      "underwater_triangles": 15492,
+      "above_water_triangles": 11892,
+      "file_bytes": 388988,
+      "texture_gpu_bytes_with_mips": 349524,
+      "draw_calls": 4,
+      "representation": "collider-derived export, not the live procedural renderer"
+    },
+    "low": {
+      "underwater_triangles": 6340,
+      "above_water_triangles": 5364,
+      "file_bytes": 202992,
+      "texture_gpu_bytes_with_mips": 349524,
+      "draw_calls": 4,
+      "representation": "collider-derived export, not the live procedural renderer"
+    }
+  }
+}

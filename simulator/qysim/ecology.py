@@ -21,6 +21,23 @@ class SeabedTerrain:
         self.depths = depth - relief * mound
         self.relief = relief
 
+    def wind_scour(self, legs):
+        """Shallow scour bowls inside raised sediment rims; the existing floor remains the deepest bed.
+
+        A 1.5 m grid resolves the illustrative 3 m rims; both physics and rendering consume this grid.
+        """
+        self.origin = np.array([-10.0, -30.0])
+        self.spacing = 1.5
+        n, e = np.meshgrid(np.arange(41) * self.spacing + self.origin[0],
+                           np.arange(41) * self.spacing + self.origin[1], indexing="ij")
+        rim = np.zeros_like(n)
+        for leg in legs:
+            x, y = leg.p1[:2]
+            radius = np.hypot(n - x, e - y)
+            rim = np.maximum(rim, 0.45 * np.exp(-((radius - 3.2) / 1.1) ** 2))
+        self.depths -= rim
+        self.relief = 0.45
+
     def sample_many(self, positions):
         xy = np.asarray(positions, float)[:, :2]
         grid = np.clip((xy - self.origin) / self.spacing, 0, 39.999999)

@@ -1,0 +1,16 @@
+{
+  "medium-assets": {
+    "residentTrianglesIncludingHidden": 625208,
+    "visibleTriangles": 40767,
+    "residentMeshesIncludingHidden": 197,
+    "directMaterialTextureBytesExcludingUniforms": 0,
+    "structureTextureUpperBoundBytes": 1747627
+  },
+  "medium-before-surface": {
+    "calls": 48,
+    "triangles": 34911,
+    "ms": 11498.699999999953,
+    "minMs": 11498.699999999953,
+    "medianMs": 11498.699999999953
+  }
+}

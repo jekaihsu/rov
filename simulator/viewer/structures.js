@@ -24,7 +24,7 @@ import {siteRockColor} from './seabed.js';
 
 export const SCENE_TOLERANCE = 0.1;           // m a visual surface may stand proud of its collision shape
 // fittings drawn as one merged mesh per material (labels keep per-obstacle anchors; a snag lights the group)
-const BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
+const BATCH_KINDS = new Set(['wind_dry', 'anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
   'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast', 'snag']);
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
@@ -266,6 +266,9 @@ function braceNodes(world, leg) {
 }
 
 function steelTube(set, ob, kind = 'steel') {
+  if (set.world.scenario?.key === 'jacket_inspection' && ['jacket_leg', 'brace'].includes(ob.kind)) {
+    kind = 'windSteel';
+  }
   const a = P(ob.p0);
   const b = P(ob.p1);
   const radial = set.detail.radial;
@@ -281,7 +284,9 @@ function steelTube(set, ob, kind = 'steel') {
     });
     if (cans.length) set.addBatched('weld-cans', merged(cans), kind, [ob.name], 'attached', []);
   }
-  if (set.detail.lumps && ['jacket_leg', 'pile', 'monopile', 'brace'].includes(ob.kind)) musselLumps(set, ob);
+  const growth = set.detail.lumps || (set.world.scenario?.key === 'jacket_inspection'
+    && set.detailName === 'medium');
+  if (growth && ['jacket_leg', 'pile', 'monopile', 'brace'].includes(ob.kind)) musselLumps(set, ob);
 }
 
 /** Mussel and barnacle clumps on the upper part of a tubular, at most 0.05 m proud of the steel. */
@@ -294,7 +299,9 @@ function musselLumps(set, ob) {
     .normalize();
   const other = new THREE.Vector3().crossVectors(dir, side).normalize();
   const length = a.distanceTo(b);
-  const count = Math.round(set.detail.lumps * (ob.kind === 'brace' ? 0.25 : 1) * Math.min(1, length / 30));
+  const density = set.world.scenario?.key === 'jacket_inspection' ? 6 : 1;
+  const count = Math.round(density * (set.detail.lumps || 35)
+    * (ob.kind === 'brace' ? 0.25 : 1) * Math.min(1, length / 30));
   const q = new THREE.Quaternion();
   let n = 0;
   if (!set.lumps) set.lumps = {matrices: [], names: []};
@@ -318,7 +325,17 @@ function musselLumps(set, ob) {
 /** All mussel lumps of the site as one instanced mesh. */
 function flushLumps(set) {
   if (!set.lumps?.matrices.length) return;
-  const mesh = new THREE.InstancedMesh(unitRock(3, 0), set.makeMaterial('steel'), set.lumps.matrices.length);
+  const wind = set.world.scenario?.key === 'jacket_inspection';
+  let geometry = unitRock(3, 0);
+  if (wind) {
+    // Hollow eight-sided calcareous cones; opening and ridges remain visible at inspection distance.
+    const shell = new THREE.CylinderGeometry(0.38, 0.85, 0.85, 8, 1, true);
+    const lip = new THREE.TorusGeometry(0.38, 0.12, 3, 8);
+    lip.rotateX(Math.PI / 2);
+    lip.translate(0, 0.425, 0);
+    geometry = merged([shell, lip]);
+  }
+  const mesh = new THREE.InstancedMesh(geometry, set.makeMaterial(wind ? 'anode' : 'steel'), set.lumps.matrices.length);
   set.lumps.matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
   mesh.instanceMatrix.needsUpdate = true;
   mesh.userData.colliders = set.lumps.names;
@@ -881,7 +898,8 @@ function buildOne(set, ob, consumed) {
     return;
   }
   if (ob.type === 'box') {
-    if (ob.kind === 'ladder') ladder(set, ob);
+    if (ob.kind === 'wind_paint') plainBox(set, ob, 'transition');
+    else if (ob.kind === 'ladder') ladder(set, ob);
     else if (ob.kind === 'tyre') tyre(set, ob);
     else if (ob.kind === 'rudder') rudder(set, ob);
     else if (ob.kind === 'wreck') plainBox(set, ob, 'wreck');
@@ -891,14 +909,15 @@ function buildOne(set, ob, consumed) {
   }
   if (ob.type !== 'cylinder') return;
   const kind = ob.kind;
-  if (kind === 'anode') {
+  if (kind === 'wind_tower') steelTube(set, ob, 'tower');
+  else if (kind === 'anode') {
     const straps = (world.obstacles || []).filter((o) => o.kind === 'anode_strap' && o.name.startsWith(ob.name));
     for (const s of straps) consumed.add(s.name);
     anodeBar(set, ob, straps);
   } else if (kind === 'anode_strap') {
     simpleTube(set, ob, 'anode');
   } else if (kind === 'transition_piece') transitionPiece(set, ob);
-  else if (kind === 'boat_landing') simpleTube(set, ob, 'transition', 0.005, 0.7);
+  else if (kind === 'boat_landing' || kind === 'wind_dry') simpleTube(set, ob, 'transition', 0.005, 0.7);
   else if (kind === 'j_tube' && ob.name.endsWith('bellmouth')) bellmouth(set, ob);
   else if (kind === 'j_tube') simpleTube(set, ob, 'steel');
   else if (kind === 'cable_protection') cableProtection(set, ob);

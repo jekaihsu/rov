@@ -1,0 +1,39 @@
+cd simulator && python -m unittest discover -s tests
+Ran 475 tests in 640.610s
+OK
+
+node --test simulator/tests/*.mjs
+211 tests; 211 pass; 0 fail; 0 skipped
+
+cd simulator && python tools/run_browser_checks.py browser_smoke observation_smoke browser_tether_smoke browser_menu_smoke
+Running browser_smoke ...
+  PASS in 71 s
+Running observation_smoke ...
+  PASS in 8 s
+Running browser_tether_smoke ...
+  PASS in 6 s
+Running browser_menu_smoke ...
+  PASS in 45 s
+
+script                result   seconds  detail
+browser_smoke         PASS        70.6
+observation_smoke     PASS         8.0
+browser_tether_smoke  PASS         5.8
+browser_menu_smoke    PASS        45.1
+
+4/4 passed. Logs: /workspace/rov/simulator/output/browser-checks
+
+Capture checks:
+Running browser_wind_jacket_review ...
+  PASS in 60 s
+Running browser_wind_jacket_onboard ...
+  PASS in 49 s
+
+script                       result   seconds  detail
+browser_wind_jacket_review   PASS        59.6
+browser_wind_jacket_onboard  PASS        48.9
+
+2/2 passed. Logs: /workspace/rov/simulator/output/browser-checks
+
+Build: headless Blender; meshopt and WebP extension assertions passed; two rebuild hashes identical.
+Live structure budget assertions, changed-JS line widths, and git diff --check passed.

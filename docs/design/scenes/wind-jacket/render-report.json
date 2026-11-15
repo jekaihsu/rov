@@ -1,0 +1,30 @@
+{
+  "medium-assets": {
+    "residentTrianglesIncludingHidden": 709435,
+    "visibleTriangles": 125072,
+    "residentMeshesIncludingHidden": 195,
+    "directMaterialTextureBytesExcludingUniforms": 0,
+    "structureTextureUpperBoundBytes": 1747627
+  },
+  "medium-surface-approach": {
+    "calls": 90,
+    "triangles": 113920,
+    "ms": 9617.100000000093,
+    "minMs": 9617.100000000093,
+    "medianMs": 9617.100000000093
+  },
+  "medium-surface-landing": {
+    "calls": 78,
+    "triangles": 113436,
+    "ms": 9893.600000000093,
+    "minMs": 9893.600000000093,
+    "medianMs": 9893.600000000093
+  },
+  "medium-intertidal": {
+    "calls": 69,
+    "triangles": 112984,
+    "ms": 12108.600000000093,
+    "minMs": 12108.600000000093,
+    "medianMs": 12108.600000000093
+  }
+}

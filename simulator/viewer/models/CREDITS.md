@@ -63,3 +63,17 @@ trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies mes
 沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
 GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
 固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
+
+## M1 wind jacket (2026-11)
+
+- Original generic procedural foundation, marine encrustation, warning triangle and sea shader:
+  `cad/build_wind_jacket.py`, `qysim/site_dressing.py`, `viewer/wind_jacket.js`, `viewer/structures.js`.
+  Created for this project; no third-party visual assets, logos or site identifiers.
+- User reference photographs were used only for visual proportions and structure. They were not downloaded,
+  embedded, cropped, projected, traced into textures, or included in source control.
+- `wind_jacket/wind-jacket-{high,low}.glb`: reproducible collider-derived interchange exports with original
+  seeded 256×256 procedural roughness. These are review/interchange assets; the live simulator builds its
+  geometry from the same colliders and adds depth-dependent procedural growth.
+- Build tools: Blender (GPL, tool only; no Blender code embedded in assets), glTF Transform CLI 4.2.1 (MIT),
+  meshoptimizer (MIT), Sharp/libvips WebP conversion (Apache-2.0 / LGPL tooling; no library embedded in GLB).
+  Runtime continues to use the project's existing three.js (MIT) and meshopt decoder (MIT).
