@@ -13,7 +13,34 @@ const STRINGS = {
   limitedHelp: '推力不足以維持指令，例如洋流過強。',
   holding: '定點中',
   manualOverride: '模擬器回報輔助仍在作用',
+  // Why the DVL has no bottom lock (state.sensors.dvl.reason, PROTOCOL.md), in the player's words:
+  // [short status, explanation, what to do].
+  dvl: {
+    too_high: ['離底太高', 'DVL 收不到海床回波（離底 {alt} m）', '下潛靠近海床後會自動恢復。'],
+    range: ['離底太高', 'DVL 回波太弱（離底 {alt} m）', '下潛靠近海床後會自動恢復。'],
+    window: ['超出 DVL 範圍', '離底高度超出 DVL 可用範圍', '回到離底 0.5 m 以上、可見海床的高度。'],
+    too_low: ['離底太近', '太貼近海床，DVL 量不到', '往上一點，離底 0.5 m 以上會自動恢復。'],
+    slope: ['海床太陡', '下方坡度太陡，DVL 失去底鎖', '移到較平坦的海床上方。'],
+    vegetation: ['植被遮擋', '海草或海藻擋住 DVL 波束', '升高一點或移到沙地上方。'],
+    silt: ['泥沙混濁', '揚起的泥沙擋住 DVL 波束', '暫停推進等泥沙沉降，或離開混濁區。'],
+    aeration: ['近水面氣泡', '靠近水面時推進器捲入氣泡，干擾 DVL', '下潛離開水面附近即可恢復。'],
+    mud: ['軟泥回波弱', '軟泥海床回波太弱', '升高一點，或移到較硬的海床上方。'],
+    pool: ['池壁回波干擾', '水池池壁的回波干擾 DVL', '移到水池中央。'],
+    fault: ['DVL 故障', 'DVL 回報故障', '改用手動飛行，結束後檢修。'],
+  },
+  dvlLost: 'DVL 失去底鎖',
 };
+
+// The DVL reason as {status, help}, or null when the state says nothing about it.
+export function dvlReason(state) {
+  const dvl = state?.sensors?.dvl;
+  if (!dvl || dvl.status !== 'lost') return null;
+  const words = STRINGS.dvl[dvl.reason];
+  if (!words) return {status: STRINGS.dvlLost, help: STRINGS.inactiveHelp};
+  const altitude = dvl.altitude ?? state.sensors.altitude;
+  const shown = altitude == null ? '—' : Number(altitude).toFixed(1);
+  return {status: words[0], help: `${words[1].replace('{alt}', shown)}。${words[2]}`};
+}
 
 function result(text, status = '', tone = 'ok', help = '') {
   return {text, status, tone, help};
@@ -36,6 +63,8 @@ export function assistPill(state, requested) {
   if (reported.level !== level || reported.profile !== requested.profile) {
     const autopilot = state.nav?.mode && state.nav.mode !== 'IDLE';
     if (autopilot) return result(text, STRINGS.autopilot, 'pending');
+    const reason = dvlReason(state);
+    if (reason) return result(text, `${STRINGS.inactive} · ${reason.status}`, 'warn', reason.help);
     return result(text, STRINGS.inactive, 'warn', STRINGS.inactiveHelp);
   }
   if (reported.limited) return result(text, STRINGS.limited, 'warn', STRINGS.limitedHelp);

@@ -3,7 +3,7 @@ import {registerFidelityItem, getFidelity} from '../fidelity.js';
 
 const STRINGS = {
   padHaptics: '手把震動',
-  padHapticsHelp: '碰撞與纜線張力等事件的震動回饋。不支援的裝置會靜默略過。'
+  padHapticsHelp: '碰撞、纜線張力與纏纜、拍照、解鎖與上鎖的震動回饋。不支援的裝置會靜默略過。'
 };
 export const PAD_HAPTICS_ID = 'padHaptics';
 

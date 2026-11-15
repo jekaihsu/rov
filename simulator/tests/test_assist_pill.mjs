@@ -45,6 +45,23 @@ test("refused, saturated, remote and autopilot states are distinguished", () => 
   assert.equal(profile.status, "未生效");
 });
 
+test("an inactive assist names the DVL reason in player words", () => {
+  const near = { locked: false, assist: serverAssist(0),
+    sensors: { altitude: 11.2, dvl: { status: "lost", reason: "aeration", altitude: 11.2 } } };
+  const pill = assistPill(near, hold);
+  assert.equal(pill.status, "未生效 · 近水面氣泡");
+  assert.equal(pill.tone, "warn");
+  assert.match(pill.help, /下潛/);
+  const high = { locked: false, assist: serverAssist(0),
+    sensors: { altitude: null, dvl: { status: "lost", reason: "too_high", altitude: 120.4 } } };
+  assert.equal(assistPill(high, hold).status, "未生效 · 離底太高");
+  assert.match(assistPill(high, hold).help, /120\.4 m/);
+  const unknown = { locked: false, assist: serverAssist(0), sensors: { dvl: { status: "lost", reason: "new" } } };
+  assert.equal(assistPill(unknown, hold).status, "未生效 · DVL 失去底鎖");
+  const locked = { locked: false, assist: serverAssist(0), sensors: { dvl: { status: "locked" } } };
+  assert.equal(assistPill(locked, hold).status, "未生效");
+});
+
 test("manual shows no profile and no status in the real preset", () => {
   const manual = { level: 0, profile: "normal" };
   assert.deepEqual(assistPill({ locked: true, assist: serverAssist(0) }, manual), {

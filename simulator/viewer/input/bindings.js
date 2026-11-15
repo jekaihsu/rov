@@ -16,6 +16,11 @@ const STRINGS = {
     right_ud: "右桿上下",
     left_wave: "左滾輪",
     right_wave: "右滾輪",
+    surge: "前進／後退",
+    sway: "右移／左移",
+    heave: "上升／下潛",
+    yaw: "右轉／左轉",
+    pitch: "抬頭／低頭",
     boost: "鍵盤全幅推桿",
     photo: "拍照",
     record: "錄影（按住）",
@@ -57,6 +62,16 @@ const STRINGS = {
     tabPrevious: "上一分頁",
     tabNext: "下一分頁",
   },
+  // What a stick channel does in the selected operation mode, positive direction first (keys list [+, −]).
+  meanings: {
+    surge: ["前進／後退", "後退／前進"],
+    sway: ["右移／左移", "左移／右移"],
+    heave: ["上升／下潛", "下潛／上升"],
+    yaw: ["右轉／左轉", "左轉／右轉"],
+    pitch: ["抬頭／低頭", "低頭／抬頭"],
+    roll: ["右傾／左傾", "左傾／右傾"],
+  },
+  layouts: { console: "遙控器配置", game: "遊戲鍵位（WASD）" },
   hold: "長按",
   pad: ["A", "B", "X", "Y", "LB", "RB", "LT", "RT", "View", "Menu", "L3", "R3", "十字鍵上", "十字鍵下",
     "十字鍵左", "十字鍵右", "Home"],
@@ -76,6 +91,19 @@ const STRINGS = {
     BracketRight: "]",
     ShiftLeft: "Shift",
     ShiftRight: "Shift",
+    ControlLeft: "Ctrl",
+    ControlRight: "右 Ctrl",
+    AltLeft: "Alt",
+    Backspace: "Backspace",
+    Backquote: "`",
+    Minus: "-",
+    Equal: "=",
+    Semicolon: ";",
+    Quote: "'",
+    Comma: ",",
+    Period: ".",
+    Slash: "/",
+    Backslash: "\\",
   },
   separator: " · ",
 };
@@ -98,6 +126,13 @@ export const BINDINGS = [
   { action: "right_ud", context: "flight", pad: "-a3", keys: ["ArrowUp", "ArrowDown"], axis: true },
   { action: "left_wave", context: "flight", pad: ["b7", "b6"], keys: ["KeyE", "KeyQ"], axis: true },
   { action: "right_wave", context: "flight", pad: ["b5", "b4"], keys: ["KeyC", "KeyZ"], axis: true },
+  // Pilot-axis rows: keyboard only, unbound in the console layout. The game layout binds them; the input layer turns
+  // them into the stick channel that drives the axis in the current operation mode (OPERATION_AXES).
+  { action: "surge", context: "flight", keys: [], axis: true, pilot: true },
+  { action: "sway", context: "flight", keys: [], axis: true, pilot: true },
+  { action: "heave", context: "flight", keys: [], axis: true, pilot: true },
+  { action: "yaw", context: "flight", keys: [], axis: true, pilot: true },
+  { action: "pitch", context: "flight", keys: [], axis: true, pilot: true },
   { action: "boost", context: "flight", keys: ["ShiftLeft", "ShiftRight"], modifier: true },
   { action: "photo", context: "flight", pad: "b0", keys: ["KeyP"] },
   { action: "record", context: "flight", pad: "b1", keys: ["KeyR"] },
@@ -141,6 +176,108 @@ export const BINDINGS = [
 ];
 
 const ROWS = new Map(BINDINGS.map((row) => [row.action, row]));
+
+// Keyboard layouts. `console` is the table above: keys stand in for the real controller's sticks, so W/S is the
+// left stick and its meaning follows the operation mode, exactly like the hand controller (the `real` default).
+// `game` binds the pilot axes the way PC games do and moves the lock off Space, which becomes "up".
+export const KEYBOARD_LAYOUTS = ["console", "game"];
+const LAYOUT_KEYS = {
+  console: {},
+  game: {
+    left_lr: [],
+    left_ud: [],
+    right_lr: [],
+    right_ud: [],
+    left_wave: [],
+    right_wave: [],
+    surge: ["KeyW", "KeyS"],
+    sway: ["KeyD", "KeyA"],
+    heave: ["Space", "KeyC"],
+    yaw: ["KeyE", "KeyQ"],
+    pitch: ["ArrowUp", "ArrowDown"],
+    lock: ["KeyT"],
+  },
+};
+
+// Pilot axis -> [channel, sign] per operation mode; mirrors qysim/rc.py _MAP (checked by test_bindings.mjs).
+export const OPERATION_AXES = {
+  ROV_USA: { pitch: ["left_ud", -1], yaw: ["left_lr", 1], surge: ["right_ud", 1], roll: ["right_lr", 1],
+    heave: ["left_wave", 1], sway: ["right_wave", 1] },
+  ROV_JPN: { surge: ["left_ud", 1], yaw: ["left_lr", 1], pitch: ["right_ud", -1], roll: ["right_lr", 1],
+    heave: ["left_wave", 1], sway: ["right_wave", 1] },
+  ROV_CHN: { surge: ["left_ud", 1], roll: ["left_lr", 1], pitch: ["right_ud", -1], yaw: ["right_lr", 1],
+    heave: ["left_wave", 1], sway: ["right_wave", 1] },
+  UAV_USA: { heave: ["left_ud", 1], yaw: ["left_lr", 1], surge: ["right_ud", 1], sway: ["right_lr", 1],
+    pitch: ["left_wave", 1], roll: ["right_wave", 1] },
+  UAV_JPN: { surge: ["left_ud", 1], yaw: ["left_lr", 1], heave: ["right_ud", 1], sway: ["right_lr", 1],
+    pitch: ["left_wave", 1], roll: ["right_wave", 1] },
+  UAV_CHN: { surge: ["left_ud", 1], sway: ["left_lr", 1], heave: ["right_ud", 1], yaw: ["right_lr", 1],
+    pitch: ["left_wave", 1], roll: ["right_wave", 1] },
+};
+
+function axesOf(mode) {
+  return OPERATION_AXES[mode] || OPERATION_AXES.ROV_USA;
+}
+
+export function layoutLabel(layout) {
+  return STRINGS.layouts[layout] || STRINGS.layouts.console;
+}
+
+// The pilot axis a stick channel drives in an operation mode: {axis, sign}, or null.
+export function channelAxis(channel, mode) {
+  for (const [axis, [name, sign]] of Object.entries(axesOf(mode))) {
+    if (name === channel) return { axis, sign };
+  }
+  return null;
+}
+
+// The stick channel and sign that drive a pilot axis in an operation mode, or null.
+export function axisChannel(axis, mode) {
+  const entry = axesOf(mode)[axis];
+  return entry ? { channel: entry[0], sign: entry[1] } : null;
+}
+
+// Keyboard rows the player may rebind: flight actions handled by the input layer (not HUD, settings or modifiers).
+export function keyRebindable(row) {
+  return row.context === "flight" && !row.owner && !row.modifier && row.action !== "pause" && !!row.keys;
+}
+
+function sameKeys(a, b) {
+  return a.length === b.length && a.every((code, index) => code === b[index]);
+}
+
+// The binding table with the keys of a layout and the player's own key choices applied. overrides: action -> codes.
+export function keyboardRows(layout = "console", overrides = {}) {
+  const layoutKeys = LAYOUT_KEYS[layout] || LAYOUT_KEYS.console;
+  return BINDINGS.map(function withKeys(row) {
+    if (!keyRebindable(row)) return row;
+    const chosen = overrides?.[row.action] ?? layoutKeys[row.action];
+    if (!Array.isArray(chosen) || sameKeys(chosen, row.keys)) return row;
+    return { ...row, keys: [...chosen] };
+  });
+}
+
+// Key collisions (same key, same context, two actions) of a layout plus overrides; empty when the choice is valid.
+export function keyCollisions(layout = "console", overrides = {}) {
+  return findCollisions(keyboardRows(layout, overrides)).filter((entry) => entry.input.startsWith("key:"));
+}
+
+// Key captions [positive, negative] that move a pilot axis with these rows in an operation mode; [] when unbound.
+export function pilotAxisKeys(axis, rows = BINDINGS, mode = "ROV_USA") {
+  const own = rows.find((row) => row.action === axis && row.pilot);
+  if (own?.keys?.length === 2) return own.keys.map(keyLabel);
+  const drive = axisChannel(axis, mode);
+  const channel = drive && rows.find((row) => row.action === drive.channel);
+  if (channel?.keys?.length !== 2) return [];
+  const keys = channel.keys.map(keyLabel);
+  return drive.sign < 0 ? [keys[1], keys[0]] : keys;
+}
+
+// First key caption bound to an action in these rows, or "" when it has none.
+export function actionKey(action, rows = BINDINGS) {
+  const code = rows.find((row) => row.action === action)?.keys?.[0];
+  return code ? keyLabel(code) : "";
+}
 
 export function bindingRow(action) {
   return ROWS.get(action) || null;
@@ -205,7 +342,7 @@ export function findCollisions(rows = BINDINGS, bindings = null) {
 }
 
 function rebindable(row) {
-  return row.context !== "menu" && row.gesture !== "chord" && !row.modifier;
+  return row.context !== "menu" && row.gesture !== "chord" && !row.modifier && !row.pilot;
 }
 
 // Rebindable gamepad defaults: every action outside the fixed menu navigation; "" means keyboard only.
@@ -341,17 +478,31 @@ export function padLabel(binding, faces = STRINGS.pad.slice(0, 4)) {
   return names.join(" / ");
 }
 
+// A stick channel is named by what it does in the operation mode (前進／後退), not by the stick it is on.
+function rowLabel(row, mode) {
+  if (!row.axis || row.pilot) return actionLabel(row.action);
+  const meaning = channelAxis(row.action, mode);
+  if (!meaning) return actionLabel(row.action);
+  return STRINGS.meanings[meaning.axis][meaning.sign < 0 ? 1 : 0];
+}
+
 // One entry per action for on-screen help: every key and pad source that the table declares.
-export function hintItems({ contexts = ["flight", "tool", "dialogue"], axes = false, faces, bindings } = {}) {
+// rows: the binding table with the active keyboard layout (keyboardRows); operationMode names the stick channels.
+export function hintItems({
+  contexts = ["flight", "tool", "dialogue"], axes = false, faces, bindings, rows = BINDINGS,
+  operationMode = "ROV_USA",
+} = {}) {
   const items = [];
-  for (const row of BINDINGS) {
+  for (const row of rows) {
     if (!contexts.includes(row.context) || (!axes && row.axis)) continue;
     const keys = [...new Set((row.keys || []).map(keyLabel))];
     const source = bindings && row.action in bindings ? bindings[row.action] : row.pad;
     let pad = source ? padLabel(source, faces) : "";
     if (pad && row.gesture === "hold") pad = `${STRINGS.hold} ${pad}`;
+    if (!keys.length && !pad) continue;
     const note = row.context === "flight" ? "" : contextLabel(row.context);
-    items.push({ action: row.action, context: row.context, label: actionLabel(row.action), keys, pad, note });
+    const label = rowLabel(row, operationMode);
+    items.push({ action: row.action, context: row.context, label, keys, pad, note });
   }
   return items;
 }

@@ -5,6 +5,7 @@
 import {inspectObservation} from '../observation_camera.js';
 import {registerFidelityItem, getFidelity} from '../fidelity.js';
 import {OracleDetector, OnnxDetector, RemoteDetector} from './detector.js';
+import {clipOutsideInstruments} from '../hud/safe_zones.js';
 
 const STRINGS = {
   toggle: 'AI 視覺',
@@ -12,7 +13,14 @@ const STRINGS = {
   mark: '標記偵測目標',
   confirm: '請先在機載畫面確認偵測目標再拍照。',
   oracle: 'Oracle · 模擬真值',
+  // Detector classes are internal keys; the picture shows the player's word for each.
+  classes: {coral: '珊瑚', seastar: '海星', seagrass: '海草', kelp: '海藻', fish_school: '魚群',
+    engineering: '作業目標', cable: '纜線', unknown: '未知目標'},
 };
+
+export function classLabel(cls) {
+  return STRINGS.classes[cls] || STRINGS.classes.unknown;
+}
 export const VISION_ITEM = 'aiOverlay';
 
 registerFidelityItem({
@@ -30,9 +38,17 @@ export function drawDetections(ctx, detections, width, height) {
   for (const detection of detections) {
     const [x, y, w, h] = detection.box;
     ctx.strokeRect(x * width, y * height, w * width, h * height);
-    const label = `${detection.cls} ${(detection.score * 100).toFixed(0)}%`;
+    const label = `${classLabel(detection.cls)} ${(detection.score * 100).toFixed(0)}%`;
     ctx.fillText(label, x * width, Math.max(14, y * height - 4));
   }
+}
+
+// Detector name, latency and rate are developer read-outs: shown only while the engineering drawer is open or the
+// page was opened with ?vision-debug, never on the player's picture.
+function showsDebugLine() {
+  if (new URLSearchParams(location.search).has('vision-debug')) return true;
+  const drawer = document.getElementById('engineering');
+  return !!drawer && !drawer.hidden;
 }
 
 function unit(value) {
@@ -160,8 +176,15 @@ export function installVision({send, canvas, getContext}) {
       return {...detection, box};
     });
     if (mark) mark.hidden = !api.detections.some(detection => detection.entity_id);
+    // Boxes never print over an instrument: the depth scale, read-outs and status column stay readable.
+    clipOutsideInstruments(ctx, rect, rect.width, rect.height, now);
     drawDetections(ctx, tracked, rect.width, rect.height);
-    ctx.fillText(`${api.mode || STRINGS.oracle} · ${api.latency?.toFixed(1) || 0} ms · ${hz.toFixed(0)} Hz`, 24, 90);
+    ctx.restore();
+    ctx.font = '13px monospace';
+    ctx.fillStyle = '#e8f1f5';
+    if (showsDebugLine()) {
+      ctx.fillText(`${api.mode || STRINGS.oracle} · ${api.latency?.toFixed(1) || 0} ms · ${hz.toFixed(0)} Hz`, 24, 90);
+    }
     if (api.detections.length) ctx.fillText(STRINGS.available, 24, 112);
   };
   api.configure = function configure({mode = 'oracle', frequency = 10, ...config} = {}) {

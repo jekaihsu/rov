@@ -1,0 +1,141 @@
+/* In-flight player surfaces in the menu's visual language (menu.css, HUD direction A): the results screen, the
+   objective card (first-dive checklist and expedition contracts) and the connection notice. Thin rules,
+   translucent layers, large tabular numbers. Colours and the stacking scale come from hud/tokens.css. */
+
+/* ── results screen ──────────────────────────────────────────────────────── */
+.results-screen { position: fixed; inset: 0; z-index: var(--z-menu); display: grid; align-items: center;
+  padding: 6vmin 6vmin 10vmin; color: var(--text); font: 14px Inter, "Noto Sans TC", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; background: linear-gradient(90deg, rgba(4, 9, 13, .9), rgba(4, 9, 13, .62));
+  backdrop-filter: blur(8px); overflow: auto; }
+.results-screen[hidden] { display: none; }
+.results-card { width: min(980px, 100%); padding: 28px 32px; border-left: 1px solid var(--accent);
+  background: linear-gradient(90deg, rgba(8, 18, 26, .62), rgba(8, 18, 26, .1)); }
+.results-screen[data-success=false] .results-card { border-left-color: var(--warn); }
+.results-screen[data-success=false] .menu-kicker { color: var(--warn); }
+.results-title { margin: 0 0 4px; font-size: 20px; font-weight: 300; letter-spacing: .04em; }
+.results-reason { color: var(--warn); }
+.results-reason[hidden] { display: none; }
+.results-score { display: flex; align-items: center; gap: 28px; margin: 20px 0 6px; }
+.results-score .menu-readout-value b { font-size: 64px; font-weight: 200; }
+.results-best { margin: 0 0 18px; font-size: 12px; letter-spacing: .12em; color: var(--text-dim); }
+.results-best[data-new=true] { color: var(--accent); }
+.results-medal { --medal: var(--text-dim); position: relative; display: grid; place-items: center; width: 96px;
+  height: 96px; }
+.results-medal-ring { position: absolute; inset: 0; border: 2px solid var(--medal); border-radius: 50%;
+  box-shadow: inset 0 0 0 6px rgba(8, 18, 26, .6), inset 0 0 0 7px var(--medal); }
+.results-medal-label { font-size: 15px; letter-spacing: .2em; color: var(--medal); }
+.results-medal[data-medal=gold] { --medal: #e7c46a; }
+.results-medal[data-medal=silver] { --medal: #c9d5dc; }
+.results-medal[data-medal=bronze] { --medal: #c98d5c; }
+.results-medal[data-medal=none] .results-medal-ring { border-style: dashed; box-shadow: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .results-screen:not([hidden]) .results-medal { animation: results-medal-in .5s ease-out both; }
+}
+@keyframes results-medal-in { from { transform: scale(.7); opacity: 0; } }
+.results-columns { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 40px; }
+.results-rows table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.results-rows th { text-align: left; font-weight: 400; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); }
+.results-rows td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); color: var(--text-dim); }
+.results-rows .results-points { text-align: right; color: var(--text); font-size: 16px; }
+.results-rewards ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.results-rewards li { padding: 8px 12px; border-left: 2px solid var(--accent); background: rgba(79, 209, 224, .06); }
+.results-rewards li.menu-help { border-left-color: var(--line); background: none; }
+.results-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 24px; }
+.results-screen button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 0;
+  cursor: pointer; }
+.results-screen .menu-start { color: #04222a; background: var(--accent); padding: 14px 28px; font-size: 16px;
+  letter-spacing: .14em; }
+.results-screen .menu-next { margin: 0; padding: 12px 20px; border: 1px solid var(--line); color: var(--text);
+  letter-spacing: .08em; }
+.results-screen .menu-next:hover, .results-screen .menu-next:focus { border-color: var(--accent); }
+.results-screen button:disabled { opacity: .4; cursor: default; }
+.results-screen :focus { outline: none; }
+html[data-menu-input=pad] .results-screen :focus, html[data-menu-input=key] .results-screen :focus,
+.results-screen :focus-visible { outline: 1px solid var(--accent); outline-offset: 4px;
+  box-shadow: 0 0 0 4px rgba(79, 209, 224, .12); }
+.results-footer { z-index: var(--z-raised); }
+@media (max-width: 850px) {
+  .results-columns { grid-template-columns: 1fr; gap: 20px; }
+  .results-card { padding: 20px; }
+}
+
+/* ── connection notice (play/connection_notice.js over the #offline card) ── */
+/* The generic in-game .card (style.css) is a full-viewport banner; the notice is a small centred panel. */
+.offline > .card { position: static; inset: auto; width: min(460px, 90vw); padding: 22px 26px; gap: 10px;
+  align-items: stretch; text-align: left; border: 0; border-left: 1px solid var(--warn); border-radius: 0;
+  background: rgba(8, 18, 26, .86); backdrop-filter: blur(12px); transition: none; }
+.offline > .card b { font-family: inherit; font-weight: 300; font-size: 26px; letter-spacing: .06em; }
+.offline .offline-body { font-size: 14px; line-height: 1.7; }
+.offline .offline-menu { align-self: flex-start; margin-top: 6px; padding: 8px 16px; border: 1px solid var(--line);
+  border-radius: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.offline .offline-menu:hover, .offline .offline-menu:focus-visible { border-color: var(--accent); }
+.offline .offline-details { margin-top: 8px; font-size: 12px; color: var(--text-dim); }
+.offline .offline-details summary { cursor: pointer; }
+.offline .offline-details > * + * { margin-top: 6px; }
+
+/* ── objective card (play/objective_card.js): first-dive checklist and expedition contracts ── */
+.objective-card { position: fixed; right: 96px; top: 128px; z-index: var(--z-controls); width: min(320px, 40vw);
+  max-height: 46vh; overflow: auto; color: var(--text); font: 13px Inter, "Noto Sans TC", system-ui, sans-serif;
+  border-left: 1px solid var(--accent); background: rgba(8, 18, 26, .62); backdrop-filter: blur(12px);
+  transition: opacity .2s ease-out; }
+.objective-card[hidden] { display: none; }
+body.hud-peek .objective-card, body:has(#procedurePanel:not([hidden])) .objective-card,
+body.replaying .objective-card { opacity: 0; pointer-events: none; }
+.objective-card button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 0;
+  cursor: pointer; text-align: left; }
+.objective-head { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 10px 14px; }
+.objective-title { font-size: 11px; letter-spacing: .16em; color: var(--accent); }
+.objective-count { font-size: 11px; color: var(--text-dim); }
+.objective-body { padding: 0 14px 12px; }
+.objective-body[hidden], .objective-guide[hidden], .objective-contracts[hidden] { display: none; }
+.objective-steps { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.objective-steps li { display: grid; gap: 4px; padding-left: 20px; position: relative; color: var(--text-dim); }
+.objective-steps li::before { content: "○"; position: absolute; left: 0; }
+.objective-steps li[data-complete=true] { color: var(--go); }
+.objective-steps li[data-complete=true]::before { content: "✓"; }
+.objective-steps li.objective-done { color: var(--go); padding-left: 0; }
+.objective-steps li.objective-done::before { content: none; }
+.objective-steps progress { width: 100%; height: 3px; accent-color: var(--accent); }
+.objective-active { margin: 0 0 8px; font-size: 14px; }
+.objective-subhead { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; color: var(--text-dim); }
+.objective-subhead[hidden] { display: none; }
+.objective-guide { margin-bottom: 10px; }
+.objective-offer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0;
+  border-top: 1px solid var(--line); }
+.objective-offer-text { display: grid; gap: 2px; }
+.objective-offer-text small { color: var(--text-dim); font-size: 11px; line-height: 1.5; }
+.objective-offer-text .objective-record { color: var(--accent); }
+.objective-offer-text .objective-record[data-medal=none] { color: var(--text-dim); }
+.objective-card .objective-accept { flex: none; padding: 6px 12px; border: 1px solid var(--accent);
+  color: var(--accent); letter-spacing: .1em; }
+.objective-card .objective-accept:disabled { opacity: .35; cursor: default; }
+.objective-card .objective-link { padding: 4px 0; font-size: 11px; color: var(--text-dim);
+  text-decoration: underline; }
+.objective-feedback { margin: 6px 0 0; font-size: 11px; color: var(--warn); }
+.objective-feedback:empty { display: none; }
+.objective-card :focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 720px) {
+  .objective-card { right: 8px; top: 64px; width: 56vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .objective-card { transition: none; }
+}
+
+/* ── display preferences (prefs/display.js, prefs/camera_items.js) ───────── */
+/* Brightness: the rendered scene only, never the instruments drawn over it. */
+canvas.gl, .launch-menu .menu-canvas { filter: brightness(var(--rov-brightness, 1)); }
+/* Interface and text scale: menus, overlays and the game HUD read-outs. */
+.launch-menu .menu-stack, .launch-menu .menu-header, .launch-menu .menu-footer, .pause-menu, .results-screen,
+.objective-card, .flight, .story-radio { zoom: var(--rov-ui-scale, 1); }
+/* Units: length labels written by CSS so they follow the setting without re-rendering (prefs/display.js). */
+[data-unit=length] { text-decoration: none; }
+[data-unit=length]::after { content: "m"; }
+html[data-units=imperial] [data-unit=length]::after { content: "ft"; }
+/* Colour-blind modes swap the HUD's go / warning / danger colours for distinguishable ones (Okabe–Ito). */
+html[data-color-blind=deuteranopia], html[data-color-blind=protanopia] {
+  --go: #56b4e9; --warn: #f0e442; --danger: #e69f00; }
+html[data-color-blind=tritanopia] { --go: #009e73; --warn: #cc79a7; --danger: #d55e00; }
+/* Motion comfort: decorative interface animation off (the camera side lives in camera_rig.js). */
+html.motion-comfort *, html.motion-comfort *::before, html.motion-comfort *::after {
+  animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }

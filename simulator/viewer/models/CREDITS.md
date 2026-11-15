@@ -21,6 +21,22 @@ no external files. Marine-life GLBs registered later in `../marine_registry.js` 
 
 An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime` reference directory. It is not included here or in the desktop distribution.
 
+### Music (`../audio/music/`)
+Every recording below is public domain or CC0 — the *performance*, not only the composition. Files were trimmed,
+loudness-normalised to about −18 LUFS (ffmpeg `loudnorm`, linear two-pass) and encoded as Ogg Opus 80–96 kbps;
+no other changes. Sourcing notes and rejected candidates: `research_notes/音樂/sources.md`.
+
+| File | Work | Performer / author | Source | License evidence | Changes |
+|---|---|---|---|---|---|
+| `title_goldberg_aria.opus` | J. S. Bach, Goldberg Variations BWV 988 — Aria | Kimiko Ishizaka (Open Goldberg Variations, 2012) | [archive.org/details/OpenGoldbergVariations](https://archive.org/details/OpenGoldbergVariations) | item licence `http://creativecommons.org/publicdomain/zero/1.0/` (CC0 1.0) | first half with its repeat (1.2–148.4 s), 80 kbps |
+| `briefing_wtc_prelude1.opus` | J. S. Bach, Well-Tempered Clavier I — Prelude No. 1 in C major, BWV 846 | Kimiko Ishizaka (Open Well-Tempered Clavier, 2015) | [archive.org/details/bach-well-tempered-clavier-book-1](https://archive.org/details/bach-well-tempered-clavier-book-1) | item rights "Released under CC0 1.0 Universal"; licence URL Public Domain Mark 1.0; same recording on [archive.org/details/OpenWell-TemperedClavier_Book_I](https://archive.org/details/OpenWell-TemperedClavier_Book_I) with CC0 1.0 | lead-in silence removed, 80 kbps |
+| `dive_underwater_theme_ii.opus` | "Underwater Theme II" (seamless loop) | Cleyton Kauffman | [opengameart.org/content/underwater-theme-ii](https://opengameart.org/content/underwater-theme-ii) | page licence CC0; bundled readme: "License — Creative Commons Zero (CC0)" | none besides normalisation |
+| `dive_underwater_theme.opus` | "Underwater Theme" (2nd variation) | Spring Spring | [opengameart.org/content/underwater-theme-1](https://opengameart.org/content/underwater-theme-1) | page licence CC0 | none besides normalisation |
+| `results_peer_gynt_morning.opus` | E. Grieg, Peer Gynt Suite No. 1 — I. Morning | Musopen 2012 Kickstarter recording (Czech orchestra commissioned by Musopen) | [archive.org/details/musopen-dvd-in-lossless-flac-format](https://archive.org/details/musopen-dvd-in-lossless-flac-format) | item licence Public Domain Mark 1.0; description: "This project raised money to purchase and release music to the public domain." | first 30 s, 4 s fade-out |
+| `tension_peer_gynt_aase.opus` | E. Grieg, Peer Gynt Suite No. 1 — II. Åse's Death | same Musopen recording | same item | same | 0.6–66.9 s (first phrase, cut in a rest) |
+
+Credit is not required by any of these licences; it is given here for provenance.
+
 ### Input mapping data
 `../input/controller-db.json` is a compact conversion of the Linux records from
 [SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), retrieved 2026-11-14.

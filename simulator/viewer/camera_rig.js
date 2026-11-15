@@ -129,12 +129,15 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
     yaw += clamp(delta * (1 - Math.exp(-dt * 2)), -dt * .8, dt * .8);
     const direction = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
     goal.up.set(0, 1, 0);
-    goal.fov = mode === 'onboard' ? 70 : 55;
+    // External cameras follow the player's FOV preference; the onboard camera keeps the real lens.
+    const comfort = !!fidelity.get('motionComfort');
+    goal.fov = mode === 'onboard' ? 70 : fidelity.get('externalFov') ?? 55;
     if (mode === 'chase') {
-      goal.position.copy(p).addScaledVector(direction, -2.6 - Math.min(1, speed * .3));
+      const pull = comfort ? 0 : Math.min(1, speed * .3);
+      goal.position.copy(p).addScaledVector(direction, -2.6 - pull);
       goal.position.y += .85;
       goal.lookAt(p.clone().addScaledVector(direction, 1.5));
-      goal.fov += Math.min(8, speed * 2);
+      if (!comfort) goal.fov += Math.min(8, speed * 2);
     } else if (mode === 'orbit') {
       goal.position.add(p.clone().sub(controls.target));
       controls.target.copy(p);

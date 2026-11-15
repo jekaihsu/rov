@@ -1,12 +1,14 @@
-// The launch menu's settings screen: 擬真設定, 控制, 音訊, 畫質 and 介面 tabs over the existing panels.
+// The launch menu's settings screen: 擬真設定, 控制, 音訊, 畫質, 顯示 and 介面 tabs over the existing panels.
 // Controller tuning reuses the input layer's own settings dialog (input/settings.js) with the same storage.
 import { BINDINGS_VERSION, migrateBindings } from '../input/bindings.js';
 import { createHaptics } from '../input/haptics.js';
 import '../input/haptics_fidelity.js';
+import { rowsFor } from '../input/keyboard_layout.js';
 import { installSettings } from '../input/settings.js';
 import { CONTROL_LAYOUTS } from '../control_layout.js';
 import { renderQualityInfo } from '../render_quality.js';
 import { rememberInterface, rememberQuality } from './preferences.js';
+import { mountDisplaySettings } from './display_settings.js';
 import {
   createSettingsPanel,
   element,
@@ -20,7 +22,9 @@ import {
 
 const STRINGS = {
   title: '設定',
-  tabs: { fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', interface: '介面' },
+  tabs: {
+    fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
+  },
   pad: '輸入裝置',
   padAuto: '自動偵測手把＋鍵盤',
   padKeyboard: '只使用鍵盤',
@@ -47,6 +51,7 @@ const STRINGS = {
   adaptive: '依畫面效能調整',
   interface: {
     intro: ['下水動畫', '從水面吊放到入水的開場運鏡；關閉時也略過潛前檢查流程。'],
+    alwaysIntro: ['每次都播放下水動畫', '關閉時只在第一次下潛播放，之後直接從水中開始（簡報可再勾選）。'],
     pip: ['操作員小視窗', '在畫面角落顯示岸上操作員。'],
     sticks: ['畫面搖桿', '只在觸控裝置上顯示。'],
     fog: ['真實能見度', '關閉後水體較清澈，超出真機影像。'],
@@ -97,6 +102,7 @@ async function mountControllerDialog(container, onLayout) {
       button.textContent = STRINGS.controllerSettings;
     },
     bindings: settings.bindings,
+    rows: () => rowsFor(settings),
   };
 }
 
@@ -135,7 +141,7 @@ export function buildLaunchSettings(ctx) {
       ctx.choice.control = mode;
     }).then(function ready(mounted) {
       controller = mounted;
-      mountKeyHints(pane, mounted.bindings);
+      mountKeyHints(pane, mounted.bindings, { rows: mounted.rows() });
     });
   }
   function quality(pane) {
@@ -168,6 +174,7 @@ export function buildLaunchSettings(ctx) {
   function interfaceTab(pane) {
     const ids = {
       intro: 'menuIntroSetting',
+      alwaysIntro: 'menuAlwaysIntro',
       pip: 'menuPip',
       sticks: 'menuSticks',
       fog: 'menuFog',
@@ -178,9 +185,10 @@ export function buildLaunchSettings(ctx) {
         id: ids[key],
         label,
         help,
-        checked: ctx.choice[key],
+        checked: key === 'intro' ? ctx.choice.introPreference ?? ctx.choice.intro : ctx.choice[key],
         onChange(value) {
           ctx.choice[key] = value;
+          if (key === 'intro') ctx.choice.introPreference = value;
           rememberInterface(ctx.choice);
         },
       };
@@ -193,6 +201,7 @@ export function buildLaunchSettings(ctx) {
       { id: 'controls', label: STRINGS.tabs.controls, mount: controls },
       { id: 'audio', label: STRINGS.tabs.audio, mount: mountAudio },
       { id: 'quality', label: STRINGS.tabs.quality, mount: quality },
+      { id: 'display', label: STRINGS.tabs.display, mount: mountDisplaySettings },
       { id: 'interface', label: STRINGS.tabs.interface, mount: interfaceTab },
     ],
   });

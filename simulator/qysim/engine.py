@@ -1026,7 +1026,10 @@ class Simulator:
 
     def world_description(self) -> dict:
         from .vehicles import VEHICLE_DEFINITIONS
-        return {**self.world.as_dict(), "scenario": self.scenario.summary(),
+        from .start_point import near_target_pose
+        near = near_target_pose(self)
+        optional = {} if near is None else {"near_start": near}
+        return {**self.world.as_dict(), **optional, "scenario": self.scenario.summary(),
                 "spool": list(self.scenario.spool_pos), "start_pos": list(self.scenario.start_pos),
                 "catalogue": sc_mod.catalogue(),
                 "objectives": [o.as_dict() for o in self.scenario.objectives],

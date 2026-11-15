@@ -369,8 +369,20 @@ export class DeployIntro {
     this.update(0);
   }
 
+  /**
+   * Hold the opening frame (vehicle on the aft deck) while the operator works the pre-dive checklist; the
+   * procedure releases it when the vehicle is lowered. While held the clock stands still and skip does nothing.
+   */
+  hold() {
+    this.held = true;
+  }
+
+  release() {
+    this.held = false;
+  }
+
   skip() {
-    if (!this.playing) return;
+    if (!this.playing || this.held) return;
     this.t = this.duration;
     this.update(0);
   }
@@ -475,7 +487,7 @@ export class DeployIntro {
       this.effects.update(dt);
       return false;
     }
-    this.t += dt;
+    if (!this.held) this.t += dt;
     const t = Math.min(this.t, this.duration);
     this.boat.updateMatrixWorld(true);
 

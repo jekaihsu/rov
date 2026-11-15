@@ -15,11 +15,16 @@ import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
 import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
 import {installTetherReel} from './tether_reel.js';
+import {thrusterLabel} from './hud/thruster_names.js';
+import {installStartPresentation} from './start_presentation.js';
+import {objectiveFade} from './hud/objective_fade.js';
+import {installPhotoFeedback} from './hud/photo_feedback.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
 import * as THREE from 'three';
 import {installAudio, installAudioSettings} from './audio/engine.js';
+import {installMusic} from './audio/music.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { placeSceneModel } from './scene_models.js';
@@ -53,6 +58,13 @@ import { openRcLink, createRcPump } from './input/rc_link.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
+import { installResults, resultsOpen } from './play/results.js';
+import { installAchievements } from './play/achievements.js';
+import { installConnectionNotice } from './play/connection_notice.js';
+import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
+import { installObjectiveCard } from './play/objective_card.js';
+import './prefs/camera_items.js';
+import { createFrameGate, installDisplayPrefs } from './prefs/display.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -430,7 +442,9 @@ let session = null, inputSequence = 0;
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
+let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
+  onShutter:()=>photoFeedback?.shutter(),
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     vision.assertPhoto();
@@ -450,7 +464,15 @@ const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
+let startPresentation=null;
+installDisplayPrefs();
+const skipFrame = createFrameGate();
+const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
+const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
+  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open)});
+const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
+const connectionNotice = installConnectionNotice({element: $('offline')});
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
@@ -473,7 +495,7 @@ function connect() {
       for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
     }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}
   };
-  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); $('offline').hidden = false; scheduleRetry(); };
+  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
   ws.onerror = () => { };
 }
 function scheduleRetry() {
@@ -500,7 +522,7 @@ function onWorld(m) {
   $('scnName').textContent = m.scenario?.name || '—';
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
-  $('offline').hidden = true;
+  connectionNotice.connected();
   if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) procedurePanel.startIntro(startIntro);
 }
 
@@ -523,6 +545,10 @@ function onState(m) {
   campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
+  startPresentation?.update(m, W);
+  objectiveCard.update(m);
+  results.update(m);
+  achievements.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
   if(m.model_id&&m.model_id!==activeModelId){const def=W?.vehicle_catalogue?.find(d=>d.id===m.model_id);if(def)loadModel(def);}
   if (needResync && !m.remote_control && m.rc) {
@@ -530,7 +556,7 @@ function onState(m) {
     needResync = false;
   }
   setConn('run', rep ? '回放 · 錄製的訓練飛行' : m.paused ? '已連線 · 暫停' : '已連線');
-  if (W) $('offline').hidden = true;
+  if (W) connectionNotice.connected();
   target.pos = P(m.pos, target.pos); Q(m.q, target.q);
   if (!target.init) { rovG.position.copy(target.pos); rovG.quaternion.copy(target.q); target.init = true; }
   updateRoute(m.nav);
@@ -597,12 +623,13 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen || pauseMenuOpen(),
+const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
+startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 installPauseMenu({input, send, state: () => S, replay: !!REPLAY});
 
 document.addEventListener('visibilitychange',()=>{
@@ -830,8 +857,7 @@ function drawProfile() {
 }
 
 let thrRows = [];
-const THR_ZH = { PORT_FRONT: '左前', STBD_FRONT: '右前', PORT_AFT: '左後', STBD_AFT: '右後', PORT_LONG: '左縱', STBD_LONG: '右縱' };
-function thrLabel(name) { const [t, k] = String(name).split(' '); return `${t} ${THR_ZH[k] || k || ''}`; }
+const thrLabel = thrusterLabel;
 function buildThrBars() {
   const host = $('thrBars'); host.innerHTML = ''; thrRows = [];
   (W?.thrusters || []).forEach((t) => {
@@ -863,8 +889,6 @@ function updateUI() {
   // HUD
   const lk = $('lockBadge');
   lk.classList.toggle('locked', !!s.locked);
-  lk.querySelector('b').textContent = s.locked ? '馬達鎖定' : '馬達解鎖';
-  lk.querySelector('span').textContent = s.locked ? '按 Space / 手把 Y 解鎖' : '推進器可動作 · Space 上鎖';
   const hm = $('hMode'); hm.textContent = `${s.ctrl_mode} 模式`; hm.className = 'chip ' + (s.ctrl_mode === 'A' ? '' : s.ctrl_mode === 'S' ? 'on' : 'warn');
   const hh = $('hHold'); hh.textContent = s.keep_depth ? `定深 ${s.depth_hold != null ? s.depth_hold.toFixed(1) + ' m' : '開'}` : '定深 關'; hh.className = 'chip ' + (s.keep_depth ? 'on' : 'dim');
   setTxt('hOp', s.operation_mode==='UAV_CHN'?'ROV 雙桿':s.operation_mode);
@@ -924,14 +948,13 @@ function updateUI() {
   setHTML('log', (s.log || []).slice().reverse().map((l) => `<li><span class="t">${esc(l.stamp || fmtT(l.t))}</span><span class="x">${esc(l.text)}</span></li>`).join(''));
 
   // training
-  const sc = s.score || {}, lim = W?.scenario?.time_limit_s;
-  setTxt('score', sc.score ?? '—');
+  const sc = s.score || {}, lim = missionTimeLimit(s, W);
+  setTxt('score', scoreValue(s));
   setTxt('timer', `${fmtT(sc.elapsed)} / ${lim ? fmtT(lim) : '—'}`);
   $('timeFill').style.width = lim ? clamp(100 * (sc.elapsed || 0) / lim, 0, 100) + '%' : '0%';
   $('timeFill').style.background = lim && sc.elapsed > lim * .85 ? C('--warn') : C('--jet');
   const objs = sc.objectives || [];
-  const nDone = objs.filter((o) => o.done).length;
-  setTxt('scoreState', sc.failed ? `失敗：${sc.failed}` : sc.finished ? '任務完成' : `目標 ${nDone}/${objs.length} · 扣分 ${sc.penalty_total || 0}`);
+  setTxt('scoreState', scoreSummary(s));
   setHTML('objs', objs.map((o, i) => {
     const cls = o.done ? 'done' : i === sc.current_index ? 'cur' : '';
     return `<li class="${cls}"><span class="ic">${o.done ? '✓' : i === sc.current_index ? '▶' : '○'}</span><span>${esc(o.label)}${o.hold_s ? `<span class="hint"> · 停留 ${o.hold_s}s</span>` : ''}</span><span></span><div class="track"><div class="fill" style="width:${(o.done ? 1 : o.progress || 0) * 100}%"></div></div></li>`;
@@ -959,6 +982,7 @@ function updateObjectives(time) {
     m.mat.color.setHex(col); m.wire.color.setHex(col);
     m.mat.fog = !isCur; m.wire.fog = !isCur;
     m.mat.opacity = isCur ? .6 + .35 * Math.sin(time * 5) : o.done ? .55 : .45;
+    if (m.bill) m.mat.opacity *= objectiveFade(m.g.position, Math.max(.3, o.radius || 1), camera, vp);
     m.g.scale.setScalar(isCur ? 1 + .06 * Math.sin(time * 5) : 1);
     if (m.bill) { _v.copy(camera.position).sub(m.g.position); m.bill.rotation.set(0, Math.atan2(_v.x, _v.z), 0); }
     if (isCur) cur = { o, m };
@@ -996,26 +1020,36 @@ function endIntroUI() {
   vp.classList.remove('intro'); $('skipIntro').hidden = true;
   tetherLine.visible = true;
 }
-async function startIntro() {
-  if (!W || !$('optIntro').checked || params.has('nointro')) return;
+// held: open on the aft deck and wait; the returned function starts the launch (deployment procedure).
+async function startIntro(held = false) {
+  if (!W || !$('optIntro').checked || params.has('nointro')) return null;
   if (MOVIE && movie.introDone) return;
   const assets = await loadIntroAssets();
   introStarts++;
   if (intro) { intro.dispose(); intro = null; }
-  intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: W.start_pos || S?.pos || [0, 0, 3], seabed: W.seabed_depth || 30, assets });
+  intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: startPresentation.introStart(W, S?.pos || [0, 0, 3]), seabed: W.seabed_depth || 30, assets });
   intro.showVehicle(() => activeModel?.model);       // the onboard view hides the hull; the intro shows it
-  vp.classList.add('intro'); $('skipIntro').hidden = false;
-  const wasPaused = !!S?.paused;
-  if (!wasPaused) send({ type: 'pause', value: true });
+  vp.classList.add('intro'); $('skipIntro').hidden = held;
+  let wasPaused = !!S?.paused;
+  if (!wasPaused && !held) send({ type: 'pause', value: true });
   intro.play(rovG, camera, () => {
     endIntroUI();
     target.init = false;                        // snap back to the simulated pose
     if (!wasPaused) send({ type: 'pause', value: false });
   });
+  if (!held) return null;
+  const heldIntro = intro;
+  heldIntro.hold();
+  return function launchFromDeck() {
+    wasPaused = !!S?.paused;
+    if (!wasPaused) send({ type: 'pause', value: true });
+    $('skipIntro').hidden = false;
+    heldIntro.release();
+  };
 }
 $('skipIntro').onclick = () => intro?.skip();
 let introStarts = 0;
-window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts };
+window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) { e.preventDefault(); intro.skip(); } });
 async function ensurePip() {
   const on = $('optPip').checked && !params.has('nopip');
@@ -1051,7 +1085,7 @@ function setReplayTime(t, {pause} = {}) {
   }
 }
 async function startReplay(url) {
-  setConn('wait', '載入回放…'); $('offline').hidden = true;
+  setConn('wait', '載入回放…'); connectionNotice.connected();
   let data;
   try { data = url.startsWith('local:')?await readReplay(url.slice(6)):await (await fetch(url)).json(); } catch (e) { setConn('stop', '回放檔載入失敗');cockpit.message({message:e.message}); return; }
   rep = { data, ci: 0, t: 0, playing: true, speed: 1, endHold: 0 };
@@ -1166,8 +1200,14 @@ const audio = installAudio({
   getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
+const music = installMusic({engine: audio});
+photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
+  if (!CAPTURE && skipFrame(now)) {
+    requestAnimationFrame(frame);
+    return;
+  }
   const frameSeconds=Math.max(0,(now-last)/1000);
   const dt = Math.min(.25, frameSeconds); last = now;
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
@@ -1223,6 +1263,7 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   audio.update(renderState.display(S));
+  music.update(renderState.display(S));
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);

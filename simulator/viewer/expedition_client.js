@@ -2,7 +2,8 @@ import {savePhoto,saveResult} from './collection_store.js';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 // Photos remain local. Only a small visibility report crosses the room socket.
-export function installExpeditionClient({send,capture,getState,getWorld,getSession,notify,readOnly=false}){
+// onShutter: called once the picture is captured, for the shutter sound, flash and toast (hud/photo_feedback.js).
+export function installExpeditionClient({send,capture,getState,getWorld,getSession,notify,readOnly=false,onShutter=null}){
   const pending=new Map(),recorded=new Set();
   let busy=false;
   function receive(message){
@@ -17,6 +18,7 @@ export function installExpeditionClient({send,capture,getState,getWorld,getSessi
     try{
       const shot=await capture();
       if(!shot.blob)throw Error('照片擷取失敗，請再試一次。');
+      onShutter?.();
       const metadata=JSON.parse(JSON.stringify({createdAt:new Date().toISOString(),cameraMode:shot.view,scene:world?.scenario?.key,
         sceneName:world?.scenario?.name,depth:state?.depth??state?.pos?.[2],vehicle_id:state?.vehicle_id,model_id:state?.model_id,pos:state?.pos,
         photographer:getSession()?.player_id,pose:{t:state?.t,pos:state?.pos,q:state?.q}}));

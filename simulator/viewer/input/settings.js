@@ -1,6 +1,11 @@
 // Controller setup, live shaping preview and sequential calibration; flight is suspended while open.
 import { CHANNELS, PRESETS, curve, radial, bindingValue } from "./actions.js";
-import { actionLabel, bindingRow, defaultPadBindings, findCollisions, inputIds } from "./bindings.js";
+import {
+  actionLabel, bindingRow, defaultPadBindings, findCollisions, hintItems, inputIds, keyCollisions, keyLabel,
+  keyRebindable, layoutLabel,
+} from "./bindings.js";
+import { keyboardLayout, rowsFor } from "./keyboard_layout.js";
+import { getFidelity } from "../fidelity.js";
 import {
   CALIBRATION_STEPS, captureCalibrationStep, buildCustomMapping, isNeutral
 } from "./calibrate.js";
@@ -26,6 +31,12 @@ const STRINGS = {
   bind: "綁定（a0、-a1、b0、b7~；以逗號分隔正負來源）",
   unknown: "未知裝置，請先完成對應精靈",
   collision: "同一情境內有按鍵重複：",
+  keyboard: "鍵盤按鍵",
+  keyboardHelp: "目前配置：{layout}。點選按鍵後按下新的按鍵，Esc 取消。",
+  capture: "請按下新按鍵…",
+  keyTaken: "按鍵已被使用，未變更：",
+  keySaved: "已儲存",
+  keyReset: "還原此配置的預設按鍵",
 };
 // Fixed menu navigation, read from the menu rows of the binding table.
 function menuSource(action) {
@@ -40,7 +51,8 @@ const NAV = {
   accept: menuSource("accept"),
   back: menuSource("back"),
 };
-export function installSettings(settings, save, haptics, setMode) {
+// onKeys: called after the player rebinds a keyboard key, so the input layer can pick up the new rows.
+export function installSettings(settings, save, haptics, setMode, onKeys = null) {
   const featureActions = new Map();
   const button = document.createElement("button");
   button.textContent = STRINGS.title;
@@ -168,6 +180,7 @@ export function installSettings(settings, save, haptics, setMode) {
     showCollisions();
   }
   renderBindings();
+  mountKeyboard();
   const enabled = element("label", STRINGS.haptics);
   const checkbox = element("input", "", enabled);
   checkbox.type = "checkbox";
@@ -299,6 +312,89 @@ export function installSettings(settings, save, haptics, setMode) {
       input.dispatchEvent(new Event("input"));
     } else return;
     lastNavigation = performance.now();
+  }
+  // Keyboard rebinding: action -> key capture, saved per layout in settings.keys; a key already used by another
+  // action in the same context is refused (bindings.js keyCollisions), so the table stays unique.
+  function mountKeyboard() {
+    const group = element("details", "");
+    group.id = "keyboardBindings";
+    element("summary", STRINGS.keyboard, group);
+    const help = element("p", "", group);
+    const note = element("p", "", group);
+    note.setAttribute("role", "status");
+    const list = element("div", "", group);
+    const reset = element("button", STRINGS.keyReset, group);
+    let capture = null;
+    function overrides(layout) {
+      return { ...(settings.keys?.[layout] || {}) };
+    }
+    function labels(rows) {
+      const result = {};
+      for (const item of hintItems({ axes: true, contexts: ["flight"], rows })) result[item.action] = item.label;
+      return result;
+    }
+    function render() {
+      const layout = keyboardLayout();
+      const rows = rowsFor(settings);
+      const names = labels(rows);
+      help.textContent = STRINGS.keyboardHelp.replace("{layout}", layoutLabel(layout));
+      list.replaceChildren();
+      for (const row of rows) {
+        if (!keyRebindable(row) || !row.keys.length) continue;
+        const line = element("div", "", list);
+        element("span", `${names[row.action] || actionLabel(row.action)} `, line);
+        const parts = (names[row.action] || "").split("／");
+        row.keys.forEach(function keyButton(code, index) {
+          const text = row.axis && parts[index] ? `${keyLabel(code)}（${parts[index]}）` : keyLabel(code);
+          const button = element("button", text, line);
+          button.dataset.keyAction = row.action;
+          button.dataset.keyIndex = String(index);
+          button.onclick = function startCapture() {
+            capture = { action: row.action, index, keys: [...row.keys] };
+            button.textContent = STRINGS.capture;
+            note.textContent = "";
+          };
+        });
+      }
+    }
+    function captureKey(event) {
+      if (!capture || !root.open) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const pending = capture;
+      capture = null;
+      if (event.code === "Escape") {
+        render();
+        return;
+      }
+      const layout = keyboardLayout();
+      const next = overrides(layout);
+      const keys = [...pending.keys];
+      keys[pending.index] = event.code;
+      next[pending.action] = keys;
+      const collisions = keyCollisions(layout, next);
+      if (collisions.length) {
+        note.textContent = STRINGS.keyTaken + keyLabel(event.code) + " · "
+          + collisions.map((entry) => entry.actions.map(actionLabel).join(" / ")).join("；");
+        render();
+        return;
+      }
+      settings.keys = { ...(settings.keys || {}), [layout]: next };
+      save();
+      onKeys?.();
+      note.textContent = STRINGS.keySaved;
+      render();
+    }
+    root.addEventListener("keydown", captureKey, true);
+    reset.onclick = function resetKeys() {
+      const layout = keyboardLayout();
+      if (settings.keys) delete settings.keys[layout];
+      save();
+      onKeys?.();
+      render();
+    };
+    getFidelity().subscribe(render);
+    render();
   }
   function registerActions(definitions) {
     for (const [name, action] of Object.entries(definitions)) featureActions.set(name, action);

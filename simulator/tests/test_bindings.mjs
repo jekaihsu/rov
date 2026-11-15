@@ -242,3 +242,69 @@ test("holding Start for the pause menu never toggles the light, even when the me
     assert.equal(values.light, 0, `light toggled at ${now} ms`);
   }
 });
+
+test("the game keyboard layout drives pilot axes and stays collision free", async () => {
+  const { KEYBOARD_LAYOUTS, keyboardRows, keyCollisions } = await import("../viewer/input/bindings.js");
+  for (const layout of KEYBOARD_LAYOUTS) assert.deepEqual(findCollisions(keyboardRows(layout)), [], layout);
+  const game = keyboardRows("game");
+  const flight = new Set(["flight"]);
+  assert.equal(keyRow("KeyW", flight, game).action, "surge");
+  assert.equal(keyRow("KeyA", flight, game).action, "sway");
+  assert.equal(keyRow("Space", flight, game).action, "heave");
+  assert.equal(keyRow("KeyC", flight, game).action, "heave");
+  assert.equal(keyRow("KeyQ", flight, game).action, "yaw");
+  assert.equal(keyRow("KeyT", flight, game).action, "lock");
+  assert.equal(keyRow("KeyW", flight).action, "left_ud", "the console layout is unchanged");
+  assert.equal(keyRow("Space", flight).action, "lock");
+  assert.equal(keyRow("KeyQ", new Set(["flight", "menu"]), game).action, "tabPrevious");
+  assert.deepEqual(keyCollisions("game", { photo: ["KeyZ"] }), []);
+  assert.deepEqual(keyCollisions("game", { photo: ["KeyW"] })[0].actions.sort(), ["photo", "surge"]);
+  assert.equal(keyCollisions("console", { lock: ["Tab"] }).length, 1, "HUD keys cannot be taken");
+  assert.equal(keyCollisions("game", { surge: ["KeyW", "KeyW"] }).length, 1, "one key cannot be both directions");
+  assert.equal(keyRow("KeyZ", flight, keyboardRows("game", { photo: ["KeyZ"] })).action, "photo");
+  assert.ok(!("surge" in defaultPadBindings()), "pilot axes are keyboard only");
+});
+
+test("help names stick channels by what they do in the operation mode", async () => {
+  const { keyboardRows, pilotAxisKeys, actionKey, channelAxis } = await import("../viewer/input/bindings.js");
+  const labels = Object.fromEntries(hintItems({ axes: true }).map((item) => [item.action, item.label]));
+  assert.equal(labels.right_ud, "前進／後退");
+  assert.equal(labels.left_ud, "低頭／抬頭");
+  assert.equal(labels.left_wave, "上升／下潛");
+  const drone = Object.fromEntries(hintItems({ axes: true, operationMode: "UAV_USA" }).map((i) => [i.action, i.label]));
+  assert.equal(drone.left_ud, "上升／下潛");
+  assert.deepEqual(pilotAxisKeys("surge"), ["↑", "↓"]);
+  assert.deepEqual(pilotAxisKeys("pitch"), ["S", "W"]);
+  assert.deepEqual(pilotAxisKeys("surge", keyboardRows("game")), ["W", "S"]);
+  assert.deepEqual(pilotAxisKeys("heave", keyboardRows("game"), "UAV_CHN"), ["Space", "C"]);
+  assert.equal(actionKey("lock"), "Space");
+  assert.equal(actionKey("lock", keyboardRows("game")), "T");
+  assert.deepEqual(channelAxis("left_ud", "ROV_USA"), { axis: "pitch", sign: -1 });
+  const game = hintItems({ axes: true, rows: keyboardRows("game") });
+  assert.ok(!game.some((item) => item.action === "left_ud" && item.keys.length), "game layout frees the stick keys");
+});
+
+test("the operation-mode axis table mirrors qysim/rc.py", async () => {
+  const { OPERATION_AXES } = await import("../viewer/input/bindings.js");
+  const source = await readFile(new URL("../qysim/rc.py", import.meta.url), "utf8");
+  const table = /_MAP = \{([\s\S]*?)\n\}/.exec(source)[1];
+  const python = {};
+  for (const [, mode, body] of table.matchAll(/"(\w+)": \{([^}]*)\}/g)) {
+    python[mode] = {};
+    for (const [, axis, channel, sign] of body.matchAll(/"(\w+)": \("(\w+)", (-?1)\)/g)) {
+      python[mode][axis] = [channel, Number(sign)];
+    }
+  }
+  assert.deepEqual(OPERATION_AXES, python);
+});
+
+test("the keyboard layout is a preset-neutral preference: real console, assisted game", async () => {
+  const { createFidelity } = await import("../viewer/fidelity.js");
+  await import("../viewer/input/keyboard_layout.js");
+  assert.equal(createFidelity({ search: "?fidelity=real" }).get("keyboardLayout"), "console");
+  assert.equal(createFidelity({ search: "?fidelity=assisted" }).get("keyboardLayout"), "game");
+  assert.equal(createFidelity({ edition: "steam" }).get("keyboardLayout"), "game");
+  const store = createFidelity({ search: "?fidelity=real" });
+  store.set("keyboardLayout", "game");
+  assert.equal(store.preset, "real", "changing the keyboard layout does not leave the real preset");
+});

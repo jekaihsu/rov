@@ -36,6 +36,7 @@ from .rc import CHANNELS
 from .reel import MODES as REEL_MODES
 from .qirc import QircControls
 from .room import Room
+from .start_point import apply_near_target_start
 
 ROOT = Path(__file__).resolve().parents[1]
 VIEWER_DIR = ROOT / "viewer"
@@ -640,6 +641,11 @@ class SimHost:
                 # Preserve short camera button edges when several network packets
                 # arrive between physics ticks, just as the local USB reader does.
                 sim._buttons(sim.rc_physical)
+        elif t == "start":
+            # Optional assisted spawn point (start_point.py); the real preset never sends it.
+            if msg.get("point") != "near_target":
+                raise ValueError("Unknown start point")
+            return apply_near_target_start(sim)
         elif t == "scenario":
             seed = msg.get("seed")
             tide_start = parse_tide_start(msg)
