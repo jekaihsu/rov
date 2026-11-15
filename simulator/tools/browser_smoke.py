@@ -6,6 +6,7 @@ depend on render speed are marked below; scale every timeout with ROV_BROWSER_TI
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from _campaign_drive import MAX_RELOCKS
 from _browser import launch, http_base, ws_base, timeout
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,22 +59,36 @@ def run():
         main.click('#flightDrawer',no_wait_after=True)
         assert main.locator('#armPanel').is_visible()
         main.locator('#armPanel summary').click(no_wait_after=True)
-        # Wait on sim time + arm state, not a fixed wall sleep: grip closes at 1 unit per sim-second.
-        main.click('#gripClose',no_wait_after=True)
-        main.evaluate('window.__skipRender = true')
         # Timed in simulated seconds from the moment the grip starts to move (the click itself may take long
         # under software GL): it must pass .5 within ARM_BUDGET_S. The wall timeout is only a stalled-server
         # watchdog, so a slow host cannot hide an arm that never closes or closes too slowly.
-        arm = main.wait_for_function("""budget => {
-          const state = window.__viewer.S;
-          const grip = state.operations.arm.grip;
-          if (grip >= 1) return false;
-          window.__armStart ??= state.t;
-          const elapsed = state.t - window.__armStart;
-          if (grip >= .5 && elapsed <= budget) return false;
-          return {grip, elapsed, latched: state.input_latched};
-        }""", arg=ARM_BUDGET_S, timeout=timeout(180000)).json_value()
-        assert arm['grip'] < .5, f'arm did not close within {ARM_BUDGET_S} simulated s: {arm}'
+        # A failsafe lock (control_generation rises) cancels arm motion by design; on a host declared slow
+        # the pilot's answer is to press the button again, at most MAX_RELOCKS times, and each is printed.
+        relocks = 0
+        while True:
+            generation = main.evaluate('window.__viewer.S.control_generation')
+            start_grip = main.evaluate('window.__viewer.S.operations.arm.grip')
+            main.evaluate('window.__skipRender = false')
+            main.click('#gripClose',no_wait_after=True)
+            main.evaluate('window.__skipRender = true')
+            arm = main.wait_for_function("""([budget, generation, startGrip]) => {
+              const state = window.__viewer.S;
+              const grip = state.operations.arm.grip;
+              const locked = state.control_generation !== generation;
+              if (grip < .5) return {grip, locked};
+              if (locked) return {grip, locked};
+              if (grip >= startGrip) return false;
+              window.__armStart ??= state.t;
+              const elapsed = state.t - window.__armStart;
+              return elapsed <= budget ? false : {grip, locked, elapsed};
+            }""", arg=[ARM_BUDGET_S, generation, start_grip], timeout=timeout(180000)).json_value()
+            if arm['grip'] < .5:
+                break
+            assert arm['locked'], f'arm did not close within {ARM_BUDGET_S} simulated s: {arm}'
+            relocks += 1
+            print(f'failsafe lock cancelled the arm motion (relock {relocks}): {arm}', flush=True)
+            assert relocks <= MAX_RELOCKS, f'more than {MAX_RELOCKS} failsafe locks while closing the grip'
+            main.evaluate('window.__armStart = undefined')
         main.evaluate('window.__viewer.setCam("onboard")')
         # Same direct switch write as before; a failsafe lock on a starved host resynchronises the page's
         # switches from the server, so the write is repeated until the server reports level 2.
