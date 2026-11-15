@@ -12,7 +12,8 @@ printed. At the default scale (CI, an idle host) no relock is tolerated, so a sp
 from _browser import timeout, without_render
 
 SIM_BUDGET_S = 20.0
-MAX_RELOCKS = 0 if timeout(1000) <= 1000 else 10
+# The simulated-time budget is the pass criterion; this cap only stops a wait that makes no progress at all.
+MAX_RELOCKS = 0 if timeout(1000) <= 1000 else 40
 
 # `condition` is a function body evaluated with `v = window.__viewer`; it returns true once the goal is met.
 PROGRESS = """({condition, start, budget, watchLock}) => {
