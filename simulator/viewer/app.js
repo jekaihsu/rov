@@ -64,6 +64,7 @@ import { installAchievements } from './play/achievements.js';
 import { installConnectionNotice } from './play/connection_notice.js';
 import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
 import { installObjectiveCard } from './play/objective_card.js';
+import { installCareerDive } from './career/dive.js';
 import './prefs/camera_items.js';
 import { createFrameGate, installDisplayPrefs } from './prefs/display.js';
 
@@ -445,7 +446,7 @@ const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopF
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
-  onShutter:()=>photoFeedback?.shutter(),
+  onShutter:()=>{photoFeedback?.shutter();careerDive.photo();},
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     vision.assertPhoto();
@@ -468,9 +469,12 @@ const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REP
 let startPresentation=null;
 installDisplayPrefs();
 const skipFrame = createFrameGate();
-const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
+const careerDive = installCareerDive({send, getWorld: () => W, getCamMode: () => camMode, readOnly: !!REPLAY,
+  showResult: outcome => results.show(outcome)});
+const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY, career: careerDive});
 const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
-  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open)});
+  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open),
+  career: careerDive});
 const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
 const connectionNotice = installConnectionNotice({element: $('offline')});
@@ -547,6 +551,7 @@ function onState(m) {
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
   startPresentation?.update(m, W);
+  careerDive.update(m);
   objectiveCard.update(m);
   results.update(m);
   achievements.update(m);
@@ -631,7 +636,7 @@ const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || 
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY});
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY, extraActions: () => careerDive.pauseActions()});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}

@@ -306,7 +306,7 @@ export class Environment {
   _sharedFish(schools) {
     this.sharedSchools = [];
     const geo = marineGeometry('fish');
-    const farm = this.world.scenario?.key === 'aquaculture_pen';
+    const farm = String(this.world.scenario?.key || '').startsWith('aquaculture_pen');
     const fraction = farm ? {low: .25, medium: .6, high: 1}[this.detail] || 1 : 1;
     for (const school of schools) {
       const R = rng(school.id + ':' + this.world.world_seed);
@@ -512,7 +512,7 @@ export class Environment {
         p.copy(school.pos).add(f.offset);
         p.y+=Math.sin(t*1.7+f.phase)*.12;
         q.setFromEuler(e.set(0,heading+Math.sin(t*6+f.phase)*.07,Math.sin(t*5+f.phase)*.04));
-        s.setScalar(f.scale * (this.world.scenario?.key === 'aquaculture_pen' ? 2 : 1));
+        s.setScalar(f.scale * (String(this.world.scenario?.key || '').startsWith('aquaculture_pen') ? 2 : 1));
         m4.compose(p, q, s);
         school.mesh.setMatrixAt(i, m4);
       });

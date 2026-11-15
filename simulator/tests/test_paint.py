@@ -48,6 +48,9 @@ class TestPaint(unittest.TestCase):
         self.assertTrue(a.operations.command({"action": "appearance", "sticker": "dive"})["ok"])
         self.assertFalse(a.operations.command({"action": "appearance", "sticker": "unknown"})["ok"])
         self.assertEqual(a.appearance, {"sticker": "dive"})
+        self.assertTrue(a.operations.command({"action": "appearance", "sticker": "yx_logo"})["ok"])
+        self.assertEqual(a.appearance, {"sticker": "yx_logo"})
+        self.assertTrue(a.operations.command({"action": "appearance", "sticker": "dive"})["ok"])
         self.assertFalse(hasattr(b, "appearance"))
 
     def test_room_snapshot_peer_appearance_and_scene_reset(self):

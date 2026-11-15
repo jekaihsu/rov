@@ -18,7 +18,8 @@ const STRINGS = {
   entries: {
     dive: ['開始潛航', '選擇玩法、載具與海域，從水面下潛。'],
     story: ['劇情與教學', '加入 YX 工作隊：從水池練習開始，接下港灣與船殼巡檢。'],
-    contracts: ['工程委託', '接 YX 派發的巡檢、回收與部署委託；下水後在右上任務卡接案。'],
+    contracts: ['YX 委託看板', 'YX 派發的工單：碼頭、船殼、港內搜尋；交出成果領報酬、累積時數、考執照。'],
+    shop: ['YX 裝備部', '用報酬添購真實配件（雷射比例尺、聲納、探針…）與機身外觀；配件讓你接更多種工單。'],
     training: ['訓練情境', '事故演練與依難度排列的場景訓練。'],
     multiplayer: ['多人', '建立或加入房間，最多三人共用同一片海域。'],
     collection: ['圖鑑與收藏', '照片、生物圖鑑與工程紀錄。'],
@@ -145,7 +146,10 @@ export function buildMain(ctx) {
       ctx.openTraining('story');
     },
     contracts: function contracts() {
-      ctx.openContracts();
+      ctx.openBoard();
+    },
+    shop: function shop() {
+      ctx.openShop();
     },
     training: function training() {
       ctx.openTraining('drills');
@@ -186,8 +190,14 @@ export function buildMain(ctx) {
     ctx.quickStart();
   });
   root.append(list, describe, quick);
+  // The YX career summary and 繼續職涯 (career/summary.js), when the career data loaded.
+  const career = ctx.careerSummary?.() || null;
+  if (career) root.append(career.element);
   function enter() {
+    career?.refresh();
     ctx.choice.multiplayer = false;
+    ctx.choice.contract = '';
+    ctx.choice.exam = false;
     const summary = ctx.lastSummary();
     quick.disabled = !summary;
     quickText.textContent = summary || STRINGS.quickNone;
@@ -288,7 +298,7 @@ export function buildHangar(ctx) {
     }) || ctx.data.vehicles[0];
     if (!vehicle) return;
     const specs = vehicleSpecs(vehicle);
-    name.textContent = vehicle.title || vehicle.name;
+    name.textContent = ctx.titleFor?.(vehicle) || vehicle.title || vehicle.name;
     marker.hidden = !specs.provisional;
     const caveat = specs.provisional ? STRINGS.provisionalHelp : STRINGS.estimated;
     note.textContent = [vehicle.detail, caveat].filter(Boolean).join(' · ');
@@ -305,6 +315,7 @@ export function buildHangar(ctx) {
       button.setAttribute('aria-pressed', String(button.dataset.vehicle === vehicle.id));
     }
     for (const button of stickers.children) {
+      button.hidden = ctx.stickerAvailable ? !ctx.stickerAvailable(button.dataset.sticker) : false;
       button.setAttribute('aria-pressed', String(button.dataset.sticker === ctx.choice.sticker));
     }
   }

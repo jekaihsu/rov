@@ -155,7 +155,9 @@ function buildSettings(input) {
 }
 
 // input: the object installInput returned; send: app's socket sender; state(): latest server state.
-export function installPauseMenu({ input, send, state, replay = false }) {
+// extraActions(): optional [{id, label, run, keepOpen}] shown with the objective (the YX work order's confirmations
+// and early hand-in from career/dive.js), so a pad player reaches them without the mouse.
+export function installPauseMenu({ input, send, state, replay = false, extraActions = null }) {
   const root = element('section', 'pause-menu');
   root.id = 'pauseMenu';
   root.hidden = true;
@@ -229,6 +231,22 @@ export function installPauseMenu({ input, send, state, replay = false }) {
       });
       offers.append(button);
     }
+    for (const action of replay ? [] : extraActions?.() || []) {
+      const button = element('button', 'menu-chip menu-chip-small', action.label);
+      button.type = 'button';
+      button.dataset.action = action.id;
+      button.addEventListener('click', function runAction() {
+        action.run();
+        if (!action.keepOpen) {
+          hide();
+          return;
+        }
+        renderObjective();
+        offers.querySelector(`[data-action="${action.id}"]`)?.focus({ preventScroll: true });
+      });
+      offers.append(button);
+    }
+    objective.hidden = objective.hidden && !offers.children.length;
   }
   function renderRestart() {
     const current = state();

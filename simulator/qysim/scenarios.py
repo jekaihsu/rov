@@ -89,7 +89,7 @@ class Scenario:
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
                 "water_type": water_type_for(self.biome, self.water_type, self.water),
                 **({"aquaculture": layout()[1]}
-                   if self.key == "aquaculture_pen" else {})}
+                   if is_pen_site(self.key) else {})}
 
 
 WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear")
@@ -530,6 +530,43 @@ def aquaculture_pen() -> Scenario:
                     Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
 
 
+PEN_VARIANT_STRINGS = {
+    "slack_name": "離岸養殖箱網（平潮）",
+    "slack_brief": "同一座箱網，平潮時段下水：表層流較弱。繞網檢查與繫泊檢查用。",
+    "inside_name": "離岸養殖箱網（網內下水）",
+    "inside_brief": "從箱網走道把載具直接放進網內，平潮時段。網底死魚回收用；需要機械臂。",
+}
+# Slack-water current of the pen site variants (assumed, like every scenario current; not a vehicle limit).
+PEN_SLACK_CURRENT = (.3, 90, .2, 95, .1, 100)
+
+
+def is_pen_site(key: str) -> bool:
+    """The aquaculture pen and its variants share one site (layout, dead fish, hole photos)."""
+    return str(key).startswith("aquaculture_pen")
+
+
+def aquaculture_pen_slack() -> Scenario:
+    """Same pen and physics at slack water: a weaker current for the career's first pen work orders."""
+    sc = aquaculture_pen()
+    sc.key = "aquaculture_pen_slack"
+    sc.name, sc.brief = PEN_VARIANT_STRINGS["slack_name"], PEN_VARIANT_STRINGS["slack_brief"]
+    sc.current = CurrentProfile(*PEN_SLACK_CURRENT, TI_SHELTERED)
+    return sc
+
+
+def aquaculture_pen_inside() -> Scenario:
+    """Mortality retrieval as done on real farms: the vehicle is launched from the pen walkway into the net.
+    Only the start point, the tether spool and the current setting differ; the site and physics are the same."""
+    sc = aquaculture_pen_slack()
+    sc.key = "aquaculture_pen_inside"
+    sc.name, sc.brief = PEN_VARIANT_STRINGS["inside_name"], PEN_VARIANT_STRINGS["inside_brief"]
+    sc.start_pos = (16., 0., 4.)
+    sc.spool_pos = (16., 0., 0.)
+    sc.tether_length = 60.
+    sc.objectives = [o for o in sc.objectives if o.kind == "pen_recover"]
+    return sc
+
+
 LIBRARY = {
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
@@ -550,6 +587,8 @@ LIBRARY = {
     "seagrass_meadow": seagrass_meadow,
     "harbor_inspection": harbor_inspection,
     "aquaculture_pen": aquaculture_pen,
+    "aquaculture_pen_slack": aquaculture_pen_slack,
+    "aquaculture_pen_inside": aquaculture_pen_inside,
 }
 
 
