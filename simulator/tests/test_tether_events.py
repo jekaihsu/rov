@@ -7,7 +7,7 @@ import numpy as np
 from qysim.engine import Simulator
 from qysim.physics import q_from_euler
 from qysim.scenarios import build
-from qysim.tether import TetherParams
+from qysim.tether import Tether, TetherParams
 from qysim.world import SnagFeature, World
 from tests.test_tether_physics import PointBody, straight
 
@@ -103,6 +103,25 @@ class TestPilotLogTether(unittest.TestCase):
         sim._silt_out_logged = False
         sim._log_tether_and_environment()
         self.assertIn("揚沙全白", [row["text"] for row in sim.log])
+
+    def test_replaced_tether_events_still_logged(self):
+        """The procedure relaunch swaps in a new Tether; its events must not be skipped."""
+        sim = Simulator(scenario="harbor_inspection", seed=0)
+        for k in range(5):
+            sim.tether.events.append({"t": float(k), "type": "reel_stall", "tension_n": 1.0})
+        sim._log_tether_and_environment()
+        sim.tether = Tether(sim.world, sim.tether.spool, sim.tether.x[-1].copy(), sim.tether.length,
+                            gland_body=sim.tether.gland_body)
+        sim.tether.events.append({"t": 9.0, "type": "tether_snag", "obstacle": "Harbor rubble"})
+        sim._log_tether_and_environment()
+        self.assertEqual(sim.log[-1]["text"], "勾纏：Harbor rubble")
+
+    def test_silt_out_logged_once_near_threshold(self):
+        sim = Simulator(scenario="harbor_inspection", seed=0)
+        for visibility in (0.45, 0.55, 0.45, 0.58, 0.7, 0.4):
+            sim.camera_turbidity = lambda v=visibility: {"mg_l": 1.0, "visibility_m": v, "c": 4.8 / v}
+            sim._log_tether_and_environment()
+        self.assertEqual([row["text"] for row in sim.log].count("揚沙全白"), 2)
 
 
 if __name__ == "__main__":

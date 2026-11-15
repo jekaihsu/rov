@@ -605,7 +605,8 @@ class Tether:
         self.reel.events.clear()
         self.events.extend(self.snags.events)
         self.snags.events.clear()
-        twist_warning = abs(self.turns) > TWIST_WARN_TURNS
+        # Warn past ±2 turns; re-arm below 1.75 so yaw jitter at the threshold does not repeat the event.
+        twist_warning = abs(self.turns) > TWIST_WARN_TURNS or (self._twist_warned and abs(self.turns) > 1.75)
         if twist_warning and not self._twist_warned:
             self.events.append({"t": round(t_now, 2), "type": "tether_twist",
                                 "turns": round(self.turns, 2)})
