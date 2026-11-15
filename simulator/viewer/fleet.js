@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {marineGeometry} from './marine_registry.js';
+import {dressMort} from './pen_life.js';
 import {createVehicleModel} from './vehicle_models.js';
 import {Cable} from './cable.js';
 import {applyVehicleSticker} from './vehicle_stickers.js';
@@ -35,11 +35,7 @@ export class Fleet {
       visible.add(ob.id);let mesh=this.objects.get(ob.id);
       if(!mesh){mesh=new THREE.Mesh(new THREE.CylinderGeometry(ob.radius,ob.radius,ob.radius*1.8,12),new THREE.MeshStandardMaterial({color:ob.mass>10?0x555d61:ob.mass>2?0xd09130:0xc9dadb,metalness:.45,roughness:.5}));this.scene.add(mesh);this.objects.set(ob.id,mesh);}
       if (ob.kind === 'dead_fish' && !mesh.userData.mort) {
-        mesh.geometry.dispose();
-        mesh.geometry = marineGeometry('fish');
-        mesh.geometry.scale(1.6, 1.6, 1.6);
-        mesh.rotation.z = Math.PI / 2;
-        mesh.userData.mort = true;
+        dressMort(mesh, ob);
       }
       mesh.position.copy(P(ob.pos));
     }

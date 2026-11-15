@@ -2,7 +2,8 @@
 
 Usage (from the simulator directory, with a server running or through run_browser_checks-style ports):
   python tools/capture_site_previews.py            # every dive site in scene_previews.json
-  python tools/capture_site_previews.py coral_reef # only the named sites
+  python tools/capture_site_previews.py coral_reef # only the named sites (any scene key, also non-dive sites)
+  python tools/capture_site_previews.py tutorial_pool:briefing  # key:pose frames it with another menu camera pose
 
 Writes viewer/menu/previews/<key>.jpg (480x270, JPEG). The menu shows a plain gradient for a site that has no
 image, so a missing file is never an error. Re-run after build_menu_previews.py changes a site.
@@ -28,7 +29,10 @@ def site_keys(names):
     return [key for key in keys if not names or key in names]
 
 
-def main(names):
+def main(arguments):
+    # key or key:pose; the default pose is the site overview.
+    poses = dict((argument.split(':') + ['preview'])[:2] for argument in arguments)
+    names = list(poses)
     OUT.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:
         browser = launch(playwright)
@@ -36,13 +40,17 @@ def main(names):
         page.goto(f'{http_base()}/?quality=medium')
         page.wait_for_function('window.__menu?.ready', timeout=timeout(120000))
         page.evaluate('window.__menu.go("sites")')
-        page.evaluate('window.__menu.pose("preview")')
-        page.add_style_tag(content='.menu-stack,.menu-header,.menu-footer,.menu-shade{display:none!important}')
+        page.add_style_tag(content='.menu-stack,.menu-header,.menu-footer,.menu-shade,.bp-backdrop'
+                                   '{display:none!important}')
         sites = page.evaluate('[...document.querySelectorAll("[data-site]")].map(card => card.dataset.site)')
+        # The hangar does not move the stage to another site on its own, unlike the site list.
+        page.evaluate('window.__menu.go("hangar")')
         for key in site_keys(names):
-            if key not in sites:
+            # A scene that is not a free dive site (the training pool, a career site) is captured when named.
+            if key not in sites and key not in names:
                 continue
             page.evaluate('key => window.__menu.configure({scenario: key})', key)
+            page.evaluate('pose => window.__menu.pose(pose)', poses.get(key, 'preview'))
             page.wait_for_function('key => window.__menu.ready && window.__menu.scene === key', arg=key,
                                    timeout=timeout(60000))
             page.wait_for_timeout(2500)

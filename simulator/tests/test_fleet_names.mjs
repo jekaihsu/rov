@@ -55,3 +55,13 @@ test('the exported menu catalogue uses the same names', async () => {
     assert.doesNotMatch(`${scene.name} ${scene.brief}`, VENDOR, scene.key);
   }
 });
+
+test('a career save raises the Block number shown in the title', () => {
+  const save = {vehicles: {x1: {block: 2}, falcon: {block: 3}}};
+  assert.equal(blockFor('x1', save), 2);
+  assert.equal(blockFor('falcon', save), 3);
+  assert.equal(blockFor('bluerov2_heavy', save), 1);
+  assert.equal(blockFor('constructor', save), 1);
+  assert.equal(blockFor('x1', {vehicles: {x1: {block: 'bad'}}}), 1);
+  assert.equal(vehicleTitle('x1', save), 'YX Model R · Block 2');
+});

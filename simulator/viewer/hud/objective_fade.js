@@ -16,3 +16,17 @@ export function objectiveFade(position, radius, camera, viewport) {
   const focal = rect.height / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
   return readoutFade(x, y, radius / distance * focal);
 }
+
+const WIRE_OPACITY = 0.07;
+
+// A site-work mark is a ring and a wire sphere around its point. When the camera stands inside or right at the
+// ring (the first objectives of some sites sit on the start position) the ring crosses the picture as a broad
+// translucent band, so the mark fades out between 1.4 m and 0.4 m outside the ring. Presentation only.
+// mark: {g, mat, wire} from the viewer's objective markers; mat.opacity must already hold this frame's value.
+export function objectiveNearFade(mark, radius, camera) {
+  const outside = camera.position.distanceTo(mark.g.position) - radius;
+  const fade = THREE.MathUtils.smoothstep(outside, 0.4, 1.4);
+  mark.mat.opacity *= fade;
+  mark.wire.opacity = WIRE_OPACITY * fade;
+  return fade;
+}
