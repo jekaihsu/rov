@@ -57,28 +57,29 @@ with sync_playwright() as p:
         soft_click(page, '#flightDrawer')
         soft_click(page, '.surface-paint-tools summary')
         soft_click(page, '.paint-toggle')
+        # Let the real top-camera spring settle; a same-turn lookAt snap can leave the ray with no hit.
         page.evaluate("window.__viewer.setCam('top')")
-        # Wait until the top camera is actually above the ROV before the far-surface check.
         pump_until(page, """() => {
           const v = window.__viewer;
-          if (!v?.rovG) return false;
+          if (!v?.S || !(v.S.sensors?.altitude > 3)) return false;
           v.setCam('top');
-          return v.camera.position.y > v.rovG.position.y + 4;
-        }""", timeout_ms=timeout(60000), allies=(peer,))
-        # Corner spray while still on the surface: seabed hit is beyond the 3 m limit.
-        status = page.evaluate("""() => {
+          const meshes = [];
+          v.scene.traverse(o => { if (o.isMesh && o.userData.paintable && o.visible) meshes.push(o); });
+          const ray = new v.THREE.Raycaster();
+          ray.setFromCamera(new v.THREE.Vector2(0, 0), v.camera);
+          const hit = ray.intersectObjects(meshes, false)[0];
+          if (!hit || hit.distance < 5) return false;
           const canvas = document.querySelector('.viewport canvas');
           const rect = canvas.getBoundingClientRect();
-          const x = rect.left + 20, y = rect.top + 20;
+          const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
           canvas.dispatchEvent(new PointerEvent('pointerdown', {
             button: 0, clientX: x, clientY: y, pointerId: 1, bubbles: true
           }));
           canvas.dispatchEvent(new PointerEvent('pointerup', {
             button: 0, clientX: x, clientY: y, pointerId: 1, bubbles: true
           }));
-          return document.querySelector('.paint-status')?.textContent || '';
-        }""")
-        assert '距離太遠' in status, status
+          return (document.querySelector('.paint-status')?.textContent || '').includes('距離太遠');
+        }""", timeout_ms=timeout(60000), allies=(peer,))
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['far_surface_rejected'] = True
         # Drive heave through touch + rc_lock so blur/visibility failsafe cannot cancel the dive mid-wait.

@@ -64,6 +64,11 @@ def run():
         main.evaluate('window.__skipRender = false')
         main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')
         main.wait_for_function('window.__viewer.S.rc.right_switch===2', timeout=timeout(120000))
+        # Lamp meshes update on a drawn frame; wait for intensity after leaving __skipRender.
+        main.wait_for_function("""() => {
+          const groups = window.__viewer.rovG.children.filter(g => g.children.some(o => o.isSpotLight));
+          return groups.some(g => g.visible && g.children.some(o => o.isSpotLight && o.intensity > 0));
+        }""", timeout=timeout(60000))
         lights=main.evaluate('window.__viewer.rovG.children.filter(g=>g.children.some(o=>o.isSpotLight)).map(g=>({visible:g.visible,intensity:g.children.filter(o=>o.isSpotLight).map(l=>l.intensity)}))')
         assert any(x['visible'] and max(x['intensity'])>0 for x in lights),lights
         main.screenshot(path=str(OUT/'onboard-lights.png'))
