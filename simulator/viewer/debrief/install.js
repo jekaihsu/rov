@@ -1,7 +1,7 @@
 /* Wire debrief timeline, viewpoint and report export into an active replay session.
    RC must stay silent: this module never opens a socket or sends commands. */
-import {STRINGS} from './strings.js';
-import {eventsForRecording} from './events.js';
+import {STRINGS, SEEK_LEAD_S} from './strings.js';
+import {eventsForRecording, seekTime} from './events.js';
 import {installTimeline} from './timeline.js';
 import {installViewpoint, VIEW_STUDENT, studentDisplayTime} from './viewpoint.js';
 import {buildDebriefHtml, downloadDebriefHtml} from './report.js';
@@ -33,9 +33,8 @@ export function installDebrief({
   getReplay,
   setReplayTime,
   setCam,
-  sampleSnapshots,
-  onFeed,
-  captureScreenshot,
+  feed,
+  capture,
 }) {
   if (!replayBar) return null;
   document.body.classList.add('debriefing');
@@ -67,6 +66,10 @@ export function installDebrief({
     return rep?.data?.clips?.[rep.ci] || null;
   }
 
+  function clipStart() {
+    return Number(clip()?.frames?.[0]?.t) || 0;
+  }
+
   function events() {
     const rep = getReplay();
     if (!rep?.data) return [];
@@ -87,6 +90,7 @@ export function installDebrief({
       refreshFeed();
     },
     getEvents: events,
+    getStart: clipStart,
   });
 
   function displayTime() {
@@ -101,17 +105,33 @@ export function installDebrief({
     return Math.max(0, delayed - (current.frames?.[0]?.t || 0));
   }
 
+  // The app's own replay feed samples at displayTime() and then calls afterFeed with the state it showed.
   function refreshFeed() {
-    const rep = getReplay();
-    const current = clip();
-    if (!rep || !current || !sampleSnapshots || !onFeed) return null;
-    const time = (current.frames?.[0]?.t || 0) + displayTime();
-    const snapshot = sampleSnapshots(current.frames, time);
-    const state = {...snapshot, type: 'state', paused: false};
-    onFeed(state);
+    if (!getReplay() || !clip()) return;
+    feed?.();
+  }
+
+  function afterFeed(state) {
     viewpoint.updateCompare(state);
     timeline.paint();
-    return state;
+  }
+
+  function captureScreenshot() {
+    const canvas = capture?.();
+    if (!canvas?.toBlob) return Promise.resolve(null);
+    return new Promise(function blobToDataUrl(resolve) {
+      canvas.toBlob(function read(blob) {
+        if (!blob) {
+          resolve(null);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function loaded() {
+          resolve(reader.result);
+        };
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', 0.72);
+    });
   }
 
   exportBtn.addEventListener('click', async function exportReport() {
@@ -119,11 +139,11 @@ export function installDebrief({
     const current = clip();
     const eventList = events();
     const screenshots = [];
-    if (captureScreenshot && eventList.length) {
+    if (capture && eventList.length) {
       const previous = rep.t;
       const previousPlaying = rep.playing;
       for (const event of eventList.slice(0, 4)) {
-        const target = Math.max(0, event.t - (current?.frames?.[0]?.t || 0) - 5);
+        const target = seekTime(event.t, SEEK_LEAD_S, clipStart()) - clipStart();
         setReplayTime(target, {pause: true});
         refreshFeed();
         await new Promise(function waitFrame(resolve) {
@@ -159,17 +179,16 @@ export function installDebrief({
 
   timeline.renderEvents();
   timeline.paint();
-  refreshFeed();
 
   return {
     viewpoint,
     timeline,
     refreshFeed,
+    afterFeed,
     displayTime,
     events,
     paint() {
       timeline.paint();
-      viewpoint.updateCompare(getReplay() && refreshFeed());
     },
     strings: STRINGS,
   };

@@ -655,7 +655,8 @@ function inputTick() {
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage();
   // Replay must not send RC or keep the worker repeating a packet (AGENTS.md input heartbeat).
-  rcPump.offer(msg, { live: !REPLAY && !document.hidden && !!session && !needResync, generation: S?.controller?.generation });
+  const live = !REPLAY && !document.hidden && !!session && !needResync;
+  rcPump.offer(msg, { live, generation: S?.controller?.generation });
   $('padInfo').textContent = S?.controller
     ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
     : pad ? `手把：${pad.id.slice(0, 48)}` : '未偵測到手把（按任一手把按鍵喚醒）。';
@@ -1095,31 +1096,8 @@ async function startReplay(url) {
   $('rpPlay').addEventListener('click', wake);
   wake();
   debrief = installDebrief({
-    replayBar: $('replayBar'),
-    getReplay: () => rep,
-    setReplayTime,
-    setCam,
-    sampleSnapshots,
-    onFeed(state) {
-      onState(state);
-      const c = clipNow();
-      const line = [...c.script].reverse().find((l) => l.t <= state.t + 0.05);
-      const show = !!line && state.t - line.t < 7 && !introActive();
-      $('rpSub').hidden = !show; if (show) $('rpSub').textContent = line.text;
-      $('rpSeek').value = Math.round(rep.t / c.dur * 1000);
-      $('rpTime').textContent = `${fmtT(rep.t)} / ${fmtT(c.dur)}`;
-    },
-    captureScreenshot() {
-      return new Promise(function blobToDataUrl(resolve) {
-        renderer.render(scene, camera);
-        renderer.domElement.toBlob(function read(blob) {
-          if (!blob) { resolve(null); return; }
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.72);
-      });
-    },
+    replayBar: $('replayBar'), getReplay: () => rep, setReplayTime, setCam, feed: feedReplay,
+    capture() { renderer.render(scene, camera); return renderer.domElement; },
   });
   loadClip(0);
 }
@@ -1133,13 +1111,10 @@ function loadClip(i) {
   feedReplay();
 }
 function feedReplay() {
-  if (debrief) {
-    debrief.refreshFeed();
-    return;
-  }
-  const c = clipNow(), fr = c.frames, time = fr[0].t + rep.t;
+  const c = clipNow(), fr = c.frames, time = fr[0].t + (debrief ? debrief.displayTime() : rep.t);
   const s = { ...sampleSnapshots(fr, time), type: 'state', paused: false };
   onState(s);
+  debrief?.afterFeed(s);
   const line = [...c.script].reverse().find((l) => l.t <= s.t + 0.05);
   const show = !!line && s.t - line.t < 7 && !introActive();
   $('rpSub').hidden = !show; if (show) $('rpSub').textContent = line.text;
@@ -1295,7 +1270,7 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options),
-  get debrief() { return debrief; }, get rep() { return rep; } };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;

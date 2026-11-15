@@ -9,7 +9,8 @@ function el(tag, className, parent) {
   return node;
 }
 
-export function installTimeline({bar, getDuration, getTime, setTime, getEvents, onSelect}) {
+// Event times are absolute recording times; the seek bar and setTime are relative to the clip start.
+export function installTimeline({bar, getDuration, getTime, setTime, getEvents, getStart, onSelect}) {
   let rail = bar.querySelector('.debrief-rail');
   if (!rail) {
     rail = el('div', 'debrief-rail', bar);
@@ -23,6 +24,16 @@ export function installTimeline({bar, getDuration, getTime, setTime, getEvents, 
 
   function duration() {
     return Math.max(0.01, Number(getDuration()) || 0.01);
+  }
+
+  function start() {
+    return Number(getStart?.()) || 0;
+  }
+
+  function jumpTo(event) {
+    const target = seekTime(event.t, SEEK_LEAD_S, start()) - start();
+    setTime(target, {pause: true});
+    onSelect?.(event, target);
   }
 
   function paint() {
@@ -42,24 +53,21 @@ export function installTimeline({bar, getDuration, getTime, setTime, getEvents, 
     for (const event of events) {
       const marker = el('button', `debrief-marker kind-${event.kind}`, markers);
       marker.type = 'button';
-      marker.style.left = `${(event.t / dur) * 100}%`;
+      const offset = Math.max(0, Math.min(1, (event.t - start()) / dur));
+      marker.style.left = `${offset * 100}%`;
       marker.title = `${STRINGS[event.kind] || event.kind} · ${event.t.toFixed(1)}${STRINGS.seconds}`;
       marker.setAttribute('aria-label', marker.title);
       marker.addEventListener('click', function jump(ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        const target = seekTime(event.t, SEEK_LEAD_S, 0);
-        setTime(target, {pause: true});
-        onSelect?.(event, target);
+        jumpTo(event);
       });
       const row = el('li', `debrief-event kind-${event.kind}`, list);
       const time = el('button', 'debrief-event-time', row);
       time.type = 'button';
       time.textContent = `${event.t.toFixed(1)}${STRINGS.seconds}`;
       time.addEventListener('click', function jump() {
-        const target = seekTime(event.t, SEEK_LEAD_S, 0);
-        setTime(target, {pause: true});
-        onSelect?.(event, target);
+        jumpTo(event);
       });
       const label = el('span', 'debrief-event-label', row);
       label.textContent = STRINGS[event.kind] || event.kind;
