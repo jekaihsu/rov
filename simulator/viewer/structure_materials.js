@@ -136,6 +136,9 @@ export function structureTextures() {
 
 // growth coverage per band: [0-8 m, 8-20 m, >20 m]; splash = coating breakdown above the waterline
 const PRESETS = {
+  windSteel: {color: 0x8a8070, roughness: .85, metalness: .2, coat: 0xd5a719,
+    cover: [.95, .65, .18], splash: .7, wind: 1},
+  tower: {color: 0xd9dedb, roughness: .6, metalness: .15, coat: 0xd9dedb, cover: [0, 0, 0], splash: 0},
   steel: {color: 0x8a8070, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.9, .65, .4], splash: .6},
   brace: {color: 0x857b6b, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.85, .6, .35], splash: .6},
   transition: {color: 0xd2a91c, roughness: .55, metalness: .2, coat: 0xd2a91c, cover: [.7, .5, .3], splash: .25},
@@ -159,6 +162,7 @@ const PRESETS = {
 function foulingShader(params, textures) {
   const uniforms = {
     uFouling: {value: textures.fouling},
+    uWind: {value: params.wind || 0},
     uCover: {value: new THREE.Vector3(...params.cover)},
     uSplash: {value: params.splash},
     uCoat: {value: new THREE.Color(params.coat)},
@@ -206,6 +210,7 @@ function foulingShader(params, textures) {
       varying vec2 vFoulPaint;
       varying vec4 vFoulTint;
       uniform sampler2D uFouling;
+      uniform float uWind;
       uniform float uSplash;
       uniform vec3 uCoat;
       uniform vec3 uBoot;
@@ -267,7 +272,17 @@ function foulingShader(params, textures) {
         float coatAbove = (1.0 - uHasBoot) * (1.0 - wet);
         diffuseColor.rgb = mix(diffuseColor.rgb, uCoat * (0.8 + 0.3 * coarse.r), coatAbove * (1.0 - splash * fine.b));
       }
-      #endif`);
+      #endif
+      if (uWind > 0.5) {
+        float depth = -vFoulPos.y;
+        float foulPatch = foulNoise(vFoulPos * 7.0);
+        float edge = depth + (foulPatch - 0.5) * 0.35;
+        float tide = smoothstep(-0.9, -0.45, edge) * (1.0 - smoothstep(0.65, 1.2, edge));
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.025, .035, .028), tide * .95);
+        float middle = smoothstep(7., 10., depth) * (1. - smoothstep(18., 22., depth));
+        vec3 sponge = mix(vec3(.11, .16, .06), vec3(.39, .23, .09), smoothstep(.5, .8, foulPatch));
+        diffuseColor.rgb = mix(diffuseColor.rgb, sponge, middle * foulPatch * .55);
+      }`);
   };
 }
 

@@ -24,6 +24,7 @@ from .world import Box, Cylinder, ShipHull, Wall, ship_hull_params
 # Fittings on a structure: the tether touches and snags on them like any obstacle, but wrap counting (turns of
 # cable round a pile) keeps to the primary members, so a leg's anodes or a monopile's J-tubes do not report turns.
 APPURTENANCE_KINDS = frozenset({
+    "wind_dry", "wind_paint", "wind_tower",
     "pen_net", "pen_rope", "pen_frame", "pen_sinker", "pen_buoy", "pen_anchor",
     "anode", "anode_strap", "mudmat", "transition_piece", "boat_landing", "j_tube", "cable_protection",
     "scour_rock", "fender", "ladder", "bollard", "toe_rock", "tyre", "debris_block", "debris_pipe",
@@ -32,6 +33,7 @@ APPURTENANCE_KINDS = frozenset({
 # Fittings that sit inside the near-bed log layer (whose roughness length already stands for them) or are too
 # small to shed a wake of their own; the structure flow skips them.
 NO_WAKE_KINDS = frozenset({
+    "wind_dry", "wind_paint", "wind_tower",
     "pen_net", "pen_rope", "pen_frame", "pen_sinker", "pen_buoy", "pen_anchor",
     "scour_rock", "toe_rock", "cable_protection", "debris_pipe", "tyre", "debris_block", "mudmat",
     "anode_strap", "propeller", "bollard", "deck",
@@ -274,3 +276,90 @@ def rudder_layout(hp: dict) -> dict:
     top, bottom = hp["counter"] - 0.05, hp["draft"] - 0.3
     return {"x": -hp["length"] / 2 + 0.3 * hp["aperture"], "z": (top + bottom) / 2, "half_chord": 0.2 * hp["aperture"],
             "half_thick": 0.3, "half_height": (bottom - top) / 2}
+
+
+def wind_jacket_fittings(structure: list, cx: float, cy: float, seabed: float) -> list:
+    """Original generic wind foundation; NED metres, illustrative proportions, no site identifiers.
+
+    Every rigid fitting is a standard cylinder or box, shared by rendering, sonar and tether contact.
+    The inspection anodes remain on their leg-derived outward bearings.
+    """
+    obs = []
+
+    def tube(name, a, b, radius=0.06, kind="boat_landing"):
+        if max(a[2], b[2]) + radius < 0 and kind == "boat_landing":
+            kind = "wind_dry"
+        obs.append(Cylinder(f"Wind {cx:g} {cy:g} {name}",
+                            (cx + a[0], cy + a[1], a[2]),
+                            (cx + b[0], cy + b[1], b[2]), radius, kind))
+
+    def box(name, center, half, kind="wind_paint"):
+        obs.append(Box(f"Wind {cx:g} {cy:g} {name}",
+                       (cx + center[0], cy + center[1], center[2]), half, 0, kind))
+
+    # Square transition deck, underside grillage, edge rails and stanchions.
+    box("platform", (0, 0, -12.3), (7.3, 7.3, 0.16))
+    for i in range(-7, 8):
+        box(f"grillage x {i}", (i, 0, -11.95), (0.055, 7.2, 0.2))
+        box(f"grillage y {i}", (0, i, -11.95), (7.2, 0.055, 0.2))
+    for side in (-1, 1):
+        for height in (-12.8, -13.5):
+            tube(f"rail x {side} {height}", (-7.2, side * 7.2, height), (7.2, side * 7.2, height))
+            tube(f"rail y {side} {height}", (side * 7.2, -7.2, height), (side * 7.2, 7.2, height))
+        for i in range(-7, 8, 2):
+            tube(f"post x {side} {i}", (i, side * 7.2, -12.5), (i, side * 7.2, -13.5))
+            tube(f"post y {side} {i}", (side * 7.2, i, -12.5), (side * 7.2, i, -13.5))
+    tube("tower base", (0, 0, -12.5), (0, 0, -29), 2.3, "wind_tower")
+    # Two flights switch direction at a landing outside the southern face.
+    for flight in range(2):
+        z0 = -3.0 - flight * 4.5
+        sign = 1 if flight == 0 else -1
+        x0 = -4.5 * sign
+        for i in range(19):
+            t = i / 18
+            box(f"stair {flight} tread {i}", (x0 + sign * 9 * t, -6.4, z0 - 4.5 * t),
+                (0.25, 0.65, 0.055))
+        for y in (-7.05, -5.75):
+            tube(f"stair {flight} stringer {y}", (x0, y, z0), (-x0, y, z0 - 4.5), 0.09)
+            tube(f"stair {flight} handrail {y}", (x0, y, z0 - 1.1), (-x0, y, z0 - 5.6))
+            for i in range(0, 19, 3):
+                x, z = x0 + sign * i / 2, z0 - i / 4
+                tube(f"stair {flight} post {y} {i}", (x, y, z), (x, y, z - 1.1))
+        box(f"stair landing {flight}", (-x0, -6.4, z0 - 4.5), (1, 0.9, 0.08))
+    tube("davit mast", (5.8, 4.5, -12.5), (5.8, 4.5, -15.5), 0.12)
+    tube("davit jib", (5.8, 4.5, -15.5), (8.2, 4.5, -15.5), 0.12)
+    tube("davit wire", (8.2, 4.5, -15.5), (8.2, 4.5, -13.5), 0.025)
+    # Boat landing is away from the radial anode approaches.
+    for x in (-0.8, 0.8):
+        tube(f"landing column {x}", (x, -7.4, -4), (x, -7.4, 3), 0.23)
+        tube(f"rubber strip {x}", (x, -7.4, -0.7), (x, -7.4, 2), 0.245, "fender")
+        tube(f"ladder stile {x}", (x * 0.5, -7.15, -4), (x * 0.5, -7.15, 2.6), 0.045)
+    for i in range(22):
+        z = -3.8 + i * 0.3
+        tube(f"ladder rung {i}", (-0.4, -7.15, z), (0.4, -7.15, z), 0.035)
+    box("landing deck", (0, -6.7, -3), (1.2, 1, 0.12))
+    for side in (-1, 1):
+        tube(f"landing support {side}", (side * 5, -5, -3), (side * 0.8, -7.4, -3), 0.13)
+    box("symbol plate", (0, -7.3, -4.05), (0.45, 0.035, 0.45))
+    vertices = [(-0.32, -7.35, -3.8), (0.32, -7.35, -3.8), (0, -7.35, -4.38)]
+    for i in range(3):
+        tube(f"warning triangle {i}", vertices[i], vertices[(i + 1) % 3], 0.025, "fender")
+    # Grout sleeves and segmented J-tubes follow the legs without blocking the inspection faces.
+    legs = [ob for ob in structure if ob.kind == "jacket_leg"]
+    for i, leg in enumerate(legs):
+        a, b = _leg_point(leg, seabed - 2), _leg_point(leg, seabed)
+        obs.append(Cylinder(f"{leg.name} grout sleeve", _tuple(a), _tuple(b), leg.radius + 0.16, "j_tube"))
+        foot = _leg_point(leg, seabed)
+        obs += snaggable(_ring(f"{leg.name} armour", foot[0], foot[1], 2.5,
+                               seabed + 0.32, 0.65, "scour_rock"), SNAG_HOLD_ROCK)
+        if i >= 2:
+            continue
+        points = [_leg_point(leg, d) + np.array([-0.9, 0, 0]) for d in (-2, 8, 18, seabed - 3)]
+        points += [points[-1] + np.array([-1, 0, 1.6]), points[-1] + np.array([-2.5, 0, 2.5])]
+        for j, (a, b) in enumerate(zip(points, points[1:])):
+            obs.append(Cylinder(f"{leg.name} J section {j}", _tuple(a), _tuple(b), 0.16, "j_tube"))
+        for d in (4, 14, 24):
+            root = _leg_point(leg, d)
+            tip = root + np.array([-0.9, 0, 0])
+            obs.append(Cylinder(f"{leg.name} clamp {d}", _tuple(root), _tuple(tip), 0.07, "j_tube"))
+    return obs

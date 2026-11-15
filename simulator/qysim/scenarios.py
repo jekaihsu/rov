@@ -123,9 +123,9 @@ RANDOM_SEAS = {
 
 # ── site builders ──────────────────────────────────────────────────────────
 def jacket(cx: float, cy: float, seabed: float, half: float = 6.0, leg_r: float = 0.6,
-           prefix: str = "J") -> list:
+           prefix: str = "J", wind: bool = False) -> list:
     """Four-legged jacket with horizontal and X braces."""
-    top, bot = -3.0, seabed + 1.0
+    top, bot = (-12.0 if wind else -3.0), seabed + 1.0
     legs = []
     obs = []
     for i, (sx, sy) in enumerate(((1, 1), (1, -1), (-1, -1), (-1, 1))):
@@ -139,7 +139,8 @@ def jacket(cx: float, cy: float, seabed: float, half: float = 6.0, leg_r: float 
         t = (z - a[2]) / (b[2] - a[2])
         return tuple(a[k] + (b[k] - a[k]) * t for k in range(3))
 
-    levels = [z for z in (8.0, 18.0, 28.0) if z < seabed - 1.5]
+    depths = (-11.5, 0.5, 8.0, 18.0, 28.0) if wind else (8.0, 18.0, 28.0)
+    levels = [z for z in depths if z < seabed - 1.5]
     for z in levels:
         for i in range(4):
             obs.append(Cylinder(f"{prefix} brace {z:.0f}m {'ABCD'[i]}{'ABCD'[(i + 1) % 4]}",
@@ -148,6 +149,9 @@ def jacket(cx: float, cy: float, seabed: float, half: float = 6.0, leg_r: float 
         for i in range(4):
             j = (i + 1) % 4
             obs.append(Cylinder(f"{prefix} X {z0:.0f}-{z1:.0f} {'ABCD'[i]}", on_leg(i, z0), on_leg(j, z1), 0.2, "brace"))
+            if wind:
+                obs.append(Cylinder(f"{prefix} cross {z0:.0f}-{z1:.0f} {'ABCD'[i]}",
+                                on_leg(j, z0), on_leg(i, z1), 0.2, "brace"))
     return obs
 
 
@@ -180,10 +184,11 @@ def open_water() -> Scenario:
 
 def jacket_inspection() -> Scenario:
     sea = 32.0
-    obs = jacket(20.0, 0.0, sea)
+    obs = jacket(20.0, 0.0, sea, wind=True)
     legs = [o for o in obs if o.kind == "jacket_leg"]
     objs = [_inspect_leg(l, d, 20.0, 0.0, f"{l.name} 陽極塊 @{d:.0f}m") for l, d in zip(legs, (6, 12, 16, 10))]
     obs += dressing.dress_jacket(obs, 20.0, 0.0, sea, {l.name: (d, 24.0) for l, d in zip(legs, (6, 12, 16, 10))})
+    obs += dressing.wind_jacket_fittings(obs, 20.0, 0.0, sea)
     return Scenario(
         "jacket_inspection", "導管架樁腿巡檢", "四腳導管架＋水平/X 斜撐，表層 1.5 kn 洋流。逐一在 0.8–2.5 m 距離內面向樁腿陽極塊停留 5 秒。注意斜撐會卡纜。",
         seabed_depth=sea, obstacles=obs, current=CurrentProfile(1.5, 80, 1.0, 95, 0.4, 110, TI_OFFSHORE,

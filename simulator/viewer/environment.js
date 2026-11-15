@@ -12,6 +12,7 @@
 //   each frame: env.update(dt, camera, currentVec3 /* three-space water velocity */, state, flowField)
 //   env.dispose()
 import * as THREE from 'three';
+import {createWindSea} from './wind_jacket.js';
 import { KELP_FLOW_GLSL, createKelpFlowUniforms, updateKelpFlow } from './kelp_flow.js';
 import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
@@ -106,6 +107,10 @@ export class Environment {
     }
     this._structureLife(world, options.detail || 'medium');
     this._surface(R);
+    if (world.scenario?.key === 'jacket_inspection') {
+      this.windSea = createWindSea(THREE, this.uniforms.uTime);
+      this.group.add(this.windSea);
+    }
   }
 
   // ── sessile life on structures: kelp in the top metres, anemones deeper (registry kinds, no collision) ──
@@ -416,9 +421,10 @@ export class Environment {
     const S = (this.surf = new THREE.Group());
     this.group.add(S);
     const c = this.centre;
+    const offshore = this.world.scenario?.key === 'jacket_inspection';
     // coastline and islands on the horizon: low-poly mountains, hazed by the fog
     const rockM = M(0x5d6b5a, { flatShading: true, roughness: 1 }), cliffM = M(0x77705f, { flatShading: true, roughness: 1 });
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < (offshore ? 0 : 9); i++) {
       const a = -0.6 + i * 0.28 + (R() - 0.5) * 0.12, d = 700 + R() * 380;
       const g = new THREE.ConeGeometry(60 + R() * 140, 25 + R() * 90, 9, 4);
       const p = g.attributes.position;
@@ -436,10 +442,13 @@ export class Environment {
     // offshore wind farm: a row of turbines, blades turning
     this.rotors = [];
     const white = M(0xe9eef0, { roughness: 0.5 }), yellow = M(0xf2b705, { roughness: 0.5 });
-    const rowA = R() * 6.28;
+    const rowA = this.world.scenario?.key === 'jacket_inspection' ? 2.2 : R() * 6.28;
     for (let i = 0; i < 6; i++) {
       const base = new THREE.Vector3(c.x + Math.cos(rowA) * 520 + Math.cos(rowA + 1.57) * (i - 2.5) * 260, 0, c.z + Math.sin(rowA) * 520 + Math.sin(rowA + 1.57) * (i - 2.5) * 260);
-      const t = new THREE.Group(); t.position.copy(base); S.add(t);
+      const t = new THREE.Group();
+      t.position.copy(base);
+      if (offshore) t.position.multiplyScalar(3);
+      S.add(t);
       const tp = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 14, 16), yellow); tp.position.y = 5; t.add(tp);
       const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.1, 90, 16), white); tower.position.y = 57; t.add(tower);
       const nac = new THREE.Mesh(new THREE.BoxGeometry(4.5, 4.5, 13), white); nac.position.set(0, 104, -1.5); t.add(nac);
@@ -491,6 +500,7 @@ export class Environment {
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
     updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
     const under = camera.position.y < 0;
+    if (this.windSea) this.windSea.visible = !under;
     this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
     for (const { rotor, w } of this.rotors) rotor.rotation.z -= dt * w;
     for (const b of this.buoys) { b.b.position.y = Math.sin(t * 1.1 + b.ph) * 0.25; b.b.rotation.z = Math.sin(t * 0.9 + b.ph) * 0.08; b.lamp.visible = (t + b.ph) % 4 < 0.6; }

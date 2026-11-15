@@ -1,0 +1,58 @@
+{
+  "onboard-lit": {
+    "seconds_per_frame": 2.26,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 31.495422398354375,
+      "target": 31.62765652387953,
+      "meteredLuminance": 0.00606912217263411,
+      "whiteBalance": [
+        1.9912538437071903,
+        1,
+        1.7041441066815897
+      ]
+    },
+    "bytes": 64201,
+    "eye_ned": [
+      27.6,
+      7.6,
+      6.0
+    ],
+    "target_ned": [
+      25.3,
+      5.3,
+      6.3
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "diagnostic_wireframes": false
+  },
+  "onboard-dark": {
+    "seconds_per_frame": 1.082,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 37.24333069457055,
+      "target": 37.396576777838845,
+      "meteredLuminance": 0.004690077753868025,
+      "whiteBalance": [
+        2.60372681733666,
+        1,
+        1.7624875779946543
+      ]
+    },
+    "bytes": 60507,
+    "eye_ned": [
+      27.6,
+      7.6,
+      6.0
+    ],
+    "target_ned": [
+      25.3,
+      5.3,
+      6.3
+    ],
+    "lamp_level": 0,
+    "fidelity": "real",
+    "diagnostic_wireframes": false
+  }
+}
