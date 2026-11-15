@@ -66,6 +66,8 @@ def chapter_entries():
     campaign = Campaign(None)
     chapters = []
     for script in campaign.ordered_scripts():
+        if script['category'] == 'course':
+            continue                            # company courses start from the engineering drawer, not the menu
         entry = {field: script.get(field) for field in CHAPTER_FIELDS}
         entry['scenario'] = script['scenario']
         entry['mode'] = script['mode']
