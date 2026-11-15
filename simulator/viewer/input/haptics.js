@@ -1,5 +1,5 @@
 // Optional browser haptics; unsupported or disconnected devices are silent.
-// Honour the padHaptics fidelity preference and the mixer-style mute in rov.input.v1.
+// Honour the padHaptics fidelity preference (the only mute switch after I3).
 import {padHapticsEnabled} from './haptics_fidelity.js';
 
 const PATTERNS = {
@@ -12,7 +12,6 @@ const PATTERNS = {
 
 export function createHaptics(getPad, settings, fidelity) {
   function pulse(name) {
-    if (settings.haptics === false) return;
     if (!padHapticsEnabled(fidelity)) return;
     const actuator = getPad()?.vibrationActuator;
     if (!actuator?.playEffect) return;

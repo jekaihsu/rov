@@ -17,7 +17,6 @@ const STRINGS = {
   invert: "反向",
   reset: "重設",
   test: "震動測試",
-  haptics: "啟用震動",
   strength: "震動強度",
   wizard: "對應精靈",
   prompt: "依序操作指定軸或按鍵，放回中立後再繼續：",
@@ -168,14 +167,7 @@ export function installSettings(settings, save, haptics, setMode) {
     showCollisions();
   }
   renderBindings();
-  const enabled = element("label", STRINGS.haptics);
-  const checkbox = element("input", "", enabled);
-  checkbox.type = "checkbox";
-  checkbox.checked = settings.haptics !== false;
-  checkbox.onchange = function hapticChange() {
-    settings.haptics = checkbox.checked;
-    save();
-  };
+  // Mute lives on padHaptics (擬真設定); this dialog only keeps strength and a test pulse.
   slider(STRINGS.strength, settings, "strength", 0, 1, 0.05, 1);
   element("button", STRINGS.test).onclick = function test() {
     haptics.pulse("hard");
