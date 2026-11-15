@@ -288,7 +288,7 @@ export function buildHangar(ctx) {
     }) || ctx.data.vehicles[0];
     if (!vehicle) return;
     const specs = vehicleSpecs(vehicle);
-    name.textContent = vehicle.name;
+    name.textContent = vehicle.title || vehicle.name;
     marker.hidden = !specs.provisional;
     const caveat = specs.provisional ? STRINGS.provisionalHelp : STRINGS.estimated;
     note.textContent = [vehicle.detail, caveat].filter(Boolean).join(' · ');
@@ -462,7 +462,7 @@ export function buildBriefing(ctx) {
     const modeName = chapter ? STRINGS.campaign : STRINGS.modes[ctx.choice.mission]?.[0] || '';
     // The room code only matters to players who share one; a solo dive does not show it.
     const room = ctx.choice.multiplayer ? `${STRINGS.room} ${ctx.choice.room}` : '';
-    kicker.textContent = [modeName, vehicle?.name, room].filter(Boolean).join(' · ');
+    kicker.textContent = [modeName, vehicle?.title || vehicle?.name, room].filter(Boolean).join(' · ');
     heading.textContent = chapter ? chapter.title : facts?.name || ctx.choice.scenario;
     brief.textContent = chapter?.outline || facts?.brief || '';
     numbers.replaceChildren();

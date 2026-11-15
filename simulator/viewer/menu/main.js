@@ -4,6 +4,7 @@
 // for the browser checks and the desktop smoke test.
 import { installCollectionPanel } from '../collection_panel.js';
 import { genericVehicle } from '../asset_config.js';
+import { vehicleDetail, vehicleName, vehicleTitle } from '../fleet_names.js';
 import { diveSites, supportsMode } from './catalogue.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
 import {
@@ -125,8 +126,12 @@ try {
 }
 setLoading(0.35, STRINGS.loading.scene);
 const stage = createStage(menu, { quality: choice.quality });
-// ?assets=generic draws other visuals for some physics ids; the menu must use their names, never the training ones.
+// Player-facing YX fleet names come from fleet_names.js; ?assets=generic keeps the name of the art variant
+// it draws and shows its own detail line.
 for (const vehicle of catalogue.vehicles) {
+  vehicle.name = vehicleName(vehicle.id);
+  vehicle.title = vehicleTitle(vehicle.id, null);
+  vehicle.detail = vehicleDetail(vehicle.id);
   const generic = genericVehicle(vehicle.id);
   if (!generic) continue;
   vehicle.name = generic.name;

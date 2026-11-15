@@ -4,6 +4,7 @@
 // optional read-only `room_query` message (PROTOCOL.md); the menu only opens a connection while this screen is
 // shown, and never joins: joining happens when the game starts.
 import { normaliseServer, validRoom } from './preferences.js';
+import { vehicleName } from '../fleet_names.js';
 import { field, mountToggles } from './settings.js';
 
 const STRINGS = {
@@ -173,7 +174,7 @@ export function buildMultiplayer(ctx) {
       const vehicle = ctx.data.vehicles.find(function byId(entry) {
         return entry.id === player.model_id;
       });
-      item.append(element('span', '', vehicle?.name || player.model_id));
+      item.append(element('span', '', vehicle?.name || vehicleName(player.model_id)));
       if (player.host) item.append(element('span', 'menu-tag', STRINGS.host));
       if (!player.connected) item.append(element('span', 'menu-tag', STRINGS.away));
       players.append(item);
