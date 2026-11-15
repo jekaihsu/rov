@@ -674,6 +674,9 @@ class World:
         self.obstacles = [o for o in self.obstacles if o.kind != "habitat"]
         relief = 1.4 if biome == "reef" else .5 if biome == "seagrass" else 0.0
         self.terrain = SeabedTerrain(self.seabed_depth, self.world_seed, relief)
+        if biome == "cable":
+            from .cable_route import CableTerrain
+            self.terrain = CableTerrain()
         self.habitat_entities, self.fish_schools = create_habitat(self, biome, self.world_seed, keep_clear)
         self._obstacle_bounds = None
 

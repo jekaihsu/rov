@@ -23,7 +23,7 @@ class SeabedTerrain:
 
     def sample_many(self, positions):
         xy = np.asarray(positions, float)[:, :2]
-        grid = np.clip((xy - self.origin) / self.spacing, 0, 39.999999)
+        grid = np.clip((xy - self.origin) / self.spacing, 0, np.array(self.depths.shape) - 1.000001)
         i = np.floor(grid).astype(int)
         a, b = (grid - i).T
         x, y = i.T
@@ -38,7 +38,7 @@ class SeabedTerrain:
 
     def as_dict(self):
         return {"origin": self.origin.tolist(), "spacing": self.spacing,
-                "size": [41, 41], "depths": self.depths.round(4).tolist()}
+                "size": list(self.depths.shape), "depths": self.depths.round(4).tolist()}
 
 
 def create_habitat(world, biome: str, seed: int, keep_clear=()):
@@ -54,6 +54,8 @@ def create_habitat(world, biome: str, seed: int, keep_clear=()):
             pos = home + np.array([math.cos(phase) * 10, math.sin(phase) * 10, 0.])
             schools.append(dict(id=f"pen-school-{k}", pos=pos, home=home,
                                 vel=np.zeros(3), count=48, phase=phase, variant=k % 3, pen=True))
+        return entities, schools
+    if biome == "cable":
         return entities, schools
     reef = biome == "reef"
     grass = biome == "seagrass"

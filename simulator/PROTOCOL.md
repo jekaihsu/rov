@@ -871,3 +871,13 @@ feature tangent; small sphere capsules sample angled features without changing t
 load and release semantics apply. New scenario objective kinds are `pen_lap`,
 `pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
 Net visual motion is bounded to 0.05 m and never changes server collision shapes.
+
+### 海纜巡線選填資料（L5）
+
+`world.scenario.cable_route` 僅 `cable_survey` 提供。包含 `seed`、`centerline`（NED `pos`、
+`chainage_m` 公尺弧長、`kp_km` 公里、`burial`：buried/partial/exposed/free_span/protected/crossing）、
+`markers`、`anomalies`（穩定 id、位置、兩種距離單位）、`free_span`（start/end/length_m/allowable_m）、
+`max_deviation_m`。KP 0.300 即 300 m，不是 300 km。`terrain.size` 可為矩形格網。
+既有拍照動作亦產生海纜事件證據；評分資料選填 `cable_records` 以事件 id 為鍵，值為
+`t` 模擬秒、`kp_km`、`pos`。選填 `cable_span_m` 為兩端事件之沿纜距離（未量測為 null）。
+缺少以上欄位的情境維持原行為。

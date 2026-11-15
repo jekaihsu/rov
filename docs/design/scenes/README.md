@@ -266,3 +266,8 @@ python tools/run_browser_checks.py browser_smoke observation_smoke browser_gamep
 
 `aquaculture_pen` 使用與碰撞同源的透明網衣薄面板、浮框及繫泊系統；
 [重建、任務資料、預算與截圖](aquaculture/README.md)。網衣擺動僅在前端，位移限制在一致性容差內。
+
+## L5 海纜巡線
+
+`cable_survey` 使用同源中心線、海床格網與碰撞原語。
+[區段、事件資料、重建與真實模式截圖](cable_route/README.md)。

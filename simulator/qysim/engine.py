@@ -440,6 +440,8 @@ class Simulator:
         ensure_mission(self).photo(self)
         from .aquaculture import photo
         photo(self)
+        from .cable_route import photo as cable_photo
+        cable_photo(self)
         self._log("photo", f"拍照 {f['name']} @ {self.depth:.1f} m")
         return f
 

@@ -63,3 +63,10 @@ trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies mes
 沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
 GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
 固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
+
+## L5 海纜巡線（2026-11-15）
+
+`cable_route/route.glb`、`weathering.webp`、`mission.json` 為本專案原創程序素材，CC0-1.0。
+`cad/build_cable_route.py` 固定 seed=51，無外部模型、照片、掃描或投影貼圖；不保存 .blend。
+Blender 為製作工具；輸出不受 Blender 程式授權約束。glTF Transform 4.5.1（MIT）、
+meshoptimizer（MIT）與 WebP（BSD）用於壓縮。GLB 是可攜參考；執行時以同源碰撞資料繪製。

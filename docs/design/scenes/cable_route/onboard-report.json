@@ -1,0 +1,376 @@
+{
+  "buried": {
+    "seconds_per_frame": 2.472,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 74.97107948100992,
+      "target": 71.57844024992903,
+      "meteredLuminance": 0.0017274684092073484,
+      "whiteBalance": [
+        1.0467952315075468,
+        1,
+        1.4083495989754307
+      ]
+    },
+    "bytes": 65843,
+    "eye_ned": [
+      14.928524122192847,
+      2.537571489284055,
+      29.504789563242166
+    ],
+    "target_ned": [
+      17.728524122192848,
+      3.037571489284055,
+      31.204789563242166
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 31,
+      "triangles": 100394,
+      "points": 900,
+      "lines": 292
+    }
+  },
+  "partial": {
+    "seconds_per_frame": 1.78,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 95.92756616915534,
+      "target": 92.19828383409275,
+      "meteredLuminance": 0.0011702288018828363,
+      "whiteBalance": [
+        1.014584642288513,
+        1,
+        1.3027938562392056
+      ]
+    },
+    "bytes": 67138,
+    "eye_ned": [
+      52.81215166930794,
+      0.9970092576855849,
+      28.399150273481617
+    ],
+    "target_ned": [
+      55.612151669307934,
+      1.497009257685585,
+      30.099150273481616
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 30,
+      "triangles": 100314,
+      "points": 900,
+      "lines": 292
+    }
+  },
+  "exposed": {
+    "seconds_per_frame": 1.582,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 98.30502658371744,
+      "target": 94.52211677331631,
+      "meteredLuminance": 0.0011262607379760303,
+      "whiteBalance": [
+        1.0072701832514788,
+        1,
+        1.2828747100055582
+      ]
+    },
+    "bytes": 66281,
+    "eye_ned": [
+      111.51237852348649,
+      -2.854179150560167,
+      29.006099148874753
+    ],
+    "target_ned": [
+      114.31237852348649,
+      -2.354179150560167,
+      30.706099148874753
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 29,
+      "triangles": 98514,
+      "points": 900,
+      "lines": 292
+    }
+  },
+  "free-span": {
+    "seconds_per_frame": 2.159,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 90.8445703654278,
+      "target": 87.11689382225883,
+      "meteredLuminance": 0.0012768749713012433,
+      "whiteBalance": [
+        1.0179572931775938,
+        1,
+        1.3078857142239526
+      ]
+    },
+    "bytes": 69176,
+    "eye_ned": [
+      139.6371042914549,
+      -1.9988791220597792,
+      29.995877154231255
+    ],
+    "target_ned": [
+      140.0371042914549,
+      -3.9988791220597792,
+      30.345877154231257
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 27,
+      "triangles": 68850,
+      "points": 900,
+      "lines": 292
+    }
+  },
+  "protected": {
+    "seconds_per_frame": 2.406,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 101.31960574397463,
+      "target": 97.54554572803467,
+      "meteredLuminance": 0.0010730059816069345,
+      "whiteBalance": [
+        0.9982411849523758,
+        1,
+        1.2579635137173097
+      ]
+    },
+    "bytes": 91216,
+    "eye_ned": [
+      198.02823035403551,
+      0.47029104236137,
+      29.036825975905412
+    ],
+    "target_ned": [
+      200.82823035403553,
+      0.97029104236137,
+      30.73682597590541
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 27,
+      "triangles": 98266,
+      "points": 900,
+      "lines": 90
+    }
+  },
+  "crossing": {
+    "seconds_per_frame": 2.383,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 113.51310978454363,
+      "target": 109.6890427931971,
+      "meteredLuminance": 0.0008957946312624409,
+      "whiteBalance": [
+        0.9608907981181664,
+        1,
+        1.186431774233614
+      ]
+    },
+    "bytes": 78013,
+    "eye_ned": [
+      239.87430630478508,
+      3.1565919611934894,
+      27.786625950377754
+    ],
+    "target_ned": [
+      242.6743063047851,
+      3.6565919611934894,
+      29.486625950377753
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 26,
+      "triangles": 96778,
+      "points": 900,
+      "lines": 90
+    }
+  },
+  "sheath_damage": {
+    "seconds_per_frame": 2.224,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 60.995423438134324,
+      "target": 57.80426869956622,
+      "meteredLuminance": 0.002400013487299182,
+      "whiteBalance": [
+        1.0427373810541847,
+        1,
+        1.4332964155546324
+      ]
+    },
+    "bytes": 79863,
+    "eye_ned": [
+      106.45992778461525,
+      -1.756859421453381,
+      29.790778687960064
+    ],
+    "target_ned": [
+      108.25992778461524,
+      -1.256859421453381,
+      30.690778687960062
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 30,
+      "triangles": 100410,
+      "points": 900,
+      "lines": 292
+    }
+  },
+  "anchor_drag": {
+    "seconds_per_frame": 2.026,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 62.60858018087243,
+      "target": 59.37197124042939,
+      "meteredLuminance": 0.002303215394270923,
+      "whiteBalance": [
+        1.0421407528497557,
+        1,
+        1.4255733933486154
+      ]
+    },
+    "bytes": 76377,
+    "eye_ned": [
+      166.6718189641229,
+      -0.3467591962205417,
+      29.377188221917333
+    ],
+    "target_ned": [
+      168.47181896412292,
+      0.1532408037794583,
+      30.27718822191733
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 28,
+      "triangles": 98514,
+      "points": 900,
+      "lines": 90
+    }
+  },
+  "fouling_rope": {
+    "seconds_per_frame": 1.957,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 60.92374226576741,
+      "target": 57.69263532651694,
+      "meteredLuminance": 0.0024071618319033657,
+      "whiteBalance": [
+        1.0400124713753476,
+        1,
+        1.419158342908324
+      ]
+    },
+    "bytes": 84645,
+    "eye_ned": [
+      261.71471318658325,
+      0.25607147135111064,
+      29.314723009120645
+    ],
+    "target_ned": [
+      263.51471318658326,
+      0.7560714713511106,
+      30.214723009120643
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 25,
+      "triangles": 74314,
+      "points": 900,
+      "lines": 90
+    }
+  },
+  "excess_span": {
+    "seconds_per_frame": 1.691,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 94.4734969635163,
+      "target": 87.04223588234133,
+      "meteredLuminance": 0.0012785601931259237,
+      "whiteBalance": [
+        1.049466114795428,
+        1,
+        1.3379791051141918
+      ]
+    },
+    "bytes": 69158,
+    "eye_ned": [
+      139.6371042914549,
+      -1.9988791220597792,
+      29.995877154231255
+    ],
+    "target_ned": [
+      140.0371042914549,
+      -3.9988791220597792,
+      30.345877154231257
+    ],
+    "lamp_level": 1,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 27,
+      "triangles": 68850,
+      "points": 900,
+      "lines": 292
+    }
+  },
+  "lights-off": {
+    "seconds_per_frame": 1.028,
+    "quality": "medium",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 1.0012580503913155e-05,
+      "whiteBalance": [
+        3.000000059502263,
+        1,
+        3.000000059502263
+      ]
+    },
+    "bytes": 41636,
+    "eye_ned": [
+      111.51237852348649,
+      -2.854179150560167,
+      29.006099148874753
+    ],
+    "target_ned": [
+      114.31237852348649,
+      -2.354179150560167,
+      30.706099148874753
+    ],
+    "lamp_level": 0,
+    "fidelity": "real",
+    "render": {
+      "frame": 49,
+      "calls": 27,
+      "triangles": 98510,
+      "points": 900,
+      "lines": 292
+    }
+  }
+}
