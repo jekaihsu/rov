@@ -24,7 +24,14 @@ function distance(p, ob) {
   if (ob.type === 'ship_hull') return shipHullDistance(p, ob);
   return Infinity;
 }
+// Nearest return in the eight centre beams (about ±2° of the bow); null when nothing is inside the range.
+function sonarRange(frame) {
+  const nearest = Math.min(...frame.distance_m.slice(124, 132));
+  return nearest < frame.range_m ? nearest : null;
+}
+// A subscribed sonar frame replaces the geometric estimate; the HUD labels the source.
 export function forwardRange(s, w) {
+  if (s.sonar) return sonarRange(s.sonar);
   const yaw = (s.euler?.[2] || 0) * Math.PI / 180;
   const pitch = (s.euler?.[1] || 0) * Math.PI / 180;
   const forward = [Math.cos(yaw) * Math.cos(pitch), Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch)];

@@ -23,10 +23,11 @@ export function fitCanvas(canvas) {
   return {ctx, width, height};
 }
 
-// A faint dark halo keeps thin lines legible over bright silt or a lit structure without a filled panel.
+// A tight dark halo keeps thin lines and labels legible over a bright silt white-out or a lit structure without
+// a filled panel; on dark water it barely shows.
 export function halo(ctx) {
-  ctx.shadowColor = 'rgba(0, 0, 0, .55)';
-  ctx.shadowBlur = 3;
+  ctx.shadowColor = 'rgba(0, 0, 0, .8)';
+  ctx.shadowBlur = 2;
   ctx.shadowOffsetY = 0.5;
 }
 

@@ -1,6 +1,7 @@
 // Thin-line circular minimap: obstacles, tether lay, objectives and teammates around the vehicle.
 // North-up or heading-up; drawn in CSS pixels on a transparent canvas, no filled box.
 import { fitCanvas, halo, font, INK, INK_DIM, ACCENT } from './canvas.js';
+import { hidesTargets } from '../sonar/scenario.js';
 
 const RING = 'rgba(190, 230, 240, .32)';
 const OBSTACLE = 'rgba(200, 220, 228, .75)';
@@ -113,7 +114,8 @@ export function drawMinimap(canvas, s, w, northUp) {
   line(s.tether?.nodes || [], TETHER);
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = TARGET;
-  for (const target of s.mission?.targets || w?.objectives || []) {
+  // The acoustic-search target must be found by sonar, so the map does not reveal it.
+  for (const target of hidesTargets(w) ? [] : s.mission?.targets || w?.objectives || []) {
     if (!target.point) continue;
     const [x, y] = point(target.point);
     ctx.strokeRect(x - 4.5, y - 4.5, 9, 9);

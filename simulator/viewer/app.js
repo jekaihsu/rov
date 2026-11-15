@@ -1,6 +1,14 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
+import { updateTetherOperations } from './tether/operations.js';
+import { tensionColor, warnLoad, gaugePercent } from './tether/tension.js';
+import { installProcedure } from './procedure/index.js';
+import { createSonar } from './sonar/panel.js';
+import { hidesTargets } from './sonar/scenario.js';
+import {visionTargets} from './vision/targets.js';
+import {installVision} from './vision/overlay.js';
+import { installCameraLook } from './onboard/camera_look.js';
 import {installInput} from './input/index.js';
 import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
@@ -34,17 +42,18 @@ import {installExpeditionPanel} from './expedition_panel.js';
 import {inspectObservation} from './observation_camera.js';
 import {installPilotGuide} from './pilot_guide.js';
 import {drawROVAttitude} from './attitude_indicator.js';
+import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
+import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
-const WARN_N = 250, BREAK_N = 300 * 9.80665;          // tether.py TetherParams warn_n / breaking_n
 const css = getComputedStyle(document.documentElement);
 const C = (n) => css.getPropertyValue(n).trim();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -135,6 +144,7 @@ for (const x of [0.12, -0.12]) {
   const geo = new THREE.CylinderGeometry(0.03, BEAM_LEN * Math.tan(BEAM_HALF) * 0.85, BEAM_LEN, 32, 1, true);
   geo.translate(0, -BEAM_LEN / 2, 0);                  // apex (top, uv.y = 1) at the origin, cone along -Y
   const cone = new THREE.Mesh(geo, beamMat);
+  cone.userData.legacyBeam = true;  // fx/water_optics.js draws the scattered beam itself in the optics tiers
   cone.renderOrder = 5; cone.frustumCulled = false; cone.visible = false;
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xfff4e6, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   glow.scale.setScalar(0.35); glow.visible = false;
@@ -251,6 +261,7 @@ function buildWorld() {
 }
 
 function buildObjectives(list) {
+  if (hidesTargets(W)) list = [];
   const geometries=new Set(),materials=new Set();objG.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
   objG.clear(); objMarkers = [];
   list.forEach((o) => {
@@ -304,11 +315,6 @@ const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6),
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);
 
-const colLow = new THREE.Color('#e9c534'), colWarn = new THREE.Color('#ffb020'), colBreak = new THREE.Color('#ff3040');
-function tensionColor(T, out) {
-  if (T <= WARN_N) return out.copy(colLow).lerp(colWarn, Math.pow(clamp(T / WARN_N, 0, 1), 1.6));
-  return out.copy(colWarn).lerp(colBreak, clamp((T - WARN_N) / (BREAK_N - WARN_N), 0, 1) ** .6);
-}
 
 const distToObstacle = obstacleDistance;  // p NED; approximate surface distance (structure_sdf.js)
 
@@ -319,12 +325,13 @@ function updateTether(t) {
   const n = Math.min(nodes.length, MAXN);
   const pts = []; for (let i = 0; i < n; i++) pts.push(P(nodes[i]));
   const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  const Tat = (s) => { const T = ts + (tr - ts) * s; return t.warn ? Math.max(T, WARN_N) : T; };
+  const warnN = warnLoad(t);
+  const Tat = (s) => { const T = ts + (tr - ts) * s; return t.warn ? Math.max(T, warnN) : T; };
   // polyline (always visible)
   const lp = tetherLine.geometry.attributes.position.array, lc = tetherLine.geometry.attributes.color.array;
   for (let i = 0; i < n; i++) {
     lp[i * 3] = pts[i].x; lp[i * 3 + 1] = pts[i].y; lp[i * 3 + 2] = pts[i].z;
-    tensionColor(Tat(i / Math.max(1, n - 1)), _c); lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
+    tensionColor(Tat(i / Math.max(1, n - 1)), _c, warnN); lc[i * 3] = _c.r; lc[i * 3 + 1] = _c.g; lc[i * 3 + 2] = _c.b;
   }
   tetherLine.geometry.setDrawRange(0, n);
   tetherLine.geometry.attributes.position.needsUpdate = true; tetherLine.geometry.attributes.color.needsUpdate = true;
@@ -441,9 +448,11 @@ let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
+const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
+    vision.assertPhoto();
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
     const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
@@ -455,6 +464,7 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
+const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
@@ -463,6 +473,7 @@ $('offUrl').textContent = WS_URL;
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
+const sonarPanel = createSonar(send);
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
@@ -509,10 +520,11 @@ function onWorld(m) {
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
   $('offline').hidden = true;
-  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) startIntro();
+  if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) procedurePanel.startIntro(startIntro);
 }
 
 function onState(m) {
+  sonarPanel.receive(m);
   if(m.model_id !== S?.model_id)needResync=true;
   if(m.control_generation !== S?.control_generation)needResync=true;
   if (lastT >= 0 && m.t < lastT - 0.5) needResync = true;    // scenario loaded / reset → server RC reset to locked
@@ -526,6 +538,7 @@ function onState(m) {
   cockpit.update(m);activeModel?.updateArm(m.operations?.arm);
   applyVehicleSticker(activeModel,m.appearance?.sticker||'none');surfacePaint.update(m);
   missionPanel.update(m);
+  procedurePanel.update(m);
   campaignPanel.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -603,11 +616,13 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen, camera: () => cameraRig.cycle(), tick: () => inputTick(),
+const input = installInput({blocked: () => collectionOpen || pauseMenuOpen(),
+  camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}
@@ -754,8 +769,12 @@ const cameraRig = createCameraRig({THREE, camera, controls, rovG, renderer, para
   }});
 cameraRig.bindInput(input);
 surfacePaint.bindInput(input);
+procedurePanel.bindInput(input);
 campaignPanel.bindInput(input);
+sonarPanel.bindInput(input);
+vision.bindInput(input);
 let camMode = cameraRig.mode;
+const cameraLook = installCameraLook({renderer, getMode: () => camMode, fidelity: getFidelity()});
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
 const updateCamera = dt => cameraRig.update(dt);
@@ -894,12 +913,12 @@ function updateUI() {
   const t = s.tether || {};
   setTxt('tLen', (t.length ?? 0).toFixed(1)); setTxt('tMax', (t.max_length ?? 0).toFixed(0));
   $('tLenFill').style.width = (100 * (t.length || 0) / (t.max_length || 1)) + '%';
-  const gw = (T) => Math.sqrt(clamp(T / BREAK_N, 0, 1)) * 100;
   for (const [k, id] of [['tension_rov', 'tRov'], ['tension_spool', 'tSpool']]) {
     const T = t[k] || 0; setTxt(id, `${T.toFixed(0)} N`);
-    const f = $(id + 'Fill'); f.style.width = gw(T) + '%'; f.style.background = '#' + tensionColor(T, _c).getHexString();
+    const f = $(id + 'Fill'); f.style.width = gaugePercent(T) + '%';
+    f.style.background = '#' + tensionColor(T, _c, warnLoad(t, k)).getHexString();
+    f.nextElementSibling.style.left = gaugePercent(warnLoad(t, k)) + '%';
   }
-  document.querySelectorAll('.tgauge .wmark').forEach((m) => (m.style.left = gw(WARN_N) + '%'));
   const ts = $('tState');
   if (t.broken) { ts.textContent = '已斷裂'; ts.className = 'chip bad'; }
   else if (t.warn) { ts.textContent = '張力過高'; ts.className = 'chip warn'; }
@@ -984,7 +1003,8 @@ function renderTether(dt) {
   tetherLine.geometry.attributes.position.needsUpdate = true;
   if (t.broken) { cable.hide(); return; }
   const ts = t.tension_spool || 0, tr = t.tension_rov || 0;
-  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, WARN_N) : T, out); });
+  const warnN = warnLoad(t);
+  cable.update(tetherDisp, (s, out) => { const T = ts + (tr - ts) * s; tensionColor(t.warn ? Math.max(T, warnN) : T, out, warnN); });
 }
 
 /* ═════════════════════════ deploy intro + pilot PiP ═════════════════════════ */
@@ -1156,6 +1176,7 @@ function frame(now) {
   // pose (smoothed toward latest state)
   replayTick(dt);
   updateFlightHUD(renderState.display(S), W, dt, input.hudState());
+  updateTetherOperations(S);
   movieTick(dt);
   const inIntro = introActive();
   if (intro) intro.update(dt);
@@ -1175,7 +1196,8 @@ function frame(now) {
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   hemi.intensity = 1.5; sun.intensity = 1.6;
-  applyUnderwaterLighting(scene);
+  installUnderwaterPipeline(renderer, { surface });
+  applyUnderwaterLighting(scene, S, renderer);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
@@ -1203,8 +1225,10 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   audio.update(renderState.display(S));
+  cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);
+  vision.update(now);
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
   const r = vp.getBoundingClientRect();
@@ -1226,6 +1250,6 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;

@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import launch, http_base, ws_base
+from _menu import open_settings_tab, set_intro, to_briefing, wait_ready
 
 OUT = Path(__file__).resolve().parents[1]/'output'/'gameplay-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -35,12 +36,12 @@ with sync_playwright() as p:
 
     main = new_page()
     main.goto(f'{BASE}?ws={WS}&room={room}&model=falcon&scene=coral_reef&mission=inspection_coop', wait_until='domcontentloaded')
-    main.wait_for_function('window.__menu?.ready', timeout=90000)
-    main.select_option('#menuScene','coral_reef')
-    main.select_option('#menuMode','inspection_coop')
-    main.locator('#menuIntro').evaluate('(el)=>{el.checked=false}')
-    main.wait_for_function('window.__menu.ready')
+    wait_ready(main, timeout=90000)
+    open_settings_tab(main, 'quality')
     assert main.locator('#menuHardware').inner_text().strip()
+    to_briefing(main, mode='inspection_coop', site='coral_reef')
+    set_intro(main, False)
+    main.wait_for_function('window.__menu.ready')
     box = main.locator('#startDive').bounding_box()
     start_visible = bool(box and box['y'] >= 0 and box['y']+box['height'] <= 768)
     print('Start button visibility:',start_visible,box,flush=True)
@@ -81,9 +82,9 @@ with sync_playwright() as p:
 
     for mode in ('free_explore','scenario_training'):
         main.click('#returnMenu')
-        main.wait_for_function('window.__menu?.ready', timeout=90000)
-        main.select_option('#menuMode',mode)
-        main.locator('#menuIntro').evaluate('(el)=>{el.checked=false}')
+        wait_ready(main, timeout=90000)
+        to_briefing(main, mode=mode, site='coral_reef')
+        set_intro(main, False)
         main.click('#startDive')
         wait_state(main,mode)
         hidden = main.evaluate('document.querySelector("#score").closest(".sec").hidden')

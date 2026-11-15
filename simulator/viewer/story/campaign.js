@@ -180,11 +180,14 @@ export function installCampaign({send, readOnly = false}) {
       save = persisted || save;
       if (save) command('campaign_restore', {save});
       // First run enters onboarding; a returning player chooses a chapter in the drawer.
-      const requested = new URLSearchParams(location.search).get('mission') === 'campaign';
+      const launch = new URLSearchParams(location.search);
+      const requested = launch.get('mission') === 'campaign';
       if (campaign.status === 'idle' && requested) {
         const completed = save?.completed || [];
+        // A chapter picked in the launch menu (story or incident drill) wins; the server still enforces locks.
+        const picked = campaign.chapters.find(entry => entry.id === launch.get('chapter') && !entry.placeholder);
         // Incident drills are launched from the list only; a server without categories is all story.
-        const chapter = campaign.chapters.find(entry => !entry.placeholder
+        const chapter = picked || campaign.chapters.find(entry => !entry.placeholder
           && (entry.category || 'story') === 'story' && !completed.includes(entry.id) && (!entry.requires || completed.includes(entry.requires)));
         if (chapter) command('campaign_start', {chapter: chapter.id, resume: save?.checkpoint?.chapter === chapter.id});
       }

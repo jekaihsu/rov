@@ -73,11 +73,12 @@ def check_menu_label(browser):
     page = browser.new_page(viewport={'width': 1600, 'height': 900})
     page.set_default_timeout(timeout(120000))
     page.goto(f'{http_base(8092)}/?assets=generic&model=x1', wait_until='domcontentloaded')
-    page.wait_for_selector('[data-vehicle="x1"]')
-    generic = page.locator('[data-vehicle="x1"]').inner_text()
+    page.wait_for_selector('[data-vehicle="x1"]', state='attached')
+    # The hangar chip exists before its screen is shown; read its text, not its rendered (hidden) text.
+    generic = page.locator('[data-vehicle="x1"]').text_content()
     page.goto(f'{http_base(8092)}/?model=x1', wait_until='domcontentloaded')
-    page.wait_for_selector('[data-vehicle="x1"]')
-    training = page.locator('[data-vehicle="x1"]').inner_text()
+    page.wait_for_selector('[data-vehicle="x1"]', state='attached')
+    training = page.locator('[data-vehicle="x1"]').text_content()
     page.close()
     assert generic != training and 'X1' not in generic, (generic, training)
     return {'generic': generic, 'training': training}

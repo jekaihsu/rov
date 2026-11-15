@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import launch, http_base, ws_base
+from _menu import open_settings_tab, set_intro, to_briefing
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'paint-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -24,15 +25,15 @@ with sync_playwright() as p:
     try:
         page.goto(BASE+QUERY)
         page.wait_for_function('window.__menu?.ready')
-        page.select_option('#menuSticker','hazard')
+        open_settings_tab(page, 'controls')
+        page.select_option('#menuPad','keyboard')
+        page.select_option('#menuControl','ROV_USA')
+        page.evaluate('window.__menu.go("main")')
+        to_briefing(page, mode='free_explore', site='seagrass_meadow', sticker='hazard')
         page.wait_for_function('window.__menu.stickerMeshes>0')
         results['menu_sticker_meshes'] = page.evaluate('window.__menu.stickerMeshes')
         page.screenshot(path=str(OUT/'sticker-preview.png'))
-        page.select_option('#menuScene','seagrass_meadow')
-        page.locator('details').filter(has=page.locator('#menuPad')).locator('summary').click()
-        page.select_option('#menuPad','keyboard')
-        page.select_option('#menuControl','ROV_USA')
-        page.uncheck('#menuIntro')
+        set_intro(page, False)
         page.click('#startDive')
         page.wait_for_function('window.__viewer?.S?.appearance?.sticker==="hazard" && window.__modelLoaded && window.__viewer.W.scenario.key==="seagrass_meadow"')
         page.wait_for_function(STICKER_COUNT+'>0')

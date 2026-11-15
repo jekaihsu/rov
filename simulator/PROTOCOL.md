@@ -54,6 +54,12 @@ Other vehicle commands from §2 apply only to the sender's seat. Errors are
 (see the instructor section); `controller_only` rejects any non-RC message from an attached
 controller bridge connection.
 Clients which do not join can observe the default room but cannot issue commands.
+A client that has not joined may send the optional, read-only
+`{"type":"room_query","room_id":"training"}` (used by the launch menu's multiplayer screen). The reply is
+`{"type":"room_info","room_id":"training","exists":true,"capacity":3,"scenario":"open_water","mission":"free_explore",
+"players":[{"name":"Pilot","model_id":"x1","connected":true,"host":true}]}`; `scenario` and `mission` are omitted
+when `exists` is false. The query never creates a room and never returns resume tokens. Older servers answer it with
+`join_required`.
 
 To use a USB controller on a remote pilot's computer, download a pairing JSON
 with `url`, `room_id` and `resume_token` from the pilot interface, then run
@@ -685,3 +691,68 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   (`viewer/flow_field.js`); drifting particles and kelp/seagrass sway use it, so they move with the
   same gusts, tide and wakes that push the vehicle. Clients that ignore it keep working; hosts
   that do not send it leave the viewer on its mean-profile fallback.
+
+## Optional `state.tether_ops` (T21)
+
+Older clients may ignore this object; absent means no cable operations feedback. It is an observer of the
+tether solver (`qysim/tether_ops.py`) and applies no force.
+
+* `turns` is the solver's net vehicle heading turns (`state.tether.turns`); `torque_nm` is the restoring yaw
+  moment the solver applies for it (GJ × twist angle / deployed length, see the tether notes in §3).
+  `twist_warning` is true beyond ±2 turns: a console / tender warning only, not an extra force.
+* `events` is a rolling list of 20 `{id, code, metres?, mode?}` radio messages; codes are `length` (5 m bucket
+  changes in either direction), `tension` (rated working load exceeded, same as `tether.warn`), `structure`
+  (cable touching a structure), `twist`, `snag` (a recovery episode starts), `released`, `reel` (reel mode
+  changed to `mode`: free|hold|pay_out|haul_in|auto) and `stall` (powered haul-in stalled).
+* An episode starts when the solver reports a snag hook (`tether.snags`) or a wrap of at least a quarter turn
+  (`tether.wraps`). `snag` is null or `{name, kind: snag|wrap, returned, tightening}`. Tightening accumulates
+  vehicle-end load above the termination's rated working load (`tether.gland_working_load_n`).
+* `result` is null or `{score, peak_n, elapsed, returned, correct, kind}` for the last episode. High scores
+  need facing and returning to the cable point first, then unwinding in the reverse sense (wraps) or backing
+  out until the hook lets go (snags); peak vehicle-end load relative to its working load and elapsed seconds
+  reduce the score. Broken cables score zero.
+* `slack_seconds` counts excess paid length over the direct span > 10 m; `taut_seconds` counts time with
+  `tether.warn`. `discipline_score` (0–100) deducts one point per excess-slack second and two per warn second.
+
+All thresholds and score weights are provisional training assumptions. Reel commands are unchanged (`payout`,
+`auto_payout`, `reel`, controlling player only). Clump weights and a separately authorized multiplayer
+tether-hand role are not yet supported.
+
+## Optional procedure (T23)
+
+`{ "type":"procedure", "action":"begin" }` opts this vehicle into the full deployment procedure.
+Without it, existing SDK/RC behavior is unchanged. Subsequent actions are `check` (`key` in ordered
+`seals, connector, trim, power, communication, camera, lights, thrusters, instruments, unlock`),
+`test` (`index`, zero-based two-second diagnostic pulse), `skip`, `tender`, `lower`
+(`point:"upstream"`), `water_confirm`, `recover`, `rinse`, `inspect`, `save` (`notes`).
+Invalid progression returns the existing error envelope; accepted actions return `procedure_result`.
+`state.procedure` (present only while this vehicle has opted in; absent otherwise) adds phase, checked keys, tests, dry time, penalty, events, elapsed time, peak depth,
+peak cable length and notes. Physics enforces locked flight outside `diving`, including SDK input.
+`state.score.procedure_penalty` is optional. Skips have a seeded 35% per-check fault probability
+(training assumption); missing communication checks may cause control loss and forced cable recovery.
+Recovery rate and wave modulation are provisional training approximations, not measured vessel limits.
+
+## Optional forward imaging sonar (simulator extension)
+
+Viewer sends `{"type":"operation","action":"sonar_subscribe","enabled":true,"range_m":30,
+"noise":0.02,"multipath":0.05}`. Range: 2–50 m; noise and multipath: 0–1.
+Defaults shown above. Disable with `enabled:false`; disconnect clears the subscription.
+Only the subscribed connection receives `state.sonar`, refreshed at 5 Hz independently
+of physics. Each frame contains Unix `timestamp`, `range_m`, `fov_deg:120`, `beams:256`,
+`distance_m`, `intensity` (unsigned 8-bit integers), and `ghost_m` arrays.
+Beam indices run from -60° (port) to +60° (starboard), relative to body forward.
+Distances are slant ranges in metres; range limit means no return. First surfaces occlude
+later targets. `ghost_m` is a weak synthetic multipath return (range limit means none).
+Noise, attenuation, target sizes and multipath are illustrative training assumptions,
+not measurements of a specific instrument. This is a horizontal slice, without elevation resolution.
+The SDK RPC `{"type":"sonar_latest"}` reads the latest subscribed primary vehicle frame,
+or null before any scan. It does not enable scanning or change existing SDK calls.
+
+## Optional simulator vision extension
+
+Viewer message `{"type":"vision_results","detections":[{"cls":"coral","score":1,"box":[0.1,0.2,0.3,0.4]}]}`
+reports normalized top-left xywh boxes. Reports are untrusted client assistance, never scoring authority.
+RPC `{"type":"vision_results"}` reads the primary simulator vehicle's latest report with `age_s`;
+after one second, returns `{"available":false,"detections":[]}`. Requires an active reporting viewer.
+This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
+Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.

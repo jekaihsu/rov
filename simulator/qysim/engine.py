@@ -24,6 +24,7 @@ from .navigation import GeoFrame, Navigator, wrap_pi
 from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_matrix, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether, TetherParams
+from .tether_ops import TetherOperations
 from .flow import FlowAccelerometer
 from .world import World
 from .sensors import SensorConfig, SensorSuite
@@ -172,6 +173,7 @@ class Simulator:
             self._prewrap(sc.prewrap)
         # let the cable take its natural shape in the current before the clock starts
         self.tether.settle(2.0, self.vehicle.s.pos, self.vehicle.s.q)
+        self.tether_ops = TetherOperations(self.world)
         self.scorer = sc_mod.Scorer(sc)
         self._prev_buttons = {"record": 0, "photo": 0}
         self.damage_events: list[dict] = []
@@ -180,6 +182,8 @@ class Simulator:
         from .operations import VehicleOperations
         self.operations = VehicleOperations(self)
         self.sensors = SensorSuite(self, self.sensor_config)
+        from .procedure import Procedure
+        self.procedure = Procedure(self)
         if not hasattr(self.world, "mission_run"):
             self.world.mission_run = MissionRun(self, mission_mode)
         self._log("scenario", f"載入情境 {sc.name}")
@@ -239,6 +243,10 @@ class Simulator:
         v, s = self.vehicle, self.vehicle.s
         self.world.visibility_m = self.scenario.visibility_m
         self.link.step(self, dt)
+        # Opt-in deployment procedure: on deck or on the recovery line the hull is supported, not flown.
+        self.procedure.step(dt)
+        if self.procedure.deck_step(dt):
+            return
         measured = self.sensors.step(dt, self)     # None with ideal sensors: consumers read truth as before
         # The simulated vehicle link decides which command actually reaches the vehicle.
         rc = self.link.command_rc(self.rc)
@@ -294,6 +302,7 @@ class Simulator:
                                                vehicle_id=self.vehicle_id,
                                                hull_spheres=[(centre, self.vehicle.definition.hull_radius)
                                                              for centre in self.vehicle.definition.hull_centres])
+        self.tether_ops.step(dt, self.tether, s.pos, self.yaw)     # observer only: radio, scoring
         v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
         if update_world:
             self.world.step(dt, vehicles=[self.world_source()])
@@ -902,7 +911,7 @@ class Simulator:
         roll, pitch, yaw = self.vehicle.euler
         rc = self.rc
         cur = self.vehicle.current_ned
-        return {
+        state = {
             "vehicle_id": self.vehicle_id, "model_id": self.model_id,
             "appearance": dict(self.appearance),
             "paint_marks": list(self.world.paint_marks),
@@ -928,6 +937,7 @@ class Simulator:
             "current_here": [round(float(x), 3) for x in cur],
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
             "tether": self.tether.state(),
+            "tether_ops": self.tether_ops.state(),
             "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
             "damage": self.damage_events[-6:],
             "silt": round(self.world.silt_at(s.pos), 2),
@@ -936,12 +946,16 @@ class Simulator:
             "nav": {"mode": self.nav.mode, "nav_status": self.nav.nav_status, "vccm": self.nav.vccm_status,
                     "route": [[w.n, w.e, w.depth] for w in self.nav.route][:400], "route_i": self.nav.route_i,
                     "target": None if self.nav.target is None else [self.nav.target.n, self.nav.target.e, self.nav.target.depth]},
-            "score": ensure_mission(self).score_state(self),
+            "score": self.procedure.score(ensure_mission(self).score_state(self)),
             "log": self.log[-8:],
             "link": self.link.state(),
             "thermal": self.thermal.state(),
             "leak": {"detected": bool(self.leak)},
         }
+        # Optional: only a vehicle that opted into the deployment procedure reports it (PROTOCOL.md).
+        if self.procedure.active:
+            state["procedure"] = self.procedure.state()
+        return state
 
     def flow_field_state(self) -> dict:
         """Compact flow sample around the vehicle for viewer particles and kelp (optional state field).
