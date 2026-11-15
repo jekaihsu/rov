@@ -25,17 +25,32 @@ const OriginalWebSocket=window.WebSocket;window.WebSocket=class extends Original
 };"""
 
 def operation(page, action, **values):
-    page.evaluate("m=>window.__testSockets.find(s=>s.readyState===1).send(JSON.stringify(m))", {'type':'operation','action':action,**values})
+    """Send an operation from a live tab. Bring it forward first so soft-GL tabs can pump sockets."""
+    message = {'type': 'operation', 'action': action, **values}
+    page.bring_to_front()
+    sent = page.evaluate("""m => {
+      const socket = [...window.__testSockets].reverse().find(s => s.readyState === 1);
+      if (!socket) return false;
+      socket.send(JSON.stringify(m));
+      return true;
+    }""", message)
+    if not sent:
+        raise AssertionError(f'no open viewer socket for {action}')
+    return message
 
 def wait_state(page):
-    page.wait_for_function("window.__viewer?.S?.mission?.mode==='expedition' && window.__modelLoaded", timeout=90000)
+    page.bring_to_front()
+    page.wait_for_function("window.__viewer?.S?.mission?.mode==='expedition' && window.__modelLoaded",
+                           timeout=timeout(120000))
 
 def current_host(tabs):
     # Disconnect transfers the host; reconnecting resumes the pilot, not a lost
     # administrative role. Exercise the elected host rather than assuming v1.
+    # Read host_id from every tab (bring each forward so coalesced state can flush).
     deadline = time.time() + timeout(60000) / 1000
     while time.time() < deadline:
         for tab in tabs:
+            tab.bring_to_front()
             if tab.evaluate("""() => {
               const room = window.__viewer?.S?.room;
               const session = window.__testMessages.filter(m => m.type === 'session').at(-1);
@@ -44,6 +59,34 @@ def current_host(tabs):
                 return tab
         tabs[0].wait_for_timeout(200)
     raise AssertionError('no tab matches the elected host')
+
+def host_operation(tabs, action, **values):
+    """Run a host-only operation and wait for its reply while keeping the host tab foregrounded."""
+    host = current_host(tabs)
+    request_id = values.get('request_id')
+    before = host.evaluate('window.__testMessages.length')
+    operation(host, action, **values)
+    if not request_id:
+        return host
+    deadline = time.time() + timeout(120000) / 1000
+    while time.time() < deadline:
+        host.bring_to_front()
+        reply = host.evaluate("""([before, request_id]) => {
+          const rows = window.__testMessages.slice(before);
+          return rows.find(m => m.request_id === request_id)
+            || rows.find(m => m.code === 'host_only' || m.error === 'host_only')
+            || null;
+        }""", [before, request_id])
+        if reply:
+            if reply.get('code') == 'host_only' or reply.get('error') == 'host_only':
+                raise AssertionError(f'{action} denied as host_only from elected tab: {reply}')
+            return host
+        host.wait_for_timeout(200)
+    raise AssertionError(f'no reply for {action} request_id={request_id}')
+
+def wait_active(page, predicate, label):
+    page.bring_to_front()
+    page.wait_for_function(predicate, timeout=timeout(120000))
 
 with sync_playwright() as p:
     browser = launch(p, headless=True,args=['--enable-unsafe-swiftshader'])
@@ -55,19 +98,19 @@ with sync_playwright() as p:
         return tab
     main=page()
     main.goto(f'{BASE}?ws={WS}&room={room}&model=falcon&scenario=coral_reef&mission=expedition',wait_until='domcontentloaded')
-    main.wait_for_function('window.__menu?.ready',timeout=90000)
+    main.wait_for_function('window.__menu?.ready',timeout=timeout(120000))
     assert main.evaluate('window.__menu.mission')=='expedition'
     open_main(main)
     main.click('#menuCollection')
-    main.wait_for_selector('.collection-panel, .collection-dialog, [role="dialog"]')
+    main.wait_for_selector('.collection-panel, .collection-dialog, [role="dialog"]', timeout=timeout(60000))
     main.screenshot(path=str(OUT/'menu-collection.png'))
     main.keyboard.press('Escape')
     launch_from_menu(main, mode='expedition', site='coral_reef')
     wait_state(main)
     main.click('#flightDrawer')
-    main.wait_for_selector('.expedition-panel:not([hidden])')
+    main.wait_for_selector('.expedition-panel:not([hidden])', timeout=timeout(60000))
     main.click('.exp-available button')
-    main.wait_for_function("window.__viewer.S.expedition.active?.kind==='inspect'")
+    main.wait_for_function("window.__viewer.S.expedition.active?.kind==='inspect'", timeout=timeout(120000))
     dive_id=main.evaluate('window.__viewer.S.expedition.dive_id')
     contract_id=main.evaluate('window.__viewer.S.expedition.active.id')
     assert main.evaluate('window.__viewer.S.expedition.active.steps.length')==3
@@ -76,23 +119,26 @@ with sync_playwright() as p:
     for model in ('x1','bluerov2_heavy'):
         guest=page();guest.goto(f'{BASE}?ws={WS}&room={room}&model={model}&mission=expedition&play=1&nointro',wait_until='domcontentloaded');wait_state(guest);guests.append(guest)
         assert guest.evaluate('window.__viewer.S.expedition.active.id')==contract_id
-    main.wait_for_function('window.__viewer.S.room.players.length===3')
+    main.wait_for_function('window.__viewer.S.room.players.length===3', timeout=timeout(120000))
     operation(guests[0],'expedition_cancel',request_id='guest-cannot-cancel')
-    guests[0].wait_for_function("window.__testMessages.some(m=>m.code==='host_only'||m.error==='host_only')",
-                                timeout=timeout(120000))
+    guests[0].bring_to_front()
+    guests[0].wait_for_function(
+        "() => window.__testMessages.some(m => m.code === 'host_only' || m.error === 'host_only')",
+        timeout=timeout(120000))
     assert guests[0].evaluate('window.__viewer.S.expedition.active.id')==contract_id
     main.reload(wait_until='domcontentloaded');wait_state(main)
     assert main.evaluate('window.__viewer.S.expedition.dive_id')==dive_id
     assert main.evaluate('window.__viewer.S.expedition.active.id')==contract_id
-    host=current_host([main,*guests])
-    operation(host,'expedition_cancel',request_id='cancel-inspection')
-    main.wait_for_function('window.__viewer.S.expedition.active===null')
-    operation(host,'expedition_start',contract='recover',request_id='recover-once')
-    main.wait_for_function("window.__viewer.S.expedition.active?.kind==='recover'")
+    tabs=[main,*guests]
+    host_operation(tabs,'expedition_cancel',request_id='cancel-inspection')
+    wait_active(main,'window.__viewer.S.expedition.active===null','cancel-inspection')
+    host_operation(tabs,'expedition_start',contract='recover',request_id='recover-once')
+    wait_active(main,"window.__viewer.S.expedition.active?.kind==='recover'",'recover-once')
     recovery_id=main.evaluate('window.__viewer.S.expedition.active.id')
-    operation(host,'expedition_start',contract='recover',request_id='recover-once')
+    host_operation(tabs,'expedition_start',contract='recover',request_id='recover-once')
     main.wait_for_timeout(400)
     assert main.evaluate('window.__viewer.S.expedition.active.id')==recovery_id
+    main.bring_to_front()
     main.evaluate("window.__viewer.setCam('orbit')")
     main.click('.exp-photo')
     for _ in range(100):
@@ -107,19 +153,18 @@ with sync_playwright() as p:
     assert collection['guides']==[]
     main.click('#openCollection')
     main.screenshot(path=str(OUT/'souvenir-collection.png'))
-    main.wait_for_function('window.__viewer.S.rc.rc_lock===1')
+    main.wait_for_function('window.__viewer.S.rc.rc_lock===1', timeout=timeout(60000))
     main.keyboard.press('Escape')
     main.reload(wait_until='domcontentloaded');wait_state(main)
     assert main.evaluate("import('./collection_store.js').then(m=>m.listCollection()).then(v=>v.photos.length)")==1
     assert main.evaluate('window.__viewer.S.expedition.active.id')==recovery_id
-    host=current_host([main,*guests])
-    operation(host,'expedition_cancel',request_id='cancel-recovery')
-    main.wait_for_function('window.__viewer.S.expedition.active===null')
-    operation(host,'expedition_start',contract='deploy',request_id='deploy-once')
-    main.wait_for_function("window.__viewer.S.expedition.active?.kind==='deploy'")
+    host_operation(tabs,'expedition_cancel',request_id='cancel-recovery')
+    wait_active(main,'window.__viewer.S.expedition.active===null','cancel-recovery')
+    host_operation(tabs,'expedition_start',contract='deploy',request_id='deploy-once')
+    wait_active(main,"window.__viewer.S.expedition.active?.kind==='deploy'",'deploy-once')
     main.screenshot(path=str(OUT/'deployment-active.png'))
-    operation(host,'expedition_cancel',request_id='cancel-deployment')
-    main.wait_for_function('window.__viewer.S.expedition.active===null')
+    host_operation(tabs,'expedition_cancel',request_id='cancel-deployment')
+    wait_active(main,'window.__viewer.S.expedition.active===null','cancel-deployment')
     assert main.evaluate("window.__viewer.S.operations.objects.filter(o=>o.task_id).length")==0
     backup=main.evaluate("import('./collection_store.js').then(async m=>{const b=await m.exportCollection();return await b.text();})")
     Path(OUT/'collection-backup.json').write_text(backup,encoding='utf-8')
