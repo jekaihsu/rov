@@ -23,9 +23,12 @@ const STRINGS = {
   watts: 'W',
   volts: 'V',
 };
+// The pills stack under the lock state and mode chips in the top-right status column (.hud.tl), so a taller lock
+// line (locked + unlock hint) pushes them down instead of printing over them. Without that column they float.
 const STYLE = `
 #flightSystem { right: 4%; top: 12%; transform: translateY(-100%); display: flex; flex-wrap: wrap;
   justify-content: flex-end; gap: 6px; max-width: 46%; }
+.hud.tl > #flightSystem { position: static; transform: none; max-width: none; }
 #flightSystem span { padding: 2px 8px; border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--panel); color: var(--text); white-space: nowrap; }
 #flightSystem span[hidden] { display: none; }
@@ -56,7 +59,9 @@ function mount(viewport) {
     root.append(item);
     items[name] = item;
   }
-  viewport.append(root);
+  const column = viewport.querySelector('.hud.tl');
+  if (column) column.append(root);
+  else viewport.append(root);
 }
 
 function show(name, text, tone = '') {

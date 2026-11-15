@@ -218,6 +218,9 @@ function currentStyle() {
   });
 }
 function applyStyle() {
+  // The attitude ladder and centre mark belong to the onboard camera; other views hide them (hud.css).
+  const view = $('camBtn')?.dataset.mode || 'onboard';
+  if (document.body.dataset.view !== view) document.body.dataset.view = view;
   const next = currentStyle();
   if (next === hudStyle) return;
   hudStyle = next;

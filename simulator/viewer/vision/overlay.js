@@ -5,6 +5,7 @@
 import {inspectObservation} from '../observation_camera.js';
 import {registerFidelityItem, getFidelity} from '../fidelity.js';
 import {OracleDetector, OnnxDetector, RemoteDetector} from './detector.js';
+import {clipOutsideInstruments} from '../hud/safe_zones.js';
 
 const STRINGS = {
   toggle: 'AI 視覺',
@@ -167,7 +168,10 @@ export function installVision({send, canvas, getContext}) {
       return {...detection, box};
     });
     if (mark) mark.hidden = !api.detections.some(detection => detection.entity_id);
+    // Boxes never print over an instrument: the depth scale, read-outs and status column stay readable.
+    clipOutsideInstruments(ctx, rect, rect.width, rect.height, now);
     drawDetections(ctx, tracked, rect.width, rect.height);
+    ctx.restore();
     ctx.fillText(`${api.mode || STRINGS.oracle} · ${api.latency?.toFixed(1) || 0} ms · ${hz.toFixed(0)} Hz`, 24, 90);
     if (api.detections.length) ctx.fillText(STRINGS.available, 24, 112);
   };
