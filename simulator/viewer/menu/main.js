@@ -395,7 +395,7 @@ screens.training = buildTraining(ctx);
 screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
 for (const screen of Object.values(screens)) stack.append(screen.element);
-installBrandMenu({ menu });
+installBrandMenu({ menu, getModel: () => choice.model });
 
 stage.setScene(sceneFor(SHOWCASE.scene) || sceneFor(choice.scenario) || data.sites[0], { showcase: true });
 stage.setSticker(choice.sticker);
