@@ -18,7 +18,7 @@ const STRINGS = {
   profileNormal: '標準',
   profileSport: '運動',
   videoDelayMs: '影像延遲',
-  videoDelayMsHelp: '真機影像有延遲（暫定 150 ms，待實測）；設為 0 為低延遲預測顯示。',
+  videoDelayMsHelp: '真機影像有延遲（預設 150 ms）；設為 0 為低延遲預測顯示。',
   cameraView: '預設視角',
   cameraViewHelp: '真機只有機載第一人稱；其他視角需先開啟第三人稱。',
   viewOnboard: '機載',

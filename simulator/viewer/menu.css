@@ -293,6 +293,9 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 /* multiplayer */
 .menu-columns { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 420px); gap: 64px; }
 .menu-form .menu-field { max-width: none; }
+.menu-field[hidden] { display: none; }
+.launch-menu .menu-room-code { font-size: 28px; font-weight: 300; letter-spacing: .18em; }
+.menu-form .menu-toggles { margin: 0 0 16px; }
 .menu-roster { padding-left: 32px; border-left: 1px solid var(--line); }
 .menu-roster-head { display: flex; align-items: center; justify-content: space-between; }
 .menu-players { margin: 8px 0 0; padding: 0; list-style: none; display: grid; }

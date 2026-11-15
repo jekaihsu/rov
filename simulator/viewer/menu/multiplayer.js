@@ -1,15 +1,19 @@
-// Multiplayer screen: player name, server address and room code, create or join, and who is in the room.
-// The room list comes from the optional read-only `room_query` message (PROTOCOL.md); the menu only opens a
-// connection while this screen is shown, and never joins: joining happens when the game starts.
+// Multiplayer screen: player name and room code, create or join, and who is in the room. The server address is
+// an advanced option (hidden until switched on; off means the simulator this page came with, i.e. ?ws= or the
+// default), so players share a short room code instead of a WebSocket URL. The room list comes from the optional read-only
+// `room_query` message (PROTOCOL.md); the menu only opens a connection while this screen is shown, and never
+// joins: joining happens when the game starts.
 import { normaliseServer, validRoom } from './preferences.js';
-import { field } from './settings.js';
+import { field, mountToggles } from './settings.js';
 
 const STRINGS = {
   title: '多人',
   name: '操作員名稱',
   room: '房間代碼',
-  server: '伺服器',
-  serverHelp: '單人遊玩保留本機位址即可；多人請填同一台主機與相同房間代碼。',
+  roomHelp: '把房間代碼告訴隊友，大家輸入同一組代碼即可一起下潛。',
+  server: '伺服器位址',
+  serverHelp: '只有連到別台主機時才需要修改。',
+  advanced: ['進階：自訂伺服器', '連到另一台電腦上的模擬器時使用。'],
   create: '建立新房間',
   join: '加入房間',
   refresh: '重新整理',
@@ -21,7 +25,7 @@ const STRINGS = {
   host: '房主',
   away: '暫離',
   unsupported: '此伺服器不提供房間查詢；仍可直接加入。',
-  offline: '無法連到伺服器，請確認位址。',
+  offline: '目前找不到這個房間的主機；仍可建立新房間或直接加入。',
   createHint: '建立後把房間代碼告訴隊友。',
 };
 const QUERY_TIMEOUT_MS = 10000;
@@ -41,11 +45,13 @@ function input(value, options = {}) {
   return node;
 }
 
+const ROOM_WORDS = ['REEF', 'KELP', 'TIDE', 'CORAL', 'SHOAL', 'DRIFT', 'SWELL', 'DEPTH'];
+
+// A short code that is easy to read out loud: an ocean word and four digits, e.g. REEF-4821.
 export function newRoomCode(random = Math.random) {
-  const letters = 'abcdefghjkmnpqrstuvwxyz23456789';
-  let code = 'dive-';
-  for (let index = 0; index < 4; index++) code += letters[Math.floor(random() * letters.length)];
-  return code;
+  const word = ROOM_WORDS[Math.floor(random() * ROOM_WORDS.length)];
+  const digits = String(Math.floor(random() * 10000)).padStart(4, '0');
+  return `${word}-${digits}`;
 }
 
 // Resolves with the server's room_info reply, or rejects with a user-facing message.
@@ -100,10 +106,26 @@ export function buildMultiplayer(ctx) {
   const form = element('div', 'menu-form');
   const name = input(ctx.choice.name, { maxLength: 32 });
   const room = input(ctx.choice.room, { maxLength: 32, pattern: '[A-Za-z0-9_-]{1,32}' });
+  room.classList.add('menu-room-code');
   const server = input(ctx.choice.server, { type: 'url' });
   field(form, { id: 'menuName', label: STRINGS.name, control: name });
-  field(form, { id: 'menuRoom', label: STRINGS.room, control: room });
-  field(form, { id: 'menuServer', label: STRINGS.server, help: STRINGS.serverHelp, control: server });
+  field(form, { id: 'menuRoom', label: STRINGS.room, help: STRINGS.roomHelp, control: room });
+  const localServer = ctx.choice.server;
+  mountToggles(form, [{
+    id: 'menuServerAdvanced',
+    label: STRINGS.advanced[0],
+    help: STRINGS.advanced[1],
+    checked: false,
+    onChange(value) {
+      serverRow.hidden = !value;
+      if (!value) {
+        server.value = localServer;
+        later();
+      }
+    },
+  }]);
+  const serverRow = field(form, { id: 'menuServer', label: STRINGS.server, help: STRINGS.serverHelp, control: server });
+  serverRow.hidden = true;
   const actions = element('div', 'menu-actions');
   const create = element('button', 'menu-next', STRINGS.create);
   create.type = 'button';
@@ -193,6 +215,7 @@ export function buildMultiplayer(ctx) {
       return;
     }
     ctx.choice.joining = joining;
+    ctx.choice.multiplayer = true;
     ctx.startRoute(joining ? 'join' : 'dive');
   }
   join.addEventListener('click', function joinRoom() {
@@ -205,8 +228,9 @@ export function buildMultiplayer(ctx) {
   });
   function enter() {
     name.value = ctx.choice.name;
-    room.value = ctx.choice.room;
+    room.value = ctx.choice.room === 'training' ? newRoomCode() : ctx.choice.room;
     server.value = ctx.choice.server;
+    serverRow.hidden = !document.getElementById('menuServerAdvanced')?.checked;
     refreshRoster();
   }
   function leave() {

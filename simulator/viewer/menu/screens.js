@@ -166,6 +166,7 @@ export function buildMain(ctx) {
   });
   root.append(list, describe, quick);
   function enter() {
+    ctx.choice.multiplayer = false;
     const summary = ctx.lastSummary();
     quick.disabled = !summary;
     quickText.textContent = summary || STRINGS.quickNone;
@@ -435,7 +436,9 @@ export function buildBriefing(ctx) {
     });
     const chapter = ctx.choice.mission === 'campaign' ? ctx.chapterFor(ctx.choice.chapter) : null;
     const modeName = chapter ? STRINGS.campaign : STRINGS.modes[ctx.choice.mission]?.[0] || '';
-    kicker.textContent = [modeName, vehicle?.name, `${STRINGS.room} ${ctx.choice.room}`].filter(Boolean).join(' · ');
+    // The room code only matters to players who share one; a solo dive does not show it.
+    const room = ctx.choice.multiplayer ? `${STRINGS.room} ${ctx.choice.room}` : '';
+    kicker.textContent = [modeName, vehicle?.name, room].filter(Boolean).join(' · ');
     heading.textContent = chapter ? chapter.title : facts?.name || ctx.choice.scenario;
     brief.textContent = chapter?.outline || facts?.brief || '';
     numbers.replaceChildren();
@@ -458,7 +461,7 @@ export function buildBriefing(ctx) {
     if (!labels.length) objectives.append(element('li', 'menu-help', STRINGS.noObjectives));
     objectivesTitle.hidden = !!chapter;
     objectives.hidden = !!chapter;
-    note.textContent = STRINGS.hostNote;
+    note.textContent = ctx.choice.multiplayer ? STRINGS.hostNote : '';
     intro.checked = ctx.choice.intro;
     ctx.previewScene(ctx.choice.scenario);
   }

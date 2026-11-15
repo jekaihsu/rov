@@ -59,3 +59,16 @@ html[data-menu-input=pad] .results-screen :focus, html[data-menu-input=key] .res
   .results-card { padding: 20px; }
 }
 
+/* ── connection notice (play/connection_notice.js over the #offline card) ── */
+/* The generic in-game .card (style.css) is a full-viewport banner; the notice is a small centred panel. */
+.offline > .card { position: static; inset: auto; width: min(460px, 90vw); padding: 22px 26px; gap: 10px;
+  align-items: stretch; text-align: left; border: 0; border-left: 1px solid var(--warn); border-radius: 0;
+  background: rgba(8, 18, 26, .86); backdrop-filter: blur(12px); transition: none; }
+.offline > .card b { font-family: inherit; font-weight: 300; font-size: 26px; letter-spacing: .06em; }
+.offline .offline-body { font-size: 14px; line-height: 1.7; }
+.offline .offline-menu { align-self: flex-start; margin-top: 6px; padding: 8px 16px; border: 1px solid var(--line);
+  border-radius: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.offline .offline-menu:hover, .offline .offline-menu:focus-visible { border-color: var(--accent); }
+.offline .offline-details { margin-top: 8px; font-size: 12px; color: var(--text-dim); }
+.offline .offline-details summary { cursor: pointer; }
+.offline .offline-details > * + * { margin-top: 6px; }
