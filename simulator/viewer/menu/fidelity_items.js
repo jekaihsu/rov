@@ -8,3 +8,4 @@ import '../tether_reel.js';
 import '../fx/silt.js';
 import '../vision/overlay.js';
 import '../fx/beautify.js';
+import '../onboard/camera_look.js';
