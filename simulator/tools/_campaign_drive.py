@@ -9,7 +9,7 @@ server's failsafe. That is correct product behaviour, so on a host declared slow
 above 1) the driver does what a pilot does: release the input, unlock again and repeat it. Each relock is
 printed. At the default scale (CI, an idle host) no relock is tolerated, so a spontaneous lock still fails.
 """
-from _browser import timeout
+from _browser import timeout, without_render
 
 SIM_BUDGET_S = 20.0
 MAX_RELOCKS = 0 if timeout(1000) <= 1000 else 10
@@ -58,22 +58,28 @@ def unlock_again(page, unlock):
     raise AssertionError(f'vehicle did not unlock after a failsafe lock: before {before}, after {after}')
 
 
-def hold_until(page, key, condition, unlock, label, budget=SIM_BUDGET_S, watch_lock=True):
-    """Hold key until condition holds; recover from failsafe locks caused by host load. Returns the relock count."""
+def hold_until(page, key, condition, unlock, label, budget=SIM_BUDGET_S, watch_lock=True, allies=()):
+    """Hold key until condition holds; recover from failsafe locks caused by host load. Returns the relock count.
+
+    WebGL draws are skipped on the page and its allies while waiting (the viewer's own __skipRender flag):
+    software rendering is what starves the input heartbeat on a busy host, and nothing drawn is asserted
+    during the wait. Input sampling, the socket and the animation loop keep running.
+    """
     relocks = 0
-    while True:
-        page.keyboard.down(key)
-        result = wait_condition(page, condition, watch_lock=watch_lock, budget=budget)
-        page.keyboard.up(key)
-        if result['status'] == 'done':
-            return relocks
-        if result['status'] == 'expired':
-            raise AssertionError(f'{label} did not complete within {budget} simulated s: {result}')
-        relocks += 1
-        print(f'failsafe lock during {label} (relock {relocks}): {result}', flush=True)
-        if relocks > MAX_RELOCKS:
-            raise AssertionError(f'{label}: more than {MAX_RELOCKS} failsafe locks: {result}')
-        unlock_again(page, unlock)
+    with without_render(page, *allies):
+        while True:
+            page.keyboard.down(key)
+            result = wait_condition(page, condition, watch_lock=watch_lock, budget=budget)
+            page.keyboard.up(key)
+            if result['status'] == 'done':
+                return relocks
+            if result['status'] == 'expired':
+                raise AssertionError(f'{label} did not complete within {budget} simulated s: {result}')
+            relocks += 1
+            print(f'failsafe lock during {label} (relock {relocks}): {result}', flush=True)
+            if relocks > MAX_RELOCKS:
+                raise AssertionError(f'{label}: more than {MAX_RELOCKS} failsafe locks: {result}')
+            unlock_again(page, unlock)
 
 
 def left_node(node_id):
@@ -81,8 +87,14 @@ def left_node(node_id):
 
 
 def hold_until_advanced(page, node_id, key, unlock_key):
-    """Hold key until the story leaves node_id (the unlock node itself is not watched for locks)."""
-    return hold_until(page, key, left_node(node_id), unlock_key, node_id, watch_lock=key != unlock_key)
+    """Hold key until the story leaves node_id. The unlock node is a key tap confirmed by the server."""
+    if key != unlock_key:
+        return hold_until(page, key, left_node(node_id), unlock_key, node_id)
+    with without_render(page):
+        if page.evaluate('window.__viewer.S.locked'):
+            unlock_again(page, unlock_key)
+        wait_left(page, node_id)
+    return 0
 
 
 def wait_left(page, node_id):

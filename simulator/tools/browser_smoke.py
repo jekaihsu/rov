@@ -73,10 +73,17 @@ def run():
           if (grip >= .5 && elapsed <= budget) return false;
           return {grip, elapsed, latched: state.input_latched};
         }""", arg=ARM_BUDGET_S, timeout=timeout(180000)).json_value()
-        main.evaluate('window.__skipRender = false')
         assert arm['grip'] < .5, f'arm did not close within {ARM_BUDGET_S} simulated s: {arm}'
-        main.evaluate('window.__viewer.setCam("onboard");window.__viewer.rc.right_switch=2')
-        main.wait_for_function('window.__viewer.S.rc.right_switch===2', timeout=timeout(120000))
+        main.evaluate('window.__viewer.setCam("onboard")')
+        # Same direct switch write as before; a failsafe lock on a starved host resynchronises the page's
+        # switches from the server, so the write is repeated until the server reports level 2.
+        main.wait_for_function("""() => {
+          const viewer = window.__viewer;
+          if (viewer.S.rc.right_switch === 2) return true;
+          if (!viewer.S.input_latched) viewer.rc.right_switch = 2;
+          return false;
+        }""", timeout=timeout(120000))
+        main.evaluate('window.__skipRender = false')
         # Lamp meshes update on a drawn frame; wait for intensity after leaving __skipRender.
         main.wait_for_function("""() => {
           const groups = window.__viewer.rovG.children.filter(g => g.children.some(o => o.isSpotLight));
