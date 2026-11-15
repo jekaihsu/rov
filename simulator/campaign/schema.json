@@ -33,7 +33,8 @@
       "description": "story chapters form the auto-started campaign; incidents are launched explicitly.",
       "enum": [
         "story",
-        "incident"
+        "incident",
+        "course"
       ]
     },
     "order": {

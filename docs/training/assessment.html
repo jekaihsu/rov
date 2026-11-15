@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><title>內部 ROV 訓練考核表</title>
+<style>
+@page { size: A4 portrait; margin: 13mm; }
+body { font-family: sans-serif; font-size: 11px; line-height: 1.5; color: #000; }
+h1 { font-size: 19px; } h2 { font-size: 14px; }
+table { width: 100%; border-collapse: collapse; margin: 7px 0; }
+th, td { border: 1px solid #333; padding: 5px; text-align: left; }
+.blank { height: 26px; } .notes { height: 50px; }
+.page { break-after: page; } .page:last-child { break-after: auto; }
+tr { break-inside: avoid; }
+@media screen { body { max-width: 760px; margin: 24px auto; } .page { margin-bottom: 40px; } }
+</style></head>
+<body>
+<section class="page">
+<h1>航次考核表（每航次一份）</h1>
+<p><strong>所有合格門檻：暫定，待資深操作員基準航次校準。</strong><br>
+X1 專屬參數均暫定；本表不構成實機操作資格。</p>
+<table>
+<tr><td>日期／航次 ID：</td><td>學員／教官：</td></tr>
+<tr><td>課號／場景／種子：</td><td>版本／基準規則版本：</td></tr>
+<tr><td>操控器／映射／載具設定：</td><td>流況／能見度／纜長：</td></tr>
+<tr><td>模式／輔助／視角／延遲：</td><td>起止時間／實際操桿分鐘：</td></tr>
+<tr><td>纜線手／記錄員：</td><td>獨立 □　提示 □　恢復存檔 □　介入 □</td></tr>
+</table>
+<h2>程序觀察（達成／未達／未觀察，附證據時間）</h2>
+<table>
+<tr><th>項目</th><th>達成</th><th>未達</th><th>未觀察</th><th>時間／說明</th></tr>
+<tr><td>簡報、人員、環境與退出條件</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+<tr><td>設備、供電、纜線、控制配置檢查</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+<tr><td>入水、人員清場、許可覆誦後解鎖</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+<tr><td>航線、距離、拍照與位置紀錄</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+<tr><td>纜線協調、張力辨識、不盲拉</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+<tr><td>異常通報、模式選擇與中止決策</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+<tr><td>回收接觸前上鎖、確認停止</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+<tr><td>潛後檢查、隔離異常與交班</td><td>□</td><td>□</td><td>□</td><td></td></tr>
+</table>
+<p>場景 score：____　finished：____　failed／原因：________________<br>
+腳本 completed：____（不等於合格）　照片／錄影／報表檔案：________________</p>
+<table>
+<tr><th>故障／通報、強度、範圍、起止</th><th>辨識／通報／正確動作時間</th></tr>
+<tr><td class="blank"></td><td></td></tr>
+<tr><td>reaction_s：____（僅控制改變）</td><td>恢復：到期 □　學員 □　教官 □</td></tr>
+</table>
+<p>碰撞次數／嚴重度：________　過張力事件：________　斷纜：是 □ 否 □<br>
+載具端採樣最大張力：____ N　纜線峰值／來源：________　纏圈：________</p>
+<p>中止理由／未完成技能／介入與危險程序：</p><div class="notes"></div>
+<p>結論：暫定通過 □　需補訓 □　證據不足 □　教官簽名：____________<br>
+學員改進動作：________________________　學員簽名：____________</p>
+</section>
+<section class="page">
+<h1>課堂彙總與誤差證據（每課一份）</h1>
+<p><strong>所有合格門檻：暫定，待資深操作員基準航次校準。</strong><br>
+學員：________　課號：________　日期：________　航次 ID：________________</p>
+<p>各格填航次與報表索引；無樣本填「未觀察」，不可填零或綠。B01 用互動紀錄與人工表。</p>
+<table>
+<tr><th>階段</th><th>reference／limits 版本</th><th>無流證據／顏色</th><th>有流證據／顏色</th></tr>
+<tr><td>descent 下潛</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>transit 轉場</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>hover 懸停</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>orbit 繞行</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>dock 回收接近</td><td class="blank"></td><td></td><td></td></tr>
+</table>
+<p>以下指標每個適用階段／流況各填一份，或附同欄位的報表並在上表索引。</p>
+<table>
+<tr><th>指標</th><th>容差／來源</th><th>RMS／最小／最大</th><th>超限比例／判讀</th></tr>
+<tr><td>path（m）</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>heading（°）</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>depth（m）</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>hover（m）</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>distance（m）</td><td class="blank"></td><td></td><td></td></tr>
+<tr><td>speed（m/s）</td><td class="blank"></td><td></td><td></td></tr>
+</table>
+<p>各軸變異數／過零／反桿報表：________　照片與程序證據：________<br>
+缺少的階段／流況：________________　基準設定差異：________________</p>
+<table>
+<tr><th>角色時數（不含待機、講評、教官示範）</th><th>本課分鐘</th><th>累積分鐘</th></tr>
+<tr><td>駕駛實際操桿</td><td class="blank"></td><td></td></tr>
+<tr><td>纜線手／觀察／記錄（另計）</td><td class="blank"></td><td></td></tr>
+</table>
+<p>本課結論：暫定通過 □　需補訓 □　證據不足 □<br>
+合理中止的程序能力：________　待補考的任務技能：________________</p>
+<p>補訓課號／動作／所需證據／複核日期：</p><div class="notes"></div>
+<p>教官：____________　複核人：____________　學員：____________</p>
+</section>
+</body></html>

@@ -1,0 +1,38 @@
+[
+  {
+    "lod": 0,
+    "triangles": 66824,
+    "draw_calls": 1,
+    "texture_bytes_with_mips": 11184810,
+    "bytes": 1734224,
+    "extensions": [
+      "EXT_meshopt_compression",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization"
+    ]
+  },
+  {
+    "lod": 1,
+    "triangles": 42320,
+    "draw_calls": 1,
+    "texture_bytes_with_mips": 11184810,
+    "bytes": 1206504,
+    "extensions": [
+      "EXT_meshopt_compression",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization"
+    ]
+  },
+  {
+    "lod": 2,
+    "triangles": 2372,
+    "draw_calls": 1,
+    "texture_bytes_with_mips": 11184810,
+    "bytes": 362732,
+    "extensions": [
+      "EXT_meshopt_compression",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization"
+    ]
+  }
+]

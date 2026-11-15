@@ -7,13 +7,18 @@ Environment variables (all optional):
   ROV_WS_PORT               simulator WebSocket port, overrides each script's own default
   ROV_BEFORE_HTTP_PORT / ROV_BEFORE_WS_PORT  comparison server used by browser_audio_smoke.py
   ROV_BROWSER_TIMEOUT_SCALE multiplier for timeouts obtained through timeout(), default 1
+  ROV_BROWSER_GL            software (default) or gpu: software forces SwiftShader; gpu keeps hardware
+                            acceleration (pair with ROV_CHROMIUM pointing at a local Chrome build)
+  ROV_BROWSER_EXTRA_ARGS    space-separated extra Chromium flags appended after the GL mode args
 """
 import os
 from pathlib import Path
 from shutil import which
 
-# Every script renders with software GL so results do not depend on the host GPU.
+# Every script defaults to software GL so results do not depend on the host GPU.
 SOFTWARE_GL_ARGS = ('--enable-unsafe-swiftshader',)
+# Hardware path for real-GPU benches: ignore the blocklist so older GPUs still report acceleration.
+GPU_GL_ARGS = ('--enable-gpu', '--ignore-gpu-blocklist')
 FALLBACK_CHROMIUM = Path('/opt/pw-browsers/chromium')
 _resolved = {}
 
@@ -22,12 +27,26 @@ class BrowserNotFound(RuntimeError):
     """No usable Chromium executable was found."""
 
 
+def gl_mode():
+    """Return 'software' or 'gpu' from ROV_BROWSER_GL (default software)."""
+    value = (os.environ.get('ROV_BROWSER_GL') or 'software').strip().lower()
+    return 'gpu' if value in ('gpu', 'hardware', 'hw') else 'software'
+
+
+def _extra_env_args():
+    raw = os.environ.get('ROV_BROWSER_EXTRA_ARGS') or ''
+    return [part for part in raw.split() if part]
+
+
 def _merged_args(extra):
-    merged = list(SOFTWARE_GL_ARGS)
-    for value in extra or ():
-        if value not in merged:
-            merged.append(value)
-    return merged
+    mode = gl_mode()
+    base = list(GPU_GL_ARGS if mode == 'gpu' else SOFTWARE_GL_ARGS)
+    skip = set(SOFTWARE_GL_ARGS if mode == 'gpu' else GPU_GL_ARGS)
+    for value in list(extra or ()) + _extra_env_args():
+        if value in skip or value in base:
+            continue
+        base.append(value)
+    return base
 
 
 def _candidates():
@@ -37,7 +56,7 @@ def _candidates():
         yield 'ROV_CHROMIUM', configured
         return
     yield 'playwright default', None
-    system = which('google-chrome') or which('chromium')
+    system = which('google-chrome') or which('chromium') or which('google-chrome-stable')
     if system:
         yield 'system browser', system
     if FALLBACK_CHROMIUM.exists():
@@ -45,7 +64,7 @@ def _candidates():
 
 
 def launch(playwright, **kwargs):
-    """Launch headless Chromium with software GL, trying each known executable location in turn."""
+    """Launch Chromium with the configured GL mode, trying each known executable location in turn."""
     kwargs.pop('executable_path', None)
     kwargs.pop('channel', None)
     kwargs.setdefault('headless', True)

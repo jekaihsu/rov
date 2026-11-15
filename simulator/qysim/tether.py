@@ -180,6 +180,7 @@ class Tether:
         self.snags = SnagTracker(self.p.snag_params())
         self.broken = False
         self.break_reason = ""
+        self._settling = False                  # settle() relaxes the initial guess; it must not break the cable
         self.tension_rov = 0.0
         self.tension_spool = 0.0
         self.tension_max = 0.0
@@ -300,8 +301,12 @@ class Tether:
         """Let the cable relax in the current with the ROV held still and the reel braked."""
         mode, target = self.reel.mode, self.reel.target
         self.reel.command("hold")
-        for _ in range(int(seconds / dt)):
-            self.step(dt, 0.0, rov_pos, rov_q, np.zeros(3))
+        self._settling = True
+        try:
+            for _ in range(int(seconds / dt)):
+                self.step(dt, 0.0, rov_pos, rov_q, np.zeros(3))
+        finally:
+            self._settling = False
         self.reel.command(mode)
         self.reel.target = target
         self.reel.state[0] = 0.0
@@ -591,11 +596,13 @@ class Tether:
     def _update_metrics(self, contacts, pin_force, dt: float, t_now: float) -> None:
         p = self.p
         n = len(self.x) - 1
-        if not self.broken and self.tension_rov > p.gland_breaking_n:
+        # settle() starts from a geometric guess; its first-step transients are not real loads
+        breakable = not self._settling
+        if breakable and not self.broken and self.tension_rov > p.gland_breaking_n:
             self._break(t_now, "gland", self.tension_rov)
-        if not self.broken and self.tension_max > p.breaking_n:
+        if breakable and not self.broken and self.tension_max > p.breaking_n:
             self._break(t_now, "cable", self.tension_max)
-        if not self.broken and p.chafe_failure and self.chafe_fraction >= 1.0:
+        if breakable and not self.broken and p.chafe_failure and self.chafe_fraction >= 1.0:
             self._break(t_now, "chafe", self.tension_max)
         touch = tether_contact.touching(contacts, self.x, p.node_radius, max(p.contact_cache_m, 0.0))
         node_touch = np.zeros(n + 1, bool)
