@@ -1,0 +1,100 @@
+{
+  "before": {
+    "x1-training/front34": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 468,
+      "size": [
+        0.6,
+        0.415,
+        0.79
+      ]
+    },
+    "x1-training/side": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 468,
+      "size": [
+        0.6,
+        0.415,
+        0.79
+      ]
+    },
+    "x1-training/top": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 468,
+      "size": [
+        0.6,
+        0.415,
+        0.79
+      ]
+    },
+    "x1-training/thruster": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 352,
+      "size": [
+        0.6,
+        0.415,
+        0.79
+      ]
+    }
+  },
+  "after": {
+    "x1-training/front34": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 35,
+      "size": [
+        0.56,
+        0.4,
+        0.79
+      ]
+    },
+    "x1-training/side": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 35,
+      "size": [
+        0.56,
+        0.4,
+        0.79
+      ]
+    },
+    "x1-training/top": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 35,
+      "size": [
+        0.56,
+        0.4,
+        0.79
+      ]
+    },
+    "x1-training/thruster": {
+      "loadError": null,
+      "triangles": 486000,
+      "rotors": 6,
+      "calls": 33,
+      "size": [
+        0.56,
+        0.4,
+        0.79
+      ]
+    }
+  },
+  "mean_channel_delta": {
+    "front34": 0.0007526388888888888,
+    "side": 0.0004942047930283224,
+    "top": 0.00038119190268700074,
+    "thruster": 0.0032301298111837326
+  }
+}
