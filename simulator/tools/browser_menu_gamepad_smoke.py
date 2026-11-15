@@ -84,7 +84,8 @@ with sync_playwright() as playwright:
     page.wait_for_function('window.__menu?.ready', timeout=timeout(120000))
     press(page, DOWN)
     page.wait_for_function('document.documentElement.dataset.menuInput === "pad"')
-    glyph = page.locator('#menuPrompts [data-action="accept"] svg').get_attribute('aria-label')
+    # The title shows its confirm key once, on the start button itself (the footer is empty there).
+    glyph = page.locator('#titleStart [data-action="accept"] svg').get_attribute('aria-label')
     assert glyph == 'A', f'accept prompt shows {glyph!r} for an Xbox-family pad'
     expect_focus(page, 'titleStart')
     press(page, A)
