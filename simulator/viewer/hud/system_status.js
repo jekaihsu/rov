@@ -36,7 +36,11 @@ const STYLE = `
 #flightSystem [data-tone=danger] { color: var(--danger); border-color: var(--danger); }
 #flightSystem [data-tone=ok] { color: var(--go); }
 body.hud-minimal #flightSystem span:not([data-tone=warn]):not([data-tone=danger]) { display: none; }
-@media (max-width: 720px) { #flightSystem { max-width: 70%; top: 18%; } }
+/* Narrow screens keep the floating placement: the column is short there and the radio sits beside it. */
+@media (max-width: 720px) {
+  #flightSystem { max-width: 70%; top: 18%; }
+  .hud.tl > #flightSystem { position: fixed; right: 4%; top: 18%; transform: translateY(-100%); max-width: 70%; }
+}
 `;
 const FIELDS = ['link', 'video', 'failsafe', 'power', 'temperature', 'warning', 'leak'];
 
