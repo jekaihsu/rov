@@ -494,12 +494,10 @@ function connect() {
   };
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
-    if (m.type === 'world' && session) {
-      stateMerger.reset();
-      onWorld(m);
-    } else if (m.type === 'state' && session) onState(stateMerger.merge(m));
+    if (m.type === 'state') m = stateMerger.merge(m);
+    if (m.type === 'world' && session) onWorld(m); else if (m.type === 'state' && session) onState(m);
     else if(m.type === 'session'){
-      session=m;needResync=true;stateMerger.reset();
+      session=m;needResync=true;
       try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
       for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
     }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}

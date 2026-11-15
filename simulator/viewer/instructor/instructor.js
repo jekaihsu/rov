@@ -368,13 +368,9 @@ function renderEvents() {
 function receive(message) {
   if (message.type === 'instructor_session') {
     authenticated = true;
-    stateMerger.reset();
     status.textContent = S.connected;
   }
-  if (message.type === 'world' && authenticated) {
-    stateMerger.reset();
-    chart.world(message);
-  }
+  if (message.type === 'world' && authenticated) chart.world(message);
   if (message.type === 'error') {
     pending = false;
     reportPending = false;
@@ -402,8 +398,9 @@ function receive(message) {
     } else refreshReport();
     updateAvailability();
   }
+  if (message.type === 'state') message = stateMerger.merge(message);
   if (message.type !== 'state' || !authenticated) return;
-  state = stateMerger.merge(message);
+  state = message;
   lastStateAt = Date.now();
   root.classList.remove('stale');
   const vehicles = state.vehicles || [];
