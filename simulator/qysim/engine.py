@@ -130,6 +130,7 @@ class Simulator:
         self.world = shared_world if shared_world is not None else World(sc.seabed_depth)
         if shared_world is None:
             self.world.obstacles = list(sc.obstacles)
+            self.world.regional_flows = list(sc.regional_flows)
             self.world.current = sc.current
             self.world.current.reseed(sc.seed or 0)
             clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
@@ -440,6 +441,8 @@ class Simulator:
         ensure_mission(self).photo(self)
         from .aquaculture import photo
         photo(self)
+        from .reservoir import photo as reservoir_photo
+        reservoir_photo(self)
         self._log("photo", f"拍照 {f['name']} @ {self.depth:.1f} m")
         return f
 

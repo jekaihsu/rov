@@ -871,3 +871,23 @@ feature tangent; small sphere capsules sample angled features without changing t
 load and release semantics apply. New scenario objective kinds are `pen_lap`,
 `pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
 Net visual motion is bounded to 0.05 m and never changes server collision shapes.
+
+### Optional regional current field
+
+`world.scenario.regional_flows` is an optional array (absent or empty means no change to existing flow).
+Each entry has finite three-vectors `center` (NED metres), `radii` (positive ellipsoid semi-axes, metres),
+and `velocity` (NED m/s at the center). For normalized ellipsoid distance `r`, set
+`x = clamp(1-r, 0, 1)`; the added velocity is `velocity * x*x*(3-2*x)`.
+Contributions add to ambient velocity before the existing structure-flow blocking and wake calculation.
+The same `World.current_at_many` field drives vehicle, cable, sediment and work objects; clients should use
+server sampled flow grids for display. This is a compact training approximation, not a hydraulic/CFD solution.
+It is scenario configuration, not a new command or SDK control field.
+
+`reservoir_intake` uses fresh water, 3 m visibility, mud, no ambient tide/current, and a provisional
+0.35 m/s center velocity toward the intake at NED (20,0,10), radii (5,4,5).
+This represents residual suction as a hazard exercise, not safe operating authorization for a live intake.
+`fresh_green` is an optional optical water type (dissolved absorption parameter 0.45 /m), independent
+of fresh-water density and visibility. All reservoir dimensions and coefficients are training assumptions.
+
+`world.scenario.camera_anchors` optionally supplies named `{eye, target}` NED metre vectors for menu
+cameras. Reservoir anchors are `reservoir_overlook` and `reservoir_equipment`; these do not move the ROV.

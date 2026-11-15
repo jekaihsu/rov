@@ -63,3 +63,11 @@ trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies mes
 沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
 GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
 固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
+
+## M2 reservoir prototype
+
+`reservoir/` GLBs and `qysim/reservoir.py` procedural geometry are original CC0 assets.
+No photographs, crops, projection textures, third-party models, brands or real place labels are included.
+Rebuild with `cad/build_reservoir.py` (Blender GPL tool, glTF Transform 4.5.1 MIT tool).
+Current GLBs are collision blockouts, not approved final art. No texture images are embedded yet;
+WebP conversion is enabled for the eventual generated texture assets. No `.blend` is committed.

@@ -47,6 +47,8 @@ def create_habitat(world, biome: str, seed: int, keep_clear=()):
     rng = np.random.default_rng(np.random.SeedSequence([seed, 8271]))
     entities = []
     schools = []
+    if biome == "reservoir":
+        return entities, schools
     if biome == "aquaculture":
         for k in range(8):
             phase = k * math.tau / 8

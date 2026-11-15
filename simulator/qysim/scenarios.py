@@ -78,21 +78,25 @@ class Scenario:
     enclosed: bool = False               # walled pool or tank: DVL beams reverberate off the walls
     # Optical water type for the viewer's colour (oceanic / coastal / shelf / harbour / fresh_clear);
     # None: from the biome (water_type_for). Presentation only; it does not change physics or visibility_m.
+    regional_flows: list = field(default_factory=list)
     water_type: str | None = None
 
     def summary(self) -> dict:
         from .aquaculture import layout
+        from .reservoir import CAMERAS, decoration
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
                 "tether_length": self.tether_length, "biome": self.biome,
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
+                **({"regional_flows": [r.as_dict() for r in self.regional_flows]} if self.regional_flows else {}),
+                **({"camera_anchors": CAMERAS, "reservoir_decoration": decoration()} if self.key == "reservoir_intake" else {}),
                 "water_type": water_type_for(self.biome, self.water_type, self.water),
                 **({"aquaculture": layout()[1]}
                    if self.key == "aquaculture_pen" else {})}
 
 
-WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear")
+WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear", "fresh_green")
 
 
 def water_type_for(biome: str, explicit: str | None = None, water: str = "salt") -> str:
@@ -530,7 +534,23 @@ def aquaculture_pen() -> Scenario:
                     Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
 
 
+def reservoir_intake() -> Scenario:
+    from .reservoir import collision_layout, STRINGS, TARGET
+    from .regional_flow import RegionalFlow
+    return Scenario(
+        'reservoir_intake', STRINGS['name'], STRINGS['brief'],
+        seabed_depth=24, obstacles=collision_layout(), visibility_m=3, biome='reservoir',
+        water='fresh', water_type='fresh_green', seabed_type='mud',
+        current=CurrentProfile(0, 0, 0, 0, 0, 0, 0),
+        regional_flows=[RegionalFlow((20, 0, 10), (5, 4, 5), (.35, 0, 0))],
+        start_pos=(8, 0, 1), spool_pos=(6, -1.6, -.35), tether_length=12,
+        objectives=[Objective('checkpoint', STRINGS['descend'], (17.5, 0, 10), radius=1),
+                    Objective('reservoir_photo', STRINGS['photo'], TARGET),
+                    Objective('surface', STRINGS['return'], (8, 0, .5), radius=2)])
+
+
 LIBRARY = {
+    "reservoir_intake": reservoir_intake,
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
     "incident_silt": incident_silt,

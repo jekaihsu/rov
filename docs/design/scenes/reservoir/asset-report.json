@@ -1,0 +1,22 @@
+{
+  "status": "collision blockout; photo-matched art pending",
+  "tiers": {
+    "low": {
+      "aboveWaterTriangles": 36558,
+      "underwaterTriangles": 6190,
+      "drawCalls": 9
+    },
+    "medium": {
+      "aboveWaterTriangles": 70470,
+      "underwaterTriangles": 9754,
+      "drawCalls": 9
+    },
+    "high": {
+      "aboveWaterTriangles": 70470,
+      "underwaterTriangles": 9754,
+      "drawCalls": 9
+    }
+  },
+  "sceneTextureMiB": 0,
+  "sharedSeabedTextureMiB": 1.3333333333333333
+}
