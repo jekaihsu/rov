@@ -146,6 +146,7 @@
           }
         },
         "conditions": {"type": "string"},
+        "currentKn": {"type": "number", "minimum": 0},
         "deliverables": {"type": "array", "items": {"$ref": "#/$defs/deliverable"}},
         "hazards": {"type": "array", "items": {"$ref": "#/$defs/hazard"}}
       },

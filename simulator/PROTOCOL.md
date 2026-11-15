@@ -867,7 +867,9 @@ feature tangent; small sphere capsules sample angled features without changing t
 
 ### Aquaculture scene metadata (optional)
 
-`world.scenario.aquaculture` only appears for `aquaculture_pen`: `center` (N/E metres),
+`world.scenario.aquaculture` only appears for `aquaculture_pen` and its site variants `aquaculture_pen_slack`
+(slack-water current) and `aquaculture_pen_inside` (vehicle and spool start inside the net, slack water; only the
+`pen_recover` objective): `center` (N/E metres),
 `radius`, `net_depth`, `holes` (`id`, NED `pos`, metre `size`, `panel`) and
 `dead_fish` (`id`, initial NED `pos`). Live fish recovery positions come from existing
 `state.operations.objects`; `kind: "dead_fish"` is optional. Existing arm ownership,

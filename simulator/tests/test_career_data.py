@@ -54,6 +54,8 @@ class CareerDataTest(unittest.TestCase):
         for contract in data["contracts"]:
             known = contract["scenario"] in scenarios.LIBRARY
             self.assertTrue(known or guarded.get(contract["chapter"]) == contract["scenario"], contract["id"])
+            if "launchScenario" in contract:
+                self.assertIn(contract["launchScenario"], scenarios.LIBRARY, contract["id"])
 
     def test_chapter_contracts_run_existing_story_chapters(self):
         for contract in load("contracts.json")["contracts"]:
@@ -69,6 +71,30 @@ class CareerDataTest(unittest.TestCase):
         for contract in data["contracts"]:
             deliverables = [entry["id"] for entry in contract["deliverables"]]
             self.assertEqual(len(deliverables), len(set(deliverables)), contract["id"])
+
+
+class PenVariantTest(unittest.TestCase):
+    """Site variants the chapter-2 work orders launch: same pen, start point and current setting only."""
+
+    def test_variants_share_the_pen_and_lower_the_current(self):
+        from qysim.aquaculture import CENTER, RADIUS
+        base = scenarios.build("aquaculture_pen", 0)
+        for key in ("aquaculture_pen_slack", "aquaculture_pen_inside"):
+            variant = scenarios.build(key, 0)
+            self.assertEqual(len(variant.obstacles), len(base.obstacles), key)
+            self.assertEqual(variant.seabed_depth, base.seabed_depth, key)
+            self.assertLess(variant.current.surface_kn, base.current.surface_kn, key)
+            self.assertIn("aquaculture", variant.summary(), key)
+        inside = scenarios.build("aquaculture_pen_inside", 0)
+        offset = ((inside.start_pos[0] - CENTER[0]) ** 2 + (inside.start_pos[1] - CENTER[1]) ** 2) ** .5
+        self.assertLess(offset, RADIUS - 2, "the recovery dive starts inside the net")
+
+    def test_dead_fish_exist_in_the_inside_variant(self):
+        from qysim.engine import Simulator
+        from qysim.operations import ensure_objects
+        sim = Simulator("aquaculture_pen_inside", 0)
+        kinds = {entry["kind"] for entry in ensure_objects(sim).values()}
+        self.assertEqual(kinds, {"dead_fish"})
 
 
 if __name__ == "__main__":

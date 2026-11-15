@@ -154,7 +154,7 @@ export function buildContractScreen(ctx) {
     numbers.append(
       readout(STRINGS.depth, fixed(facts.deep), 'm'),
       readout(STRINGS.visibility, fixed(facts.visibility), 'm'),
-      readout(STRINGS.current, fixed(facts.current, 1), 'kn'),
+      readout(STRINGS.current, fixed(contract.currentKn ?? facts.current, 1), 'kn'),
       readout(STRINGS.tether, fixed(facts.tether), 'm'),
     );
   }

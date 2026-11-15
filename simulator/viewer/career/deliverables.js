@@ -1,7 +1,7 @@
 // In-dive deliverable tracker of a YX work order: turns the state stream into the contract's checklist —
 // procedure steps, points reached, station keeping, photos with the target in frame, laser-scaler measurements,
-// contact probes (CP / UT), objects lifted with the arm and manual confirmations (LOTO) — plus the contacts, tether overloads, tether wraps
-// and safety violations the score deducts. Pure (no DOM): the dive module feeds it states and photo events.
+// contact probes (CP / UT), objects lifted with the arm and manual confirmations (LOTO) — plus the contacts,
+// tether overloads, tether wraps and safety violations the score deducts. Pure (no DOM): the dive module feeds it states and photo events.
 // It only reads what the server already sends; scoring here is a presentation layer and never touches physics.
 // Readings (growth thickness, CP potential, wall thickness) are scenario data shown when the work is done.
 

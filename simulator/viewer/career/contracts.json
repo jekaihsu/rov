@@ -412,39 +412,46 @@
       "clientName": "東澳外海箱網場",
       "job": "net",
       "scenario": "aquaculture_pen",
+      "launchScenario": "aquaculture_pen_slack",
+      "currentKn": 0.3,
       "runtime": "deliverables",
       "vehicles": ["x1", "bluerov2_heavy", "falcon"],
       "licence": "grade2",
       "pay": 16000,
       "reputation": 12,
       "partial": 0.5,
-      "provisional": true,
-      "summary": "箱網內側三個深度各繞一圈，找出網衣破洞。靠太近推進器會吸網。",
-      "brief": "場長說最近每天少魚，懷疑網衣破了。從網內側在三個深度各繞一圈，看到破洞就停下來拍照。魚群會擋視線，不要高速衝過魚群；離網太近推進器會把網吸進去，那就不是少魚的問題了。",
+      "summary": "平潮時沿箱網外側繞一圈，找出兩個網衣破洞並拍照。靠太近推進器會吸網。",
+      "brief": "場長說最近每天少魚，懷疑網衣破了。趁平潮從網外側繞一圈（東、北、西、南四個方位都要經過），看到破洞就停下來正對拍照。不要貼網太近，推進器會把網衣吸過來；纜線也別跨過繫泊纜。",
+      "conditions": "平潮時段：表層流約 0.3 kn（本工單的場址條件，非機型能力值）。",
       "radio": {
         "speaker": "場長 阿美",
         "start": "魚很怕生，你慢一點，牠們就不會亂跑。",
         "done": "兩個洞都找到了，今天下午就補。謝謝你們。",
-        "partial": "先補找到的這個。"
+        "partial": "先補找到的這個，剩下的明天平潮再看。"
       },
       "deliverables": [
-        {"id": "ring_upper", "kind": "checkpoint", "label": "上層一圈（水深 3 m）", "point": [0, 8, 3], "radius": 2},
-        {"id": "ring_mid", "kind": "checkpoint", "label": "中層一圈（水深 6 m）", "point": [8, 0, 6], "radius": 2},
-        {"id": "ring_lower", "kind": "checkpoint", "label": "下層一圈（水深 9 m）", "point": [0, -8, 9], "radius": 2},
-        {"id": "hole_1", "kind": "photo", "label": "破洞 1", "point": [-8, 0, 5], "standoff": [0.8, 3]},
-        {"id": "hole_2", "kind": "photo", "label": "破洞 2", "point": [6, 6, 8], "standoff": [0.8, 3]},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [0, 0, 0.5], "radius": 3}
+        {"id": "ring_south", "kind": "checkpoint", "label": "南側網外（水深 7 m）", "point": [3.5, 0, 7], "radius": 2.5},
+        {"id": "ring_east", "kind": "checkpoint", "label": "東側網外", "point": [24, 20.5, 8], "radius": 2.5},
+        {"id": "ring_north", "kind": "checkpoint", "label": "北側網外", "point": [44.5, 0, 8], "radius": 2.5},
+        {"id": "ring_west", "kind": "checkpoint", "label": "西側網外", "point": [24, -20.5, 8], "radius": 2.5},
+        {"id": "hole_upper", "kind": "photo", "label": "破洞 · 水深約 7 m", "point": [6.08, 1.17, 7],
+          "standoff": [0.8, 4], "reading": "破洞約 2.3 × 2.0 m，需換網片"},
+        {"id": "hole_lower", "kind": "photo", "label": "破洞 · 水深約 13 m", "point": [6.08, -1.17, 13],
+          "standoff": [0.8, 4], "reading": "破洞約 2.3 × 2.0 m，邊緣磨損"},
+        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
       ]
     },
     {
       "id": "c2_mort_recovery",
       "chapter": "ch2",
       "order": 20,
-      "title": "死魚回收",
+      "title": "死魚回收（Model V）",
       "client": "aquaculture",
       "clientName": "東澳外海箱網場",
       "job": "recovery",
       "scenario": "aquaculture_pen",
+      "launchScenario": "aquaculture_pen_inside",
+      "currentKn": 0.3,
       "runtime": "deliverables",
       "vehicles": ["falcon"],
       "licence": "grade2",
@@ -453,18 +460,21 @@
       "pay": 18000,
       "reputation": 12,
       "partial": 0.5,
-      "provisional": true,
-      "summary": "用 Model V 的夾爪把網底的死魚放進收集籃，不要碰網底。",
-      "brief": "網底積了幾尾死魚，放著會壞水質。用夾爪一尾一尾夾起來放進收集籃。夾住以後配平會變，慢慢來；碰網底會驚動整箱魚。",
+      "summary": "從網邊走道把 Model V 放進網內，用夾爪把網底的死魚夾起來。需要機械臂，只能派 Model V。",
+      "brief": "網底積了幾尾死魚，放著會壞水質。這次從箱網走道直接把機子放進網內，只有 Model V 有機械臂，所以派它。下到網底，一尾一尾夾起來提離網底；夾住以後配平會變，慢慢來，碰網底會驚動整箱魚。",
+      "conditions": "網內下水、平潮時段：表層流約 0.3 kn（本工單的場址條件）。",
       "radio": {
         "speaker": "場長 阿美",
         "start": "這工作不好看，但很重要。",
-        "done": "網底乾淨了。下次請你吃魚，活的那種。"
+        "done": "網底乾淨多了。下次請你吃魚，活的那種。",
+        "partial": "先收這些，剩下的我們用撈網。"
       },
       "deliverables": [
-        {"id": "basket", "kind": "checkpoint", "label": "到網底收集籃", "point": [0, 0, 11], "radius": 1.5},
-        {"id": "collected", "kind": "confirm", "label": "死魚已放入收集籃", "after": "basket"},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [0, 0, 0.5], "radius": 3}
+        {"id": "first_fish", "kind": "lift", "label": "夾起一尾死魚並提離網底", "object_kind": "dead_fish",
+          "below": 15.3, "count": 1, "point": [13, -3, 15.8]},
+        {"id": "second_fish", "kind": "lift", "label": "再回收一尾（加分）", "required": false,
+          "object_kind": "dead_fish", "below": 15.3, "count": 2, "point": [21, 4, 15.8]},
+        {"id": "recover", "kind": "surface", "label": "回到網內下水點回收", "point": [16, 0, 0.5], "radius": 3}
       ]
     },
     {
@@ -476,6 +486,8 @@
       "clientName": "東澳外海箱網場",
       "job": "mooring",
       "scenario": "aquaculture_pen",
+      "launchScenario": "aquaculture_pen_slack",
+      "currentKn": 0.3,
       "runtime": "deliverables",
       "vehicles": ["x1", "bluerov2_heavy", "falcon"],
       "licence": "grade2",
@@ -484,22 +496,25 @@
       "reputation": 15,
       "exam": {"endorsement": "aquaculture"},
       "partial": 0.5,
-      "provisional": true,
-      "summary": "沿兩條錨繩從浮標到錨，記錄磨損、纏繞物與移位。全程真實模式。",
-      "brief": "颱風剛過，場長要確認繫泊還撐得住。沿兩條錨繩從浮標一路看到錨，看到磨損、纏繞物或錨移位就拍下來。自己的纜線不要跨過錨繩。這是箱網作業簽注的考核。",
+      "summary": "沿南側兩條錨繩從浮標看到錨，記錄錨繩狀況。全程真實模式。",
+      "brief": "颱風剛過，場長要確認繫泊還撐得住。從東南、西南兩個角浮標下去，沿錨繩一路看到錨，錨繩中段各拍一張狀況照。自己的纜線不要跨過錨繩。這是箱網作業簽注的考核。",
+      "conditions": "平潮時段：表層流約 0.3 kn；錨在水深約 25 m。",
       "radio": {
         "speaker": "林督導",
         "start": "湧浪會讓你上下晃，那是正常的，不是你的錯。",
-        "done": "簽注下來了。你現在是養殖場會指名的駕駛員。"
+        "done": "簽注下來了。你現在是養殖場會指名的駕駛員。",
+        "partial": "還差一點，等下一個平潮再考。"
       },
       "deliverables": [
-        {"id": "line_a_buoy", "kind": "checkpoint", "label": "錨繩 A · 浮標端", "point": [20, 0, 2], "radius": 2},
-        {"id": "line_a_chafe", "kind": "photo", "label": "錨繩 A · 磨損處", "point": [30, 0, 12], "standoff": [0.8, 3]},
-        {"id": "line_a_anchor", "kind": "checkpoint", "label": "錨繩 A · 錨端", "point": [40, 0, 20], "radius": 2},
-        {"id": "line_b_buoy", "kind": "checkpoint", "label": "錨繩 B · 浮標端", "point": [-20, 0, 2], "radius": 2},
-        {"id": "line_b_debris", "kind": "photo", "label": "錨繩 B · 纏繞漁網", "point": [-30, 0, 12], "standoff": [0.8, 3]},
-        {"id": "line_b_anchor", "kind": "checkpoint", "label": "錨繩 B · 錨端", "point": [-40, 0, 20], "radius": 2},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [0, 0, 0.5], "radius": 3}
+        {"id": "east_buoy", "kind": "checkpoint", "label": "東南角浮標下方", "point": [0, 24, 4], "radius": 2.5},
+        {"id": "east_line", "kind": "photo", "label": "東南錨繩中段", "point": [-3.5, 27.5, 13.8], "standoff": [0.8, 4],
+          "reading": "外皮磨損，未見斷股"},
+        {"id": "east_anchor", "kind": "checkpoint", "label": "東南錨", "point": [-7, 31, 23.5], "radius": 2.5},
+        {"id": "west_buoy", "kind": "checkpoint", "label": "西南角浮標下方", "point": [0, -24, 4], "radius": 2.5},
+        {"id": "west_line", "kind": "photo", "label": "西南錨繩中段", "point": [-3.5, -27.5, 13.8], "standoff": [0.8, 4],
+          "reading": "纏有廢棄漁網，建議清除"},
+        {"id": "west_anchor", "kind": "checkpoint", "label": "西南錨", "point": [-7, -31, 23.5], "radius": 2.5},
+        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
       ]
     }
   ]

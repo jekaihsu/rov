@@ -34,7 +34,8 @@ export function buildCareerSummary(ctx) {
   const bar = element('div', 'career-bar');
   const fill = element('i');
   bar.append(fill);
-  const resume = element('button', 'menu-quick career-resume');
+  // A secondary action (outlined): the screen's accent colour stays with its one primary button.
+  const resume = element('button', 'menu-next career-resume');
   resume.type = 'button';
   resume.id = 'careerContinue';
   const resumeLine = element('span', 'menu-quick-detail');

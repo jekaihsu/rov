@@ -43,7 +43,7 @@ def ensure_objects(sim):
     world = sim.world
     if hasattr(world, "work_objects"):
         return world.work_objects
-    if getattr(sim.scenario, "key", None) == "aquaculture_pen":
+    if str(getattr(sim.scenario, "key", "")).startswith("aquaculture_pen"):   # the pen and its site variants
         from .aquaculture import work_objects
         world.work_objects = work_objects()
         return world.work_objects

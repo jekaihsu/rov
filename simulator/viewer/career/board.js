@@ -83,7 +83,7 @@ export function contractCard(contract, status, { career, index, onChoose }) {
   const scene = career.sceneFor(contract.scenario);
   if (scene) {
     const facts = siteFacts(scene);
-    numbers.append(readout(STRINGS.current, facts.current.toFixed(1), 'kn'));
+    numbers.append(readout(STRINGS.current, (contract.currentKn ?? facts.current).toFixed(1), 'kn'));
     numbers.append(readout(STRINGS.visibility, String(Math.round(facts.visibility ?? 0)), 'm'));
   }
   body.append(numbers);
