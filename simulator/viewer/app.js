@@ -1124,6 +1124,7 @@ async function startReplay(url) {
   wake();
   debrief = installDebrief({
     replayBar: $('replayBar'), getReplay: () => rep, setReplayTime, setCam, feed: feedReplay,
+    source: url, recording: data,
     capture() { renderer.render(scene, camera); return renderer.domElement; },
   });
   loadClip(0);

@@ -15,6 +15,8 @@ export function buildDebriefHtml({
   notes = '',
   screenshots = [],
   strings = STRINGS,
+  // Only print the non-student banner when the export includes god-view frames.
+  showViewpointBanner = false,
 } = {}) {
   const s = strings;
   const completion = report.completion || {};
@@ -34,6 +36,9 @@ export function buildDebriefHtml({
     }
     return `<figure><figcaption>${caption}</figcaption></figure>`;
   }).join('');
+  const banner = showViewpointBanner
+    ? `<div class="banner">${esc(s.viewpointBanner)}</div>`
+    : '';
   return `<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -61,7 +66,7 @@ img{max-width:100%;height:auto;display:block}
 <p class="eyebrow">${esc(s.subtitle)}</p>
 <h1>${esc(s.title)}報告</h1>
 <p>${esc(s.provisional)}</p>
-<div class="banner">${esc(s.viewpointBanner)}</div>
+${banner}
 <section class="meta">
   <div><span>${esc(s.vehicle)}</span><strong>${esc(vehicle)}</strong></div>
   <div><span>${esc(s.score)}</span><strong>${esc(score)}</strong></div>

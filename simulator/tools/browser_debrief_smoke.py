@@ -64,7 +64,20 @@ def run():
         html = report_path.read_text(encoding='utf8')
         assert '教官講評' in html or '講評報告' in html, html[:200]
         assert '煙霧測試：碰撞前討論纜線回彈' in html
-        assert '講評視角，非學員畫面' in html
+        # Student-view export must not print the god-view banner.
+        assert '講評視角，非學員畫面' not in html
+        # Public demo replay keeps the plain bar (no debrief panel).
+        demo = context.new_page()
+        demo.on('pageerror', lambda error: (errors.append(str(error)), print('PAGE ERROR', error, flush=True)))
+        demo.goto(f'{http_base()}?replay=demo_recording.json&nointro&ws={ws_base()}',
+                  wait_until='domcontentloaded', timeout=timeout(90000))
+        demo.wait_for_function(
+            'window.__viewer?.rep && !document.querySelector("#replayBar").hidden',
+            timeout=timeout(120000),
+        )
+        assert demo.evaluate('!document.body.classList.contains("debriefing")'
+                             ' && !document.querySelector(".debrief-panel")')
+        demo.close()
         # Replay must not open a live session / send RC.
         assert page.evaluate('!window.__viewer?.S?.vehicle_id || !!window.__replay?.()')
         live = page.evaluate('''() => {

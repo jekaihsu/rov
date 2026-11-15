@@ -3,6 +3,7 @@ export const STRINGS = {
   title: '教官台', subtitle: '訓練監督 / INSTRUCTOR CONSOLE', room: '房間', code: '教官碼', connect: '連線',
   fleet: '01 / 學員監測', map: '02 / 作業海域', faults: '03 / 故障注入', assessment: '04 / 即時考核',
   target: '學員載具', kind: '注入種類', strength: '強度 0–1', duration: '持續時間 · s', index: '推進器索引',
+  ramp_s: '洋流爬升時間 · s（30–120）', rotate_deg: '洋流轉向 · °（−180–180）',
   inject: '注入故障', thruster: '推進器推力下降', battery: '電量下降', current: '全房洋流突變',
   visibility: '全房能見度下降', freeze: '凍結載具（暫停物理）',
   video_delay: '影像延遲', video_freeze: '影像凍結', link_degrade: '通訊鏈路劣化', comms_loss: '通訊中斷',
