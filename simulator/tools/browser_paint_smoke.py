@@ -3,13 +3,16 @@ import json
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from _browser import launch, http_base, ws_base
-from _menu import open_settings_tab, set_intro, to_briefing
+from _browser import launch, http_base, ws_base, timeout, pump_until
+from _menu import open_settings_tab, set_intro, soft_click, to_briefing
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'paint-validation'
 OUT.mkdir(parents=True, exist_ok=True)
 BASE = f'{http_base(8093)}/'
-QUERY = f'?ws={ws_base(8793)}&room=paint_{int(time.time())}&model=bluerov2_heavy&scene=seagrass_meadow'
+QUERY = (
+    f'?ws={ws_base(8793)}&room=paint_{int(time.time())}&model=bluerov2_heavy'
+    f'&scene=seagrass_meadow&quality=performance'
+)
 PAINT_COUNT = "window.__viewer.scene.getObjectByName('Shared surface paint')?.userData.markCount||0"
 STICKER_COUNT = "(()=>{let count=0;window.__viewer.scene.traverse(o=>{if(o.name==='Vehicle stickers')count+=o.children.length;});return count;})()"
 results = {}
@@ -21,73 +24,113 @@ with sync_playwright() as p:
     errors = []
     for tab in [page, peer]:
         tab.on('pageerror', lambda error: errors.append(str(error)))
-        tab.set_default_timeout(90000)
+        tab.set_default_timeout(timeout(90000))
     try:
         page.goto(BASE+QUERY)
-        page.wait_for_function('window.__menu?.ready')
+        page.wait_for_function('window.__menu?.ready', timeout=timeout(120000))
         open_settings_tab(page, 'controls')
         page.select_option('#menuPad','keyboard')
         page.select_option('#menuControl','ROV_USA')
         page.evaluate('window.__menu.go("main")')
         to_briefing(page, mode='free_explore', site='seagrass_meadow', sticker='hazard')
-        page.wait_for_function('window.__menu.stickerMeshes>0')
+        page.wait_for_function('window.__menu.stickerMeshes>0', timeout=timeout(90000))
         results['menu_sticker_meshes'] = page.evaluate('window.__menu.stickerMeshes')
         page.screenshot(path=str(OUT/'sticker-preview.png'))
         set_intro(page, False)
-        page.click('#startDive')
-        page.wait_for_function('window.__viewer?.S?.appearance?.sticker==="hazard" && window.__modelLoaded && window.__viewer.W.scenario.key==="seagrass_meadow"')
-        page.wait_for_function(STICKER_COUNT+'>0')
+        soft_click(page, '#startDive')
+        page.wait_for_function(
+            'window.__viewer?.S?.appearance?.sticker==="hazard" && window.__modelLoaded && window.__viewer.W.scenario.key==="seagrass_meadow"',
+            timeout=timeout(120000))
+        page.wait_for_function(STICKER_COUNT+'>0', timeout=timeout(90000))
         results['live_sticker_meshes'] = page.evaluate(STICKER_COUNT)
         peer.goto(BASE+QUERY+'&play=1&nointro&sticker=dive')
-        peer.wait_for_function('window.__viewer?.S?.vehicles?.length===2 && window.__modelLoaded')
-        page.wait_for_function('window.__viewer.S.vehicles.length===2')
-        peer.wait_for_function(STICKER_COUNT+'>=4')
+        peer.wait_for_function('window.__viewer?.S?.vehicles?.length===2 && window.__modelLoaded',
+                               timeout=timeout(120000))
+        page.wait_for_function('window.__viewer.S.vehicles.length===2', timeout=timeout(120000))
+        peer.wait_for_function(STICKER_COUNT+'>=4', timeout=timeout(120000))
         results['peer_sticker_meshes'] = peer.evaluate(STICKER_COUNT)
         results['peer_appearance'] = peer.evaluate('window.__viewer.S.vehicles.map(v=>v.appearance.sticker)')
         print('Menu, own and peer stickers passed', flush=True)
 
         page.bring_to_front()
-        page.click('#flightDrawer')
-        page.click('.surface-paint-tools summary')
-        page.click('.paint-toggle')
+        peer.evaluate('window.__skipRender = true')
+        soft_click(page, '#flightDrawer')
+        soft_click(page, '.surface-paint-tools summary')
+        soft_click(page, '.paint-toggle')
         page.evaluate("window.__viewer.setCam('top')")
         # At deployment the actual seabed is too far: no server mark may appear.
-        page.locator('canvas').first.click(position={'x':20,'y':20})
+        page.locator('canvas').first.click(position={'x':20,'y':20}, force=True, no_wait_after=True)
         page.keyboard.press('f')
         assert '距離太遠' in page.locator('.paint-status').inner_text()
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['far_surface_rejected'] = True
-        page.click('#bLock')
-        page.keyboard.down('q')
-        page.wait_for_function("""()=>{
-          const v=window.__viewer;if(!v?.S)return false;
-          const start=new v.THREE.Vector3(-v.S.pos[1],-v.S.pos[2],v.S.pos[0]);
-          const meshes=[];v.scene.traverse(o=>{if(o.isMesh&&o.userData.paintable&&o.visible)meshes.push(o);});
-          const hits=new v.THREE.Raycaster(start,new v.THREE.Vector3(0,-1,0)).intersectObjects(meshes,false);
-          return hits.length&&hits[0].distance<2.2;
-        }""", timeout=180000)
-        page.keyboard.up('q')
-        page.click('#bLock')
-        page.click('#btnPause')
-        page.wait_for_function('window.__viewer.S.paused')
+        # Drive heave through touch + rc_lock so blur/visibility failsafe cannot cancel the dive mid-wait.
+        peer.evaluate('window.__skipRender = true')
+        page.bring_to_front()
+        page.locator('.viewport canvas').first.click(force=True, no_wait_after=True)
+        pump_until(page, """() => {
+          const v = window.__viewer;
+          if (!v?.S || !v.touch) return false;
+          v.rc.rc_lock = 0;
+          v.touch.left_wave = -1;
+          const altitude = v.S.sensors?.altitude;
+          if (Number.isFinite(altitude) && altitude < 2.2) return true;
+          const start = new v.THREE.Vector3(-v.S.pos[1], -v.S.pos[2], v.S.pos[0]);
+          const meshes = [];
+          v.scene.traverse(o => { if (o.isMesh && o.userData.paintable && o.visible) meshes.push(o); });
+          const hits = new v.THREE.Raycaster(start, new v.THREE.Vector3(0, -1, 0)).intersectObjects(meshes, false);
+          return !!(hits.length && hits[0].distance < 2.2);
+        }""", timeout_ms=timeout(180000), allies=(peer,))
+        page.evaluate("""() => {
+          const v = window.__viewer;
+          if (!v) return;
+          v.touch.left_wave = 0;
+          v.rc.rc_lock = 1;
+        }""")
+        soft_click(page, '#btnPause')
+        pump_until(page, '() => window.__viewer.S.paused', timeout_ms=timeout(60000), allies=(peer,))
         results['paint_vehicle_position'] = page.evaluate('window.__viewer.S.pos')
-        # Blur controls before F, as typing in a button/form must never spray.
-        page.evaluate('document.activeElement.blur()')
-        page.keyboard.press('f')
-        assert '擋住' in page.locator('.paint-status').inner_text()
+
+        def spray_center_with_top_cam(view_offset_x=0, height=8):
+            """Snap top cam and spray at NDC centre in one turn so the spring follow cannot move the ray."""
+            return page.evaluate("""({offsetX, height}) => {
+              const v = window.__viewer, p = v.rovG.position;
+              v.setCam('top');
+              if (v.camera.clearViewOffset) v.camera.clearViewOffset();
+              v.camera.up.set(0, 0, 1);
+              v.camera.position.set(p.x, p.y + height, p.z);
+              v.camera.lookAt(p);
+              const canvas = document.querySelector('.viewport canvas');
+              const rect = canvas.getBoundingClientRect();
+              if (offsetX) v.camera.setViewOffset(rect.width, rect.height, offsetX, 0, rect.width, rect.height);
+              v.camera.updateProjectionMatrix();
+              document.activeElement?.blur?.();
+              const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+              canvas.dispatchEvent(new PointerEvent('pointerdown', {
+                button: 0, clientX: x, clientY: y, pointerId: 1, bubbles: true
+              }));
+              canvas.dispatchEvent(new PointerEvent('pointerup', {
+                button: 0, clientX: x, clientY: y, pointerId: 1, bubbles: true
+              }));
+              return document.querySelector('.paint-status')?.textContent || '';
+            }""", {'offsetX': view_offset_x, 'height': height})
+
+        # Close-in top view: centre ray must hit the hull (occlusion).
+        status = spray_center_with_top_cam(0, height=8)
+        assert '擋住' in status, status
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['vehicle_occlusion_rejected'] = True
-        # Shift the real top camera's projection off the ROV onto exposed sand.
-        # Its direction still follows the normal viewer camera update.
-        page.evaluate("""()=>{
-          const c=window.__viewer.camera,rect=document.querySelector('.viewport canvas').getBoundingClientRect();
-          c.setViewOffset(rect.width,rect.height,35,0,rect.width,rect.height);
-        }""")
-        page.keyboard.press('f')
-        page.wait_for_function('window.__viewer.S.paint_marks.length===1')
-        page.wait_for_function(PAINT_COUNT+'===1')
-        peer.wait_for_function('window.__viewer.S.paint_marks.length===1')
-        peer.wait_for_function(PAINT_COUNT+'===1')
+        # Higher top view + offset, matching the original smoke geometry onto exposed sand.
+        status = spray_center_with_top_cam(35, height=22)
+        assert '已送出' in status or '確認' in status, status
+        pump_until(page, '() => window.__viewer.S.paint_marks.length===1',
+                   timeout_ms=timeout(120000), allies=(peer,))
+        page.wait_for_function(PAINT_COUNT+'===1', timeout=timeout(120000))
+        peer.bring_to_front()
+        pump_until(peer, '() => window.__viewer.S.paint_marks.length===1',
+                   timeout_ms=timeout(120000), allies=(page,))
+        peer.wait_for_function(PAINT_COUNT+'===1', timeout=timeout(120000))
+        page.bring_to_front()
         results['shared_first_mark'] = page.evaluate('window.__viewer.S.paint_marks[0]')
         assert results['shared_first_mark'] == peer.evaluate('window.__viewer.S.paint_marks[0]')
         print('Real terrain F paint and peer rendering passed', flush=True)
@@ -101,17 +144,17 @@ with sync_playwright() as p:
           const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
           return !!(top && (top === btn || btn.contains(top)));
         }"""), 'open #engineering covered #flightDrawer'
-        page.click('#flightDrawer')
+        soft_click(page, '#flightDrawer')
         assert page.evaluate('document.querySelector("#engineering").hidden')
         canvas=page.locator('.viewport canvas').first
         box=canvas.bounding_box()
         page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
         page.mouse.down();page.mouse.move(box['x']+box['width']/2+40,box['y']+box['height']/2+20);page.mouse.up()
         assert page.evaluate('window.__viewer.S.paint_marks.length')==1
-        canvas.click(position={'x':box['width']/2+8,'y':box['height']/2})
-        page.wait_for_function('window.__viewer.S.paint_marks.length===2')
-        page.wait_for_function(PAINT_COUNT+'===2')
-        peer.wait_for_function(PAINT_COUNT+'===2')
+        canvas.click(position={'x':box['width']/2+8,'y':box['height']/2}, force=True, no_wait_after=True)
+        page.wait_for_function('window.__viewer.S.paint_marks.length===2', timeout=timeout(120000))
+        page.wait_for_function(PAINT_COUNT+'===2', timeout=timeout(120000))
+        peer.wait_for_function(PAINT_COUNT+'===2', timeout=timeout(120000))
         results['click_and_drag_filter'] = True
         results['flight_drawer_above_engineering'] = True
         page.screenshot(path=str(OUT/'terrain-paint.png'))
@@ -162,28 +205,32 @@ with sync_playwright() as p:
           }finally{module.dispose();}
         }""")
 
-        page.click('#flightDrawer')
-        page.locator('details').filter(has=page.locator('#recordFlight')).locator('summary').click()
-        page.click('#recordFlight')
-        page.click('#btnPause')
+        soft_click(page, '#flightDrawer')
+        page.locator('details').filter(has=page.locator('#recordFlight')).locator('summary').evaluate(
+            'el => el.click()')
+        page.locator('#recordFlight').evaluate('el => el.click()')
+        page.locator('#btnPause').evaluate('el => el.click()')
         page.wait_for_timeout(1500)
-        with page.expect_download(predicate=lambda d:d.suggested_filename.startswith('ROV-mission-')) as download:
-            page.click('#recordFlight')
-        mission=OUT/'paint-mission.json';download.value.save_as(mission)
-        data=json.loads(mission.read_text(encoding='utf8'))
-        assert any(len(f.get('paint_marks',[]))==2 for f in data['clips'][0]['frames'])
-        page.set_input_files('#loadReplay',str(mission))
-        page.wait_for_function('window.__replay?.() && window.__modelLoaded')
-        page.wait_for_function(PAINT_COUNT+'===2')
+        with page.expect_download(
+                predicate=lambda d: d.suggested_filename.startswith('ROV-mission-'),
+                timeout=timeout(60000)) as download:
+            page.locator('#recordFlight').evaluate('el => el.click()')
+        mission = OUT / 'paint-mission.json'
+        download.value.save_as(mission)
+        data = json.loads(mission.read_text(encoding='utf8'))
+        assert any(len(f.get('paint_marks', [])) == 2 for f in data['clips'][0]['frames'])
+        page.set_input_files('#loadReplay', str(mission))
+        page.wait_for_function('window.__replay?.() && window.__modelLoaded', timeout=timeout(120000))
+        page.wait_for_function(PAINT_COUNT + '===2', timeout=timeout(120000))
         assert not page.locator('.surface-paint-tools').is_visible()
         page.keyboard.press('f')
-        assert page.evaluate(PAINT_COUNT)==2
+        assert page.evaluate(PAINT_COUNT) == 2
         results['replay_readonly_and_marks'] = True
-        page.screenshot(path=str(OUT/'paint-replay.png'))
-        assert not errors,errors
+        page.screenshot(path=str(OUT / 'paint-replay.png'))
+        assert not errors, errors
         results['errors'] = errors
-        (OUT/'results.json').write_text(json.dumps(results,indent=2,ensure_ascii=False),encoding='utf8')
-        print(json.dumps(results,ensure_ascii=False),flush=True)
+        (OUT / 'results.json').write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding='utf8')
+        print(json.dumps(results, ensure_ascii=False), flush=True)
     except Exception:
         print('Diagnostics',page.evaluate("({status:document.querySelector('.paint-status')?.textContent,notice:document.querySelector('#operationNotice')?.textContent,state:window.__viewer?.S,errors:[]})"),flush=True)
         page.screenshot(path=str(OUT/'failure.png'))

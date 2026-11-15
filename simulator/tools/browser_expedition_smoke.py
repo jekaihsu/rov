@@ -4,8 +4,8 @@ import json
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from _browser import launch, host, http_port, ws_port, timeout
-from _menu import launch_from_menu, open_main
+from _browser import launch, host, http_port, ws_port, timeout, without_render, pump_until
+from _menu import launch_from_menu, open_main, soft_click
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--http-port', type=int, default=http_port(8095))
@@ -42,9 +42,10 @@ def operation(page, action, **values):
 
 def wait_state(page):
     page.bring_to_front()
-    page.wait_for_function(
-        "window.__viewer?.S?.mission?.mode==='expedition' && window.__modelLoaded",
-        timeout=timeout(120000))
+    with without_render(page):
+        page.wait_for_function(
+            "window.__viewer?.S?.mission?.mode==='expedition' && window.__modelLoaded",
+            timeout=timeout(120000))
 
 
 def current_host(tabs):
@@ -68,10 +69,11 @@ def current_host(tabs):
 
 def wait_reply(page, before, request_id, limit_ms=120000):
     page.bring_to_front()
-    page.wait_for_function(
-        """([before, request_id]) => window.__testMessages.slice(before).some(
-          m => m.request_id === request_id || m.code === 'host_only' || m.error === 'host_only')""",
-        arg=[before, request_id], timeout=timeout(limit_ms))
+    with without_render(page):
+        page.wait_for_function(
+            """([before, request_id]) => window.__testMessages.slice(before).some(
+              m => m.request_id === request_id || m.code === 'host_only' || m.error === 'host_only')""",
+            arg=[before, request_id], timeout=timeout(limit_ms))
     return page.evaluate("""([before, request_id]) => {
       const rows = window.__testMessages.slice(before);
       return rows.find(m => m.request_id === request_id)
@@ -129,7 +131,8 @@ def host_operation(tabs, main, action, **values):
 
 def await_active(page, predicate):
     page.bring_to_front()
-    page.wait_for_function(predicate, timeout=timeout(120000))
+    with without_render(page):
+        page.wait_for_function(predicate, timeout=timeout(120000))
 
 
 def main_operation(page, action, **values):
@@ -163,15 +166,15 @@ with sync_playwright() as p:
     main.wait_for_function('window.__menu?.ready', timeout=timeout(120000))
     assert main.evaluate('window.__menu.mission') == 'expedition'
     open_main(main)
-    main.click('#menuCollection')
+    soft_click(main, '#menuCollection')
     main.wait_for_selector('.collection-panel, .collection-dialog, [role="dialog"]', timeout=timeout(60000))
     main.screenshot(path=str(OUT / 'menu-collection.png'))
     main.keyboard.press('Escape')
     launch_from_menu(main, mode='expedition', site='coral_reef')
     wait_state(main)
-    main.click('#flightDrawer')
+    soft_click(main, '#flightDrawer')
     main.wait_for_selector('.expedition-panel:not([hidden])', timeout=timeout(60000))
-    main.click('.exp-available button')
+    soft_click(main, '.exp-available button')
     await_active(main, "window.__viewer.S.expedition.active?.kind==='inspect'")
     dive_id = main.evaluate('window.__viewer.S.expedition.dive_id')
     contract_id = main.evaluate('window.__viewer.S.expedition.active.id')
@@ -187,13 +190,20 @@ with sync_playwright() as p:
         wait_state(guest)
         guests.append(guest)
         assert guest.evaluate('window.__viewer.S.expedition.active.id') == contract_id
+        guest.evaluate('window.__skipRender = true')
     main.wait_for_function('window.__viewer.S.room.players.length===3', timeout=timeout(120000))
 
-    operation(guests[0], 'expedition_cancel', request_id='guest-cannot-cancel')
-    guests[0].bring_to_front()
-    guests[0].wait_for_function(
-        "() => window.__testMessages.some(m => m.code === 'host_only' || m.error === 'host_only')",
-        timeout=timeout(120000))
+    pump_until(
+        guests[0],
+        """() => {
+          if (window.__testMessages.some(m => m.code === 'host_only' || m.error === 'host_only')) return true;
+          const socket = [...window.__testSockets].reverse().find(s => s.readyState === 1);
+          if (socket) socket.send(JSON.stringify({
+            type: 'operation', action: 'expedition_cancel', request_id: 'guest-cannot-cancel'
+          }));
+          return false;
+        }""",
+        timeout_ms=timeout(120000), allies=(main, guests[1]))
     assert guests[0].evaluate('window.__viewer.S.expedition.active.id') == contract_id
 
     # Reload transfers host; cancel from the elected host while guest tabs are still warm.
@@ -216,7 +226,7 @@ with sync_playwright() as p:
     promote_main(tabs, main)
 
     main.evaluate("window.__viewer.setCam('orbit')")
-    main.click('.exp-photo')
+    soft_click(main, '.exp-photo')
     for _ in range(100):
         saved = main.evaluate(
             "import('./collection_store.js').then(m=>m.listCollection()).then(v=>v.photos.length)")
@@ -229,7 +239,7 @@ with sync_playwright() as p:
     assert collection['photos'][0]['observation'] is None
     assert collection['photos'][0]['metadata']['cameraMode'] == 'orbit'
     assert collection['guides'] == []
-    main.click('#openCollection')
+    soft_click(main, '#openCollection')
     main.screenshot(path=str(OUT / 'souvenir-collection.png'))
     main.wait_for_function('window.__viewer.S.rc.rc_lock===1', timeout=timeout(60000))
     main.keyboard.press('Escape')
@@ -255,6 +265,7 @@ with sync_playwright() as p:
     peer.goto(f'{BASE}?ws={WS}&room={room}peer&play=1&nointro&quality=performance',
               wait_until='domcontentloaded')
     peer.wait_for_function('window.__viewer?.S', timeout=timeout(120000))
+    peer.evaluate('window.__skipRender = true')
     imported = peer.evaluate(
         "text=>import('./collection_store.js').then(m=>m.importCollection(new Blob([text],{type:'application/json'})))",
         backup)

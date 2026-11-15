@@ -1306,7 +1306,7 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, touch, toggleLock, takePhoto:options=>photoClient.takePhoto(options) };
 Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;
