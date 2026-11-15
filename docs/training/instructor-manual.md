@@ -64,14 +64,20 @@ phase 用 descent、transit、hover、orbit、dock 對應下潛、轉場、懸�
 |---|---|---|
 | B01–B04 | 無實體注入；B03 口頭報纜線偏緊 | 觀察是否先確認線路，不假稱真實張力改變 |
 | I01 | 另次 visibility strength 0.3、duration 20 秒 | 全房間能見度為原值 × (1−強度)，最低 0.1 m；看減速、調燈與退出 |
-| I02 | thruster，確認 index 後 strength 0.25、duration 15 秒 | 健康度依原值衰減；DVL 失鎖只用口頭通報 |
-| I03–I04 | 沿用事故情境，不疊加 | 揚沙固定低能見度；羅盤讀數不會真的偏移 |
-| A01–A02 | 預設強流／預纏；口頭人手不足、信標風險 | 無磨纜累積、細線收結、信標耗電模型 |
-| A03 | 固定強流情境 | 無隨時間轉強或結構背流模型 |
-| A04 | 標準航次後另次 thruster strength 0.25、duration 15 秒 | 失聯、供電、漏水僅桌上口試，不用 battery 冒充 X1 岸電 |
+| I02 | thruster，確認 index 後 strength 0.25、duration 15 秒；另次可注入 `dvl`（強制失去底鎖）20 秒 | 健康度依原值衰減；`dvl` 只改量測，不改真實運動 |
+| I03 | 沿用事故情境，不疊加 | 揚沙固定低能見度 |
+| I04 | 沿用事故情境；需要明顯失準時另次注入 `compass` strength 0.3、duration 30 秒 | 情境鋼塊本身只造成約 0.5° 的磁偏差（暫定模型）；`compass` 加上 strength × 60° 偏差 |
+| A01–A02 | 預設強流／預纏；口頭人手不足、信標風險 | 有繞構件纏繞與海床雜物勾掛（保持力暫定）；磨纜只回報比例、不會斷纜；無細線收結、信標耗電模型 |
+| A03 | 固定強流情境；另次可注入 `current` 模擬轉強（預設 60 秒漸變） | 情境內沒有可躲流的結構物；`ramp_s`／`rotate_deg`（轉流）教官面板尚無欄位，只能直接送協定訊息 |
+| A04 | 標準航次後另次 thruster strength 0.25、duration 15 秒；再另次 `comms_loss`、`power_trip` 或 `leak` 擇一 | 系統故障為訓練用近似；恢復時間、警報條件仍是 X1 暫定項 |
 
-引擎另支援 current（strength × 4 節、各層方向保留、全房間）、battery、freeze。
-freeze 是暫停載具，不是凍結影像；battery 是模擬電量，非岸電故障。這些不當作本課實機故障證據。
+注入在真實感測器層（預設）才可用感測器故障 `compass`、`depth_sensor`、`dvl`、`altimeter`；伺服器以
+`QYSIM_SENSORS=ideal` 啟動時會拒絕。感測器故障只改量測值，不改物理真值。
+系統故障另有 `video_delay`、`video_freeze`、`link_degrade`、`comms_loss`（可設 `failsafe`、`failsafe_delay`、
+`reconnect`）、`power_trip`、`leak`、`overheat`；物理覆寫另有 `current`（strength × 4 節，`ramp_s` 30–120 秒漸變，
+`rotate_deg` 轉向，全房間）、`battery`、`freeze`。細節以 [PROTOCOL 教官章節](../../simulator/PROTOCOL.md#optional-instructor-preview-t17-draft)
+為準。`freeze` 是暫停載具物理，`video_freeze` 才是凍結影像；纜線供電的載具上 `battery` 會降低供電功率，
+不等於岸電跳脫（用 `power_trip`）。這些都是訓練近似，不當作 X1 實機故障證據。
 同類同範圍重疊覆寫會拒絕；到期恢復原值，不能把自動恢復記成學員修復。
 遇失控、斷纜、危險程序或要求停止，暫停、收證、講評、reset，不等耗完課時。
 
