@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<!-- YX 識別系統試作：公司標誌與四台機型的符號。每個符號只用三到四個元素。以 Playwright 截圖輸出。 -->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #efebe2; }
+  .sheet { position: relative; width: 2000px; height: 1400px; background: #efebe2; color: #0b1a26;
+    font-family: "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, monospace; }
+  svg text { font-size: 17px; letter-spacing: 2.4px; fill: #0b1a26; }
+  .grain { position: absolute; inset: 0; mix-blend-mode: multiply; opacity: .45; pointer-events: none; }
+</style></head>
+<body><div class="sheet">
+<svg viewBox="0 0 2000 1400" width="2000" height="1400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="11"/>
+      <feDisplacementMap in="SourceGraphic" scale="2.6"/></filter>
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M50 0H0V50" fill="none" stroke="#0b1a26" stroke-width=".5" opacity=".1"/></pattern>
+  </defs>
+  <rect x="100" y="100" width="1800" height="1200" fill="url(#grid)"/>
+  <text x="100" y="74">YX — IDENTITY SYSTEM</text><text x="1700" y="74">SHEET 01 / 02</text>
+
+  <!-- 公司標誌：Y 的直線往下延伸成臍帶纜；X 是推進器的兩條對角線，中心一個軸點。 -->
+  <g transform="translate(260 190)">
+    <g transform="translate(8 -5)" fill="none" stroke="#ff7a2f" stroke-width="16" stroke-linecap="round" filter="url(#rough)">
+      <path d="M330 40L530 340M530 40L330 340"/></g>
+    <g fill="none" stroke="#0b1a26" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)">
+      <path d="M40 40L140 180L240 40"/>
+      <path d="M140 180V340C140 430 300 400 380 450S560 470 610 420" stroke-width="6"/>
+      <path d="M330 40L530 340M530 40L330 340"/>
+    </g>
+    <circle cx="430" cy="190" r="15" fill="#efebe2" stroke="#0b1a26" stroke-width="5"/>
+    <circle cx="610" cy="420" r="9" fill="#0f7f86"/>
+    <text x="0" y="520">YX / MARK</text><text x="0" y="548">Y = TETHER · X = THRUSTER AXES</text>
+  </g>
+
+  <!-- 小尺寸與深色底版本 -->
+  <g transform="translate(1080 190)">
+    <rect width="620" height="380" fill="#06121c"/>
+    <g transform="translate(150 70) scale(.55)" fill="none" stroke="#eef3f0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M40 40L140 180L240 40"/><path d="M140 180V340" />
+      <path d="M330 40L530 340" /><path d="M530 40L330 340" stroke="#ff7a2f"/>
+    </g>
+    <text x="0" y="420">ON MAIN COLOUR · ACCENT ON ONE STROKE ONLY</text>
+  </g>
+
+  <!-- 四台機型 -->
+  <g fill="none" stroke="#0b1a26" stroke-linecap="round" filter="url(#rough)">
+    <!-- R：小、方、四角推進器、相機罩 -->
+    <g transform="translate(330 900)" stroke-width="7">
+      <rect x="-80" y="-90" width="160" height="180" rx="54"/>
+      <path d="M-34 -90a34 34 0 0 1 68 0" stroke-width="4"/>
+      <g stroke-width="4"><circle cx="-104" cy="-76" r="22"/><circle cx="104" cy="-76" r="22"/>
+        <circle cx="-104" cy="76" r="22"/><circle cx="104" cy="76" r="22"/></g>
+    </g>
+    <!-- O：寬、八具推進器（四角＋四垂直） -->
+    <g transform="translate(790 900)" stroke-width="7">
+      <rect x="-120" y="-80" width="240" height="160" rx="30"/>
+      <g stroke-width="4"><circle cx="-142" cy="-70" r="22"/><circle cx="142" cy="-70" r="22"/>
+        <circle cx="-142" cy="70" r="22"/><circle cx="142" cy="70" r="22"/>
+        <circle cx="-60" cy="-34" r="13"/><circle cx="60" cy="-34" r="13"/>
+        <circle cx="-60" cy="34" r="13"/><circle cx="60" cy="34" r="13"/></g>
+    </g>
+    <!-- V：開放框架、前伸機械臂與 V 形夾爪 -->
+    <g transform="translate(1250 900)" stroke-width="7">
+      <rect x="-100" y="-70" width="200" height="160"/>
+      <rect x="-76" y="-46" width="152" height="112" stroke-width="3"/>
+      <path d="M30 -70V-130" stroke-width="5"/><path d="M8 -172L30 -130L52 -172" stroke-width="5"/>
+    </g>
+    <!-- S：大型框架、雙臂、頂部吊點 -->
+    <g transform="translate(1710 900)" stroke-width="7">
+      <rect x="-120" y="-60" width="240" height="170"/>
+      <path d="M-120 -10H120M-120 50H120" stroke-width="3"/>
+      <path d="M-60 -60V-120M60 -60V-120" stroke-width="5"/>
+      <path d="M-82 -160L-60 -120L-38 -160M38 -160L60 -120L82 -160" stroke-width="5"/>
+    </g>
+  </g>
+  <g fill="#ff7a2f"><circle cx="330" cy="900" r="8"/><circle cx="790" cy="900" r="8"/>
+    <circle cx="1250" cy="910" r="8"/><circle cx="1710" cy="925" r="8"/></g>
+  <text x="250" y="1100">MODEL R</text><text x="250" y="1128">入門觀測型</text>
+  <text x="710" y="1100">MODEL O</text><text x="710" y="1128">重載觀測型</text>
+  <text x="1170" y="1100">MODEL V</text><text x="1170" y="1128">輕作業型</text>
+  <text x="1630" y="1100">MODEL S</text><text x="1630" y="1128">作業級</text>
+  <text x="100" y="1340">R · O · V · S</text><text x="1560" y="1340">ROV SOLUTION — YX FLEET</text>
+</svg>
+<svg class="grain" width="2000" height="1400"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9"
+  numOctaves="2" seed="5"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .5 0"/></filter>
+  <rect width="2000" height="1400" filter="url(#n)"/></svg>
+</div></body></html>

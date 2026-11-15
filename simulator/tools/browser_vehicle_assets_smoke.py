@@ -76,7 +76,7 @@ VENDOR = ('X1', 'BlueROV', 'Falcon', 'QYSEA', 'FIFISH')
 
 
 def hangar_labels(page, query):
-    """Chip text, hangar title and detail line for the x1 id in the given menu URL."""
+    """Chip text, hangar title and detail line (in the 明細 sheet) for the x1 id in the given menu URL."""
     page.goto(f'{http_base(8092)}/?{query}', wait_until='domcontentloaded')
     page.wait_for_selector('[data-vehicle="x1"]', state='attached')
     page.wait_for_function('window.__menu && window.__menu.screen')
@@ -85,7 +85,7 @@ def hangar_labels(page, query):
     return {
         'chip': page.locator('[data-vehicle="x1"]').text_content(),
         'title': page.locator('.menu-vehicle-name').text_content(),
-        'detail': page.locator('.menu-vehicle-title + .menu-help').text_content(),
+        'detail': page.locator('#hangarDetail').text_content(),
     }
 
 

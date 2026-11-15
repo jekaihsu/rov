@@ -1,0 +1,55 @@
+/* Career screens: YX 委託看板, contract detail, YX 裝備部, the main-menu career summary (all in the big-picture
+   layout of menu/big_picture.css, which also carries their tokens), the in-flight checklist and the career
+   part of the results screen.
+   60/30/10 colour rule: the accent colour is left to the one primary action per screen (.menu-start);
+   everything here is drawn in the text colours. */
+
+/* board: the save backup actions above the tiles of the last tab */
+.career-backup { display: flex; justify-content: flex-end; gap: calc(var(--bp-u) * 3.2);
+  margin-bottom: calc(var(--bp-u) * 1.6); }
+
+/* contract detail: requirements with a mark, in the 明細 sheet */
+.career-checks { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.career-check { position: relative; padding-left: 20px; color: var(--bp-dim); }
+.career-check::before { content: "✗"; position: absolute; left: 0; color: var(--warn); }
+.career-check[data-ok=true] { color: var(--bp-ice); }
+.career-check[data-ok=true]::before { content: "✓"; color: var(--go); }
+
+/* in-flight checklist (objective card) */
+.objective-career[hidden] { display: none; }
+.career-radio { margin: 0 0 8px; padding-left: 8px; border-left: 2px solid var(--text-dim); font-size: 12px;
+  line-height: 1.5; color: var(--text); }
+.career-radio[hidden] { display: none; }
+.career-radio strong { display: block; font-size: 10px; letter-spacing: .14em; color: var(--text-dim); font-weight: 400; }
+.career-steps li small { font-size: 11px; color: var(--text-dim); }
+.career-steps li[data-complete=true] small { color: var(--go); }
+.career-steps li[data-optional=true] { opacity: .8; }
+.career-status { margin: 0 0 6px; font-size: 11px; color: var(--text-dim); }
+.career-status:empty { display: none; }
+.career-status[data-warn=true] { color: var(--warn); }
+.career-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* shop: an item tile has no picture, so its name and price fill a solid tile */
+.career-item .bp-tile-text { top: 0; align-content: end; background: none; }
+
+/* results: one line of licence progress on the screen; pay slip, standing and unlocks in the 明細 sheet */
+.career-progress { display: grid; gap: .5em; }
+.career-progress-text { margin: 0; font-size: var(--bp-large); font-weight: 700; }
+.career-bar { height: max(8px, calc(var(--bp-u) * .8)); border-radius: 99px; background: var(--bp-fill);
+  overflow: hidden; }
+.career-bar i { display: block; height: 100%; background: var(--bp-ice); }
+.results-career { display: grid; gap: 1.2em; }
+.results-career[hidden] { display: none; }
+.results-career p { margin: .2em 0; }
+.career-slip-row { display: flex; justify-content: space-between; gap: 1em; padding: .15em 0;
+  color: var(--bp-dim); }
+.career-slip-row b { font-weight: 600; color: var(--bp-ice); }
+.career-slip-minus b { color: var(--warn); }
+.career-slip-net { margin-top: .3em; color: var(--bp-ice); }
+.career-slip-net b { font-size: 1.5em; font-weight: 800; }
+.career-rep { color: var(--bp-ice); }
+.career-licence-name { display: block; margin-bottom: .2em; font-weight: 700; }
+.career-granted { color: var(--go); }
+.career-licence .career-bar { margin: .4em 0; }
+.career-unlocks ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .3em; }
+.career-unlocks li { padding-left: .7em; border-left: var(--bp-frame) solid var(--go); }

@@ -63,3 +63,8 @@ trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies mes
 沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
 GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
 固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
+
+`aquaculture/net.webp` 自 scene-looks 起改由 `simulator/tools/build_pen_net_texture.py`（Pillow，固定 seed 71）產生：
+原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
+養殖魚與死魚（`pen_life.js`）、珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`）皆為本專案原創程式幾何，
+CC0-1.0，沒有外部模型、照片或貼圖。

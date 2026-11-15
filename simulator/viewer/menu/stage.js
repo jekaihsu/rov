@@ -14,7 +14,7 @@ import { createFrameGate } from '../prefs/display.js';
 const POSES = {
   title: { eye: [-3.6, 1.1, 4.6], shift: 1.4, lift: 0.35, orbit: 0.03 },
   main: { eye: [-2.2, 0.7, 2.8], shift: 1.0, lift: 0.15, orbit: 0 },
-  modes: { eye: [-1.6, 2.0, 3.2], shift: 0, lift: -0.8, orbit: 0 },
+  modes: { eye: [-2.3, 0.45, 3.0], shift: 0.9, lift: -0.3, orbit: 0 },
   hangar: { eye: [0.9, 0.35, 1.5], shift: 0.42, lift: 0, orbit: 0 },
   // Overview of the site itself: eye direction scaled by the site's extent, looking at its structures.
   sites: { eye: [-0.55, 0.42, 0.72], shift: 0, lift: -0.22, orbit: 0.02, site: true },
@@ -23,6 +23,7 @@ const POSES = {
   briefing: { eye: [-1.3, 0.5, -1.9], shift: 0.8, lift: 0.05, orbit: 0 },
   multiplayer: { eye: [-2.6, 1.2, 3.2], shift: 1.4, lift: 0.1, orbit: 0 },
   settings: { eye: [-3.0, 1.4, 3.8], shift: 1.7, lift: 0.1, orbit: 0 },
+  shop: { eye: [0.9, 0.35, 1.5], shift: 0.42, lift: 0, orbit: 0 },
   launch: { eye: [-0.25, 0.12, -0.55], shift: 0, lift: -0.2, orbit: 0 },
 };
 const NARROW = 850;
@@ -35,6 +36,8 @@ export const SHOWCASE = {
   poses: {
     title: { eye: [1.6, 0.4, -3.6], shift: 1.3, lift: 0.5, orbit: 0.012 },
     main: { eye: [1.3, 0.3, -2.9], shift: 1.0, lift: 0.5, orbit: 0 },
+    // YX 裝備部: the vehicle close up, where the equipment goes.
+    shop: { eye: [0.9, 0.3, -1.7], shift: 0.5, lift: 0.1, orbit: 0 },
   },
 };
 
