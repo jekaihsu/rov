@@ -849,3 +849,13 @@ It suppresses only the duplicate procedural visual; collision and tether snag se
 Absent means the existing standalone visual. Authored snag metadata uses the FieldMesh local frame;
 `point`, `radius`, `height`, `hold_n` and `item` map to `SnagFeature`. `direction` describes the source
 feature tangent; small sphere capsules sample angled features without changing the vertical capsule API.
+
+### Aquaculture scene metadata (optional)
+
+`world.scenario.aquaculture` only appears for `aquaculture_pen`: `center` (N/E metres),
+`radius`, `net_depth`, `holes` (`id`, NED `pos`, metre `size`, `panel`) and
+`dead_fish` (`id`, initial NED `pos`). Live fish recovery positions come from existing
+`state.operations.objects`; `kind: "dead_fish"` is optional. Existing arm ownership,
+load and release semantics apply. New scenario objective kinds are `pen_lap`,
+`pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
+Net visual motion is bounded to 0.05 m and never changes server collision shapes.

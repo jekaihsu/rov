@@ -96,7 +96,7 @@ def vehicle_world_source(sim) -> dict:
     # Water leaves opposite to the force the thruster puts on the vehicle.
     jets = -np.where(s.thrust < 0, -1.0, 1.0)[:, None] * (layout[1] @ rotation.T)
     magnitude = np.abs(s.thrust)
-    source = {"id": sim.vehicle_id, "pos": s.pos, "vel": v.world_velocity(),
+    source = {"id": sim.vehicle_id, "light": sim.rc.right_switch, "pos": s.pos, "vel": v.world_velocity(),
               "thrust": float(np.mean(magnitude) / v.p.thruster_max),
               "jets": list(zip(outlets, jets, magnitude.tolist()))}
     tether = getattr(sim, "tether", None)
@@ -438,6 +438,8 @@ class Simulator:
     def _take_photo(self) -> dict:
         f = self._new_file("SING", "JPG")
         ensure_mission(self).photo(self)
+        from .aquaculture import photo
+        photo(self)
         self._log("photo", f"拍照 {f['name']} @ {self.depth:.1f} m")
         return f
 

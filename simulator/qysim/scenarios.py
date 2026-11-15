@@ -80,12 +80,15 @@ class Scenario:
     water_type: str | None = None
 
     def summary(self) -> dict:
+        from .aquaculture import layout
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
                 "tether_length": self.tether_length, "biome": self.biome,
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
-                "water_type": water_type_for(self.biome, self.water_type, self.water)}
+                "water_type": water_type_for(self.biome, self.water_type, self.water),
+                **({"aquaculture": layout()[1]}
+                   if self.key == "aquaculture_pen" else {})}
 
 
 WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear")
@@ -512,6 +515,20 @@ def incident_current() -> Scenario:
         time_limit_s=180)
 
 
+def aquaculture_pen() -> Scenario:
+    from .aquaculture import layout, STRINGS as pen_strings
+    obstacles, _ = layout()
+    return Scenario(
+        "aquaculture_pen", pen_strings["name"], pen_strings["brief"],
+        seabed_depth=25., obstacles=obstacles, visibility_m=8., biome="aquaculture",
+        seabed_type="mud", water_type="coastal", start_pos=(3., 0., 7.),
+        spool_pos=(-2., 0., 0.), tether_length=150., time_limit_s=2400.,
+        current=CurrentProfile(.8, 90, .5, 95, .3, 100, TI_SHELTERED),
+        objectives=[Objective("pen_lap", pen_strings["lap"], (3., 0., 7.)),
+                    Objective("pen_photo", pen_strings["photo"], (3., 0., 7.), target="hole-0"),
+                    Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
+
+
 LIBRARY = {
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
@@ -531,6 +548,7 @@ LIBRARY = {
     "coral_reef": coral_reef,
     "seagrass_meadow": seagrass_meadow,
     "harbor_inspection": harbor_inspection,
+    "aquaculture_pen": aquaculture_pen,
 }
 
 
@@ -565,6 +583,7 @@ class Scorer:
         self.finished = False
         self.elapsed = 0.0
         self.current_index = 0
+        self.pen_sectors = set()
 
     def update(self, dt: float, sim) -> None:
         if self.finished or self.failed:
@@ -600,7 +619,10 @@ class Scorer:
             return
         ob = objs[self.current_index]
         pos = sim.vehicle.s.pos
-        if ob.kind in ("checkpoint", "surface"):
+        if ob.kind.startswith("pen_"):
+            from .aquaculture import update_objective
+            update_objective(self, ob, sim)
+        elif ob.kind in ("checkpoint", "surface"):
             if np.linalg.norm(pos - np.asarray(ob.point)) < ob.radius:
                 ob.done, ob.progress = True, 1.0
         elif ob.kind in ("inspect", "station_keep"):
