@@ -63,7 +63,7 @@ export function resolveCue(event, state) {
     broken: 'broken',
     light: 'confirm',
     complete: 'complete',
-    photos: 'photos',
+    photos: 'shutter',
     record_start: 'record',
     record_stop: 'back',
     link_lost: 'broken',

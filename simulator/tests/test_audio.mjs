@@ -110,3 +110,8 @@ test('underwaterAudio fidelity is off in real and on in assisted', () => {
   assert.deepEqual(layerGains(false), {topside: 1, underwater: 0});
   assert.deepEqual(layerGains(true), {topside: 1, underwater: 1});
 });
+
+test('a photo plays the topside App shutter, never an underwater cue', () => {
+  assert.deepEqual(resolveCue('photos', {}), {kind: 'shutter', layer: 'topside'});
+  assert.equal(eventLayer('photos'), 'topside');
+});

@@ -18,6 +18,7 @@ import {installTetherReel} from './tether_reel.js';
 import {thrusterLabel} from './hud/thruster_names.js';
 import {installStartPresentation} from './start_presentation.js';
 import {objectiveFade} from './hud/objective_fade.js';
+import {installPhotoFeedback} from './hud/photo_feedback.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -433,7 +434,9 @@ let session = null, inputSequence = 0;
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
+let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
+  onShutter:()=>photoFeedback?.shutter(),
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     vision.assertPhoto();
@@ -1180,6 +1183,7 @@ const audio = installAudio({
   getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
+photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   const frameSeconds=Math.max(0,(now-last)/1000);

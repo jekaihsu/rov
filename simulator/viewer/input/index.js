@@ -98,9 +98,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   const touch = Object.fromEntries(CH.map((c) => [c, 0]));
   const out = Object.fromEntries(CH.map((c) => [c, 0])); // combined −1..1
 
+  // The rumble follows the vehicle's confirmed lock state in feedback(), not the key press, so a refused unlock
+  // (deck procedure, failsafe latch) does not feel like one.
   const toggleLock = () => {
     rc.rc_lock = rc.rc_lock ? 0 : 1;
-    haptics.pulse("unlock");
   };
   const toggleDepth = () => {
     rc.keep_depth = rc.keep_depth ? 0 : 1;
@@ -333,7 +334,6 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       if (actions[name] > 0.5) hold[name].add("pad");
       else hold[name].delete("pad");
     }
-    if (actions.photo > 0.5 && !(previous.photo > 0.5)) haptics.pulse("photo");
     previous = { ...actions, settings: previous.settings };
     const values = JSON.stringify(snapshot);
     if (values !== lastPadValues) {
@@ -369,7 +369,23 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   }
   let lastImpact = "";
   let tensionHigh = false;
+  let snagged = false;
+  let broken = false;
+  let locked = null;
+  function edgePulses(state) {
+    const nowLocked = state?.locked;
+    const changed = locked !== null && nowLocked !== undefined && nowLocked !== locked;
+    if (changed) haptics.pulse(nowLocked ? "lock" : "unlock");
+    if (nowLocked !== undefined) locked = nowLocked;
+    const snag = !!state?.tether?.snagged_on?.length;
+    if (snag && !snagged) haptics.pulse("snag");
+    snagged = snag;
+    const cut = !!state?.tether?.broken;
+    if (cut && !broken) haptics.pulse("broken");
+    broken = cut;
+  }
   function feedback(state) {
+    edgePulses(state);
     if (state?.operation_mode && state.operation_mode !== operationMode) {
       operationMode = state.operation_mode;
       refreshRows();
