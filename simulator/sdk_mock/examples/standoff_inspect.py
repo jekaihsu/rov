@@ -31,6 +31,7 @@ from _common import (  # noqa: E402
 FORWARD_MAX_M = 50.0
 BLIND_M = 0.3
 EPS = 0.05
+DEFAULT_STANDOFF_M = 2.0     # typical close visual-inspection distance; an example value, not an X1 figure
 
 
 def classify_range(distance: float) -> str:
@@ -47,9 +48,8 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.1, standoff_m: float | None
     take_remote(bridge)
     status = get_status(bridge)
     distance0 = float(status["Distance"])
-    kind0 = classify_range(distance0)
     if standoff_m is None:
-        standoff_m = distance0 if kind0 == "ok" else 2.0
+        standoff_m = DEFAULT_STANDOFF_M
 
     errors = []
     events = []
@@ -99,6 +99,7 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.1, standoff_m: float | None
     return {
         "example": "standoff_inspect",
         "seconds": round(elapsed, 2),
+        "initial_distance_m": round(distance0, 3),
         "standoff_m": round(standoff_m, 3),
         "final_distance_m": round(float(final["Distance"]), 3),
         "mean_error_m": None if mean_err is None else round(mean_err, 3),
@@ -113,7 +114,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Forward-range standoff inspection")
     add_host_args(parser)
     parser.set_defaults(scenario="hull_inspection")
-    parser.add_argument("--standoff", type=float, default=None, help="desired forward distance (m)")
+    parser.add_argument("--standoff", type=float, default=None, help="desired forward distance (m), default 2.0")
     args = parser.parse_args(argv)
     bridge = make_bridge(args)
     try:

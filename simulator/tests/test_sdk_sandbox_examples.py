@@ -1,13 +1,18 @@
 """Headless integration tests for sdk_mock sandbox examples.
 
 Each example runs about 30 s of simulation time through the in-process LocalBridge
-(no wall-clock wait, no external network). Live TCP is covered by test_sdk_mock.
+(no wall-clock wait, no external network). ``LiveExamplesTest`` runs the examples for a few wall-clock
+seconds through the real mock-SDK TCP client against a local server subprocess (loopback only).
 """
 
 from __future__ import annotations
 
 import importlib.util
+import os
+import socket
+import subprocess
 import sys
+import time
 import unittest
 from pathlib import Path
 
@@ -52,10 +57,11 @@ class SdkSandboxExamplesTest(unittest.TestCase):
         result = mod.run(bridge, seconds=30.0, dt=0.1)
         self.assertEqual(result["example"], "standoff_inspect")
         self.assertGreater(result["seconds"], 29.0)
-        # With a hull ahead, we should get usable range samples or explicit handling events.
-        self.assertTrue(result["ok_samples"] > 0 or result["handled_no_echo"] or result["handled_blind"])
-        if result["mean_error_m"] is not None:
-            self.assertLess(result["mean_error_m"], 5.0)
+        # The hull is ahead at the start: range readings are usable and the vehicle closes on the stand-off.
+        self.assertGreater(result["ok_samples"], 0)
+        initial_error = abs(result["initial_distance_m"] - result["standoff_m"])
+        final_error = abs(result["final_distance_m"] - result["standoff_m"])
+        self.assertLess(final_error, 0.5 * initial_error)
 
     def test_standoff_blind_and_no_echo_classification(self):
         mod = load_example("standoff_inspect")
@@ -70,6 +76,7 @@ class SdkSandboxExamplesTest(unittest.TestCase):
         result = mod.run(bridge, seconds=30.0, dt=0.5)
         self.assertGreaterEqual(result["frames"], 50)
         self.assertGreater(result["vision_readbacks"], 0)
+        self.assertTrue(result["remote_taken"])
         self.assertTrue(result["remote_released"])
         # After release, remote_control must be off on the simulator.
         self.assertFalse(bridge.sim.remote_control)
@@ -86,6 +93,74 @@ class SdkSandboxExamplesTest(unittest.TestCase):
             self.assertTrue(0 <= det["score"] <= 1)
             self.assertEqual(len(det["box"]), 4)
             self.assertTrue(all(0 <= v <= 1 for v in det["box"]))
+
+
+def free_port() -> int:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+class LiveExamplesTest(unittest.TestCase):
+    """The path users run: examples -> mock qysea TCP client -> qysim.server."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rpc_port = free_port()
+        cls.ws_port = free_port()
+        cls._env_backup = {k: os.environ.get(k) for k in ("QYSIM_HOST", "QYSIM_RPC_PORT")}
+        cls.server = subprocess.Popen(
+            [sys.executable, "-m", "qysim.server", "--rpc-port", str(cls.rpc_port), "--ws-port", str(cls.ws_port),
+             "--no-http", "--scenario", "open_water", "--seed", "1"],
+            cwd=str(SIM_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        load_example("depth_heading_cruise")
+        from _common import configure_rpc
+        configure_rpc("127.0.0.1", cls.rpc_port)
+        from qysea.sdk import _client
+        deadline = time.time() + 60.0
+        while time.time() < deadline and not _client.get_client().ping():
+            time.sleep(0.2)
+
+    @classmethod
+    def tearDownClass(cls):
+        from qysea.sdk import _client
+        _client.get_client().close()
+        cls.server.terminate()
+        try:
+            cls.server.wait(5)
+        except subprocess.TimeoutExpired:
+            cls.server.kill()
+        for key, value in cls._env_backup.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    def bridge(self):
+        from _common import LiveBridge
+        return LiveBridge("127.0.0.1", self.rpc_port, ws_port=self.ws_port)
+
+    def test_live_depth_cruise(self):
+        mod = load_example("depth_heading_cruise")
+        bridge = self.bridge()
+        try:
+            result = mod.run(bridge, seconds=3.0, dt=0.1)
+        finally:
+            bridge.close()
+        self.assertEqual(result["dvl_final"], "OnLine")
+        self.assertLess(result["depth_error_mean_m"], 0.3)
+
+    def test_live_vision_round_trip(self):
+        mod = load_example("vision_ai_detect")
+        bridge = self.bridge()
+        try:
+            result = mod.run(bridge, seconds=3.0, dt=0.2)
+        finally:
+            bridge.close()
+        self.assertGreater(result["frames"], 0)
+        self.assertGreater(result["vision_readbacks"], 0, "vision_results must come back through the server")
+        self.assertTrue(result["remote_taken"])
+        self.assertTrue(result["remote_released"])
 
 
 if __name__ == "__main__":

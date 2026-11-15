@@ -27,6 +27,7 @@ from _common import (  # noqa: E402
     make_bridge,
     print_result,
     release_remote,
+    reply_ok,
     take_remote,
 )
 
@@ -85,7 +86,7 @@ def detect_contours(frame_bgr, max_det: int = 8) -> list:
 
 
 def run(bridge, seconds: float = 30.0, dt: float = 0.2) -> dict:
-    take_remote(bridge)
+    taken = reply_ok(take_remote(bridge))
     # Gentle hold while detection loop runs.
     bridge.sdk("QYRovControllerManage", "set_right_joystick_up_down", 1500)
 
@@ -94,7 +95,6 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.2) -> dict:
     readbacks = 0
     t0 = bridge.sim_time()
     elapsed = 0.0
-    acquired = True
 
     while elapsed < seconds:
         frame = bridge.get_frame_bgr()
@@ -103,8 +103,7 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.2) -> dict:
         reports += 1
         last_count = len(detections)
 
-        # Re-acquire remote each loop to show the take/release pattern once at end;
-        # mid-run we only verify status stays unlocked under remote.
+        # Remote control stays held for the whole loop; re-unlock if something locked the vehicle.
         status = get_status(bridge)
         if status["RC_Switch_Status"]["RC_Lock"] != "unlock":
             bridge.sdk("QYRovControllerManage", "set_rc_lock_button", 0)
@@ -116,8 +115,7 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.2) -> dict:
         bridge.sleep_or_advance(dt)
         elapsed = bridge.sim_time() - t0
 
-    release_remote(bridge)
-    acquired = False
+    released = reply_ok(release_remote(bridge))
     final_vision = bridge.get_vision()
     return {
         "example": "vision_ai_detect",
@@ -125,7 +123,8 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.2) -> dict:
         "frames": reports,
         "last_detections": last_count,
         "vision_readbacks": readbacks,
-        "remote_released": not acquired,
+        "remote_taken": taken,
+        "remote_released": released,
         "final_vision_available": bool(final_vision.get("available")),
         "note": STRINGS["remote_off"],
     }

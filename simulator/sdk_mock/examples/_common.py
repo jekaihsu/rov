@@ -103,6 +103,7 @@ class LiveBridge:
         self.rpc_port = rpc_port
         self.ws_port = ws_port
         self._ws = None
+        self._streaming = False
         self._t0 = time.monotonic()
         from qysea.sdk.manage.QY_Rov_Manage import QYRovRealTimeStatusManage
         from qysea.sdk.manage.QY_RovController_Manage import QYRovControllerManage
@@ -146,10 +147,12 @@ class LiveBridge:
         return self.camera.get_sim_detections()
 
     def get_frame_bgr(self, width: int = 320, height: int = 180):
-        # Live path uses the camera manage stream (size fixed by stream flag).
-        got = self.camera.capture_video("MAIN_CAMERA", "SUB_STREAM")
-        if got is not True:
-            raise RuntimeError(got)
+        # Live path uses the camera manage stream (size fixed by stream flag); open it once.
+        if not self._streaming:
+            got = self.camera.capture_video("MAIN_CAMERA", "SUB_STREAM")
+            if got is not True:
+                raise RuntimeError(got)
+            self._streaming = True
         ok, frame = self.camera.get_frame()
         if not ok or frame is None:
             raise RuntimeError("get_frame failed")
@@ -168,8 +171,9 @@ class LiveBridge:
             self._ws = None
 
 
-def take_remote(bridge) -> None:
-    bridge.sdk("QYRovControllerManage", "set_remote_control_status", "ON")
+def take_remote(bridge):
+    """Take remote control, unlock, latch depth hold and centre every stick. Returns the take reply."""
+    reply = bridge.sdk("QYRovControllerManage", "set_remote_control_status", "ON")
     bridge.sdk("QYRovControllerManage", "set_rc_lock_button", 0)
     bridge.sdk("QYRovControllerManage", "set_keep_depth_button", 1)
     bridge.sdk("QYRovControllerManage", "set_left_switch", 0)  # A mode
@@ -182,9 +186,11 @@ def take_remote(bridge) -> None:
         "set_right_wave_left_right",
     ):
         bridge.sdk("QYRovControllerManage", channel, 1500)
+    return reply
 
 
-def release_remote(bridge) -> None:
+def release_remote(bridge):
+    """Centre sticks, lock and hand control back to the physical RC. Returns the release reply."""
     for channel in (
         "set_left_joystick_up_down",
         "set_left_joystick_left_right",
@@ -196,7 +202,12 @@ def release_remote(bridge) -> None:
         bridge.sdk("QYRovControllerManage", channel, 1500)
     bridge.sdk("QYRovControllerManage", "set_keep_depth_button", 0)
     bridge.sdk("QYRovControllerManage", "set_rc_lock_button", 1)
-    bridge.sdk("QYRovControllerManage", "set_remote_control_status", "OFF")
+    return bridge.sdk("QYRovControllerManage", "set_remote_control_status", "OFF")
+
+
+def reply_ok(reply) -> bool:
+    """True for an SDK ``{'status': 'ok', ...}`` reply."""
+    return isinstance(reply, dict) and reply.get("status") == "ok"
 
 
 def get_status(bridge) -> dict:

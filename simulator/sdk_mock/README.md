@@ -25,6 +25,9 @@ PYTHONPATH=. python examples/standoff_inspect.py --host 127.0.0.1
 PYTHONPATH=. python examples/vision_ai_detect.py --host 127.0.0.1 --ws-port 8765
 ```
 
+連線模式下範例使用伺服器當前的情境（`--scenario` 只對 `--local` 有效）；定距巡檢請以
+`python -m qysim.server --scenario hull_inspection` 啟動伺服器。`--local` 在行程內步進模擬器，供測試使用。
+
 ## 環境變數
 
 | 變數 | 預設 | 含義 |
@@ -87,6 +90,11 @@ PYTHONPATH=. python examples/vision_ai_detect.py --host 127.0.0.1 --ws-port 8765
   `'Please connect ROV first'`。高頻狀態約 60 packet/s 交替 `10hz`／`50hz`。
 - 相機：`capture_video()` → `True`；`get_frame()` → `(True, BGR uint8)`（640×360／1280×720）；
   `get_w_h()` → `"640.0 * 360.0"`。
+- `download_file()` 依拍照當下儲存的姿態重新渲染照片並寫到 `<dir_path>/<檔名>`。回傳
+  `Preparing to download file`，之後 `get_download_status()` 依序回報 `File downloading` →
+  `File downloaded successfully, file_size: … MB`（或 `DownloadFile error: …`）。
+- `get_file_info_list()['text']` 是 JSON 字串，也可像解碼後的清單一樣索引（`text[0]['path']`），
+  與原廠範例用法相同。
 - `qysea.sdk.service`／`qysea.sdk.lib` 僅為相容 import。
 
 測試：`cd simulator && python -m unittest tests.test_sdk_mock -v`；
