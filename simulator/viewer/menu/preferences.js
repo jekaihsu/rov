@@ -120,7 +120,7 @@ export function validRoom(room) {
 // The game URL for a choice. Parameters the menu does not own (fidelity, cam, gimbal, …) pass through.
 export function launchUrl(href, choice, pageProtocol = 'http:') {
   const url = new URL(href);
-  url.searchParams.delete('replay');
+  for (const name of ['replay', 'menu', 'tab']) url.searchParams.delete(name);
   url.searchParams.set('play', '1');
   url.searchParams.set('model', choice.model);
   url.searchParams.set('ws', normaliseServer(choice.server, pageProtocol));

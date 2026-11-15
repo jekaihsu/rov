@@ -368,8 +368,17 @@ setLoading(1, STRINGS.loading.ready);
 ready = true;
 finishLoading();
 show('title');
+openRequestedScreen();
 navigator.setActive(true);
 navigator.start();
+
+// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link).
+function openRequestedScreen() {
+  const query = new URLSearchParams(location.search);
+  if (query.get('menu') !== 'training') return;
+  go('main');
+  ctx.openTraining(query.get('tab') || 'story');
+}
 
 window.__menu = {
   get ready() {
