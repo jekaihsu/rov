@@ -55,10 +55,12 @@ def detect_contours(frame_bgr, max_det: int = 8) -> list:
                 continue
             boxes.append((area, x / w, y / h, bw / w, bh / h))
         boxes.sort(reverse=True)
-        return [
-            {"cls": "blob", "score": float(min(1.0, a / (0.05 * w * h))), "box": [round(x, 4), round(y, 4), round(bw, 4), round(bh, 4)]}
-            for a, x, y, bw, bh in boxes[:max_det]
-        ]
+        out = []
+        for area, x, y, bw, bh in boxes[:max_det]:
+            score = float(min(1.0, area / (0.05 * w * h)))
+            box = [round(x, 4), round(y, 4), round(bw, 4), round(bh, 4)]
+            out.append({"cls": "blob", "score": score, "box": box})
+        return out
 
     # Numpy-only fallback when OpenCV is unavailable.
     gray = frame_bgr.mean(axis=2)
