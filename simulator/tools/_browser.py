@@ -196,11 +196,13 @@ class without_render:
         return False
 
 
-def pump_until(page, expression, *, timeout_ms, arg=None, allies=()):
+def pump_until(page, expression, *, timeout_ms, arg=None, allies=(), skip_page_render=True):
     """Bring page forward, skip soft-GL on allies, and poll until expression is truthy.
 
     Under a fully busy host, background software-GL tabs can starve the active tab's socket
     and input pumps for minutes. Assertions stay the same; only scheduling changes.
+    Set skip_page_render=False when the wait itself needs the active tab's animation/camera
+    update (for example a spring settle); allies still skip draw.
     """
     deadline = time.monotonic() + (timeout_ms / 1000)
     for ally in allies:
@@ -208,7 +210,8 @@ def pump_until(page, expression, *, timeout_ms, arg=None, allies=()):
             skip_render(ally, True)
         except Exception:
             pass
-    skip_render(page, True)
+    if skip_page_render:
+        skip_render(page, True)
     page.bring_to_front()
     last_error = None
     try:
@@ -224,10 +227,11 @@ def pump_until(page, expression, *, timeout_ms, arg=None, allies=()):
                 last_error = error
             page.wait_for_timeout(100)
     finally:
-        try:
-            skip_render(page, False)
-        except Exception:
-            pass
+        if skip_page_render:
+            try:
+                skip_render(page, False)
+            except Exception:
+                pass
         for ally in allies:
             try:
                 skip_render(ally, False)

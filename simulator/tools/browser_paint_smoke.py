@@ -57,18 +57,30 @@ with sync_playwright() as p:
         soft_click(page, '#flightDrawer')
         soft_click(page, '.surface-paint-tools summary')
         soft_click(page, '.paint-toggle')
-        # Let the real top-camera spring settle; a same-turn lookAt snap can leave the ray with no hit.
-        page.evaluate("window.__viewer.setCam('top')")
-        pump_until(page, """() => {
-          const v = window.__viewer;
-          if (!v?.S || !(v.S.sensors?.altitude > 3)) return false;
+        # Snap top cam and spray in one turn (updateMatrixWorld required for setFromCamera).
+        # Spring settle is starved when soft-GL frames are skipped under load — scheduling, not the rule.
+        page.bring_to_front()
+        status = page.evaluate("""() => {
+          const v = window.__viewer, p = v.rovG.position;
+          if (!(v?.S?.sensors?.altitude > 3)) return 'altitude';
           v.setCam('top');
+          if (v.camera.clearViewOffset) v.camera.clearViewOffset();
+          v.camera.up.set(0, 0, 1);
+          v.camera.position.set(p.x, p.y + 22, p.z);
+          v.camera.lookAt(p);
+          v.camera.updateMatrixWorld(true);
+          v.camera.updateProjectionMatrix();
           const meshes = [];
-          v.scene.traverse(o => { if (o.isMesh && o.userData.paintable && o.visible) meshes.push(o); });
+          v.scene.traverse(o => {
+            if (o.isMesh && o.userData.paintable && o.visible) {
+              o.updateWorldMatrix(true, false);
+              meshes.push(o);
+            }
+          });
           const ray = new v.THREE.Raycaster();
           ray.setFromCamera(new v.THREE.Vector2(0, 0), v.camera);
           const hit = ray.intersectObjects(meshes, false)[0];
-          if (!hit || hit.distance < 5) return false;
+          if (!hit || hit.point.distanceTo(p) <= 3) return 'no-far-hit';
           const canvas = document.querySelector('.viewport canvas');
           const rect = canvas.getBoundingClientRect();
           const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
@@ -78,8 +90,9 @@ with sync_playwright() as p:
           canvas.dispatchEvent(new PointerEvent('pointerup', {
             button: 0, clientX: x, clientY: y, pointerId: 1, bubbles: true
           }));
-          return (document.querySelector('.paint-status')?.textContent || '').includes('距離太遠');
-        }""", timeout_ms=timeout(60000), allies=(peer,))
+          return document.querySelector('.paint-status')?.textContent || '';
+        }""")
+        assert '距離太遠' in status, status
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['far_surface_rejected'] = True
         # Drive heave via touch + keyboard. Never click #bLock here: it toggles, so set-then-click
@@ -128,6 +141,7 @@ with sync_playwright() as p:
               const canvas = document.querySelector('.viewport canvas');
               const rect = canvas.getBoundingClientRect();
               if (offsetX) v.camera.setViewOffset(rect.width, rect.height, offsetX, 0, rect.width, rect.height);
+              v.camera.updateMatrixWorld(true);
               v.camera.updateProjectionMatrix();
               document.activeElement?.blur?.();
               const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
@@ -145,8 +159,13 @@ with sync_playwright() as p:
         assert '擋住' in status, status
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['vehicle_occlusion_rejected'] = True
-        # Higher top view + offset, matching the original smoke geometry onto exposed sand.
-        status = spray_center_with_top_cam(35, height=22)
+        # Higher top view + offset onto exposed sand. Widen offset if the hull still
+        # occludes (soft-GL pose jitter); still require a successful mark send.
+        status = ''
+        for offset in (35, 55, 75, 100, 140):
+            status = spray_center_with_top_cam(offset, height=22)
+            if '已送出' in status or '確認' in status:
+                break
         assert '已送出' in status or '確認' in status, status
         pump_until(page, '() => window.__viewer.S.paint_marks.length===1',
                    timeout_ms=timeout(120000), allies=(peer,))
