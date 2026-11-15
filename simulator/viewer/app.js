@@ -20,6 +20,7 @@ import {installTetherReel} from './tether_reel.js';
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
 import * as THREE from 'three';
 import {installAudio, installAudioSettings} from './audio/engine.js';
+import {installMusic} from './audio/music.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { placeSceneModel } from './scene_models.js';
@@ -461,7 +462,7 @@ installDisplayPrefs();
 const skipFrame = createFrameGate();
 const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
 const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
-  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts()});
+  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open)});
 const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
 const connectionNotice = installConnectionNotice({element: $('offline')});
@@ -1182,6 +1183,7 @@ const audio = installAudio({
   getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
+const music = installMusic({engine: audio});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   if (!CAPTURE && skipFrame(now)) {
@@ -1243,6 +1245,7 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   audio.update(renderState.display(S));
+  music.update(renderState.display(S));
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);

@@ -81,7 +81,8 @@ function buildMedal() {
 }
 
 // send, getState, getWorld, getSession: app.js accessors. onContracts(): open the in-flight contract board.
-export function installResults({ send, getState, getWorld, getSession, onContracts, readOnly = false }) {
+// onVisible(open): the card was shown or hidden (app.js switches the music to the results context).
+export function installResults({ send, getState, getWorld, getSession, onContracts, onVisible, readOnly = false }) {
   const watcher = createOutcomeWatcher();
   const log = createFlightLog({ getWorld });
   const root = element('section', 'results-screen');
@@ -134,6 +135,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     if (!open) return;
     open = false;
     root.hidden = true;
+    onVisible?.(false);
     navigator?.setActive(false);
     navigator?.stop();
   }
@@ -249,6 +251,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     renderActions();
     open = true;
     root.hidden = false;
+    onVisible?.(true);
     navigator?.setActive(true);
     navigator?.start();
     prompts();

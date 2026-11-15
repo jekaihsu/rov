@@ -10,5 +10,6 @@ import '../vision/overlay.js';
 import '../fx/beautify.js';
 import '../onboard/camera_look.js';
 import '../audio/fidelity.js';
+import '../audio/music_fidelity.js';
 import '../input/haptics_fidelity.js';
 import '../prefs/camera_items.js';

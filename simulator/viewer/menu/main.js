@@ -22,6 +22,8 @@ import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
 import { SHOWCASE, createStage } from './stage.js';
 import { installDisplayPrefs } from '../prefs/display.js';
+import { installAudio } from '../audio/engine.js';
+import { installMusic } from '../audio/music.js';
 
 const STRINGS = {
   brand: 'ROV Solution',
@@ -53,6 +55,7 @@ const ROUTES = {
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
 const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training']);
+const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -224,6 +227,7 @@ function show(name) {
   next.element.dataset.active = '';
   menu.dataset.screen = name;
   showBackdrop(name);
+  music.setScreen(name);
   stage.setPose(next.pose || name);
   renderSteps();
   renderPromptsFor(navigator.family);
@@ -292,6 +296,7 @@ function launch() {
   setStatus(STRINGS.launching);
   menu.classList.add('departing');
   stage.setPose('launch');
+  music.setScreen(null);
   setTimeout(function leaveMenu() {
     location.assign(url);
   }, reduced ? 0 : 650);
