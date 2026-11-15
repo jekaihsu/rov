@@ -24,6 +24,8 @@ from .world import Box, Cylinder, ShipHull, Wall, ship_hull_params
 # Fittings on a structure: the tether touches and snags on them like any obstacle, but wrap counting (turns of
 # cable round a pile) keeps to the primary members, so a leg's anodes or a monopile's J-tubes do not report turns.
 APPURTENANCE_KINDS = frozenset({
+    "route_cable", "route_damage", "route_concrete", "route_steel", "route_sign",
+    "route_rope", "route_star", "route_urchin",
     "pen_net", "pen_rope", "pen_frame", "pen_sinker", "pen_buoy", "pen_anchor",
     "anode", "anode_strap", "mudmat", "transition_piece", "boat_landing", "j_tube", "cable_protection",
     "scour_rock", "fender", "ladder", "bollard", "toe_rock", "tyre", "debris_block", "debris_pipe",
@@ -32,6 +34,8 @@ APPURTENANCE_KINDS = frozenset({
 # Fittings that sit inside the near-bed log layer (whose roughness length already stands for them) or are too
 # small to shed a wake of their own; the structure flow skips them.
 NO_WAKE_KINDS = frozenset({
+    "route_cable", "route_damage", "route_concrete", "route_steel", "route_sign",
+    "route_rope", "route_star", "route_urchin",
     "pen_net", "pen_rope", "pen_frame", "pen_sinker", "pen_buoy", "pen_anchor",
     "scour_rock", "toe_rock", "cable_protection", "debris_pipe", "tyre", "debris_block", "mudmat",
     "anode_strap", "propeller", "bollard", "deck",

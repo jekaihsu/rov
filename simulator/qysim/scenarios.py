@@ -79,6 +79,7 @@ class Scenario:
     # Optical water type for the viewer's colour (oceanic / coastal / shelf / harbour / fresh_clear);
     # None: from the biome (water_type_for). Presentation only; it does not change physics or visibility_m.
     water_type: str | None = None
+    cable_route: dict | None = None
 
     def summary(self) -> dict:
         from .aquaculture import layout
@@ -88,6 +89,7 @@ class Scenario:
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
                 "water_type": water_type_for(self.biome, self.water_type, self.water),
+                **({"cable_route": self.cable_route} if self.cable_route else {}),
                 **({"aquaculture": layout()[1]}
                    if self.key == "aquaculture_pen" else {})}
 
@@ -530,7 +532,21 @@ def aquaculture_pen() -> Scenario:
                     Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
 
 
+def cable_survey(seed=51) -> Scenario:
+    from .cable_route import layout, STRINGS
+    obstacles, data = layout(seed)
+    start = tuple(np.array(data['centerline'][0]['pos']) - [0, 0, 1.8])
+    return Scenario('cable_survey', STRINGS['name'], STRINGS['brief'], seabed_depth=33.,
+                    obstacles=obstacles, biome='cable', seabed_type='sand', water_type='shelf',
+                    visibility_m=6., start_pos=start, spool_pos=(0, 0, 0), tether_length=340.,
+                    current=CurrentProfile(.5, 80, .3, 85, .12, 90, TI_OFFSHORE, tide=Tide()),
+                    time_limit_s=3600, cable_route=data, seed=seed,
+                    objectives=[Objective('cable_' + kind, STRINGS[label], start)
+                                for kind, label in [('route', 'route'), ('events', 'events'), ('span', 'span')]])
+
+
 LIBRARY = {
+    "cable_survey": cable_survey,
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
     "incident_silt": incident_silt,
@@ -558,6 +574,8 @@ def build(key: str, seed: int | None = None) -> Scenario:
         return random_scenario(seed)
     if key not in LIBRARY:
         raise KeyError(f"unknown scenario {key!r}; choose from {sorted(LIBRARY)} or 'random'")
+    if key == "cable_survey":
+        return cable_survey(51 if seed is None else int(seed))
     scenario = LIBRARY[key]()
     scenario.seed = int(seed) if seed is not None else 0
     return scenario
@@ -611,6 +629,9 @@ class Scorer:
             self.failed = "臍帶纜斷裂"
         if self.elapsed > self.sc.time_limit_s:
             self.failed = "超過時間限制"
+        if self.sc.cable_route:
+            from .cable_route import update
+            update(self, sim)
         # objectives (in order)
         objs = self.sc.objectives
         while self.current_index < len(objs) and objs[self.current_index].done:
@@ -651,7 +672,9 @@ class Scorer:
         return int(max(0, round(base - sum(p["points"] for p in self.penalties))))
 
     def as_dict(self) -> dict:
-        return {"score": self.score, "elapsed": round(self.elapsed, 1), "failed": self.failed,
+        return {**({"cable_records": getattr(self, "cable_records", {}),
+                    "cable_span_m": getattr(self, "cable_span_m", None)} if self.sc.cable_route else {}),
+                "score": self.score, "elapsed": round(self.elapsed, 1), "failed": self.failed,
                 "finished": self.finished, "current_index": self.current_index,
                 "objectives": [o.as_dict() for o in self.sc.objectives],
                 "penalties": self.penalties[-20:], "penalty_total": sum(p["points"] for p in self.penalties)}

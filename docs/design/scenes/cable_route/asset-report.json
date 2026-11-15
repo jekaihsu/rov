@@ -1,0 +1,35 @@
+{
+  "tiers": {
+    "low": {
+      "structureTriangles": 80148,
+      "structureDrawCalls": 10,
+      "seabedTriangles": 14440,
+      "totalSiteTriangles": 94588
+    },
+    "medium": {
+      "structureTriangles": 80148,
+      "structureDrawCalls": 10,
+      "seabedTriangles": 14440,
+      "totalSiteTriangles": 94588
+    },
+    "high": {
+      "structureTriangles": 80148,
+      "structureDrawCalls": 10,
+      "seabedTriangles": 14440,
+      "totalSiteTriangles": 94588
+    }
+  },
+  "files": {
+    "route.glb": 457012,
+    "weathering.webp": 75234,
+    "mission.json": 126334
+  },
+  "seed": 51,
+  "textureMiBWithMips": 6,
+  "glbRequiredExtensions": [
+    "EXT_meshopt_compression",
+    "EXT_texture_webp",
+    "KHR_mesh_quantization"
+  ],
+  "glbTriangles": 33204
+}
