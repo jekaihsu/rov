@@ -19,6 +19,13 @@ no external files. Marine-life GLBs registered later in `../marine_registry.js` 
 
 `observation_rov.glb`, `observation_rov_lod1.glb` and `observation_rov_lod2.glb` (generic asset set, `?assets=generic`) are original work: geometry and textures are generated from scratch by `cad/build_observation_rov.py` (Blender, procedural shaders baked to PBR maps) and compressed by `cad/pack_observation_rov.py` with the glTF-Transform CLI (MIT, build-time tool only). No third-party models, photographs, scans or texture libraries are used, and the design is not modelled on any manufacturer's vehicle.
 
+`korean_castle.glb`, `korean_castle_lod1.glb` and `korean_castle_lod2.glb` are original work derived from the project's illustrative
+`cad/korean_castle/Korean_Castle_Display.blend` (poster reconstruction, not a survey). I4 regenerates materials and
+sparse biofouling/fracture detail with `cad/build_korean_castle_i4.py` (headless Blender/`bpy`, procedural 1K PBR
+atlases) and packs them with `cad/pack_korean_castle.py` via the glTF-Transform CLI (MIT, build-time only: WebP +
+meshopt). No third-party models, photographs, scans or texture libraries are embedded; the large edited `.blend` is
+not committed. See `docs/design/wreck/README.md`.
+
 An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime` reference directory. It is not included here or in the desktop distribution.
 
 ### Input mapping data
