@@ -28,9 +28,11 @@ CTRL = "QYRovControllerManage"
 NAV = "QYRovNavigationManage"
 
 
+# Optional `sensors` / `link` / `turbidity` enable student-view debrief (G6); older players ignore them.
 _KEEP = ("t", "pos", "q", "euler", "vel", "speed_kn", "thrust", "health", "rc", "remote_control",
          "operation_mode", "ctrl_mode", "locked", "keep_depth", "depth_hold", "battery", "recording",
-         "photos", "current_here", "current_kn", "tether", "events", "damage", "silt", "nav", "score", "log")
+         "photos", "current_here", "current_kn", "tether", "events", "damage", "silt", "turbidity",
+         "nav", "score", "log", "sensors", "link")
 
 
 def _round(x):
