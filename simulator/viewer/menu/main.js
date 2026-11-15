@@ -24,6 +24,8 @@ import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
 import { SHOWCASE, createStage } from './stage.js';
+import { createBackdrop } from './big_picture.js';
+import { previewKey } from './cards.js';
 import { installDisplayPrefs } from '../prefs/display.js';
 import { installAudio } from '../audio/engine.js';
 import { installMusic } from '../audio/music.js';
@@ -58,7 +60,7 @@ const ROUTES = {
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
-const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'board', 'shop']);
+const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'shop']);
 const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
@@ -129,6 +131,8 @@ try {
 }
 setLoading(0.35, STRINGS.loading.scene);
 const stage = createStage(menu, { quality: choice.quality });
+// The game-rendered site picture that covers the stage while it switches site (big_picture.js).
+const backdrop = createBackdrop(menu, shade);
 // Player-facing YX fleet names come from fleet_names.js; ?assets=generic keeps the name of the art variant
 // it draws and shows its own detail line.
 for (const vehicle of catalogue.vehicles) {
@@ -244,8 +248,13 @@ function show(name) {
     navigator.focusFirst(next.element);
   });
 }
+// A screen with sceneKey() names the site behind it (the focused contract's); the others keep the chosen site.
 function showBackdrop(name) {
-  if (SHOWCASE_SCREENS.has(name)) stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
+  if (SHOWCASE_SCREENS.has(name)) {
+    clearTimeout(previewTimer);
+    backdrop.hide();
+    stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
+  } else if (screens[name].sceneKey) previewScene(screens[name].sceneKey());
   else if (stage.showcase) stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
 }
 function go(name) {
@@ -257,10 +266,16 @@ function back() {
   show(history.pop());
 }
 
+// Shows the site's preview picture at once, switches the 3D stage a moment later and then fades the picture
+// away; a site this build has no scene for keeps its picture.
 function previewScene(key) {
   clearTimeout(previewTimer);
+  const entry = sceneFor(key);
+  if (!entry || stage.showcase || stage.state.sceneKey !== key) backdrop.show(`menu/previews/${previewKey(key)}.jpg`);
   previewTimer = setTimeout(function switchScene() {
-    stage.setScene(sceneFor(key));
+    if (!entry) return;
+    stage.setScene(entry);
+    backdrop.reveal();
   }, PREVIEW_DELAY_MS);
 }
 function selectModel(id) {

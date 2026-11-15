@@ -1,5 +1,7 @@
 // The launch flow's own screens: title, main menu, mode, vehicle hangar, dive site and briefing.
 // Each builder returns {element, enter()}; navigation, data and the 3D stage come from the shared context.
+// Big-picture layout (big_picture.js): the scene is the screen, one large title, a few numbers, one primary
+// button, choices as image tiles; longer text waits behind 明細.
 import { STICKERS } from '../vehicle_stickers.js';
 import { getFidelity } from '../fidelity.js';
 import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
@@ -7,6 +9,15 @@ import { MODES, siteFacts, supportsMode, vehicleSpecs } from './catalogue.js';
 import { briefingTimeLimit } from '../play/mission_text.js';
 import { lengthIn, lengthUnit } from '../prefs/display.js';
 import { introForLaunch } from './preferences.js';
+import {
+  createDetailSheet,
+  createHero,
+  createTileStrip,
+  detailButton,
+  linkButton,
+  primaryButton,
+  tile,
+} from './big_picture.js';
 
 const STRINGS = {
   title: 'ROV Solution',
@@ -15,6 +26,7 @@ const STRINGS = {
   tagline: 'YX 水下工程 · ROV 操作員',
   pressStart: '開始',
   version: '開發版 0.3',
+  // [label, tooltip]: the screen shows the label only; the description is there on demand.
   entries: {
     dive: ['開始潛航', '選擇玩法、載具與海域，從水面下潛。'],
     story: ['劇情與教學', '加入 YX 工作隊：從水池練習開始，接下港灣與船殼巡檢。'],
@@ -28,50 +40,70 @@ const STRINGS = {
   quick: '快速開始',
   quickNone: '完成一次下水後，可一鍵沿用上次設定。',
   modesTitle: '選擇玩法',
+  // [title, description (tooltip), players, short chips]
   modes: {
-    expedition: ['海洋探索與工程', '探索海域、拍攝生物與自由接案；回收與部署需要機械臂。', '1–3 人'],
-    free_explore: ['自由探索', '不計時、不扣分，練習操控、機械臂與標記。', '1–3 人'],
-    inspection_coop: ['協作巡檢', '分工靠近三個站點，穩定懸停後拍照，12 分鐘內完成。', '1–3 人'],
-    scenario_training: ['場景訓練', '照各場景原本的訓練目標、時限與評分進行。', '1 人起'],
+    expedition: ['海洋探索與工程', '探索海域、拍攝生物與自由接案；回收與部署需要機械臂。', '1–3', ['生態攝影', '自由接案']],
+    free_explore: ['自由探索', '不計時、不扣分，練習操控、機械臂與標記。', '1–3', ['不計時', '不扣分']],
+    inspection_coop: ['協作巡檢', '分工靠近三個站點，穩定懸停後拍照，12 分鐘內完成。', '1–3', ['三個站點', '限時 12 分']],
+    scenario_training: ['場景訓練', '照各場景原本的訓練目標、時限與評分進行。', '1+', ['計時', '評分']],
   },
+  players: '人數',
+  choose: '選擇',
   hangarTitle: '載具',
   provisional: '暫定',
   provisionalHelp: '此機型參數尚未實測，數值為暫定估算，待實測補齊。',
   estimated: '工程估算',
-  numbers: { mass: '質量', thrusters: '推進器', speed: '前進極速', arm: '機械臂' },
+  numbers: { mass: '質量', thrusters: '推進器', speed: '極速', arm: '機械臂' },
   units: { mass: 'kg', thrusters: '具', speed: 'kn' },
   armYes: '有',
   armNo: '無',
   bars: { speed: '速度', thrust: '總推力', yaw: '轉向', axes: '可控自由度' },
-  sticker: '機身貼紙',
+  about: '簡介',
+  performance: '性能',
+  sticker: '貼紙',
   next: '下一步',
   sitesTitle: '潛航海域',
-  sitesMore: '共 {n} 處海域 · 左右移動瀏覽',
+  sitesCount: '{n} 處',
   depth: '海床',
   visibility: '能見度',
-  current: '最大洋流',
-  notForMode: '此玩法不提供這片海域',
+  current: '洋流',
+  notForMode: '此玩法不提供',
   briefingTitle: '下水簡報',
-  briefingNumbers: { depth: '海床深度', visibility: '能見度', current: '最大洋流', tether: '纜長', time: '時限' },
+  tether: '纜長',
+  timeLimit: '時限',
   units2: { kn: 'kn', min: '分' },
   objectives: '任務目標',
+  objectiveCount: '目標 {n} 項',
   noObjectives: '自由航行，沒有指定目標。',
   goalsTitle: '玩法',
+  site: '海域',
   modeGoals: {
     free_explore: ['自由航行：不計時、不扣分。', '練習操控、機械臂與標記，隨時可以返回主選單。'],
     expedition: ['探索海域、拍攝生物登錄圖鑑。', '下水後可在任務卡接取巡檢、回收或部署委託。'],
     inspection_coop: ['分工靠近三個巡檢站點（下水後標出）。', '在站點低速穩定 3 秒後拍照。'],
   },
   hostNote: '加入既有房間時，以房主的場景與玩法為準。',
+  hostChip: '以房主設定為準',
   room: '房間',
   intro: '下水動畫',
-  procedure: '潛前檢查與下水流程',
+  procedure: '潛前檢查',
   procedureOff: '關閉時直接從水中開始，略過潛前檢查（擬真設定「下水流程」為完整作業時）。',
   introOff: '關閉時直接從水中開始。',
   launch: '下水',
   chapter: '章節',
   campaign: '劇情與教學',
 };
+// Entries drawn smaller under the main list.
+const MINOR_ENTRIES = new Set(['collection', 'settings']);
+// The game-rendered site picture (menu/previews) that stands for each mode on its tile.
+const MODE_PREVIEW = {
+  expedition: 'coral_reef',
+  free_explore: 'open_water',
+  inspection_coop: 'harbor_inspection',
+  scenario_training: 'jacket_inspection',
+};
+const NAME_SEPARATOR = ' · ';
+const MAX_CHIPS = 3;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -136,8 +168,8 @@ export function buildTitle(ctx) {
 
 export function buildMain(ctx) {
   const root = screen('main', STRINGS.title);
+  root.classList.add('bp-screen');
   const list = element('nav', 'menu-list');
-  const describe = element('p', 'menu-entry-help');
   const targets = {
     dive: function dive() {
       ctx.startRoute('dive');
@@ -170,29 +202,32 @@ export function buildMain(ctx) {
     button.type = 'button';
     button.id = ids[key] || `entry-${key}`;
     button.dataset.entry = key;
+    button.title = help;
+    if (MINOR_ENTRIES.has(key)) button.classList.add('menu-entry-minor');
     if (index === 0) button.dataset.autofocus = '';
-    button.append(element('span', 'menu-entry-index', String(index + 1).padStart(2, '0')));
     button.append(element('span', 'menu-entry-label', label));
     button.addEventListener('click', targets[key]);
-    for (const type of ['focus', 'pointerenter']) {
-      button.addEventListener(type, function showHelp() {
-        describe.textContent = help;
-      });
-    }
     list.append(button);
   });
-  const quick = element('button', 'menu-quick');
-  quick.type = 'button';
-  quick.id = 'quickStart';
+  // 快速開始 is a text action: its second line names the last dive it repeats.
+  const quick = linkButton('quickStart', '');
+  quick.classList.add('menu-quick');
   const quickText = element('span', 'menu-quick-detail');
-  quick.append(element('span', 'menu-label', STRINGS.quick), quickText);
+  quick.append(element('span', 'menu-quick-label', STRINGS.quick), quickText);
   quick.addEventListener('click', function quickStart() {
     ctx.quickStart();
   });
-  root.append(list, describe, quick);
-  // The YX career summary and 繼續職涯 (career/summary.js), when the career data loaded.
+  // The YX career as one status line and 繼續職涯 (career/summary.js), when the career data loaded.
   const career = ctx.careerSummary?.() || null;
-  if (career) root.append(career.element);
+  root.append(list);
+  if (career) {
+    career.actions.append(quick);
+    root.append(career.element);
+  } else {
+    const corner = element('div', 'bp-hero bp-hero-corner');
+    corner.append(quick);
+    root.append(corner);
+  }
   function enter() {
     career?.refresh();
     ctx.choice.multiplayer = false;
@@ -200,34 +235,46 @@ export function buildMain(ctx) {
     ctx.choice.exam = false;
     const summary = ctx.lastSummary();
     quick.disabled = !summary;
-    quickText.textContent = summary || STRINGS.quickNone;
-    describe.textContent = STRINGS.entries.dive[1];
+    quick.title = summary ? '' : STRINGS.quickNone;
+    quickText.textContent = summary;
   }
   return { element: root, pose: 'main', enter };
 }
 
 export function buildModes(ctx) {
   const root = screen('modes', STRINGS.modesTitle);
-  root.append(element('h2', 'menu-heading', STRINGS.modesTitle));
-  const grid = element('div', 'menu-cards menu-mode-cards');
-  const buttons = [];
-  for (const mode of MODES) {
-    const [title, line, players] = STRINGS.modes[mode];
-    const card = element('button', 'menu-card');
-    card.type = 'button';
+  root.classList.add('bp-screen');
+  const hero = createHero();
+  const { button: choose } = primaryButton('modeChoose', STRINGS.choose);
+  hero.actions.append(choose);
+  function showMode(card) {
+    const [title, , players, chips] = STRINGS.modes[card.dataset.mode];
+    hero.kicker.textContent = STRINGS.modesTitle;
+    hero.setTitle(title);
+    hero.setStats([[STRINGS.players, players, '']]);
+    hero.setChips(chips);
+  }
+  const strip = createTileStrip(showMode);
+  const cards = MODES.map(function modeTile(mode) {
+    const [title, line] = STRINGS.modes[mode];
+    const card = tile({ name: title, image: `menu/previews/${MODE_PREVIEW[mode]}.jpg` });
     card.dataset.mode = mode;
-    card.append(element('span', 'menu-card-players', players));
-    card.append(element('strong', 'menu-card-title', title));
-    card.append(element('span', 'menu-card-line', line));
+    card.title = line;
     card.addEventListener('click', function chooseMode() {
       ctx.chooseMode(mode);
     });
-    buttons.push(card);
-    grid.append(card);
-  }
-  root.append(grid);
+    return card;
+  });
+  choose.addEventListener('click', function chooseCurrent() {
+    const mode = strip.current?.dataset.mode;
+    if (mode) ctx.chooseMode(mode);
+  });
+  root.append(strip.element, hero.element);
   function enter() {
-    for (const card of buttons) card.setAttribute('aria-pressed', String(card.dataset.mode === ctx.choice.mission));
+    for (const card of cards) card.setAttribute('aria-pressed', String(card.dataset.mode === ctx.choice.mission));
+    strip.fill(cards, cards.find(function chosen(card) {
+      return card.dataset.mode === ctx.choice.mission;
+    }));
   }
   return { element: root, pose: 'modes', enter };
 }
@@ -243,78 +290,96 @@ function bar(label, value, text) {
   return row;
 }
 
+// "YX Model R · Block 1" as a large name and a smaller Block line; the text content stays the whole title.
+function renderVehicleName(node, title) {
+  const [name, ...rest] = String(title || '').split(NAME_SEPARATOR);
+  node.replaceChildren(element('span', '', name));
+  node.dataset.size = name.length > 12 ? 's' : 'm';
+  if (!rest.length) return;
+  node.append(element('span', 'menu-vehicle-separator', NAME_SEPARATOR));
+  node.append(element('small', '', rest.join(NAME_SEPARATOR)));
+}
+
+function chipButton(className, text) {
+  const button = element('button', `menu-chip ${className}`.trim(), text);
+  button.type = 'button';
+  return button;
+}
+
 export function buildHangar(ctx) {
   const root = screen('hangar', STRINGS.hangarTitle);
-  const side = element('div', 'menu-hangar');
-  side.append(element('h2', 'menu-heading', STRINGS.hangarTitle));
-  const picker = element('div', 'menu-vehicles');
-  picker.setAttribute('role', 'radiogroup');
-  const name = element('h3', 'menu-vehicle-name');
+  root.classList.add('bp-screen');
+  const hero = createHero({ titleTag: 'h3' });
+  hero.title.classList.add('menu-vehicle-name');
+  const role = element('span', '');
   const marker = element('span', 'menu-provisional', STRINGS.provisional);
   marker.title = STRINGS.provisionalHelp;
-  const note = element('p', 'menu-help');
-  const numbers = element('div', 'menu-readouts');
-  const bars = element('div', 'menu-bars');
+  hero.kicker.append(role, marker);
+  const picker = element('div', 'menu-vehicles');
+  picker.setAttribute('role', 'radiogroup');
+  picker.setAttribute('aria-label', STRINGS.hangarTitle);
   const stickers = element('div', 'menu-stickers');
   stickers.setAttribute('role', 'radiogroup');
   stickers.setAttribute('aria-label', STRINGS.sticker);
+  const stickerLabel = element('span', 'bp-row-label', STRINGS.sticker);
+  const sheet = createDetailSheet(STRINGS.hangarTitle);
+  const detail = element('p', 'bp-sheet-text');
+  detail.id = 'hangarDetail';
+  const caveat = element('p', 'bp-sheet-text');
+  const bars = element('div', 'menu-bars');
+  sheet.section(STRINGS.about, detail, caveat);
+  sheet.section(STRINGS.performance, bars);
   for (const vehicle of ctx.data.vehicles) {
-    const button = element('button', 'menu-chip');
-    button.type = 'button';
+    const button = chipButton('', vehicle.name);
     button.dataset.vehicle = vehicle.id;
-    button.textContent = vehicle.name;
     button.addEventListener('click', function chooseVehicle() {
       ctx.selectModel(vehicle.id);
       render();
     });
     picker.append(button);
   }
+  stickers.append(stickerLabel);
   for (const [preset, label] of Object.entries(STICKERS)) {
-    const button = element('button', 'menu-chip menu-chip-small');
-    button.type = 'button';
+    const button = chipButton('menu-chip-small', label);
     button.dataset.sticker = preset;
-    button.textContent = label;
     button.addEventListener('click', function chooseSticker() {
       ctx.selectSticker(preset);
       render();
     });
     stickers.append(button);
   }
-  const next = element('button', 'menu-next');
-  next.type = 'button';
-  next.id = 'hangarNext';
-  next.textContent = STRINGS.next;
+  const { button: next } = primaryButton('hangarNext', STRINGS.next, { cap: false });
   next.addEventListener('click', function proceed() {
     ctx.afterHangar();
   });
-  const title = element('div', 'menu-vehicle-title');
-  title.append(name, marker);
-  const stickerTitle = element('h3', 'menu-label', STRINGS.sticker);
-  side.append(picker, title, note, numbers, bars, stickerTitle, stickers, next);
-  root.append(side);
+  hero.chips.replaceWith(picker, stickers);
+  hero.actions.append(next, detailButton('hangarDetails', sheet));
+  root.append(hero.element);
   function render() {
     const vehicle = ctx.data.vehicles.find(function chosen(entry) {
       return entry.id === ctx.choice.model;
     }) || ctx.data.vehicles[0];
     if (!vehicle) return;
     const specs = vehicleSpecs(vehicle);
-    name.textContent = ctx.titleFor?.(vehicle) || vehicle.title || vehicle.name;
+    renderVehicleName(hero.title, ctx.titleFor?.(vehicle) || vehicle.title || vehicle.name);
+    role.textContent = String(vehicle.detail || '').split(NAME_SEPARATOR)[0] || STRINGS.hangarTitle;
     marker.hidden = !specs.provisional;
-    const caveat = specs.provisional ? STRINGS.provisionalHelp : STRINGS.estimated;
-    note.textContent = [vehicle.detail, caveat].filter(Boolean).join(' · ');
-    numbers.replaceChildren(
-      readout(STRINGS.numbers.mass, fixed(specs.mass, 1), STRINGS.units.mass),
-      readout(STRINGS.numbers.thrusters, String(specs.thrusters), STRINGS.units.thrusters),
-      readout(STRINGS.numbers.speed, fixed(specs.speedKn, 1), STRINGS.units.speed),
-      readout(STRINGS.numbers.arm, specs.arm ? STRINGS.armYes : STRINGS.armNo),
-    );
+    sheet.setTitle(vehicle.name);
+    detail.textContent = vehicle.detail || '';
+    caveat.textContent = specs.provisional ? STRINGS.provisionalHelp : STRINGS.estimated;
+    hero.setStats([
+      [STRINGS.numbers.mass, fixed(specs.mass, 1), STRINGS.units.mass],
+      [STRINGS.numbers.thrusters, String(specs.thrusters), STRINGS.units.thrusters],
+      [STRINGS.numbers.speed, fixed(specs.speedKn, 1), STRINGS.units.speed],
+      [STRINGS.numbers.arm, specs.arm ? STRINGS.armYes : STRINGS.armNo, ''],
+    ]);
     bars.replaceChildren(...Object.entries(STRINGS.bars).map(function makeBar([key, label]) {
       return bar(label, specs.bars[key], specs.values[key]);
     }));
     for (const button of picker.children) {
       button.setAttribute('aria-pressed', String(button.dataset.vehicle === vehicle.id));
     }
-    for (const button of stickers.children) {
+    for (const button of stickers.querySelectorAll('[data-sticker]')) {
       button.hidden = ctx.stickerAvailable ? !ctx.stickerAvailable(button.dataset.sticker) : false;
       button.setAttribute('aria-pressed', String(button.dataset.sticker === ctx.choice.sticker));
     }
@@ -336,104 +401,101 @@ export function buildHangar(ctx) {
   return { element: root, pose: 'hangar', enter: render, rotatable: true };
 }
 
-function siteCard(scene, ctx) {
-  const facts = siteFacts(scene);
-  const card = element('button', 'menu-site');
-  card.type = 'button';
+function siteTile(scene, ctx) {
+  const card = tile({ name: scene.name, image: `menu/previews/${scene.key}.jpg` });
   card.dataset.site = scene.key;
-  const media = element('span', 'menu-site-media');
-  const image = element('img');
-  image.alt = '';
-  image.loading = 'lazy';
-  image.src = `menu/previews/${scene.key}.jpg`;
-  image.addEventListener('error', function noPreview() {
-    image.remove();
-  });
-  media.append(image);
-  const body = element('span', 'menu-site-body');
-  body.append(element('strong', 'menu-card-title', scene.name));
-  const range = depthText(facts);
-  const numbers = element('span', 'menu-site-numbers');
-  numbers.append(
-    readout(STRINGS.depth, range, lengthUnit()),
-    readout(STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()),
-    readout(STRINGS.current, fixed(facts.current, 1), 'kn'),
-  );
-  body.append(numbers);
-  const tags = element('span', 'menu-tags');
-  for (const activity of facts.activities) tags.append(element('span', 'menu-tag', activity));
-  body.append(tags);
-  const unavailable = element('span', 'menu-site-note', STRINGS.notForMode);
-  body.append(unavailable);
-  card.append(media, body);
   card.addEventListener('click', function chooseSite() {
     ctx.chooseSite(scene.key);
-  });
-  card.addEventListener('focus', function previewSite() {
-    ctx.previewScene(scene.key);
-  });
-  card.addEventListener('pointerenter', function hoverSite() {
-    ctx.previewScene(scene.key);
   });
   return card;
 }
 
 export function buildSites(ctx) {
   const root = screen('sites', STRINGS.sitesTitle);
-  root.append(element('h2', 'menu-heading', STRINGS.sitesTitle));
-  const count = STRINGS.sitesMore.replace('{n}', String(ctx.data.sites.length));
-  root.append(element('p', 'menu-help menu-site-count', count));
-  const rail = element('div', 'menu-site-rail');
-  const cards = [];
-  root.append(rail);
+  root.classList.add('bp-screen');
+  const hero = createHero();
+  const count = STRINGS.sitesCount.replace('{n}', String(ctx.data.sites.length));
+  const { button: choose } = primaryButton('siteChoose', STRINGS.choose);
+  hero.actions.append(choose);
+  function showSite(card) {
+    const scene = ctx.sceneFor(card.dataset.site);
+    if (!scene) return;
+    const facts = siteFacts(scene);
+    hero.kicker.textContent = [STRINGS.sitesTitle, count].join(NAME_SEPARATOR);
+    hero.setTitle(scene.name);
+    hero.setStats([
+      [STRINGS.depth, depthText(facts), lengthUnit()],
+      [STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()],
+      [STRINGS.current, fixed(facts.current, 1), STRINGS.units2.kn],
+    ]);
+    const allowed = supportsMode(scene, ctx.choice.mission);
+    hero.setChips(allowed ? facts.activities.slice(0, MAX_CHIPS) : [[STRINGS.notForMode, 'warn']]);
+    choose.disabled = !allowed;
+    ctx.previewScene(scene.key);
+  }
+  const strip = createTileStrip(showSite);
+  choose.addEventListener('click', function chooseCurrent() {
+    const key = strip.current?.dataset.site;
+    if (key) ctx.chooseSite(key);
+  });
+  root.append(strip.element, hero.element);
   function enter() {
     // Rebuilt on entry so the numbers follow the unit setting.
-    cards.splice(0, cards.length, ...ctx.data.sites.map(function makeCard(scene) {
-      return siteCard(scene, ctx);
-    }));
+    const cards = ctx.data.sites.map(function makeCard(scene) {
+      return siteTile(scene, ctx);
+    });
     // Sites the chosen mode offers come first; the others stay visible but disabled.
     const ordered = [...cards].sort(function availableFirst(a, b) {
       const mode = ctx.choice.mission;
       return Number(!supportsMode(ctx.sceneFor(a.dataset.site), mode))
         - Number(!supportsMode(ctx.sceneFor(b.dataset.site), mode));
     });
-    rail.replaceChildren(...ordered);
+    let preferred = null;
     for (const card of cards) {
       const scene = ctx.sceneFor(card.dataset.site);
       const allowed = supportsMode(scene, ctx.choice.mission);
       card.disabled = !allowed;
       card.classList.toggle('unavailable', !allowed);
       card.setAttribute('aria-pressed', String(card.dataset.site === ctx.choice.scenario));
-      if (card.dataset.site === ctx.choice.scenario && allowed) card.dataset.autofocus = '';
-      else delete card.dataset.autofocus;
+      if (card.dataset.site !== ctx.choice.scenario || !allowed) continue;
+      card.dataset.autofocus = '';
+      preferred = card;
     }
+    strip.fill(ordered, preferred);
   }
   return { element: root, pose: 'sites', enter };
 }
 
+function paragraph(text) {
+  return element('p', 'bp-sheet-text', text);
+}
+
+function numbered(labels) {
+  const list = element('ol', 'menu-objectives');
+  list.append(...labels.map(function item(text) {
+    return element('li', '', text);
+  }));
+  return list;
+}
+
 export function buildBriefing(ctx) {
   const root = screen('briefing', STRINGS.briefingTitle);
+  root.classList.add('bp-screen');
   const form = element('form', 'menu-briefing');
   form.id = 'launchForm';
   form.noValidate = true;
-  const kicker = element('p', 'menu-kicker');
-  const heading = element('h2', 'menu-heading menu-heading-large');
-  const brief = element('p', 'menu-brief');
-  const numbers = element('div', 'menu-readouts');
-  const objectivesTitle = element('h3', 'menu-label', STRINGS.objectives);
-  const objectives = element('ol', 'menu-objectives');
-  const note = element('p', 'menu-help');
+  const hero = createHero();
+  hero.element.classList.add('menu-briefing-main');
+  hero.kicker.classList.add('menu-kicker');
+  const sheet = createDetailSheet(STRINGS.briefingTitle);
   const introRow = element('label', 'menu-toggle menu-toggle-inline');
   introRow.htmlFor = 'menuIntro';
-  const introText = element('span', 'menu-toggle-text');
   const introLabel = element('strong', '', STRINGS.intro);
-  const introHelp = element('small', '', STRINGS.introOff);
-  introText.append(introLabel, introHelp);
   // The same switch decides ?nointro, which also skips the pre-dive procedure when the fidelity item asks for it.
   function describeLaunch() {
     const full = getFidelity().get(PROCEDURE_ITEM) === 'full';
     introLabel.textContent = full ? STRINGS.procedure : STRINGS.intro;
-    introHelp.textContent = full ? STRINGS.procedureOff : STRINGS.introOff;
+    introRow.title = full ? STRINGS.procedureOff : STRINGS.introOff;
   }
   getFidelity().subscribe(describeLaunch);
   describeLaunch();
@@ -444,25 +506,29 @@ export function buildBriefing(ctx) {
     ctx.choice.intro = intro.checked;
   });
   const introSwitch = element('span', 'menu-switch');
-  introRow.append(introText, intro, introSwitch);
-  const start = element('button', 'menu-start');
-  start.type = 'submit';
-  start.id = 'startDive';
+  introRow.append(introLabel, intro, introSwitch);
+  const { button: start } = primaryButton('startDive', STRINGS.launch, { type: 'submit' });
   start.dataset.autofocus = '';
-  const startCap = element('span', 'menu-press-cap');
-  startCap.dataset.promptAction = 'accept';
-  start.append(startCap, element('span', '', STRINGS.launch));
-  const actions = element('div', 'menu-launch-actions');
-  actions.append(introRow, start);
-  const left = element('div', 'menu-briefing-main');
-  left.append(kicker, heading, brief, numbers, objectivesTitle, objectives, note);
-  form.append(left, actions);
+  hero.actions.append(start, detailButton('briefingDetails', sheet), introRow);
+  form.append(hero.element);
   form.addEventListener('submit', function submit(event) {
     event.preventDefault();
     ctx.choice.intro = intro.checked;
     ctx.launch();
   });
   root.append(form);
+  function stats(facts, chapter) {
+    if (!facts) return [];
+    const list = [
+      [STRINGS.depth, depthText(facts), lengthUnit()],
+      [STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()],
+      [STRINGS.current, fixed(facts.current, 1), STRINGS.units2.kn],
+    ];
+    const limit = briefingTimeLimit(ctx.choice.mission, facts);
+    if (limit && !chapter) list.push([STRINGS.timeLimit, fixed(limit / 60, 0), STRINGS.units2.min]);
+    else list.push([STRINGS.tether, fixed(metres(facts.tether), 0), lengthUnit()]);
+    return list;
+  }
   function enter() {
     const scene = ctx.sceneFor(ctx.choice.scenario);
     const facts = scene ? siteFacts(scene) : null;
@@ -473,36 +539,32 @@ export function buildBriefing(ctx) {
     const modeName = chapter ? STRINGS.campaign : STRINGS.modes[ctx.choice.mission]?.[0] || '';
     // The room code only matters to players who share one; a solo dive does not show it.
     const room = ctx.choice.multiplayer ? `${STRINGS.room} ${ctx.choice.room}` : '';
-    kicker.textContent = [modeName, vehicle?.title || vehicle?.name, room].filter(Boolean).join(' · ');
-    heading.textContent = chapter ? chapter.title : facts?.name || ctx.choice.scenario;
-    brief.textContent = chapter?.outline || facts?.brief || '';
-    numbers.replaceChildren();
-    if (facts) {
-      const depth = depthText(facts);
-      numbers.append(
-        readout(STRINGS.briefingNumbers.depth, depth, lengthUnit()),
-        readout(STRINGS.briefingNumbers.visibility, fixed(metres(facts.visibility), 0), lengthUnit()),
-        readout(STRINGS.briefingNumbers.current, fixed(facts.current, 1), STRINGS.units2.kn),
-        readout(STRINGS.briefingNumbers.tether, fixed(metres(facts.tether), 0), lengthUnit()),
-      );
-      const limit = briefingTimeLimit(ctx.choice.mission, facts);
-      if (limit && !chapter) {
-        numbers.append(readout(STRINGS.briefingNumbers.time, fixed(limit / 60, 0), STRINGS.units2.min));
-      }
-    }
+    hero.kicker.textContent = [modeName, vehicle?.title || vehicle?.name, room].filter(Boolean)
+      .join(NAME_SEPARATOR);
+    const heading = chapter ? chapter.title : facts?.name || ctx.choice.scenario;
+    hero.setTitle(heading);
+    hero.setStats(stats(facts, chapter));
     // Only scenario training plays the scene's own objectives; the other modes say what the mode is about.
     const goals = chapter ? null : STRINGS.modeGoals[ctx.choice.mission];
     const labels = goals || (scene?.world?.objectives || []).map(function label(objective) {
       return objective.label;
     }).filter(Boolean).slice(0, 5);
-    objectives.replaceChildren(...labels.map(function item(text) {
-      return element('li', '', text);
-    }));
-    if (!labels.length) objectives.append(element('li', 'menu-help', STRINGS.noObjectives));
-    objectivesTitle.textContent = goals ? STRINGS.goalsTitle : STRINGS.objectives;
-    objectivesTitle.hidden = !!chapter;
-    objectives.hidden = !!chapter;
-    note.textContent = ctx.choice.multiplayer ? STRINGS.hostNote : '';
+    const chips = [];
+    if (goals) chips.push(...(STRINGS.modes[ctx.choice.mission]?.[3] || []));
+    else if (labels.length && !chapter) chips.push(STRINGS.objectiveCount.replace('{n}', String(labels.length)));
+    if (ctx.choice.multiplayer) chips.push([STRINGS.hostChip, 'warn']);
+    hero.setChips(chips.slice(0, MAX_CHIPS));
+    // 明細: the site or chapter brief, the objectives and the host note.
+    sheet.setTitle(heading);
+    sheet.clear();
+    const brief = chapter?.outline || facts?.brief || '';
+    if (brief) sheet.section(chapter ? STRINGS.chapter : STRINGS.site, paragraph(brief));
+    if (!chapter) {
+      const list = labels.length ? numbered(labels) : paragraph(STRINGS.noObjectives);
+      sheet.section(goals ? STRINGS.goalsTitle : STRINGS.objectives, list);
+    }
+    if (ctx.choice.multiplayer) sheet.section(STRINGS.room, paragraph(STRINGS.hostNote));
+    sheet.section(introLabel.textContent, paragraph(introRow.title));
     intro.checked = introForLaunch(ctx.choice, getFidelity().get(PROCEDURE_ITEM) === 'full');
     ctx.previewScene(ctx.choice.scenario);
   }

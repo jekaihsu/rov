@@ -69,7 +69,8 @@ def run():
         open_main(page)
         page.wait_for_selector('#careerSummary', timeout=timeout(10000))
         assert '學員' in page.locator('#careerSummary').inner_text()
-        assert '水池檢查潛' in page.locator('#careerContinue').inner_text()
+        assert '水池檢查潛' in page.locator('#careerNext').inner_text(), 'the recommended work order is named'
+        assert page.locator('#careerContinue').is_enabled()
         shot(page, 'main-career-summary')
 
         to_board(page)
@@ -77,7 +78,10 @@ def run():
         shot(page, 'board')
         page.click('#board-tab-ch1')
         assert page.locator('[data-contract="c1_pier_level1"]').get_attribute('data-status') == 'locked'
-        assert '見習' in page.locator('[data-contract="c1_pier_level1"]').inner_text()
+        # A locked tile only shows its name; the hero block says why it is locked once the tile is current.
+        page.hover('[data-contract="c1_pier_level1"]')
+        assert '碼頭外的第一張工單' in page.locator('#boardHero .bp-title').inner_text()
+        assert '見習' in page.locator('#boardHero .bp-chips').inner_text()
         page.click('#board-tab-prologue')
         page.click('[data-contract="p1_pool_checkout"]')
         wait_screen(page, 'contract')
