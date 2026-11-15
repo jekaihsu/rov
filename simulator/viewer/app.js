@@ -17,7 +17,7 @@ import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
 import {installTetherReel} from './tether_reel.js';
 import {thrusterLabel} from './hud/thruster_names.js';
 import {installStartPresentation} from './start_presentation.js';
-import {objectiveFade} from './hud/objective_fade.js';
+import {objectiveFade, objectiveNearFade} from './hud/objective_fade.js';
 import {installPhotoFeedback} from './hud/photo_feedback.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
@@ -984,6 +984,7 @@ function updateObjectives(time) {
     m.mat.fog = !isCur; m.wire.fog = !isCur;
     m.mat.opacity = isCur ? .6 + .35 * Math.sin(time * 5) : o.done ? .55 : .45;
     if (m.bill) m.mat.opacity *= objectiveFade(m.g.position, Math.max(.3, o.radius || 1), camera, vp);
+    if (!m.bill && m.o.kind !== 'inspect') objectiveNearFade(m, Math.max(.3, o.radius || 1), camera);
     m.g.scale.setScalar(isCur ? 1 + .06 * Math.sin(time * 5) : 1);
     if (m.bill) { _v.copy(camera.position).sub(m.g.position); m.bill.rotation.set(0, Math.atan2(_v.x, _v.z), 0); }
     if (isCur) cur = { o, m };

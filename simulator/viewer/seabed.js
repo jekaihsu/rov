@@ -14,7 +14,8 @@ export const PROFILES = {
   offshore: {sand: 0xb3a57f, mud: 0x6f6650, gravel: .35, mud_w: .1, shell: .45, rock: .12, ripple: 1},
   harbour: {sand: 0x7d735c, mud: 0x4b4639, gravel: .25, mud_w: .75, shell: .55, rock: 0, ripple: .25},
   wreck: {sand: 0x8f866b, mud: 0x575142, gravel: .4, mud_w: .55, shell: .3, rock: .08, ripple: .45},
-  reef: {sand: 0xd6cdb0, mud: 0x9d927a, gravel: .5, mud_w: 0, shell: .7, rock: .25, ripple: .8},
+  // fine: a second, 0.13 m ripple read (medium and high) so coral sand shows wave ripples at inspection range
+  reef: {sand: 0xd6cdb0, mud: 0x9d927a, gravel: .5, mud_w: 0, shell: .7, rock: .25, ripple: 1.1, fine: 1},
   seagrass: {sand: 0xbfb48f, mud: 0x6b6450, gravel: .1, mud_w: .45, shell: .35, rock: 0, ripple: .5},
   pool: {sand: 0xdfe8ea, mud: 0xdfe8ea, gravel: 0, mud_w: 0, shell: 0, rock: 0, ripple: 0, tiles: 1},
 };
@@ -199,6 +200,9 @@ function shaderPatch(profile, maps) {
       vec4 seaF = texture2D(uField, SEA_ROT_A * seaP * 0.16);
       float seaR = seaF.r;
       vec3 seaCol = uSand * (0.82 + 0.3 * seaR * uRipple + 0.12 * (seaF.g - 0.5));
+      #ifdef SEA_FINE
+      seaCol *= 0.86 + 0.26 * texture2D(uField, seaP.yx * 0.95 + seaLow * 0.6).r;
+      #endif
       float mudW = clamp(uWeights.y * (0.6 + 0.8 * (seaLow - 0.5)), 0.0, 1.0);
       seaCol = mix(seaCol, uMud * (0.9 + 0.2 * seaF.g), mudW);
       #if SEA_QUALITY >= 2
@@ -236,7 +240,10 @@ export function seabedMaterial(name, detail = 'medium') {
   material.onBeforeCompile = shaderPatch(profile, sharedTextures());
   material.defines = {SEA_QUALITY: QUALITY[detail] ?? 1};
   if (profile.tiles) material.defines.SEA_TILES = 1;
-  material.customProgramCacheKey = () => `seabed-site-v4-${material.defines.SEA_QUALITY}-${profile.tiles ? 1 : 0}`;
+  if (profile.fine) material.defines.SEA_FINE = 1;
+  material.customProgramCacheKey = function seabedProgramKey() {
+    return `seabed-site-v5-${material.defines.SEA_QUALITY}-${profile.tiles ? 1 : 0}-${profile.fine ? 1 : 0}`;
+  };
   material.userData.seabedProfile = name;
   return material;
 }
