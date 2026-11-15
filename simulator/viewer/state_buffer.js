@@ -1,4 +1,6 @@
 // Server-time snapshot sampling shared by live rendering and recorded playback.
+// Callers that negotiated static_once must merge via state_merge.js before push();
+// replay clips store complete snapshots and do not declare that capability.
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 export function slerp(a, b, k) {

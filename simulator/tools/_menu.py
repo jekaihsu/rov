@@ -24,6 +24,15 @@ def soft_click(page, selector):
     page.locator(selector).click(timeout=scaled(30000), no_wait_after=True)
 
 
+def wait_title_card_gone(page, timeout=60000):
+    """Wait until the chapter title card has left (viewer/brand/chapter_card.js).
+
+    The card covers the view for a few seconds when a chapter starts and takes the first key press, so a check
+    that drives the dive with keys or tests what the pointer can reach calls this once the chapter is active.
+    """
+    page.wait_for_function('!document.querySelector(".brand-card-overlay")', timeout=scaled(timeout))
+
+
 def open_main(page):
     """From the title screen (or any screen reached from it) to the main menu."""
     wait_ready(page)

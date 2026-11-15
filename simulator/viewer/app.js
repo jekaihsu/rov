@@ -1,4 +1,5 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
+import { createStateMerger, VIEWER_CAPS } from './state_merge.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
 import { updateTetherOperations } from './tether/operations.js';
@@ -17,7 +18,7 @@ import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
 import {installTetherReel} from './tether_reel.js';
 import {thrusterLabel} from './hud/thruster_names.js';
 import {installStartPresentation} from './start_presentation.js';
-import {objectiveFade} from './hud/objective_fade.js';
+import {objectiveFade, objectiveNearFade} from './hud/objective_fade.js';
 import {installPhotoFeedback} from './hud/photo_feedback.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
@@ -42,6 +43,7 @@ import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo} from './render_quality.js';
 import {installCampaign} from './story/campaign.js';
+import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installExpeditionClient} from './expedition_client.js';
@@ -65,6 +67,7 @@ import { installAchievements } from './play/achievements.js';
 import { installConnectionNotice } from './play/connection_notice.js';
 import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
 import { installObjectiveCard } from './play/objective_card.js';
+import { installCareerDive } from './career/dive.js';
 import './prefs/camera_items.js';
 import { createFrameGate, installDisplayPrefs } from './prefs/display.js';
 
@@ -441,12 +444,14 @@ const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, 
 const videoLinkOverlay = installVideoLinkOverlay(vp);
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
+// Live join declares static_once; replay keeps full frames and never declares caps.
+const stateMerger = createStateMerger();
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
-  onShutter:()=>photoFeedback?.shutter(),
+  onShutter:()=>{photoFeedback?.shutter();careerDive.photo();},
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     vision.assertPhoto();
@@ -463,15 +468,19 @@ const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
 const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
+const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
 let startPresentation=null;
 installDisplayPrefs();
 const skipFrame = createFrameGate();
-const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
+const careerDive = installCareerDive({send, getWorld: () => W, getCamMode: () => camMode, readOnly: !!REPLAY,
+  showResult: outcome => results.show(outcome)});
+const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY, career: careerDive});
 const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
-  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open)});
+  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open),
+  career: careerDive});
 const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
 const connectionNotice = installConnectionNotice({element: $('offline')});
@@ -501,13 +510,17 @@ function connect() {
   ws.onopen = () => {
     wsOpen = true; retry = 0; needResync = true; session=null;inputSequence=0;
     linkInbox.dispose();
+    stateMerger.reset();
     setConn('wait', '已連線 · 等待資料'); rcPump.reset();
     let token;try{token=sessionStorage.getItem(`rov.session:${WS_URL}:${cockpit.room}`);}catch{}
-    send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model});
+    send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model,
+      caps:VIEWER_CAPS});
   };
   // Coalesce state on the page so software-GL stalls cannot bury host_only behind a snapshot backlog.
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
+    // Deltas are merged in arrival order first; only complete snapshots are coalesced by the inbox.
+    if (m.type === 'state') m = stateMerger.merge(m);
     linkInbox.receive(m);
   };
   ws.onclose = () => { wsOpen = false; ws = null; linkInbox.dispose(); setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
@@ -558,9 +571,11 @@ function onState(m) {
   missionPanel.update(m);
   procedurePanel.update(m);
   campaignPanel.update(m);
+  chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
   startPresentation?.update(m, W);
+  careerDive.update(m);
   objectiveCard.update(m);
   results.update(m);
   achievements.update(m);
@@ -645,7 +660,7 @@ const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || 
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY});
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY, extraActions: () => careerDive.pauseActions()});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}
@@ -998,6 +1013,7 @@ function updateObjectives(time) {
     m.mat.fog = !isCur; m.wire.fog = !isCur;
     m.mat.opacity = isCur ? .6 + .35 * Math.sin(time * 5) : o.done ? .55 : .45;
     if (m.bill) m.mat.opacity *= objectiveFade(m.g.position, Math.max(.3, o.radius || 1), camera, vp);
+    if (!m.bill && m.o.kind !== 'inspect') objectiveNearFade(m, Math.max(.3, o.radius || 1), camera);
     m.g.scale.setScalar(isCur ? 1 + .06 * Math.sin(time * 5) : 1);
     if (m.bill) { _v.copy(camera.position).sub(m.g.position); m.bill.rotation.set(0, Math.atan2(_v.x, _v.z), 0); }
     if (isCur) cur = { o, m };

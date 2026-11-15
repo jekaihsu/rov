@@ -2,6 +2,8 @@
 // The page samples controls on its own timer and forwards a packet when it changes or the renew period passes.
 // The link worker owns the socket and repeats the last held packet while the page's thread is stalled by slow
 // rendering, but only for a bounded hold time so a frozen page still lets the server failsafe engage.
+import { coalesceStateText } from "../state_merge.js";
+
 export const RC_TIMING = Object.freeze({
   sampleMs: 33, // control sampling period on the page timer (30 Hz while input changes)
   renewMs: 100, // unchanged input is forwarded again this often, renewing the worker hold
@@ -76,7 +78,8 @@ export function createSequence() {
   return { next, reset };
 }
 
-// State snapshots are complete, so a page that cannot keep up only needs the newest one.
+// A page that cannot keep up only needs the newest snapshot. Snapshots marked delta:true (static_once)
+// omit unchanged fields, so a skipped one is folded into its successor instead of being dropped.
 const STATE_PREFIX = /^\s*\{\s*"type"\s*:\s*"state"/;
 export function isStateText(text) {
   return typeof text === "string" && STATE_PREFIX.test(text);
@@ -85,8 +88,9 @@ export function isStateText(text) {
 // Worker side: owns the socket. `openSocket(url)` returns a WebSocket-like object and `emit(event, data)` reports
 // to the page. Every RC packet gets its sequence number here because both page packets and repeats share the wire.
 // Incoming state snapshots are emitted as "state" one at a time: the next goes out only after the page calls
-// `acknowledge()`, and snapshots that arrive meanwhile replace each other. Without this a stalled page would
-// queue every snapshot and fall ever further behind, because the worker removes the socket's own back-pressure.
+// `acknowledge()`, and snapshots that arrive meanwhile are coalesced into one (complete ones replace).
+// Without this a stalled page would queue every snapshot and fall ever further behind, because the worker
+// removes the socket's own back-pressure.
 // Any other message flushes the waiting snapshot first, so the page still sees everything in server order.
 export function createRcWire({ openSocket, emit, timing = RC_TIMING }) {
   const schedule = createHoldSchedule(timing);
@@ -104,7 +108,7 @@ export function createRcWire({ openSocket, emit, timing = RC_TIMING }) {
       return;
     }
     if (awaiting) {
-      waiting = text;
+      waiting = coalesceStateText(waiting, text);
       return;
     }
     awaiting = true;

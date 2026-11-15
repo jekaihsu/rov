@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- YX 識別系統總表：直接匯入遊戲使用的 simulator/viewer/brand/marks.js，試作與遊戲共用同一份來源。
+     需以 HTTP 開啟（ES module），例如在儲存庫根目錄執行 python -m http.server 後開
+     /docs/design/key-art/identity_sheet.html；identity-sheet.jpg 是它的 2000×1400 截圖。 -->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<title>YX identity sheet</title>
+<style>
+  html, body { margin: 0; background: #efebe2; }
+  .sheet { position: relative; width: 2000px; height: 1400px; background: #efebe2; color: #06121c; overflow: hidden;
+    font: 17px/1.5 "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, monospace; letter-spacing: .14em; }
+  .grid { position: absolute; inset: 100px; opacity: .1; background-size: 50px 50px;
+    background-image: linear-gradient(#06121c 1px, transparent 1px),
+      linear-gradient(90deg, #06121c 1px, transparent 1px); }
+  .cap { position: absolute; margin: 0; white-space: nowrap; }
+  .slot { position: absolute; }
+  .slot svg { display: block; }
+  .dark { position: absolute; left: 1080px; top: 150px; width: 620px; height: 330px; background: #06121c;
+    color: #eef3f0; display: grid; place-items: center; }
+  .row { position: absolute; display: flex; align-items: center; gap: 26px; }
+  .row svg { display: block; flex: none; }
+  .grain { position: absolute; inset: 0; mix-blend-mode: multiply; opacity: .45; pointer-events: none; }
+</style></head>
+<body><div class="sheet" id="sheet">
+  <div class="grid"></div>
+  <p class="cap" style="left:100px;top:52px">YX — IDENTITY SYSTEM</p>
+  <p class="cap" style="right:100px;top:52px">GENERATED FROM viewer/brand/marks.js</p>
+  <p class="cap" style="left:100px;bottom:44px">R · O · V · S</p>
+  <p class="cap" style="right:100px;bottom:44px">ROV SOLUTION — YX FLEET</p>
+  <svg class="grain" width="2000" height="1400"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9"
+    numOctaves="2" seed="5"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .5 0"/></filter>
+    <rect width="2000" height="1400" filter="url(#n)"/></svg>
+</div>
+<script type="module">
+import {
+  BRAND_COLOURS, CHAPTER_SYMBOL_IDS, FLEET_SYMBOL_IDS, chapterSymbol, fleetLetter, fleetSymbol, yxMark,
+} from '../../../simulator/viewer/brand/marks.js';
+
+const sheet = document.getElementById('sheet');
+const ROLES = {x1: '入門觀測型', bluerov2_heavy: '重載觀測型', falcon: '輕作業型', model_s: '作業級'};
+
+function place(markup, left, top, className = 'slot') {
+  const node = document.createElement('div');
+  node.className = className;
+  node.style.left = `${left}px`;
+  node.style.top = `${top}px`;
+  node.innerHTML = markup;
+  sheet.append(node);
+  return node;
+}
+
+function caption(text, left, top) {
+  const node = document.createElement('p');
+  node.className = 'cap';
+  node.style.left = `${left}px`;
+  node.style.top = `${top}px`;
+  node.textContent = text;
+  sheet.append(node);
+}
+
+place(yxMark({variant: 'tether', paper: BRAND_COLOURS.paper, size: 380, sized: true}), 190, 130);
+caption('YX / MARK — Y = TETHER · X = THRUSTER AXES', 190, 540);
+const dark = document.createElement('div');
+dark.className = 'dark';
+dark.innerHTML = yxMark({variant: 'compact', size: 150, sized: true});
+sheet.append(dark);
+caption('ON MAIN COLOUR · ACCENT ON ONE STROKE ONLY', 1080, 496);
+const sizes = place('', 1080, 540, 'row');
+for (const size of [64, 32, 20]) {
+  sizes.insertAdjacentHTML('beforeend', yxMark({variant: 'compact', size, sized: true}));
+}
+
+FLEET_SYMBOL_IDS.forEach(function drawModel(id, index) {
+  const left = 150 + index * 450;
+  place(fleetSymbol(id, {size: 300, sized: true, rough: true}), left, 630);
+  caption(`MODEL ${fleetLetter(id)}`, left + 20, 946);
+  caption(ROLES[id], left + 20, 974);
+  const small = place('', left + 210, 940, 'row');
+  for (const size of [64, 32]) {
+    small.insertAdjacentHTML('beforeend', fleetSymbol(id, {size, sized: true}));
+  }
+});
+
+CHAPTER_SYMBOL_IDS.forEach(function drawChapter(id, index) {
+  const left = 110 + index * 165;
+  place(chapterSymbol(id, {size: 130, sized: true}), left, 1060);
+  caption(id.toUpperCase(), left, 1204);
+  place(chapterSymbol(id, {size: 32, sized: true}), left, 1244);
+});
+document.documentElement.dataset.ready = '1';
+</script></body></html>

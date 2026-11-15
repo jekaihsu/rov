@@ -57,13 +57,13 @@ export function vehicleDetail(modelId) {
 }
 
 /**
- * Block (iteration) number of a model for a save. Equipment upgrades raise it later (career shop);
- * until then every model is Block 1. `save` is accepted now so callers do not change when it starts to matter.
+ * Block (iteration) number of a model for a career save (viewer/career/save.js): equipment bought at the YX
+ * equipment department raises it (career/rules.js keeps save.vehicles up to date). No save, or a model the
+ * save does not list, is Block 1.
  */
 export function blockFor(modelId, save) {
-  void modelId;
-  void save;
-  return 1;
+  const block = Number(save?.vehicles?.[modelId]?.block);
+  return Number.isFinite(block) && block >= 1 ? Math.floor(block) : 1;
 }
 
 /** Name with its Block number, e.g. "YX Model R · Block 1". */
