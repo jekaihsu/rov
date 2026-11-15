@@ -61,6 +61,29 @@ export function mergeState(previous, incoming) {
   return merged;
 }
 
+/**
+ * Combine two consecutive wire states into one that has the same effect on a merger.
+ * Used where a slow consumer skips snapshots: a skipped delta must not lose its fields.
+ */
+export function coalesceStates(older, newer) {
+  if (!older || !newer || newer[DELTA_KEY] !== true) return newer;
+  const combined = mergeState(older, newer);
+  if (older[DELTA_KEY] === true) combined[DELTA_KEY] = true;
+  return combined;
+}
+
+const DELTA_MARK = '"delta":true';
+
+/** Text form of coalesceStates; complete snapshots replace without being parsed. */
+export function coalesceStateText(olderText, newerText) {
+  if (typeof olderText !== 'string' || !newerText.includes(DELTA_MARK)) return newerText;
+  try {
+    return JSON.stringify(coalesceStates(JSON.parse(olderText), JSON.parse(newerText)));
+  } catch {
+    return newerText;
+  }
+}
+
 /** Stateful merger for one WebSocket stream. Reset only when a new socket opens. */
 export function createStateMerger() {
   let previous = null;

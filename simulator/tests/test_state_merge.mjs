@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
 
 const source = await readFile(new URL('../viewer/state_merge.js', import.meta.url), 'utf8');
-const {mergeState, createStateMerger, VIEWER_CAPS, STATIC_ONCE_CAP} =
+const {mergeState, coalesceStates, coalesceStateText, createStateMerger, VIEWER_CAPS, STATIC_ONCE_CAP} =
   await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 test('viewer declares static_once', () => {
@@ -67,4 +67,37 @@ test('delta keeps omitted allowlisted fields but not removed high-rate keys', ()
   assert.equal('procedure' in merged, false);
   assert.equal(merged.vehicles[0].vehicle.id, 'x1');
   assert.equal('procedure' in merged.vehicles[0], false);
+});
+
+test('coalescing skipped deltas has the same effect as merging each one', () => {
+  const full = {
+    type: 'state', t: 0, locked: false, control_generation: 1, vehicle: {id: 'x1'}, procedure: {step: 1},
+    vehicles: [{vehicle_id: 'v1', locked: false, vehicle: {id: 'x1'}, pos: [0, 0, 0]}],
+  };
+  const first = {
+    type: 'state', delta: true, t: 1, locked: true, control_generation: 2,
+    vehicles: [{vehicle_id: 'v1', locked: true, pos: [1, 0, 0]}],
+  };
+  const second = {type: 'state', delta: true, t: 2, vehicles: [{vehicle_id: 'v1', pos: [2, 0, 0]}]};
+  const stepwise = mergeState(mergeState(full, first), second);
+  const combined = coalesceStates(first, second);
+  assert.equal(combined.delta, true);
+  assert.equal(combined.control_generation, 2);
+  assert.deepEqual(mergeState(full, combined), stepwise);
+  assert.equal(stepwise.locked, true);
+  assert.equal(stepwise.vehicles[0].locked, true);
+  assert.equal('procedure' in stepwise, false);
+});
+
+test('coalescing onto a complete snapshot stays complete, and a complete successor replaces', () => {
+  const full = {type: 'state', t: 0, vehicle: {id: 'x1'}, locked: false};
+  const delta = {type: 'state', delta: true, t: 1, locked: true};
+  const combined = coalesceStates(full, delta);
+  assert.equal('delta' in combined, false);
+  assert.deepEqual(combined, {type: 'state', t: 1, vehicle: {id: 'x1'}, locked: true});
+  assert.equal(coalesceStates(delta, full), full);
+  const text = JSON.stringify(full);
+  assert.equal(coalesceStateText(JSON.stringify(delta), text), text);
+  assert.equal(coalesceStateText(null, JSON.stringify(delta)), JSON.stringify(delta));
+  assert.deepEqual(JSON.parse(coalesceStateText(text, JSON.stringify(delta))), combined);
 });

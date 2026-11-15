@@ -869,7 +869,10 @@ state, take every key from the message and fill only the omitted allowlisted key
 (top level and per `vehicles[]` entry, matched by `vehicle_id`) from the retained
 snapshot; keys outside the allowlist are never carried over. Merge every state on
 the socket, including ones received before the `session` reply, and clear the
-retained snapshot only when a new socket opens. The live pilot
+retained snapshot only when a new socket opens. A client must not skip a `delta`
+state: one that drops snapshots to keep up (the viewer's link worker does) has to
+fold the skipped delta into its successor (`coalesceStates`), otherwise changed
+fields such as `locked`, `input_latched` or `control_generation` are lost. The live pilot
 viewer and the instructor console declare the capability and merge. Replay does
 **not** declare it: mission recordings store complete merged snapshots so older
 replay tools keep working. `StateBuffer` receives already-merged frames.

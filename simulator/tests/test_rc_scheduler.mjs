@@ -203,3 +203,20 @@ test("other messages are never dropped and keep server order around a waiting sn
   wire.acknowledge();
   assert.deepEqual(events.at(-1), ["state", '{"type":"state","t":3}']);
 });
+
+test("a stalled page keeps the fields of skipped delta snapshots", () => {
+  const { wire, socket, events } = openWire();
+  events.length = 0;
+  socket.onmessage({ data: '{"type":"state","t":1,"locked":false,"vehicle":{"id":"x1"}}' });
+  socket.onmessage({ data: '{"type":"state","t":2,"locked":true,"control_generation":2,"delta":true}' });
+  socket.onmessage({ data: '{"type":"state","t":3,"delta":true}' });
+  wire.acknowledge();
+  assert.equal(events.length, 2);
+  assert.deepEqual(JSON.parse(events[1][1]), {
+    type: "state", t: 3, locked: true, control_generation: 2, delta: true,
+  });
+  socket.onmessage({ data: '{"type":"state","t":4,"delta":true}' });
+  socket.onmessage({ data: '{"type":"state","t":5,"locked":false}' });
+  wire.acknowledge();
+  assert.deepEqual(events.at(-1), ["state", '{"type":"state","t":5,"locked":false}']);
+});
