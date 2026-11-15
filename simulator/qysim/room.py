@@ -8,6 +8,7 @@ import numpy as np
 
 from .engine import Simulator, vehicle_world_source
 from .physics import q_conj, q_rot
+from .state_wire import compact_state
 
 
 @dataclass
@@ -232,7 +233,7 @@ class Room:
         # room share one immutable fleet snapshot per publication interval/tick.
         if self._snapshot is None or self._snapshot_tick != self.tick or now - self._snapshot_at >= 1 / 30:
             owners = {p.vehicle_id: p.id for p in self.players.values()}
-            self._snapshot = [{**sim.viewer_state(), "id": vid, "owner_id": owners.get(vid)}
+            self._snapshot = [{**compact_state(sim.viewer_state()), "id": vid, "owner_id": owners.get(vid)}
                               for vid, sim in self.vehicles.items()]
             self._snapshot_tick = self.tick
             self._snapshot_at = time.monotonic()

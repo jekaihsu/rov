@@ -795,7 +795,8 @@ async def main_async(args):
     sim = Simulator(args.scenario, args.seed)
     host = SimHost(sim, qirc=args.qirc)
     rpc = await asyncio.start_server(host.rpc_client, "127.0.0.1", args.rpc_port)
-    ws = await websockets.serve(host.viewer_handler, args.host, args.ws_port, max_size=2 ** 16)
+    ws = await websockets.serve(host.viewer_handler, args.host, args.ws_port, max_size=2 ** 16,
+                                compression="deflate")
     if not args.no_http:
         start_static(args.http_port, args.host)
     print(f"[qysim] scenario={sim.scenario.name}  SDK rpc tcp://127.0.0.1:{args.rpc_port}  "

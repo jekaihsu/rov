@@ -756,3 +756,55 @@ RPC `{"type":"vision_results"}` reads the primary simulator vehicle's latest rep
 after one second, returns `{"available":false,"detections":[]}`. Requires an active reporting viewer.
 This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
 Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.
+
+## State bandwidth and compatibility (H3)
+
+State messages remain **complete snapshots**, including `flow_field`, `power` and
+`thermal` on every tick. Optional means an older host may lack the feature; it
+currently does not mean a delta against the preceding message. In particular,
+clients must not interpret a missing optional field as an implicit retained value
+unless a future extension explicitly negotiates that contract.
+
+Client audit: `viewer/app.js` assigns `S = m`; `StateBuffer.push` stores each
+snapshot independently, and replay samples these complete snapshots.
+`viewer/instructor/instructor.js` assigns `state = message` without merging.
+`FlowField.ingest` alone retains omitted/repeated grids and blends new grids for
+0.5 s, but that is not a general state/replay merge contract. `sdk_mock` uses
+request/response (`sdk/_client.py`), with no state-delta merge. Third-party
+snapshot consumers cannot be assumed to merge. Consequently H3 does **not**
+throttle these fields or introduce a last-update marker. The grid's existing
+`seq` and `t` still describe its 0.5 s sampling cadence. Power trips, light cutoff,
+thermal warnings and reconnect/reset snapshots remain available immediately.
+A future opt-in delta extension must retain omitted fields per vehicle, distinguish
+explicit null/removal, send a full initial/reset snapshot, and supply optional
+last-update timestamps; it must leave legacy connections on full snapshots.
+
+Presentation snapshot floats use at most six significant decimal digits (relative
+rounding error <= 5e-6), after existing field-specific rounding. This preserves
+small nonzero values, unlike rounding everything to a fixed number of decimal
+places. Exact clock/selector keys `t`, `timestamp`, `start`, `end`, `since`, `id`
+and `seq` are excluded. Only the copied viewer snapshot is rounded; simulation
+state, SDK method results and command processing are unchanged. Pose quaternion
+components already have five decimal places and keep that precision. Frontend
+interpolation, 0.5 s flow blending and input heartbeat timing are unchanged.
+
+The server explicitly enables `compression="deflate"` (also the websockets
+library default before H3). Compression is negotiated as RFC 7692
+permessage-deflate; clients declining it still receive ordinary JSON text.
+The standard server configuration uses a 12-bit window, memLevel 5 and context
+takeover. A proxy or client's negotiation can change actual savings.
+
+Run `python tools/state_size_report.py --output /tmp/state-size.json` from the
+repository root. The adjacent CSV records every state payload; JSON includes
+mean/max bytes, bytes/s per recipient and per room, and ten largest field paths.
+Use `--source /path/to/baseline/simulator` for a baseline checkout and `--sonar`
+for 5 Hz subscribed scans (held in intervening 30 Hz states, as on the server).
+All catalogue scenarios plus seeded random are measured. Four recipients means
+three supported pilot seats plus one instructor, not four pilot seats. The test
+uses fixed seed 42, 3 s of 100 Hz physics and 30 Hz publication with forward input;
+it is a reproducible short workload, not a worst-case bound. Sizes are UTF-8
+payload bytes, excluding WebSocket/TCP/TLS headers, world messages, RC and video.
+Field attribution includes keys but excludes enclosing punctuation; fleet entries
+are grouped by `vehicles[].field`. Compressed sizes use one persistent raw-deflate
+context per connection and remove the RFC 7692 sync-flush trailer, not standalone
+zlib/gzip files. Actual throughput also depends on achieved server publication rate.
