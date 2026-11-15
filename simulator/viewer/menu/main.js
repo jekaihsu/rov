@@ -6,16 +6,25 @@ import { installCollectionPanel } from '../collection_panel.js';
 import { genericVehicle } from '../asset_config.js';
 import { diveSites, supportsMode } from './catalogue.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
-import { hasLastSession, initialChoice, lastSession, launchUrl, rememberChoice } from './preferences.js';
+import {
+  hasLastSession,
+  initialChoice,
+  introForLaunch,
+  lastSession,
+  launchUrl,
+  rememberChoice,
+} from './preferences.js';
+import { getFidelity } from '../fidelity.js';
+import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
 import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTitle } from './screens.js';
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
-import { createStage } from './stage.js';
+import { SHOWCASE, createStage } from './stage.js';
 import { installDisplayPrefs } from '../prefs/display.js';
 
 const STRINGS = {
-  brand: 'ROV 潛航模擬器',
+  brand: 'ROV Solution',
   loading: {
     data: '讀取海域與載具資料…',
     scene: '建立水下場景…',
@@ -26,7 +35,7 @@ const STRINGS = {
   modelFailed: '模型載入失敗，請重新選擇機型。',
   launching: '正在下水…',
   steps: { modes: '玩法', training: '課程', multiplayer: '房間', hangar: '載具', sites: '海域', briefing: '簡報' },
-  prompts: { move: '移動', accept: '確認', back: '返回', tabs: '分頁', rotate: '旋轉', start: '開始' },
+  prompts: { move: '移動', accept: '確認', back: '返回', tabs: '分頁', rotate: '旋轉', start: '開始', close: '關閉' },
   modes: {
     campaign: '劇情與教學',
     expedition: '海洋探索與工程',
@@ -42,6 +51,8 @@ const ROUTES = {
   scenario: ['training', 'hangar', 'briefing'],
 };
 const PREVIEW_DELAY_MS = 280;
+// Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
+const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training']);
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -134,6 +145,9 @@ let current = '';
 let previewTimer = 0;
 let ready = false;
 const collection = installCollectionPanel({});
+// The collection dialog speaks the menu's prompt language too (the navigator already steers and closes it).
+const collectionPrompts = element('footer', 'collection-prompts');
+document.querySelector('.collection-panel')?.append(collectionPrompts);
 
 function sceneFor(key) {
   return scenes.find(function byKey(scene) {
@@ -163,7 +177,8 @@ function renderSteps() {
 }
 function promptsFor(name) {
   const base = [['navigate', STRINGS.prompts.move], ['accept', STRINGS.prompts.accept]];
-  if (name === 'title') return [['accept', STRINGS.prompts.start]];
+  // The title's own button already shows the confirm key; the footer stays empty so it is not said twice.
+  if (name === 'title') return [];
   const extra = [];
   if (screens[name]?.tabs) extra.push([['tabPrevious', 'tabNext'], STRINGS.prompts.tabs]);
   if (screens[name]?.rotatable) extra.push([['menuRotate'], STRINGS.prompts.rotate]);
@@ -171,6 +186,8 @@ function promptsFor(name) {
 }
 function renderPromptsFor(family) {
   renderPrompts(prompts, promptsFor(current), family);
+  renderPrompts(collectionPrompts, [['navigate', STRINGS.prompts.move], ['accept', STRINGS.prompts.accept],
+    ['back', STRINGS.prompts.close]], family);
   for (const cap of menu.querySelectorAll('[data-prompt-action]')) {
     renderPrompts(cap, [[cap.dataset.promptAction, '']], family);
   }
@@ -206,6 +223,7 @@ function show(name) {
   next.enter?.();
   next.element.dataset.active = '';
   menu.dataset.screen = name;
+  showBackdrop(name);
   stage.setPose(next.pose || name);
   renderSteps();
   renderPromptsFor(navigator.family);
@@ -213,6 +231,10 @@ function show(name) {
   requestAnimationFrame(function focusScreen() {
     navigator.focusFirst(next.element);
   });
+}
+function showBackdrop(name) {
+  if (SHOWCASE_SCREENS.has(name)) stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
+  else if (stage.showcase) stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
 }
 function go(name) {
   if (current && current !== name) history.push(current);
@@ -347,6 +369,7 @@ const ctx = {
   },
   quickStart() {
     Object.assign(choice, lastSession());
+    choice.intro = introForLaunch(choice, getFidelity().get(PROCEDURE_ITEM) === 'full');
     launch();
   },
 };
@@ -362,7 +385,7 @@ screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
 for (const screen of Object.values(screens)) stack.append(screen.element);
 
-stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
+stage.setScene(sceneFor(SHOWCASE.scene) || sceneFor(choice.scenario) || data.sites[0], { showcase: true });
 stage.setSticker(choice.sticker);
 setLoading(0.6, STRINGS.loading.model);
 try {

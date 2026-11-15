@@ -1,8 +1,8 @@
 // Multiplayer screen: player name and room code, create or join, and who is in the room. The server address is
 // an advanced option (hidden until switched on; off means the simulator this page came with, i.e. ?ws= or the
-// default), so players share a short room code instead of a WebSocket URL. The room list comes from the optional read-only
-// `room_query` message (PROTOCOL.md); the menu only opens a connection while this screen is shown, and never
-// joins: joining happens when the game starts.
+// default), so players share a short room code instead of a WebSocket URL. The room list comes from the
+// optional read-only `room_query` message (PROTOCOL.md); the menu only opens a connection while this screen is
+// shown, and never joins: joining happens when the game starts.
 import { normaliseServer, validRoom } from './preferences.js';
 import { field, mountToggles } from './settings.js';
 

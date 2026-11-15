@@ -14,3 +14,29 @@
 .collection-result{border-bottom:1px solid #29434e;padding:20px 0}.collection-result:first-child{padding-top:0}.collection-result-head{display:flex;justify-content:space-between;gap:16px;align-items:center}.collection-result-head strong{font-size:17px;font-weight:500}.collection-result-head span{color:#edcb64;white-space:nowrap}.collection-result p{font-size:12px;color:#a7bdc5;margin-top:5px}.collection-result dl{display:flex;flex-wrap:wrap;gap:5px 22px;margin:10px 0 0;font-size:13px}.collection-result dt{color:#93abb5;display:inline}.collection-result dd{display:inline;margin-left:7px}.collection-result details{margin-top:12px}.collection-result summary{color:#d1dfdf;cursor:pointer}.collection-result ul{padding-left:18px;font-size:13px}
 @media(max-width:700px){.collection-panel{width:96vw;height:94dvh}.collection-heading{padding:18px 18px 12px}.collection-toolbar{padding:0 18px;align-items:stretch;flex-direction:column;gap:0}.collection-actions{padding:8px 0}.collection-content{padding:4px 18px 22px}.collection-notice{padding-left:18px;padding-right:18px}.collection-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}.collection-detail{grid-template-columns:1fr}.collection-tabs{gap:22px}.collection-heading h2{font-size:23px}}
 @media(prefers-reduced-motion:reduce){.collection-photo-button img{transition:none}}
+
+/* Menu visual language (menu.css, HUD direction A): thin rules, translucent layer, cyan accent, no rounded
+   chrome, gamepad prompts in a footer. Overrides the rules above without changing the panel's structure. */
+.collection-panel { border: 0; border-left: 1px solid var(--accent, #4fd1e0); border-radius: 0;
+  background: rgba(6, 15, 21, .9); backdrop-filter: blur(14px); color: var(--text, #e8f1f5);
+  font: 14px/1.6 Inter, "Noto Sans TC", system-ui, sans-serif; box-shadow: 0 24px 80px rgba(0, 0, 0, .55); }
+.collection-panel::backdrop { background: rgba(4, 9, 13, .7); }
+.collection-panel button { border-color: var(--line, rgba(160, 205, 225, .18)); border-radius: 0; }
+.collection-panel button:hover { background: rgba(79, 209, 224, .08); }
+.collection-panel button:focus-visible, .collection-panel input:focus-visible,
+html[data-menu-input] .collection-panel button:focus { outline: 1px solid var(--accent, #4fd1e0); outline-offset: 4px; }
+.collection-panel h2 { font-weight: 300; font-size: 34px; letter-spacing: .04em; }
+.collection-heading p, .collection-card p, .collection-result p { color: var(--text-dim, #8fa6b2); }
+.collection-toolbar { border-bottom-color: var(--line, rgba(160, 205, 225, .18)); }
+.collection-tabs button { color: var(--text-dim, #8fa6b2); border-bottom-width: 1px; font-size: 15px;
+  letter-spacing: .06em; }
+.collection-tabs button[aria-selected=true] { border-color: var(--accent, #4fd1e0); color: var(--text, #e8f1f5); }
+.collection-close { border: 0 !important; color: var(--text-dim, #8fa6b2); }
+.collection-photo-button { border-radius: 0 !important; background: rgba(8, 18, 26, .6) !important; }
+.collection-locked { background: rgba(8, 18, 26, .45); border-bottom: 1px solid var(--line, rgba(160, 205, 225, .18)); }
+.collection-result { border-bottom-color: var(--line, rgba(160, 205, 225, .18)); }
+.collection-result-head span { color: var(--accent, #4fd1e0); }
+.collection-detail-buttons button:first-child { border-color: var(--accent, #4fd1e0); color: var(--accent, #4fd1e0); }
+.collection-prompts { display: flex; gap: 20px; padding: 10px 28px;
+  border-top: 1px solid var(--line, rgba(160, 205, 225, .18)); font-size: 12px; color: var(--text-dim, #8fa6b2); }
+.collection-prompts:empty { display: none; }

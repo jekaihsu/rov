@@ -6,16 +6,19 @@ import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
 import { MODES, siteFacts, supportsMode, vehicleSpecs } from './catalogue.js';
 import { briefingTimeLimit } from '../play/mission_text.js';
 import { lengthIn, lengthUnit } from '../prefs/display.js';
+import { introForLaunch } from './preferences.js';
 
 const STRINGS = {
-  title: 'ROV 潛航模擬器',
-  tagline: '水下遙控載具 · 駕駛訓練',
+  title: 'ROV Solution',
+  // The player works for YX, which also issues the in-game licences (docs/design/game-plan.md §9).
+  company: 'YX',
+  tagline: 'YX 水下工程 · ROV 操作員',
   pressStart: '開始',
   version: '開發版 0.3',
   entries: {
     dive: ['開始潛航', '選擇玩法、載具與海域，從水面下潛。'],
-    story: ['劇情與教學', '從水池練習開始，跟著工作隊解鎖港灣與船殼巡檢。'],
-    contracts: ['工程委託', '在海洋探索海域接取巡檢、回收與部署委託；下水後在右上任務卡接案。'],
+    story: ['劇情與教學', '加入 YX 工作隊：從水池練習開始，接下港灣與船殼巡檢。'],
+    contracts: ['工程委託', '接 YX 派發的巡檢、回收與部署委託；下水後在右上任務卡接案。'],
     training: ['訓練情境', '事故演練與依難度排列的場景訓練。'],
     multiplayer: ['多人', '建立或加入房間，最多三人共用同一片海域。'],
     collection: ['圖鑑與收藏', '照片、生物圖鑑與工程紀錄。'],
@@ -42,6 +45,7 @@ const STRINGS = {
   sticker: '機身貼紙',
   next: '下一步',
   sitesTitle: '潛航海域',
+  sitesMore: '共 {n} 處海域 · 左右移動瀏覽',
   depth: '海床',
   visibility: '能見度',
   current: '最大洋流',
@@ -366,6 +370,8 @@ function siteCard(scene, ctx) {
 export function buildSites(ctx) {
   const root = screen('sites', STRINGS.sitesTitle);
   root.append(element('h2', 'menu-heading', STRINGS.sitesTitle));
+  const count = STRINGS.sitesMore.replace('{n}', String(ctx.data.sites.length));
+  root.append(element('p', 'menu-help menu-site-count', count));
   const rail = element('div', 'menu-site-rail');
   const cards = [];
   root.append(rail);
@@ -486,7 +492,7 @@ export function buildBriefing(ctx) {
     objectivesTitle.hidden = !!chapter;
     objectives.hidden = !!chapter;
     note.textContent = ctx.choice.multiplayer ? STRINGS.hostNote : '';
-    intro.checked = ctx.choice.intro;
+    intro.checked = introForLaunch(ctx.choice, getFidelity().get(PROCEDURE_ITEM) === 'full');
     ctx.previewScene(ctx.choice.scenario);
   }
   return { element: root, pose: 'briefing', enter };

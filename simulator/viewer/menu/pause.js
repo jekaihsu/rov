@@ -1,7 +1,7 @@
 // In-game pause menu (Esc, or hold Start; both from the `pause` row of input/bindings.js): resume, restart
 // (host, confirmed with a second press), settings and back to the launch menu, beside a summary of the current
-// objective and, in the expedition sea, the contracts on offer (play/contracts.js). While it is open the input layer is blocked, so the pilot's own sticks are
-// centred and held buttons released. A solo host also pauses the simulation; in a shared room the simulation
+// objective and, in the expedition sea, the contracts on offer (play/contracts.js). While it is open the input
+// layer is blocked, so the pilot's own sticks are centred and held buttons released. A solo host also pauses the simulation; in a shared room the simulation
 // keeps running for everyone else. Settings reuse the launch menu's tabs over the in-game controls.
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
 import { acceptContract, contractBoard } from '../play/contracts.js';

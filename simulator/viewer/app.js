@@ -460,8 +460,8 @@ const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REP
 installDisplayPrefs();
 const skipFrame = createFrameGate();
 const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY});
-const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session, readOnly: !!REPLAY,
-  onContracts: () => objectiveCard.showContracts()});
+const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
+  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts()});
 const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
 const connectionNotice = installConnectionNotice({element: $('offline')});

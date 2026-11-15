@@ -50,6 +50,7 @@ const STRINGS = {
   adaptive: '依畫面效能調整',
   interface: {
     intro: ['下水動畫', '從水面吊放到入水的開場運鏡；關閉時也略過潛前檢查流程。'],
+    alwaysIntro: ['每次都播放下水動畫', '關閉時只在第一次下潛播放，之後直接從水中開始（簡報可再勾選）。'],
     pip: ['操作員小視窗', '在畫面角落顯示岸上操作員。'],
     sticks: ['畫面搖桿', '只在觸控裝置上顯示。'],
     fog: ['真實能見度', '關閉後水體較清澈，超出真機影像。'],
@@ -171,6 +172,7 @@ export function buildLaunchSettings(ctx) {
   function interfaceTab(pane) {
     const ids = {
       intro: 'menuIntroSetting',
+      alwaysIntro: 'menuAlwaysIntro',
       pip: 'menuPip',
       sticks: 'menuSticks',
       fog: 'menuFog',
@@ -181,9 +183,10 @@ export function buildLaunchSettings(ctx) {
         id: ids[key],
         label,
         help,
-        checked: ctx.choice[key],
+        checked: key === 'intro' ? ctx.choice.introPreference ?? ctx.choice.intro : ctx.choice[key],
         onChange(value) {
           ctx.choice[key] = value;
+          if (key === 'intro') ctx.choice.introPreference = value;
           rememberInterface(ctx.choice);
         },
       };

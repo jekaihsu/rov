@@ -179,7 +179,12 @@ html[data-menu-input] .launch-menu .menu-entry:focus, html[data-menu-input] .pau
 /* dive sites */
 .menu-site-rail { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 16px; overflow-x: auto;
   padding: 8px 2px 10px; scroll-snap-type: x proximity; scrollbar-width: thin; }
-.menu-site { flex: 0 0 clamp(260px, 23vw, 340px); scroll-snap-align: start; display: flex; flex-direction: column;
+.menu-site-count { margin-top: -16px; }
+/* Four whole cards per view (three, two on narrower screens) so no card is cut at the edge; snapping keeps it so. */
+.menu-site-rail { --site-columns: 4; scroll-snap-type: x mandatory; scroll-padding: 0 2px;
+  mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+.menu-site { flex: 0 0 calc((100% - (var(--site-columns) - 1) * 16px) / var(--site-columns));
+  scroll-snap-align: start; display: flex; flex-direction: column;
   border-top: 1px solid var(--line); background: rgba(8, 18, 26, .45); backdrop-filter: blur(12px);
   transition: border-color .18s ease-out, transform .18s ease-out, opacity .18s ease-out; }
 .menu-site:hover, .menu-site:focus { border-top-color: var(--accent); transform: translateY(-4px); }
@@ -356,6 +361,7 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 
 /* ── narrow and short screens ────────────────────────────────────────────── */
 @media (max-width: 1100px) {
+  .menu-site-rail { --site-columns: 3; }
   .menu-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .menu-card { min-height: 150px; }
   .menu-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
