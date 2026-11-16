@@ -29,6 +29,22 @@ scans or texture libraries are embedded; the large edited `.blend` is not commit
 
 An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime` reference directory. It is not included here or in the desktop distribution.
 
+### Music (`../audio/music/`)
+Every recording below is public domain or CC0 — the *performance*, not only the composition. Files were trimmed,
+loudness-normalised to about −18 LUFS (ffmpeg `loudnorm`, linear two-pass) and encoded as Ogg Opus 80–96 kbps;
+no other changes. Sourcing notes and rejected candidates: `research_notes/音樂/sources.md`.
+
+| File | Work | Performer / author | Source | License evidence | Changes |
+|---|---|---|---|---|---|
+| `title_goldberg_aria.opus` | J. S. Bach, Goldberg Variations BWV 988 — Aria | Kimiko Ishizaka (Open Goldberg Variations, 2012) | [archive.org/details/OpenGoldbergVariations](https://archive.org/details/OpenGoldbergVariations) | item licence `http://creativecommons.org/publicdomain/zero/1.0/` (CC0 1.0) | first half with its repeat (1.2–148.4 s), 80 kbps |
+| `briefing_wtc_prelude1.opus` | J. S. Bach, Well-Tempered Clavier I — Prelude No. 1 in C major, BWV 846 | Kimiko Ishizaka (Open Well-Tempered Clavier, 2015) | [archive.org/details/bach-well-tempered-clavier-book-1](https://archive.org/details/bach-well-tempered-clavier-book-1) | item rights "Released under CC0 1.0 Universal"; licence URL Public Domain Mark 1.0; same recording on [archive.org/details/OpenWell-TemperedClavier_Book_I](https://archive.org/details/OpenWell-TemperedClavier_Book_I) with CC0 1.0 | lead-in silence removed, 80 kbps |
+| `dive_underwater_theme_ii.opus` | "Underwater Theme II" (seamless loop) | Cleyton Kauffman | [opengameart.org/content/underwater-theme-ii](https://opengameart.org/content/underwater-theme-ii) | page licence CC0; bundled readme: "License — Creative Commons Zero (CC0)" | none besides normalisation |
+| `dive_underwater_theme.opus` | "Underwater Theme" (2nd variation) | Spring Spring | [opengameart.org/content/underwater-theme-1](https://opengameart.org/content/underwater-theme-1) | page licence CC0 | none besides normalisation |
+| `results_peer_gynt_morning.opus` | E. Grieg, Peer Gynt Suite No. 1 — I. Morning | Musopen 2012 Kickstarter recording (Czech orchestra commissioned by Musopen) | [archive.org/details/musopen-dvd-in-lossless-flac-format](https://archive.org/details/musopen-dvd-in-lossless-flac-format) | item licence Public Domain Mark 1.0; description: "This project raised money to purchase and release music to the public domain." | first 30 s, 4 s fade-out |
+| `tension_peer_gynt_aase.opus` | E. Grieg, Peer Gynt Suite No. 1 — II. Åse's Death | same Musopen recording | same item | same | 0.6–66.9 s (first phrase, cut in a rest) |
+
+Credit is not required by any of these licences; it is given here for provenance.
+
 ### Input mapping data
 `../input/controller-db.json` is a compact conversion of the Linux records from
 [SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), retrieved 2026-11-14.
@@ -41,3 +57,22 @@ No additional runtime library or pretrained weights are vendored. Optional exter
 onnxruntime-web (MIT); training uses PyTorch / torchvision SSD-VGG (BSD-3-Clause), Pillow (MIT-CMU),
 ONNX (Apache-2.0). Reference transport uses existing websockets (BSD-3-Clause).
 No trained weights are included. See `tools/vision/train.md` for limitations.
+
+## Chenjiao original wreck (G7)
+
+`wreck_chenjiao*.glb`: original fictional 48 m coastal freighter; all mesh geometry and rust/algae/silt
+textures authored procedurally in `cad/build_wreck_chenjiao.py`. No external models, scans, photographs,
+trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies meshopt and WebP compression.
+
+## J1 養殖箱網（原創，CC0-1.0）
+
+`aquaculture/net.webp`、`aquaculture/pen.glb`、`aquaculture/mission.json` 以及
+`cad/build_aquaculture_pen.py` 產生的幾何／菱形網目均為本次自行程式製作，資產以 CC0-1.0 釋出。
+沒有取用第三方模型、照片或品牌外觀。魚形沿用本專案 `marine_registry.js` 的原創低面數 fallback。
+GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
+固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
+
+`aquaculture/net.webp` 自 scene-looks 起改由 `simulator/tools/build_pen_net_texture.py`（Pillow，固定 seed 71）產生：
+原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
+養殖魚與死魚（`pen_life.js`）、珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`）皆為本專案原創程式幾何，
+CC0-1.0，沒有外部模型、照片或貼圖。

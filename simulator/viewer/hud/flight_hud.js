@@ -10,16 +10,19 @@ import { installOsd, updateOsd } from './osd.js';
 import { resolveHudStyle } from './hud_style.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
-import { bindingRow, hintText } from '../input/bindings.js';
-import { assistPill } from './assist_pill.js';
+import { BINDINGS, actionKey, bindingRow, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
+import { keyboardLayout } from '../input/keyboard_layout.js';
+import { assistPill, dvlReason } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
 import { pilotReadings } from './sensor_view.js';
+import { lengthIn } from '../prefs/display.js';
 const STRINGS = {
   sonarSource: '聲納',
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
   view: '切換視角 V', locked: '馬達鎖定', unlocked: '馬達解鎖',
-  unlockHint: '按 Space / 手把 Y 解鎖',
+  unlockHint: '按 {key} / 手把 Y 解鎖',
+  axes: [['surge', '前進／後退'], ['sway', '右移／左移'], ['heave', '上升／下潛'], ['yaw', '右轉／左轉']],
   hide: '切換 HUD', north: '北朝上', head: '機頭朝上',
   cards: ['任務與目標', '載具系統', '地圖與隊友', '鍵位提示'],
   cable: '纜線', battery: '電量', tension: '張力', light: '燈光',
@@ -46,7 +49,6 @@ const values = {};
 // Presentation keys are declared in the binding table; the HUD only listens for them.
 const CARD_KEYS = ['up', 'left', 'right', 'down'].map(action => bindingRow(action).keys[0]);
 const DRAWER_KEYS = bindingRow('engineering').keys;
-const LOCK_KEY = bindingRow('lock')?.keys?.[0] || 'Space';
 let hudStyle = '';
 function storage(key, fallback) {
   try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
@@ -139,8 +141,8 @@ function initialize() {
     el.hidden = false;
   });
   add('flightDepth', `<canvas id="flightLadder"></canvas><div class="depth-text"><small>${STRINGS.depth}</small>
-    <div><b id="flightDepthValue">—</b><u>m</u></div>
-    <small>${STRINGS.altitude} <span id="flightAltitude">—</span> m</small></div>`);
+    <div><b id="flightDepthValue">—</b><u data-unit="length"></u></div>
+    <small>${STRINGS.altitude} <span id="flightAltitude">—</span> <u data-unit="length"></u></small></div>`);
   add('flightAttitude', '<canvas id="flightADI"></canvas>');
   const headingValue = document.createElement('div');
   headingValue.id = 'flightHeading';
@@ -195,14 +197,20 @@ function smooth(key, target, dt) {
   return values[key];
 }
 // Help card: the stick mapping of the current control layout, then every key from the binding table.
-function keyCardText(bindings) {
-  const guide = $('pilotGuide');
-  const lines = [guide?.querySelector('.pilot-mode')?.textContent || ''];
-  for (const term of guide?.querySelectorAll('dt') || []) {
-    lines.push(`${term.textContent} ${term.nextElementSibling?.textContent || ''}`);
+// Movement first, named by what it does (前進／後退 W / S), then every other key from the binding table.
+function keyCardText(input) {
+  const rows = input.keyRows || BINDINGS;
+  const mode = input.operationMode || 'ROV_USA';
+  const lines = [layoutLabel(keyboardLayout())];
+  for (const [axis, label] of STRINGS.axes) {
+    const keys = pilotAxisKeys(axis, rows, mode);
+    if (keys.length) lines.push(`${label} ${keys.join(' / ')}`);
   }
-  lines.push(hintText({ bindings }));
+  lines.push(hintText({ bindings: input.bindings, rows, operationMode: mode }));
   return lines.filter(Boolean).join('\n');
+}
+function lockKey(input) {
+  return actionKey('lock', input.keyRows || BINDINGS) || 'Space';
 }
 function currentStyle() {
   const fidelity = getFidelity();
@@ -211,6 +219,9 @@ function currentStyle() {
   });
 }
 function applyStyle() {
+  // The attitude ladder and centre mark belong to the onboard camera; other views hide them (hud.css).
+  const view = $('camBtn')?.dataset.mode || 'onboard';
+  if (document.body.dataset.view !== view) document.body.dataset.view = view;
   const next = currentStyle();
   if (next === hudStyle) return;
   hudStyle = next;
@@ -218,7 +229,7 @@ function applyStyle() {
 }
 function addReadouts() {
   document.querySelector('.readout').insertAdjacentHTML('beforeend',
-    `<span><i>${STRINGS.cable}</i><b id="flightCable"></b>m</span>`
+    `<span><i>${STRINGS.cable}</i><b id="flightCable"></b><u data-unit="length"></u></span>`
     + `<span><i>${STRINGS.tension}</i><b id="flightTension"></b>N</span>`
     + `<span><i>${STRINGS.light}</i><b id="flightLight"></b>/ 2</span>`
     + `<span><i>${STRINGS.battery}</i><b id="flightBattery"></b>%</span>`);
@@ -235,6 +246,11 @@ function addReadouts() {
   status.setAttribute('role', 'status');
   document.querySelector('.chips').append(fidelityChip, chip, status);
   showFidelity();
+}
+// The DVL warning names the reason in the player's words when the sensor layer reports one.
+function dvlWarning(s) {
+  const reason = dvlReason(s);
+  return reason ? `${STRINGS.dvlLost}（${reason.status}）` : STRINGS.dvlLost;
 }
 function setText(el, text) {
   if (el.textContent !== text) el.textContent = text;
@@ -258,8 +274,8 @@ function readings(s, w, dt, sensed) {
 function updateLine(r, s, w) {
   setText($('flightHeading'), `${headingLabel(r.heading)}°`);
   drawHeadingTape($('tape'), r.heading);
-  setText($('flightDepthValue'), r.depth.toFixed(1));
-  setText($('flightAltitude'), r.alt == null ? '—' : r.alt.toFixed(1));
+  setText($('flightDepthValue'), lengthIn(r.depth).toFixed(1));
+  setText($('flightAltitude'), r.alt == null ? '—' : lengthIn(r.alt).toFixed(1));
   $('flightAltitude').parentElement.classList.toggle('warn', r.altWarn);
   drawDepthLadder($('flightLadder'), {
     depth: r.depth, seabed: w?.seabed_depth ?? null, hold: s.keep_depth ? s.depth_hold : null, warn: r.altWarn,
@@ -268,7 +284,7 @@ function updateLine(r, s, w) {
 }
 function updateReadout(r, s) {
   setText($('rSpd'), r.speed == null ? '—' : r.speed.toFixed(2));
-  setText($('flightCable'), r.cable.toFixed(1));
+  setText($('flightCable'), lengthIn(r.cable).toFixed(1));
   setText($('flightTension'), r.tension.toFixed(0));
   setText($('flightLight'), String(r.light));
   setText($('flightBattery'), r.battery.toFixed(0));
@@ -284,7 +300,8 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   applyStyle();
   toolIcon($('camBtn'), 'camera', $('camBtn').dataset.label || STRINGS.view);
   $('lockBadge').querySelector('b').textContent = s.locked ? STRINGS.locked : STRINGS.unlocked;
-  $('lockBadge').querySelector('span').textContent = s.locked ? STRINGS.unlockHint : '';
+  const unlockHint = s.locked ? STRINGS.unlockHint.replace('{key}', lockKey(input)) : '';
+  $('lockBadge').querySelector('span').textContent = unlockHint;
   $('flightTools').classList.toggle('controller-visible', !!input.active);
   const sensed = pilotReadings(s, w);
   // One forward range: the imaging sonar's centre beams while it is scanning (labelled as such), otherwise the
@@ -302,7 +319,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   if (hudStyle === 'osd') {
     updateOsd(r, s, w, {
       assistLevel: getFidelity().get('assistLevel'), assistStatus: $('flightAssistStatus').hidden ? ''
-        : $('flightAssistStatus').textContent, lockKey: LOCK_KEY,
+        : $('flightAssistStatus').textContent, lockKey: lockKey(input),
     });
   } else {
     updateLine(r, s, w);
@@ -328,7 +345,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     : s.tether?.warn ? STRINGS.warn
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
       : batteryApplies(s) && s.battery < 20 ? STRINGS.lowBattery
-        : sensed.dvlLost && s.rc?.assist ? STRINGS.dvlLost : '';
+        : sensed.dvlLost && s.rc?.assist ? dvlWarning(s) : '';
   $('flightWarning').textContent = warning;
   $('flightWarning').dataset.level = danger ? 'danger'
     : warning === STRINGS.lowBattery ? 'info' : 'warning';
@@ -359,7 +376,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     ['brief', 'objs', 'missionStatus'], ['thrBars', 'tState', 'tRov', 'gBat', 'damage'], ['activeRoomName'], [],
   ];
   card.querySelector('p').textContent = index === 3
-    ? keyCardText(input.bindings)
+    ? keyCardText(input)
     : sources[index].map(id => $(id)?.textContent || '').join('\n');
   if (index === 1) {
     const thrusters = Array.from($('thrBars').children).map(function thrusterRow(row) {

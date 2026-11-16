@@ -2,19 +2,38 @@
 // the flow title → main menu → mode → hangar → dive site → briefing → launch (or the training, multiplayer
 // and settings branches). Every step is a full-screen layer; back is always available. Exposes window.__menu
 // for the browser checks and the desktop smoke test.
+// career/boot.js runs first: it restores settings an exam forced before any module reads the fidelity store.
+import '../career/boot.js';
 import { installCollectionPanel } from '../collection_panel.js';
 import { genericVehicle } from '../asset_config.js';
+import { vehicleDetail, vehicleName, vehicleTitle } from '../fleet_names.js';
 import { diveSites, supportsMode } from './catalogue.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
-import { hasLastSession, initialChoice, lastSession, launchUrl, rememberChoice } from './preferences.js';
+import {
+  hasLastSession,
+  initialChoice,
+  introForLaunch,
+  lastSession,
+  launchUrl,
+  rememberChoice,
+} from './preferences.js';
+import { getFidelity } from '../fidelity.js';
+import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
 import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTitle } from './screens.js';
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
-import { createStage } from './stage.js';
+import { SHOWCASE, createStage } from './stage.js';
+import { createBackdrop } from './big_picture.js';
+import { previewKey } from './cards.js';
+import { installDisplayPrefs } from '../prefs/display.js';
+import { installAudio } from '../audio/engine.js';
+import { installMusic } from '../audio/music.js';
+import { installCareerMenu } from '../career/menu.js';
+import { installBrandMenu } from '../brand/menu_brand.js';
 
 const STRINGS = {
-  brand: 'ROV 潛航模擬器',
+  brand: 'ROV Solution',
   loading: {
     data: '讀取海域與載具資料…',
     scene: '建立水下場景…',
@@ -25,7 +44,7 @@ const STRINGS = {
   modelFailed: '模型載入失敗，請重新選擇機型。',
   launching: '正在下水…',
   steps: { modes: '玩法', training: '課程', multiplayer: '房間', hangar: '載具', sites: '海域', briefing: '簡報' },
-  prompts: { move: '移動', accept: '確認', back: '返回', tabs: '分頁', rotate: '旋轉', start: '開始' },
+  prompts: { move: '移動', accept: '確認', back: '返回', tabs: '分頁', rotate: '旋轉', start: '開始', close: '關閉' },
   modes: {
     campaign: '劇情與教學',
     expedition: '海洋探索與工程',
@@ -41,6 +60,9 @@ const ROUTES = {
   scenario: ['training', 'hangar', 'briefing'],
 };
 const PREVIEW_DELAY_MS = 280;
+// Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
+const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'shop']);
+const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -70,6 +92,7 @@ async function loadJson(path) {
   return response.json();
 }
 
+installDisplayPrefs();
 document.body.classList.add('menu-open');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const choice = initialChoice();
@@ -109,8 +132,14 @@ try {
 }
 setLoading(0.35, STRINGS.loading.scene);
 const stage = createStage(menu, { quality: choice.quality });
-// ?assets=generic draws other visuals for some physics ids; the menu must use their names, never the training ones.
+// The game-rendered site picture that covers the stage while it switches site (big_picture.js).
+const backdrop = createBackdrop(menu, shade);
+// Player-facing YX fleet names come from fleet_names.js; ?assets=generic keeps the name of the art variant
+// it draws and shows its own detail line.
 for (const vehicle of catalogue.vehicles) {
+  vehicle.name = vehicleName(vehicle.id);
+  vehicle.title = vehicleTitle(vehicle.id, null);
+  vehicle.detail = vehicleDetail(vehicle.id);
   const generic = genericVehicle(vehicle.id);
   if (!generic) continue;
   vehicle.name = generic.name;
@@ -132,6 +161,9 @@ let current = '';
 let previewTimer = 0;
 let ready = false;
 const collection = installCollectionPanel({});
+// The collection dialog speaks the menu's prompt language too (the navigator already steers and closes it).
+const collectionPrompts = element('footer', 'collection-prompts');
+document.querySelector('.collection-panel')?.append(collectionPrompts);
 
 function sceneFor(key) {
   return scenes.find(function byKey(scene) {
@@ -161,7 +193,8 @@ function renderSteps() {
 }
 function promptsFor(name) {
   const base = [['navigate', STRINGS.prompts.move], ['accept', STRINGS.prompts.accept]];
-  if (name === 'title') return [['accept', STRINGS.prompts.start]];
+  // The title's own button already shows the confirm key; the footer stays empty so it is not said twice.
+  if (name === 'title') return [];
   const extra = [];
   if (screens[name]?.tabs) extra.push([['tabPrevious', 'tabNext'], STRINGS.prompts.tabs]);
   if (screens[name]?.rotatable) extra.push([['menuRotate'], STRINGS.prompts.rotate]);
@@ -169,6 +202,8 @@ function promptsFor(name) {
 }
 function renderPromptsFor(family) {
   renderPrompts(prompts, promptsFor(current), family);
+  renderPrompts(collectionPrompts, [['navigate', STRINGS.prompts.move], ['accept', STRINGS.prompts.accept],
+    ['back', STRINGS.prompts.close]], family);
   for (const cap of menu.querySelectorAll('[data-prompt-action]')) {
     renderPrompts(cap, [[cap.dataset.promptAction, '']], family);
   }
@@ -204,6 +239,8 @@ function show(name) {
   next.enter?.();
   next.element.dataset.active = '';
   menu.dataset.screen = name;
+  showBackdrop(name);
+  music.setScreen(name);
   stage.setPose(next.pose || name);
   renderSteps();
   renderPromptsFor(navigator.family);
@@ -211,6 +248,15 @@ function show(name) {
   requestAnimationFrame(function focusScreen() {
     navigator.focusFirst(next.element);
   });
+}
+// A screen with sceneKey() names the site behind it (the focused contract's); the others keep the chosen site.
+function showBackdrop(name) {
+  if (SHOWCASE_SCREENS.has(name)) {
+    clearTimeout(previewTimer);
+    backdrop.hide();
+    stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
+  } else if (screens[name].sceneKey) previewScene(screens[name].sceneKey());
+  else if (stage.showcase) stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
 }
 function go(name) {
   if (current && current !== name) history.push(current);
@@ -221,10 +267,16 @@ function back() {
   show(history.pop());
 }
 
+// Shows the site's preview picture at once, switches the 3D stage a moment later and then fades the picture
+// away; a site this build has no scene for keeps its picture.
 function previewScene(key) {
   clearTimeout(previewTimer);
+  const entry = sceneFor(key);
+  if (!entry || stage.showcase || stage.state.sceneKey !== key) backdrop.show(`menu/previews/${previewKey(key)}.jpg`);
   previewTimer = setTimeout(function switchScene() {
-    stage.setScene(sceneFor(key));
+    if (!entry) return;
+    stage.setScene(entry);
+    backdrop.reveal();
   }, PREVIEW_DELAY_MS);
 }
 function selectModel(id) {
@@ -268,6 +320,7 @@ function launch() {
   setStatus(STRINGS.launching);
   menu.classList.add('departing');
   stage.setPose('launch');
+  music.setScreen(null);
   setTimeout(function leaveMenu() {
     location.assign(url);
   }, reduced ? 0 : 650);
@@ -302,6 +355,11 @@ const ctx = {
   },
   openCollection() {
     collection.open();
+  },
+  // Expedition contracts as their own entry: the expedition sea, then vehicle and site as usual.
+  openContracts() {
+    choice.route = 'dive';
+    ctx.chooseMode('expedition');
   },
   chooseMode(mode) {
     if (mode === 'scenario_training') {
@@ -340,10 +398,12 @@ const ctx = {
   },
   quickStart() {
     Object.assign(choice, lastSession());
+    choice.intro = introForLaunch(choice, getFidelity().get(PROCEDURE_ITEM) === 'full');
     launch();
   },
 };
 
+const careerMenu = await installCareerMenu(ctx, screens);
 screens.title = buildTitle(ctx);
 screens.main = buildMain(ctx);
 screens.modes = buildModes(ctx);
@@ -353,9 +413,11 @@ screens.briefing = buildBriefing(ctx);
 screens.training = buildTraining(ctx);
 screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
+Object.assign(screens, careerMenu.buildScreens());
 for (const screen of Object.values(screens)) stack.append(screen.element);
+installBrandMenu({ menu, getModel: () => choice.model });
 
-stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
+stage.setScene(sceneFor(SHOWCASE.scene) || sceneFor(choice.scenario) || data.sites[0], { showcase: true });
 stage.setSticker(choice.sticker);
 setLoading(0.6, STRINGS.loading.model);
 try {
@@ -368,8 +430,29 @@ setLoading(1, STRINGS.loading.ready);
 ready = true;
 finishLoading();
 show('title');
+openRequestedScreen();
 navigator.setActive(true);
 navigator.start();
+
+// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link);
+// ?menu=board opens the YX contract board (the results screen's 下一張委託).
+function openRequestedScreen() {
+  const query = new URLSearchParams(location.search);
+  const requested = query.get('menu');
+  if (requested === 'shop') {
+    go('main');
+    ctx.openShop();
+    return;
+  }
+  if (requested === 'board') {
+    go('main');
+    ctx.openBoard(query.get('tab') || '');
+    return;
+  }
+  if (requested !== 'training') return;
+  go('main');
+  ctx.openTraining(query.get('tab') || 'story');
+}
 
 window.__menu = {
   get ready() {
@@ -389,6 +472,9 @@ window.__menu = {
   },
   get choice() {
     return { ...choice };
+  },
+  get career() {
+    return ctx.career?.save || null;
   },
   get stickerMeshes() {
     return stage.stickerMeshes;

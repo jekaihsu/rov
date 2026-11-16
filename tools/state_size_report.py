@@ -4,6 +4,9 @@ Run from any directory. --source can point at a baseline checkout's simulator.
 CSV records every message; JSON reports mean/max bytes, B/s and the ten largest
 non-overlapping top-level fields plus fleet-expanded paths (vehicles[].field).
 Four recipients means three supported pilot seats plus an instructor observer.
+
+Pass ``--caps static_once`` to measure negotiated delta payloads (I2). Compare
+against a baseline run without caps for the bandwidth table.
 """
 import argparse
 import csv
@@ -53,6 +56,14 @@ def measure(args):
                 recipients = players + ([None] if count == 4 else [])
                 sonar_frames = {}
                 compressors = [zlib.compressobj(wbits=-12, memLevel=5) for _ in recipients]
+                # Fake WebSocket keys so static_once trackers stay per recipient.
+                sockets = [object() for _ in recipients]
+                if args.caps:
+                    from qysim.state_wire import STATIC_ONCE
+                    for sock in sockets:
+                        host.remember_caps(sock, {'caps': list(args.caps)})
+                        if STATIC_ONCE in args.caps:
+                            host.static_once[sock].reset()
                 totals = [0, 0]
                 maxima = [0, 0]
                 fields = defaultdict(int)
@@ -65,8 +76,9 @@ def measure(args):
                             sim.apply_viewer_rc({'rc_lock': 0, 'right_ud': 1600}, partial=True)
                         room.step(.01)
                         steps += 1
-                    for index, (player, compressor) in enumerate(zip(recipients, compressors)):
-                        payload = host.viewer_payload(room, player)
+                    for index, (player, compressor, sock) in enumerate(
+                            zip(recipients, compressors, sockets)):
+                        payload = host.viewer_payload(room, player, ws=sock if args.caps else None)
                         if args.sonar:
                             from qysim.sonar import scan, snapshot
                             if frame % 6 == 0:
@@ -102,6 +114,7 @@ def measure(args):
               'compression': 'RFC7692 raw deflate, window=12, memLevel=5, context takeover per connection',
               'scope': 'state payload only; no WS/TCP/TLS headers, world, RC or video; sonar only with --sonar',
               'sonar': args.sonar,
+              'caps': list(args.caps),
               'four_recipients': '3 pilots + instructor (same primary snapshot as observer)',
               'results': summaries}
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
@@ -113,6 +126,8 @@ def main():
     parser.add_argument('--scenario', action='append')
     parser.add_argument('--seconds', type=float, default=3)
     parser.add_argument('--sonar', action='store_true', help='Subscribe every recipient at 5 Hz')
+    parser.add_argument('--caps', action='append', default=[],
+                        help='Negotiate viewer caps for the measurement (e.g. static_once)')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--output', type=Path, default=Path('state-size.json'))
     args = parser.parse_args()

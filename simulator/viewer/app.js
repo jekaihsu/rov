@@ -1,4 +1,5 @@
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
+import { createStateMerger, VIEWER_CAPS } from './state_merge.js';
 import { createCameraRig } from './camera_rig.js';
 import {getFidelity} from './fidelity.js';
 import { updateTetherOperations } from './tether/operations.js';
@@ -15,16 +16,22 @@ import {assistFields} from './input/actions.js';
 import { updateFlightHUD } from './hud/flight_hud.js';
 import { pilotReadings, showsTruth, formatKnots } from './hud/sensor_view.js';
 import {installTetherReel} from './tether_reel.js';
+import {thrusterLabel} from './hud/thruster_names.js';
+import {installStartPresentation} from './start_presentation.js';
+import {objectiveFade, objectiveNearFade} from './hud/objective_fade.js';
+import {installPhotoFeedback} from './hud/photo_feedback.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
 import * as THREE from 'three';
 import {installAudio, installAudioSettings} from './audio/engine.js';
+import {installMusic} from './audio/music.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
 import { placeSceneModel } from './scene_models.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
+import {updatePenNet} from './aquaculture.js';
 import { buildStructures, structureDetail } from './structures.js';
 import { obstacleDistance } from './structure_sdf.js';
 import { createFlowField } from './flow_field.js';
@@ -36,6 +43,7 @@ import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo} from './render_quality.js';
 import {installCampaign} from './story/campaign.js';
+import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installExpeditionClient} from './expedition_client.js';
@@ -47,11 +55,20 @@ import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
 import { readReplay } from './replay_store.js';
+import { installDebrief } from './debrief/install.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
+import { installResults, resultsOpen } from './play/results.js';
+import { installAchievements } from './play/achievements.js';
+import { installConnectionNotice } from './play/connection_notice.js';
+import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
+import { installObjectiveCard } from './play/objective_card.js';
+import { installCareerDive } from './career/dive.js';
+import './prefs/camera_items.js';
+import { createFrameGate, installDisplayPrefs } from './prefs/display.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -426,10 +443,14 @@ const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, 
 const videoLinkOverlay = installVideoLinkOverlay(vp);
 let W = null, S = null, stateCount = 0;
 let session = null, inputSequence = 0;
+// Live join declares static_once; replay keeps full frames and never declares caps.
+const stateMerger = createStateMerger();
 let collectionOpen=false;
 const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopForCollection();},onClose(){collectionOpen=false;needResync=true;}});
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
+let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
+  onShutter:()=>{photoFeedback?.shutter();careerDive.photo();},
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     vision.assertPhoto();
@@ -446,10 +467,22 @@ const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
 const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
+const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
 const pilotGuide=installPilotGuide({getState:()=>S,getWorld:()=>W,readOnly:!!REPLAY});
+let startPresentation=null;
+installDisplayPrefs();
+const skipFrame = createFrameGate();
+const careerDive = installCareerDive({send, getWorld: () => W, getCamMode: () => camMode, readOnly: !!REPLAY,
+  showResult: outcome => results.show(outcome)});
+const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY, career: careerDive});
+const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
+  readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open),
+  career: careerDive});
+const achievements = installAchievements({readOnly: !!REPLAY});
 $('offUrl').textContent = WS_URL;
+const connectionNotice = installConnectionNotice({element: $('offline')});
 
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
@@ -460,19 +493,23 @@ function connect() {
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
     wsOpen = true; retry = 0; needResync = true; session=null;inputSequence=0;
+    stateMerger.reset();
     setConn('wait', '已連線 · 等待資料'); rcPump.reset();
     let token;try{token=sessionStorage.getItem(`rov.session:${WS_URL}:${cockpit.room}`);}catch{}
-    send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model});
+    send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model,
+      caps:VIEWER_CAPS});
   };
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
+    if (m.type === 'state') m = stateMerger.merge(m);
     if (m.type === 'world' && session) onWorld(m); else if (m.type === 'state' && session) onState(m);
     else if(m.type === 'session'){
-      session=m;needResync=true;try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
+      session=m;needResync=true;
+      try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
       for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
     }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}
   };
-  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); $('offline').hidden = false; scheduleRetry(); };
+  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
   ws.onerror = () => { };
 }
 function scheduleRetry() {
@@ -499,7 +536,7 @@ function onWorld(m) {
   $('scnName').textContent = m.scenario?.name || '—';
   $('brief').textContent = m.scenario?.brief || '';
   fillCatalogue(firstOrNew);
-  $('offline').hidden = true;
+  connectionNotice.connected();
   if (firstOrNew && (!session || session.is_host) && (m.room?.players?.length||1)<=1) procedurePanel.startIntro(startIntro);
 }
 
@@ -520,8 +557,14 @@ function onState(m) {
   missionPanel.update(m);
   procedurePanel.update(m);
   campaignPanel.update(m);
+  chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
+  startPresentation?.update(m, W);
+  careerDive.update(m);
+  objectiveCard.update(m);
+  results.update(m);
+  achievements.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
   if(m.model_id&&m.model_id!==activeModelId){const def=W?.vehicle_catalogue?.find(d=>d.id===m.model_id);if(def)loadModel(def);}
   if (needResync && !m.remote_control && m.rc) {
@@ -529,7 +572,7 @@ function onState(m) {
     needResync = false;
   }
   setConn('run', rep ? '回放 · 錄製的訓練飛行' : m.paused ? '已連線 · 暫停' : '已連線');
-  if (W) $('offline').hidden = true;
+  if (W) connectionNotice.connected();
   target.pos = P(m.pos, target.pos); Q(m.q, target.q);
   if (!target.init) { rovG.position.copy(target.pos); rovG.quaternion.copy(target.q); target.init = true; }
   updateRoute(m.nav);
@@ -596,13 +639,14 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen || pauseMenuOpen(),
+const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY});
+startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY, extraActions: () => careerDive.pauseActions()});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}
@@ -633,7 +677,9 @@ function inputTick() {
   if (S?.controller) for (const c of CH) out[c] = clamp(((S.controller.axes[c] ?? 1500) - 1500) / 500, -1, 1);
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage();
-  rcPump.offer(msg, { live: !document.hidden && !!session && !needResync, generation: S?.controller?.generation });
+  // Replay must not send RC or keep the worker repeating a packet (AGENTS.md input heartbeat).
+  const live = !REPLAY && !document.hidden && !!session && !needResync;
+  rcPump.offer(msg, { live, generation: S?.controller?.generation });
   $('padInfo').textContent = S?.controller
     ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
     : pad ? `手把：${pad.id.slice(0, 48)}` : '未偵測到手把（按任一手把按鍵喚醒）。';
@@ -827,8 +873,7 @@ function drawProfile() {
 }
 
 let thrRows = [];
-const THR_ZH = { PORT_FRONT: '左前', STBD_FRONT: '右前', PORT_AFT: '左後', STBD_AFT: '右後', PORT_LONG: '左縱', STBD_LONG: '右縱' };
-function thrLabel(name) { const [t, k] = String(name).split(' '); return `${t} ${THR_ZH[k] || k || ''}`; }
+const thrLabel = thrusterLabel;
 function buildThrBars() {
   const host = $('thrBars'); host.innerHTML = ''; thrRows = [];
   (W?.thrusters || []).forEach((t) => {
@@ -860,8 +905,6 @@ function updateUI() {
   // HUD
   const lk = $('lockBadge');
   lk.classList.toggle('locked', !!s.locked);
-  lk.querySelector('b').textContent = s.locked ? '馬達鎖定' : '馬達解鎖';
-  lk.querySelector('span').textContent = s.locked ? '按 Space / 手把 Y 解鎖' : '推進器可動作 · Space 上鎖';
   const hm = $('hMode'); hm.textContent = `${s.ctrl_mode} 模式`; hm.className = 'chip ' + (s.ctrl_mode === 'A' ? '' : s.ctrl_mode === 'S' ? 'on' : 'warn');
   const hh = $('hHold'); hh.textContent = s.keep_depth ? `定深 ${s.depth_hold != null ? s.depth_hold.toFixed(1) + ' m' : '開'}` : '定深 關'; hh.className = 'chip ' + (s.keep_depth ? 'on' : 'dim');
   setTxt('hOp', s.operation_mode==='UAV_CHN'?'ROV 雙桿':s.operation_mode);
@@ -921,14 +964,13 @@ function updateUI() {
   setHTML('log', (s.log || []).slice().reverse().map((l) => `<li><span class="t">${esc(l.stamp || fmtT(l.t))}</span><span class="x">${esc(l.text)}</span></li>`).join(''));
 
   // training
-  const sc = s.score || {}, lim = W?.scenario?.time_limit_s;
-  setTxt('score', sc.score ?? '—');
+  const sc = s.score || {}, lim = missionTimeLimit(s, W);
+  setTxt('score', scoreValue(s));
   setTxt('timer', `${fmtT(sc.elapsed)} / ${lim ? fmtT(lim) : '—'}`);
   $('timeFill').style.width = lim ? clamp(100 * (sc.elapsed || 0) / lim, 0, 100) + '%' : '0%';
   $('timeFill').style.background = lim && sc.elapsed > lim * .85 ? C('--warn') : C('--jet');
   const objs = sc.objectives || [];
-  const nDone = objs.filter((o) => o.done).length;
-  setTxt('scoreState', sc.failed ? `失敗：${sc.failed}` : sc.finished ? '任務完成' : `目標 ${nDone}/${objs.length} · 扣分 ${sc.penalty_total || 0}`);
+  setTxt('scoreState', scoreSummary(s));
   setHTML('objs', objs.map((o, i) => {
     const cls = o.done ? 'done' : i === sc.current_index ? 'cur' : '';
     return `<li class="${cls}"><span class="ic">${o.done ? '✓' : i === sc.current_index ? '▶' : '○'}</span><span>${esc(o.label)}${o.hold_s ? `<span class="hint"> · 停留 ${o.hold_s}s</span>` : ''}</span><span></span><div class="track"><div class="fill" style="width:${(o.done ? 1 : o.progress || 0) * 100}%"></div></div></li>`;
@@ -956,6 +998,8 @@ function updateObjectives(time) {
     m.mat.color.setHex(col); m.wire.color.setHex(col);
     m.mat.fog = !isCur; m.wire.fog = !isCur;
     m.mat.opacity = isCur ? .6 + .35 * Math.sin(time * 5) : o.done ? .55 : .45;
+    if (m.bill) m.mat.opacity *= objectiveFade(m.g.position, Math.max(.3, o.radius || 1), camera, vp);
+    if (!m.bill && m.o.kind !== 'inspect') objectiveNearFade(m, Math.max(.3, o.radius || 1), camera);
     m.g.scale.setScalar(isCur ? 1 + .06 * Math.sin(time * 5) : 1);
     if (m.bill) { _v.copy(camera.position).sub(m.g.position); m.bill.rotation.set(0, Math.atan2(_v.x, _v.z), 0); }
     if (isCur) cur = { o, m };
@@ -993,26 +1037,36 @@ function endIntroUI() {
   vp.classList.remove('intro'); $('skipIntro').hidden = true;
   tetherLine.visible = true;
 }
-async function startIntro() {
-  if (!W || !$('optIntro').checked || params.has('nointro')) return;
+// held: open on the aft deck and wait; the returned function starts the launch (deployment procedure).
+async function startIntro(held = false) {
+  if (!W || !$('optIntro').checked || params.has('nointro')) return null;
   if (MOVIE && movie.introDone) return;
   const assets = await loadIntroAssets();
   introStarts++;
   if (intro) { intro.dispose(); intro = null; }
-  intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: W.start_pos || S?.pos || [0, 0, 3], seabed: W.seabed_depth || 30, assets });
+  intro = new DeployIntro(scene, { spool: W.spool || [-4, 0, 0], start: startPresentation.introStart(W, S?.pos || [0, 0, 3]), seabed: W.seabed_depth || 30, assets });
   intro.showVehicle(() => activeModel?.model);       // the onboard view hides the hull; the intro shows it
-  vp.classList.add('intro'); $('skipIntro').hidden = false;
-  const wasPaused = !!S?.paused;
-  if (!wasPaused) send({ type: 'pause', value: true });
+  vp.classList.add('intro'); $('skipIntro').hidden = held;
+  let wasPaused = !!S?.paused;
+  if (!wasPaused && !held) send({ type: 'pause', value: true });
   intro.play(rovG, camera, () => {
     endIntroUI();
     target.init = false;                        // snap back to the simulated pose
     if (!wasPaused) send({ type: 'pause', value: false });
   });
+  if (!held) return null;
+  const heldIntro = intro;
+  heldIntro.hold();
+  return function launchFromDeck() {
+    wasPaused = !!S?.paused;
+    if (!wasPaused) send({ type: 'pause', value: true });
+    $('skipIntro').hidden = false;
+    heldIntro.release();
+  };
 }
 $('skipIntro').onclick = () => intro?.skip();
 let introStarts = 0;
-window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts };
+window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) { e.preventDefault(); intro.skip(); } });
 async function ensurePip() {
   const on = $('optPip').checked && !params.has('nopip');
@@ -1031,13 +1085,24 @@ $('closePip').onclick=()=>{$('optPip').checked=false;togglePip();};
 ensurePip();
 /* ═════════════════════════ replay (recorded demo flights, no server) ═════════════════════════ */
 let rep = null;
+let debrief = null;
 function prepClip(c) {
   let r = null;                                 // the recorder stores the route only when it changes
   for (const f of c.frames) { if ('route' in f.nav) r = f.nav.route; else f.nav.route = r; }
   c.dur = Math.max(.01,c.frames.at(-1).t-c.frames[0].t);
 }
+function setReplayTime(t, {pause} = {}) {
+  if (!rep) return;
+  if (introActive()) intro.skip();
+  rep.t = Math.max(0, Math.min(clipNow().dur, t));
+  rep.endHold = 0;
+  if (pause) {
+    rep.playing = false;
+    $('rpPlay').textContent = '▶';
+  }
+}
 async function startReplay(url) {
-  setConn('wait', '載入回放…'); $('offline').hidden = true;
+  setConn('wait', '載入回放…'); connectionNotice.connected();
   let data;
   try { data = url.startsWith('local:')?await readReplay(url.slice(6)):await (await fetch(url)).json(); } catch (e) { setConn('stop', '回放檔載入失敗');cockpit.message({message:e.message}); return; }
   rep = { data, ci: 0, t: 0, playing: true, speed: 1, endHold: 0 };
@@ -1047,7 +1112,7 @@ async function startReplay(url) {
   $('rpClips').innerHTML = data.clips.map((c, i) => `<button data-i="${i}">${i + 1}. ${esc(c.title)}</button>`).join('');
   $('rpClips').onclick = (e) => { const i = e.target.dataset?.i; if (i != null) loadClip(+i); };
   $('rpPlay').onclick = () => { rep.playing = !rep.playing; $('rpPlay').textContent = rep.playing ? '❚❚' : '▶'; };
-  $('rpSeek').oninput = (e) => { if (introActive()) intro.skip(); rep.t = +e.target.value / 1000 * clipNow().dur; rep.endHold = 0; };
+  $('rpSeek').oninput = (e) => { setReplayTime(+e.target.value / 1000 * clipNow().dur); };
   $('rpSpeed').onchange = (e) => { rep.speed = +e.target.value; };
   // the bar fades out while watching and comes back on any mouse / touch / key activity
   let idleTimer = 0;
@@ -1059,6 +1124,10 @@ async function startReplay(url) {
   addEventListener('keydown', wake);
   $('rpPlay').addEventListener('click', wake);
   wake();
+  debrief = installDebrief({
+    replayBar: $('replayBar'), getReplay: () => rep, setReplayTime, setCam, feed: feedReplay,
+    capture() { renderer.render(scene, camera); return renderer.domElement; },
+  });
   loadClip(0);
 }
 const clipNow = () => rep.data.clips[rep.ci];
@@ -1067,12 +1136,14 @@ function loadClip(i) {
   [...$('rpClips').children].forEach((b, j) => b.classList.toggle('on', j === i));
   const c = clipNow();
   onWorld({ ...c.world, type: 'world' });
+  debrief?.timeline.renderEvents();
   feedReplay();
 }
 function feedReplay() {
-  const c = clipNow(), fr = c.frames, time = fr[0].t + rep.t;
+  const c = clipNow(), fr = c.frames, time = fr[0].t + (debrief ? debrief.displayTime() : rep.t);
   const s = { ...sampleSnapshots(fr, time), type: 'state', paused: false };
   onState(s);
+  debrief?.afterFeed(s);
   const line = [...c.script].reverse().find((l) => l.t <= s.t + 0.05);
   const show = !!line && s.t - line.t < 7 && !introActive();
   $('rpSub').hidden = !show; if (show) $('rpSub').textContent = line.text;
@@ -1146,8 +1217,14 @@ const audio = installAudio({
   getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
+const music = installMusic({engine: audio});
+photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
+  if (!CAPTURE && skipFrame(now)) {
+    requestAnimationFrame(frame);
+    return;
+  }
   const frameSeconds=Math.max(0,(now-last)/1000);
   const dt = Math.min(.25, frameSeconds); last = now;
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
@@ -1185,6 +1262,7 @@ function frame(now) {
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
+  updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
@@ -1203,6 +1281,7 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   audio.update(renderState.display(S));
+  music.update(renderState.display(S));
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);
@@ -1229,5 +1308,6 @@ if (CAPTURE) {
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
 window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;

@@ -25,6 +25,7 @@ TOOLS = ROOT / 'tools'
 LOGS = ROOT / 'output' / 'browser-checks'
 sys.path.insert(0, str(ROOT.parent / 'tools'))
 from check_matrix import DEFAULT_CHECKS, browser_checks, changed_paths
+# Named-only: browser_gpu_bench (Steam GPU/software frame-time harness).
 
 
 def available_scripts():

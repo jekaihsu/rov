@@ -1,0 +1,42 @@
+{
+  "onboard-dark": {
+    "scenario": "wreck_survey",
+    "eye_ned": [
+      13.61,
+      5.57,
+      27.1
+    ],
+    "heading_deg": -39.1,
+    "pitch_deg": -4.7,
+    "lamp_level": 0,
+    "visibility_m": 4.0,
+    "seconds_per_frame": 3.022,
+    "quality": "high",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 1.0008589925677174e-05
+    },
+    "bytes": 38219
+  },
+  "onboard-lit": {
+    "scenario": "wreck_survey",
+    "eye_ned": [
+      13.61,
+      5.57,
+      27.1
+    ],
+    "heading_deg": -39.1,
+    "pitch_deg": -4.7,
+    "lamp_level": 2,
+    "visibility_m": 4.0,
+    "seconds_per_frame": 5.228,
+    "quality": "high",
+    "exposure": {
+      "exposure": 42.24922723689929,
+      "target": 41.078411332855225,
+      "meteredLuminance": 0.00405918528187139
+    },
+    "bytes": 59480
+  }
+}

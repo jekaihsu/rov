@@ -48,7 +48,7 @@
 2. **測試**：`cd simulator && python -m unittest discover -s tests` 必須全過。新增後端邏輯必須附測試。不得為了過 CI 跳過、刪除或放寬既有測試。
 3. **`simulator/viewer/app.js` 是衝突熱點**：新功能寫在新模組，`app.js` 只留最小的 import 與呼叫。不要重新排版、不要改動無關行。動到的那段邏輯請搬進你的模組，而不是在原地加長。
 4. **程式風格**：新程式一行一個敘述，行寬不超過 120 字元，具名函式，檔頭一段註解說明模組職責。不要模仿現有檔案裡把多個敘述擠在同一行的寫法。
-5. **不加打包工具與框架**：前端維持原生 ES modules。要新增 npm 依賴或第三方資產，先在 PR 描述說明授權（僅接受 MIT／BSD／Apache／CC0），並更新 `simulator/viewer/models/CREDITS.md`。
+5. **不加打包工具與框架**：前端維持原生 ES modules。要新增 npm 依賴或第三方資產，先在 PR 描述說明授權（僅接受 MIT／BSD／Apache／zlib／CC0，或公有領域（Public Domain Mark）的錄音與素材），並更新 `simulator/viewer/models/CREDITS.md`。
 6. **不提交產生物與大型二進位**：建置輸出、`node_modules`、錄影、超過 2 MB 的新資產都需要在 PR 描述中說明理由。
 7. **文字**：使用者看得到的字串集中管理，不要散落硬編碼（見 T09）。在 T09 合併前，新字串放進你模組頂部的一個 `STRINGS` 物件。
 8. **品牌**：新程式與新介面文字不得新增廠商名稱、機型商標或其設計外觀的引用。

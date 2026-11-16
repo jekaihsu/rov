@@ -256,3 +256,19 @@ python simulator/tools/vendor_manifest.py --check              Three.js manifest
 python tools/run_browser_checks.py browser_smoke observation_smoke browser_gameplay_smoke \
   browser_mission_smoke browser_hud_smoke browser_menu_smoke    6/6 passed（gameplay 109 s，機器負載低時）
 ```
+
+## G7 沉船資產更新
+
+`wreck_survey` 改用原創 48 m 沉礁貨船的 GLB、同源距離場與勾纏特徵。
+[建置步驟、預算與比較截圖](chenjiao/README.md)。本頁上方的方塊描述與效能表是先前版本紀錄。
+
+## J1 養殖場
+
+`aquaculture_pen` 使用與碰撞同源的透明網衣薄面板、浮框及繫泊系統；
+[重建、任務資料、預算與截圖](aquaculture/README.md)。網衣擺動僅在前端，位移限制在一致性容差內。
+
+## 箱網與珊瑚礁外觀修正（scene-looks）
+
+審查後對 `aquaculture_pen` 與 `coral_reef` 的外觀修正（水色、網衣、養殖魚與死魚、任務環造成的半透明帶、
+珊瑚群體外形與顏色、碎塊、沙紋、礁魚）、前後截圖與效能見 [scene-looks](../scene-looks/README.md)。
+

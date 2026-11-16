@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ROV 模擬器 0.3.0 · 協作潛航</title>
+<title>ROV Solution</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="menu.css">
@@ -11,10 +11,16 @@
 <link rel="stylesheet" href="hud/hud.css">
 <link rel="stylesheet" href="hud/osd.css">
 <link rel="stylesheet" href="fidelity.css">
+<link rel="stylesheet" href="debrief/debrief.css">
+<link rel="stylesheet" href="play/play.css">
+<link rel="stylesheet" href="career/career.css">
+<link rel="stylesheet" href="palette_631.css">
+<link rel="stylesheet" href="brand/brand.css">
+<link rel="stylesheet" href="menu/big_picture.css">
 </head>
 <body>
 <div class="menu-loading" id="menuLoading" role="status" aria-live="polite">
-  <div class="menu-loading-inner"><b>ROV 潛航模擬器</b><span class="menu-loading-bar"><i></i></span><small>正在載入…</small></div>
+  <div class="menu-loading-inner"><span class="brand-loading-mark" id="brandLoadingMark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 538 348" class="yx-mark yx-mark-compact" role="img" aria-label="YX"><g fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"><path data-part="y-arms" d="M40 40L140 180L240 40"/><path data-part="y-stem" d="M140 180V340"/><path data-part="x-fall" d="M330 40L530 340"/><path data-part="x-rise" class="yx-accent" d="M330 340L530 40" stroke="#ff7a2f"/></g></svg></span><b>ROV Solution</b><span class="menu-loading-bar"><i></i></span><small>正在載入…</small></div>
 </div>
 <div class="app">
   <header class="topbar">
@@ -146,9 +152,9 @@
       <div class="banner" id="banner" hidden></div>
       <div class="xhair" id="xhair" hidden></div>
 
-      <div class="offline" id="offline">
+      <div class="offline" id="offline" hidden>
         <div class="card">
-          <b>未連線到模擬器</b>
+          <b>無法連線到模擬器</b>
           <p>嘗試連線 <code id="offUrl">—</code><span id="offRetry"></span></p>
           <p>請先啟動模擬器：</p>
           <pre>cd simulator
@@ -233,6 +239,7 @@ python -m qysim.server --scenario jacket_inspection</pre>
   "three/addons/": "./vendor/three/examples/jsm/"
 } }
 </script>
+<script type="module" src="palette.js"></script>
 <script type="module" src="boot.js"></script>
 </body>
 </html>

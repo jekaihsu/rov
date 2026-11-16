@@ -4,9 +4,14 @@ import {loadGLTF} from './glb.js';
 
 const cache = new Map();
 
+const LOD_MODELS = new Set([
+  'models/korean_castle.glb',
+  'models/wreck_chenjiao.glb',
+]);
+
 function modelUrl(ob, detail) {
   const url = ob.model;
-  if (url === 'models/korean_castle.glb' && detail !== 'high') {
+  if (LOD_MODELS.has(url) && detail !== 'high') {
     return url.replace('.glb', detail === 'low' ? '_lod2.glb' : '_lod1.glb');
   }
   return url;

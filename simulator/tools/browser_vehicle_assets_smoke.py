@@ -1,4 +1,5 @@
-"""Check that ?assets=generic draws the original observation ROV in game and that the default stays the X1.
+"""Check that ?assets=generic draws the original observation ROV in game and that the default stays the training
+model of the x1 id. Both are shown to players as YX Model R; the generic art variant keeps its own detail line.
 
 Run against a simulator (see run_browser_checks.py, which sets ROV_HTTP_PORT / ROV_WS_PORT):
   python tools/run_browser_checks.py browser_vehicle_assets_smoke
@@ -60,27 +61,49 @@ def check_default(browser):
     requests = []
     page, errors = open_game(browser, '', requests)
     result = page.evaluate(INSPECT)
-    assert not result['hull'], 'default asset set must keep the training X1'
+    assert not result['hull'], 'default asset set must keep the training x1 model'
     assert any(url.endswith('/models/rov.glb') for url in requests), requests
+    assert any(url.endswith('/models/rov_lod1.glb') for url in requests), requests
+    assert any(url.endswith('/models/rov_lod2.glb') for url in requests), requests
     assert not any('observation_rov' in url for url in requests), requests
+    assert result['rotors'] == 6 and sorted(result['mapped']) == list(range(6)), result
     page.close()
     assert not errors, errors
     return result
 
 
+VENDOR = ('X1', 'BlueROV', 'Falcon', 'QYSEA', 'FIFISH')
+
+
+def hangar_labels(page, query):
+    """Chip text, hangar title and detail line (in the 明細 sheet) for the x1 id in the given menu URL."""
+    page.goto(f'{http_base(8092)}/?{query}', wait_until='domcontentloaded')
+    page.wait_for_selector('[data-vehicle="x1"]', state='attached')
+    page.wait_for_function('window.__menu && window.__menu.screen')
+    page.evaluate("window.__menu.go('hangar')")
+    page.wait_for_function("window.__menu.screen === 'hangar'")
+    return {
+        'chip': page.locator('[data-vehicle="x1"]').text_content(),
+        'title': page.locator('.menu-vehicle-name').text_content(),
+        'detail': page.locator('#hangarDetail').text_content(),
+    }
+
+
 def check_menu_label(browser):
-    """The menu must present the swapped vehicle under its generic name, not the training model's."""
+    """Both asset sets present the x1 id as YX Model R; the generic art variant keeps its own detail line."""
     page = browser.new_page(viewport={'width': 1600, 'height': 900})
     page.set_default_timeout(timeout(120000))
-    page.goto(f'{http_base(8092)}/?assets=generic&model=x1', wait_until='domcontentloaded')
-    page.wait_for_selector('[data-vehicle="x1"]', state='attached')
-    # The hangar chip exists before its screen is shown; read its text, not its rendered (hidden) text.
-    generic = page.locator('[data-vehicle="x1"]').text_content()
-    page.goto(f'{http_base(8092)}/?model=x1', wait_until='domcontentloaded')
-    page.wait_for_selector('[data-vehicle="x1"]', state='attached')
-    training = page.locator('[data-vehicle="x1"]').text_content()
+    generic = hangar_labels(page, 'assets=generic&model=x1')
+    training = hangar_labels(page, 'model=x1')
     page.close()
-    assert generic != training and 'X1' not in generic, (generic, training)
+    for labels in (generic, training):
+        assert labels['chip'] == 'YX Model R', labels
+        assert labels['title'] == 'YX Model R · Block 1', labels
+        text = ' '.join(labels.values())
+        assert not any(name.lower() in text.lower() for name in VENDOR), labels
+    assert '六推進器' in generic['detail'] and '入門觀測型' not in generic['detail'], generic
+    assert '入門觀測型' in training['detail'], training
+    assert generic['detail'] != training['detail'], (generic, training)
     return {'generic': generic, 'training': training}
 
 

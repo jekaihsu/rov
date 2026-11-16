@@ -68,6 +68,12 @@ test("haptics ignores unsupported devices and respects strength", async () => {
   );
   haptics.pulse("unlock");
   assert.equal(effect[1].strongMagnitude, 0.15);
+  const felt = {};
+  for (const name of ["lock", "unlock", "photo", "touch", "hard", "tension", "snag", "broken"]) {
+    haptics.pulse(name);
+    felt[name] = `${effect[1].duration}:${effect[1].strongMagnitude}`;
+  }
+  assert.equal(new Set(Object.values(felt)).size, 8, "each event has its own rumble");
   settings.haptics = false;
   effect = null;
   haptics.pulse("hard");

@@ -23,10 +23,19 @@ test('generic set maps the default vehicle to clamped LOD urls', () => {
 });
 
 test('menu labels change only for swapped vehicles and only in the generic set', () => {
-  const make = () => ({x1: {name: 'X1', detail: 'a'}, falcon: {name: 'Falcon', detail: 'b'}});
+  const make = () => ({x1: {name: 'YX Model R', detail: 'a'}, falcon: {name: 'YX Model V', detail: 'b'}});
   const training = applyGenericLabels(make(), 'training');
-  assert.equal(training.x1.name, 'X1');
+  assert.equal(training.x1.name, 'YX Model R');
+  assert.equal(training.x1.detail, 'a');
   const generic = applyGenericLabels(make(), 'generic');
   assert.equal(generic.x1.name, GENERIC_VEHICLES.x1.name);
-  assert.equal(generic.falcon.name, 'Falcon');
+  assert.equal(generic.x1.detail, GENERIC_VEHICLES.x1.detail);
+  assert.notEqual(generic.x1.detail, 'a');
+  assert.equal(generic.falcon.name, 'YX Model V');
+  assert.equal(generic.falcon.detail, 'b');
+});
+
+test('the generic observation ROV is the YX Model R art variant', () => {
+  assert.equal(GENERIC_VEHICLES.x1.name, 'YX Model R');
+  assert.ok(GENERIC_VEHICLES.x1.detail);
 });

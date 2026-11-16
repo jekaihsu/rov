@@ -30,8 +30,8 @@ let lastId = 0;
 let until = 0;
 
 const STYLE = `
-  .tether-radio{position:fixed;left:max(13%,168px);top:9%;width:31%;max-width:45%;box-sizing:border-box;
-    padding:12px 20px;background:rgba(8,18,26,.72);backdrop-filter:blur(14px);border-left:2px solid #4fd1e0;
+  .tether-radio{position:fixed;left:max(15%,220px);top:max(15%,calc(3% + 108px));width:31%;max-width:45%;
+    box-sizing:border-box;padding:12px 20px;background:rgba(8,18,26,.72);backdrop-filter:blur(14px);border-left:2px solid #4fd1e0;
     color:#e8f1f5;z-index:var(--z-story);pointer-events:none}
   .tether-radio[hidden]{display:none}
   .tether-radio strong{color:#4fd1e0;font-size:12px;letter-spacing:.1em}

@@ -13,7 +13,7 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.route('**/__pilot-guide-test', lambda route: route.fulfill(content_type='text/html', body='''
       <html lang="zh-Hant"><head><meta charset="utf-8"><link rel="stylesheet" href="/style.css"></head>
-      <body><aside style="width:290px;padding:16px"><div class="mission-tools"><div class="session-summary">Falcon · 驗證場景</div></div></aside></body></html>'''))
+      <body><aside style="width:290px;padding:16px"><div class="mission-tools"><div class="session-summary">YX Model V · 驗證場景</div></div></aside></body></html>'''))
     page.goto(f'{http_base(8092)}/__pilot-guide-test')
     result = page.evaluate('''async()=>{
       const {installPilotGuide}=await import('/pilot_guide.js');

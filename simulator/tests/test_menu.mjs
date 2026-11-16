@@ -13,7 +13,7 @@ import {
   trainingScenarios,
   vehicleSpecs,
 } from "../viewer/menu/catalogue.js";
-import { launchUrl, normaliseServer } from "../viewer/menu/preferences.js";
+import { introForLaunch, launchUrl, normaliseServer } from "../viewer/menu/preferences.js";
 import { nearestInDirection } from "../viewer/menu/navigator.js";
 
 const VIEWER = new URL("../viewer/", import.meta.url);
@@ -122,4 +122,21 @@ test("focus moves to the nearest control in the pressed direction", () => {
   assert.equal(nearestInDirection(box(0, 0), items, "right"), "right");
   assert.equal(nearestInDirection(box(0, 0), items, "down"), "below");
   assert.equal(nearestInDirection(box(0, 0), items, "left"), null);
+});
+
+test("the launch cinematic plays on the first dive only, unless kept on or the full procedure runs", () => {
+  assert.equal(introForLaunch({ introPreference: true, introSeen: false }), true);
+  assert.equal(introForLaunch({ introPreference: true, introSeen: true }), false);
+  assert.equal(introForLaunch({ introPreference: true, introSeen: true, alwaysIntro: true }), true);
+  assert.equal(introForLaunch({ introPreference: true, introSeen: true }, true), true, "real pre-dive procedure");
+  assert.equal(introForLaunch({ introPreference: false, introSeen: false }), false);
+});
+
+test("menu and tab parameters of the results screen do not leak into the game URL", () => {
+  const url = launchUrl("http://h/?menu=training&tab=drills", {
+    model: "x1", server: "ws://h:1/ws", room: "r", name: "n", scenario: "open_water", control: "UAV_CHN",
+    pad: "auto", sticker: "none", quality: "auto", mission: "free_explore", intro: false,
+  });
+  assert.equal(url.searchParams.has("menu"), false);
+  assert.equal(url.searchParams.has("tab"), false);
 });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>搖桿輸入檢查 · X1 模擬器</title>
+<title>搖桿輸入檢查 · ROV 模擬器</title>
 <link rel="icon" href="data:,">
 <style>
   :root { color-scheme: dark; font-family: system-ui, "Microsoft JhengHei", sans-serif; background: #061018; color: #d6e4ec; }
@@ -26,12 +26,12 @@
 </head>
 <body>
 <h1>搖桿輸入檢查</h1>
-<p><a href="./">返回 X1 模擬器</a></p>
+<p><a href="./">返回 ROV 模擬器</a></p>
 <p>點一下這個頁面，再按遙控器任一按鍵，推動兩支搖桿及波輪。此頁只讀取輸入，不會控制任何機器。</p>
 <p id="status" role="status">等待瀏覽器偵測裝置…</p>
 <p id="context" class="hint"></p>
 <div id="devices"></div>
-<p class="hint">若一直沒有裝置：在 Windows 按 Win + R，輸入 <code>joy.cpl</code>，確認是否列出遙控器，以及「內容 → 測試」是否有反應。X1 原廠遙控器的 USB／網路連接不等於遊戲手把輸入；本頁只能檢查瀏覽器的遊戲手把介面。</p>
+<p class="hint">若一直沒有裝置：在 Windows 按 Win + R，輸入 <code>joy.cpl</code>，確認是否列出遙控器，以及「內容 → 測試」是否有反應。實機遙控器的 USB／網路連接不等於遊戲手把輸入；本頁只能檢查瀏覽器的遊戲手把介面。</p>
 <button id="reportButton" type="button">產生檢查結果</button>
 <label for="report" class="hint">可複製結果回報</label>
 <textarea id="report" readonly hidden aria-label="搖桿檢查結果"></textarea>

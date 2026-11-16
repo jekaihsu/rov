@@ -457,5 +457,15 @@ class TestSnags(unittest.TestCase):
                 self.assertEqual(features[0].as_dict()["type"], "snag")
 
 
+class SettleTests(unittest.TestCase):
+    def test_initial_settle_never_breaks_the_cable(self):
+        # Campaign chapters always load seed 42; harbor_inspection's initial bight used to spike past the
+        # breaking load on the first settle step, so harbor / harbor_signoff / finale started already failed.
+        sim = Simulator("harbor_inspection", 42)
+        self.assertFalse(sim.tether.broken)
+        self.assertLess(sim.tether.tension_max, sim.tether.p.breaking_n)
+        self.assertFalse(sim.tether._settling)          # breaking during flight is covered by the failure tests
+
+
 if __name__ == "__main__":
     unittest.main()

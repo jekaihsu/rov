@@ -2,18 +2,19 @@
 // gates (qysim/procedure.py); this module only renders the current phase and sends the operator's confirmations.
 // Whether the full procedure runs is the `deployProcedure` fidelity item (real: full, assisted: quick); `?nointro`
 // always skips it. Gamepad navigation uses the menu-context rows of input/bindings.js while the panel is open.
-// Order with the launch intro (deploy_intro.js): checklist first; the A-frame launch cinematic plays when the
-// operator lowers the vehicle (phase launch -> water_check), then the water check and dive follow. Without the
-// procedure the intro plays at scenario start exactly as before.
+// Order with the launch intro (deploy_intro.js): the intro opens on the aft deck and holds during the checklist;
+// the A-frame launch cinematic plays when the operator lowers the vehicle (phase launch -> water_check), then the
+// water check and dive follow. Without the procedure the intro plays at scenario start exactly as before.
 import {getFidelity} from '../fidelity.js';
 import {PROCEDURE_ITEM} from './fidelity_item.js';
 
 const STRINGS = {
   title: '潛前檢查與回收',
-  provisional: '上電順序、提示音、燈號：暫定，待實測。' +
-    '短測為模擬診斷，每顆 2 秒；禁止拋擲。',
+  provisional: '短測為模擬診斷，每顆 2 秒；禁止拋擲。',
+  // Engineering detail (hover only): the player-facing panel does not read like an unfinished product.
+  provisionalDetail: '上電順序、提示音、燈號與回收速度為暫定值，待實測。',
   checks: ['外觀、密封與穿艙件已檢查', '纜線接頭與固定環已確認', '配重與配平已確認',
-    '岸上供電與載具上電已確認（暫定）', '通訊已確認', '相機影像已確認', '燈光已確認',
+    '岸上供電與載具上電已確認', '通訊已確認', '相機影像已確認', '燈光已確認',
     '逐顆推進器短測完成', '深度零點與羅盤已確認', '入水、人員離開後才解鎖，已確認'],
   keys: ['seals', 'connector', 'trim', 'power', 'communication', 'camera', 'lights',
     'thrusters', 'instruments', 'unlock'],
@@ -31,8 +32,9 @@ const STRINGS = {
   summary: '作業紀錄：秒 / 最大深度 m / 最大纜長 m / 扣分',
   fault: '未檢項目發生故障，已扣分，必要時中止作業收纜回收。',
   dry: '離水運轉超過 30 秒，已告警並扣分。',
-  recovering: '收纜中，洋流與模擬浪況會降低回收速度（暫定）',
+  recovering: '收纜中，洋流與模擬浪況會降低回收速度',
   complete: '潛後處理完成',
+  onDeck: '載具在工作船後甲板上，尚未入水；完成檢查、放入水中並確認後才能解鎖。',
 };
 const STYLE = `
   #procedurePanel{position:fixed;right:4%;top:12%;z-index:var(--z-controls);max-height:76vh;overflow:auto;
@@ -143,6 +145,11 @@ export function installProcedure({send, readOnly = false}) {
     };
   }
   function renderPhase(p) {
+    if (p.phase === 'checks' || p.phase === 'launch') {
+      const deck = document.createElement('p');
+      deck.textContent = STRINGS.onDeck;
+      panel.append(deck);
+    }
     if (p.phase === 'checks') renderChecks(p);
     if (p.phase === 'launch') {
       button(STRINGS.tender, 'tender').disabled = p.confirmed;
@@ -168,6 +175,7 @@ export function installProcedure({send, readOnly = false}) {
     title.textContent = STRINGS.title;
     const note = document.createElement('p');
     note.textContent = STRINGS.provisional;
+    note.title = STRINGS.provisionalDetail;
     const summary = document.createElement('p');
     summary.textContent = `${STRINGS.summary}：${p.elapsed} / ${p.max_depth} / ${p.max_cable} / ${p.penalty}`;
     panel.append(title, note, summary);
@@ -232,10 +240,17 @@ export function installProcedure({send, readOnly = false}) {
       }},
     });
   }
-  // With the procedure the intro waits for the launch step; otherwise it plays now.
+  // With the procedure the intro opens on the aft deck and holds there through the checklist, so the operator
+  // sees the vehicle where it really is; lowering it releases the launch. Without the procedure it plays now.
   function startIntro(play) {
-    if (wanted()) launchIntro = play;
-    else play();
+    if (!wanted()) {
+      play();
+      return;
+    }
+    launchIntro = null;
+    Promise.resolve(play(true)).then(function heldOnDeck(release) {
+      launchIntro = release || null;
+    });
   }
   return {update, startIntro, bindInput};
 }

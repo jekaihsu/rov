@@ -30,6 +30,26 @@ class ProcedureTests(unittest.TestCase):
         self.assertEqual(self.sim.rc.rc_lock, 1)
         self.assertFalse(self.p.can_unlock)
 
+    def test_sensors_follow_the_vehicle_onto_the_deck_and_into_the_water(self):
+        start_reading = self.sim.viewer_state()['sensors']['depth']
+        self.assertGreater(start_reading, 1.0)
+        self.act('begin')
+        self.sim.step()
+        self.assertLess(self.sim.viewer_state()['sensors']['depth'], 0.1)
+        self.checks_after_begin()
+        self.act('tender')
+        self.act('lower', point='upstream')
+        self.sim.step()
+        self.assertAlmostEqual(self.sim.viewer_state()['sensors']['depth'], self.sim.depth, delta=0.1)
+
+    def checks_after_begin(self):
+        for key in CHECKS:
+            if key == 'thrusters':
+                for i in range(len(self.sim.health)):
+                    self.act('test', index=i)
+                    self.p.step(2.)
+            self.act('check', key=key)
+
     def test_complete_flow(self):
         self.checks()
         with self.assertRaises(ValueError):

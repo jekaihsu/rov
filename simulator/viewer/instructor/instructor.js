@@ -1,11 +1,16 @@
 /* Independent authenticated console: telemetry, injection lifecycle and server-owned assessment evidence. */
 import {STRINGS as S, PHASES, METRICS} from './strings.js';
 import {createMap} from './map.js';
+import {buildDebriefHtml, downloadDebriefHtml} from '../debrief/report.js';
+import {STRINGS as DEBRIEF_S} from '../debrief/strings.js';
+import {extractEventsFromFrames} from '../debrief/events.js';
+import {createStateMerger, VIEWER_CAPS} from '../state_merge.js';
 const root = document.querySelector('#app');
 let socket;
 let authenticated = false;
 let lastStateAt = 0;
 let state = {};
+const stateMerger = createStateMerger();
 let report;
 let pending = false;
 let reportPending = false;
@@ -100,6 +105,7 @@ login.addEventListener('submit', function join(event) {
   reportPending = false;
   report = null;
   state = {};
+  stateMerger.reset();
   cards.clear();
   fleet.replaceChildren();
   target.replaceChildren();
@@ -117,7 +123,9 @@ login.addEventListener('submit', function join(event) {
   updateAvailability();
   connection.onopen = function authenticate() {
     if (socket !== connection) return;
-    connection.send(JSON.stringify({type: 'instructor_join', room_id: room.value.trim(), code: secret}));
+    connection.send(JSON.stringify({
+      type: 'instructor_join', room_id: room.value.trim(), code: secret, caps: VIEWER_CAPS,
+    }));
   };
   connection.onmessage = function message(event) {
     if (socket === connection) receive(JSON.parse(event.data));
@@ -192,12 +200,30 @@ exportButtons.push(button('csv', function csv() {
   download('trajectory.csv', content, 'text/csv');
 }, assessmentToolbar, false));
 exportButtons.push(button('html', function html() {
-  const evidence = JSON.stringify(report, null, 2).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
-  const head = `<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>${S.title}</title>`;
-  download('training.html', head
-    + `<h1>${S.title}</h1><p>${S.provisional}</p>`
-    + `<pre style="white-space:pre-wrap">${evidence}</pre></html>`, 'text/html');
+  const events = [];
+  for (const item of report.events || []) {
+    if (item.restored_at !== undefined || item.kind === 'control_response') continue;
+    events.push({kind: 'instructor_inject', t: item.start ?? item.injection_start ?? 0,
+      detail: String(item.kind || '')});
+  }
+  for (const contact of report.collisions || []) {
+    events.push({kind: 'collision', t: contact.t || 0,
+      detail: [contact.obstacle, contact.severity].filter(Boolean).join(' · ')});
+  }
+  for (const penalty of report.completion?.penalties || []) {
+    events.push({kind: 'penalty', t: penalty.t || 0, detail: penalty.reason || ''});
+  }
+  // Trajectory frames are sparse; reuse the shared extractor shape for objective edges when present.
+  const frames = (report.trajectory || []).map(function asFrame(sample) {
+    return {t: sample.t, events: sample.collisions || [], tether: {wraps: sample.wraps || {}},
+      score: sample.completion || report.completion || {}, silt: 0};
+  });
+  events.push(...extractEventsFromFrames(frames).filter(function onlyObjectives(row) {
+    return row.kind === 'objective_done' || row.kind === 'tether_snag';
+  }));
+  events.sort(function byTime(a, b) { return a.t - b.t; });
+  const page = buildDebriefHtml({report, events, notes: '', strings: {...DEBRIEF_S, title: S.title}});
+  downloadDebriefHtml(`${report.vehicle_id}-debrief.html`, page);
 }, assessmentToolbar, false));
 const matrix = el('div', '', bottom, 'matrix');
 el('p', S.provisional, bottom, 'legend');
@@ -372,6 +398,7 @@ function receive(message) {
     } else refreshReport();
     updateAvailability();
   }
+  if (message.type === 'state') message = stateMerger.merge(message);
   if (message.type !== 'state' || !authenticated) return;
   state = message;
   lastStateAt = Date.now();

@@ -1,0 +1,202 @@
+{
+  "id": "course_b01",
+  "title": "B01｜初級｜控制與下水閘門",
+  "scenario": "tutorial_pool",
+  "mode": "free_explore",
+  "category": "course",
+  "order": 10,
+  "source_chapters": [
+    "prologue"
+  ],
+  "training": {
+    "level": "初級",
+    "simulator_minutes": 60,
+    "pass_status": "暫定，待資深操作員基準航次校準",
+    "goal": "六向小幅操控、定深、燈光、拍照；口述下水閘門",
+    "criteria": "完成互動節點；逐軸方向正確，解鎖前確認人員清場",
+    "injection": "無故障；先示範再獨立操作"
+  },
+  "nodes": [
+    {
+      "id": "goal",
+      "type": "objective",
+      "text_key": "goal"
+    },
+    {
+      "id": "unlock_instruction",
+      "type": "objective",
+      "text_key": "unlock.hint"
+    },
+    {
+      "id": "unlock",
+      "type": "wait",
+      "condition": {
+        "path": "locked",
+        "op": "eq",
+        "value": false
+      },
+      "hint_key": "unlock.hint"
+    },
+    {
+      "id": "move_前_instruction",
+      "type": "objective",
+      "text_key": "move_前.hint"
+    },
+    {
+      "id": "move_前",
+      "type": "wait",
+      "condition": {
+        "path": "vel.0",
+        "op": "gt",
+        "value": 0.12
+      },
+      "hint_key": "move_前.hint"
+    },
+    {
+      "id": "move_後_instruction",
+      "type": "objective",
+      "text_key": "move_後.hint"
+    },
+    {
+      "id": "move_後",
+      "type": "wait",
+      "condition": {
+        "path": "vel.0",
+        "op": "lt",
+        "value": -0.12
+      },
+      "hint_key": "move_後.hint"
+    },
+    {
+      "id": "move_右_instruction",
+      "type": "objective",
+      "text_key": "move_右.hint"
+    },
+    {
+      "id": "move_右",
+      "type": "wait",
+      "condition": {
+        "path": "vel.1",
+        "op": "gt",
+        "value": 0.12
+      },
+      "hint_key": "move_右.hint"
+    },
+    {
+      "id": "move_左_instruction",
+      "type": "objective",
+      "text_key": "move_左.hint"
+    },
+    {
+      "id": "move_左",
+      "type": "wait",
+      "condition": {
+        "path": "vel.1",
+        "op": "lt",
+        "value": -0.12
+      },
+      "hint_key": "move_左.hint"
+    },
+    {
+      "id": "move_下_instruction",
+      "type": "objective",
+      "text_key": "move_下.hint"
+    },
+    {
+      "id": "move_下",
+      "type": "wait",
+      "condition": {
+        "path": "vel.2",
+        "op": "gt",
+        "value": 0.12
+      },
+      "hint_key": "move_下.hint"
+    },
+    {
+      "id": "move_上_instruction",
+      "type": "objective",
+      "text_key": "move_上.hint"
+    },
+    {
+      "id": "move_上",
+      "type": "wait",
+      "condition": {
+        "path": "vel.2",
+        "op": "lt",
+        "value": -0.12
+      },
+      "hint_key": "move_上.hint"
+    },
+    {
+      "id": "depth_instruction",
+      "type": "objective",
+      "text_key": "depth.hint"
+    },
+    {
+      "id": "depth",
+      "type": "wait",
+      "condition": {
+        "path": "keep_depth",
+        "op": "eq",
+        "value": true
+      },
+      "hint_key": "depth.hint"
+    },
+    {
+      "id": "light_instruction",
+      "type": "objective",
+      "text_key": "light.hint"
+    },
+    {
+      "id": "light",
+      "type": "wait",
+      "condition": {
+        "path": "rc.right_switch",
+        "op": "gt",
+        "value": 0
+      },
+      "hint_key": "light.hint"
+    },
+    {
+      "id": "photo_instruction",
+      "type": "objective",
+      "text_key": "photo.hint"
+    },
+    {
+      "id": "photo",
+      "type": "wait",
+      "condition": {
+        "path": "photos",
+        "op": "gt",
+        "value": 0
+      },
+      "hint_key": "photo.hint"
+    },
+    {
+      "id": "success",
+      "type": "objective",
+      "text_key": "success"
+    },
+    {
+      "id": "save",
+      "type": "checkpoint"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "goal": "B01｜六向小幅操控、定深、燈光、拍照；口述下水閘門。合格門檻：暫定，待資深操作員基準航次校準。程序與證據由教官評核。",
+      "success": "場景節點完成；不代表考核合格。完成互動節點；逐軸方向正確，解鎖前確認人員清場。暫定，待資深操作員基準航次校準。請匯出證據並由教官簽核。",
+      "failure": "場景失敗：停止本航次，記錄失敗原因，匯出證據並檢討後重試。暫定，待資深操作員基準航次校準。",
+      "unlock.hint": "按解鎖鍵解除馬達鎖定（鍵盤或手把）",
+      "move_前.hint": "向前移動，直到機體真的動起來",
+      "move_後.hint": "向後移動，直到機體真的動起來",
+      "move_右.hint": "向右移動，直到機體真的動起來",
+      "move_左.hint": "向左移動，直到機體真的動起來",
+      "move_下.hint": "向下移動，直到機體真的動起來",
+      "move_上.hint": "向上移動，直到機體真的動起來",
+      "depth.hint": "按定深鍵開啟定深",
+      "light.hint": "按燈光鍵開燈",
+      "photo.hint": "按拍照鍵拍照"
+    }
+  }
+}

@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 
 from . import site_dressing as dressing
+from .fleet_names import WRECK_NAME
 from .flow import Tide
 from .silt import seabed_type_for as silt_seabed_type
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, SnagFeature, Wall
@@ -80,12 +81,15 @@ class Scenario:
     water_type: str | None = None
 
     def summary(self) -> dict:
+        from .aquaculture import layout
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
                 "visibility_m": self.visibility_m, "time_limit_s": self.time_limit_s,
                 "tether_length": self.tether_length, "biome": self.biome,
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
-                "water_type": water_type_for(self.biome, self.water_type, self.water)}
+                "water_type": water_type_for(self.biome, self.water_type, self.water),
+                **({"aquaculture": layout()[1]}
+                   if is_pen_site(self.key) else {})}
 
 
 WATER_TYPES = ("oceanic", "coastal", "shelf", "harbour", "fresh_clear")
@@ -239,16 +243,16 @@ def wreck_debris(cx: float, cy: float, seabed: float, prefix: str = "Wreck", yaw
 
 def wreck_survey() -> Scenario:
     sea = 30.0
-    wreck = Box("Wreck 沉船", (25.0, 5.0, sea - 3.0), (18.0, 4.0, 3.0), 35.0, "wreck")
-    mast = Cylinder("Wreck mast", (22.0, 3.0, sea - 6.0), (22.5, 3.5, sea - 14.0), 0.25, "mast")
-    yard = Cylinder("Wreck mast yard", (21.4, 4.5, sea - 12.6), (23.3, 2.6, sea - 12.6), 0.12, "mast")
+    from .wreck_chenjiao import snag_features
+    wreck = FieldMesh("Chenjiao", ASSETS / "wreck_chenjiao_field.npz", origin=(25.0, 5.0, sea + 1.2),
+                      heading_deg=35.0, kind="wreck", model="models/wreck_chenjiao.glb")
     c, s = math.cos(math.radians(35)), math.sin(math.radians(35))
     pts = []
-    for lx, ly in ((20, 0), (0, 6.5), (-20, 0), (0, -6.5)):
+    for lx, ly in ((27, 0), (0, 8), (-27, 0), (0, -8)):
         pts.append((25 + c * lx - s * ly, 5 + s * lx + c * ly, sea - 4.0))
     return Scenario(
         "wreck_survey", "沉船調查", "水深 30 m、能見度 4 m，繞沉船一圈拍攝四個面。碰到海床會揚起泥沙；注意桅桿。",
-        seabed_depth=sea, obstacles=[wreck, mast, yard] + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
+        seabed_depth=sea, obstacles=[wreck] + snag_features(wreck) + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
         current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, TI_OFFSHORE),
         visibility_m=4.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=80.0,
         seabed_type="silt", bnl_height_m=1.5, bnl_mg_l=1.0,      # provisional silted wreck site
@@ -256,27 +260,27 @@ def wreck_survey() -> Scenario:
 
 
 def korean_castle() -> Scenario:
-    """Korean Castle wreck (illustrative poster reconstruction, not a survey): 150 m cargo ship
-    broken in three on a 32 m seabed. Inspection targets use the model's X1 grid cells
-    (C01-C15 every 10 m bow to stern, R01-R04 across)."""
+    """The korean_castle wreck, shown to players as WRECK_NAME (illustrative poster reconstruction, not a
+    survey): 150 m cargo ship broken in three on a 32 m seabed. Inspection targets use the model's grid
+    cells (C01-C15 every 10 m bow to stern, R01-R04 across)."""
     sea = 32.0
     # local frame: X bow->stern, Y across, Z up from the seabed; bow to the west, stern to the east
-    wreck = FieldMesh("Korean Castle", ASSETS / "korean_castle_field.npz", origin=(28.0, -70.0, sea),
+    wreck = FieldMesh(WRECK_NAME, ASSETS / "korean_castle_field.npz", origin=(28.0, -70.0, sea),
                       heading_deg=90.0, kind="wreck", model="models/korean_castle.glb", snag_hold=(250.0, 700.0))
     W = lambda x, y, z: tuple(float(v) for v in wreck.world_point((x, y, z)).round(2))
     objs = [
-        Objective("inspect", "X1-BOW-C05 艏段斷裂面（左舷）", W(45.5, -14.8, 6.0), radius=1.6, hold_s=5.0,
+        Objective("inspect", "BOW-C05 艏段斷裂面（左舷）", W(45.5, -14.8, 6.0), radius=1.6, hold_s=5.0,
                   face_point=W(45.5, -10.4, 6.0)),
-        Objective("checkpoint", "X1-MID-C07 二號貨艙開口（艙外俯視，勿入艙）", W(61.0, 1.5, 15.0), radius=2.5, hold_s=5.0),
-        Objective("inspect", "X1-STERN-C11 艉段斷裂面（右舷）", W(108.5, 16.8, 7.0), radius=1.6, hold_s=5.0,
+        Objective("checkpoint", "MID-C07 二號貨艙開口（艙外俯視，勿入艙）", W(61.0, 1.5, 15.0), radius=2.5, hold_s=5.0),
+        Objective("inspect", "STERN-C11 艉段斷裂面（右舷）", W(108.5, 16.8, 7.0), radius=1.6, hold_s=5.0,
                   face_point=W(108.5, 12.8, 7.0)),
-        Objective("inspect", "X1-STERN-C14 艉樓窗框", W(137.0, 14.0, 12.0), radius=1.6, hold_s=5.0,
+        Objective("inspect", "STERN-C14 艉樓窗框", W(137.0, 14.0, 12.0), radius=1.6, hold_s=5.0,
                   face_point=W(137.0, 10.2, 12.0)),
         Objective("surface", "回投放點上浮", (-2.0, 0.0, 0.5), radius=3.0),
     ]
     return Scenario(
-        "korean_castle", "Korean Castle 沉船調查",
-        "150 m 貨輪斷成三截躺在 32 m 海床，船身長滿附著物、貨艙開口朝上。依 X1 格網編號檢查兩處斷裂面、"
+        "korean_castle", f"{WRECK_NAME}沉船調查",
+        "150 m 貨輪斷成三截躺在 32 m 海床，船身長滿附著物、貨艙開口朝上。依格網編號檢查兩處斷裂面、"
         "二號貨艙與艉樓窗框。不要進入貨艙：纜線很容易卡在艙口圍板。模型為海報推估的示意，非實測。",
         seabed_depth=sea, obstacles=[wreck], current=CurrentProfile(0.9, 250, 0.6, 260, 0.3, 270, TI_OFFSHORE),
         visibility_m=10.0, start_pos=(0.0, 0.0, 4.0), start_heading_deg=90.0, spool_pos=(-4.0, 0.0, 0.0),
@@ -512,6 +516,57 @@ def incident_current() -> Scenario:
         time_limit_s=180)
 
 
+def aquaculture_pen() -> Scenario:
+    from .aquaculture import layout, STRINGS as pen_strings
+    obstacles, _ = layout()
+    return Scenario(
+        "aquaculture_pen", pen_strings["name"], pen_strings["brief"],
+        seabed_depth=25., obstacles=obstacles, visibility_m=8., biome="aquaculture",
+        seabed_type="mud", water_type="shelf", start_pos=(3., 0., 7.),
+        spool_pos=(-2., 0., 0.), tether_length=150., time_limit_s=2400.,
+        current=CurrentProfile(.8, 90, .5, 95, .3, 100, TI_SHELTERED),
+        objectives=[Objective("pen_lap", pen_strings["lap"], (3., 0., 7.)),
+                    Objective("pen_photo", pen_strings["photo"], (3., 0., 7.), target="hole-0"),
+                    Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
+
+
+PEN_VARIANT_STRINGS = {
+    "slack_name": "離岸養殖箱網（平潮）",
+    "slack_brief": "同一座箱網，平潮時段下水：表層流較弱。繞網檢查與繫泊檢查用。",
+    "inside_name": "離岸養殖箱網（網內下水）",
+    "inside_brief": "從箱網走道把載具直接放進網內，平潮時段。網底死魚回收用；需要機械臂。",
+}
+# Slack-water current of the pen site variants (assumed, like every scenario current; not a vehicle limit).
+PEN_SLACK_CURRENT = (.3, 90, .2, 95, .1, 100)
+
+
+def is_pen_site(key: str) -> bool:
+    """The aquaculture pen and its variants share one site (layout, dead fish, hole photos)."""
+    return str(key).startswith("aquaculture_pen")
+
+
+def aquaculture_pen_slack() -> Scenario:
+    """Same pen and physics at slack water: a weaker current for the career's first pen work orders."""
+    sc = aquaculture_pen()
+    sc.key = "aquaculture_pen_slack"
+    sc.name, sc.brief = PEN_VARIANT_STRINGS["slack_name"], PEN_VARIANT_STRINGS["slack_brief"]
+    sc.current = CurrentProfile(*PEN_SLACK_CURRENT, TI_SHELTERED)
+    return sc
+
+
+def aquaculture_pen_inside() -> Scenario:
+    """Mortality retrieval as done on real farms: the vehicle is launched from the pen walkway into the net.
+    Only the start point, the tether spool and the current setting differ; the site and physics are the same."""
+    sc = aquaculture_pen_slack()
+    sc.key = "aquaculture_pen_inside"
+    sc.name, sc.brief = PEN_VARIANT_STRINGS["inside_name"], PEN_VARIANT_STRINGS["inside_brief"]
+    sc.start_pos = (16., 0., 4.)
+    sc.spool_pos = (16., 0., 0.)
+    sc.tether_length = 60.
+    sc.objectives = [o for o in sc.objectives if o.kind == "pen_recover"]
+    return sc
+
+
 LIBRARY = {
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
@@ -531,6 +586,9 @@ LIBRARY = {
     "coral_reef": coral_reef,
     "seagrass_meadow": seagrass_meadow,
     "harbor_inspection": harbor_inspection,
+    "aquaculture_pen": aquaculture_pen,
+    "aquaculture_pen_slack": aquaculture_pen_slack,
+    "aquaculture_pen_inside": aquaculture_pen_inside,
 }
 
 
@@ -565,6 +623,7 @@ class Scorer:
         self.finished = False
         self.elapsed = 0.0
         self.current_index = 0
+        self.pen_sectors = set()
 
     def update(self, dt: float, sim) -> None:
         if self.finished or self.failed:
@@ -600,7 +659,10 @@ class Scorer:
             return
         ob = objs[self.current_index]
         pos = sim.vehicle.s.pos
-        if ob.kind in ("checkpoint", "surface"):
+        if ob.kind.startswith("pen_"):
+            from .aquaculture import update_objective
+            update_objective(self, ob, sim)
+        elif ob.kind in ("checkpoint", "surface"):
             if np.linalg.norm(pos - np.asarray(ob.point)) < ob.radius:
                 ob.done, ob.progress = True, 1.0
         elif ob.kind in ("inspect", "station_keep"):

@@ -15,7 +15,9 @@ export const MODEL_IDS = ['x1', 'bluerov2_heavy', 'falcon'];
 export const QUALITY_MODES = ['auto', 'performance', 'medium', 'high'];
 const MISSIONS = ['campaign', 'expedition', 'free_explore', 'inspection_coop', 'scenario_training'];
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
-const INTERFACE_DEFAULTS = { pip: false, intro: true, sticks: true, fog: true, labels: true };
+const INTERFACE_DEFAULTS = { pip: false, intro: true, alwaysIntro: false, sticks: true, fog: true, labels: true };
+// Set once the launch cinematic has been chosen for a dive; afterwards it is skipped unless alwaysIntro is on.
+export const INTRO_SEEN_KEY = 'rov.intro.seen.v1';
 
 function storage() {
   try {
@@ -81,8 +83,20 @@ export function initialChoice(location = globalThis.location) {
   for (const [key, fallback] of Object.entries(INTERFACE_DEFAULTS)) {
     choice[key] = typeof stored[key] === 'boolean' ? stored[key] : fallback;
   }
+  // introPreference is the stored 下水動畫 setting; intro is what this launch does (introForLaunch()).
+  choice.introPreference = choice.intro;
+  choice.introSeen = read(INTRO_SEEN_KEY, '') === '1';
   if (query.has('nointro')) choice.intro = false;
   return choice;
+}
+
+// The launch cinematic plays on the first dive; later dives start in the water unless the player keeps it on
+// (alwaysIntro). The full pre-dive procedure, which the same switch controls, is never skipped this way.
+export function introForLaunch(choice, procedureFull = false) {
+  const preferred = !!(choice.introPreference ?? choice.intro);
+  if (!preferred) return false;
+  if (procedureFull || choice.alwaysIntro) return true;
+  return !choice.introSeen;
 }
 
 export function hasLastSession() {
@@ -117,10 +131,26 @@ export function validRoom(room) {
   return room;
 }
 
+// A YX contract dive carries ?contract=<id>; an exam also forces the real fidelity preset (?fidelity=real&exam=1)
+// and drops the per-item fidelity overrides so nothing beyond the real vehicle leaks into it.
+export const EXAM_CLEARED_PARAMS = ['cam', 'gimbal', 'videoDelayMs', 'presentation', 'thirdPerson', 'underwaterAudio',
+  'diveMusic', 'procedure', 'beautify', 'vision'];
+function careerParams(url, choice) {
+  if (choice.contract) url.searchParams.set('contract', choice.contract);
+  else url.searchParams.delete('contract');
+  if (!choice.contract || !choice.exam) {
+    url.searchParams.delete('exam');
+    return;
+  }
+  url.searchParams.set('exam', '1');
+  url.searchParams.set('fidelity', 'real');
+  for (const name of EXAM_CLEARED_PARAMS) url.searchParams.delete(name);
+}
+
 // The game URL for a choice. Parameters the menu does not own (fidelity, cam, gimbal, …) pass through.
 export function launchUrl(href, choice, pageProtocol = 'http:') {
   const url = new URL(href);
-  url.searchParams.delete('replay');
+  for (const name of ['replay', 'menu', 'tab']) url.searchParams.delete(name);
   url.searchParams.set('play', '1');
   url.searchParams.set('model', choice.model);
   url.searchParams.set('ws', normaliseServer(choice.server, pageProtocol));
@@ -138,6 +168,7 @@ export function launchUrl(href, choice, pageProtocol = 'http:') {
   else url.searchParams.delete('chapter');
   if (choice.intro) url.searchParams.delete('nointro');
   else url.searchParams.set('nointro', '1');
+  careerParams(url, choice);
   return url;
 }
 
@@ -145,7 +176,9 @@ export function launchUrl(href, choice, pageProtocol = 'http:') {
 export function rememberChoice(choice) {
   const settings = {};
   for (const key of Object.keys(INTERFACE_DEFAULTS)) settings[key] = !!choice[key];
+  settings.intro = !!(choice.introPreference ?? choice.intro);
   write('rov.menuSettings', JSON.stringify(settings));
+  if (choice.intro) write(INTRO_SEEN_KEY, '1');
   write('rov.playerName', choice.name.trim() || STRINGS.defaultName);
   write('rov.quality', choice.quality);
   write('rov.operatorVisible', String(settings.pip));
@@ -174,5 +207,6 @@ export function rememberQuality(quality) {
 export function rememberInterface(choice) {
   const settings = {};
   for (const key of Object.keys(INTERFACE_DEFAULTS)) settings[key] = !!choice[key];
+  settings.intro = !!(choice.introPreference ?? choice.intro);
   write('rov.menuSettings', JSON.stringify(settings));
 }

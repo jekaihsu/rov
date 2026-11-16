@@ -14,6 +14,11 @@ class SelectionTests(unittest.TestCase):
         selected = browser_checks('full', ['simulator/viewer/hud/flight_hud.js'])
         self.assertEqual(selected, ['browser_hud_smoke', 'browser_overlay_smoke', 'browser_attitude_smoke'])
 
+    def test_brand_only(self):
+        selected = browser_checks('full', ['simulator/viewer/brand/marks.js'])
+        self.assertEqual(selected, ['browser_menu_smoke', 'browser_menu_gamepad_smoke', 'browser_campaign_smoke',
+                                    'browser_brand_smoke'])
+
     def test_shared_viewer_and_mixed_changes(self):
         paths = ['simulator/viewer/hud/osd.js', 'simulator/viewer/app.js']
         self.assertEqual(browser_checks('full', paths), list(DEFAULT_CHECKS))

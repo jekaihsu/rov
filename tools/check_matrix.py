@@ -12,6 +12,7 @@ DEFAULT_CHECKS = (
     'browser_smoke',
     'browser_menu_smoke',
     'browser_menu_gamepad_smoke',
+    'browser_gamepad_matrix_smoke',
     'browser_slow_render_smoke',
     'browser_connection_smoke',
     'browser_hud_smoke',
@@ -23,15 +24,21 @@ DEFAULT_CHECKS = (
     'browser_collection_storage',
     'browser_audio_smoke',
     'browser_audio_review_smoke',
+    'browser_music_smoke',
+    'browser_debrief_smoke',
     'browser_mission_smoke',
     'browser_gameplay_smoke',
     'browser_expedition_smoke',
     'browser_paint_smoke',
     'browser_campaign_smoke',
+    'browser_results_smoke',
+    'browser_objective_card_smoke',
+    'browser_career_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
     'browser_link_smoke',
     'browser_vehicle_assets_smoke',
+    'browser_brand_smoke',
 )
 
 
@@ -45,6 +52,9 @@ TIERS = {
 # Narrow islands with known coverage. Other viewer changes conservatively run the tier's entire set.
 BROWSER_PATHS = {
     'simulator/viewer/hud/': ('browser_hud_smoke', 'browser_overlay_smoke', 'browser_attitude_smoke'),
+    # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
+    'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
+                                'browser_campaign_smoke'),
 }
 
 

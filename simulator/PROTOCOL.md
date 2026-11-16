@@ -13,13 +13,17 @@ After opening the viewer WebSocket, send:
 {"type":"join","room_id":"training","name":"Pilot","model_id":"x1","resume_token":null}
 ```
 
-Room codes contain 1–32 ASCII letters, digits, underscores or hyphens. Missing
-rooms are created. Supported model IDs are published in `world.vehicle_catalogue`.
-A successful join replies:
+Optional `caps` (for example `["static_once"]`) negotiates wire optimizations; see
+"Optional capability: static_once". Room codes contain 1–32 ASCII letters, digits,
+underscores or hyphens. Missing rooms are created. Supported model IDs are published
+in `world.vehicle_catalogue`. A successful join replies:
 
 ```json
 {"type":"session","protocol":2,"room_id":"training","player_id":"opaque-id","vehicle_id":"v1","resume_token":"private-token","generation":1,"is_host":true,"capacity":3}
 ```
+
+When the join carried `caps`, the reply adds `"caps"` with the accepted names (empty
+when all were unknown). Without `caps` the reply is unchanged.
 
 Keep the resume token private and resend it to recover the same seat after a
 disconnect. Disconnected seats remain reserved for 30 seconds. A replacement
@@ -45,6 +49,9 @@ heartbeat cannot automatically restart the vehicle.
 ```
 
 Changing a model redeploys only the requesting pilot's vehicle in a locked state.
+`{"type":"operation","action":"appearance","sticker":"none|hazard|dive|number|yx_logo|yx_stripe"}` sets the
+sender's hull sticker (appearance only, shown to every viewer as `state.appearance.sticker`). `yx_logo` and
+`yx_stripe` were added as optional values for the career's cosmetics; the earlier values are unchanged.
 `operation` requests are handled by the vehicle's operations controller and reply
 with `{"type":"operation_result","ok":true,"action":"..."}` or `ok:false` and a
 `message`. Scenario changes, reset, pause and current overrides require the host.
@@ -628,9 +635,33 @@ company baseline flights. Reaction means first changed control packet after inje
 not a validated successful recovery. Completion/failure automatically archives a report;
 reset archives interrupted dives. JSON, CSV and browser print-to-HTML/PDF are available.
 
-This draft does **not** yet implement tether snags, sensor faults, lighting
-faults, per-student POV rendering, course scheduling/aggregate grades, SDK measurement
-fault adapters or permanent report storage. It is not ready for training acceptance.
+### Optional debrief / replay annotations (G6)
+
+Training review uses the existing offline replay document (`format:"qysim-replay-2"`) plus
+optional metadata. Clients that ignore the new fields keep today's behaviour.
+
+* Top-level or per-clip optional `debrief`:
+  `{version:1, events:[{kind,t,detail,...}], notes:"...", seek_lead_s:5, injections:[...]}`.
+  `events` may be precomputed; if omitted the viewer/host derive markers from frames.
+  `injections` mirrors public instructor injection rows (`kind`, `start`/`t`, `vehicle_id`) so a
+  recording can mark instructor injects without embedding credentials.
+* Event `kind` values: `instructor_inject`, `collision`, `tether_warn`, `tether_snag`,
+  `tether_break`, `silt_whiteout`, `dvl_lost`, `comms_loss`, `objective_done`, `penalty`.
+  Jumping to a marker seeks to `max(clip_start, t - seek_lead_s)` (default lead 5 s).
+* Frames may optionally include the existing live fields `sensors` and `link` (same shapes as
+  `state`). Present → student debrief view can show delayed/sensed readings; absent → legacy
+  truth-only frames still play. Debrief god-view may contrast `pos` / `current_*` with `sensors`
+  when both exist. Debrief viewpoints are an instructor tool and are **not** fidelity items; the
+  UI must label god-view as non-student imagery.
+* A `training_report` may be converted into a minimal replay (`qysim.debrief.report_to_replay`)
+  whose `clips[0].frames` are the 1 Hz trajectory samples; `debrief.events` carries the markers.
+* Printable debrief HTML (browser print-to-PDF) includes score, event list, optional screenshots
+  and instructor notes. Visible strings stay in the debrief `STRINGS` tables. Instructor codes are
+  never written into reports or recordings.
+
+This draft does **not** yet implement lighting faults, course scheduling/aggregate grades,
+SDK measurement fault adapters or permanent report storage. It is not ready for formal
+training acceptance.
 
 ## Ocean current model
 
@@ -743,6 +774,18 @@ peak cable length and notes. Physics enforces locked flight outside `diving`, in
 (training assumption); missing communication checks may cause control loss and forced cable recovery.
 Recovery rate and wave modulation are provisional training approximations, not measured vessel limits.
 
+## Optional start point (assisted presentation)
+
+`{"type":"start","point":"near_target"}` asks the host to move this vehicle to a spawn point a few metres short of
+the scenario's first work point, at least 2.5 m above the bed, facing it. It is accepted only while the vehicle is
+locked and has not opted into the deployment procedure; otherwise it returns the existing error envelope. The reply
+is `{"type":"start_result","ok":bool,"start":{"pos":[n,e,d],"heading":deg}|null}` (`ok:false` when the scenario
+offers no such point). Only the spawn point changes, as with the multiplayer spawn spread: the tether is re-laid
+from the spool and the sensor estimates restart at the new pose; dynamics, RC and SDK semantics are unchanged.
+The world object adds the optional `near_start` (same `pos`/`heading` shape) for scenarios that offer the point
+(`qysim/start_point.py`); clients must tolerate its absence. Older hosts ignore the message. The viewer sends it
+only from the `assisted` presentation (`nearStart` fidelity item, off in `real`), solo, before the first unlock.
+
 ## Optional forward imaging sonar (simulator extension)
 
 Viewer sends `{"type":"operation","action":"sonar_subscribe","enabled":true,"range_m":30,
@@ -768,27 +811,74 @@ after one second, returns `{"available":false,"detections":[]}`. Requires an act
 This is not a native SDK interface and is not aligned to the mock SDK's separately synthesized BGR frames.
 Python extension: `QYCameraMediaStreamManage.get_sim_detections()`.
 
-## State bandwidth and compatibility (H3)
+## State bandwidth and compatibility (H3, I2)
 
-State messages remain **complete snapshots**, including `flow_field`, `power` and
-`thermal` on every tick. Optional means an older host may lack the feature; it
-currently does not mean a delta against the preceding message. In particular,
-clients must not interpret a missing optional field as an implicit retained value
-unless a future extension explicitly negotiates that contract.
+By default, state messages remain **complete snapshots**, including `flow_field`,
+`power` and `thermal` on every tick. Optional means an older host may lack the
+feature. Clients that have **not** negotiated a delta capability must not treat a
+missing optional field as an implicit retained value.
 
-Client audit: `viewer/app.js` assigns `S = m`; `StateBuffer.push` stores each
-snapshot independently, and replay samples these complete snapshots.
-`viewer/instructor/instructor.js` assigns `state = message` without merging.
-`FlowField.ingest` alone retains omitted/repeated grids and blends new grids for
-0.5 s, but that is not a general state/replay merge contract. `sdk_mock` uses
-request/response (`sdk/_client.py`), with no state-delta merge. Third-party
-snapshot consumers cannot be assumed to merge. Consequently H3 does **not**
-throttle these fields or introduce a last-update marker. The grid's existing
-`seq` and `t` still describe its 0.5 s sampling cadence. Power trips, light cutoff,
-thermal warnings and reconnect/reset snapshots remain available immediately.
-A future opt-in delta extension must retain omitted fields per vehicle, distinguish
-explicit null/removal, send a full initial/reset snapshot, and supply optional
-last-update timestamps; it must leave legacy connections on full snapshots.
+`sdk_mock` uses request/response (`sdk/_client.py`) with no state-delta merge.
+The ROS 2 bridge and other third-party consumers that omit caps keep receiving
+full snapshots identical to pre-I2 hosts. H3 therefore kept full snapshots for
+every connection; I2 adds an **opt-in** `static_once` capability (below). The
+flow grid's existing `seq` and `t` still describe its 0.5 s sampling cadence.
+
+### Optional capability: `static_once` (I2)
+
+Clients may declare wire capabilities on `join`, `instructor_join`, or a
+read-only `hello` (before or without joining):
+
+```json
+{"type":"join","room_id":"training","name":"Pilot","model_id":"x1","caps":["static_once"]}
+{"type":"hello","caps":["static_once"]}
+```
+
+Unknown capability names are ignored. When the request carried `caps`, the
+session / `instructor_session` reply echoes the accepted list as
+`"caps":["static_once"]`; `hello_ack` always does. Omitting `caps` or sending `[]`
+retains full snapshots for that connection, byte-compatible with older hosts. A
+later `join` / `hello` replaces the connection's caps.
+
+Only connections that accepted `static_once` may receive states with allowlisted
+fields omitted when the value is unchanged since the last state sent on **that**
+socket. Such a state carries `"delta":true`. A state **without** `delta` is always
+a complete snapshot and replaces whatever the client retained. The host sends a
+complete snapshot for the first state after join / hello / instructor_join, after
+each `world` message (scenario, reset, model, membership), and whenever a field or
+fleet seat sent earlier is no longer present (removal). Explicit `null` and value
+changes are always forwarded on the tick they happen; there is no rate limit, so
+power trips, leaks and thermal warnings are never delayed.
+
+Allowlisted top-level fields (omit only when unchanged):
+
+* Definitions / narrative: `vehicle`, `campaign`
+* World-sticky mirrors: `appearance`, `paint_marks`, `room`, `mission`,
+  `expedition`, `operation_mode`, `turbidity`
+* Low-frequency systems: `power`, `thermal`, `flow_field`, `link`, `leak`,
+  `assist`, `health`, `nav`, `log`, `events`, `damage`, `photos`
+* Sticky control metadata: `recording`, `remote_control`, `input_latched`,
+  `control_generation`, `owner_id`, `vehicle_id`, `model_id`, `paused`,
+  `battery`, `keep_depth`, `ctrl_mode`, `locked`, `depth_hold`
+
+The same omission applies inside each `vehicles[]` entry for the overlapping
+subset (`vehicle`, `power`, `thermal`, and the sticky / low-frequency keys listed
+above that exist on fleet entries). High-rate pose, tether, sensors, score and
+environment continue on every tick.
+
+**Client responsibility:** a `static_once` client must merge each state into a
+retained complete snapshot before use (`viewer/state_merge.js`): on a `delta`
+state, take every key from the message and fill only the omitted allowlisted keys
+(top level and per `vehicles[]` entry, matched by `vehicle_id`) from the retained
+snapshot; keys outside the allowlist are never carried over. Merge every state on
+the socket, including ones received before the `session` reply, and clear the
+retained snapshot only when a new socket opens. A client must not skip a `delta`
+state: one that drops snapshots to keep up (the viewer's link worker does) has to
+fold the skipped delta into its successor (`coalesceStates`), otherwise changed
+fields such as `locked`, `input_latched` or `control_generation` are lost. The live pilot
+viewer and the instructor console declare the capability and merge. Replay does
+**not** declare it: mission recordings store complete merged snapshots so older
+replay tools keep working. `StateBuffer` receives already-merged frames.
 
 Presentation snapshot floats use at most six significant decimal digits (relative
 rounding error <= 5e-6), after existing field-specific rounding. This preserves
@@ -819,3 +909,21 @@ Field attribution includes keys but excludes enclosing punctuation; fleet entrie
 are grouped by `vehicles[].field`. Compressed sizes use one persistent raw-deflate
 context per connection and remove the RFC 7692 sync-flush trailer, not standalone
 zlib/gzip files. Actual throughput also depends on achieved server publication rate.
+
+G7 adds optional `embedded: true` to `snag` obstacles whose geometry is already drawn by a scene GLB.
+It suppresses only the duplicate procedural visual; collision and tether snag semantics are unchanged.
+Absent means the existing standalone visual. Authored snag metadata uses the FieldMesh local frame;
+`point`, `radius`, `height`, `hold_n` and `item` map to `SnagFeature`. `direction` describes the source
+feature tangent; small sphere capsules sample angled features without changing the vertical capsule API.
+
+### Aquaculture scene metadata (optional)
+
+`world.scenario.aquaculture` only appears for `aquaculture_pen` and its site variants `aquaculture_pen_slack`
+(slack-water current) and `aquaculture_pen_inside` (vehicle and spool start inside the net, slack water; only the
+`pen_recover` objective): `center` (N/E metres),
+`radius`, `net_depth`, `holes` (`id`, NED `pos`, metre `size`, `panel`) and
+`dead_fish` (`id`, initial NED `pos`). Live fish recovery positions come from existing
+`state.operations.objects`; `kind: "dead_fish"` is optional. Existing arm ownership,
+load and release semantics apply. New scenario objective kinds are `pen_lap`,
+`pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
+Net visual motion is bounded to 0.05 m and never changes server collision shapes.

@@ -1,29 +1,30 @@
 // Radio subtitles, shared chapter selection and local campaign progress preferences.
 import {glyph, deviceFamily} from '../input/glyphs.js';
+import {BINDINGS, actionKey, axisChannel, pilotAxisKeys} from '../input/bindings.js';
 import {listCollection, saveResult} from '../collection_store.js';
+import {vehicleName} from '../fleet_names.js';
 const STRINGS = {
   menuOption: '潮間帶工作隊 · 劇情與新手教學',
   menuBrief: '從水池練習開始，解鎖港灣與船殼巡檢。章節與課程可在任務面板重玩。',
-  sticker: '裝上首次下潛貼紙', vehicle: '部署解鎖的作業載具',
+  sticker: '裝上首次下潛貼紙', vehicle: `部署解鎖的作業載具 ${vehicleName('falcon')}`,
   resume: '從存檔點繼續', saveFailed: '進度儲存失敗，請匯出學員成績備份。',
   title: '潮間帶工作隊', chapters: '章節 / 訓練課程', next: '繼續', skip: '跳過教學',
   history: '無線電紀錄', pending: '籌備中', locked: '先完成前一任務', course: '公司課程（略過故事）',
   export: '匯出學員成績', complete: '任務完成。回到章節選單，準備下一次下潛。',
   retry: '先停一下，別急。我們照剛才那一步再試一次。', replay: '重玩序章',
+  // Pad names of the stick channels; keyboard keys come from the active key rows (input/keyboard_layout.js).
   channels: {
-  left_ud: ['W / S', '左桿上下'], left_lr: ['D / A', '左桿左右'],
-  right_ud: ['↑ / ↓', '右桿上下'], right_lr: ['→ / ←', '右桿左右'],
-  left_wave: ['E / Q', '左滾輪'], right_wave: ['C / Z', '右滾輪'],
-},
+    left_ud: '左桿上下', left_lr: '左桿左右', right_ud: '右桿上下', right_lr: '右桿左右',
+    left_wave: '左滾輪', right_wave: '右滾輪',
+  },
 };
 export const CAMPAIGN_MENU_STRINGS = {title: STRINGS.menuOption, brief: STRINGS.menuBrief};
 const KEY = 'rov.campaign.v1';
 const CHANNELS = STRINGS.channels;
-const MODES = {
-  ROV_USA: ['right_ud', 'right_wave', 'left_wave'], ROV_JPN: ['left_ud', 'right_wave', 'left_wave'],
-  ROV_CHN: ['left_ud', 'right_wave', 'left_wave'], UAV_USA: ['right_ud', 'right_lr', 'left_ud'],
-  UAV_JPN: ['left_ud', 'right_lr', 'right_ud'], UAV_CHN: ['left_ud', 'left_lr', 'right_ud'],
-};
+// The move_ steps of the prologue test these pilot axes, in the order of their condition paths.
+const MOVE_AXES = ['surge', 'sway', 'heave'];
+// Story steps that wait for one control: [face button index, action whose key is shown].
+const STEP_ACTIONS = {unlock: [3, 'lock'], depth: [2, 'depth'], photo: [0, 'photo']};
 
 export function installCampaign({send, readOnly = false}) {
   const root = document.createElement('section');
@@ -39,6 +40,10 @@ export function installCampaign({send, readOnly = false}) {
   const hint = document.createElement('small');
   const next = document.createElement('button');
   let family = 'keyboard';
+  let boundInput = null;
+  function keyRows() {
+    return boundInput?.keyRows?.() || BINDINGS;
+  }
   next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
   const cap = document.createElement('span');
   root.append(avatar, speaker, text, cap, hint, next);
@@ -72,17 +77,20 @@ export function installCampaign({send, readOnly = false}) {
   report.textContent = STRINGS.export;
   menu.append(summary, label, list, resume, sticker, vehicle, skip, report, history);
   document.querySelector('.mission-tools')?.append(menu);
-  // The radio sits beside the depth scale and above the minimap, so it never covers an instrument;
-  // its layer comes from the stacking scale in hud/tokens.css.
+  // The radio sits below the heading tape, right of the depth scale and above the minimap, so it never covers an
+  // instrument; its layer comes from the stacking scale in hud/tokens.css. The key cap keeps its own width.
   const style = document.createElement('style');
   style.textContent = `
-    .story-radio{position:fixed;left:max(13%,168px);top:9%;width:31%;max-width:45%;max-height:48%;
+    .story-radio{position:fixed;left:max(15%,220px);top:max(15%,calc(3% + 108px));width:31%;max-width:45%;
+      max-height:44%;
       overflow:auto;box-sizing:border-box;padding:16px 24px;
       background:rgba(8,18,26,.72);backdrop-filter:blur(14px);border-left:2px solid #4fd1e0;
       color:#e8f1f5;z-index:var(--z-story);pointer-events:none;transition:opacity .2s ease-out}
     .story-avatar{float:left;width:24px;height:24px;margin-right:8px;fill:none;stroke:#4fd1e0}
     .story-radio[hidden]{display:none}.story-radio strong{color:#4fd1e0;font-size:12px;letter-spacing:.1em}
     .story-radio p{font-size:17px;line-height:1.6;margin:8px 0}.story-radio small{color:#8fa6b2}
+    .story-radio>span:not(:empty){display:inline-block;margin-right:10px;vertical-align:middle}
+    .story-radio button svg{margin-right:6px;vertical-align:middle}
     .story-radio button{pointer-events:auto;float:right}.story-menu button{display:block;margin:8px 0;width:100%}
     .story-menu button:focus-visible{outline:2px solid #4fd1e0}.story-menu{padding:8px 0}
     @media(max-width:720px){
@@ -109,8 +117,8 @@ export function installCampaign({send, readOnly = false}) {
   let savedSignature = '';
   function refreshGlyphs() {
     next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
-    const action = {unlock: [3, 'Space'], depth: [2, 'H'], photo: [0, 'P']}[current?.node?.id];
-    cap.innerHTML = action ? glyph(action[0], family, action[1]) : '';
+    const step = STEP_ACTIONS[current?.node?.id];
+    cap.innerHTML = step ? glyph(step[0], family, actionKey(step[1], keyRows())) : '';
   }
   document.addEventListener('rov-input-device', function storyDevice(event) {
     family = deviceFamily(event.detail === 'touch' ? '' : event.detail);
@@ -136,6 +144,7 @@ export function installCampaign({send, readOnly = false}) {
     return !readOnly && isHost && !root.hidden && current?.node?.type === 'dialogue';
   }
   function bindInput(input) {
+    boundInput = input;
     input.registerActions({
       dialogueAccept: {
         enabled: awaitingConfirm,
@@ -234,10 +243,11 @@ export function installCampaign({send, readOnly = false}) {
     text.textContent = '';
     hint.textContent = node?.type === 'wait' ? node.hint : '';
     if (node?.id?.startsWith('move_')) {
-      const axis = Number(node.condition.path.split('.').at(-1));
-      const channel = MODES[state.operation_mode]?.[axis];
-      const pad = family !== 'keyboard';
-      hint.textContent += ' · ' + (CHANNELS[channel]?.[pad ? 1 : 0] || '');
+      const axis = MOVE_AXES[Number(node.condition.path.split('.').at(-1))];
+      const mode = state.operation_mode || 'ROV_USA';
+      const channel = axisChannel(axis, mode)?.channel;
+      const keys = pilotAxisKeys(axis, keyRows(), mode).join(' / ');
+      hint.textContent += ' · ' + ((family !== 'keyboard' ? CHANNELS[channel] : keys) || '');
     }
     next.hidden = node?.type !== 'dialogue';
     log.replaceChildren(...campaign.dialogue.map(entry => {
