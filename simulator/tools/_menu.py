@@ -33,11 +33,23 @@ def wait_title_card_gone(page, timeout=60000):
     page.wait_for_function('!document.querySelector(".brand-card-overlay")', timeout=scaled(timeout))
 
 
+def dismiss_new_game(page, preset='real'):
+    """Confirm the first-run difficulty screen when it appears (fresh localStorage)."""
+    if page.evaluate('window.__menu?.screen') != 'new_game':
+        return
+    soft_click(page, f'#newGame-{preset}')
+    soft_click(page, '#newGameConfirm')
+    page.wait_for_function('window.__menu?.screen !== "new_game"', timeout=scaled(30000))
+
+
 def open_main(page):
     """From the title screen (or any screen reached from it) to the main menu."""
     wait_ready(page)
     if page.evaluate('window.__menu.screen') == 'title':
         soft_click(page, '#titleStart')
+        dismiss_new_game(page)
+    elif page.evaluate('window.__menu.screen') == 'new_game':
+        dismiss_new_game(page)
     else:
         page.evaluate('window.__menu.go("main")')
     wait_screen(page, 'main')

@@ -1,8 +1,8 @@
 // Which keyboard layout is active and the player's own key choices, shared by the input layer, the HUD help card,
 // the story radio key caps and the settings tables. The layout is the `keyboardLayout` fidelity item: a pure
 // preference (presetNeutral) that defaults to the real controller's stick mapping in `real` and to the PC game
-// layout (WASD, Space/C up/down, Q/E turn) in `assisted`, which is also the Steam edition default. Rebound keys
-// live in rov.input.v1 under `keys[layout]` (input/settings.js); bindings.js validates that they stay unique.
+// layout (WASD, Space/C up/down, Q/E turn) in `assisted` and `standard`. Rebound keys live in rov.input.v1
+// under `keys[layout]` (input/settings.js); bindings.js validates that they stay unique.
 import {registerFidelityItem, getFidelity} from '../fidelity.js';
 import {BINDINGS, KEYBOARD_LAYOUTS, keyboardRows} from './bindings.js';
 
@@ -14,7 +14,7 @@ registerFidelityItem({
   descriptionKey: 'keyboardLayoutHelp',
   type: 'choice',
   options: [{value: 'console', labelKey: 'keyboardConsole'}, {value: 'game', labelKey: 'keyboardGame'}],
-  defaults: {real: 'console', assisted: 'game'},
+  defaults: {real: 'console', standard: 'game', assisted: 'game'},
   presetNeutral: true,
 }, {
   keyboardLayout: '鍵盤配置',

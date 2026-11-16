@@ -37,6 +37,13 @@ html.in-game .menu-loading { display: none; }
 .launch-menu[data-screen=multiplayer] .menu-shade,
 .launch-menu[data-screen=training] .menu-shade { background: linear-gradient(90deg, rgba(4, 9, 13, .86),
   rgba(4, 9, 13, .6) 60%, rgba(4, 9, 13, .3)); }
+/* New-game: deep ocean left for the options, clear real-scene preview on the right. */
+.launch-menu[data-screen=new_game] .menu-shade {
+  background: linear-gradient(90deg, #04090d 0%, #04090dea 34%, #04090d66 48%, transparent 62%),
+    linear-gradient(180deg, #04090d99 0%, transparent 22%, transparent 70%, #04090de0 100%);
+}
+.launch-menu[data-screen=new_game] .menu-brand,
+.launch-menu[data-screen=new_game] .menu-steps { visibility: hidden; }
 .launch-menu.departing .menu-stack, .launch-menu.departing .menu-header { opacity: 0;
   transition: opacity .5s ease-out; }
 
@@ -391,6 +398,138 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
   .menu-prompts { display: none; }
   .pause-menu { grid-template-columns: 1fr; overflow: auto; }
 }
+/* ── new game / difficulty ───────────────────────────────────────────────── */
+/* Cinematic picker: large vertical titles, thick selection frame, one safety-orange confirm. */
+.menu-screen[data-screen=new_game] {
+  --new-game-ice: #e8f1f5;
+  --new-game-dim: #8fa6b2;
+  --new-game-orange: #ff6a2b;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-content: stretch;
+  /* Full-bleed cinematic: extend into the header/footer safe bands. */
+  inset: var(--safe);
+  padding: 12px 0 8px;
+}
+.new-game-title {
+  margin: 0 0 18px;
+  font-family: "Barlow Condensed", "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: clamp(42px, 6vw, 72px);
+  letter-spacing: .06em;
+  color: var(--new-game-ice);
+  text-transform: none;
+}
+.new-game-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 34vw) 1fr;
+  gap: clamp(24px, 4vw, 64px);
+  min-height: 0;
+  align-items: stretch;
+}
+.new-game-options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+}
+.new-game-option {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 18px 22px;
+  border: 3px solid transparent;
+  background: transparent;
+  color: var(--new-game-dim);
+  text-align: left;
+  cursor: pointer;
+  font-family: "Barlow Condensed", "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: clamp(36px, 5.5vw, 64px);
+  line-height: 1;
+  letter-spacing: .08em;
+}
+.new-game-option.is-selected,
+.new-game-option[aria-selected=true],
+.new-game-option:focus-visible {
+  color: var(--new-game-ice);
+  border-color: var(--new-game-ice);
+}
+.new-game-option-label { display: block; }
+.new-game-preview {
+  position: relative;
+  min-height: 42vh;
+  border: 3px solid var(--new-game-ice);
+  background: transparent;
+  align-self: stretch;
+}
+.new-game-preview-frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: end;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, transparent 55%, #04090dcc 100%);
+  pointer-events: none;
+}
+.new-game-preview-label {
+  margin: 0;
+  font-family: "Barlow Condensed", "Noto Sans TC", sans-serif;
+  font-size: 22px;
+  letter-spacing: .18em;
+  color: var(--new-game-ice);
+}
+.new-game-foot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "blurb confirm" "hours confirm";
+  gap: 6px 28px;
+  align-items: center;
+  margin-top: 22px;
+}
+.new-game-blurb {
+  grid-area: blurb;
+  margin: 0;
+  max-width: 62ch;
+  color: var(--new-game-ice);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.new-game-hours {
+  grid-area: hours;
+  margin: 0;
+  color: var(--new-game-dim);
+  font-size: 13px;
+  letter-spacing: .04em;
+}
+.new-game-confirm {
+  grid-area: confirm;
+  justify-self: end;
+  align-self: center;
+  min-width: 160px;
+  padding: 14px 28px;
+  border: 3px solid var(--new-game-orange);
+  background: var(--new-game-orange);
+  color: #140801;
+  font-family: "Barlow Condensed", "Noto Sans TC", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: .16em;
+  cursor: pointer;
+}
+.new-game-confirm:hover,
+.new-game-confirm:focus-visible {
+  filter: brightness(1.08);
+  outline: none;
+}
+@media (max-width: 900px) {
+  .new-game-layout { grid-template-columns: 1fr; }
+  .new-game-preview { min-height: 28vh; order: -1; }
+  .new-game-foot { grid-template-columns: 1fr; grid-template-areas: "blurb" "hours" "confirm"; }
+  .new-game-confirm { justify-self: stretch; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .menu-screen, .menu-screen[data-active], .menu-card, .menu-site, .menu-entry, .menu-start,
   .menu-loading { transition: none; }

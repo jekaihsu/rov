@@ -2,6 +2,21 @@
 .fidelity-panel { margin: 0 0 16px; color: var(--text); font: 13px Inter,system-ui,sans-serif; }
 .fidelity-panel > summary { cursor: pointer; }
 .fidelity-help { margin: 4px 0 8px; color: var(--text-dim); font-size: 12px; line-height: 1.5; }
+.fidelity-difficulty {
+  display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; font-size: 14px; color: var(--text);
+}
+.fidelity-difficulty-label { letter-spacing: .12em; color: var(--text-dim); }
+.fidelity-difficulty-value {
+  min-width: 4.5em; text-align: center; font-weight: 600; letter-spacing: .08em;
+}
+.fidelity-difficulty-value[data-preset=custom] { color: var(--warn); }
+.fidelity-difficulty-step {
+  padding: 4px 10px; border: 2px solid var(--line); background: transparent; color: var(--text);
+  font: inherit; cursor: pointer;
+}
+.fidelity-difficulty-step:hover, .fidelity-difficulty-step:focus-visible {
+  border-color: var(--text); color: var(--text);
+}
 .fidelity-presets { display: flex; gap: 8px; margin: 8px 0 16px; }
 .fidelity-presets button { flex: 1; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius);
   background: transparent; color: var(--text-dim); font: inherit; cursor: pointer; }
@@ -22,5 +37,6 @@
 .fidelity-badge.active { border-color: var(--warn); color: var(--warn); }
 .fidelity-source[hidden] { display: none; }
 #flightFidelity[data-preset=real] { color: var(--go); border-color: var(--go); }
+#flightFidelity[data-preset=standard] { color: var(--text); border-color: var(--text); }
 #flightFidelity[data-preset=assisted] { color: var(--accent); border-color: var(--accent); }
 #flightFidelity[data-preset=custom] { color: var(--warn); border-color: var(--warn); }

@@ -1,11 +1,12 @@
-// Fidelity profile: the single source of truth for "real" versus "assisted" behaviour.
+// Fidelity profile: the single source of truth for "real" / "standard" / "assisted" behaviour.
 // Every feature that exceeds real-vehicle capability registers an item here and defaults to off in `real`.
 // The module owns presets, per-item values, persistence, URL overrides and change notification.
 // It never touches physics or protocol; consumers read values and react to changes.
 const STRINGS = {
   title: '擬真設定',
   presetReal: '真實',
-  presetAssisted: '輔助',
+  presetStandard: '標準',
+  presetAssisted: '簡單',
   presetCustom: '自訂',
   assistLevel: '飛行輔助',
   assistLevelHelp: '真機推桿即推力；速度與定點輔助會主動煞停，伺服器支援時才生效。',
@@ -41,8 +42,16 @@ const STRINGS = {
   hudStyleOsd: '影像疊字',
   unitMs: 'ms'
 };
-export const PRESET_NAMES = ['real', 'assisted'];
+// Player-facing difficulty order (easy → hard). Internal keys stay stable for saves and URLs.
+export const PRESET_NAMES = ['real', 'standard', 'assisted'];
+export const DIFFICULTY_ORDER = ['assisted', 'standard', 'real'];
 export const STORAGE_KEY = 'rov.fidelity.v1';
+// Missing `standard` defaults fall back to `real` so existing registerFidelityItem calls stay valid.
+function presetDefault(item, preset) {
+  if (Object.prototype.hasOwnProperty.call(item.defaults || {}, preset)) return item.defaults[preset];
+  if (preset === 'standard') return item.defaults?.real;
+  return undefined;
+}
 const THIRD_PERSON_VIEWS = ['chase', 'orbit', 'top'];
 const registry = new Map();
 const stores = new Set();
@@ -88,9 +97,15 @@ export function registerFidelityItem(definition, strings = {}) {
   item.labelKey ||= item.id;
   item.exceeds ||= defaultExceeds(item);
   for (const preset of PRESET_NAMES) {
-    const value = normalizeFidelityValue(item, item.defaults?.[preset]);
+    const value = normalizeFidelityValue(item, presetDefault(item, preset));
     if (value === undefined) throw new Error(`Fidelity item ${item.id} needs a valid ${preset} default`);
   }
+  // Resolve fallbacks into the frozen item so consumers can read defaults.standard directly.
+  item.defaults = Object.freeze({
+    real: normalizeFidelityValue(item, presetDefault(item, 'real')),
+    standard: normalizeFidelityValue(item, presetDefault(item, 'standard')),
+    assisted: normalizeFidelityValue(item, presetDefault(item, 'assisted')),
+  });
   if (item.exceeds(item.defaults.real)) {
     throw new Error(`Fidelity item ${item.id} must not exceed the real vehicle in the real preset`);
   }
@@ -121,7 +136,10 @@ export function createFidelity({storage = null, search = '', edition = null} = {
   const urlPreset = PRESET_NAMES.includes(params.get('fidelity')) ? params.get('fidelity') : null;
   const storedBase = PRESET_NAMES.includes(stored.base) ? stored.base : null;
   const listeners = new Set();
-  let base = urlPreset || storedBase || (edition === 'steam' ? 'assisted' : 'real');
+  // `edition` remains in the API for desktop callers; both steam and training now default to real.
+  // Easier presets are chosen on the new-game screen (or via ?fidelity= / settings).
+  void edition;
+  let base = urlPreset || storedBase || 'real';
   let overrides = {};
   let urlActive = true;
   if (!urlPreset && stored.overrides && typeof stored.overrides === 'object') overrides = {...stored.overrides};
@@ -287,7 +305,8 @@ registerFidelityItem({
     {value: 1, labelKey: 'assistVelocity'},
     {value: 2, labelKey: 'assistHold'}
   ],
-  defaults: {real: 0, assisted: 2}, exceedsReal: true, exceeds: isAssistOn
+  // standard: 定點輔助關（推桿即推力）；assisted 仍開定點。
+  defaults: {real: 0, standard: 0, assisted: 2}, exceedsReal: true, exceeds: isAssistOn
 });
 registerFidelityItem({
   id: 'flightProfile', descriptionKey: 'flightProfileHelp', type: 'choice',
@@ -300,8 +319,9 @@ registerFidelityItem({
 });
 registerFidelityItem({
   // Provisional generic latency from the research report, not a vehicle-specific measurement.
+  // standard keeps real latency; assisted drops it for a snappier training feel.
   id: 'videoDelayMs', descriptionKey: 'videoDelayMsHelp', type: 'range', min: 0, max: 1000, step: 10,
-  unitKey: 'unitMs', defaults: {real: 150, assisted: 0}, exceedsReal: true, exceeds: isBelowRealDelay,
+  unitKey: 'unitMs', defaults: {real: 150, standard: 150, assisted: 0}, exceedsReal: true, exceeds: isBelowRealDelay,
   urlValue: videoDelayFromUrl
 });
 registerFidelityItem({
