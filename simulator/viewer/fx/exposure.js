@@ -182,6 +182,7 @@ const BALANCE = /* glsl */ `
   uniform sampler2D tPrevious;
   uniform float uStep;
   uniform float uReset;
+  uniform float uBalanceScale;
   varying vec2 vUv;
   ${METER_WEIGHT}
   ${WHITE_BALANCE_GLSL}
@@ -197,7 +198,8 @@ const BALANCE = /* glsl */ `
         weights += meterWeight((vec2(float(x), float(y)) + 0.5) / vec2(${METER_WIDTH}.0, ${METER_HEIGHT}.0));
       }
     }
-    vec3 target = whiteBalanceLogGains(colourCast / max(candidates, 1e-6), candidates / max(weights, 1e-4));
+    vec3 target = uBalanceScale *
+      whiteBalanceLogGains(colourCast / max(candidates, 1e-6), candidates / max(weights, 1e-4));
     vec3 previous = texelFetch(tPrevious, ivec2(0, 0), 0).rgb;
     vec3 next = uReset > 0.5 ? target : previous + (target - previous) * uStep;
     gl_FragColor = vec4(next, 1.0);
@@ -250,7 +252,7 @@ export class AutoExposurePass extends Pass {
     this.balanceMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tMeter: { value: this.meter.texture }, tPrevious: { value: null }, uStep: { value: 1 },
-        uReset: { value: 1 }
+        uReset: { value: 1 }, uBalanceScale: { value: 1 }
       },
       vertexShader: VERTEX, fragmentShader: BALANCE, depthTest: false, depthWrite: false
     });
@@ -269,7 +271,8 @@ export class AutoExposurePass extends Pass {
     const compensation = metering ? metering.compensation : EXPOSURE.compensation;
     const reference = metering ? metering.reference : EXPOSURE.reference;
     this.adaptMaterial.uniforms.uPartial.value.set(compensation, Math.log(reference));
-    this.balanceMaterial.uniforms.uBalance.value.x = metering ? metering.balance : WHITE_BALANCE.strength;
+    // The override's `balance` is the share of the camera's own white balance to apply (0 = fixed daylight).
+    this.balanceMaterial.uniforms.uBalanceScale.value = metering ? metering.balance : 1;
   }
 
   // Seconds since the previous metered frame, from the wall clock; capped so a stall does not jump.
