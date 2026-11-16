@@ -1,13 +1,18 @@
 """Four-language title-to-briefing, HUD and real prologue results checks at both supported sizes."""
 import json
 import time
+import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import http_base, launch, timeout, ws_base
 from _menu import open_main, set_intro, wait_ready, wait_screen, wait_title_card_gone
 from browser_results_smoke import play_prologue
 
-OUT = Path(__file__).resolve().parents[2] / 'docs/i18n/screenshots'
+# Shots go to output/ by default so routine runs do not rewrite the committed set;
+# set ROV_I18N_UPDATE_DOCS=1 to refresh docs/i18n/screenshots on purpose.
+DOCS_SHOTS = Path(__file__).resolve().parents[2] / 'docs/i18n/screenshots'
+RUN_SHOTS = Path(__file__).resolve().parents[1] / 'output/i18n-screenshots'
+OUT = DOCS_SHOTS if os.environ.get('ROV_I18N_UPDATE_DOCS') == '1' else RUN_SHOTS
 OUT.mkdir(parents=True, exist_ok=True)
 
 

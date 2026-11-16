@@ -240,6 +240,17 @@ export class AutoExposurePass extends Pass {
       vertexShader: VERTEX, fragmentShader: APPLY, depthTest: false, depthWrite: false
     });
     this.quad = new FullScreenQuad(null);
+    // Optional override while the camera is above water ({compensation, reference, balance}, fx/daylight.js);
+    // null keeps the underwater camera model above.
+    this.metering = null;
+  }
+
+  applyMetering() {
+    const metering = this.metering;
+    const compensation = metering ? metering.compensation : EXPOSURE.compensation;
+    const reference = metering ? metering.reference : EXPOSURE.reference;
+    this.adaptMaterial.uniforms.uPartial.value.set(compensation, Math.log(reference));
+    this.balanceMaterial.uniforms.uBalance.value.x = metering ? metering.balance : WHITE_BALANCE.strength;
   }
 
   // Seconds since the previous metered frame, from the wall clock; capped so a stall does not jump.
@@ -251,6 +262,7 @@ export class AutoExposurePass extends Pass {
   }
 
   render(renderer, writeBuffer, readBuffer) {
+    this.applyMetering();
     this.meterMaterial.uniforms.tDiffuse.value = readBuffer.texture;
     this.quad.material = this.meterMaterial;
     renderer.setRenderTarget(this.meter);
