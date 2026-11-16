@@ -13,6 +13,8 @@ DEFAULT_CHECKS = (
     'browser_menu_smoke',
     'browser_menu_gamepad_smoke',
     'browser_gamepad_matrix_smoke',
+    # Four PlayStation profiles (standard and raw, DualSense and DualShock 4), each from title to dive and back.
+    'browser_playstation_smoke',
     'browser_slow_render_smoke',
     'browser_connection_smoke',
     'browser_hud_smoke',
@@ -41,6 +43,8 @@ DEFAULT_CHECKS = (
     'browser_brand_smoke',
 )
 
+# Per-script time limits above run_browser_checks' --timeout default, for checks that walk several full dives.
+SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 2700}
 
 TIERS = {
     'quick': {
