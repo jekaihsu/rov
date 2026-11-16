@@ -23,6 +23,28 @@ no external files. Marine-life GLBs registered later in `../marine_registry.js` 
 
 An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime` reference directory. It is not included here or in the desktop distribution.
 
+### Fish (`fish/`)
+
+Photo-textured fish models from the **Fish Kit** by cda-social: [kit zip](https://cda-social.github.io/fish/kit/fish-kit.zip),
+[gallery](https://cda-social.github.io/fish/gallery.html), [terms](https://cda-social.github.io/fish/terms.html).
+Licence: **CC0 1.0** for the fish models, textures, motions, code and scripts (the kit's `LICENSE.txt` and the terms page).
+three.js, which the kit embeds only in its `example.html`, is MIT and was not copied; nothing of the kit's code is
+vendored (the swim wave is our own shader in `../fish_life.js`, using the wave parameters stored in each model).
+
+**Provenance of the textures: AI-generated images.** The kit's `making/README.md` states that the side-view fish
+"photos" were generated with OpenAI's image generation (driven through the Codex CLI) and then meshed in Blender;
+they are not photographs of real fish. Disclosed in the Steam AI-content notes (`docs/store/steam/page.md`).
+
+| Files | Species (kit id) | Changes |
+|---|---|---|
+| `<id>.glb` | aji, saba, buri, kurodai, mebaru, madai, isaki, isaki_young, shibudai, onagagure, kuchibuto | none (byte-for-byte copies) |
+| `<id>_lo.glb` | same | embedded texture removed (it is byte-identical to the one in `<id>.glb`, which the viewer uses) |
+| `<id>_card.webp` | same | derived: orthographic side and top views of `<id>.glb` rendered from its own texture (far-fish cards) |
+
+Rebuild: `python simulator/tools/build_fish_kit.py --source <fish-kit>/fish` (reads the GLBs as data only).
+The head and gill-cover images of the kit (`*_head.webp`, `*_cover.webp`) drive its mouth and gill motion, which the
+viewer does not use; they are not vendored. Credit is not required by CC0; it is given here for provenance.
+
 ### Music (`../audio/music/`)
 Every recording below is public domain or CC0 — the *performance*, not only the composition. Files were trimmed,
 loudness-normalised to about −18 LUFS (ffmpeg `loudnorm`, linear two-pass) and encoded as Ogg Opus 80–96 kbps;
@@ -75,5 +97,5 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 
 `aquaculture/net.webp` 自 scene-looks 起改由 `simulator/tools/build_pen_net_texture.py`（Pillow，固定 seed 71）產生：
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
-養殖魚與死魚（`pen_life.js`）、珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`）皆為本專案原創程式幾何，
-CC0-1.0，沒有外部模型、照片或貼圖。
+珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）
+皆為本專案原創程式幾何，CC0-1.0，沒有外部模型、照片或貼圖。養殖魚與死魚載入後改用上方 Fish Kit 的嘉鱲（`fish/madai*`）。
