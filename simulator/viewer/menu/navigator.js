@@ -4,7 +4,7 @@
 // stick turns the hangar turntable. Also renders the footer button prompts for the device in use.
 import { BINDINGS, bindingRow, createResolver, inputIds, keyLabel, keyRow, padLabel } from '../input/bindings.js';
 import { createDevices } from '../input/devices.js';
-import { deviceFamily, glyph } from '../input/glyphs.js';
+import { deviceFamily, glyph, padNames } from '../input/glyphs.js';
 
 import { localize } from '../i18n/index.js';
 
@@ -102,7 +102,7 @@ function capFor(action, family) {
   const index = Number(id.slice(1));
   if (id[0] === 'b' && index < 4) return { svg: glyph(index, family) };
   if (id[0] === 'a') return { text: STRINGS.stickNames[id] || id };
-  return { text: padLabel(row.pad) };
+  return { text: padLabel(row.pad, padNames(family) || undefined) };
 }
 
 function capElement(cap) {
@@ -329,7 +329,16 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
     cancelAnimationFrame(loop);
     loop = 0;
   }
+  // In the game the flight input layer reports the device in use (pad id, '' for keys); follow it so a pause menu
+  // opened by holding a pad button shows that pad's prompts even if the button was released before the first sample.
+  function deviceChanged(event) {
+    const id = event.detail;
+    if (id === 'touch') return;
+    setFamily(deviceFamily(id || ''));
+    setInputKind(id ? 'pad' : 'key');
+  }
   addEventListener('keydown', onKey);
+  document.addEventListener('rov-input-device', deviceChanged);
   addEventListener('pointerdown', function pointer(event) {
     if (event.pointerType === 'mouse') setInputKind('pointer');
   });
