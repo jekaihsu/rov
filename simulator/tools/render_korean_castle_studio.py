@@ -22,10 +22,18 @@ b = PAGE.index("window.__ready =", a)
 PAGE = (
     PAGE[:a]
     + """
+let referenceBounds;
 window.__renderShot = async function(url) {
   const gltf = await loadGLTF(url);
   const root = gltf.scene;
-  const bounds = new THREE.Box3().setFromObject(root);
+  if (!referenceBounds) {
+    root.updateMatrixWorld(true);
+    referenceBounds = new THREE.Box3();
+    root.traverse(node => {
+      if (node.name.includes('HullShell')) referenceBounds.expandByObject(node);
+    });
+  }
+  const bounds = referenceBounds;
   const size = bounds.getSize(new THREE.Vector3());
   const centre = bounds.getCenter(new THREE.Vector3());
   const scale = 1.5 / Math.max(size.x, size.y, size.z);

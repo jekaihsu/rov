@@ -1,9 +1,9 @@
 [
   {
     "file": "korean_castle.glb",
-    "bytes": 5094076,
+    "bytes": 5573712,
     "triangles": 248341,
-    "draw_calls": 62,
+    "draw_calls": 61,
     "materials": 8,
     "textures": [
       {
@@ -11,7 +11,7 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 222370,
+        "bytes": 198992,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -19,23 +19,23 @@
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 38434,
+        "bytes": 65878,
         "gpu_rgba8_mips": 5592405
       },
       {
         "name": "encrusted_steel_roughness",
         "mime": "image/webp",
-        "width": 1024,
-        "height": 1024,
-        "bytes": 21502,
-        "gpu_rgba8_mips": 5592405
+        "width": 512,
+        "height": 512,
+        "bytes": 8798,
+        "gpu_rgba8_mips": 1398101
       },
       {
         "name": "I4_growth_normal",
         "mime": "image/webp",
         "width": 1024,
         "height": 1024,
-        "bytes": 17254,
+        "bytes": 17258,
         "gpu_rgba8_mips": 5592405
       },
       {
@@ -55,7 +55,7 @@
         "gpu_rgba8_mips": 5592405
       }
     ],
-    "texture_bytes_with_mips": 33554430,
+    "texture_bytes_with_mips": 29360126,
     "extensions": [
       "EXT_meshopt_compression",
       "EXT_texture_webp",
@@ -66,9 +66,9 @@
   },
   {
     "file": "korean_castle_lod1.glb",
-    "bytes": 2859852,
-    "triangles": 83121,
-    "draw_calls": 62,
+    "bytes": 3119760,
+    "triangles": 83120,
+    "draw_calls": 61,
     "materials": 8,
     "textures": [
       {
@@ -76,7 +76,7 @@
         "mime": "image/webp",
         "width": 512,
         "height": 512,
-        "bytes": 81184,
+        "bytes": 76700,
         "gpu_rgba8_mips": 1398101
       },
       {
@@ -84,7 +84,7 @@
         "mime": "image/webp",
         "width": 512,
         "height": 512,
-        "bytes": 16248,
+        "bytes": 26212,
         "gpu_rgba8_mips": 1398101
       },
       {
@@ -92,7 +92,7 @@
         "mime": "image/webp",
         "width": 512,
         "height": 512,
-        "bytes": 9674,
+        "bytes": 9574,
         "gpu_rgba8_mips": 1398101
       },
       {
@@ -100,7 +100,7 @@
         "mime": "image/webp",
         "width": 512,
         "height": 512,
-        "bytes": 6670,
+        "bytes": 6664,
         "gpu_rgba8_mips": 1398101
       },
       {
@@ -131,9 +131,9 @@
   },
   {
     "file": "korean_castle_lod2.glb",
-    "bytes": 806776,
-    "triangles": 17955,
-    "draw_calls": 62,
+    "bytes": 896196,
+    "triangles": 17953,
+    "draw_calls": 61,
     "materials": 8,
     "textures": [
       {
@@ -141,7 +141,7 @@
         "mime": "image/webp",
         "width": 256,
         "height": 256,
-        "bytes": 16382,
+        "bytes": 18466,
         "gpu_rgba8_mips": 349525
       },
       {
@@ -149,7 +149,7 @@
         "mime": "image/webp",
         "width": 256,
         "height": 256,
-        "bytes": 6734,
+        "bytes": 8294,
         "gpu_rgba8_mips": 349525
       },
       {
@@ -157,7 +157,7 @@
         "mime": "image/webp",
         "width": 256,
         "height": 256,
-        "bytes": 4286,
+        "bytes": 4348,
         "gpu_rgba8_mips": 349525
       },
       {
@@ -165,7 +165,7 @@
         "mime": "image/webp",
         "width": 256,
         "height": 256,
-        "bytes": 2004,
+        "bytes": 2016,
         "gpu_rgba8_mips": 349525
       },
       {

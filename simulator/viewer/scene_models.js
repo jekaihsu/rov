@@ -1,6 +1,6 @@
 /** Place distance-field scene assets; authored LODs share one collision field and coordinate frame.
- * Wreck LODs switch by camera distance (THREE.LOD), not by the quality setting. Menu backgrounds
- * load only the farthest (lowest) mesh so the launch stage stays cheap. */
+ * Chenjiao uses distance LODs; Korean Castle uses the selected quality tier.
+ * Menu backgrounds load the middle tier so the wreck silhouette stays legible. */
 import * as THREE from 'three';
 import {loadGLTF} from './glb.js';
 
@@ -72,10 +72,10 @@ export function placeSceneModelLow(ob, worldGroup, mapPosition, stillCurrent = n
 }
 
 export function placeSceneModel(ob, worldGroup, mapPosition, _detail = 'medium') {
-  // `_detail` kept for call-site compatibility; wreck LODs switch by camera distance, not quality.
+  // Preserve Chenjiao's distance LODs and Korean Castle's quality-tier selection.
   const holder = holderFor(ob, worldGroup, mapPosition);
-  if (!LOD_MODELS.has(ob.model)) {
-    loadCached(ob.model).then((gltf) => {
+  if (ob.model !== WRECK_BASE) {
+    loadCached(modelUrl(ob, _detail)).then((gltf) => {
       if (!gltf || holder.parent !== worldGroup) return;
       const model = gltf.scene.clone(true);
       markMeshes(model);

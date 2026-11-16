@@ -100,10 +100,10 @@ def noise(size: int, cells: int, seed: int) -> np.ndarray:
 
 def write_image(image: bpy.types.Image, rgb: np.ndarray, data: bool = False) -> None:
     h, w = rgb.shape[:2]
-    if tuple(image.size) != (w, h):
-        image.scale(w, h)
     if data:
         image.colorspace_settings.name = "Non-Color"
+    if tuple(image.size) != (w, h):
+        image.scale(w, h)
     rgba = np.ones((h, w, 4), dtype=np.float32)
     rgba[:, :, :3] = rgb
     image.pixels.foreach_set(rgba.ravel())
@@ -124,10 +124,9 @@ def set_repeat(image: bpy.types.Image | None) -> None:
 
 
 def steel_maps() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """High-contrast seamless rust + green-grey fouling (match main grit, no brick cells).
+    """Periodic wet steel: soft mottling, clustered corrosion pits and fine normal grain.
 
-    Main's atlas has albedo std≈20 and normal std≈15; earlier I4 drafts were too flat
-    (std≈5 / 1.5) and washed out under real-mode lamps. Soft fBm + Worley stay tileable.
+    Independent metre-space vertex stains break the atlas repetition over the hull.
     """
     broad = fbm(SIZE, 41, octaves=4, base_cells=2)
     medium = fbm(SIZE, 42, octaves=5, base_cells=5)
@@ -138,12 +137,15 @@ def steel_maps() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     pits = np.clip(1.0 - pits / max(float(pits.max()), 1e-6), 0, 1)
     clumps = worley(SIZE, 8, 46)
     clumps = np.clip(1.0 - clumps / max(float(clumps.max()), 1e-6), 0, 1)
-    rows = np.arange(SIZE, dtype=np.float32)[:, None]
-    cols = np.arange(SIZE, dtype=np.float32)[None, :]
-    plate = 0.5 + 0.5 * np.sin(cols * (TAU / SIZE) * 2.5) * np.sin(rows * (TAU / SIZE) * 1.8)
-    rivet = ((np.sin(cols * 0.2) * np.sin(rows * 0.2)) > 0.91).astype(np.float32)
+    # Centimetre-scale pitting lives in a separate frequency band from the mottling.
+    # Smooth periodic F1 cells avoid the square speckles and hard threshold rivets.
+    micro_pits = worley(SIZE, 128, 47)
+    micro_pits = np.exp(-micro_pits * micro_pits * 9.0)
+    corrosion = np.clip((broad + fine - 0.9) * 4.0, 0.0, 1.0)
+    micro_pits *= 0.1 + 0.9 * corrosion
+    grain = fbm(SIZE, 48, octaves=3, base_cells=128)
 
-    # Soft masks with enough range that WebP keeps grit (target albedo std ~18–22).
+    # Soft masks retain luminance detail without sharp camouflage boundaries.
     fouling = np.clip((broad * 0.45 + medium * 0.4 + fine * 0.15 - 0.38) * 3.5, 0, 1)
     rust_mask = np.clip((0.55 - medium) * 2.8 + fine * 0.4, 0, 1)
     pit = np.clip(pits * 0.85 + clumps * 0.35 + (0.4 - fine) * 1.8, 0, 1)
@@ -183,19 +185,28 @@ def steel_maps() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     color *= 0.65 + 0.7 * broad[:, :, None]
     # Salt-pepper grit (seamless via high-cell fBm) so close-ups keep grain like main.
     grit = (micro - 0.5) * 0.22
-    color = np.clip(color + grit[:, :, None], 0, 1)
+    color = np.clip(
+        color + grit[:, :, None] + (grain[:, :, None] - 0.5) * 0.06 - micro_pits[:, :, None] * 0.045,
+        0, 1,
+    )
 
-    # Strong height for barnacle-scale normals (target normal RGB std ~12–16).
+    # Wet oxide and biofilm are subdued under lamps; preserve luminance detail,
+    # but keep hue differences well below the earlier orange/green camouflage.
+    luminance = color @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    color = color * 0.45 + luminance[:, :, None] * 0.55
+
+    # Layer broad erosion, localized pits and fine grain in the normal height field.
     height = (
         fine * 0.7
         + micro * 0.55
         - pit * 0.55
         + fouling * 0.15
-        + plate * 0.08
-        + rivet * 0.14
         - dark * 0.2
+        - micro_pits * 0.06
+        + grain * 0.12
     )
-    dy, dx = np.gradient(height)
+    dy = (np.roll(height, -1, axis=0) - np.roll(height, 1, axis=0)) * 0.5
+    dx = (np.roll(height, -1, axis=1) - np.roll(height, 1, axis=1)) * 0.5
     normal = np.stack([-dx * 11.0, -dy * 11.0, np.ones_like(dx)], axis=-1)
 
     normal /= np.linalg.norm(normal, axis=-1)[:, :, None]
@@ -229,7 +240,8 @@ def growth_maps() -> tuple[np.ndarray, np.ndarray]:
     color *= 0.7 + 0.6 * n[:, :, None]
     color = np.clip(color, 0, 1)
     height = n * 0.55 + speck * 0.35 + clumps * 0.25
-    dy, dx = np.gradient(height)
+    dy = (np.roll(height, -1, axis=0) - np.roll(height, 1, axis=0)) * 0.5
+    dx = (np.roll(height, -1, axis=1) - np.roll(height, 1, axis=1)) * 0.5
     normal = np.stack([-dx * 6.5, -dy * 6.5, np.ones_like(dx)], axis=-1)
     normal /= np.linalg.norm(normal, axis=-1)[:, :, None]
     normal = normal * 0.5 + 0.5
@@ -321,7 +333,7 @@ def wire_pbr(
 def replace_steel_textures() -> None:
     color, rough, normal = steel_maps()
     write_image(ensure_image("encrusted_steel_basecolor.png"), color)
-    write_image(ensure_image("encrusted_steel_roughness.png"), rough, data=True)
+    write_image(ensure_image("encrusted_steel_roughness.png"), rough[::2, ::2], data=True)
     write_image(ensure_image("encrusted_steel_normal.png"), normal, data=True)
     for name in ("encrusted_steel_basecolor.png", "encrusted_steel_roughness.png", "encrusted_steel_normal.png"):
         set_repeat(bpy.data.images.get(name))
@@ -442,7 +454,6 @@ def texture_aft_superstructure() -> None:
     """
     steel = bpy.data.materials.get("Weathered steel | original PBR maps")
     oxide = bpy.data.materials.get("Fresh exposed oxide")
-    growth = bpy.data.materials.get("Marine growth | limestone")
     for name in (
         "Aft_deckhouse_broken_walls",
         "Aft_partial_roof",
@@ -460,14 +471,6 @@ def texture_aft_superstructure() -> None:
             scale_uvs(obj, 1.35)
         if not obj.data.materials:
             obj.data.materials.append(steel or oxide)
-        # Splatter a growth slot on deckhouse walls for mud/fouling read.
-        if name == "Aft_deckhouse_broken_walls" and growth is not None:
-            if growth.name not in [m.name if m else "" for m in obj.data.materials]:
-                obj.data.materials.append(growth)
-            # Assign ~30% of polygons to growth for silted look.
-            for i, poly in enumerate(obj.data.polygons):
-                if (i * 17 + 3) % 10 < 3:
-                    poly.material_index = len(obj.data.materials) - 1
 
 
 def scale_uvs(obj: bpy.types.Object, scale: float) -> None:
@@ -703,6 +706,21 @@ def densify_hull_uvs() -> None:
             scale_uvs(obj, HULL_UV_SCALE)
 
 
+def apply_macro_colors() -> None:
+    """Independent metre-space staining: interpolated vertex colors never repeat with UVs."""
+    for obj in visual_objects():
+        if obj.name == "Rubble_apron":
+            continue
+        mesh = obj.data
+        colors = mesh.color_attributes.new(name="Staining", type="FLOAT_COLOR", domain="POINT")
+        mesh.color_attributes.active_color = colors
+        for vertex, color in zip(mesh.vertices, colors.data):
+            p = obj.matrix_world @ vertex.co
+            stain = 0.5 + 0.25 * math.sin(p.x * 0.31 + math.sin(p.z * 0.43))
+            stain += 0.25 * math.sin(p.y * 0.37 + p.x * 0.11 + 1.7)
+            color.color = (0.70 + 0.27 * stain, 0.74 + 0.24 * stain, 0.72 + 0.24 * stain, 1.0)
+
+
 def export_visual(path: Path) -> None:
     for obj in bpy.data.objects:
         obj.select_set(False)
@@ -720,6 +738,8 @@ def export_visual(path: Path) -> None:
         export_apply=True,
         export_texcoords=True,
         export_normals=True,
+        export_vertex_color="ACTIVE",
+        export_all_vertex_colors=True,
     )
 
 
@@ -818,6 +838,7 @@ def main() -> None:
         lod0 = total_visual_tris()
         print("LOD0 tris after emergency trim", lod0)
     assert lod0 <= 300_000, lod0
+    apply_macro_colors()
     export_collision_and_route()
     export_visual(OUT / "lod0_raw.glb")
     apply_lod_decimate(0.34)

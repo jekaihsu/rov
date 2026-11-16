@@ -2,33 +2,46 @@
   "after-onboard-1m-dark": {
     "scenario": "korean_castle",
     "eye_ned": [
-      17.7,
+      17.34,
       -20.0,
-      27.0
+      27.03
     ],
     "heading_deg": 0.0,
     "pitch_deg": -0.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 1.957,
+    "seconds_per_frame": 4.234,
     "quality": "high",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 1.399167945752666e-05,
+      "meteredLuminance": 1.5637781293031207e-05,
       "whiteBalance": [
-        3.000000059502263,
         1,
-        3.000000059502263
+        1,
+        1
       ]
     },
-    "bytes": 44443,
+    "bytes": 45682,
+    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "rendered_eye_ned": [
+      17.72767410860934,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 1.0000000000009996,
     "stand_off_m": 1.0,
     "eye_local": [
       50.0,
-      -10.3,
+      -10.272325891390665,
       5.0
     ],
+    "camera_eye_ned": [
+      17.72767410860934,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 1.0000000000009996,
     "hull_target_local": [
       50.0,
       -7.7,
@@ -39,33 +52,46 @@
   "after-onboard-1m-lit": {
     "scenario": "korean_castle",
     "eye_ned": [
-      17.7,
+      17.34,
       -20.0,
-      27.0
+      27.03
     ],
     "heading_deg": 0.0,
     "pitch_deg": -0.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 2.989,
+    "seconds_per_frame": 6.778,
     "quality": "high",
     "exposure": {
-      "exposure": 6.0405211169962865,
-      "target": 6.055191216844138,
-      "meteredLuminance": 0.07720541096583138,
+      "exposure": 17.09662805325773,
+      "target": 17.178579256962447,
+      "meteredLuminance": 0.015521757001144117,
       "whiteBalance": [
-        0.9249829703265787,
+        1.0153358641299464,
         1,
-        1.9778014620867888
+        1.2616862241658326
       ]
     },
-    "bytes": 89882,
+    "bytes": 104970,
+    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "rendered_eye_ned": [
+      17.72767410860934,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 1.0000000000009996,
     "stand_off_m": 1.0,
     "eye_local": [
       50.0,
-      -10.3,
+      -10.272325891390665,
       5.0
     ],
+    "camera_eye_ned": [
+      17.72767410860934,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 1.0000000000009996,
     "hull_target_local": [
       50.0,
       -7.7,
@@ -76,33 +102,46 @@
   "after-onboard-3m-dark": {
     "scenario": "korean_castle",
     "eye_ned": [
-      15.7,
+      15.24,
       -20.0,
-      27.0
+      27.03
     ],
     "heading_deg": 0.0,
     "pitch_deg": -0.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 1.863,
+    "seconds_per_frame": 3.964,
     "quality": "high",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 2.520119277621047e-05,
+      "meteredLuminance": 2.488940127528115e-05,
       "whiteBalance": [
-        3.000000059502263,
         1,
-        3.000000059502263
+        1,
+        1
       ]
     },
-    "bytes": 44625,
+    "bytes": 44550,
+    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "rendered_eye_ned": [
+      15.6324288212104,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 3.0000000000013154,
     "stand_off_m": 3.0,
     "eye_local": [
       50.0,
-      -12.3,
+      -12.367571178789603,
       5.0
     ],
+    "camera_eye_ned": [
+      15.6324288212104,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 3.0000000000013154,
     "hull_target_local": [
       50.0,
       -7.7,
@@ -113,33 +152,46 @@
   "after-onboard-3m-lit": {
     "scenario": "korean_castle",
     "eye_ned": [
-      15.7,
+      15.24,
       -20.0,
-      27.0
+      27.03
     ],
     "heading_deg": 0.0,
     "pitch_deg": -0.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 2.836,
+    "seconds_per_frame": 7.353,
     "quality": "high",
     "exposure": {
-      "exposure": 75.65480352440713,
-      "target": 75.72872125524148,
-      "meteredLuminance": 0.0015839847652305802,
+      "exposure": 87.52431807147826,
+      "target": 87.64288353774444,
+      "meteredLuminance": 0.0012651048570141655,
       "whiteBalance": [
-        1.2091755200167502,
+        1.04751963685814,
         1,
-        1.5045542095938906
+        1.1291160147497878
       ]
     },
-    "bytes": 89076,
+    "bytes": 80535,
+    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "rendered_eye_ned": [
+      15.6324288212104,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 3.0000000000013154,
     "stand_off_m": 3.0,
     "eye_local": [
       50.0,
-      -12.3,
+      -12.367571178789603,
       5.0
     ],
+    "camera_eye_ned": [
+      15.6324288212104,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 3.0000000000013154,
     "hull_target_local": [
       50.0,
       -7.7,
