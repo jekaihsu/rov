@@ -6,6 +6,7 @@ import { updateTetherOperations } from './tether/operations.js';
 import { tensionColor, warnLoad, gaugePercent } from './tether/tension.js';
 import { cableTensionColor } from './tether/snag_focus.js';
 import { installProcedure } from './procedure/index.js';
+import { rotorRate } from './procedure/deck_flow.js';
 import { createSonar } from './sonar/panel.js';
 import { hidesTargets } from './sonar/scenario.js';
 import {visionTargets} from './vision/targets.js';
@@ -463,7 +464,9 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
-const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
+const rotorSpin = [];
+const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
+  deck: {getIntro: () => intro, rov: rovG, getRotors: () => rotorOf}});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
@@ -1258,7 +1261,7 @@ function frame(now) {
   // rotors
   if (S && rotorOf.length) {
     rotorOf.forEach((r, j) => {
-      if (!r) return; r.ang += (S.thrust?.[j] || 0) * 40 * dt * (S.locked ? 0 : 1);
+      if (!r) return; r.ang += rotorRate(S, j, dt, rotorSpin) * dt;
       r.o.quaternion.copy(r.base).multiply(_q.setFromAxisAngle(r.axis, r.ang));
     });
   }
