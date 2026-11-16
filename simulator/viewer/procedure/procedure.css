@@ -143,3 +143,65 @@ body.procedure-open[data-hud-style=osd] #flightMission { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) {
   #procedurePanel, #procedurePrompt, #procedurePanel :is(.pp-primary, .pp-link) { animation: none; transition: none; }
 }
+
+/* ── deck flow: crew radio and the onboard camera feed (crew_radio.js, deck_stage.js) ─────────────────────── */
+/* The crew radio sits in the upper left, clear of the column and the middle third; same layer as campaign radio. */
+#crewRadio, #procedureFeed {
+  --pp-main: var(--color-main, var(--bg-0));
+  --pp-ice: var(--color-second, var(--text));
+  --pp-u: min(1vh, .5625vw);
+  --pp-font: Inter, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+#crewRadio {
+  position: fixed;
+  left: 4vw;
+  top: 12vh;
+  z-index: var(--z-story);
+  box-sizing: border-box;
+  max-width: 30vw;
+  margin: 0;
+  padding: .7em 1.2em .8em;
+  border-left: max(3px, calc(var(--pp-u) * .37)) solid var(--pp-ice);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pp-main) 70%, transparent),
+    color-mix(in srgb, var(--pp-main) 35%, transparent));
+  color: var(--pp-ice);
+  font: 600 max(14px, calc(var(--pp-u) * 1.8)) / 1.45 var(--pp-font);
+  pointer-events: none;
+  animation: pp-enter 200ms ease-out;
+}
+#crewRadio[hidden] { display: none; }
+#crewRadio strong { display: block; font-size: .78em; font-weight: 800; letter-spacing: .14em;
+  color: color-mix(in srgb, var(--pp-ice) 70%, transparent); }
+#crewRadio p { margin: .25em 0 0; }
+#crewRadio[data-role=supervisor] { border-left-color: var(--warn); }
+
+/* Onboard camera check: a feed frame over the whole view (corner marks, camera label, LIVE, clock). */
+#procedureFeed {
+  position: fixed;
+  inset: 3vh 3vw;
+  z-index: var(--z-hud);
+  pointer-events: none;
+  color: var(--pp-ice);
+  font: 700 max(13px, calc(var(--pp-u) * 1.6)) / 1 var(--pp-font);
+  letter-spacing: .12em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+  background:
+    linear-gradient(var(--pp-ice), var(--pp-ice)) top left / 6vh 2px no-repeat,
+    linear-gradient(var(--pp-ice), var(--pp-ice)) top left / 2px 6vh no-repeat,
+    linear-gradient(var(--pp-ice), var(--pp-ice)) top right / 6vh 2px no-repeat,
+    linear-gradient(var(--pp-ice), var(--pp-ice)) top right / 2px 6vh no-repeat,
+    linear-gradient(var(--pp-ice), var(--pp-ice)) bottom left / 6vh 2px no-repeat,
+    linear-gradient(var(--pp-ice), var(--pp-ice)) bottom left / 2px 6vh no-repeat,
+    linear-gradient(var(--pp-ice), var(--pp-ice)) bottom right / 6vh 2px no-repeat,
+    linear-gradient(var(--pp-ice), var(--pp-ice)) bottom right / 2px 6vh no-repeat;
+}
+#procedureFeed[hidden] { display: none; }
+#procedureFeed span { position: absolute; top: 2.2vh; }
+#procedureFeed .pp-feed-label { left: 2vw; }
+#procedureFeed .pp-feed-live { right: 2vw; color: #ff4d3a; }
+#procedureFeed .pp-feed-live::before { content: ""; display: inline-block; width: .7em; height: .7em;
+  margin-right: .5em; border-radius: 50%; background: currentColor; vertical-align: -.05em; }
+#procedureFeed .pp-feed-clock { top: auto; bottom: 2.2vh; right: 2vw; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  #crewRadio { animation: none; }
+}
