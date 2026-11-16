@@ -20,7 +20,9 @@ import {
   mountToggles,
 } from './settings.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.launch_settings', {
   title: '設定',
   tabs: {
     fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
@@ -57,7 +59,7 @@ const STRINGS = {
     fog: ['真實能見度', '關閉後水體較清澈，超出真機影像。'],
     labels: ['場景標籤', '在結構物旁顯示名稱。'],
   },
-};
+});
 
 async function readInputSettings() {
   let settings = {};

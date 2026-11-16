@@ -927,3 +927,37 @@ feature tangent; small sphere capsules sample angled features without changing t
 load and release semantics apply. New scenario objective kinds are `pen_lap`,
 `pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
 Net visual motion is bounded to 0.05 m and never changes server collision shapes.
+
+## L1 多語文字（相容性方案，尚未新增 wire 欄位）
+
+本版只在 viewer 翻譯介面文字；語言不改變控制封包、識別碼、SDK、存檔或既有文字欄位。
+舊伺服器與舊前端仍收到原本的繁體中文。不得用翻譯後的文字作為任務、機型或場景識別碼。
+
+### 伺服器文字盤點
+
+- `qysim/scenarios.py`：`STRINGS`、`INCIDENT_STRINGS`，場景名稱、簡報、目標與事故情境。
+- `qysim/sensors.py`：`STRINGS`，感測器狀態的玩家說明。
+- `qysim/debrief.py`：`STRINGS`，講評與事件說明。
+- `qysim/aquaculture.py`：`STRINGS`，養殖作業的目標與提示。
+- `qysim/fleet_names.py`：機型用途、標語與場景專名；型號不翻譯。
+- `campaign/*.json`：章節 title、description／brief、對話 speaker／text、目標與結局等敘事內容。
+- `viewer/menu_catalogue.json`、`viewer/scene_previews.json`：上述資料的匯出快照，不能只改快照；
+  應在來源資料加入 key 後，由匯出工具保留 key。
+- 任務／委託狀態中的 label、失敗 reason、獎勵名稱等亦需隨其來源盤點；不能假設所有字串都有 STRINGS。
+
+### 採用方案：前端依穩定 key 翻譯
+
+後續在保留所有現有文字欄位的前提下，新增選填 `i18n` 對照，例如對話節點：
+
+```json
+{"id":"welcome","text":"歡迎加入。","i18n":{"text":{"key":"campaign.prologue.welcome","params":{}}}}
+```
+
+`i18n` 的每個成員對應同物件的既有文字欄位；`key` 為穩定內容識別碼，`params` 為可選純資料物件。
+新前端找到字典就插值，否則使用既有 `text`，最後才顯示缺值佔位符。舊前端忽略選填欄位即可。
+參數一律當文字輸出或 escape，不接受伺服器提供的 HTML。禁止將字串翻譯寫回存檔或控制封包。
+劇情建議使用 `campaign.<chapter>.<node>.<field>`，避免以中文內容當 key，修文不改 key。
+
+不採取改寫全房間文字的方案：同一房間可有不同語言玩家。若未來需要伺服器本地化，
+只能以選填、每連線的語言偏好協商，保留既有預設與 fallback，不可改共享狀態的語言。
+本 PR 尚未實作此選填欄位，因此不需要伺服器升級或能力探測。

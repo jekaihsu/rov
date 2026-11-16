@@ -1,0 +1,50 @@
+{
+  "rows": {
+    "objectives": "任务目标",
+    "time": "时间",
+    "tether": "缆线管理",
+    "contacts": "碰撞与接触",
+    "procedure": "作业程序",
+    "other": "其他扣分"
+  },
+  "kinds": {
+    "scenario": "场景训练",
+    "coop": "协作巡检",
+    "chapter": "剧情",
+    "drill": "事故演练",
+    "contract": "工程委托",
+    "career": "YX 工单"
+  },
+  "times": "{n} 次",
+  "noContacts": "无碰撞",
+  "tetherBroken": "缆线断裂",
+  "tetherClean": "张力正常",
+  "overload": "过载 {n} 次",
+  "contract": "委托完成",
+  "medals": {
+    "gold": "金牌",
+    "silver": "银牌",
+    "bronze": "铜牌",
+    "none": "无奖章"
+  },
+  "rewards": {
+    "first_dive": "首次下潜徽章",
+    "harbor_badge": "港湾巡检徽章",
+    "hull_badge": "船壳巡检徽章",
+    "harbor_signoff_badge": "交班复查徽章",
+    "offshore_badge": "离岸作业徽章",
+    "reef_badge": "礁区作业徽章",
+    "wreck_badge": "沉船调查徽章",
+    "ending_open_question": "结局：留下未解的问题",
+    "ending_evidence_complete": "结局：证据齐全"
+  },
+  "unlockSticker": "机身贴纸解锁：{name}",
+  "unlockVehicle": "作业载具解锁：{name}",
+  "stickers": {
+    "dive": "潜水旗"
+  },
+  "vehicles": {
+    "falcon": "YX Model V（轻作业型）"
+  },
+  "unknownReward": "奖励：{id}"
+}

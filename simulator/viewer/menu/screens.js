@@ -19,7 +19,9 @@ import {
   tile,
 } from './big_picture.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.screens', {
   title: 'ROV Solution',
   // The player works for YX, which also issues the in-game licences (docs/design/game-plan.md §9).
   company: 'YX',
@@ -92,7 +94,7 @@ const STRINGS = {
   launch: '下水',
   chapter: '章節',
   campaign: '劇情與教學',
-};
+});
 // Entries drawn smaller under the main list.
 const MINOR_ENTRIES = new Set(['collection', 'settings']);
 // The game-rendered site picture (menu/previews) that stands for each mode on its tile.

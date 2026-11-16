@@ -1,0 +1,79 @@
+{
+  "title": "Paused",
+  "resume": "Resume",
+  "restart": "Restart",
+  "restartConfirm": "Press again to confirm restart",
+  "restartHost": "Only the host can restart.",
+  "objective": "Current objective",
+  "contracts": "Engineering contracts",
+  "accept": "Accept: {label}",
+  "settings": "Settings",
+  "home": "Main menu",
+  "solo": [
+    "Simulation paused · Centre sticks, then arm",
+    "Solo dive: simulation paused. Centre controls before re-arming when you resume."
+  ],
+  "shared": [
+    "Multiplayer room · Simulation still running",
+    "Multiplayer: simulation continues. Your controls are neutral; other players can keep piloting."
+  ],
+  "replay": [
+    "Replay · Close the menu to continue",
+    "Replay: close this menu to continue."
+  ],
+  "tabs": {
+    "fidelity": "Realism",
+    "controls": "Controls",
+    "audio": "Audio",
+    "quality": "Graphics",
+    "display": "Display",
+    "interface": "Interface"
+  },
+  "controller": "Controller settings (deadzone, curves, bindings)",
+  "quality": {
+    "auto": [
+      "Auto",
+      "Target 60 FPS"
+    ],
+    "performance": [
+      "Performance",
+      "Reduced resolution"
+    ],
+    "medium": [
+      "Standard",
+      "Native resolution"
+    ],
+    "high": [
+      "High",
+      "Prioritise detail"
+    ]
+  },
+  "interface": {
+    "optFog": [
+      "Realistic visibility",
+      "Disabling makes water clearer than a real camera image."
+    ],
+    "optFlow": [
+      "Current particles",
+      "Suspended particles move with the current."
+    ],
+    "optLabels": [
+      "Scene labels",
+      "Show names beside structures."
+    ],
+    "optSticks": [
+      "On-screen sticks",
+      "Shown only on touch devices."
+    ],
+    "optPip": [
+      "Operator inset",
+      "Show the surface operator in a corner of the screen."
+    ]
+  },
+  "prompts": {
+    "move": "Move",
+    "accept": "Confirm",
+    "back": "Back",
+    "tabs": "Tabs"
+  }
+}

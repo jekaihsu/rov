@@ -1,0 +1,148 @@
+{
+  "contexts": {
+    "flight": "飛行",
+    "orbit": "環繞視角",
+    "tool": "工具啟用中",
+    "dialogue": "對話",
+    "menu": "選單"
+  },
+  "actions": {
+    "left_lr": "左桿左右",
+    "left_ud": "左桿上下",
+    "right_lr": "右桿左右",
+    "right_ud": "右桿上下",
+    "left_wave": "左滾輪",
+    "right_wave": "右滾輪",
+    "surge": "前進／後退",
+    "sway": "右移／左移",
+    "heave": "上升／下潛",
+    "yaw": "右轉／左轉",
+    "pitch": "抬頭／低頭",
+    "boost": "鍵盤全幅推桿",
+    "photo": "拍照",
+    "record": "錄影（按住）",
+    "depth": "定深",
+    "lock": "鎖定／解鎖",
+    "mode": "A/S/C 模式",
+    "engineering": "工程面板",
+    "light": "燈光",
+    "camera": "切換視角",
+    "assist": "輔助等級",
+    "profile": "飛行檔位",
+    "up": "任務速覽",
+    "left": "系統速覽",
+    "right": "地圖速覽",
+    "down": "鍵位速覽",
+    "arm": "手臂操作模式",
+    "settings": "手把設定",
+    "pause": "暫停選單",
+    "cameraGimbal": "鏡頭穩定",
+    "cameraPitchUp": "鏡頭上仰",
+    "cameraPitchDown": "鏡頭下俯",
+    "cameraOrbitX": "環繞水平",
+    "cameraOrbitY": "環繞垂直",
+    "paintSpray": "噴漆標記",
+    "sonarPeek": "聲納速覽",
+    "visionToggle": "AI 視覺疊圖",
+    "visionMark": "標記偵測目標",
+    "dialogueAccept": "繼續對話",
+    "dialogueSkip": "跳過教學",
+    "menuUp": "上一項",
+    "menuDown": "下一項",
+    "menuLeft": "減少／上一個選項",
+    "menuRight": "增加／下一個選項",
+    "menuStick": "移動焦點",
+    "menuStickX": "左右移動焦點",
+    "menuRotate": "旋轉展示",
+    "accept": "確認",
+    "back": "返回",
+    "tabPrevious": "上一分頁",
+    "tabNext": "下一分頁"
+  },
+  "meanings": {
+    "surge": [
+      "前進／後退",
+      "後退／前進"
+    ],
+    "sway": [
+      "右移／左移",
+      "左移／右移"
+    ],
+    "heave": [
+      "上升／下潛",
+      "下潛／上升"
+    ],
+    "yaw": [
+      "右轉／左轉",
+      "左轉／右轉"
+    ],
+    "pitch": [
+      "抬頭／低頭",
+      "低頭／抬頭"
+    ],
+    "roll": [
+      "右傾／左傾",
+      "左傾／右傾"
+    ]
+  },
+  "layouts": {
+    "console": "遙控器配置",
+    "game": "遊戲鍵位（WASD）"
+  },
+  "hold": "長按",
+  "pad": [
+    "A",
+    "B",
+    "X",
+    "Y",
+    "LB",
+    "RB",
+    "LT",
+    "RT",
+    "View",
+    "Menu",
+    "L3",
+    "R3",
+    "十字鍵上",
+    "十字鍵下",
+    "十字鍵左",
+    "十字鍵右",
+    "Home"
+  ],
+  "axes": [
+    "左搖桿左右",
+    "左搖桿上下",
+    "右搖桿左右",
+    "右搖桿上下"
+  ],
+  "keys": {
+    "Space": "Space",
+    "Tab": "Tab",
+    "Enter": "Enter",
+    "Escape": "Esc",
+    "KeyQ": "Q",
+    "KeyE": "E",
+    "ArrowUp": "↑",
+    "ArrowDown": "↓",
+    "ArrowLeft": "←",
+    "ArrowRight": "→",
+    "BracketLeft": "[",
+    "BracketRight": "]",
+    "ShiftLeft": "Shift",
+    "ShiftRight": "Shift",
+    "ControlLeft": "Ctrl",
+    "ControlRight": "右 Ctrl",
+    "AltLeft": "Alt",
+    "Backspace": "Backspace",
+    "Backquote": "`",
+    "Minus": "-",
+    "Equal": "=",
+    "Semicolon": ";",
+    "Quote": "'",
+    "Comma": ",",
+    "Period": ".",
+    "Slash": "/",
+    "Backslash": "\\"
+  },
+  "separator": " · "
+}

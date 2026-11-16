@@ -1,6 +1,8 @@
 // Text for the HUD mode pill: the assist level and profile the pilot asked for, and a separate note
 // when the simulator is not (yet) flying that request. Pure logic: no DOM and no imports.
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('hud.assist_pill', {
   levels: ['手動', '速度輔助', '定點輔助'],
   profiles: {cine: '電影', normal: '標準', sport: '運動'},
   unsupported: '伺服器不支援輔助',
@@ -29,7 +31,7 @@ const STRINGS = {
     fault: ['DVL 故障', 'DVL 回報故障', '改用手動飛行，結束後檢修。'],
   },
   dvlLost: 'DVL 失去底鎖',
-};
+});
 
 // The DVL reason as {status, help}, or null when the state says nothing about it.
 export function dvlReason(state) {

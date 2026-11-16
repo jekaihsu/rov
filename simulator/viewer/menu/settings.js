@@ -7,12 +7,14 @@ import { hintItems } from '../input/bindings.js';
 import { renderPrompts } from './navigator.js';
 import './fidelity_items.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.settings', {
   hintsTitle: '目前鍵位',
   action: '動作',
   keys: '鍵盤',
   pad: '手把',
-};
+});
 
 function element(tag, className, text) {
   const node = document.createElement(tag);

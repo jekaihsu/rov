@@ -1,0 +1,17 @@
+{
+  "activities": {
+    "photo": "生態攝影",
+    "inspect": "結構巡檢",
+    "station": "抗流懸停",
+    "tether": "纜線脫困",
+    "route": "航線檢查點",
+    "free": "自由探索",
+    "coop": "協作巡檢",
+    "expedition": "探索接案"
+  },
+  "difficulty": [
+    "入門",
+    "進階",
+    "困難"
+  ]
+}

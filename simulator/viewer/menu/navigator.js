@@ -6,12 +6,14 @@ import { BINDINGS, bindingRow, createResolver, inputIds, keyLabel, keyRow, padLa
 import { createDevices } from '../input/devices.js';
 import { deviceFamily, glyph } from '../input/glyphs.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.navigator', {
   move: '移動',
   stickNames: { a0: 'L', a1: 'L', a2: 'R', a3: 'R' },
   keyboardMove: '↑↓←→',
   padMove: '✛',
-};
+});
 
 const MENU = new Set(['menu']);
 const REPEAT_DELAY_MS = 380;

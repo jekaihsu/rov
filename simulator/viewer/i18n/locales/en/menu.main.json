@@ -1,0 +1,36 @@
+{
+  "brand": "ROV Solution",
+  "loading": {
+    "data": "Loading sites and vehicles…",
+    "scene": "Building underwater scene…",
+    "model": "Loading vehicle model…",
+    "ready": "Ready",
+    "failed": "Could not load launch data. Please refresh."
+  },
+  "modelFailed": "Model failed to load. Please select a vehicle again.",
+  "launching": "Deploying…",
+  "steps": {
+    "modes": "Mode",
+    "training": "Courses",
+    "multiplayer": "Room",
+    "hangar": "Vehicle",
+    "sites": "Dive site",
+    "briefing": "Briefing"
+  },
+  "prompts": {
+    "move": "Move",
+    "accept": "Confirm",
+    "back": "Back",
+    "tabs": "Tabs",
+    "rotate": "Rotate",
+    "start": "Start",
+    "close": "Close"
+  },
+  "modes": {
+    "campaign": "Story & tutorial",
+    "expedition": "Ocean exploration & engineering",
+    "free_explore": "Free exploration",
+    "inspection_coop": "Co-op inspection",
+    "scenario_training": "Scenario training"
+  }
+}

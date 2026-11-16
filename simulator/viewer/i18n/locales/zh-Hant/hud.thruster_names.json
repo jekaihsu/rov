@@ -1,0 +1,13 @@
+{
+  "positions": {
+    "PORT_FRONT": "左前",
+    "STBD_FRONT": "右前",
+    "PORT_AFT": "左後",
+    "STBD_AFT": "右後",
+    "PORT_LONG": "左縱",
+    "STBD_LONG": "右縱",
+    "HORIZONTAL": "水平",
+    "VERTICAL": "垂直"
+  },
+  "thruster": "推進器"
+}

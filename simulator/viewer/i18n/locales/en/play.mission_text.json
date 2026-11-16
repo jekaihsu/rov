@@ -1,0 +1,12 @@
+{
+  "failed": "Failed: {reason}",
+  "finished": "Mission complete",
+  "progress": "Objectives {done}/{total} · Penalty {penalty}",
+  "free": "Free exploration · No timer or penalties",
+  "expedition": "Ocean exploration · Free cruising, engineering contracts available",
+  "contract": "Contract: {label}",
+  "waiting": "Not started",
+  "next": "Next: {label}",
+  "offers": "Take engineering contracts from the mission card or below.",
+  "chapter": "{title}"
+}

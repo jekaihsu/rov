@@ -1,6 +1,8 @@
 // Player-facing thruster names for the systems card and the engineering drawer. The simulator names each thruster
 // "T<n> <POSITION>" (qysim/vehicles.py); the number stays, the internal position key becomes the player's word.
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('hud.thruster_names', {
   positions: {
     PORT_FRONT: '左前',
     STBD_FRONT: '右前',
@@ -12,7 +14,7 @@ const STRINGS = {
     VERTICAL: '垂直',
   },
   thruster: '推進器',
-};
+});
 
 export function thrusterLabel(name) {
   const [number, position] = String(name).split(' ');

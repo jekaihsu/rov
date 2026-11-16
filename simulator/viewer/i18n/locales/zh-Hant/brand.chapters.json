@@ -1,0 +1,136 @@
+{
+  "skip": "按任意鍵繼續",
+  "cardLabel": "章節標題",
+  "generic": {
+    "number": "任務",
+    "client": "YX",
+    "sub": "DIVE BRIEF"
+  },
+  "cards": {
+    "prologue": {
+      "number": "序章 / 00",
+      "client": "YX · 訓練中心",
+      "sub": "CHECKOUT DIVE · TRAINING POOL"
+    },
+    "harbor": {
+      "number": "第一章 / 01",
+      "client": "港務單位",
+      "sub": "PILES · CRACK SURVEY"
+    },
+    "hull": {
+      "number": "第一章 / 02",
+      "client": "船東",
+      "sub": "HULL · IN-WATER SURVEY"
+    },
+    "harbor_signoff": {
+      "number": "第一章 / 03",
+      "client": "港務單位 · 交班",
+      "sub": "PILES · RE-INSPECTION"
+    },
+    "offshore": {
+      "number": "第二章 / 04",
+      "client": "離岸平台業主",
+      "sub": "JACKET · MEMBER INSPECTION"
+    },
+    "reef": {
+      "number": "第三章 / 05",
+      "client": "海洋研究單位",
+      "sub": "REEF · PHOTO TRANSECT"
+    },
+    "wreck": {
+      "number": "第四章 / 06",
+      "client": "水下文化資產調查",
+      "sub": "WRECK · SITE SURVEY"
+    },
+    "finale": {
+      "number": "終章 / 07",
+      "client": "港務單位 · 夜間",
+      "sub": "NIGHT RECOVERY"
+    },
+    "incident_jacket": {
+      "number": "事故訓練 / E1",
+      "client": "YX · 事故演練",
+      "sub": "DRILL · TRAPPED IN JACKET"
+    },
+    "incident_wreck": {
+      "number": "事故訓練 / E2",
+      "client": "YX · 事故演練",
+      "sub": "DRILL · TETHER SNAG"
+    },
+    "incident_silt": {
+      "number": "事故訓練 / E3",
+      "client": "YX · 事故演練",
+      "sub": "DRILL · ZERO VISIBILITY"
+    },
+    "incident_compass": {
+      "number": "事故訓練 / E4",
+      "client": "YX · 事故演練",
+      "sub": "DRILL · COMPASS DEVIATION"
+    },
+    "incident_current": {
+      "number": "事故訓練 / E5",
+      "client": "YX · 事故演練",
+      "sub": "DRILL · CURRENT OVER LIMIT"
+    },
+    "course_b01": {
+      "number": "初級課程 / B01",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · CONTROLS AND LAUNCH GATE"
+    },
+    "course_b02": {
+      "number": "初級課程 / B02",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · TRACK AND DRIFT"
+    },
+    "course_b03": {
+      "number": "初級課程 / B03",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · HARBOUR SURVEY"
+    },
+    "course_b04": {
+      "number": "初級課程 / B04",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · FULL SORTIE"
+    },
+    "course_i01": {
+      "number": "中級課程 / I01",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · HULL DATA QUALITY"
+    },
+    "course_i02": {
+      "number": "中級課程 / I02",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · STATION KEEPING"
+    },
+    "course_i03": {
+      "number": "中級課程 / I03",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · LOW VISIBILITY EXIT"
+    },
+    "course_i04": {
+      "number": "中級課程 / I04",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · COMPASS FAILURE"
+    },
+    "course_a01": {
+      "number": "進階課程 / A01",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · ABORT DECISION"
+    },
+    "course_a02": {
+      "number": "進階課程 / A02",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · SNAG RECOVERY"
+    },
+    "course_a03": {
+      "number": "進階課程 / A03",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · STRONG CURRENT EXIT"
+    },
+    "course_a04": {
+      "number": "進階課程 / A04",
+      "client": "YX · 訓練中心",
+      "sub": "COURSE · FINAL ASSESSMENT"
+    }
+  }
+}

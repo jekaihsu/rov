@@ -1,0 +1,47 @@
+{
+  "language": "Language",
+  "languageHelp": "After changing language, return to the main menu to update any remaining screens.",
+  "window": "Display mode",
+  "modes": {
+    "windowed": "Windowed",
+    "borderless": "Borderless window",
+    "fullscreen": "Fullscreen"
+  },
+  "resolution": "Resolution",
+  "apply": "Apply display settings",
+  "applied": "Applied.",
+  "failed": "Could not apply: {reason}",
+  "browserFullscreen": [
+    "Fullscreen",
+    "The browser uses its fullscreen mode and your screen resolution."
+  ],
+  "brightness": "Brightness",
+  "brightnessHelp": "Adjusts only the underwater image, not instrument text.",
+  "uiScale": "Interface & text scale",
+  "fpsCap": "Frame rate limit",
+  "fps": {
+    "0": "Unlimited",
+    "30": "30 FPS",
+    "60": "60 FPS",
+    "120": "120 FPS"
+  },
+  "colorBlind": "Colour vision support (warnings)",
+  "colorBlindModes": {
+    "off": "Off",
+    "deuteranopia": "Deuteranopia (green)",
+    "protanopia": "Protanopia (red)",
+    "tritanopia": "Tritanopia (blue)"
+  },
+  "units": "Units",
+  "unitModes": {
+    "metric": "Metric (m)",
+    "imperial": "Imperial (ft)"
+  },
+  "unitsHelp": "Applies to game HUD and menus; onboard OSD retains metric units as on real vehicles.",
+  "fov": "External view FOV",
+  "fovHelp": "Chase, orbit and top-down views; onboard camera retains its real field of view.",
+  "comfort": [
+    "Motion comfort",
+    "Disable speed-based chase distance and FOV changes, and reduce interface animation."
+  ]
+}

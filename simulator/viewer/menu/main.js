@@ -32,7 +32,9 @@ import { installMusic } from '../audio/music.js';
 import { installCareerMenu } from '../career/menu.js';
 import { installBrandMenu } from '../brand/menu_brand.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.main', {
   brand: 'ROV Solution',
   loading: {
     data: '讀取海域與載具資料…',
@@ -52,7 +54,7 @@ const STRINGS = {
     inspection_coop: '協作巡檢',
     scenario_training: '場景訓練',
   },
-};
+});
 const ROUTES = {
   dive: ['modes', 'hangar', 'sites', 'briefing'],
   join: ['multiplayer', 'hangar', 'briefing'],

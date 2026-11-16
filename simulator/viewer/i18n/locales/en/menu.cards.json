@@ -1,0 +1,29 @@
+{
+  "chapters": {
+    "prologue": "Meet your ROV in the pool: arm, move, hold depth, use lights and take photos.",
+    "harbor": "Your first job: hold steady at harbour pile inspection points and photograph old cracks clearly for the owner.",
+    "hull": "Inspect hull scrapes. Slow down in poor visibility; keep out of gaps you cannot see into.",
+    "harbor_signoff": "Handover check: take photos the next shift can relocate. Practise approaching structures while keeping an escape route.",
+    "offshore": "Offshore wind tidal window: approach the jacket into the current, inspect anodes and stop work if the current is too strong.",
+    "reef": "Replace research instruments: take ecological baseline photos, then recover and deploy equipment with the manipulator.",
+    "wreck": "Survey the outside of an old freighter wreck. Do not enter the hull.",
+    "finale": "Night harbour operation: recover the sealed case, deploy and verify. Your evidence determines the ending.",
+    "incident_jacket": "Rising current, short-handed crew: assess aborting, retreat through an open exit and keep the tether clear of structures.",
+    "incident_wreck": "Tether snagged on wreckage: do not pull hard from the surface. Follow it back to the snag and retrace your route.",
+    "incident_silt": "Bottom contact stirred up sediment; no usable video. Return using depth, compass and tether direction.",
+    "incident_compass": "Compass unreliable: disable heading hold and retreat using visual references, tether direction and depth.",
+    "incident_current": "Current exceeds capability: abort and recover when position drifts. Do not fight it at full thrust."
+  },
+  "status": {
+    "done": "Completed",
+    "pending": "In preparation",
+    "open": "Available",
+    "locked": "Locked"
+  },
+  "unlock": "Complete “{title}” to unlock",
+  "best": "Best {score}",
+  "noRecord": "No record yet",
+  "difficulty": "Difficulty",
+  "current": "Current",
+  "visibility": "Visibility"
+}

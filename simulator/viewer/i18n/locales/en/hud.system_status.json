@@ -1,0 +1,33 @@
+{
+  "label": "Vehicle systems",
+  "link": {
+    "healthy": "Link OK",
+    "degraded": "Link degraded",
+    "lost": "Link lost"
+  },
+  "quality": "Quality",
+  "reconnecting": "Reconnecting",
+  "videoLag": "Video delay",
+  "videoFrozen": "Video frozen",
+  "failsafe": {
+    "disarm": "Failsafe: disarmed",
+    "depth_hold": "Failsafe: depth hold",
+    "surface": "Failsafe: surfacing"
+  },
+  "failsafeIn": "Failsafe in",
+  "rearm": "Re-arm required",
+  "power": "Power",
+  "powerLimited": "Power limited",
+  "tripped": "Power tripped",
+  "cutoff": "Battery depleted; motors and lights cut off",
+  "temperature": "Temperature",
+  "warnings": {
+    "dry_run": "Motors running dry too long",
+    "motor_hot": "Motors overheating",
+    "electronics_hot": "Electronics enclosure overheating"
+  },
+  "leak": "Leak alarm",
+  "seconds": "s",
+  "watts": "W",
+  "volts": "V"
+}
