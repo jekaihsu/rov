@@ -132,7 +132,8 @@ function createController() {
     stop();
     currentKey = key;
     if (resolved.missing || !resolved.url) {
-      playStaticFallback(engine);
+      // With no clips generated at all the game stays as it was: text only, no static.
+      if (Object.keys(index || {}).length) playStaticFallback(engine);
       return {played: false, missing: true, id: resolved?.id};
     }
     const audio = ensureGraph();
