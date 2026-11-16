@@ -75,9 +75,19 @@ The scene is metered on the GPU (32 x 18 grid, centre-weighted log-average lumin
 moves towards its target with a first-order lag (`tau` 0.35 s, symmetric in stops) and is clamped to
 `[0.3, 400]`. The target corrects only 65 % of the metered error in stops around a reference gain of 50
 (`compensation`, `reference`): a video camera's AE does not fully normalise a scene, so lamp level 2 is
-visibly brighter than level 1 and the near-field lamp pool is not flattened to mid-grey. The upper clamp is the camera's maximum gain: at 25-32 m with the lamps off the image stays
-dark and objects read as silhouettes against slightly brighter water. No pixel is read back for rendering
-(`state.exposure()` is a synchronous diagnostic for tools only).
+visibly brighter than level 1 and the near-field lamp pool is not flattened to mid-grey. The upper clamp is the
+camera's maximum gain: at 25-32 m with the lamps off the image stays dark and objects read as silhouettes against
+slightly brighter water. No pixel is read back for rendering (`state.exposure()` is a synchronous diagnostic for
+tools only).
+
+**Highlight protection** (`metering.js`, pure, mirrored by the GPU adaptation pass, tested by
+`tests/test_metering.mjs`). A log-average meter follows whatever fills most of the frame; under the lamps that is
+dark water, so it opened the camera up until the lamp-lit subject clipped. Like a video camera's AE, the target is
+also capped by the bright end of the frame: the level that the brightest 5 % of the centre-weighted meter
+(quarter-stop histogram of the cells) exceeds may reach at most 0.8 on the exposed scale (about sRGB 220 after
+ACES). The cap is a hard minimum with the ordinary target, so frames without a sizeable bright area (lamps off,
+uniform water, a single glint) keep exactly the previous exposure; small speculars may still clip. Above water the
+daylight camera (`AutoExposurePass.metering`) keeps its fixed gain without the cap.
 
 **White balance.** The same pass runs the camera's auto white balance (`white_balance.js`, pure functions
 mirrored by the GPU meter, tested by `tests/test_white_balance.mjs`). Small ROV cameras default to auto WB and
@@ -117,22 +127,30 @@ Everything numeric here is a visualization assumption; nothing is X1 data. Mark 
 - Pure-water absorption `[0.33, 0.06, 0.02] /m`, scattering share 0.8, particulate absorption spectrum
   `[0.6, 1, 1.7]`, `Kd = 1.1 a + 0.15 b`: textbook orders of magnitude, no water-type table was available.
 - `visibility = 4.8 / c` (about 1 % contrast threshold), shared with the silt module.
-- `LAMP_SCALE = 0.03`: two lamps at full power give about overcast surface daylight at 2 m. Research only
-  gives "several thousand lumens, 120-160° beams"; the lamp-to-daylight ratio is a choice that makes deep
-  wreck work lamp-dominated, as observed footage is.
-- Daylight in-scatter phase 0.07 and lamp backscatter phase 0.00025, with the near-lamp `1/d²` limited at
-  0.5 m: tuned on the review shots so that 10 m visibility shows a veil but keeps a lit hull at 2-3 m
-  readable, and harbour water (7 m) is clearly murkier.
-- Multiple-scattering lamp glow (0.007, cube law in `c`) and sediment scattering share `[0.85, 0.8, 0.6]`:
-  visual calibration against main's silt screenshots; `silt-validation.md` has no image measurements either.
+- Lamps (`LAMP_ASSUMED` in `water_optics.js`, vehicle parameters, provisional): 4,000 lm effective per lamp at
+  full power in a smooth 120 degree flood (about 2,500 cd on axis), and the daylight rig at the surface standing
+  for 10,000 lux (overcast). That gives `LAMP_SCALE` of about 0.003. Research gives 1,500-3,000 lm per lamp for
+  observation-class lamps and a vendor claim of 2 x 6,000 lm for X1 (unverified, x1-measurement-checklist item 12
+  is the footage that would settle it). The first calibration (0.03, "overcast daylight at 2 m") made the lamps ten
+  times stronger relative to daylight: subjects outshone daylight 7-150 times at 1 m and up to 18 times at 2 m and
+  clipped, while footage shows colour coming back only within about 1 m (`docs/design/lamp-exposure/README.md`).
+- Daylight in-scatter phase 0.015 and lamp backscatter phase 0.00025, with the near-lamp `1/d²` limited at
+  0.5 m: tuned on the review shots so that 10 m visibility shows a veil but keeps a lit hull at 2-3 m readable, and
+  harbour water (7 m) is clearly murkier. The lamp veil scales with lamp power like the subjects it veils, so this
+  ratio did not change with the lamp scale. A Petzold-type value near 180 degrees (0.0025) was tried and buries a
+  hull at 1 m in 4 m water: the integral puts the lamps at the lens, which overstates the near-field veil.
+- Multiple-scattering lamp glow (0.007, cube law in `c`; scales with lamp power like the veil) and sediment
+  scattering share `[0.85, 0.8, 0.6]`: visual calibration against main's silt screenshots; `silt-validation.md`
+  has no image measurements either.
 - Water types and their `a_g(440)` values, the spectral slope 0.015/nm and the biome mapping: orders of
   magnitude for open-ocean, coastal and estuarine water, not site data; chlorophyll absorption is not
   modelled separately.
 - Auto white balance gate widths, confidence range, strength 0.8, the brightness weighting, the 0.6 / 0.2
   correction limits and the sensor overlap shares: no measured WB behaviour of the vehicle camera exists; tuned so
   the footage colour targets of `docs/design/underwater-look/README.md` hold.
-- Exposure key 0.15, partial compensation 0.65 around gain 50, range 0.3-400, lag 0.35 s, centre weighting: the research report has no measured
-  auto-exposure or gain behaviour.
+- Exposure key 0.15, partial compensation 0.65 around gain 50, range 0.3-400, lag 0.35 s, centre weighting, the
+  highlight cap (brightest 5 % at 0.8 exposed; the brightest lamps-off review frame, sun-lit reef sand at
+  13 m, reaches 0.67): the research report has no measured auto-exposure or gain behaviour.
 - Particle sizes, density (scaled by `b`) and drift; sun shaft and caustic patterns. Size and the order of
   the visible count follow `research_notes/洋流與波浪對ROV作業/real_dive_footage.md` (§8 target 12), not X1.
 

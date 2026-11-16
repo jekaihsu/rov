@@ -1,0 +1,920 @@
+{
+  "reefclose-0": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      8.66,
+      8.09,
+      9.79
+    ],
+    "target_ned": [
+      9.46,
+      8.84,
+      9.89
+    ],
+    "lamp_level": 0,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 31.591429522527044,
+      "target": 31.509309773697165,
+      "meteredLuminance": 0.006104226027376563,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 106218,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 30.24,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "reefclose-1": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      8.66,
+      8.09,
+      9.79
+    ],
+    "target_ned": [
+      9.46,
+      8.84,
+      9.89
+    ],
+    "lamp_level": 1,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 27.314550307303143,
+      "target": 27.310376244353552,
+      "meteredLuminance": 0.0076065282746335585,
+      "whiteBalance": [
+        1.0000124585597678,
+        1,
+        0.9999976545230078
+      ]
+    },
+    "bytes": 102525,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 30.24,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "reefclose-2": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      8.66,
+      8.09,
+      9.79
+    ],
+    "target_ned": [
+      9.46,
+      8.84,
+      9.89
+    ],
+    "lamp_level": 2,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 25.935621730060166,
+      "target": 25.942591509309477,
+      "meteredLuminance": 0.00823220635095038,
+      "whiteBalance": [
+        1.0001111391302668,
+        1,
+        0.9999828561918372
+      ]
+    },
+    "bytes": 104750,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 30.24,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "penclose-0": {
+    "scenario": "aquaculture_pen",
+    "seed": 71,
+    "eye_ned": [
+      15.4,
+      0.0,
+      8.9
+    ],
+    "target_ned": [
+      14.0,
+      0.0,
+      9.0
+    ],
+    "lamp_level": 0,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 69.05414712597154,
+      "target": 69.04548771456133,
+      "meteredLuminance": 0.001825922784225733,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 70539,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 227.91,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "penclose-1": {
+    "scenario": "aquaculture_pen",
+    "seed": 71,
+    "eye_ned": [
+      15.4,
+      0.0,
+      8.9
+    ],
+    "target_ned": [
+      14.0,
+      0.0,
+      9.0
+    ],
+    "lamp_level": 1,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 52.66640698703075,
+      "target": 52.72050368549355,
+      "meteredLuminance": 0.0027651714006189025,
+      "whiteBalance": [
+        1.0000000693479218,
+        1,
+        1.0000002443662495
+      ]
+    },
+    "bytes": 95063,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 227.91,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "penclose-2": {
+    "scenario": "aquaculture_pen",
+    "seed": 71,
+    "eye_ned": [
+      15.4,
+      0.0,
+      8.9
+    ],
+    "target_ned": [
+      14.0,
+      0.0,
+      9.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 45.67792863110782,
+      "target": 45.72323364495747,
+      "meteredLuminance": 0.003442424150166077,
+      "whiteBalance": [
+        1.0002046869684291,
+        1,
+        1.000774312678563
+      ]
+    },
+    "bytes": 105628,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 227.91,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourclose-0": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      11.89,
+      15.73,
+      12.15
+    ],
+    "target_ned": [
+      12.55,
+      16.61,
+      12.25
+    ],
+    "lamp_level": 0,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 202.38302542384278,
+      "target": 202.2314748089755,
+      "meteredLuminance": 0.00034951157273350287,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 56893,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 66.1,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourclose-1": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      11.89,
+      15.73,
+      12.15
+    ],
+    "target_ned": [
+      12.55,
+      16.61,
+      12.25
+    ],
+    "lamp_level": 1,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 87.80769636043647,
+      "target": 87.94845029014391,
+      "meteredLuminance": 0.0012583490766693796,
+      "whiteBalance": [
+        1.0105004750414033,
+        1,
+        1.07328556931634
+      ]
+    },
+    "bytes": 70314,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 66.1,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourclose-2": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      11.89,
+      15.73,
+      12.15
+    ],
+    "target_ned": [
+      12.55,
+      16.61,
+      12.25
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 65.76282483576009,
+      "target": 65.85363799164409,
+      "meteredLuminance": 0.001963840247709697,
+      "whiteBalance": [
+        1.0209713641366747,
+        1,
+        1.1738594104830082
+      ]
+    },
+    "bytes": 70824,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 66.1,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourpiles-0": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      19.2,
+      -6.9,
+      6.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      6.1
+    ],
+    "lamp_level": 0,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 48.860902051328154,
+      "target": 48.86216019698501,
+      "meteredLuminance": 0.0031081490404015017,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 54454,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 2.46,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourpiles-1": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      19.2,
+      -6.9,
+      6.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      6.1
+    ],
+    "lamp_level": 1,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 41.73443552729604,
+      "target": 41.462330984193606,
+      "meteredLuminance": 0.004001504812589927,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 56102,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 2.46,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourpiles-2": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      19.2,
+      -6.9,
+      6.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      6.1
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 37.34090193666187,
+      "target": 37.33030024908681,
+      "meteredLuminance": 0.004702894169883436,
+      "whiteBalance": [
+        1.0000002172344247,
+        1,
+        1.0000005214401648
+      ]
+    },
+    "bytes": 56223,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 2.46,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourpile1m-0": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      18.86,
+      -10.0,
+      6.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      6.05
+    ],
+    "lamp_level": 0,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 50.35229787768758,
+      "target": 50.34664387627087,
+      "meteredLuminance": 0.0029682825285050644,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 47871,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourpile1m-1": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      18.86,
+      -10.0,
+      6.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      6.05
+    ],
+    "lamp_level": 1,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 22.74615964098339,
+      "target": 22.747325638885908,
+      "meteredLuminance": 0.010077113632556265,
+      "whiteBalance": [
+        1.0025000579342147,
+        1,
+        1.0637794327564156
+      ]
+    },
+    "bytes": 55442,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "harbourpile1m-2": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      18.86,
+      -10.0,
+      6.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      6.05
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 18.3536973938798,
+      "target": 18.35261221207376,
+      "meteredLuminance": 0.014020733046873814,
+      "whiteBalance": [
+        1.0027380789445146,
+        1,
+        1.0977079910960117
+      ]
+    },
+    "bytes": 54877,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "wreck1m-0": {
+    "scenario": "wreck_survey",
+    "seed": 42,
+    "eye_ned": [
+      10.99,
+      4.09,
+      28.2
+    ],
+    "target_ned": [
+      15.17,
+      -1.88,
+      28.2
+    ],
+    "lamp_level": 0,
+    "visibility_m": 4.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 1.0003303428246286e-05,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 40929,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1.03,
+      "object": "Chenjiao"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "wreck1m-1": {
+    "scenario": "wreck_survey",
+    "seed": 42,
+    "eye_ned": [
+      10.99,
+      4.09,
+      28.2
+    ],
+    "target_ned": [
+      15.17,
+      -1.88,
+      28.2
+    ],
+    "lamp_level": 1,
+    "visibility_m": 4.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 57.360941677517026,
+      "target": 57.22813841172515,
+      "meteredLuminance": 0.002437286321717371,
+      "whiteBalance": [
+        0.8588632899876306,
+        1,
+        1.2105352826284945
+      ]
+    },
+    "bytes": 60207,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1.03,
+      "object": "Chenjiao"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "wreck1m-2": {
+    "scenario": "wreck_survey",
+    "seed": 42,
+    "eye_ned": [
+      10.99,
+      4.09,
+      28.2
+    ],
+    "target_ned": [
+      15.17,
+      -1.88,
+      28.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 4.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 38.91353540709797,
+      "target": 38.79398131427179,
+      "meteredLuminance": 0.004432699682465409,
+      "whiteBalance": [
+        0.8586140199525819,
+        1,
+        1.2112594876456022
+      ]
+    },
+    "bytes": 60823,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1.03,
+      "object": "Chenjiao"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "wreck3m-0": {
+    "scenario": "wreck_survey",
+    "seed": 42,
+    "eye_ned": [
+      9.84,
+      5.73,
+      28.2
+    ],
+    "target_ned": [
+      15.17,
+      -1.88,
+      28.2
+    ],
+    "lamp_level": 0,
+    "visibility_m": 4.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 1.000279782666553e-05,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 38380,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 3.03,
+      "object": "Chenjiao"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "wreck3m-1": {
+    "scenario": "wreck_survey",
+    "seed": 42,
+    "eye_ned": [
+      9.84,
+      5.73,
+      28.2
+    ],
+    "target_ned": [
+      15.17,
+      -1.88,
+      28.2
+    ],
+    "lamp_level": 1,
+    "visibility_m": 4.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 67.74677927941448,
+      "target": 67.55854636501223,
+      "meteredLuminance": 0.0018881150686902422,
+      "whiteBalance": [
+        0.9188892433790004,
+        1,
+        1.0650124144539848
+      ]
+    },
+    "bytes": 46189,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 3.03,
+      "object": "Chenjiao"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "wreck3m-2": {
+    "scenario": "wreck_survey",
+    "seed": 42,
+    "eye_ned": [
+      9.84,
+      5.73,
+      28.2
+    ],
+    "target_ned": [
+      15.17,
+      -1.88,
+      28.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 4.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 45.940848625758065,
+      "target": 45.764328080338956,
+      "meteredLuminance": 0.0034376704387169923,
+      "whiteBalance": [
+        0.9182024986426806,
+        1,
+        1.0659920388856334
+      ]
+    },
+    "bytes": 47081,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 3.03,
+      "object": "Chenjiao"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "jacketanode-0": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      26.88,
+      6.88,
+      5.9
+    ],
+    "target_ned": [
+      25.74,
+      5.74,
+      5.96
+    ],
+    "lamp_level": 0,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 36.406308122900015,
+      "target": 36.401768797164465,
+      "meteredLuminance": 0.004888711386057555,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 72900,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1.04,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "jacketanode-1": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      26.88,
+      6.88,
+      5.9
+    ],
+    "target_ned": [
+      25.74,
+      5.74,
+      5.96
+    ],
+    "lamp_level": 1,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 24.361229792103607,
+      "target": 24.368857112820425,
+      "meteredLuminance": 0.009064184014854957,
+      "whiteBalance": [
+        1.0008172509892816,
+        1,
+        1.001352341575659
+      ]
+    },
+    "bytes": 77073,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1.04,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "jacketanode-2": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      26.88,
+      6.88,
+      5.9
+    ],
+    "target_ned": [
+      25.74,
+      5.74,
+      5.96
+    ],
+    "lamp_level": 2,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 21.091087045751753,
+      "target": 21.09850036762915,
+      "meteredLuminance": 0.011313872031601368,
+      "whiteBalance": [
+        1.0049262850582519,
+        1,
+        1.0095745710092179
+      ]
+    },
+    "bytes": 76702,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 1.04,
+      "object": "structures"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "seabed-0": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      0.0,
+      23.4
+    ],
+    "target_ned": [
+      2.2,
+      0.0,
+      25.0
+    ],
+    "lamp_level": 0,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 224.7492148483476,
+      "target": 224.84675959720843,
+      "meteredLuminance": 0.00029691643509073556,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 66863,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 2.48,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "seabed-1": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      0.0,
+      23.4
+    ],
+    "target_ned": [
+      2.2,
+      0.0,
+      25.0
+    ],
+    "lamp_level": 1,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 46.35380922302188,
+      "target": 46.307669629280255,
+      "meteredLuminance": 0.003375812664940662,
+      "whiteBalance": [
+        1.0000081927754767,
+        1,
+        1.0000380900360992
+      ]
+    },
+    "bytes": 70168,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 2.48,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "seabed-2": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      0.0,
+      23.4
+    ],
+    "target_ned": [
+      2.2,
+      0.0,
+      25.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 33.24174916961308,
+      "target": 33.191682212892104,
+      "meteredLuminance": 0.0056347715389281775,
+      "whiteBalance": [
+        1.0000601492182772,
+        1,
+        1.0002414116774092
+      ]
+    },
+    "bytes": 70085,
+    "jpeg_quality": 82,
+    "centre_range_m": {
+      "range": 2.48,
+      "object": "environment"
+    },
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  }
+}
