@@ -186,6 +186,18 @@ per-vertex depth-band tint without any texture read (#52, 13cf9fe), and the revi
 the app had metered its own camera. Medium fouling now breaks the tint up with a cheap two-octave value noise
 (ALU only, no texture), and `browser_scene_review.py` lets exposure and white balance settle on the view.
 
+## Above the water (`daylight.js`)
+
+The scene's sun and hemisphere light belong to `daylight.js`. While the camera is below the surface (and in the
+top-down map view) they keep exactly the values this model was calibrated with (`UNDERWATER_DAYLIGHT`: hemisphere
+1.5, directional 1.6, pale blue); none of the underwater maths above changes. Above the water the same lights take
+a daylight preset (`clear`, `overcast`; harbours and fresh water get overcast, `?sky=` overrides for reviews), a
+sky dome and an open-sea surface replace the background and the flat surface, the exposure pass meters with a
+fixed daylight gain and no grey-world white balance (`AutoExposurePass.metering`), `waterApply` adds aerial haze to
+paths that are entirely above water (`uAirHaze`, zero whenever the camera is below), and a display-space grade
+after `OutputPass` keeps yellow paint golden. Sun shadows (medium and up) are rendered only above water; below,
+the shadow frustum is parked outside the world. Targets and before/after shots: `docs/design/daylight/README.md`.
+
 ## Observation photos
 
 Eligibility is still computed by projection, range and raycasts in `observation_camera.js` and the backend;

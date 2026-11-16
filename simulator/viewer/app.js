@@ -54,6 +54,7 @@ import {drawROVAttitude} from './attitude_indicator.js';
 import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
+import { createDaylight } from './fx/daylight.js';
 import { readReplay } from './replay_store.js';
 import { installDebrief } from './debrief/install.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
@@ -102,8 +103,7 @@ camera.position.set(-3, 1.5, -3);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.minDistance = 0.8; controls.maxDistance = 120; controls.enabled = false;
 
-const hemi = new THREE.HemisphereLight(0xa8dcf0, 0x1a2a22, 1.5); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xdff4ff, 1.6); sun.position.set(20, 60, 10); scene.add(sun);
+const daylightRig = createDaylight(scene);   // sun, sky light, sky and sea above water (fx/daylight.js)
 // daylight fades with depth (roughly e-folding every 10 m in coastal water): at 30 m the
 // structures are dim blue shapes and the ROV's lights make the difference
 function daylight(depth) { return 0.1 + 0.9 * Math.exp(-Math.max(0, depth) / 10); }
@@ -1250,17 +1250,15 @@ function frame(now) {
   if (!inIntro) updateCamera(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
-  hemi.intensity = 1.5; sun.intensity = 1.6;
   installUnderwaterPipeline(renderer, { surface });
   applyUnderwaterLighting(scene, S, renderer);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
-  surface.visible = camMode !== 'top' || camera.position.y < 0;
+  daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
   for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
-  if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);

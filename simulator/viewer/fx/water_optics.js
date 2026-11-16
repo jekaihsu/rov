@@ -42,7 +42,10 @@ export const waterUniforms = {
   uLampDir: { value: [new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, -1)] },
   uLampColor: { value: [new THREE.Vector3(), new THREE.Vector3()] },
   uLampCone: { value: new THREE.Vector2(0.5, 0.9) },
-  uLampGlow: { value: new THREE.Vector3() }
+  uLampGlow: { value: new THREE.Vector3() },
+  // Aerial haze for paths entirely above water (rgb horizon radiance, w = 1 / haze distance); set from
+  // fx/daylight.js only while the camera is above water, zero otherwise.
+  uAirHaze: { value: new THREE.Vector4() }
 };
 
 // Uniform declarations and the light-path functions. World space throughout; `cameraPosition` is three's.
@@ -60,6 +63,7 @@ export const WATER_COMMON = /* glsl */ `
   uniform vec3 uLampColor[${MAX_LAMPS}];
   uniform vec2 uLampCone;
   uniform vec3 uLampGlow;
+  uniform vec4 uAirHaze;
 
   // Daylight left after travelling from the surface down to a world point.
   vec3 waterDaylight(vec3 world) {
@@ -116,7 +120,10 @@ export const WATER_COMMON = /* glsl */ `
     vec3 origin;
     vec3 dir;
     float len = waterSegment(cameraPosition, world, origin, dir);
-    if (len <= 0.0) return color;
+    if (len <= 0.0) {
+      if (uAirHaze.w <= 0.0) return color;
+      return mix(color, uAirHaze.rgb, 1.0 - exp(-length(world - cameraPosition) * uAirHaze.w));
+    }
     return color * exp(-uWaterC * len) + waterInscatter(origin, dir, len) + lampInscatter(origin, dir, len);
   }
 `;
@@ -256,6 +263,9 @@ export function updateWaterOptics(scene, { beauty = false, camera = null } = {})
     .multiplyScalar(DAYLIGHT_PHASE);
   waterUniforms.uWaterTime.value = performance.now() / 1000;
   waterUniforms.uWaterBeauty.value = beauty ? 1 : 0;
+  const haze = camera && camera.position.y > 0 ? scene.userData.daylightHaze : null;
+  if (haze) waterUniforms.uAirHaze.value.set(haze.colour.x, haze.colour.y, haze.colour.z, haze.rate);
+  else waterUniforms.uAirHaze.value.set(0, 0, 0, 0);
   const lamps = updateLamps(scene);
   updateLampGlow(water);
   return { water, lamps };
