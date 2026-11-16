@@ -31,6 +31,12 @@ SITES = (
     ('wreck', 'wreck_survey', 42, 2.6, 0.3),
     ('jacket', 'jacket_inspection', 42, 3.0, 0.3),
     ('pool', 'tutorial_pool', 42, 3.0, 0.3),
+    # Close-ups 1.1 m from the school centre: the nearest fish are 0.5-1.5 m from the camera.
+    ('reefclose', 'coral_reef', 42, 1.1, 0.1),
+    ('harbourclose', 'harbor_inspection', 42, 1.1, 0.1),
+    ('seagrassclose', 'seagrass_meadow', 42, 1.1, 0.1),
+    ('wreckclose', 'wreck_survey', 42, 1.1, 0.1),
+    ('jacketclose', 'jacket_inspection', 42, 1.1, 0.1),
 )
 VIEWS = (('dark', 0, looks.REAL), ('lamps', 2, looks.REAL), ('third', 1, looks.THIRD))
 
