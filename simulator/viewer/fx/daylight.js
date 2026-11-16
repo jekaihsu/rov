@@ -72,8 +72,8 @@ export const SEA_BODY = Object.freeze({
   oceanic: Object.freeze([0.0005, 0.0046, 0.0132]),
   coastal: Object.freeze([0.0009, 0.0058, 0.0118]),
   shelf: Object.freeze([0.0008, 0.0062, 0.0118]),
-  harbour: Object.freeze([0.021, 0.033, 0.021]),
-  fresh_clear: Object.freeze([0.019, 0.032, 0.022])
+  harbour: Object.freeze([0.031, 0.049, 0.032]),
+  fresh_clear: Object.freeze([0.028, 0.047, 0.033])
 });
 const DEFAULT_BODY = SEA_BODY.shelf;
 // Horizontal direction the sun stands in (three.js axes), shared with the deployment intro's framing.
