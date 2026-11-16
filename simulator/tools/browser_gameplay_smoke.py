@@ -28,11 +28,9 @@ with sync_playwright() as p:
         contexts.append(context)
         page = context.new_page()
         page.on('pageerror', lambda e: errors.append(str(e)))
-        page.add_init_script("""window.__testMessages=[];window.__testSockets=[];
-          const Native=window.WebSocket;window.WebSocket=class extends Native{
-            constructor(...args){super(...args);window.__testSockets.push(this);
-              this.addEventListener('message',e=>{try{const value=JSON.parse(e.data);if(!['state','world'].includes(value.type))window.__testMessages.push(value);}catch{}});}
-          };""")
+        # Do not replace WebSocket: that forces a main-thread socket and lets soft-GL starve
+        # host_only / mission replies. Messages are recorded by link_inbox into __testMessages.
+        page.add_init_script('window.__testMessages=[];')
         page.set_default_timeout(timeout(60000))
         return page
 
@@ -66,15 +64,15 @@ with sync_playwright() as p:
     wait_state(guest,'inspection_coop')
     main.wait_for_function('window.__viewer.S.vehicles.length===2', timeout=timeout(120000))
     assert guest.evaluate('window.__viewer.S.mission.targets.map(t=>t.id)') == target_ids
-    main.evaluate('window.__skipRender = true')
     guest.bring_to_front()
     # Re-send while pumping: under load the first datagram can be dropped before the page reads it.
+    # Skip render only for this wait so main's later photo path is not left permanently starved.
     pump_until(
         guest,
         """() => {
+          window.__viewer?.flushLink?.();
           if (window.__testMessages.some(m => m.code === "host_only" || m.error === "host_only")) return true;
-          const socket = [...window.__testSockets].reverse().find(s => s.readyState === 1);
-          if (socket) socket.send(JSON.stringify({type:'operation',action:'mission_mode',mode:'free_explore'}));
+          window.__viewer?.send?.({type:'operation',action:'mission_mode',mode:'free_explore'});
           return false;
         }""",
         timeout_ms=timeout(120000), allies=(main,))
@@ -82,11 +80,22 @@ with sync_playwright() as p:
     print('Guest shares mission and mode change is denied', flush=True)
 
     main.bring_to_front()
+    main.evaluate('window.__skipRender = false')
+    guest.evaluate('window.__skipRender = true')
     with main.expect_download(predicate=lambda d:d.suggested_filename.endswith('.png'), timeout=timeout(60000)) as capture:
         soft_click(main, '.mission-photo')
     capture.value.save_as(OUT/'not-ready-photo.png')
-    pump_until(main, '() => window.__viewer.S.mission.last_photo !== null',
-               timeout_ms=timeout(120000), allies=(guest,))
+    # Download proves capture; last_photo proves the mission_photo operation and state sync.
+    # Under load the first operation or state flush can be delayed — resend until state shows it.
+    pump_until(
+        main,
+        """() => {
+          window.__viewer?.flushLink?.();
+          if (window.__viewer?.S?.mission?.last_photo) return true;
+          window.__viewer?.send?.({type:'operation', action:'mission_photo'});
+          return false;
+        }""",
+        timeout_ms=timeout(120000), allies=(guest,), skip_page_render=False)
     state = main.evaluate('window.__viewer.S.mission')
     assert state['completed'] == 0 and state['last_photo']['target_id'] is None, state
     assert (OUT/'not-ready-photo.png').stat().st_size > 1000

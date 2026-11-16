@@ -1,0 +1,379 @@
+{
+  "started_at": "2026-11-15T23:24:02Z",
+  "idle": [
+    {
+      "index": 1,
+      "unittest": {
+        "label": "idle/1/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 328.8,
+        "log": "/tmp/h1-verify/idle_1_unittest.txt",
+        "tests": 471,
+        "reported_s": 326.444
+      },
+      "browser": {
+        "label": "idle/1/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 209.7,
+        "log": "/tmp/h1-verify/idle_1_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 27.0
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 60.8
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 62.4
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 59.4
+          }
+        }
+      }
+    },
+    {
+      "index": 2,
+      "unittest": {
+        "label": "idle/2/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 332.5,
+        "log": "/tmp/h1-verify/idle_2_unittest.txt",
+        "tests": 471,
+        "reported_s": 330.039
+      },
+      "browser": {
+        "label": "idle/2/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 219.3,
+        "log": "/tmp/h1-verify/idle_2_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 30.7
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 63.9
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 70.4
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 54.2
+          }
+        }
+      }
+    },
+    {
+      "index": 3,
+      "unittest": {
+        "label": "idle/3/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 330.6,
+        "log": "/tmp/h1-verify/idle_3_unittest.txt",
+        "tests": 471,
+        "reported_s": 328.129
+      },
+      "browser": {
+        "label": "idle/3/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 210.4,
+        "log": "/tmp/h1-verify/idle_3_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 27.6
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 57.7
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 68.6
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 56.4
+          }
+        }
+      }
+    },
+    {
+      "index": 4,
+      "unittest": {
+        "label": "idle/4/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 321.1,
+        "log": "/tmp/h1-verify/idle_4_unittest.txt",
+        "tests": 471,
+        "reported_s": 318.375
+      },
+      "browser": {
+        "label": "idle/4/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 212.1,
+        "log": "/tmp/h1-verify/idle_4_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 27.2
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 57.8
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 71.6
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 55.4
+          }
+        }
+      }
+    },
+    {
+      "index": 5,
+      "unittest": {
+        "label": "idle/5/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 313.9,
+        "log": "/tmp/h1-verify/idle_5_unittest.txt",
+        "tests": 471,
+        "reported_s": 311.37
+      },
+      "browser": {
+        "label": "idle/5/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 216.9,
+        "log": "/tmp/h1-verify/idle_5_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 31.8
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 53.7
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 78.9
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 52.3
+          }
+        }
+      }
+    }
+  ],
+  "load": [
+    {
+      "index": 1,
+      "unittest": {
+        "label": "load/1/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 373.3,
+        "log": "/tmp/h1-verify/loadR_1_unittest.txt",
+        "tests": 471,
+        "reported_s": 370.128
+      },
+      "browser": {
+        "label": "load/1/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 1647.8,
+        "log": "/tmp/h1-verify/loadR_1_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 145.6
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 660.0
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 526.2
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 315.7
+          }
+        }
+      }
+    },
+    {
+      "index": 2,
+      "unittest": {
+        "label": "load/2/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 363.9,
+        "log": "/tmp/h1-verify/loadR_2_unittest.txt",
+        "tests": 471,
+        "reported_s": 360.69
+      },
+      "browser": {
+        "label": "load/2/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 1620.6,
+        "log": "/tmp/h1-verify/loadR_2_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 166.9
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 645.9
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 488.0
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 319.5
+          }
+        }
+      }
+    },
+    {
+      "index": 3,
+      "unittest": {
+        "label": "load/3/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 367.7,
+        "log": "/tmp/h1-verify/loadR_3_unittest.txt",
+        "tests": 471,
+        "reported_s": 365.003
+      },
+      "browser": {
+        "label": "load/3/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 1537.4,
+        "log": "/tmp/h1-verify/loadR_3_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 104.5
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 622.5
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 487.8
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 322.4
+          }
+        }
+      }
+    },
+    {
+      "index": 4,
+      "unittest": {
+        "label": "load/4/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 366.0,
+        "log": "/tmp/h1-verify/loadR_4_unittest.txt",
+        "tests": 471,
+        "reported_s": 363.442
+      },
+      "browser": {
+        "label": "load/4/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 1595.9,
+        "log": "/tmp/h1-verify/loadR_4_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 127.5
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 623.4
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 510.7
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 334.2
+          }
+        }
+      }
+    },
+    {
+      "index": 5,
+      "unittest": {
+        "label": "load/5/unittest",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 371.3,
+        "log": "/tmp/h1-verify/loadR_5_unittest.txt",
+        "tests": 471,
+        "reported_s": 366.237
+      },
+      "browser": {
+        "label": "load/5/browser",
+        "ok": true,
+        "returncode": 0,
+        "seconds": 1538.5,
+        "log": "/tmp/h1-verify/loadR_5_browser.txt",
+        "scripts": {
+          "browser_smoke": {
+            "result": "PASS",
+            "seconds": 121.0
+          },
+          "browser_gameplay_smoke": {
+            "result": "PASS",
+            "seconds": 601.9
+          },
+          "browser_expedition_smoke": {
+            "result": "PASS",
+            "seconds": 468.1
+          },
+          "browser_paint_smoke": {
+            "result": "PASS",
+            "seconds": 347.2
+          }
+        }
+      }
+    }
+  ],
+  "finished_at": "2026-11-16T06:40:25Z",
+  "all_ok": true
+}

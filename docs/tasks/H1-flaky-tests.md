@@ -16,3 +16,6 @@
 6. **campaign 錄影**：無 ffmpeg 時跳過錄影並印原因，其餘步驟照跑。
 7. **選單點擊／逾時**：`_menu.soft_click` 避開軟體 GL 下 Playwright 等 paint 卡住；`_browser.timeout()` 在主機飽和且未設 `ROV_BROWSER_TIMEOUT_SCALE` 時自動 ×3（斷言不變）。
 8. **高負載排程**：`pump_until`／`without_render` 讓等待控制回覆或模擬進度時背景軟體 GL 分頁不搶 CPU。paint：遠距／噴砂在同一 turn 內 snap 俯視相機並 `updateMatrixWorld` 後再噴；下潛只寫 `rc.rc_lock = 0` 與 `touch.left_wave`（不點 `#bLock` toggle、不長按 Q），靠近海床立刻歸零 heave，避免埋進底導致第二次噴漆被機身擋住。
+9. **expedition 單人重載**：高負載下 lone tab 重連可能超過 `Room.reconnect_grace`（30s），空的自訂房間被刪除導致委託消失。collection 重載前加 keepalive guest 保住房間，並以模擬狀態等待 `active.id`，量的是契約存續而非房間 GC。
+10. **paint 下潛 latch**：高負載下 RC 取樣超過 holdMs 會觸發 failsafe `input_latched`；伺服器需先收到鎖定封包才接受解鎖。下潛前／中依協定同步鎖定再解鎖下潛，不斷言放寬。
+11. **訪客訊息／Worker**：測試不再替換 WebSocket（否則強制主執行緒 socket，軟體 GL 會餓死 host_only／mission_photo）。改由 `link_inbox` 寫入 `__testMessages`，並暴露 `__viewer.send`／`flushLink`；覆蓋不變，量的是控制回覆而非主執行緒排程。

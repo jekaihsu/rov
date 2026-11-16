@@ -29,6 +29,15 @@ export function createLinkInbox(handlers) {
   }
 
   function receive(message) {
+    // Optional test harness: record control replies without replacing WebSocket (which would
+    // force a main-thread socket and let software-GL starve host_only / operation_result).
+    if (message?.type !== "state" && message?.type !== "world") {
+      try {
+        globalThis.__testMessages?.push(message);
+      } catch {
+        /* ignore */
+      }
+    }
     if (message?.type === "state") {
       latestState = message;
       scheduleFlush();
