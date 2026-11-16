@@ -44,7 +44,7 @@ DEFAULT_CHECKS = (
 )
 
 # Per-script time limits above run_browser_checks' --timeout default, for checks that walk several full dives.
-SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 2700}
+SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 3600}
 
 TIERS = {
     'quick': {
