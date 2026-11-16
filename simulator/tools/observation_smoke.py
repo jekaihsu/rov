@@ -26,7 +26,7 @@ def main():
             page=browser.new_page(viewport={'width':960,'height':640})
             errors=[]
             page.on('pageerror',lambda e:errors.append(str(e)))
-            page.route('**/observation-harness',lambda r:r.fulfill(content_type='text/html',body='<html><head><script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js"}}</script></head><body style="margin:0"></body></html>'))
+            page.route('**/observation-harness',lambda r:r.fulfill(content_type='text/html',body='<html><head><script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/"}}</script></head><body style="margin:0"></body></html>'))
             page.goto(f'http://127.0.0.1:{server.server_port}/observation-harness')
             result=page.evaluate((ROOT/'tools'/'observation_smoke.js').read_text(encoding='utf-8'),{'worlds':worlds})
             assert not errors,errors

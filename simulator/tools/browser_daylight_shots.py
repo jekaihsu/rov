@@ -6,6 +6,7 @@ Not a pass/fail check: it writes review JPEGs and a JSON report with draw calls 
   ROV_DAYLIGHT_TAG=before python tools/browser_daylight_shots.py      # tag selects the file suffix
   ROV_DAYLIGHT_VIEWS=intro-deck,jacket-surface ...                    # subset (comma-separated)
   ROV_DAYLIGHT_TIER=medium                                            # quality tier stored before load
+  ROV_DAYLIGHT_OUT=output/wind-farm                                   # output directory (default output/daylight)
 
 The page runs in capture mode (window.__advance), so the deployment intro is stepped to fixed times
 independent of how slowly software GL renders. Surface views freeze the main camera on a fixed pose and let
@@ -21,7 +22,8 @@ from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
 
-OUT = Path(__file__).resolve().parents[1] / 'output' / 'daylight'
+SIMULATOR = Path(__file__).resolve().parents[1]
+OUT = SIMULATOR / os.environ.get('ROV_DAYLIGHT_OUT', 'output/daylight')
 TAG = os.environ.get('ROV_DAYLIGHT_TAG', 'after')
 TIER = os.environ.get('ROV_DAYLIGHT_TIER', 'medium')
 WIDTH = 1600
@@ -41,7 +43,50 @@ SURFACE_VIEWS = {
     'jacket-surface': ('jacket_inspection', (-6, -9, -2.2), (20, 4, -9)),
     'hull-surface': ('hull_inspection', (2, -16, -2.5), (34, 0, -3)),
     'harbour-surface': ('harbor_inspection', (12, -16, -2.0), (40, 0, -2)),
+    # Wind farm review: a chase-height view over the vehicle's start, and a raised view across the farm.
+    'chase-surface': ('jacket_inspection', (-9, 3, -3.2), (40, -14, -4)),
+    'farm-wide': ('jacket_inspection', (-60, -40, -38), (1400, 900, -60)),
+    'monopile-surface': ('monopile_current', (-8, -6, -2.4), (30, 10, -8)),
+    'open-surface': ('open_water', (-6, -6, -2.4), (30, 10, -6)),
+    # The launch point (spool, NED (-4, 0, 0) at the jacket site) seen from the vehicle's surfacing area.
+    'spool-surface': ('jacket_inspection', (8, 7, -2.4), (-8, -3, -2)),
 }
+# Rotor close-ups of the farm turbine nearest the site: (scenario, range m, bearing from the rotor axis deg,
+# camera height m). Aimed in the page at the turbine's hub, so they work whatever the layout.
+ROTOR_VIEWS = {
+    'rotor-front-150': ('jacket_inspection', 150, 8, 10),
+    'rotor-front-300': ('jacket_inspection', 300, 8, 10),
+    'rotor-front-600': ('jacket_inspection', 600, 8, 10),
+    'rotor-side-300': ('jacket_inspection', 300, 90, 10),
+}
+# Camera pose for a rotor view, NED: from the nearest farm turbine's instance matrix (rotor faces local +z).
+ROTOR_POSE = '''([range, bearing, height]) => {
+  const v = window.__viewer, THREE = v.THREE;
+  const mesh = v.scene.getObjectByName('wind-farm-near') || v.scene.getObjectByName('wind-farm-far');
+  if (!mesh) return null;
+  const m = new THREE.Matrix4(), pos = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+  let best = null;
+  for (let i = 0; i < mesh.count; i++) {
+    mesh.getMatrixAt(i, m);
+    m.decompose(pos, q, s);
+    if (!best || pos.length() < best.pos.length()) best = {pos: pos.clone(), q: q.clone()};
+  }
+  const hub = mesh.material.userData.horizonUniforms?.uRotorHub?.value || new THREE.Vector3(0, 110, 5);
+  const axis = new THREE.Vector3(0, 0, 1).applyQuaternion(best.q);
+  axis.applyAxisAngle(new THREE.Vector3(0, 1, 0), bearing * Math.PI / 180);
+  const centre = best.pos.clone().add(new THREE.Vector3(0, hub.y, 0));
+  const cam = best.pos.clone().addScaledVector(axis, range).setY(height);
+  const ned = (p) => [p.z, -p.x, -p.y];
+  return [ned(cam), ned(centre)];
+}'''
+# What the above-water set placed (surface_set.js), in NED, for aiming review cameras; null before it existed.
+SURFACE_SET = '''() => {
+  const set = window.__viewer.scene.getObjectByName('surface-set');
+  if (!set) return null;
+  const c = set.userData.farmCentre;
+  return {kind: set.userData.plan?.kind, turbines: set.userData.turbines || 0,
+          farmCentreNed: c ? [c.z, -c.x, -c.y].map(Math.round) : null};
+}'''
 GRAB = '''(quality) => document.querySelector('canvas.gl').toDataURL('image/jpeg', quality)'''
 
 ADVANCE = '''([seconds, settle, fps]) => {
@@ -148,6 +193,16 @@ def main():
             report['views'][name] = {'intro': state, 'jpeg_bytes': size, 'perf': perf, 'errors': errors}
             print(name, json.dumps(report['views'][name]), flush=True)
             page.close()
+        for name, (scenario, distance, bearing, height) in ROTOR_VIEWS.items():
+            if only and name not in only:
+                continue
+            page, errors = open_page(browser, name, scenario, False)
+            pose = page.evaluate(ROTOR_POSE, [distance, bearing, height])
+            page.evaluate(PLACE, [pose, SETTLE_S, FPS])
+            size = grab(page, OUT / f'{name}-{TAG}.jpg')
+            report['views'][name] = {'jpeg_bytes': size, 'pose': pose, 'errors': errors}
+            print(name, json.dumps(report['views'][name]), flush=True)
+            page.close()
         for name, (scenario, at, look) in SURFACE_VIEWS.items():
             if only and name not in only:
                 continue
@@ -155,7 +210,8 @@ def main():
             page.evaluate(PLACE, [[at, look], SETTLE_S, FPS])
             size = grab(page, OUT / f'{name}-{TAG}.jpg')
             perf = page.evaluate(MEASURE, [5])
-            report['views'][name] = {'jpeg_bytes': size, 'perf': perf, 'errors': errors}
+            report['views'][name] = {'jpeg_bytes': size, 'perf': perf, 'errors': errors,
+                                     'set': page.evaluate(SURFACE_SET)}
             print(name, json.dumps(report['views'][name]), flush=True)
             page.close()
         browser.close()

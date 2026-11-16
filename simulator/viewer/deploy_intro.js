@@ -207,6 +207,26 @@ function sagLine(out, a, b, sag, count, floorY = -Infinity) {
   }
 }
 
+/**
+ * The work boat at the launch point: stern (-Z local) at the spool, bow pointing away from the dive site.
+ * Shared with spool_station.js, which keeps the same boat there when no intro is shown.
+ */
+export function placeWorkBoat(assets, spool, start) {
+  const boat = (assets.boat && placeVesselModel(assets.boat)) || buildFallbackBoat();
+  const at = toThree(spool);
+  const dir = new THREE.Vector3().subVectors(toThree(start), at);
+  dir.y = 0;
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+  dir.normalize();
+  boat.rotation.y = Math.atan2(-dir.x, -dir.z);
+  const ud = boat.userData;
+  boat.position.copy(at).addScaledVector(dir, ud.sternZ + 0.15);   // transom just inboard of the spool
+  boat.position.y = 0;
+  if (!ud.drum || !ud.exit) buildFallbackDrum(boat);
+  boat.updateMatrixWorld(true);
+  return boat;
+}
+
 export class DeployIntro {
   static async loadAssets(base = 'models/', { tier = assetTextureTier() } = {}) {
     const boatFile = tier === 'high' ? 'workboat_high.glb' : 'workboat.glb';
@@ -232,19 +252,9 @@ export class DeployIntro {
     this.playing = false;
     this.objects = [];
 
-    // boat: stern (-Z local) at the spool, bow pointing away from the dive site
-    this.boat = (assets.boat && placeVesselModel(assets.boat)) || buildFallbackBoat();
-    const dir = new THREE.Vector3().subVectors(this.start, this.spool);
-    dir.y = 0;
-    if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
-    dir.normalize();
-    this.boat.rotation.y = Math.atan2(-dir.x, -dir.z);
+    this.boat = placeWorkBoat(assets, spool, start);
     const ud = this.boat.userData;
-    this.boat.position.copy(this.spool).addScaledVector(dir, ud.sternZ + 0.15);   // transom just inboard of the spool
-    this.boat.position.y = 0;
     this._add(this.boat);
-    if (!ud.drum || !ud.exit) buildFallbackDrum(this.boat);
-    this.boat.updateMatrixWorld(true);
 
     this.rig = new LaunchRig(this.boat);
     this._add(this.rig.group);

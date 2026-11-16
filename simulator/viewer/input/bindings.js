@@ -169,7 +169,7 @@ export const BINDINGS = [
   { action: "menuStick", context: "menu", pad: "a1" },
   { action: "menuStickX", context: "menu", pad: "a0" },
   { action: "menuRotate", context: "menu", pad: "a2" },
-  { action: "accept", context: "menu", pad: "b0", keys: ["Enter"] },
+  { action: "accept", context: "menu", pad: "b0", keys: ["Enter", "Space"] },
   { action: "back", context: "menu", pad: "b1", keys: ["Escape"] },
   { action: "tabPrevious", context: "menu", pad: "b4", keys: ["KeyQ"] },
   { action: "tabNext", context: "menu", pad: "b5", keys: ["KeyE"] },

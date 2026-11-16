@@ -29,6 +29,7 @@ import {installMusic} from './audio/music.js';
 import {installVoice} from './audio/voice.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
+import { SpoolStation } from './spool_station.js';
 import { placeSceneModel } from './scene_models.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
@@ -231,7 +232,7 @@ const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
 let structureSet = null;                // structures.js: detailed meshes drawn inside the collision shapes
 
-let spoolMarker = [];
+const spoolStation = new SpoolStation(scene, () => loadIntroAssets());
 let env = null;
 function buildWorld() {
   surfacePaint.update(null);
@@ -249,12 +250,7 @@ function buildWorld() {
   worldG.add(structureSet.group);
   for (const [name, entry] of structureSet.entries) obstacleMeshes.set(name, entry);
   for (const ob of W.obstacles || []) if (ob.type === 'model') placeSceneModel(ob, worldG, P, detail);
-  // spool / deployment point
-  const sp = P(W.spool || [0, 0, 0]);
-  const drum = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, .7, 20), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: .5 }));
-  drum.rotation.z = Math.PI / 2; drum.position.copy(sp).add(new THREE.Vector3(0, .5, 0)); worldG.add(drum); spoolMarker = [drum];
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(2.2, .3, 3.2), new THREE.MeshStandardMaterial({ color: 0x8795a0 }));
-  deck.position.copy(sp).add(new THREE.Vector3(0, .1, -.6)); worldG.add(deck); spoolMarker.push(deck);
+  spoolStation.build(W, startPresentation?.introStart(W, S?.pos || [0, 0, 3]) || W.start_pos || [0, 0, 3]);
   buildObjectives(W.objectives || []);
   buildThrBars();
   matchThrusters();
@@ -1275,7 +1271,7 @@ function frame(now) {
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
-  for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
+  spoolStation.update(dt, !!intro);                            // the intro brings its own boat
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);
@@ -1306,7 +1302,7 @@ function frame(now) {
   // labels
   const r = vp.getBoundingClientRect();
   const L = [];
-  if (W?.spool) L.push({ id: 'spool', text: '纜盤 / 投放點', pos: P(W.spool).add(new THREE.Vector3(0, 1.2, 0)), cls: 'spool' });
+  if (W?.spool) L.push({ id: 'spool', text: '纜盤 / 投放點', pos: spoolStation.labelPosition(W), cls: 'spool' });
   if (cur) L.push({ id: 'obj', text: `${cur.o.label} · ${cur.m.g.position.distanceTo(rovG.position).toFixed(1)} m`, pos: cur.m.g.position, cls: 'obj' });
   for (const w of wrapLabels) L.push(w);
   for (const n of S?.tether?.snagged_on || []) { const e = obstacleMeshes.get(n); if (e && !wrapLabels.some((w) => w.id === 'wrap:' + n)) { const p = e.mesh.position.clone(); if (e.ob.type === 'cylinder') p.y = rovG.position.y + 1; L.push({ id: 'snag:' + n, text: `卡纜：${n}`, pos: p, cls: 'bad' }); } }
