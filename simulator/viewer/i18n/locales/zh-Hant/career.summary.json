@@ -1,0 +1,9 @@
+{
+  "kicker": "下一張委託",
+  "status": "{licence} · {money} 元 · 真實 {real} h",
+  "hours": "真實 {real} h · 輔助 {assisted} h",
+  "next": "下一張執照：{label}",
+  "top": "已取得目前最高的執照",
+  "resume": "繼續職涯",
+  "nothing": "暫無可接工單"
+}

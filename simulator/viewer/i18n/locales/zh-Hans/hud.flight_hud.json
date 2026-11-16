@@ -1,0 +1,60 @@
+{
+  "sonarSource": "声呐",
+  "close": "收起工程面板",
+  "depth": "深度",
+  "altitude": "离底",
+  "engineering": "工程 Tab",
+  "density": [
+    "极简",
+    "标准",
+    "完整"
+  ],
+  "view": "切换视角 V",
+  "locked": "马达锁定",
+  "unlocked": "马达解锁",
+  "unlockHint": "按 {key} / 手柄 Y 解锁",
+  "axes": [
+    [
+      "surge",
+      "前进／后退"
+    ],
+    [
+      "sway",
+      "右移／左移"
+    ],
+    [
+      "heave",
+      "上升／下潜"
+    ],
+    [
+      "yaw",
+      "右转／左转"
+    ]
+  ],
+  "hide": "切换 HUD",
+  "north": "北朝上",
+  "head": "机头朝上",
+  "cards": [
+    "任务与目标",
+    "载具系统",
+    "地图与队友",
+    "键位提示"
+  ],
+  "cable": "缆线",
+  "battery": "电量",
+  "tension": "张力",
+  "light": "灯光",
+  "danger": "危险：缆线断裂",
+  "warn": "注意：缆线张力",
+  "near": "注意：接近海床",
+  "obstacleDanger": "危险：障碍距离不足",
+  "lowBattery": "提示：电量偏低",
+  "forward": "前方估距",
+  "controller": "USB 控制器已连接",
+  "dvlLost": "注意：DVL 失去底锁",
+  "fidelity": {
+    "real": "presetReal",
+    "assisted": "presetAssisted",
+    "custom": "presetCustom"
+  }
+}

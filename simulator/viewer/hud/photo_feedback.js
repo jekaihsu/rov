@@ -1,7 +1,9 @@
 // What the operator gets when a photo is taken: the topside App's shutter sound (topside cues are real: the operator
 // hears the App, see audio/fidelity.js), a brief white flash of the picture, a 已拍照 toast and a short pad rumble
 // (padHaptics preference). Presentation only; the photo itself, its evidence and scoring are unchanged.
-const STRINGS = {taken: '已拍照'};
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('hud.photo_feedback', {taken: '已拍照'});
 const STYLE = `
 #flightShutter { inset: 0; background: #fff; opacity: 0; z-index: var(--z-hud-alert); }
 #flightShutter.fire { animation: flight-shutter 220ms ease-out; }

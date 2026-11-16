@@ -1,0 +1,12 @@
+{
+  "guide": "初潜航の練習",
+  "guideDone": "基本操作を習得しました。探索を始めましょう！",
+  "hideGuide": "練習案内を表示しない",
+  "contracts": "水中作業の依頼",
+  "accept": "受注",
+  "cancel": "依頼をキャンセル",
+  "active": "進行中",
+  "collapse": "折りたたむ",
+  "expand": "展開",
+  "meters": "{d} m"
+}

@@ -1,0 +1,73 @@
+{
+  "title": "Settings",
+  "tabs": {
+    "fidelity": "Realism",
+    "controls": "Controls",
+    "audio": "Audio",
+    "quality": "Graphics",
+    "display": "Display",
+    "interface": "Interface"
+  },
+  "pad": "Input device",
+  "padAuto": "Auto-detect controller + keyboard",
+  "padKeyboard": "Keyboard only",
+  "padFound": "{n} controller(s) detected",
+  "padNone": "No controller detected. You can use the keyboard. Press any controller button to wake it.",
+  "control": "Control layout",
+  "layouts": {
+    "ROV_USA": "ROV standard: left pitch/yaw, right surge/roll",
+    "ROV_JPN": "ROV Japan layout",
+    "ROV_CHN": "ROV China layout",
+    "UAV_USA": "UAV_USA",
+    "UAV_JPN": "UAV_JPN",
+    "UAV_CHN": "ROV twin-stick: left surge/sway, right heave/yaw"
+  },
+  "controllerSettings": "Advanced controller settings: deadzone, curves, bindings and mapping wizard",
+  "quality": {
+    "auto": [
+      "Auto",
+      "Adapts to hardware, targets 60 FPS"
+    ],
+    "performance": [
+      "Performance",
+      "Reduced resolution"
+    ],
+    "medium": [
+      "Standard",
+      "Native resolution"
+    ],
+    "high": [
+      "High",
+      "Prioritise detail, including shadows"
+    ]
+  },
+  "qualityState": "Current render scale {scale}%",
+  "detecting": "Detecting active graphics adapter…",
+  "adaptive": "Adapt to rendering performance",
+  "interface": {
+    "intro": [
+      "Launch cinematic",
+      "Opening sequence from surface deployment to submersion. Disabling also skips pre-dive checks."
+    ],
+    "alwaysIntro": [
+      "Play launch cinematic every time",
+      "When off, plays only on the first dive; later dives start underwater. You can enable it again in the briefing."
+    ],
+    "pip": [
+      "Operator inset",
+      "Show the surface operator in a corner of the screen."
+    ],
+    "sticks": [
+      "On-screen sticks",
+      "Shown only on touch devices."
+    ],
+    "fog": [
+      "Realistic visibility",
+      "Disabling makes water clearer than a real camera image."
+    ],
+    "labels": [
+      "Scene labels",
+      "Show names beside structures."
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "title": "擬真設定",
+  "intro": "真實模式與真機一致；輔助項目超出真機能力，可逐項開關。",
+  "presets": {
+    "real": "真實",
+    "assisted": "輔助",
+    "custom": "自訂"
+  },
+  "presetGroup": "擬真預設",
+  "exceeds": "超出真機",
+  "exceedsHint": "此項目啟用後超出真機能力",
+  "fromUrl": "網址指定"
+}

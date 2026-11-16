@@ -19,7 +19,9 @@ import {
   mountToggles,
 } from './settings.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.pause', {
   title: '暫停',
   resume: '繼續',
   restart: '重新開始',
@@ -52,7 +54,7 @@ const STRINGS = {
     optPip: ['操作員小視窗', '在畫面角落顯示岸上操作員。'],
   },
   prompts: { move: '移動', accept: '確認', back: '返回', tabs: '分頁' },
-};
+});
 
 // While the menu is up the flight instruments are hidden, so the paused scene behind it is clean (big_picture.css).
 const OPEN_CLASS = 'pause-open';
@@ -159,8 +161,9 @@ function buildSettings(input) {
 }
 
 // input: the object installInput returned; send: app's socket sender; state(): latest server state.
-// extraActions(): optional [{id, label, run, keepOpen}] shown with the objective (the YX work order's confirmations
-// and early hand-in from career/dive.js), so a pad player reaches them without the mouse.
+// extraActions(): optional [{id, label, run, keepOpen, disabled, title}] shown with the objective (the YX work
+// order's confirmations and early hand-in from career/dive.js, recovery during a dive from procedure/index.js), so
+// a pad player reaches them without the mouse. A disabled entry shows its title as the reason.
 export function installPauseMenu({ input, send, state, replay = false, extraActions = null }) {
   const root = element('section', 'pause-menu');
   root.id = 'pauseMenu';
@@ -241,6 +244,8 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
       const button = element('button', 'menu-chip menu-chip-small', action.label);
       button.type = 'button';
       button.dataset.action = action.id;
+      button.disabled = !!action.disabled;
+      if (action.title) button.title = action.title;
       button.addEventListener('click', function runAction() {
         action.run();
         if (!action.keepOpen) {

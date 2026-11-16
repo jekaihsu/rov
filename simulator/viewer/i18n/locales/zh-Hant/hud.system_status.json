@@ -1,0 +1,33 @@
+{
+  "label": "載具系統",
+  "link": {
+    "healthy": "鏈路 正常",
+    "degraded": "鏈路 劣化",
+    "lost": "鏈路 中斷"
+  },
+  "quality": "品質",
+  "reconnecting": "重新連線中",
+  "videoLag": "影像延遲",
+  "videoFrozen": "影像凍結",
+  "failsafe": {
+    "disarm": "失聯保護：已上鎖",
+    "depth_hold": "失聯保護：定深",
+    "surface": "失聯保護：上浮"
+  },
+  "failsafeIn": "失聯保護倒數",
+  "rearm": "需重新解鎖",
+  "power": "功率",
+  "powerLimited": "功率受限",
+  "tripped": "電源跳脫",
+  "cutoff": "電池耗盡，馬達與燈光已切斷",
+  "temperature": "溫度",
+  "warnings": {
+    "dry_run": "馬達離水運轉過久",
+    "motor_hot": "馬達過熱",
+    "electronics_hot": "電子艙過熱"
+  },
+  "leak": "漏水警報",
+  "seconds": "s",
+  "watts": "W",
+  "volts": "V"
+}

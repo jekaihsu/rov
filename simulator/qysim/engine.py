@@ -232,15 +232,19 @@ class Simulator:
     def _log_tether_and_environment(self) -> None:
         """Write tether solver events and silt-out / power-trip edges into the pilot log."""
         events = self.tether.events
-        # The deployment procedure swaps in a fresh Tether on relaunch; start counting its events from zero.
-        if self.tether is not self._logged_tether or self._seen_tether_events > len(events):
+        total = getattr(events, 'total', len(events))
+        # Fresh tether (procedure relaunch) or a reset queue: start the cursor again.
+        if self.tether is not self._logged_tether or self._seen_tether_events > total:
             self._logged_tether = self.tether
             self._seen_tether_events = 0
-        for event in events[self._seen_tether_events:]:
-            formatter = self._TETHER_LOG.get(event.get("type"))
-            if formatter:
-                self._log("tether", formatter(event))
-        self._seen_tether_events = len(events)
+        new = total - self._seen_tether_events
+        if new > 0:
+            # The queue may have dropped older entries; log whatever is still buffered.
+            for event in list(events)[-new:]:
+                formatter = self._TETHER_LOG.get(event.get("type"))
+                if formatter:
+                    self._log("tether", formatter(event))
+            self._seen_tether_events = total
         visibility = self.camera_turbidity()["visibility_m"]
         # Log below 0.5 m; re-arm only once it clears 0.6 m so a pilot hovering at the edge is not spammed.
         silt_out = visibility < 0.5 or (self._silt_out_logged and visibility < 0.6)

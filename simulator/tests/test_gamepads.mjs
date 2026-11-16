@@ -8,8 +8,10 @@ import {
   CALIBRATION_STEPS, captureCalibrationStep, buildCustomMapping, isNeutral
 } from '../viewer/input/calibrate.js';
 import {deviceFamily, faceLabels, glyph} from '../viewer/input/glyphs.js';
-import {createFidelity} from '../viewer/fidelity.js';
-import {PAD_HAPTICS_ID, padHapticsEnabled} from '../viewer/input/haptics_fidelity.js';
+import {createFidelity, STORAGE_KEY} from '../viewer/fidelity.js';
+import {
+  PAD_HAPTICS_ID, padHapticsEnabled, migratePadHapticsFromInput
+} from '../viewer/input/haptics_fidelity.js';
 import {createHaptics} from '../viewer/input/haptics.js';
 import {findCollisions} from '../viewer/input/bindings.js';
 
@@ -148,4 +150,21 @@ test('padHaptics fidelity is preset-neutral and gates the actuator', () => {
   store.set(PAD_HAPTICS_ID, true);
   haptics.pulse('tension');
   assert.equal(effect[0], 'dual-rumble');
+});
+
+test('legacy rov.input.v1 haptics mute migrates into padHaptics once', () => {
+  const memory = new Map();
+  const storage = {
+    getItem(key) { return memory.has(key) ? memory.get(key) : null; },
+    setItem(key, value) { memory.set(key, String(value)); },
+    removeItem(key) { memory.delete(key); },
+  };
+  const store = createFidelity({storage, edition: null});
+  const settings = {haptics: false, strength: 0.8};
+  assert.equal(migratePadHapticsFromInput(settings, store), true);
+  assert.equal(Object.prototype.hasOwnProperty.call(settings, 'haptics'), false);
+  assert.equal(store.get(PAD_HAPTICS_ID), false);
+  assert.equal(migratePadHapticsFromInput(settings, store), false);
+  const saved = JSON.parse(storage.getItem(STORAGE_KEY));
+  assert.equal(saved.overrides.padHaptics, false);
 });

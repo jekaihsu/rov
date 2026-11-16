@@ -1,0 +1,33 @@
+{
+  "success": "Mission complete",
+  "failure": "Mission failed",
+  "contractDone": "Contract complete",
+  "score": "Score",
+  "best": "Best {best}",
+  "newBest": "New record",
+  "firstBest": "First completion recorded",
+  "breakdown": "Score breakdown",
+  "rewards": "Rewards earned",
+  "noRewards": "No new rewards this time.",
+  "retry": "Retry",
+  "retryChapter": "Replay chapter",
+  "nextChapter": "Next chapter: {title}",
+  "storyDone": "All available chapters complete",
+  "moreScenarios": "Other scenario training",
+  "moreDrills": "Other incident drills",
+  "nextContract": "Next contract",
+  "nextWorkOrder": "Next work order",
+  "retryWorkOrder": "Retry",
+  "career": "Pay & licences",
+  "keepExploring": "Keep exploring",
+  "debrief": "Debrief replay",
+  "menu": "Main menu",
+  "close": "Stay underwater",
+  "hostOnly": "Only the host can retry or start the next chapter.",
+  "noReplay": "No replay segments available for this dive.",
+  "prompts": {
+    "move": "Move",
+    "accept": "Confirm",
+    "back": "Close"
+  }
+}

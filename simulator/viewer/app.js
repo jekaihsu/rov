@@ -26,8 +26,10 @@ import {installPhotoFeedback} from './hud/photo_feedback.js';
 import * as THREE from 'three';
 import {installAudio, installAudioSettings} from './audio/engine.js';
 import {installMusic} from './audio/music.js';
+import {installVoice} from './audio/voice.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DeployIntro } from './deploy_intro.js';
+import { SpoolStation } from './spool_station.js';
 import { placeSceneModel } from './scene_models.js';
 import { Cable } from './cable.js';
 import { Environment } from './environment.js';
@@ -54,10 +56,12 @@ import {drawROVAttitude} from './attitude_indicator.js';
 import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
+import { createDaylight } from './fx/daylight.js';
 import { readReplay } from './replay_store.js';
 import { installDebrief } from './debrief/install.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
+import { createLinkInbox } from './input/link_inbox.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
@@ -102,8 +106,7 @@ camera.position.set(-3, 1.5, -3);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.minDistance = 0.8; controls.maxDistance = 120; controls.enabled = false;
 
-const hemi = new THREE.HemisphereLight(0xa8dcf0, 0x1a2a22, 1.5); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xdff4ff, 1.6); sun.position.set(20, 60, 10); scene.add(sun);
+const daylightRig = createDaylight(scene);   // sun, sky light, sky and sea above water (fx/daylight.js)
 // daylight fades with depth (roughly e-folding every 10 m in coastal water): at 30 m the
 // structures are dim blue shapes and the ROV's lights make the difference
 function daylight(depth) { return 0.1 + 0.9 * Math.exp(-Math.max(0, depth) / 10); }
@@ -229,7 +232,7 @@ const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
 let structureSet = null;                // structures.js: detailed meshes drawn inside the collision shapes
 
-let spoolMarker = [];
+const spoolStation = new SpoolStation(scene, () => loadIntroAssets());
 let env = null;
 function buildWorld() {
   surfacePaint.update(null);
@@ -247,12 +250,7 @@ function buildWorld() {
   worldG.add(structureSet.group);
   for (const [name, entry] of structureSet.entries) obstacleMeshes.set(name, entry);
   for (const ob of W.obstacles || []) if (ob.type === 'model') placeSceneModel(ob, worldG, P, detail);
-  // spool / deployment point
-  const sp = P(W.spool || [0, 0, 0]);
-  const drum = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, .7, 20), new THREE.MeshStandardMaterial({ color: 0xf2b705, roughness: .5 }));
-  drum.rotation.z = Math.PI / 2; drum.position.copy(sp).add(new THREE.Vector3(0, .5, 0)); worldG.add(drum); spoolMarker = [drum];
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(2.2, .3, 3.2), new THREE.MeshStandardMaterial({ color: 0x8795a0 }));
-  deck.position.copy(sp).add(new THREE.Vector3(0, .1, -.6)); worldG.add(deck); spoolMarker.push(deck);
+  spoolStation.build(W, startPresentation?.introStart(W, S?.pos || [0, 0, 3]) || W.start_pos || [0, 0, 3]);
   buildObjectives(W.objectives || []);
   buildThrBars();
   matchThrusters();
@@ -487,29 +485,42 @@ const connectionNotice = installConnectionNotice({element: $('offline')});
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
 const sonarPanel = createSonar(send);
+const linkInbox = createLinkInbox({
+  onWorld(m) { if (session) onWorld(m); },
+  onState(m) { if (session) onState(m); },
+  onSession(m) {
+    session = m; needResync = true;
+    try { sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`, m.resume_token); } catch { }
+    for (const id of ['btnLoad', 'btnReset', 'btnPause', 'btnCur']) $(id).disabled = !m.is_host;
+  },
+  onOther(m) {
+    if (m.type === 'error' || m.type === 'operation_result') {
+      photoClient.receive(m); cockpit.message(m);
+      if (m.message) expeditionPanel.notify(m.message);
+    }
+  },
+});
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
     wsOpen = true; retry = 0; needResync = true; session=null;inputSequence=0;
+    linkInbox.dispose();
     stateMerger.reset();
     setConn('wait', '已連線 · 等待資料'); rcPump.reset();
     let token;try{token=sessionStorage.getItem(`rov.session:${WS_URL}:${cockpit.room}`);}catch{}
     send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model,
       caps:VIEWER_CAPS});
   };
+  // Coalesce state on the page so software-GL stalls cannot bury host_only behind a snapshot backlog.
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
+    // Deltas are merged in arrival order first; only complete snapshots are coalesced by the inbox.
     if (m.type === 'state') m = stateMerger.merge(m);
-    if (m.type === 'world' && session) onWorld(m); else if (m.type === 'state' && session) onState(m);
-    else if(m.type === 'session'){
-      session=m;needResync=true;
-      try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
-      for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
-    }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}
+    linkInbox.receive(m);
   };
-  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
+  ws.onclose = () => { wsOpen = false; ws = null; linkInbox.dispose(); setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
   ws.onerror = () => { };
 }
 function scheduleRetry() {
@@ -646,7 +657,8 @@ const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || 
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY, extraActions: () => careerDive.pauseActions()});
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY,
+  extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}
@@ -1126,6 +1138,7 @@ async function startReplay(url) {
   wake();
   debrief = installDebrief({
     replayBar: $('replayBar'), getReplay: () => rep, setReplayTime, setCam, feed: feedReplay,
+    source: url, recording: data,
     capture() { renderer.render(scene, camera); return renderer.domElement; },
   });
   loadClip(0);
@@ -1218,9 +1231,11 @@ const audio = installAudio({
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
+installVoice({engine: audio, music});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
+  linkInbox.flush();
   if (!CAPTURE && skipFrame(now)) {
     requestAnimationFrame(frame);
     return;
@@ -1250,17 +1265,15 @@ function frame(now) {
   if (!inIntro) updateCamera(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
-  hemi.intensity = 1.5; sun.intensity = 1.6;
   installUnderwaterPipeline(renderer, { surface });
   applyUnderwaterLighting(scene, S, renderer);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
-  surface.visible = camMode !== 'top' || camera.position.y < 0;
-  for (const m of spoolMarker) m.visible = !intro;            // the work boat replaces the placeholder reel
+  daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
+  spoolStation.update(dt, !!intro);                            // the intro brings its own boat
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
-  if (inIntro && camera.position.y > 0) { surface.visible = !intro.aboveWater(camera); scene.fog.near = 120; scene.fog.far = 2200; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
@@ -1290,7 +1303,7 @@ function frame(now) {
   // labels
   const r = vp.getBoundingClientRect();
   const L = [];
-  if (W?.spool) L.push({ id: 'spool', text: '纜盤 / 投放點', pos: P(W.spool).add(new THREE.Vector3(0, 1.2, 0)), cls: 'spool' });
+  if (W?.spool) L.push({ id: 'spool', text: '纜盤 / 投放點', pos: spoolStation.labelPosition(W), cls: 'spool' });
   if (cur) L.push({ id: 'obj', text: `${cur.o.label} · ${cur.m.g.position.distanceTo(rovG.position).toFixed(1)} m`, pos: cur.m.g.position, cls: 'obj' });
   for (const w of wrapLabels) L.push(w);
   for (const n of S?.tether?.snagged_on || []) { const e = obstacleMeshes.get(n); if (e && !wrapLabels.some((w) => w.id === 'wrap:' + n)) { const p = e.mesh.position.clone(); if (e.ob.type === 'cylinder') p.y = rovG.position.y + 1; L.push({ id: 'snag:' + n, text: `卡纜：${n}`, pos: p, cls: 'bad' }); } }
@@ -1307,7 +1320,7 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, touch, toggleLock, takePhoto:options=>photoClient.takePhoto(options) };
 Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;

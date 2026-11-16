@@ -3,7 +3,9 @@
 // limit; scenario training and co-op inspection keep their objective count, penalties and limit. Pure
 // functions over the server state and world message, used by app.js and the launch briefing.
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.mission_text', {
   failed: '失敗：{reason}',
   finished: '任務完成',
   progress: '目標 {done}/{total} · 扣分 {penalty}',
@@ -14,7 +16,7 @@ const STRINGS = {
   next: '下一步：{label}',
   offers: '可在任務卡或下方接取工程委託。',
   chapter: '{title}',
-};
+});
 const UNTIMED = new Set(['free_explore', 'expedition']);
 
 export function untimedMode(mode) {

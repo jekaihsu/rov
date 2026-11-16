@@ -1,0 +1,17 @@
+{
+  "toggle": "AI 視覺",
+  "available": "畫面中有可登錄目標",
+  "mark": "標記偵測目標",
+  "confirm": "請先在機載畫面確認偵測目標再拍照。",
+  "oracle": "Oracle · 模擬真值",
+  "classes": {
+    "coral": "珊瑚",
+    "seastar": "海星",
+    "seagrass": "海草",
+    "kelp": "海藻",
+    "fish_school": "魚群",
+    "engineering": "作業目標",
+    "cable": "纜線",
+    "unknown": "未知目標"
+  }
+}

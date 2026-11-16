@@ -16,7 +16,9 @@ import { assistPill, dvlReason } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
 import { pilotReadings } from './sensor_view.js';
 import { lengthIn } from '../prefs/display.js';
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('hud.flight_hud', {
   sonarSource: '聲納',
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
@@ -30,7 +32,7 @@ const STRINGS = {
   obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
   forward: '前方估距', controller: 'USB 控制器已連線', dvlLost: '注意：DVL 失去底鎖',
   fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
-};
+});
 const $ = id => document.getElementById(id);
 let ready = false;
 let active = -1;

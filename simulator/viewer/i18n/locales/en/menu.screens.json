@@ -1,0 +1,153 @@
+{
+  "title": "ROV Solution",
+  "company": "YX",
+  "tagline": "YX Subsea Engineering · ROV Operator",
+  "pressStart": "Start",
+  "version": "Development build 0.3",
+  "entries": {
+    "dive": [
+      "Start dive",
+      "Choose a mode, vehicle and site, then deploy from the surface."
+    ],
+    "story": [
+      "Story & tutorial",
+      "Join the YX crew: start in the pool, then take harbour and hull inspection jobs."
+    ],
+    "contracts": [
+      "YX job board",
+      "Work orders issued by YX: quay walls, hulls, harbour searches. Hand in deliverables to earn pay, log hours and qualify for licences."
+    ],
+    "shop": [
+      "YX equipment store",
+      "Spend your pay on real accessories (laser scaler, sonar, probe…) and hull liveries. Accessories let you take more kinds of work order."
+    ],
+    "training": [
+      "Training scenarios",
+      "Incident drills and scenarios ordered by difficulty."
+    ],
+    "multiplayer": [
+      "Multiplayer",
+      "Create or join a room. Up to three players share the same dive site."
+    ],
+    "collection": [
+      "Field guide & collection",
+      "Photos, wildlife guide and engineering records."
+    ],
+    "settings": [
+      "Settings",
+      "Realism, controls, audio, graphics and interface."
+    ]
+  },
+  "quick": "Quick start",
+  "quickNone": "Complete one dive to reuse your last settings with one click.",
+  "modesTitle": "Choose mode",
+  "modes": {
+    "expedition": [
+      "Ocean exploration & engineering",
+      "Explore, photograph wildlife and take contracts freely. Recovery and deployment require a manipulator.",
+      "1–3",
+      [
+        "Wildlife photography",
+        "Open contracts"
+      ]
+    ],
+    "free_explore": [
+      "Free exploration",
+      "No timer or penalties. Practise piloting, manipulator use and marking.",
+      "1–3",
+      [
+        "No timer",
+        "No penalties"
+      ]
+    ],
+    "inspection_coop": [
+      "Co-op inspection",
+      "Split up across three stations, hold steady and take photos. Finish within 12 minutes.",
+      "1–3",
+      [
+        "Three stations",
+        "12 min limit"
+      ]
+    ],
+    "scenario_training": [
+      "Scenario training",
+      "Use each scenario's original objectives, time limit and scoring.",
+      "1+",
+      [
+        "Timed",
+        "Scored"
+      ]
+    ]
+  },
+  "players": "Players",
+  "choose": "Select",
+  "hangarTitle": "Vehicle",
+  "provisional": "Provisional",
+  "provisionalHelp": "This vehicle has not been measured. Parameters are provisional estimates pending real measurements.",
+  "estimated": "Engineering estimate",
+  "numbers": {
+    "mass": "Mass",
+    "thrusters": "Thruster",
+    "speed": "Top speed",
+    "arm": "Manipulator"
+  },
+  "units": {
+    "mass": "kg",
+    "thrusters": "units",
+    "speed": "kn"
+  },
+  "armYes": "Yes",
+  "armNo": "No",
+  "bars": {
+    "speed": "Speed",
+    "thrust": "Total thrust",
+    "yaw": "Yaw",
+    "axes": "Controlled degrees of freedom"
+  },
+  "about": "About",
+  "performance": "Performance",
+  "sticker": "Sticker",
+  "next": "Next",
+  "sitesTitle": "Dive sites",
+  "sitesCount": "{n} sites",
+  "depth": "Seabed",
+  "visibility": "Visibility",
+  "current": "Current",
+  "notForMode": "Unavailable in this mode",
+  "briefingTitle": "Dive briefing",
+  "tether": "Tether",
+  "timeLimit": "Time limit",
+  "units2": {
+    "kn": "kn",
+    "min": "min"
+  },
+  "objectives": "Objectives",
+  "objectiveCount": "{n} objectives",
+  "noObjectives": "Free cruising with no assigned objectives.",
+  "goalsTitle": "Mode",
+  "site": "Site",
+  "modeGoals": {
+    "free_explore": [
+      "Free cruising: no timer or penalties.",
+      "Practise piloting, manipulator use and marking. Return to the main menu at any time."
+    ],
+    "expedition": [
+      "Explore the site and photograph wildlife for your field guide.",
+      "After deploying, take inspection, recovery or deployment contracts from the mission card."
+    ],
+    "inspection_coop": [
+      "Split up and approach three inspection stations (marked after deploying).",
+      "Hold steady at low speed for 3 seconds at a station, then take a photo."
+    ]
+  },
+  "hostNote": "When joining an existing room, the host's site and mode apply.",
+  "hostChip": "Host settings apply",
+  "room": "Room",
+  "intro": "Launch cinematic",
+  "procedure": "Pre-dive checks",
+  "procedureOff": "When off, start underwater and skip pre-dive checks (when realism deployment procedure is set to full).",
+  "introOff": "When off, start directly underwater.",
+  "launch": "Deploy",
+  "chapter": "Chapter",
+  "campaign": "Story & tutorial"
+}

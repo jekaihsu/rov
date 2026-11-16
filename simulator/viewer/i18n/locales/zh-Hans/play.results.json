@@ -1,0 +1,33 @@
+{
+  "success": "任务完成",
+  "failure": "任务失败",
+  "contractDone": "委托完成",
+  "score": "得分",
+  "best": "最佳纪录 {best}",
+  "newBest": "新纪录",
+  "firstBest": "首次完成，已记下成绩",
+  "breakdown": "评分明细",
+  "rewards": "本次获得",
+  "noRewards": "这次没有新的奖励。",
+  "retry": "重来",
+  "retryChapter": "重玩本章",
+  "nextChapter": "下一章：{title}",
+  "storyDone": "已完成当前所有章节",
+  "moreScenarios": "其他场景训练",
+  "moreDrills": "其他事故演练",
+  "nextContract": "下一项委托",
+  "nextWorkOrder": "下一张",
+  "retryWorkOrder": "重来",
+  "career": "报酬与执照",
+  "keepExploring": "继续探索",
+  "debrief": "讲评回放",
+  "menu": "主菜单",
+  "close": "留在水下",
+  "hostOnly": "只有房主可以重试或开始下一章。",
+  "noReplay": "这次潜航没有可回放的航段。",
+  "prompts": {
+    "move": "移动",
+    "accept": "确认",
+    "back": "关闭"
+  }
+}

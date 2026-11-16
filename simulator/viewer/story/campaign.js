@@ -3,6 +3,7 @@ import {glyph, deviceFamily} from '../input/glyphs.js';
 import {BINDINGS, actionKey, axisChannel, pilotAxisKeys} from '../input/bindings.js';
 import {listCollection, saveResult} from '../collection_store.js';
 import {vehicleName} from '../fleet_names.js';
+import {installVoice} from '../audio/voice.js';
 const STRINGS = {
   menuOption: '潮間帶工作隊 · 劇情與新手教學',
   menuBrief: '從水池練習開始，解鎖港灣與船殼巡檢。章節與課程可在任務面板重玩。',
@@ -26,7 +27,8 @@ const MOVE_AXES = ['surge', 'sway', 'heave'];
 // Story steps that wait for one control: [face button index, action whose key is shown].
 const STEP_ACTIONS = {unlock: [3, 'lock'], depth: [2, 'depth'], photo: [0, 'photo']};
 
-export function installCampaign({send, readOnly = false}) {
+export function installCampaign({send, readOnly = false, voice = null} = {}) {
+  const radioVoice = voice || installVoice();
   const root = document.createElement('section');
   root.className = 'story-radio';
   root.hidden = true;
@@ -250,6 +252,15 @@ export function installCampaign({send, readOnly = false}) {
       hint.textContent += ' · ' + ((family !== 'keyboard' ? CHANNELS[channel] : keys) || '');
     }
     next.hidden = node?.type !== 'dialogue';
+    if (node?.type === 'dialogue' && node.speaker && node.text) {
+      Promise.resolve(radioVoice.playLine({
+        speaker: node.speaker,
+        text: node.text,
+        language: 'zh-TW',
+      })).catch(function ignoreVoiceErrors() {});
+    } else {
+      radioVoice.stop?.();
+    }
     log.replaceChildren(...campaign.dialogue.map(entry => {
       const paragraph = document.createElement('p');
       paragraph.textContent = `${entry.speaker}：${entry.text}`;

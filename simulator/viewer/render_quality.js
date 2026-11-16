@@ -58,7 +58,7 @@ export function configureRenderQuality(renderer,mode='auto'){
   const effectsSuppressed=mode==='auto'&&hardware.tier==='software';
   const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3,effectsSuppressed};
   lastMode=mode;
-  profiles.set(renderer,state);renderer.shadowMap.enabled=['high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
+  profiles.set(renderer,state);renderer.shadowMap.enabled=['medium','high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
   return state;
 }
 export function updateRenderQuality(renderer,seconds,{suspended=false}={}){

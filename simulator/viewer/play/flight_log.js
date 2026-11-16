@@ -4,10 +4,12 @@
 // debrief replay through replay_store.js. Read-only: it never sends anything to the simulator.
 import { saveReplay } from '../replay_store.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.flight_log', {
   title: '本次潛航',
   empty: '還沒有可回放的航段。',
-};
+});
 const INTERVAL_S = 0.2;
 const MAX_FRAMES = 3000;
 

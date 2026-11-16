@@ -5,7 +5,9 @@
 import { recordFor, medalLabel } from '../play/results_model.js';
 import { lengthIn, lengthUnit } from '../prefs/display.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.cards', {
   chapters: {
     prologue: '在水池認識你的 ROV：解鎖、移動、定深、照明與拍照。',
     harbor: '第一筆案子：在港內樁腳的巡檢站點穩定懸停，替船主拍清楚舊裂痕。',
@@ -28,7 +30,7 @@ const STRINGS = {
   difficulty: '難度',
   current: '洋流',
   visibility: '能見度',
-};
+});
 // Scenes without their own preview image use the closest site's image (same structure or seabed).
 const PREVIEW_FOR = {
   incident_jacket: 'jacket_inspection',

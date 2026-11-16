@@ -109,3 +109,11 @@ before/after file lists to a temporary directory. The audit deliberately omits t
 Python backend extraResource and does not launch the application. It checks release
 documents/templates are absent while the achievement catalog and native Steam
 bindings remain. It does not certify Windows packaging or runtime behavior.
+
+## AI-generated content disclosure (K2 radio voice)
+
+Radio voice clips under `simulator/viewer/audio/voice/` are pre-generated with an AI text-to-speech
+service (see `simulator/viewer/models/CREDITS.md`); nothing is generated at runtime. Before a Steam
+build ships with these clips, declare "pre-generated AI content" in the Steamworks content survey,
+state it in the store page description, and show the same sentence in an in-game credits screen
+(none exists yet). The service terms also require telling players the voice is AI-generated.

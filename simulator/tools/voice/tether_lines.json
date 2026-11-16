@@ -1,0 +1,77 @@
+{
+  "speaker": "甲板 · 纜線手",
+  "lines": [
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "launch",
+      "text": "從作業區上游下水，保持視線，僅放出所需纜線。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "structure",
+      "text": "纜線接近結構，留意纜線走向並減少多餘放纜。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "twist",
+      "text": "扭轉超過兩圈，請反向解開。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "tension",
+      "text": "張力超過額定工作負載，停止硬拉並評估纜線。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "snag",
+      "text": "纜線卡住或纏繞。不要拉纜，掉頭沿纜線回到卡點，再反向解開。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "released",
+      "text": "脫困程序已記錄。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "stall",
+      "text": "收纜受阻停止，可能卡纜，請勿硬拉。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "reel_free",
+      "text": "纜盤放開，纜線隨載具拉出。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "reel_hold",
+      "text": "纜盤剎住，長度固定。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "reel_pay_out",
+      "text": "手動放纜中。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "reel_haul_in",
+      "text": "收纜中，注意張力。"
+    },
+    {
+      "language": "zh-TW",
+      "speaker": "甲板 · 纜線手",
+      "code": "reel_auto",
+      "text": "自動恆張力收放。"
+    }
+  ]
+}

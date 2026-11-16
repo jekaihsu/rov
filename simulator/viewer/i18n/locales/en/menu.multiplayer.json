@@ -1,0 +1,25 @@
+{
+  "title": "Multiplayer",
+  "name": "Operator name",
+  "room": "Room code",
+  "roomHelp": "Share this code with your teammates. Enter the same code to dive together.",
+  "server": "Server address",
+  "serverHelp": "Change only when connecting to another host.",
+  "advanced": [
+    "Advanced: custom server",
+    "Use to connect to a simulator on another computer."
+  ],
+  "create": "Create room",
+  "join": "Join room",
+  "refresh": "Refresh",
+  "players": "Players in room",
+  "checking": "Checking room…",
+  "empty": "Room not created yet. The first player to enter becomes the host.",
+  "full": "Room full ({n}/{n}).",
+  "count": "{count}/{capacity} players · Host chooses site and mode",
+  "host": "Host",
+  "away": "Away",
+  "unsupported": "This server does not support room lookup. You can still join directly.",
+  "offline": "No host found for this room. You can create a room or join directly.",
+  "createHint": "After creating the room, share its code with teammates."
+}

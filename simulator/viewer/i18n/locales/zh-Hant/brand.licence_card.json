@@ -1,0 +1,45 @@
+{
+  "heading": "ROV 操作員執照",
+  "headingCaption": "REMOTELY OPERATED VEHICLE · PILOT LICENCE",
+  "issuer": "YX 發照",
+  "issuerCaption": "ISSUED BY YX",
+  "cardLabel": "YX 操作員執照",
+  "gradeCaption": "GRADE",
+  "fields": {
+    "holder": "持照人",
+    "serial": "證號",
+    "issued": "發照日期",
+    "hoursReal": "真實模式時數",
+    "hoursAssisted": "輔助模式時數"
+  },
+  "hoursUnit": "h",
+  "empty": "—",
+  "stub": "YX · PILOT LICENCE · RETAIN THIS STUB",
+  "grades": {
+    "trainee": {
+      "title": "見習駕駛員",
+      "short": "見習",
+      "caption": "TRAINEE PILOT"
+    },
+    "grade2": {
+      "title": "二級駕駛員",
+      "short": "二級",
+      "caption": "PILOT · CLASS II"
+    },
+    "grade1": {
+      "title": "一級駕駛員",
+      "short": "一級",
+      "caption": "PILOT · CLASS I"
+    },
+    "senior": {
+      "title": "資深駕駛員",
+      "short": "資深",
+      "caption": "SENIOR PILOT"
+    },
+    "supervisor": {
+      "title": "主管",
+      "short": "主管",
+      "caption": "SUPERVISOR"
+    }
+  }
+}
