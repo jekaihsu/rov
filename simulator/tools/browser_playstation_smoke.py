@@ -241,10 +241,15 @@ def title_to_briefing(page, results):
     page.wait_for_url('**play=1**', timeout=timeout(60000))
 
 
+# Everything a deck step can change: the classic checklist fields and the hands-on deck flow (walk-around stop,
+# power, lamps, camera, fixes, crew reports). A press that changes none of these did nothing.
+PROCEDURE_FIELDS = ('[p.phase, (p.checked || []).length, (p.tests || []).length, p.confirmed, p.diagnostic > 0, '
+                    'p.order, p.stations, p.seen, p.crew, p.powered, p.boot, p.lamps, p.fix, p.diagnostic_index]')
+
+
 def procedure_signature(page):
     return page.evaluate('(() => { const p = window.__viewer?.S?.procedure; if (!p) return ""; '
-                         'return JSON.stringify([p.phase, p.checked.length, p.tests.length, p.confirmed, '
-                         'p.diagnostic > 0]); })()')
+                         'return JSON.stringify(' + PROCEDURE_FIELDS + '); })()')
 
 
 def walk_checklist(page, results):
@@ -270,8 +275,8 @@ def walk_checklist(page, results):
         before = procedure_signature(page)
         press(page, CROSS, hold_ms=120)
         try:
-            page.wait_for_function('b => { const p = window.__viewer.S.procedure; return JSON.stringify([p.phase, '
-                                   'p.checked.length, p.tests.length, p.confirmed, p.diagnostic > 0]) !== b; }',
+            page.wait_for_function('b => { const p = window.__viewer.S.procedure; '
+                                   'return JSON.stringify(' + PROCEDURE_FIELDS + ') !== b; }',
                                    arg=before, timeout=timeout(15000))
             steps += 1
         except Exception:
