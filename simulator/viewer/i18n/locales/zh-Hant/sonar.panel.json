@@ -1,0 +1,12 @@
+{
+  "title": "聲納",
+  "range": "量程 m",
+  "gain": "增益",
+  "palette": "色表",
+  "amber": "琥珀",
+  "cyan": "青色",
+  "pin": "固定",
+  "toggle": "聲納（5）",
+  "waiting": "等待掃描",
+  "rate": "5 Hz"
+}

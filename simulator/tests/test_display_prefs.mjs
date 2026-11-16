@@ -37,6 +37,19 @@ test("display preferences are clamped, validated and persisted", () => {
   assert.equal(again.get("fpsCap"), 60);
 });
 
+test("the language is stored only after the player picks one", function languageStorage() {
+  const storage = memoryStorage();
+  const prefs = createDisplayPrefs({ storage });
+  prefs.set("brightness", 1.1);
+  assert.equal("language" in JSON.parse(storage.getItem("rov.display.v1")), false);
+  prefs.set("language", "ja");
+  prefs.set("brightness", 1.2);
+  assert.equal(JSON.parse(storage.getItem("rov.display.v1")).language, "ja");
+  const again = createDisplayPrefs({ storage });
+  again.set("uiScale", 1.1);
+  assert.equal(JSON.parse(storage.getItem("rov.display.v1")).language, "ja");
+});
+
 test("units convert lengths for display only", () => {
   assert.equal(lengthIn(10, "metric"), 10);
   assert.ok(Math.abs(lengthIn(10, "imperial") - 32.8084) < 1e-3);

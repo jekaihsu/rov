@@ -8,7 +8,9 @@ import { acceptContract, cancelContract, contractBoard } from './contracts.js';
 import { recordLine } from '../menu/cards.js';
 import { recordFor } from './results_model.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.objective_card', {
   guide: '首次潛航練習',
   guideDone: '基本操作完成，開始探索吧！',
   hideGuide: '不再顯示練習',
@@ -19,7 +21,7 @@ const STRINGS = {
   collapse: '收合',
   expand: '展開',
   meters: '{d} m',
-};
+});
 export const CARD_KEY = 'rov.objectiveCard.v1';
 // The checklist is offered on the first few dives and until the player hides it.
 export const GUIDE_DIVES = 3;

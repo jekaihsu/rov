@@ -1,0 +1,39 @@
+/* System fonts only: regional glyphs without downloadable font assets. */
+html:lang(ja) body {
+  --f-hud: system-ui, "Yu Gothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  font-family: var(--f-hud);
+}
+html:lang(zh-Hans) body {
+  --f-hud: system-ui, "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+  font-family: var(--f-hud);
+}
+html:lang(ja) button, html:lang(ja) select, html:lang(ja) input,
+html:lang(zh-Hans) button, html:lang(zh-Hans) select, html:lang(zh-Hans) input {
+  font-family: inherit;
+}
+#i18nNotice {
+  position: fixed;
+  inset: auto 4% 1%;
+  z-index: var(--z-menu);
+  background: var(--bg-0);
+  color: var(--text);
+  padding: 8px;
+  pointer-events: none;
+  text-align: center;
+}
+html:lang(ja) :is(.launch-menu, .pause-menu, .menu-loading, .results-screen),
+html:lang(zh-Hans) :is(.launch-menu, .pause-menu, .menu-loading, .results-screen) {
+  font-family: var(--f-hud);
+}
+/* The camera OSD has free space above its lower-left readings for longer translated summaries. */
+html:lang(en) body[data-hud-style=osd] #flightMission,
+html:lang(ja) body[data-hud-style=osd] #flightMission {
+  max-width: 45%;
+}
+/* Keep the translated results actions on one row at the minimum desktop size. */
+html:lang(en) .results-card, html:lang(ja) .results-card {
+  width: min(1100px, 100%);
+}
+html:lang(en) .results-actions, html:lang(ja) .results-actions {
+  gap: 10px;
+}

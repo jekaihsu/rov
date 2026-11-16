@@ -1,0 +1,153 @@
+{
+  "title": "ROV Solution",
+  "company": "YX",
+  "tagline": "YX 水下工程 · ROV 操作員",
+  "pressStart": "開始",
+  "version": "開發版 0.3",
+  "entries": {
+    "dive": [
+      "開始潛航",
+      "選擇玩法、載具與海域，從水面下潛。"
+    ],
+    "story": [
+      "劇情與教學",
+      "加入 YX 工作隊：從水池練習開始，接下港灣與船殼巡檢。"
+    ],
+    "contracts": [
+      "YX 委託看板",
+      "YX 派發的工單：碼頭、船殼、港內搜尋；交出成果領報酬、累積時數、考執照。"
+    ],
+    "shop": [
+      "YX 裝備部",
+      "用報酬添購真實配件（雷射比例尺、聲納、探針…）與機身外觀；配件讓你接更多種工單。"
+    ],
+    "training": [
+      "訓練情境",
+      "事故演練與依難度排列的場景訓練。"
+    ],
+    "multiplayer": [
+      "多人",
+      "建立或加入房間，最多三人共用同一片海域。"
+    ],
+    "collection": [
+      "圖鑑與收藏",
+      "照片、生物圖鑑與工程紀錄。"
+    ],
+    "settings": [
+      "設定",
+      "擬真程度、控制、音訊、畫質與介面。"
+    ]
+  },
+  "quick": "快速開始",
+  "quickNone": "完成一次下水後，可一鍵沿用上次設定。",
+  "modesTitle": "選擇玩法",
+  "modes": {
+    "expedition": [
+      "海洋探索與工程",
+      "探索海域、拍攝生物與自由接案；回收與部署需要機械臂。",
+      "1–3",
+      [
+        "生態攝影",
+        "自由接案"
+      ]
+    ],
+    "free_explore": [
+      "自由探索",
+      "不計時、不扣分，練習操控、機械臂與標記。",
+      "1–3",
+      [
+        "不計時",
+        "不扣分"
+      ]
+    ],
+    "inspection_coop": [
+      "協作巡檢",
+      "分工靠近三個站點，穩定懸停後拍照，12 分鐘內完成。",
+      "1–3",
+      [
+        "三個站點",
+        "限時 12 分"
+      ]
+    ],
+    "scenario_training": [
+      "場景訓練",
+      "照各場景原本的訓練目標、時限與評分進行。",
+      "1+",
+      [
+        "計時",
+        "評分"
+      ]
+    ]
+  },
+  "players": "人數",
+  "choose": "選擇",
+  "hangarTitle": "載具",
+  "provisional": "暫定",
+  "provisionalHelp": "此機型參數尚未實測，數值為暫定估算，待實測補齊。",
+  "estimated": "工程估算",
+  "numbers": {
+    "mass": "質量",
+    "thrusters": "推進器",
+    "speed": "極速",
+    "arm": "機械臂"
+  },
+  "units": {
+    "mass": "kg",
+    "thrusters": "具",
+    "speed": "kn"
+  },
+  "armYes": "有",
+  "armNo": "無",
+  "bars": {
+    "speed": "速度",
+    "thrust": "總推力",
+    "yaw": "轉向",
+    "axes": "可控自由度"
+  },
+  "about": "簡介",
+  "performance": "性能",
+  "sticker": "貼紙",
+  "next": "下一步",
+  "sitesTitle": "潛航海域",
+  "sitesCount": "{n} 處",
+  "depth": "海床",
+  "visibility": "能見度",
+  "current": "洋流",
+  "notForMode": "此玩法不提供",
+  "briefingTitle": "下水簡報",
+  "tether": "纜長",
+  "timeLimit": "時限",
+  "units2": {
+    "kn": "kn",
+    "min": "分"
+  },
+  "objectives": "任務目標",
+  "objectiveCount": "目標 {n} 項",
+  "noObjectives": "自由航行，沒有指定目標。",
+  "goalsTitle": "玩法",
+  "site": "海域",
+  "modeGoals": {
+    "free_explore": [
+      "自由航行：不計時、不扣分。",
+      "練習操控、機械臂與標記，隨時可以返回主選單。"
+    ],
+    "expedition": [
+      "探索海域、拍攝生物登錄圖鑑。",
+      "下水後可在任務卡接取巡檢、回收或部署委託。"
+    ],
+    "inspection_coop": [
+      "分工靠近三個巡檢站點（下水後標出）。",
+      "在站點低速穩定 3 秒後拍照。"
+    ]
+  },
+  "hostNote": "加入既有房間時，以房主的場景與玩法為準。",
+  "hostChip": "以房主設定為準",
+  "room": "房間",
+  "intro": "下水動畫",
+  "procedure": "潛前檢查",
+  "procedureOff": "關閉時直接從水中開始，略過潛前檢查（擬真設定「下水流程」為完整作業時）。",
+  "introOff": "關閉時直接從水中開始。",
+  "launch": "下水",
+  "chapter": "章節",
+  "campaign": "劇情與教學"
+}

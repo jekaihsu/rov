@@ -3,12 +3,14 @@
 // rov.quality, rov.playerName, rov.menuSettings, the control layout key) and adds one record for 快速開始.
 import { CONTROL_LAYOUTS, controlLayout, rememberControlLayout } from '../control_layout.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.preferences', {
   badServer: '請填寫有效的伺服器位址。',
   needSecure: '安全網頁需要使用 wss:// 伺服器。',
   badRoom: '房間代碼須為 1–32 個英數字、底線或連字號。',
   defaultName: '操作員',
-};
+});
 
 export const LAST_KEY = 'rov.menu.last.v1';
 export const MODEL_IDS = ['x1', 'bluerov2_heavy', 'falcon'];

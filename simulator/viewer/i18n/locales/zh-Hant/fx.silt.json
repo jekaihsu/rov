@@ -1,0 +1,4 @@
+{
+  "siltVisibilityFloor": "揚沙能見度下限",
+  "siltVisibilityFloorHelp": "輔助：揚沙最濃時仍保留基本能見度的 25%。真機揚沙可完全看不見。"
+}

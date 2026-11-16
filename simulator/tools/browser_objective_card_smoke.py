@@ -17,6 +17,8 @@ def run():
     with sync_playwright() as p:
         browser = launch(p, headless=True)
         page = browser.new_page(viewport={'width': 1600, 'height': 900})
+        # Clicks and waits follow ROV_BROWSER_TIMEOUT_SCALE; the default scale leaves CI timing unchanged.
+        page.set_default_timeout(timeout(30000))
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=card{time.time_ns()}&quality=performance'

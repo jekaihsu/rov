@@ -13,9 +13,12 @@ const STRINGS = {
   ui: '介面',
   warning: '警告',
   music: '音樂',
+  voice: '語音',
   mute: '靜音'
 };
-const DEFAULTS = {master: 0.65, vehicle: 0.7, environment: 0.5, ui: 0.55, warning: 0.65, music: 0.5, mute: false};
+const DEFAULTS = {
+  master: 0.65, vehicle: 0.7, environment: 0.5, ui: 0.55, warning: 0.65, music: 0.5, voice: 0.8, mute: false
+};
 const KEY = 'rov.audio';
 let sharedEngine;
 
@@ -93,7 +96,7 @@ class AudioEngine {
     const limiter = this.ctx.createDynamicsCompressor();
     this.master.connect(limiter).connect(this.ctx.destination);
     this.buses = {};
-    for (const key of ['vehicle', 'environment', 'ui', 'warning', 'music']) {
+    for (const key of ['vehicle', 'environment', 'ui', 'warning', 'music', 'voice']) {
       const bus = this.ctx.createGain();
       bus.connect(this.master);
       this.buses[key] = bus;
@@ -362,7 +365,7 @@ export function installAudioSettings(engine, parent) {
   const summary = document.createElement('summary');
   summary.textContent = STRINGS.title;
   section.append(summary);
-  for (const key of ['master', 'vehicle', 'environment', 'ui', 'warning', 'music', 'mute']) {
+  for (const key of ['master', 'vehicle', 'environment', 'ui', 'warning', 'music', 'voice', 'mute']) {
     const label = document.createElement('label');
     label.textContent = STRINGS[key];
     const input = document.createElement('input');

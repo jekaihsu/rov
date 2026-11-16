@@ -51,8 +51,10 @@ test('legacy recording without sensors still yields collisions and prefers store
   assert.equal(eventsForRecording(recording)[0].kind, 'penalty');
 });
 
-test('studentDisplayTime applies recorded video lag and sensorErrorSummary contrasts truth', () => {
+test('studentDisplayTime applies base video delay plus recorded link lag', () => {
   assert.equal(studentDisplayTime(10, {link: {video_lag_s: 2}}), 8);
+  assert.equal(studentDisplayTime(10, {link: {video_lag_s: 2}}, 0.15), 7.85);
+  assert.equal(studentDisplayTime(10, {link: {}}, 0.15), 9.85);
   assert.equal(studentDisplayTime(1, {link: {video_lag_s: 2}}), 0);
   const summary = sensorErrorSummary({
     pos: [0, 0, 10], euler: [0, 0, 90], current_kn: 1.2,
@@ -64,14 +66,25 @@ test('studentDisplayTime applies recorded video lag and sensorErrorSummary contr
   assert.equal(VIEW_GOD, 'god');
 });
 
-test('buildDebriefHtml keeps copy in STRINGS and lists events', () => {
-  const html = buildDebriefHtml({
+test('buildDebriefHtml keeps copy in STRINGS and only banners god-view exports', () => {
+  const base = {
     report: {vehicle_id: 'v1', elapsed: 12, completion: {score: 70}},
     events: [{kind: 'collision', t: 8, detail: 'brace'}],
     notes: '停在碰撞前討論纜線',
-  });
-  assert.match(html, new RegExp(STRINGS.title));
-  assert.match(html, new RegExp(STRINGS.viewpointBanner));
-  assert.match(html, /停在碰撞前討論纜線/);
-  assert.match(html, new RegExp(STRINGS.collision));
+  };
+  const student = buildDebriefHtml(base);
+  assert.match(student, new RegExp(STRINGS.title));
+  assert.doesNotMatch(student, new RegExp(STRINGS.viewpointBanner));
+  assert.match(student, /停在碰撞前討論纜線/);
+  assert.match(student, new RegExp(STRINGS.collision));
+  const god = buildDebriefHtml({...base, showViewpointBanner: true});
+  assert.match(god, new RegExp(STRINGS.viewpointBanner));
+});
+
+test('public demo_recording replay skips the debrief panel', async () => {
+  const {shouldInstallDebrief} = await import('../viewer/debrief/install.js');
+  assert.equal(shouldInstallDebrief('demo_recording.json', {clips: []}), false);
+  assert.equal(shouldInstallDebrief('viewer/demo_recording.json', {format: 'qysim-replay-2'}), false);
+  assert.equal(shouldInstallDebrief('debrief/fixtures/debrief_smoke.json', {debrief: {}}), true);
+  assert.equal(shouldInstallDebrief('local:abc', {debrief: {events: []}}), true);
 });

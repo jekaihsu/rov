@@ -1,0 +1,6 @@
+{
+  "title": "Cannot connect to simulator",
+  "body": "Play resumes automatically when the connection returns. No restart needed. If it remains disconnected, return to the main menu and try again.",
+  "menu": "Main menu",
+  "details": "Technical details"
+}

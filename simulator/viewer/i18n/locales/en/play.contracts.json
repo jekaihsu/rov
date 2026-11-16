@@ -1,0 +1,9 @@
+{
+  "help": {
+    "inspect": "Hold steady at three stations and inspect with the onboard camera.",
+    "recover": "Photograph the target, carry it to the delivery area with the manipulator and release it.",
+    "deploy": "Collect a sensor from the supply area, place it on the designated seabed and photograph it."
+  },
+  "hostOnly": "Waiting for host to accept a contract",
+  "offline": "Offline. Waiting to reconnect."
+}

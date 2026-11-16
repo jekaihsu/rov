@@ -1,0 +1,12 @@
+{
+  "guide": "First dive practice",
+  "guideDone": "Basic controls complete. Time to explore!",
+  "hideGuide": "Hide practice reminders",
+  "contracts": "Engineering contracts",
+  "accept": "Accept",
+  "cancel": "Cancel contract",
+  "active": "In progress",
+  "collapse": "Collapse",
+  "expand": "Expand",
+  "meters": "{d} m"
+}

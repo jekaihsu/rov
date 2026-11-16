@@ -1,0 +1,40 @@
+{
+  "title": "YX 識別元件",
+  "caption": "YX — IDENTITY COMPONENTS",
+  "sections": {
+    "mark": [
+      "01",
+      "標誌",
+      "MARK"
+    ],
+    "fleet": [
+      "02",
+      "機隊符號",
+      "FLEET SYMBOLS"
+    ],
+    "chapters": [
+      "03",
+      "章節符號",
+      "CHAPTER SYMBOLS"
+    ],
+    "cards": [
+      "04",
+      "章節標題卡",
+      "CHAPTER TITLE CARDS"
+    ],
+    "licence": [
+      "05",
+      "操作員執照",
+      "PILOT LICENCE"
+    ]
+  },
+  "model": "MODEL",
+  "play": "全螢幕播放",
+  "sampleTitles": {
+    "prologue": "序章｜水池",
+    "harbor": "第一章｜港灣",
+    "offshore": "第二章｜離岸"
+  },
+  "sampleHolder": "林見習",
+  "sampleSerialPrefix": "YX-PL-"
+}

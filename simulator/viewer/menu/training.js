@@ -6,13 +6,15 @@ import { chapterCard, scenarioCard } from './cards.js';
 import { createSettingsPanel } from './settings.js';
 import { readout } from './screens.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.training', {
   title: '訓練',
   tabs: { story: '劇情與教學', drills: '事故演練', scenarios: '場景訓練' },
   storyHelp: '依序解鎖；每章完成後在這台裝置保存進度。',
   drillHelp: '獨立的事故處置演練，不需要解鎖，可單獨重複練習。',
   scenarioHelp: '依洋流與能見度排出的難度；簡介說明練習重點。',
-};
+});
 const SAVE_KEY = 'rov.campaign.v1';
 
 function element(tag, className, text) {

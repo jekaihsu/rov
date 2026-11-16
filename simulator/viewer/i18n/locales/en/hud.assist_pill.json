@@ -1,0 +1,80 @@
+{
+  "levels": [
+    "Manual",
+    "Velocity assist",
+    "Position hold assist"
+  ],
+  "profiles": {
+    "cine": "Cinematic",
+    "normal": "Standard",
+    "sport": "Sport"
+  },
+  "unsupported": "Assist unavailable on this server",
+  "remote": "Disabled during SDK control",
+  "locked": "Arm to activate",
+  "autopilot": "Disabled on autopilot",
+  "inactive": "Inactive",
+  "inactiveHelp": "Flying manually. Velocity and position assist require DVL bottom lock; both pause outside its altitude range.",
+  "limited": "Thrust saturated",
+  "limitedHelp": "Insufficient thrust to maintain the command, for example in strong currents.",
+  "holding": "Holding position",
+  "manualOverride": "Simulator still reports active assist",
+  "dvl": {
+    "too_high": [
+      "Too far above seabed",
+      "No DVL bottom return ({alt} m above bottom)",
+      "Descend closer to the seabed to restore it automatically."
+    ],
+    "range": [
+      "Too far above seabed",
+      "Weak DVL return ({alt} m above bottom)",
+      "Descend closer to the seabed to restore it automatically."
+    ],
+    "window": [
+      "Outside DVL range",
+      "Altitude outside the DVL operating range",
+      "Return to an altitude above 0.5 m with the seabed in view."
+    ],
+    "too_low": [
+      "Too close to seabed",
+      "Too close to the bottom for DVL measurement",
+      "Ascend slightly; it restores automatically above 0.5 m."
+    ],
+    "slope": [
+      "Steep seabed",
+      "Steep slope below; DVL bottom lock lost",
+      "Move above flatter seabed."
+    ],
+    "vegetation": [
+      "Vegetation obstruction",
+      "Seagrass or algae obstructing DVL beams",
+      "Ascend slightly or move above sand."
+    ],
+    "silt": [
+      "Suspended sediment",
+      "Stirred-up sediment obstructing DVL beams",
+      "Stop thrusting and let sediment settle, or leave the cloud."
+    ],
+    "aeration": [
+      "Surface bubbles",
+      "Thrusters entraining bubbles near the surface interfere with DVL",
+      "Descend away from the surface to restore it."
+    ],
+    "mud": [
+      "Weak return from soft mud",
+      "Soft mud bottom return too weak",
+      "Ascend slightly or move above firmer seabed."
+    ],
+    "pool": [
+      "Pool wall interference",
+      "Pool wall echoes interfering with DVL",
+      "Move to the centre of the pool."
+    ],
+    "fault": [
+      "DVL fault",
+      "DVL reports a fault",
+      "Switch to manual control and inspect after the dive."
+    ]
+  },
+  "dvlLost": "DVL bottom lock lost"
+}

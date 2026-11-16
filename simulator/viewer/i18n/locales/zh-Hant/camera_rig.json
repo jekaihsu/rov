@@ -1,0 +1,12 @@
+{
+  "chase": "追蹤",
+  "orbit": "環繞",
+  "top": "俯視",
+  "onboard": "機載",
+  "cine": "電影",
+  "gimbal": "雲台／硬連結",
+  "pitchUp": "雲台抬頭",
+  "pitchDown": "雲台低頭",
+  "orbitX": "環繞鏡頭水平",
+  "orbitY": "環繞鏡頭垂直"
+}

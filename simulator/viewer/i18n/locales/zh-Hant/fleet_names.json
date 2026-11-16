@@ -1,0 +1,25 @@
+{
+  "models": {
+    "x1": {
+      "name": "YX Model R",
+      "role": "入門觀測型",
+      "tagline": "輕巧好上手，第一台陪你看清水下的觀測機。"
+    },
+    "bluerov2_heavy": {
+      "name": "YX Model O",
+      "role": "重載觀測型",
+      "tagline": "推力充足、掛載空間大，強流與長時間觀測的主力。"
+    },
+    "falcon": {
+      "name": "YX Model V",
+      "role": "輕作業型",
+      "tagline": "搭載機械臂，能執行回收與佈放等輕作業。"
+    }
+  },
+  "fallbackName": "ROV",
+  "blockLabel": "Block",
+  "separator": " · ",
+  "sites": {
+    "korean_castle": "碧海號"
+  }
+}

@@ -8,9 +8,11 @@ import { EXTERNAL_FOV_ITEM, MOTION_COMFORT_ITEM } from '../prefs/camera_items.js
 import { COLOR_BLIND_MODES, FPS_CAPS, LANGUAGES, LIMITS, getDisplayPrefs } from '../prefs/display.js';
 import { element, field, mountToggles } from './settings.js';
 
-const STRINGS = {
+import { getLanguage, localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.display_settings', {
   language: '語言',
-  languageHelp: '目前提供繁體中文；其他語言陸續加入。',
+  languageHelp: '語言切換後，尚未更新的畫面會在返回主選單後生效。',
   window: '顯示模式',
   modes: { windowed: '視窗', borderless: '無邊框視窗', fullscreen: '全螢幕' },
   resolution: '解析度',
@@ -36,7 +38,7 @@ const STRINGS = {
   fov: '外部視角視野（FOV）',
   fovHelp: '追蹤、環繞、俯視視角；機載鏡頭維持真實鏡頭。',
   comfort: ['動態舒適', '關閉追蹤視角隨速度拉遠與視野放大，並減少介面動畫。'],
-};
+});
 // Resolutions offered in windowed mode, filtered to what fits the chosen display.
 const RESOLUTIONS = [[1280, 720], [1280, 800], [1600, 900], [1920, 1080], [2560, 1440], [3840, 2160]];
 
@@ -127,7 +129,7 @@ export function mountDisplaySettings(pane) {
   const fidelity = getFidelity();
   const language = select(LANGUAGES.map(function option(entry) {
     return [entry.value, entry.label];
-  }), prefs.get('language'), function chooseLanguage(value) {
+  }), getLanguage(), function chooseLanguage(value) {
     prefs.set('language', value);
   });
   field(pane, { id: 'displayLanguage', label: STRINGS.language, help: STRINGS.languageHelp, control: language });

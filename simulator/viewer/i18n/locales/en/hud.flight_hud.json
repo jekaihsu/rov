@@ -1,0 +1,60 @@
+{
+  "sonarSource": "Sonar",
+  "close": "Close engineering panel",
+  "depth": "Depth",
+  "altitude": "Altitude",
+  "engineering": "Engineering Tab",
+  "density": [
+    "Minimal",
+    "Standard",
+    "Full"
+  ],
+  "view": "Change view V",
+  "locked": "Disarmed",
+  "unlocked": "Armed",
+  "unlockHint": "Press {key} / controller Y to arm",
+  "axes": [
+    [
+      "surge",
+      "Forward / reverse"
+    ],
+    [
+      "sway",
+      "Right / left"
+    ],
+    [
+      "heave",
+      "Ascend / descend"
+    ],
+    [
+      "yaw",
+      "Turn right / left"
+    ]
+  ],
+  "hide": "Toggle HUD",
+  "north": "North up",
+  "head": "Heading up",
+  "cards": [
+    "Mission & objectives",
+    "Vehicle systems",
+    "Map & teammates",
+    "Controls"
+  ],
+  "cable": "Tether",
+  "battery": "Battery",
+  "tension": "Tension",
+  "light": "Lights",
+  "danger": "DANGER: tether broken",
+  "warn": "CAUTION: tether tension",
+  "near": "CAUTION: seabed proximity",
+  "obstacleDanger": "DANGER: obstacle too close",
+  "lowBattery": "NOTICE: low battery",
+  "forward": "Forward range estimate",
+  "controller": "USB controller connected",
+  "dvlLost": "CAUTION: DVL bottom lock lost",
+  "fidelity": {
+    "real": "presetReal",
+    "assisted": "presetAssisted",
+    "custom": "presetCustom"
+  }
+}
