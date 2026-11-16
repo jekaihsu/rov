@@ -1,33 +1,39 @@
 {
+  "species": "madai",
+  "trianglesPerFish": {
+    "full": 5160,
+    "distance": 722,
+    "card": 16
+  },
   "tiers": {
     "low": {
       "structureTriangles": 74128,
-      "fishTriangles": 8040,
+      "fishTriangles": 7954,
       "fishDrawn": 96,
-      "totalTriangles": 82168,
+      "totalTriangles": 82082,
       "structureDrawCalls": 6,
-      "fishDrawCalls": 12
+      "fishDrawCalls": 20
     },
     "medium": {
       "structureTriangles": 74128,
-      "fishTriangles": 82920,
+      "fishTriangles": 65808,
       "fishDrawn": 768,
-      "totalTriangles": 157048,
+      "totalTriangles": 139936,
       "structureDrawCalls": 6,
-      "fishDrawCalls": 20
+      "fishDrawCalls": 28
     },
     "high": {
       "structureTriangles": 74128,
-      "fishTriangles": 117480,
+      "fishTriangles": 101256,
       "fishDrawn": 960,
-      "totalTriangles": 191608,
+      "totalTriangles": 175384,
       "structureDrawCalls": 6,
-      "fishDrawCalls": 20
+      "fishDrawCalls": 28
     }
   },
   "files": {
     "pen.glb": 113524,
-    "net.webp": 21464,
+    "net.webp": 19654,
     "mission.json": 897
   },
   "referenceGLBTriangles": 11224,
