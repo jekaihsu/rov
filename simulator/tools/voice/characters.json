@@ -1,0 +1,29 @@
+{
+  "model": "gpt-4o-mini-tts",
+  "characters": {
+    "supervisor": {
+      "names": ["林督導", "林岑"],
+      "voice": "onyx",
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a calm ROV operations supervisor on a workboat radio. Measured, professional, brief. Warm but not jokey. Slight radio-mic distance, steady pace."
+    },
+    "tender": {
+      "names": ["阿禾", "甲板 · 纜線手"],
+      "voice": "echo",
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a talkative deck cable tender on radio. Friendly workplace chatter, a bit wordy, practical. Not slapstick. Clear and a touch faster than the supervisor."
+    },
+    "instructor": {
+      "names": ["訓練督導"],
+      "voice": "ash",
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a careful training instructor on radio. Formal drill tone, precise, no fluff. Calm under pressure."
+    },
+    "client": {
+      "names": ["船主", "客戶代表", "委託方"],
+      "voice": "sage",
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a cautious client representative on radio. Polite, slightly anxious about cost and schedule, concise."
+    }
+  },
+  "fallback": {
+    "voice": "alloy",
+    "instructions": "Speak Mandarin Chinese (Traditional Taiwan) clearly over a workboat radio. Neutral, brief, professional."
+  }
+}

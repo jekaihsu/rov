@@ -37,6 +37,13 @@ no other changes. Sourcing notes and rejected candidates: `research_notes/音樂
 
 Credit is not required by any of these licences; it is given here for provenance.
 
+### Radio voice (`../audio/voice/`)
+
+無線電語音由 AI 語音合成產生（OpenAI text-to-speech API，`gpt-4o-mini-tts` 與內建預設聲音）。
+後製為無線電帶通／輕微失真／按鍵雜音，並正規化至約 −18 LUFS，編碼為單聲道 Ogg Opus。
+揭露要求見 OpenAI 服務條款與文字轉語音說明；重新產生：`python simulator/tools/voice/extract_lines.py` 後
+`python simulator/tools/voice/synthesize.py --chapter prologue --language zh-TW`（需環境變數 `OPENAI_API_KEY`）。
+
 ### Input mapping data
 `../input/controller-db.json` is a compact conversion of the Linux records from
 [SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), retrieved 2026-11-14.
