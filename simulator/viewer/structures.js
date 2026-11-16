@@ -21,6 +21,7 @@ import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from
 import {structureMaterial} from './structure_materials.js';
 import {detectHardware} from './render_quality.js';
 import {siteRockColor} from './seabed.js';
+import {upgradeArmourRocks} from './scan_materials.js';
 
 export const SCENE_TOLERANCE = 0.1;           // m a visual surface may stand proud of its collision shape
 // fittings drawn as one merged mesh per material (labels keep per-obstacle anchors; a snag lights the group)
@@ -366,16 +367,32 @@ function transitionPiece(set, ob) {
   skirt.translate(bottom.x, bottom.y, bottom.z);
   parts.push(skirt);
   set.add(merged(parts), 'transition', [ob.name], 'solid', [ob]);
-  // access platform and railing above the water
-  const deck = new THREE.CylinderGeometry(r + 2.2, r + 2.2, 0.25, radial);
-  deck.translate(top.x, top.y + 0.2, top.z);
+  // access platform and railing above the water: a grating ring on radial beams (open underneath)
+  const deck = new THREE.RingGeometry(r, r + 2.2, radial, 1);
+  deck.rotateX(-Math.PI / 2);
+  deck.translate(top.x, top.y + 0.32, top.z);
+  const uv = deck.attributes.uv;
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(i, deck.attributes.position.getX(i), -deck.attributes.position.getZ(i));    // metres
+  }
+  set.add(deck, 'grating', [], 'above');
+  const beams = [];
+  for (let i = 0; i < 12; i++) {
+    const beam = new THREE.BoxGeometry(2.2, 0.25, 0.12);
+    beam.translate(r + 1.1, top.y + 0.18, 0);
+    beam.rotateY(i / 12 * Math.PI * 2);
+    beam.translate(top.x, 0, top.z);
+    beams.push(beam);
+  }
+  beams.push(tube(new THREE.Vector3(top.x, top.y + 0.05, top.z), new THREE.Vector3(top.x, top.y + 0.45, top.z),
+    r + 2.2, radial, true));
   const rails = [];
   for (let i = 0; i < 24; i++) {
     const ang = i / 24 * Math.PI * 2;
     const p = new THREE.Vector3(top.x + Math.cos(ang) * (r + 2.1), top.y + 0.3, top.z + Math.sin(ang) * (r + 2.1));
     rails.push(tube(p, p.clone().add(new THREE.Vector3(0, 1.1, 0)), 0.03, 5));
   }
-  set.add(merged([deck, ...rails]), 'transition', [], 'above');
+  set.add(merged([...beams, ...rails]), 'transition', [], 'above');
 }
 
 function simpleTube(set, ob, kind, inset = 0.005, radialScale = 0.6) {
@@ -459,6 +476,7 @@ function rockArmour(set, colliders, kind) {
   mesh.computeBoundingSphere();
   set.group.add(mesh);
   for (const ob of colliders) set.anchor(ob, mesh);
+  upgradeArmourRocks(mesh, kind, set.detailName).catch(() => false);
 }
 
 // ── quay and pool walls ──────────────────────────────────────────────────────────────────────────────────
@@ -917,7 +935,9 @@ function buildOne(set, ob, consumed) {
     for (const o of group) consumed.add(o.name);
     propeller(set, group);
   } else if (kind === 'brace') steelTube(set, ob, 'brace');
-  else steelTube(set, ob, 'steel');
+  else if (kind === 'pile' && (world.obstacles || []).some((o) => o.kind === 'quay')) {
+    steelTube(set, ob, 'pileConcrete');                        // harbour piles are concrete
+  } else steelTube(set, ob, kind === 'monopile' ? 'monopileSteel' : 'steel');
 }
 
 /**

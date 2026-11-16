@@ -356,7 +356,7 @@ export function buildSurfaceSet(world, centre, random, {detail = 'medium', time 
     group.userData.farmCentre = farm.centre.clone();
     group.userData.turbines = farm.turbines.length;
     // Inside a farm the inspected foundation is one of its turbines: draw what stands above the water.
-    if (farmPlan.mode === 'inside') farm.site = buildSiteTopside(group, world, plan.farm, farm, time);
+    if (farmPlan.mode === 'inside') farm.site = buildSiteTopside(group, world, plan.farm, farm, time, detail);
   }
   if (plan.coast) buildCoast(group, centre, plan, random, detail);
   const vessels = plan.vessels.map((name) => placeVessel(name, centre, random, farm));

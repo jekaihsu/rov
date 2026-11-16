@@ -9,10 +9,13 @@
 // proud); fittings such as the boat landing start above +0.5 m.
 //
 // Each foundation has its own function (jacketTopside, monopileTopside) so a detailed model can replace one
-// without touching the other.
+// without touching the other. Painted steel, gratings and deck plate are separate meshes with CC0 scanned
+// textures (topside_materials.js): the platforms are open steel framing under galvanised gratings, so their
+// undersides show beams and daylight through the grating instead of a solid dark slab.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {FARM_COLOURS, TURBINE_TYPES, farmParts, horizonMaterial, siteTurbineMesh} from './wind_farm.js';
+import {FARM_COLOURS, TURBINE_TYPES, farmParts, siteTurbineMesh} from './wind_farm.js';
+import {metreUv, topsideMaterial} from './topside_materials.js';
 
 const {box, member, paint, railing, squareRailing} = farmParts;
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
@@ -129,16 +132,82 @@ function stairFlight(a, b, width, hex) {
   return parts;
 }
 
-function siteMesh(parts, name) {
-  const geometry = mergeGeometries(parts, false);
+function siteMesh(parts, name, material) {
+  const geometry = mergeGeometries(parts.map(metreUv), false);
   for (const part of parts) part.dispose();
-  const mesh = new THREE.Mesh(geometry, horizonMaterial());
+  const mesh = new THREE.Mesh(geometry, material);
   mesh.name = name;
   mesh.frustumCulled = false;
-  mesh.castShadow = true;
+  mesh.castShadow = !material.alphaTest;              // a grating's shadow would be a solid slab
   mesh.receiveShadow = true;
   mesh.userData.observationIgnore = true;
   return mesh;
+}
+
+/** Adds the painted steel, grating and plate meshes of a topside; returns the painted one. */
+function addSiteMeshes(group, name, surfaces, detail) {
+  let main = null;
+  for (const [kind, parts] of Object.entries(surfaces)) {
+    if (!parts.length) continue;
+    const mesh = siteMesh(parts, kind === 'paint' ? name : `${name}-${kind}`, topsideMaterial(kind, detail));
+    group.add(mesh);
+    if (kind === 'paint') main = mesh;
+  }
+  return main;
+}
+
+// Horizontal grating panel (w across x, l across z) with its top at y, centred on (x, z).
+function gratingPanel(w, l, x, y, z) {
+  const g = new THREE.PlaneGeometry(w, l);
+  g.rotateX(-Math.PI / 2);
+  g.translate(x, y, z);
+  return paint(g, FARM_COLOURS.grating);
+}
+
+// Annular grating round a tube, top at y.
+function gratingRing(centre, inner, outer, y) {
+  const g = new THREE.RingGeometry(inner, outer, 48, 1);
+  g.rotateX(-Math.PI / 2);
+  g.translate(centre.x, y, centre.z);
+  return paint(g, FARM_COLOURS.grating);
+}
+
+// Steel framing under a ring platform: radial beams, an outer ring beam that also stands up as the toe plate,
+// and knee brackets from the shell. The grating rests on the beams at `y`.
+function ringFrame(centre, inner, outer, y, hex) {
+  const parts = [];
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2;
+    const beam = new THREE.BoxGeometry(outer - inner, 0.3, 0.14);
+    beam.translate((inner + outer) / 2, y - 0.15, 0);
+    beam.rotateY(-a);
+    beam.translate(centre.x, 0, centre.z);
+    parts.push(paint(beam, hex));
+    if (i % 2 === 0) {
+      const from = [centre.x + Math.cos(a) * inner, y - 2.2, centre.z + Math.sin(a) * inner];
+      const to = [centre.x + Math.cos(a) * (outer - 0.4), y - 0.3, centre.z + Math.sin(a) * (outer - 0.4)];
+      parts.push(member(from, to, 0.07, 6, hex));
+    }
+  }
+  const rim = new THREE.CylinderGeometry(outer, outer, 0.45, 48, 1, true);
+  rim.translate(centre.x, y - 0.075, centre.z);
+  parts.push(paint(rim, hex));
+  return parts;
+}
+
+// Square deck framing: deep perimeter girders and a grid of secondary beams under the grating.
+function deckFrame(half, y, hex) {
+  const parts = [];
+  for (const s of [-1, 1]) {
+    parts.push(box(half * 2, 0.9, 0.4, 0, y + 0.45, s * (half - 0.2), hex));
+    parts.push(box(0.4, 0.9, half * 2, s * (half - 0.2), y + 0.45, 0, hex));
+  }
+  for (let k = 1; k < 6; k++) {
+    const at = -half + k * half / 3;
+    parts.push(box(half * 2 - 0.8, 0.55, 0.22, 0, y + 0.6, at, hex));
+    parts.push(box(0.22, 0.55, half * 2 - 0.8, at, y + 0.6, 0, hex));
+  }
+  return parts;
 }
 
 // Jacket ---------------------------------------------------------------------------------------------------
@@ -162,7 +231,7 @@ function onLeg(leg, y) {
  * The jacket above its scenario leg tops: legs on the same batter up to a square deck with railings, braces,
  * a boat landing with a ladder and a stair to the deck, a short transition piece. Returns the deck's top.
  */
-export function jacketTopside(group, legs, random) {
+export function jacketTopside(group, legs, random, detail = 'medium') {
   const type = TURBINE_TYPES.jacket;
   const deckY = type.tpTop - 3;
   const yellow = FARM_COLOURS.yellow;
@@ -187,20 +256,26 @@ export function jacketTopside(group, legs, random) {
     parts.push(sleeve(onLeg(a, 3.4), onLeg(b, deckY - 1.6), 0.28, yellow));
     parts.push(sleeve(onLeg(b, 3.4), onLeg(a, deckY - 1.6), 0.28, yellow));
   }
-  // Deck: overhanging square platform, dark grating, railing; a container-sized store on it.
+  // Deck: overhanging square platform framed in girders, galvanised grating, railing; a container-sized store
+  // on a diamond-plate laydown area.
   const reach = Math.max(...legs.map((leg) => Math.hypot(onLeg(leg, deckY).x - centre.x, onLeg(leg, deckY).z -
     centre.z)));
   const half = reach / Math.SQRT2 + 2.6;
-  const deck = [box(half * 2, 0.9, half * 2, 0, deckY + 0.45, 0, yellow),
-    box(half * 2 - 0.3, 0.12, half * 2 - 0.3, 0, deckY + 0.96, 0, FARM_COLOURS.grating),
+  const deck = [...deckFrame(half, deckY, yellow),
     ...squareRailing(half - 0.05, deckY + 0.9, true, yellow),
     box(2.4, 2.6, 6.0, half - 2.0, deckY + 2.2, 0, FARM_COLOURS.topside)];
-  // Transition piece up to the tower flange.
+  const grating = [gratingPanel(half * 2 - 0.3, half * 2 - 0.3, 0, deckY + 0.9, 0)];
+  const plate = [box(4.2, 0.03, 8.0, half - 2.4, deckY + 0.93, 0, FARM_COLOURS.grating)];
+  // Transition piece up to the tower flange, closed underneath (seen through the grating).
   const tp = new THREE.CylinderGeometry(type.tpDiameter / 2, type.tpDiameter / 2 + 0.2, type.tpTop - deckY - 0.9,
     24, 1, true);
   tp.translate(0, (deckY + 0.9 + type.tpTop) / 2, 0);
   deck.push(paint(tp, yellow));
-  for (const g of deck) g.translate(centre.x, 0, centre.z);
+  const tpFloor = new THREE.CircleGeometry(type.tpDiameter / 2 + 0.2, 24);
+  tpFloor.rotateX(Math.PI / 2);
+  tpFloor.translate(0, deckY + 0.88, 0);
+  deck.push(paint(tpFloor, yellow));
+  for (const g of [...deck, ...grating, ...plate]) g.translate(centre.x, 0, centre.z);
   parts.push(...deck);
   parts.push(...rustStreaks(centre.x, centre.z, type.tpDiameter / 2 + 0.2, type.tpTop - 0.4, 4, random));
   // Boat landing on the first leg's outer face: fender tubes and a ladder up to a rest platform, a stair to
@@ -220,12 +295,13 @@ export function jacketTopside(group, legs, random) {
   const sx = Math.sign(out.x) || 1;
   const sz = Math.sign(out.z) || 1;
   const rest = new THREE.Vector3(foot.x, 7.0, (foot.z + centre.z + sz * (half + 0.7)) / 2);
-  parts.push(box(2.4, 0.2, Math.abs(rest.z - foot.z) * 2 + 2.0, rest.x, 7.0, rest.z, FARM_COLOURS.grating));
+  const restLength = Math.abs(rest.z - foot.z) * 2 + 2.0;
+  grating.push(gratingPanel(2.4, restLength, rest.x, 7.1, rest.z));
+  for (const s of [-1.15, 1.15]) parts.push(box(0.12, 0.25, restLength, rest.x + s, 6.98, rest.z, yellow));
   const start = new THREE.Vector3(centre.x + sx * (half - 1.0), 7.1, centre.z + sz * (half + 0.7));
   const end = new THREE.Vector3(start.x - sx * 9.0, deckY + 0.95, start.z);
   parts.push(...stairFlight(start, end, 0.9, yellow));
-  const mesh = siteMesh(parts, 'site-jacket-topside');
-  group.add(mesh);
+  const mesh = addSiteMeshes(group, 'site-jacket-topside', {paint: parts, grating, plate}, detail);
   return {mesh, centre, top: type.tpTop};
 }
 
@@ -235,7 +311,7 @@ export function jacketTopside(group, legs, random) {
  * The transition piece above the scenario's top: splash zone, yellow shell up to the tower flange, the main
  * access platform with railing and davit, a ladder from the boat landing. Returns the flange height.
  */
-export function monopileTopside(group, world, random) {
+export function monopileTopside(group, world, random, detail = 'medium') {
   const type = TURBINE_TYPES.large;
   const obstacles = world?.obstacles || [];
   const piece = obstacles.find((ob) => ob.kind === 'transition_piece');
@@ -253,10 +329,11 @@ export function monopileTopside(group, world, random) {
   const cap = new THREE.CylinderGeometry(r, r, 0.3, 32);
   cap.translate(top.x, flange - 0.15, top.z);
   parts.push(paint(cap, yellow));
-  // Main access platform at the flange: grating, toe plate, railing, davit crane.
-  const deck = new THREE.CylinderGeometry(r + 2.5, r + 2.5, 0.35, 24);
-  deck.translate(top.x, flange - 1.0, top.z);
-  parts.push(paint(deck, '#9a9c98'));                         // galvanised grating, light from below too
+  // Main access platform at the flange: radial beams and knee brackets under a galvanised grating ring, toe
+  // plate, railing, davit crane.
+  const deckTop = flange - 0.85;
+  parts.push(...ringFrame(top, r, r + 2.5, deckTop, yellow));
+  const grating = [gratingRing(top, r + 0.02, r + 2.48, deckTop)];
   const rails = railing(r + 2.45, flange - 0.85, 24, true, yellow);
   for (const g of rails) g.translate(top.x, 0, top.z);
   parts.push(...rails);
@@ -281,8 +358,7 @@ export function monopileTopside(group, world, random) {
     yellow));
   const jib = davitBase.clone().addScaledVector(out, 2.4);
   parts.push(member([davitBase.x, flange + 4.1, davitBase.z], [jib.x, flange + 4.6, jib.z], 0.1, 6, yellow));
-  const mesh = siteMesh(parts, 'site-monopile-topside');
-  group.add(mesh);
+  const mesh = addSiteMeshes(group, 'site-monopile-topside', {paint: parts, grating}, detail);
   return {mesh, centre: top.clone().setY(0), top: flange};
 }
 
@@ -292,16 +368,16 @@ export function monopileTopside(group, world, random) {
  * Builds the site's own topside and its turbine for an inside-farm plan. farm: buildWindFarm's result
  * (facing gives the rotor direction). Returns null when the site has no foundation of the planned type.
  */
-export function buildSiteTopside(group, world, plan, farm, time) {
+export function buildSiteTopside(group, world, plan, farm, time, detail = 'medium') {
   const random = seeded(String(world?.scenario?.key || 'site').length * 7919 + 17);
   let site = null;
   if (plan.type === 'jacket') {
     const legs = jacketLegs(world);
     if (legs.length < 3) return null;
-    site = jacketTopside(group, legs, random);
+    site = jacketTopside(group, legs, random, detail);
   } else {
     if (!(world?.obstacles || []).some((ob) => ob.kind === 'transition_piece')) return null;
-    site = monopileTopside(group, world, random);
+    site = monopileTopside(group, world, random, detail);
   }
   const type = TURBINE_TYPES[plan.type];
   const omega = type.tipSpeed * 0.9 / (type.rotor / 2);
