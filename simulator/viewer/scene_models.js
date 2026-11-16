@@ -33,6 +33,15 @@ function loadCached(url) {
   return cache.get(url);
 }
 
+/** Prefer the quality/distance LOD; if that asset is missing (old showcase bundle), use the base GLB. */
+function loadWreckDetail(ob, detail) {
+  const url = modelUrl(ob, detail);
+  return loadCached(url).then((gltf) => {
+    if (gltf || url === ob.model) return gltf;
+    return loadCached(ob.model);
+  });
+}
+
 function markMeshes(root) {
   root.traverse((object) => {
     if (!object.isMesh) return;
@@ -57,8 +66,7 @@ function holderFor(ob, worldGroup, mapPosition) {
  * `stillCurrent` (optional) aborts a stale async load when the menu has already switched scenes. */
 export function placeSceneModelLow(ob, worldGroup, mapPosition, stillCurrent = null) {
   const holder = holderFor(ob, worldGroup, mapPosition);
-  const url = modelUrl(ob, 'medium');
-  loadCached(url).then((gltf) => {
+  loadWreckDetail(ob, 'medium').then((gltf) => {
     if (stillCurrent && !stillCurrent()) {
       holder.removeFromParent();
       return;
@@ -75,7 +83,7 @@ export function placeSceneModel(ob, worldGroup, mapPosition, _detail = 'medium')
   // Preserve Chenjiao's distance LODs and Korean Castle's quality-tier selection.
   const holder = holderFor(ob, worldGroup, mapPosition);
   if (ob.model !== WRECK_BASE) {
-    loadCached(modelUrl(ob, _detail)).then((gltf) => {
+    loadWreckDetail(ob, _detail).then((gltf) => {
       if (!gltf || holder.parent !== worldGroup) return;
       const model = gltf.scene.clone(true);
       markMeshes(model);
@@ -86,10 +94,10 @@ export function placeSceneModel(ob, worldGroup, mapPosition, _detail = 'medium')
   const lod = new THREE.LOD();
   lod.name = 'WreckChenjiaoLOD';
   holder.add(lod);
-  const urls = ['high', 'medium', 'low'].map(detail => modelUrl(ob, detail));
-  Promise.all(urls.map(loadCached)).then((gltfs) => {
+  const details = ['high', 'medium', 'low'];
+  Promise.all(details.map((detail) => loadWreckDetail(ob, detail))).then((gltfs) => {
     if (holder.parent !== worldGroup) return;
-    for (let index = 0; index < urls.length; index++) {
+    for (let index = 0; index < details.length; index++) {
       const gltf = gltfs[index];
       if (!gltf) continue;
       const model = gltf.scene.clone(true);

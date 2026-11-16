@@ -96,3 +96,9 @@ test("links to pages the showcase build skips are hidden in replay", async () =>
   }
   assert.match(html, /href="controller-check\.html"/);
 });
+
+test("showcase ships korean_castle quality LODs used by scene_models", async () => {
+  const build = await readFile(new URL("../tools/build_showcase.py", import.meta.url), "utf8");
+  assert.match(build, /korean_castle_lod1\.glb/);
+  assert.match(build, /korean_castle_lod2\.glb/);
+});
