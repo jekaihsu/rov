@@ -72,6 +72,8 @@ function paint(part, hex, spin = 0) {
   }
   part.setAttribute('color', new THREE.BufferAttribute(colours, 3));
   part.setAttribute('aSpin', new THREE.BufferAttribute(new Float32Array(count).fill(spin), 1));
+  part.setAttribute('aBlade', new THREE.BufferAttribute(new Float32Array(count * 4), 4));
+  part.setAttribute('aSection', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
   part.deleteAttribute('uv');
   return part;
 }
@@ -211,41 +213,63 @@ function spinnerParts(type, detailed) {
   return [paint(ring, COLOURS.nacelle, 1), paint(cone, COLOURS.nacelle, 1)];
 }
 
-// Planform along the span s (0 at the root flange, 1 at the tip): chord as a fraction of the maximum chord
-// (null: the round root, one root diameter) and the thickness ratio.
-const PLANFORM = Object.freeze([
-  [0.0, null, 1.0], [0.05, null, 1.0], [0.2, 1.0, 0.36], [0.4, 0.78, 0.24], [0.6, 0.58, 0.2],
-  [0.8, 0.4, 0.18], [0.94, 0.24, 0.16], [1.0, 0.12, 0.15]
-]);
+// Blade planform along the span s (0 at the root flange, 1 at the tip). Round root cylinder, a smooth
+// transition to the maximum chord at 20 % span, then a long convex taper to a thin tip. The leading edge stays
+// nearly straight and the trailing edge carries the change of chord, sweeping back towards the tip, so from the
+// front each blade reads as a slightly curved sabre. Thickness ratio: 100 % (round) at the root, 36 % at the
+// maximum chord, 16 % at the tip.
+const ROOT_END = 0.04;
+const MAX_CHORD_AT = 0.2;
 
-function planformAt(s, type) {
-  const chordOf = (entry) => (entry[1] === null ? type.rootDiameter : entry[1] * type.maxChord);
-  for (let i = 1; i < PLANFORM.length; i++) {
-    const a = PLANFORM[i - 1];
-    const b = PLANFORM[i];
-    if (s <= b[0]) {
-      const k = (s - a[0]) / (b[0] - a[0]);
-      return {chord: THREE.MathUtils.lerp(chordOf(a), chordOf(b), k), thickness: THREE.MathUtils.lerp(a[2], b[2], k)};
-    }
+function chordAt(s, type) {
+  const tip = 0.1 * type.maxChord;
+  if (s <= ROOT_END) return type.rootDiameter;
+  if (s <= MAX_CHORD_AT) {
+    const k = THREE.MathUtils.smoothstep(s, ROOT_END, MAX_CHORD_AT);
+    return THREE.MathUtils.lerp(type.rootDiameter, type.maxChord, k);
   }
-  return {chord: chordOf(PLANFORM[PLANFORM.length - 1]), thickness: 0.15};
+  const k = (s - MAX_CHORD_AT) / (1 - MAX_CHORD_AT);
+  return tip + (type.maxChord - tip) * (1 - k) ** 1.3;
 }
 
-// Section point at angle phi: [x along the chord (leading edge +, about the pitch axis), half thickness], both
-// per unit chord. A symmetric aerofoil (NACA 4-digit form) blended into a circle towards the round root.
+function thicknessAt(s) {
+  if (s <= ROOT_END) return 1;
+  if (s <= MAX_CHORD_AT) return THREE.MathUtils.lerp(1, 0.36, THREE.MathUtils.smoothstep(s, ROOT_END, MAX_CHORD_AT));
+  if (s <= 0.5) return THREE.MathUtils.lerp(0.36, 0.21, (s - MAX_CHORD_AT) / 0.3);
+  return THREE.MathUtils.lerp(0.21, 0.16, (s - 0.5) / 0.5);
+}
+
+// Leading edge ahead of the pitch axis (m): half the root diameter on the round root, about 27 % of the
+// chord at the maximum chord, then a nearly straight line to the tip.
+function leadingEdgeAt(s, type) {
+  const atMax = 0.27 * type.maxChord;
+  if (s <= ROOT_END) return type.rootDiameter / 2;
+  if (s <= MAX_CHORD_AT) {
+    const k = THREE.MathUtils.smoothstep(s, ROOT_END, MAX_CHORD_AT);
+    return THREE.MathUtils.lerp(type.rootDiameter / 2, atMax, k);
+  }
+  const k = (s - MAX_CHORD_AT) / (1 - MAX_CHORD_AT);
+  return THREE.MathUtils.lerp(atMax, 0.4 * chordAt(1, type), k);
+}
+
+// Section point at angle phi (0 at the leading edge): [u along the chord from the leading edge, half thickness],
+// per unit chord. A symmetric aerofoil (NACA 4-digit form, thin trailing edge) blended into a circle at the
+// round root.
 function sectionPoint(phi, thickness) {
   const u = (1 - Math.cos(phi)) / 2;
   const naca = 5 * thickness * (0.2969 * Math.sqrt(u) - 0.126 * u - 0.3516 * u * u + 0.2843 * u ** 3 - 0.1015 * u ** 4);
   const round = THREE.MathUtils.smoothstep(thickness, 0.4, 1.0);
-  const half = THREE.MathUtils.lerp(naca * Math.sign(Math.sin(phi)), 0.5 * Math.sin(phi), round);
-  return [THREE.MathUtils.lerp(0.3, 0.5, round) - u, half];
+  return [u, THREE.MathUtils.lerp(naca * Math.sign(Math.sin(phi)), 0.5 * Math.sin(phi), round)];
 }
 
-// Span stations, with doubled stations at the colour changes of the tip bands so the bands stay crisp.
+// Span stations, dense at the root transition and the tip, with doubled stations at the colour changes of the
+// tip bands so the bands stay crisp.
+const NEAR_STATIONS = Object.freeze([0, 0.02, 0.04, 0.07, 0.1, 0.13, 0.16, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5,
+  0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.94, 0.97, 0.99, 1]);
+const FAR_STATIONS = Object.freeze([0, 0.04, 0.12, 0.2, 0.35, 0.5, 0.65, 0.8, 0.92, 1]);
+
 function bladeStations(detailed, bands) {
-  const near = [0, 0.05, 0.12, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.88, 0.94, 0.98, 1];
-  const base = detailed ? near : [0, 0.2, 0.5, 0.8, 1];
-  const stations = base.map((s) => ({s, hex: COLOURS.blade}));
+  const stations = (detailed ? NEAR_STATIONS : FAR_STATIONS).map((s) => ({s, hex: COLOURS.blade}));
   if (!bands) return stations;
   // Aviation marking: red, white, red over the outer part of the blade (about 6 m each on a 108 m blade).
   const edges = [[0.835, COLOURS.blade, COLOURS.red], [0.89, COLOURS.red, COLOURS.blade],
@@ -260,33 +284,44 @@ function bladeStations(detailed, bands) {
       if (station.s > s && station.s < next) out.push({s: station.s, hex: after});
     }
   }
-  out[out.length - 1].s = 1;
   return out;
 }
 
-// One blade along +y in the rotor frame: tapered aerofoil sections, twisted, leading edge on +x (the rotor
-// turns clockwise seen from upwind), the tip pre-bent upwind.
+// One blade along +y in the rotor frame: lofted aerofoil sections, twisted 13 degrees at the root to 0 at the
+// tip, leading edge on +x (the rotor turns clockwise seen from upwind), tip swept slightly back and pre-bent
+// upwind (+z) by 4.5 % of the radius. aBlade holds each vertex's point on the pitch axis (xyz) and 1 (w),
+// aSection the section's twist, half chord and half thickness: the vertex shader keeps far blades at least
+// about a pixel wide in both directions.
 function bladeGeometry(type, detailed) {
   const radius = type.rotor / 2;
   const root = type.spinner * 0.42;
   const length = radius - root;
-  const sides = detailed ? 10 : 4;
+  const sides = detailed ? 12 : 6;
   const stations = bladeStations(detailed, type.tipBands);
   const positions = [];
+  const axes = [];
+  const sections = [];
   const colours = [];
   const index = [];
   for (const station of stations) {
-    const {chord, thickness} = planformAt(station.s, type);
-    const twist = THREE.MathUtils.degToRad(13 * (1 - station.s) ** 1.6);
-    const bend = radius * 0.035 * station.s * station.s;
+    const s = station.s;
+    // The very tip closes to a rounded point rather than ending in an open section.
+    const chord = chordAt(s, type) * (s >= 1 ? 0.35 : 1);
+    const thickness = thicknessAt(s);
+    const lead = leadingEdgeAt(s, type);
+    const twist = THREE.MathUtils.degToRad(13 * (1 - s) ** 1.6);
+    const sweep = -radius * 0.012 * Math.max(0, (s - 0.55) / 0.45) ** 2;
+    const bend = radius * 0.045 * s * s;
+    const y = root + s * length;
     const c = colour(station.hex);
     for (let k = 0; k < sides; k++) {
-      const phi = (k / sides) * Math.PI * 2;
-      const [along, half] = sectionPoint(phi, thickness);
-      const x = along * chord;
+      const [u, half] = sectionPoint((k / sides) * Math.PI * 2, thickness);
+      const x = lead - u * chord;
       const z = half * chord;
-      positions.push(x * Math.cos(twist) - z * Math.sin(twist), root + station.s * length,
+      positions.push(x * Math.cos(twist) - z * Math.sin(twist) + sweep, y,
         x * Math.sin(twist) + z * Math.cos(twist) + bend);
+      axes.push(sweep, y, bend, 1);
+      sections.push(twist, chord / 2, Math.max(thickness * chord / 2, 0.01));
       colours.push(c.r, c.g, c.b);
     }
   }
@@ -295,49 +330,70 @@ function bladeGeometry(type, detailed) {
     for (let k = 0; k < sides; k++) {
       const a = i * sides + k;
       const b = i * sides + (k + 1) % sides;
-      const c = a + sides;
-      const d = b + sides;
-      index.push(a, c, b, b, c, d);
+      index.push(a, a + sides, b, b, a + sides, b + sides);
     }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(colours, 3));
   g.setAttribute('aSpin', new THREE.Float32BufferAttribute(new Array(positions.length / 3).fill(1), 1));
+  g.setAttribute('aBlade', new THREE.Float32BufferAttribute(axes, 4));
+  g.setAttribute('aSection', new THREE.Float32BufferAttribute(sections, 3));
   g.setIndex(index);
   g.computeVertexNormals();
   return g;
 }
 
+// Pitch bearing: a flange ring where each blade root enters the hub, at the spinner's surface.
+function pitchBearing(type, detailed) {
+  const r = type.rootDiameter / 2 * 1.14;
+  const g = new THREE.CylinderGeometry(r, r, 0.45, detailed ? 16 : 6, 1, true);
+  g.translate(0, type.spinner * 0.47, 0);
+  return paint(g, COLOURS.nacelle, 1);
+}
+
 function rotorParts(type, detailed) {
   const parts = spinnerParts(type, detailed);
   const blade = bladeGeometry(type, detailed);
+  const bearing = pitchBearing(type, detailed);
   for (let b = 0; b < 3; b++) {
-    const copy = blade.clone();
-    copy.rotateZ(b * Math.PI * 2 / 3);
-    parts.push(copy);
+    for (const part of [blade, bearing]) {
+      const copy = part.clone();
+      copy.rotateZ(b * Math.PI * 2 / 3);
+      if (part === blade) rotateBladeAxes(copy, b * Math.PI * 2 / 3);
+      parts.push(copy);
+    }
   }
+  blade.dispose();
+  bearing.dispose();
   return parts;
 }
 
-// The far model is only ever a few pixels wide: blades and tower are drawn wider than life so that their
-// sub-pixel coverage still adds up to the faint white strokes seen in photographs of distant farms.
-const FAR_WIDENING = Object.freeze({chord: 1.6, tower: 1.3});
+// rotateZ moves positions and normals; the pitch-axis points in aBlade must turn with them.
+function rotateBladeAxes(geometry, angle) {
+  const axes = geometry.attributes.aBlade;
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  for (let i = 0; i < axes.count; i++) {
+    const x = axes.getX(i);
+    const y = axes.getY(i);
+    axes.setXY(i, c * x - s * y, s * x + c * y);
+  }
+}
 
-/** One turbine as a single geometry (turbine frame: base at sea level, rotor facing +z). */
-export function turbineGeometry(base, detailed) {
-  const type = detailed ? base : {
-    ...base, maxChord: base.maxChord * FAR_WIDENING.chord, rootDiameter: base.rootDiameter * FAR_WIDENING.chord,
-    towerBase: base.towerBase * FAR_WIDENING.tower, towerTop: base.towerTop * FAR_WIDENING.tower
-  };
+/**
+ * One turbine as a single geometry (turbine frame: base at sea level, rotor facing +z).
+ * foundation: false leaves out the foundation, for a tower standing on a site's own structure.
+ */
+export function turbineGeometry(type, detailed, {foundation = true} = {}) {
   const jacket = type.foundation === 'jacket';
-  const foundation = jacket ? jacketFoundation(type, detailed) : monopileFoundation(type, detailed);
+  const below = jacket ? jacketFoundation(type, detailed) : monopileFoundation(type, detailed);
   const nacelle = nacelleParts(type, detailed);
   const towerTop = type.hub - type.nacelle[1] / 2 + 0.2;
   const tower = tube(type.towerBase / 2, type.towerTop / 2, type.tpTop, towerTop, detailed ? 14 : 6, COLOURS.tower);
-  const parts = [...foundation, tower, ...nacelle.parts, ...rotorParts(type, detailed)];
+  const parts = [...(foundation ? below : []), tower, ...nacelle.parts, ...rotorParts(type, detailed)];
   const merged = mergeGeometries(parts, false);
-  for (const part of parts) part.dispose();
+  for (const part of foundation ? parts : [...below, ...parts]) part.dispose();
   merged.userData.hub = new THREE.Vector3(0, type.hub, nacelle.hubZ);
   return merged;
 }
@@ -420,12 +476,19 @@ export function farmLayout(plan, random) {
 // Material ---------------------------------------------------------------------------------------------
 
 const hazeUniform = {value: new THREE.Vector4()};
+const pixelUniform = {value: 0.001};
+const bufferSize = new THREE.Vector2();
 
-// Distant props share the daylight's aerial haze (fx/daylight.js publishes it on the scene each frame).
-function syncHaze(renderer, scene) {
+// Distant props share the daylight's aerial haze (fx/daylight.js publishes it on the scene each frame); the
+// rotor shader also needs the size of a pixel (tangent of its angle) for this camera.
+function syncHaze(renderer, scene, camera) {
   const haze = scene?.userData?.daylightHaze;
   if (haze) hazeUniform.value.set(haze.colour.x, haze.colour.y, haze.colour.z, haze.rate);
   else hazeUniform.value.set(0, 0, 0, 0);
+  if (camera?.isPerspectiveCamera) {
+    renderer.getDrawingBufferSize(bufferSize);
+    pixelUniform.value = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / Math.max(1, bufferSize.y);
+  }
 }
 
 const VERTEX_HEADER = /* glsl */ `
@@ -435,8 +498,11 @@ const VERTEX_HEADER = /* glsl */ `
   uniform float uFarmTime;
   uniform vec3 uRotorHub;
   uniform float uRotorTilt;
+  uniform float uFarmPixel;
   attribute float aSpin;
   attribute vec2 aRotor;
+  attribute vec4 aBlade;
+  attribute vec3 aSection;
   vec3 farmRotate(vec3 v) {
     float a = aRotor.x - uFarmTime * aRotor.y;
     float c = cos(a);
@@ -456,17 +522,37 @@ const VERTEX_NORMAL = /* glsl */ `
   #endif
 `;
 
+// Blades: far away a blade is thinner than a pixel and breaks up into dots. Each section is widened along its
+// chord and its thickness, about its pitch axis (aBlade.xyz), until it is at least about 1.7 pixels across at
+// the hub's distance: a smooth function of distance that leaves near blades untouched.
 const VERTEX_BEGIN = /* glsl */ `
   #include <begin_vertex>
+  #ifdef USE_INSTANCING
+  mat4 farmModel = modelMatrix * instanceMatrix;
+  #else
+  mat4 farmModel = modelMatrix;
+  #endif
   #ifdef FARM_ROTOR
-  if (aSpin > 0.5) transformed = uRotorHub + farmRotate(transformed);
+  if (aSpin > 0.5) {
+    if (aBlade.w > 0.5) {
+      float hubDistance = distance((farmModel * vec4(uRotorHub, 1.0)).xyz, cameraPosition);
+      float minHalf = 0.85 * uFarmPixel * hubDistance;
+      vec2 radial = normalize(aBlade.xy);
+      vec3 tangent = vec3(radial.y, -radial.x, 0.0);
+      vec3 chordDir = cos(aSection.x) * tangent + vec3(0.0, 0.0, sin(aSection.x));
+      vec3 thickDir = -sin(aSection.x) * tangent + vec3(0.0, 0.0, cos(aSection.x));
+      vec3 off = transformed - aBlade.xyz;
+      float alongChord = dot(off, chordDir);
+      float alongThick = dot(off, thickDir);
+      vec3 rest = off - chordDir * alongChord - thickDir * alongThick;
+      float chordGrow = max(1.0, minHalf / aSection.y);
+      float thickGrow = max(1.0, minHalf / aSection.z);
+      transformed = aBlade.xyz + rest + chordDir * alongChord * chordGrow + thickDir * alongThick * thickGrow;
+    }
+    transformed = uRotorHub + farmRotate(transformed);
+  }
   #endif
   {
-    #ifdef USE_INSTANCING
-    mat4 farmModel = modelMatrix * instanceMatrix;
-    #else
-    mat4 farmModel = modelMatrix;
-    #endif
     vec3 farmWorld = (farmModel * vec4(transformed, 1.0)).xyz;
     float farmDistance = distance(farmWorld, cameraPosition);
     float farmScale = min(1.0, uFarmReach / max(farmDistance, 1.0));
@@ -496,7 +582,7 @@ export function horizonMaterial(rotor = null) {
   if (rotor) {
     material.defines = {FARM_ROTOR: ''};
     Object.assign(uniforms, {uFarmTime: rotor.time, uRotorHub: {value: rotor.hub.clone()},
-      uRotorTilt: {value: THREE.MathUtils.degToRad(rotor.tilt)}});
+      uRotorTilt: {value: THREE.MathUtils.degToRad(rotor.tilt)}, uFarmPixel: pixelUniform});
   }
   material.userData.horizonUniforms = uniforms;
   material.onBeforeCompile = function compileHorizon(shader) {
@@ -508,7 +594,7 @@ export function horizonMaterial(rotor = null) {
       .replace('#include <tonemapping_fragment>', FRAGMENT_HAZE);
   };
   material.customProgramCacheKey = function horizonProgramKey() {
-    return rotor ? 'horizon-rotor-v1' : 'horizon-v1';
+    return rotor ? 'horizon-rotor-v3' : 'horizon-v3';
   };
   return material;
 }
@@ -575,5 +661,23 @@ export function buildWindFarm(group, centre, plan, random, {detail = 'medium', t
   }
   const middle = world.reduce((sum, t) => sum.add(new THREE.Vector3(t.x, 0, t.z)), new THREE.Vector3())
     .divideScalar(Math.max(1, world.length));
-  return {turbines: world, meshes, substation, centre: middle, type};
+  const facing = Math.atan2(Math.cos(plan.windAngle), Math.sin(plan.windAngle));
+  return {turbines: world, meshes, substation, centre: middle, type, facing};
 }
+
+/**
+ * The turbine on top of a site's own foundation (no foundation of its own), standing at `top` metres.
+ * turbine: {x, z, yaw, phase, omega} in world metres.
+ */
+export function siteTurbineMesh(typeName, top, turbine, time) {
+  const type = {...TURBINE_TYPES[typeName], tpTop: top};
+  const geometry = turbineGeometry(type, true, {foundation: false});
+  const material = horizonMaterial({time, hub: geometry.userData.hub, tilt: type.tilt});
+  const mesh = instanced(geometry, material, [turbine]);
+  mesh.name = 'site-turbine';
+  return mesh;
+}
+
+// Part builders and paint for other horizon props (site_topside.js): vertex-coloured, merged by the caller.
+export const FARM_COLOURS = COLOURS;
+export const farmParts = Object.freeze({tube, box, member, railing, squareRailing, paint});

@@ -7,12 +7,16 @@
 // nothing. Everything is placed from the seeded generator the environment passes in, so a site always looks
 // the same.
 //
+// At offshore wind sites the inspected jacket or monopile also gets its above-water part and turbine
+// (site_topside.js).
+//
 //   const set = buildSurfaceSet(world, centre, random, {detail, time});
 //   set.group      add to the scene; hide it under water
 //   set.vessels    [{v, ph, speed}]  bobbing and moving forward (environment.js update)
 //   set.buoys      [{b, lamp, ph}]   bobbing and flashing (environment.js update)
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {buildSiteTopside} from './site_topside.js';
 import {buildWindFarm, horizonMaterial, horizonMesh, TURBINE_TYPES} from './wind_farm.js';
 
 const HARBOUR_KINDS = new Set(['quay', 'bollard', 'fender', 'toe_rock']);
@@ -351,6 +355,8 @@ export function buildSurfaceSet(world, centre, random, {detail = 'medium', time 
     farm.type = plan.farm.type;
     group.userData.farmCentre = farm.centre.clone();
     group.userData.turbines = farm.turbines.length;
+    // Inside a farm the inspected foundation is one of its turbines: draw what stands above the water.
+    if (farmPlan.mode === 'inside') farm.site = buildSiteTopside(group, world, plan.farm, farm, time);
   }
   if (plan.coast) buildCoast(group, centre, plan, random, detail);
   const vessels = plan.vessels.map((name) => placeVessel(name, centre, random, farm));

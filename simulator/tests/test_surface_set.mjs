@@ -124,3 +124,73 @@ test('the whole set builds, and props are kept inside the far plane by the horiz
   assert.equal(set.buoys.length, 5);
   assert.ok(meshes.length < 40, `${meshes.length} meshes`);
 });
+
+test('blades read as curved sabres: straight leading edge, trailing edge bulging near the root', function () {
+  const type = TURBINE_TYPES.jacket;
+  const geometry = turbineGeometry(type, true);
+  const position = geometry.attributes.position;
+  const blade = geometry.attributes.aBlade;
+  // The first blade points along +y; bin its vertices by span and take the leading (max x) and trailing edges.
+  const bins = new Map();
+  for (let i = 0; i < position.count; i++) {
+    if (blade.getW(i) < 0.5 || Math.abs(blade.getX(i)) > 3 || blade.getY(i) < 5) continue;
+    const key = Math.round(blade.getY(i));
+    const bin = bins.get(key) || {lead: -Infinity, trail: Infinity};
+    bin.lead = Math.max(bin.lead, position.getX(i));
+    bin.trail = Math.min(bin.trail, position.getX(i));
+    bins.set(key, bin);
+  }
+  const radius = type.rotor / 2;
+  const at = (fraction) => {
+    const keys = [...bins.keys()].sort((a, b) => Math.abs(a - fraction * radius) - Math.abs(b - fraction * radius));
+    return bins.get(keys[0]);
+  };
+  const root = at(0.22);
+  const mid = at(0.6);
+  const tip = at(0.97);
+  const chordRoot = root.lead - root.trail;
+  assert.ok(chordRoot > 3.5 && chordRoot < 6.5, `maximum chord ${chordRoot.toFixed(2)} m`);
+  assert.ok(tip.lead - tip.trail < 0.25 * chordRoot, 'thin tip');
+  assert.ok(Math.abs(root.lead - mid.lead) < 0.5 * Math.abs(root.trail - mid.trail),
+    'the trailing edge carries the taper; the leading edge stays nearly straight');
+});
+
+// Scenario-shaped worlds: the jacket of scenarios.jacket() and the monopile of site_dressing.dress_monopile().
+function jacketWorld() {
+  const obstacles = [];
+  for (const [sx, sy] of [[1, 1], [1, -1], [-1, -1], [-1, 1]]) {
+    obstacles.push({type: 'cylinder', kind: 'jacket_leg', radius: 0.6,
+      p0: [20 + sx * 4.8, sy * 4.8, -3], p1: [20 + sx * 6, sy * 6, 33]});
+  }
+  return {scenario: {key: 'jacket_inspection', biome: 'temperate', water_type: 'shelf'}, obstacles};
+}
+
+function monopileWorld() {
+  const obstacles = [
+    {type: 'cylinder', kind: 'monopile', radius: 3, p0: [15, 0, -3], p1: [15, 0, 29]},
+    {type: 'cylinder', kind: 'transition_piece', radius: 3.3, p0: [15, 0, -3], p1: [15, 0, 4]},
+    {type: 'cylinder', kind: 'boat_landing', radius: 0.2, p0: [15, 4.3, -2.5], p1: [15, 4.3, 3]}
+  ];
+  return {scenario: {key: 'monopile_current', biome: 'temperate', water_type: 'shelf'}, obstacles};
+}
+
+test('the inspected foundation gets its above-water part and turbine above the collision floor', async function () {
+  const {SKIN_FLOOR, SKIN_PROUD, jacketLegs} = await import('../viewer/site_topside.js');
+  assert.ok(SKIN_PROUD <= 0.03 && SKIN_FLOOR > -1, 'below +0.5 m only a thin skin on the existing collision');
+  for (const [world, name] of [[jacketWorld(), 'site-jacket-topside'], [monopileWorld(), 'site-monopile-topside']]) {
+    const set = buildSurfaceSet(world, new THREE.Vector3(), seeded(4), {detail: 'medium'});
+    const topside = set.group.getObjectByName(name);
+    assert.ok(topside, name);
+    assert.ok(set.group.getObjectByName('site-turbine'), 'a turbine stands on the site');
+    topside.geometry.computeBoundingBox();
+    const floor = topside.geometry.boundingBox.min.y;
+    assert.ok(floor >= SKIN_FLOOR - 0.05, `${name} reaches down to ${floor} m`);
+  }
+  // The jacket legs carry on along the scenario's batter: the sleeve passes through each leg top.
+  const legs = jacketLegs(jacketWorld());
+  assert.equal(legs.length, 4);
+  for (const leg of legs) {
+    assert.ok(Math.abs(leg.top.y - 3) < 1e-9);
+    assert.ok(leg.up.y > 0.99 && leg.up.y < 1, 'battered legs lean inwards going up');
+  }
+});
