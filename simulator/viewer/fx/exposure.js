@@ -3,13 +3,16 @@
 // single tone-mapping step in OutputPass. No pixels are read back to the CPU.
 // Convergence time, metering weights and the gain range are assumptions (the research report has no
 // measured exposure behaviour for the vehicle camera); see fx/README.md.
-// The same pass runs a partial grey-world auto white balance: small cameras default to auto WB, and real
-// footage shows white balance changes the look more than depth (real_dive_footage.md §8 target 9). It only
-// rescales the red and blue that reached the sensor (gain at most WHITE_BALANCE.maxGain), so it cannot bring
-// back red that the water removed completely.
+// The same pass runs the camera's auto white balance (white_balance.js): only bright, near-neutral cells count
+// as white-point candidates, so saturated water keeps its colour as in real footage, while lamp-lit near objects
+// are balanced. It only rescales the red and blue that reached the sensor, within a limited range. The sensor's
+// channel overlap (white_balance.js SENSOR_RESPONSE) is applied to the image before metering and gain.
 import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { WATER_COMMON, shareWaterUniforms } from './water_optics.js';
+import { WHITE_BALANCE, WHITE_BALANCE_GLSL } from './white_balance.js';
+
+export { WHITE_BALANCE };
 
 export const EXPOSURE = Object.freeze({
   key: 0.15,          // mid-grey the meter aims for, before ACES
@@ -21,10 +24,6 @@ export const EXPOSURE = Object.freeze({
   maximum: 400.0,     // most gain the camera adds in the dark (beyond this the image just gets darker)
   tau: 0.35,          // seconds, first-order lag in stops
   maxStep: 0.25       // longest frame step the adaptation accepts, seconds
-});
-export const WHITE_BALANCE = Object.freeze({
-  strength: 0.6,      // share of the metered colour cast removed (in log ratio to luminance)
-  maxGain: 3.0        // largest red or blue channel gain
 });
 // The adapted log exposure (1x1 texture) for shaders that must not be exposed: unlit helpers and markers.
 export const exposureUniforms = { tCameraExposure: { value: null }, tCameraBalance: { value: null } };
@@ -112,26 +111,41 @@ const VERTEX = /* glsl */ `
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }`;
 
-// Each meter texel averages 4x4 bilinear taps of its footprint in log luminance, weighted towards the centre.
+// Centre weighting of a meter cell (shared by the meter and the averaging passes).
+const METER_WEIGHT = /* glsl */ `
+  float meterWeight(vec2 uv) {
+    return 1.0 - 0.7 * smoothstep(0.15, 0.75, length((uv - 0.5) * vec2(1.0, 0.8)) * 1.6);
+  }
+`;
+
+// Each meter texel averages 4x4 bilinear taps of its footprint in log luminance, weighted towards the centre,
+// and records its colour cast weighted as a white-point candidate (bright relative to the previous frame's
+// average, close to neutral; white_balance.js).
 const METER = /* glsl */ `
   uniform sampler2D tDiffuse;
+  uniform sampler2D tHistory;
   uniform vec2 uCell;
   varying vec2 vUv;
+  ${METER_WEIGHT}
+  ${WHITE_BALANCE_GLSL}
   void main() {
     float sum = 0.0;
     vec3 colour = vec3(0.0);
     for (int y = 0; y < 4; y++) {
       for (int x = 0; x < 4; x++) {
         vec2 offset = (vec2(float(x), float(y)) - 1.5) * uCell * 0.25;
-        vec3 c = texture2D(tDiffuse, vUv + offset).rgb;
+        vec3 c = sensorResponse(texture2D(tDiffuse, vUv + offset).rgb);
         sum += log(max(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-5));
         colour += c;
       }
     }
-    float weight = 1.0 - 0.7 * smoothstep(0.15, 0.75, length((vUv - 0.5) * vec2(1.0, 0.8)) * 1.6);
+    float weight = meterWeight(vUv);
     // Colour cast of this cell: log(red / green) and log(blue / green) of the summed light.
     vec2 colourCast = log(max(colour.rb, vec2(1e-6)) / max(colour.g, 1e-6));
-    gl_FragColor = vec4(sum / 16.0 * weight, weight, colourCast.x * weight, colourCast.y * weight);
+    float luminance = max(dot(colour / 16.0, vec3(0.2126, 0.7152, 0.0722)), 1e-6);
+    float average = exp(texelFetch(tHistory, ivec2(0, 0), 0).b);
+    float candidate = weight * luminance / (luminance + average) * whitePointWeight(colourCast);
+    gl_FragColor = vec4(sum / 16.0 * weight, candidate, colourCast.x * candidate, colourCast.y * candidate);
   }`;
 
 // One texel: log exposure, moved towards the metered target by the elapsed time.
@@ -143,14 +157,14 @@ const ADAPT = /* glsl */ `
   uniform vec3 uRange;
   uniform vec2 uPartial;
   varying vec2 vUv;
+  ${METER_WEIGHT}
   void main() {
     float logSum = 0.0;
     float weights = 0.0;
     for (int y = 0; y < ${METER_HEIGHT}; y++) {
       for (int x = 0; x < ${METER_WIDTH}; x++) {
-        vec2 m = texelFetch(tMeter, ivec2(x, y), 0).rg;
-        logSum += m.r;
-        weights += m.g;
+        logSum += texelFetch(tMeter, ivec2(x, y), 0).r;
+        weights += meterWeight((vec2(float(x), float(y)) + 0.5) / vec2(${METER_WIDTH}.0, ${METER_HEIGHT}.0));
       }
     }
     float average = logSum / max(weights, 1e-4);
@@ -168,22 +182,22 @@ const BALANCE = /* glsl */ `
   uniform sampler2D tPrevious;
   uniform float uStep;
   uniform float uReset;
-  uniform vec2 uBalance;
   varying vec2 vUv;
+  ${METER_WEIGHT}
+  ${WHITE_BALANCE_GLSL}
   void main() {
     vec2 colourCast = vec2(0.0);
+    float candidates = 0.0;
     float weights = 0.0;
     for (int y = 0; y < ${METER_HEIGHT}; y++) {
       for (int x = 0; x < ${METER_WIDTH}; x++) {
         vec4 m = texelFetch(tMeter, ivec2(x, y), 0);
         colourCast += m.ba;
-        weights += m.g;
+        candidates += m.g;
+        weights += meterWeight((vec2(float(x), float(y)) + 0.5) / vec2(${METER_WIDTH}.0, ${METER_HEIGHT}.0));
       }
     }
-    colourCast /= max(weights, 1e-4);
-    float limit = log(uBalance.y);
-    vec2 gains = clamp(-uBalance.x * colourCast, vec2(-limit), vec2(limit));
-    vec3 target = vec3(gains.x, 0.0, gains.y);
+    vec3 target = whiteBalanceLogGains(colourCast / max(candidates, 1e-6), candidates / max(weights, 1e-4));
     vec3 previous = texelFetch(tPrevious, ivec2(0, 0), 0).rgb;
     vec3 next = uReset > 0.5 ? target : previous + (target - previous) * uStep;
     gl_FragColor = vec4(next, 1.0);
@@ -194,8 +208,10 @@ const APPLY = /* glsl */ `
   uniform sampler2D tExposure;
   uniform sampler2D tBalance;
   varying vec2 vUv;
+  ${WHITE_BALANCE_GLSL}
   void main() {
     vec4 c = texture2D(tDiffuse, vUv);
+    c.rgb = sensorResponse(c.rgb);
     vec3 gain = exp(texelFetch(tExposure, ivec2(0, 0), 0).r + texelFetch(tBalance, ivec2(0, 0), 0).rgb);
     gl_FragColor = vec4(c.rgb * gain, c.a);
   }`;
@@ -217,7 +233,10 @@ export class AutoExposurePass extends Pass {
     this.reset = true;
     this.lastTime = null;
     this.meterMaterial = new THREE.ShaderMaterial({
-      uniforms: { tDiffuse: { value: null }, uCell: { value: new THREE.Vector2(1 / METER_WIDTH, 1 / METER_HEIGHT) } },
+      uniforms: {
+        tDiffuse: { value: null }, tHistory: { value: null },
+        uCell: { value: new THREE.Vector2(1 / METER_WIDTH, 1 / METER_HEIGHT) }
+      },
       vertexShader: VERTEX, fragmentShader: METER, depthTest: false, depthWrite: false
     });
     this.adaptMaterial = new THREE.ShaderMaterial({
@@ -231,7 +250,7 @@ export class AutoExposurePass extends Pass {
     this.balanceMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tMeter: { value: this.meter.texture }, tPrevious: { value: null }, uStep: { value: 1 },
-        uReset: { value: 1 }, uBalance: { value: new THREE.Vector2(WHITE_BALANCE.strength, WHITE_BALANCE.maxGain) }
+        uReset: { value: 1 }
       },
       vertexShader: VERTEX, fragmentShader: BALANCE, depthTest: false, depthWrite: false
     });
@@ -252,6 +271,7 @@ export class AutoExposurePass extends Pass {
 
   render(renderer, writeBuffer, readBuffer) {
     this.meterMaterial.uniforms.tDiffuse.value = readBuffer.texture;
+    this.meterMaterial.uniforms.tHistory.value = this.history[this.current].texture;
     this.quad.material = this.meterMaterial;
     renderer.setRenderTarget(this.meter);
     this.quad.render(renderer);

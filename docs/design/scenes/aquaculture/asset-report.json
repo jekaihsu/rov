@@ -2,22 +2,22 @@
   "tiers": {
     "low": {
       "structureTriangles": 74128,
-      "fishTriangles": 12100,
-      "totalTriangles": 86228,
+      "fishTriangles": 8000,
+      "totalTriangles": 82128,
       "structureDrawCalls": 6,
       "fishDrawCalls": 12
     },
     "medium": {
       "structureTriangles": 74128,
-      "fishTriangles": 28556,
-      "totalTriangles": 102684,
+      "fishTriangles": 44840,
+      "totalTriangles": 118968,
       "structureDrawCalls": 6,
       "fishDrawCalls": 12
     },
     "high": {
       "structureTriangles": 74128,
-      "fishTriangles": 46948,
-      "totalTriangles": 121076,
+      "fishTriangles": 112520,
+      "totalTriangles": 186648,
       "structureDrawCalls": 6,
       "fishDrawCalls": 12
     }

@@ -4,14 +4,14 @@ import {execFileSync} from 'node:child_process';
 import {readFileSync, statSync, writeFileSync} from 'node:fs';
 register('./three_resolve_hooks.mjs', import.meta.url);
 const {buildStructures} = await import('../viewer/structures.js');
-const {marineGeometry} = await import('../viewer/marine_registry.js');
+const {fishGeometry} = await import('../viewer/fish_life.js');
 const obstacles = JSON.parse(execFileSync('python', ['-c',
   'import json; from qysim.aquaculture import layout; print(json.dumps([o.as_dict() for o in layout()[0]]))'],
 {cwd: new URL('..', import.meta.url), encoding: 'utf8'}));
 const result = {tiers: {}, files: {}};
-const fish = marineGeometry('fish');
-const fishTriangles = (fish.index?.count ?? fish.attributes.position.count) / 3;
 for (const detail of ['low', 'medium', 'high']) {
+  // Pen fish are the swimming salmon of fish_life.js at this tier.
+  const fishTriangles = fishGeometry('salmon', detail).index.count / 3;
   const set = buildStructures({obstacles, seabed_depth: 25}, {detail});
   let triangles = 0;
   let calls = 0;

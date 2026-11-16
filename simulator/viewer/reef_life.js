@@ -1,5 +1,6 @@
 // Coral reef look: colony shapes for the server's coral entities, their muted colours, and viewer-only reef
-// dressing (rubble, small low colonies, a few site-attached reef fish). All shapes are original procedural work.
+// dressing (rubble, small low colonies, a few site-attached reef fish of three species, drawn and swum by
+// fish_life.js). All shapes are original procedural work.
 //
 // The server owns where colonies stand and their collision capsule (radius 0.45 x scale, height scale); every
 // colony style below fills roughly that envelope. Dressing has no collision and stays under 0.25 m, except the
@@ -11,6 +12,7 @@
 //   const dressing = installReefDressing(group, world, 'medium');   // null when the site is not a reef
 //   dressing?.update(timeSeconds);
 import * as THREE from 'three';
+import {createFishMesh, createSchoolMotion, fishGeometry, fishMaterial, updateSchoolMotion} from './fish_life.js';
 
 export const CORAL_STYLES = ['massive', 'branching', 'table', 'fan', 'sponge', 'finger'];
 // Colony colours as they look in white light. Browns, olives and lavenders keep some contrast in blue-green
@@ -365,24 +367,6 @@ function rubbleGeometry() {
   return finishShape(shape);
 }
 
-/** Small deep-bodied reef fish, nose +Z, 0.09 m long; about 40 triangles. */
-function reefFishGeometry() {
-  const body = new THREE.SphereGeometry(1, 6, 4);
-  body.scale(.008, .024, .04);
-  const shape = shapeBuilder();
-  const position = body.attributes.position;
-  for (let i = 0; i < position.count; i++) {
-    addVertex(shape, position.getX(i), position.getY(i), position.getZ(i), .8 + 10 * position.getY(i));
-  }
-  shape.indices.push(...body.index.array);
-  body.dispose();
-  const root = addVertex(shape, 0, 0, -.036, .9);
-  const upper = addVertex(shape, 0, .022, -.058, .7);
-  const lower = addVertex(shape, 0, -.022, -.058, .7);
-  shape.indices.push(root, upper, lower);
-  return finishShape(shape);
-}
-
 function scatterRubble(group, world, corals, count, random) {
   const mesh = new THREE.InstancedMesh(rubbleGeometry(),
     new THREE.MeshStandardMaterial({color: 0xffffff, vertexColors: true, roughness: 1}), count);
@@ -441,50 +425,61 @@ function scatterRecruits(group, world, corals, count, random) {
   });
 }
 
-function reefFish(group, corals, count, random) {
-  const material = new THREE.MeshStandardMaterial({color: 0xffffff, vertexColors: true, roughness: .5,
-    metalness: .15, side: THREE.DoubleSide});
-  const mesh = new THREE.InstancedMesh(reefFishGeometry(), material, count);
+// Site-attached reef fish by species (fish_life.js bodies): small damselfish, butterflyfish and surgeonfish in
+// the tints of FISH_TINTS. One instanced mesh per species, all named 'reef-fish'.
+const REEF_SPECIES = [
+  {name: 'damsel', tints: [1, 2], share: 0.5},
+  {name: 'butterfly', tints: [0], share: 0.25},
+  {name: 'surgeon', tints: [3, 1], share: 0.25},
+];
+
+function reefFish(group, corals, count, random, detail) {
   // Site-attached fish hold station over the larger colonies in small groups.
   const homes = corals.slice().sort((a, b) => b.scale - a.scale).slice(0, Math.max(3, Math.ceil(count / 1.75)));
   const colour = new THREE.Color();
-  const fish = [];
-  for (let i = 0; i < count; i++) {
-    const home = homes[i % homes.length];
-    const kind = (i % homes.length) % FISH_TINTS.length;
-    fish.push({
-      home: new THREE.Vector3(-home.pos[1], -home.pos[2] + home.scale * (.8 + random() * .7), home.pos[0]),
-      radius: home.scale * (.3 + random() * .7), speed: (.25 + random() * .5) * (random() < .5 ? -1 : 1),
-      phase: random() * Math.PI * 2, size: .8 + random() * .9,
-    });
-    mesh.setColorAt(i, colour.setHex(FISH_TINTS[kind]).multiplyScalar(.85 + random() * .3));
-  }
-  mesh.name = 'reef-fish';
-  mesh.frustumCulled = false;
-  mesh.userData.observationIgnore = true;
-  group.add(mesh);
-  return {mesh, fish};
+  const schools = [];
+  let placed = 0;
+  REEF_SPECIES.forEach(function buildSpecies(kind, k) {
+    const share = k === REEF_SPECIES.length - 1 ? count - placed : Math.round(count * kind.share);
+    if (share <= 0) return;
+    const mesh = createFishMesh(fishGeometry(kind.name, detail === 'high' ? 'medium' : 'low'),
+      fishMaterial(kind.name), share);
+    const fish = [];
+    for (let i = 0; i < share; i++) {
+      const home = homes[(placed + i) % homes.length];
+      fish.push({
+        home: new THREE.Vector3(-home.pos[1], -home.pos[2] + home.scale * (.8 + random() * .7), home.pos[0]),
+        radius: home.scale * (.3 + random() * .7), speed: (.25 + random() * .5) * (random() < .5 ? -1 : 1),
+        phase: random() * Math.PI * 2, scale: .8 + random() * .6,
+      });
+      const tint = FISH_TINTS[kind.tints[i % kind.tints.length]];
+      mesh.setColorAt(i, colour.setHex(tint).multiplyScalar(.85 + random() * .3));
+    }
+    placed += share;
+    mesh.name = 'reef-fish';
+    mesh.userData.observationIgnore = true;
+    group.add(mesh);
+    schools.push({mesh, fish, motion: createSchoolMotion(fish, kind.name, random)});
+  });
+  return schools;
 }
 
-const fishMatrix = new THREE.Matrix4();
-const fishPosition = new THREE.Vector3();
-const fishRotation = new THREE.Quaternion();
-const fishEuler = new THREE.Euler();
-const fishScale = new THREE.Vector3();
+// Station keeping: a slow loop with pauses round the home colony, not a steady orbit.
+function placeReefFish(item, time, position, euler) {
+  const angle = time * item.speed + item.phase;
+  const drift = angle + .6 * Math.sin(angle * 1.7 + item.phase);
+  position.set(item.home.x + Math.cos(drift) * item.radius,
+    item.home.y + Math.sin(time * .8 + item.phase * 3) * .08, item.home.z + Math.sin(drift) * item.radius * .8);
+  const heading = Math.atan2(-Math.sin(drift), Math.cos(drift) * .8) + (item.speed < 0 ? Math.PI : 0);
+  euler.set(0, heading, 0);
+}
 
-function moveReefFish(school, time) {
-  school.fish.forEach((item, i) => {
-    const angle = time * item.speed + item.phase;
-    // Station keeping: a slow loop with pauses, not a steady orbit.
-    const drift = angle + .6 * Math.sin(angle * 1.7 + item.phase);
-    fishPosition.set(item.home.x + Math.cos(drift) * item.radius,
-      item.home.y + Math.sin(time * .8 + item.phase * 3) * .08, item.home.z + Math.sin(drift) * item.radius * .8);
-    const heading = Math.atan2(-Math.sin(drift), Math.cos(drift) * .8) + (item.speed < 0 ? Math.PI : 0);
-    fishRotation.setFromEuler(fishEuler.set(0, heading + Math.sin(time * 7 + item.phase) * .12, 0));
-    fishMatrix.compose(fishPosition, fishRotation, fishScale.setScalar(item.size));
-    school.mesh.setMatrixAt(i, fishMatrix);
-  });
-  school.mesh.instanceMatrix.needsUpdate = true;
+function moveReefFish(reef, time, vehicle = null) {
+  const step = reef.last === null ? 0 : Math.max(0, Math.min(0.1, time - reef.last));
+  reef.last = time;
+  for (const school of reef.schools) {
+    updateSchoolMotion(school.motion, school.mesh, step, time, placeReefFish, 0.12, vehicle);
+  }
 }
 
 /**
@@ -499,11 +494,12 @@ export function installReefDressing(group, world, detail = 'medium') {
   const random = randomFrom(hashText(`reef:${world.world_seed ?? ''}`));
   scatterRubble(group, world, corals, counts.rubble, random);
   scatterRecruits(group, world, corals, counts.recruits, random);
-  const school = reefFish(group, corals, counts.fish, random);
-  moveReefFish(school, 0);
+  const reef = {schools: reefFish(group, corals, counts.fish, random, detail), last: null};
+  moveReefFish(reef, 0);
   return {
-    update(timeSeconds) {
-      moveReefFish(school, timeSeconds);
+    // `vehicle` ({position, velocity, lamps} in three space) is optional: without it fish do not react.
+    update(timeSeconds, vehicle = null) {
+      moveReefFish(reef, timeSeconds, vehicle);
     },
   };
 }

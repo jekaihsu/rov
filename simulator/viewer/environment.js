@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { KELP_FLOW_GLSL, createKelpFlowUniforms, updateKelpFlow } from './kelp_flow.js';
 import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
-import {penFishOffset, penTurn, placePenFish, salmonGeometry, salmonMaterial} from './pen_life.js';
+import {createSharedSchools} from './fish_schools.js';
 import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyle, reefCoralTint} from './reef_life.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
 
@@ -99,7 +99,7 @@ export class Environment {
     this._terrain();
     if (world.habitat) {
       this._habitat(world.habitat);
-      this._sharedFish(world.habitat.fish_schools || []);
+      this._sharedFish();
       this.reef = installReefDressing(this.group, world, this.detail);
     } else {
       this._rocks(R);
@@ -307,28 +307,11 @@ export class Environment {
     }
   }
 
-  _sharedFish(schools) {
-    this.sharedSchools = [];
-    const farm = String(this.world.scenario?.key || '').startsWith('aquaculture_pen');
-    const geo = farm ? salmonGeometry() : marineGeometry('fish');
-    const fraction = farm ? {low: .25, medium: .6, high: 1}[this.detail] || 1 : 1;
-    for (const school of schools) {
-      const R = rng(school.id + ':' + this.world.world_seed);
-      const fish = Array.from({length: Math.ceil(school.count * fraction)}, () => ({
-        offset: farm ? penFishOffset(R) : new THREE.Vector3((R() - .5) * 2.1, (R() - .5) * .8, (R() - .5) * 2.1),
-        phase: R() * Math.PI * 2, scale: .65 + R() * .75,
-      }));
-      const material = farm ? salmonMaterial(school.variant) :
-        M([0x9caaa1, 0x8d9784, 0x94919e][school.variant], {metalness: .25, roughness: .45});
-      const mesh = new THREE.InstancedMesh(geo, material, fish.length);
-      mesh.userData.observationEntities = fish.map(() => ({entity_id: school.id, category: 'fish_school'}));
-      this.observationTargets.push({entity_id: school.id, category: 'fish_school', mesh,
-        instanceIds: fish.map((_, i) => i)});
-      mesh.frustumCulled = false;
-      this.group.add(mesh);
-      this.sharedSchools.push({id: school.id, mesh, fish, pos: P(school.pos), target: P(school.pos),
-        vel: new THREE.Vector3(0, 0, .3)});
-    }
+  _sharedFish() {
+    // Server schools drawn as swimming, schooling fish (fish_schools.js); one instanced mesh per school.
+    this.fishSchools = createSharedSchools(this.group, this.world, this.detail, this.world.world_seed);
+    this.sharedSchools = this.fishSchools.schools;
+    this.observationTargets.push(...this.fishSchools.observationTargets);
   }
 
   _rocks(R) {
@@ -492,7 +475,7 @@ export class Environment {
   update(dt, camera, flow = null, state = null, flowField = null) {
     this.t = Number.isFinite(state?.t) ? state.t : this.t + dt;
     const t = this.t;
-    this.reef?.update(t);
+    this.reef?.update(t, this.fishSchools?.vehicle);
     this.uniforms.uTime.value = t;
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
     updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
@@ -506,30 +489,7 @@ export class Environment {
     }
     // fish: each circles its school centre with its own radius, height and speed; tails wag
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
-    const schools = state?.environment?.fish_schools || [];
-    for(const school of this.sharedSchools || []) {
-      const live=schools.find(x=>x.id===school.id);
-      if(live){school.target.copy(P(live.pos));school.vel.copy(P(live.vel));}
-      school.pos.copy(school.target);
-      school.mesh.visible=school.pos.distanceTo(camera.position)<55;
-      if(!school.mesh.visible)continue;
-      const heading=Math.atan2(school.vel.x,school.vel.z);
-      const farm = String(this.world.scenario?.key || '').startsWith('aquaculture_pen');
-      const turn = farm ? penTurn(school) : 0;
-      school.fish.forEach((f,i)=>{
-        p.copy(school.pos).add(f.offset);
-        p.y+=Math.sin(t*1.7+f.phase)*.12;
-        q.setFromEuler(e.set(0,heading+Math.sin(t*6+f.phase)*.07,Math.sin(t*5+f.phase)*.04));
-        if (farm) {
-          placePenFish(school, f, t, turn, p, e);
-          q.setFromEuler(e);
-        }
-        s.setScalar(f.scale * (farm ? 2 : 1));
-        m4.compose(p, q, s);
-        school.mesh.setMatrixAt(i, m4);
-      });
-      school.mesh.instanceMatrix.needsUpdate=true;
-    }
+    this.fishSchools?.update(dt, t, camera, state);
     for (const sc of this.schools || []) {
       if (sc.c.distanceTo(camera.position) > 60) continue;         // out of sight: skip the work
       sc.fish.forEach((f, i) => {
