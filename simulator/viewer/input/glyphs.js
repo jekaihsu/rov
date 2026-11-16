@@ -8,11 +8,32 @@ const LABELS = {
   switch: ['B', 'A', 'Y', 'X'],
 };
 
+// Vendor 054c, or the product name these pads report over Bluetooth ("Wireless Controller"). A bare "dual" is not
+// enough: the Logitech D-mode pad reports "Dual Action" and is a generic pad.
 export function deviceFamily(id = '') {
-  if (/054c|dual|playstation|sony/i.test(id)) return 'playstation';
+  if (/054c|playstation|sony|^wireless controller\b/i.test(id)) return 'playstation';
   if (/057e|switch|nintendo/i.test(id)) return 'switch';
   if (/045e|xbox|xinput|microsoft/i.test(id)) return 'xbox';
   return id ? 'generic' : 'keyboard';
+}
+
+// Captions printed on the other standard buttons (4..15, 17) per family. Families without an entry, the Home
+// button (16) and anything unnamed keep the caller's generic captions.
+const STRINGS = {
+  buttons: {
+    playstation: ['L1', 'R1', 'L2', 'R2', 'Share／Create', 'Options', 'L3', 'R3'],
+    switch: ['L', 'R', 'ZL', 'ZR', '−', '+', 'L3', 'R3'],
+  },
+  touchpad: '觸控板',
+};
+
+// Captions for standard button indices 0..17 of a family (sparse), or null when the generic captions apply.
+export function padNames(family = 'generic') {
+  const others = STRINGS.buttons[family];
+  if (!others) return null;
+  const names = [...faceLabels(family), ...others];
+  if (family === 'playstation') names[17] = STRINGS.touchpad;
+  return names;
 }
 
 export function faceLabels(family = 'generic') {

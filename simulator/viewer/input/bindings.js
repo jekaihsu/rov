@@ -355,6 +355,16 @@ export function defaultPadBindings() {
   return result;
 }
 
+// Fixed menu-context pad sources (not rebindable, so absent from the stored bindings). The flight input layer adds
+// them so a feature module's menu-context actions (the deck checklist) see the pad.
+export function menuPadBindings() {
+  const result = {};
+  for (const row of BINDINGS) {
+    if (row.context === "menu" && row.pad) result[row.action] = row.pad;
+  }
+  return result;
+}
+
 // Stored bindings keep the user's choices; unknown actions and stale copies of moved defaults are dropped.
 export function migrateBindings(stored = {}, version = 1) {
   const result = defaultPadBindings();
@@ -466,14 +476,15 @@ export function keyLabel(code) {
   return code.replace(/^Key|^Digit/, "");
 }
 
-// faces: the four face-button captions of the active controller family.
+// faces: captions of the active controller family by standard index: the four face buttons, or a longer list
+// (glyphs.js padNames) that also names the shoulders, triggers and menu buttons. Gaps fall back to STRINGS.pad.
 export function padLabel(binding, faces = STRINGS.pad.slice(0, 4)) {
   const chord = chordIds(binding);
   if (chord.length) return chord.map((part) => padLabel(part, faces)).join(" + ");
   const names = inputIds(binding).map(function sourceName(id) {
     const index = Number(id.slice(1));
     if (id[0] === "a") return STRINGS.axes[index] || id;
-    return index < 4 ? faces[index] : STRINGS.pad[index] || id;
+    return faces?.[index] || STRINGS.pad[index] || id;
   });
   return names.join(" / ");
 }
