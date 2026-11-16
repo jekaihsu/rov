@@ -1267,7 +1267,6 @@ function frame(now) {
   if (!inIntro) updateCamera(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
-
   applyUnderwaterLighting(scene, S, renderer);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
@@ -1327,4 +1326,9 @@ Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep:
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;
 
-installUnderwaterPipeline(renderer, { surface });
+const opticsOptions = { surface };
+function ensureOpticsPipeline() {
+  installUnderwaterPipeline(renderer, opticsOptions);
+}
+ensureOpticsPipeline();
+$('quality').addEventListener('change', ensureOpticsPipeline);

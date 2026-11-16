@@ -38,7 +38,17 @@ def main():
               intro.release();
               intro.update(2.3);
               assert(rov.position.y > deck.y + .35, 'two-hand lift');
-              assert(!intro.rig.group.visible && intro.arms.visible, 'manual rig');
+              assert(!intro.rig.group.visible && intro.launchCrew.root.visible && !!intro.launchCrew.b.Torso, 'manual rig');
+              for (const at of [0, 2.3, 5.2]) {
+                intro.t = at;
+                intro.update(0);
+                for (const [side, sign] of [['L', 1], ['R', -1]]) {
+                  const target = intro._local(new THREE.Vector3(sign * intro.half.x * .8, intro.half.y * .7, 0));
+                  const gap = intro.launchCrew.hand(side).distanceTo(target);
+                  assert(gap < .1, `hand contact ${side} at ${at}: ${gap}`);
+                }
+              }
+              intro.t = 2.3;
               intro.update(4.1);
               assert(Math.abs(rov.position.y) < .25, 'water entry');
               assert(intro.marker.mesh.visible, 'red end marker');

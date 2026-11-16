@@ -12,17 +12,6 @@ function phase(t, a, b) {
   const k = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
   return k * k * (3 - 2 * k);
 }
-function strand(color, radius) {
-  return new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 1, 10),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.7 }));
-}
-function between(mesh, a, b) {
-  const delta = b.clone().sub(a);
-  mesh.position.copy(a).add(b).multiplyScalar(0.5);
-  mesh.scale.y = delta.length();
-  mesh.quaternion.setFromUnitVectors(UP, delta.normalize());
-}
-
 // Cable's transported frame uses the opposite winding to the cylinder normals.
 // Correct it for this presentation without changing the live simulation cable renderer.
 function outwardCable(material, options) {
@@ -39,23 +28,19 @@ function outwardCable(material, options) {
 
 export class SwimPlatformIntro extends DeployIntro {
   static async loadAssets(base = 'models/') {
-    const [boat, human, normals] = await Promise.all([
+    const [boat, human] = await Promise.all([
       loadGLTF(base + 'small_boat.glb'),
-      Humanoid.load(base + 'worker.glb').catch(() => null),
-      new THREE.TextureLoader().loadAsync(base + 'waternormals.jpg').catch(() => null),
+      Humanoid.load(base + 'worker.glb'),
     ]);
-    return { boat: boat.scene, human, normals };
+    return { boat: boat.scene, human };
   }
 
   constructor(scene, options) {
     super(scene, { ...options, assets: { ...options.assets, human: null } });
-    this.surfacePresentation = true;
-    this.arms = new THREE.Group();
-    this.arms.name = 'HandLaunchArms';
-    for (let i = 0; i < 2; i++) {
-      this.arms.add(strand(0x344d61, 0.065), strand(0x344d61, 0.055), strand(0xe9b88c, 0.045));
-    }
-    this._add(this.arms);
+    this.launchCrew = new Humanoid(options.assets.human, {
+      shirt: 0x344d61, vest: 0xffc21a, helmet: 0xf4f4ef,
+    });
+    this.boat.add(this.launchCrew.root);
     this.cable.dispose();
     this.cable.mesh.material.dispose();
     this.scene.remove(this.cable.mesh);
@@ -69,59 +54,6 @@ export class SwimPlatformIntro extends DeployIntro {
     this.cable.mesh.name = 'FloatingUmbilical';
     this.marker.mesh.name = 'UmbilicalRedMarker';
     this._add(this.marker.mesh);
-    this._horizon();
-    if (this.water) {
-      this.water.material.uniforms.waterColor.value.set(0x003556);
-      this.water.material.uniforms.sunColor.value.set(0x617c94);
-      this.water.material.uniforms.distortionScale.value = 0.7;
-      this.water.material.uniforms.size.value = 8.0;
-      // Deep-blue open-water grade; retain the Water shader's moving normals and reflections.
-      this.water.material.fragmentShader = this.water.material.fragmentShader.replace(
-        'vec3 outgoingLight = albedo;', 'vec3 outgoingLight = albedo * vec3(0.035, 0.16, 0.27);');
-      this.water.material.needsUpdate = true;
-    }
-  }
-
-  _horizon() {
-    this.horizon = new THREE.Group();
-    this.horizon.name = 'WindFarmSilhouettes';
-    const mat = new THREE.MeshStandardMaterial({ color: 0x667b88, roughness: 0.9 });
-    for (let i = 0; i < 5; i++) {
-      const tower = new THREE.Group();
-      tower.position.copy(this._boatPoint(-150 + i * 70, 0, -500));
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(1, 2.5, 65, 6), mat);
-      mast.position.y = 32.5;
-      tower.add(mast);
-      for (let b = 0; b < 3; b++) {
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(1.8, 30, 0.5), mat);
-        const a = b * Math.PI * 2 / 3 + i;
-        blade.position.set(Math.sin(a) * 15, 65 + Math.cos(a) * 15, 0);
-        blade.rotation.z = -a;
-        tower.add(blade);
-      }
-      this.horizon.add(tower);
-    }
-    const platform = new THREE.Group();
-    platform.position.copy(this._boatPoint(220, 0, -470));
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(48, 7, 22), mat);
-    deck.position.y = 12;
-    platform.add(deck);
-    for (const x of [-20, 20]) {
-      for (const z of [-8, 8]) {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 48, 5), mat);
-        leg.position.set(x, 24, z);
-        platform.add(leg);
-      }
-    }
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(12, 9, 15), mat);
-    bridge.position.set(15, 20, 0);
-    platform.add(bridge);
-    const crane = new THREE.Mesh(new THREE.BoxGeometry(2, 40, 2), mat);
-    crane.position.set(-8, 33, 0);
-    crane.rotation.z = -0.5;
-    platform.add(crane);
-    this.horizon.add(platform);
-    this._add(this.horizon);
   }
 
   play(rov, camera, onDone) {
@@ -163,30 +95,30 @@ export class SwimPlatformIntro extends DeployIntro {
     this.rig.hideRigging();
   }
 
-  _crew(t) {
-    if (!this.arms || !this.rov) return;
-    this.arms.visible = t >= 0.5 && t < 7.0;
-    const release = phase(t, 6.4, 7.0);
-    for (let i = 0; i < 2; i++) {
-      const side = i === 0 ? -1 : 1;
-      const hand = this._local(V(-side * this.half.x * 0.8, this.half.y * 0.7, 0));
-      const shoulder = this._boatPoint(-0.78 + side * 0.28, 1.15 - 0.5 * phase(t, 4.2, 6.4),
-        -1.5 - 1.05 * phase(t, 2.4, 4.2));
-      hand.lerp(shoulder.clone().add(V(0, -0.25, 0)), release);
-      const elbow = shoulder.clone().lerp(hand, 0.5).add(V(side * 0.1, 0.1, 0.12));
-      between(this.arms.children[i * 3], shoulder, elbow);
-      between(this.arms.children[i * 3 + 1], elbow, hand);
-      between(this.arms.children[i * 3 + 2], hand, hand.clone().add(V(0, -0.09, 0)));
-    }
+  _crew(t, dt) {
+    if (!this.launchCrew || !this.rov) return;
+    const crew = this.launchCrew;
+    crew.root.position.set(-0.78, 0.3, -1.35 - 1.45 * phase(t, 2.4, 4.2));
+    crew.root.position.z -= .17 * phase(t, 1.2, 2.3) * (1 - phase(t, 2.4, 4.2));
+    crew.root.rotation.y = Math.PI;
+    crew.root.updateMatrixWorld(true);
+    const release = phase(t, 6.4, 7);
+    const handL = crew.root.worldToLocal(this._local(V(this.half.x * .8, this.half.y * .7, 0)));
+    const handR = crew.root.worldToLocal(this._local(V(-this.half.x * .8, this.half.y * .7, 0)));
+    handL.lerp(V(.2, .85, .3), release);
+    handR.lerp(V(-.2, .85, .3), release);
+    const crouch = 1 - phase(t, 1.2, 2.3) + phase(t, 3.8, 5.2);
+    crew.update(dt, { pelvis: [0, -.52 * crouch, .12 * crouch], bend: .45 + .5 * crouch, handL, handR });
   }
 
   _drawTether(t) {
     if (!this.marker || !this.rov) return;
     const exit = this.boat.userData.exit.getWorldPosition(V(0, 0, 0));
     const gland = this._local(this.glandPoint);
-    const pts = [exit, this._boatPoint(1.2, 0.32, -2.45)];
+    const pts = [exit, this._boatPoint(1.55, 0.34, -2.45)];
     if (t < 4.2) {
-      pts.push(this._boatPoint(0.3, 0.32, -2.6), gland);
+      pts.push(this._boatPoint(1.55, 0.34, -2.78),
+        this._boatPoint(-0.3, 0.34, -2.78), gland.clone().add(V(0, .2, 0)), gland);
     } else {
       const edge = this._boatPoint(1.1, 0.3, -2.88);
       pts.push(edge);
@@ -205,8 +137,8 @@ export class SwimPlatformIntro extends DeployIntro {
       pts.push(gland);
     }
     this.cable.update(pts);
-    const end = this.cable.curve.getPoint(0.88);
-    this.marker.update([end, this.cable.curve.getPoint(0.94), gland]);
+    this.marker.update([this.cable.curve.getPoint(.55), this.cable.curve.getPoint(.59),
+      this.cable.curve.getPoint(.63)]);
   }
 
   _cameraPath(t) {
@@ -219,16 +151,12 @@ export class SwimPlatformIntro extends DeployIntro {
     target.lerp(this.rov.position, k);
     this.camera.position.copy(eye);
     this.camera.lookAt(target);
-    if (this.water) {
-      this.water.visible = true;
-      this.sky.visible = true;
-    }
   }
 
   _finish() {
     super._finish();
     this.marker.mesh.visible = false;
-    this.arms.visible = false;
+    this.launchCrew.root.visible = false;
   }
 
   dispose() {
@@ -238,7 +166,7 @@ export class SwimPlatformIntro extends DeployIntro {
     this.cable.mesh.material.dispose();
     const geometries = new Set();
     const materials = new Set();
-    for (const group of [this.arms, this.horizon]) {
+    for (const group of [this.launchCrew.root]) {
       group.traverse(function collect(o) {
         if (o.geometry) geometries.add(o.geometry);
         if (o.material) materials.add(o.material);

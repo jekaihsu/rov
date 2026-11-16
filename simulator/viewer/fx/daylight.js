@@ -47,6 +47,22 @@ export const DAYLIGHT_PRESETS = Object.freeze({
     glint: 1,
     exposure: 1
   }),
+  dusk: Object.freeze({
+    sunElevationDeg: 12,
+    sunColour: Object.freeze([1.0, 0.56, 0.28]),
+    sun: 3.2,
+    skyLight: Object.freeze([0.38, 0.46, 0.68]),
+    groundLight: Object.freeze([0.17, 0.18, 0.16]),
+    zenith: Object.freeze([0.07, 0.15, 0.38]),
+    horizon: Object.freeze([0.7, 0.38, 0.23]),
+    overcast: 0,
+    cloudCover: 0.35,
+    cloudLit: Object.freeze([0.56, 0.57, 0.6]),
+    cloudShade: Object.freeze([0.38, 0.39, 0.42]),
+    hazeDistance: 3600,
+    glint: 1,
+    exposure: 1.2
+  }),
   overcast: Object.freeze({
     sunElevationDeg: 60,
     sunColour: Object.freeze([1.0, 0.97, 0.93]),
@@ -89,6 +105,7 @@ const OVERCAST_WATER = new Set(['harbour', 'fresh_clear']);
 export function daylightPresetFor(world, search = globalThis.location?.search || '') {
   const asked = new URLSearchParams(search).get('sky');
   if (asked && Object.hasOwn(DAYLIGHT_PRESETS, asked)) return asked;
+  if (new URLSearchParams(search).get('menuStage') === 'boat') return 'dusk';
   const scenario = world?.scenario || {};
   if (OVERCAST_WATER.has(scenario.water_type) || OVERCAST_BIOMES.has(scenario.biome)) return 'overcast';
   return 'clear';
