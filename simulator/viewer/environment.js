@@ -2,8 +2,8 @@
 //   under water  seabed with a per-site material (seabed.js), rock outcrops, scattered steel debris,
 //                kelp that sways with the current, fish schools circling the structures, kelp and
 //                anemones on structures; marine meshes come from marine_registry.js
-//   on the surface  coastline and islands on the horizon, other vessels, navigation buoys and a
-//                row of offshore wind turbines
+//   on the surface  surface_set.js: an offshore wind farm where the site has one, distant land where the
+//                site is near shore, other vessels and navigation buoys
 // Everything is placed from a seeded random generator (same layout every time for a scenario)
 // and kept clear of the structures, objectives and the start area, because the ROV can fly
 // through these props: they must never sit where the training happens.
@@ -17,6 +17,7 @@ import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
 import {penFishOffset, penTurn, placePenFish, salmonGeometry, salmonMaterial} from './pen_life.js';
 import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyle, reefCoralTint} from './reef_life.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
+import {buildSurfaceSet} from './surface_set.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.05, ...o });
@@ -416,76 +417,14 @@ export class Environment {
     }
   }
 
-  // ── surface ───────────────────────────────────────────────────────────
+  // ── surface: wind farm, coastline, vessels and buoys (surface_set.js) ─────
   _surface(R) {
-    const S = (this.surf = new THREE.Group());
-    this.group.add(S);
-    const c = this.centre;
-    // coastline and islands on the horizon: low-poly mountains, hazed by the fog
-    const rockM = M(0x5d6b5a, { flatShading: true, roughness: 1 }), cliffM = M(0x77705f, { flatShading: true, roughness: 1 });
-    for (let i = 0; i < 9; i++) {
-      const a = -0.6 + i * 0.28 + (R() - 0.5) * 0.12, d = 700 + R() * 380;
-      const g = new THREE.ConeGeometry(60 + R() * 140, 25 + R() * 90, 9, 4);
-      const p = g.attributes.position;
-      for (let k = 0; k < p.count; k++) {
-        const x = p.getX(k), y = p.getY(k), z = p.getZ(k);
-        const n = noise3(x * 0.02 + i * 7, y * 0.03, z * 0.02) - 0.5;
-        p.setXYZ(k, x * (1 + n * 0.5), y + n * 12, z * (1 + n * 0.5));
-      }
-      g.computeVertexNormals();
-      const m = new THREE.Mesh(g, i % 3 === 0 ? cliffM : rockM);
-      m.position.set(c.x + Math.cos(a) * d, g.parameters.height / 2 - 6, c.z + Math.sin(a) * d);
-      m.scale.set(1, 1, 0.6 + R() * 0.6); m.rotation.y = R() * 6.28;
-      S.add(m);
-    }
-    // offshore wind farm: a row of turbines, blades turning
-    this.rotors = [];
-    const white = M(0xe9eef0, { roughness: 0.5 }), yellow = M(0xf2b705, { roughness: 0.5 });
-    const rowA = R() * 6.28;
-    for (let i = 0; i < 6; i++) {
-      const base = new THREE.Vector3(c.x + Math.cos(rowA) * 520 + Math.cos(rowA + 1.57) * (i - 2.5) * 260, 0, c.z + Math.sin(rowA) * 520 + Math.sin(rowA + 1.57) * (i - 2.5) * 260);
-      const t = new THREE.Group(); t.position.copy(base); S.add(t);
-      const tp = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 14, 16), yellow); tp.position.y = 5; t.add(tp);
-      const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.1, 90, 16), white); tower.position.y = 57; t.add(tower);
-      const nac = new THREE.Mesh(new THREE.BoxGeometry(4.5, 4.5, 13), white); nac.position.set(0, 104, -1.5); t.add(nac);
-      const rotor = new THREE.Group(); rotor.position.set(0, 104, 5.5); t.add(rotor);
-      rotor.add(new THREE.Mesh(new THREE.SphereGeometry(2.2, 12, 8), white));
-      for (let b = 0; b < 3; b++) {
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(2.6, 62, 0.6), white);
-        blade.geometry.translate(0, 31, 0); blade.rotation.z = b * 2.094; rotor.add(blade);
-      }
-      rotor.rotation.z = R() * 6.28;
-      t.rotation.y = rowA + Math.PI;                               // all facing the same wind
-      this.rotors.push({ rotor, w: 0.9 + R() * 0.25 });
-    }
-    // other vessels: simple hull + superstructure silhouettes of different sizes
-    this.vessels = [];
-    for (let i = 0; i < 4; i++) {
-      const a = R() * 6.28, d = 160 + R() * 420, L = 18 + R() * 70;
-      const v = new THREE.Group();
-      const hullM = M([0x2b3a4a, 0x7a2222, 0x23313c, 0x3f5a3c][i % 4], { roughness: 0.6 });
-      const hull = new THREE.Mesh(new THREE.BoxGeometry(L * 0.18, L * 0.1, L), hullM); hull.position.y = L * 0.02; v.add(hull);
-      const bow = new THREE.Mesh(new THREE.ConeGeometry(L * 0.09, L * 0.22, 4), hullM); bow.rotation.set(Math.PI / 2, Math.PI / 4, 0); bow.scale.set(1, 1, 0.55); bow.position.set(0, L * 0.02, L * 0.6); v.add(bow);
-      const sup = new THREE.Mesh(new THREE.BoxGeometry(L * 0.14, L * 0.12, L * 0.2), M(0xe8ebec)); sup.position.set(0, L * 0.12, -L * 0.28); v.add(sup);
-      v.position.set(c.x + Math.cos(a) * d, 0, c.z + Math.sin(a) * d); v.rotation.y = R() * 6.28;
-      S.add(v);
-      this.vessels.push({ v, ph: R() * 6.28, speed: (R() < 0.5 ? 0 : 1.5 + R() * 3) });
-    }
-    // navigation buoys (cardinal/lateral colours) around the work site
-    this.buoys = [];
-    const cols = [0xf2c200, 0xc62828, 0x2e7d32, 0xf2c200];
-    for (let i = 0; i < 5; i++) {
-      const a = i * 1.26 + R() * 0.4, d = 70 + R() * 90;
-      const b = new THREE.Group();
-      const m = M(cols[i % 4], { roughness: 0.5 });
-      const float = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 1.6, 16), m); b.add(float);
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.6, 8), m); mast.position.y = 2; b.add(mast);
-      const top = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.8, 12), M(0x222222)); top.position.y = 3.5; b.add(top);
-      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff1a8 })); lamp.position.y = 4.05; b.add(lamp);
-      b.position.set(c.x + Math.cos(a) * d, 0, c.z + Math.sin(a) * d);
-      S.add(b);
-      this.buoys.push({ b, lamp, ph: R() * 6.28 });
-    }
+    const set = buildSurfaceSet(this.world, this.centre, R, {detail: this.detail, time: this.uniforms.uTime});
+    this.surf = set.group;
+    this.group.add(set.group);
+    this.rotors = [];                                              // rotors turn in the farm's vertex shader
+    this.vessels = set.vessels;
+    this.buoys = set.buoys;
   }
 
   // ── per frame ─────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ Not a pass/fail check: it writes review JPEGs and a JSON report with draw calls 
   ROV_DAYLIGHT_TAG=before python tools/browser_daylight_shots.py      # tag selects the file suffix
   ROV_DAYLIGHT_VIEWS=intro-deck,jacket-surface ...                    # subset (comma-separated)
   ROV_DAYLIGHT_TIER=medium                                            # quality tier stored before load
+  ROV_DAYLIGHT_OUT=output/wind-farm                                   # output directory (default output/daylight)
 
 The page runs in capture mode (window.__advance), so the deployment intro is stepped to fixed times
 independent of how slowly software GL renders. Surface views freeze the main camera on a fixed pose and let
@@ -21,7 +22,8 @@ from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
 
-OUT = Path(__file__).resolve().parents[1] / 'output' / 'daylight'
+SIMULATOR = Path(__file__).resolve().parents[1]
+OUT = SIMULATOR / os.environ.get('ROV_DAYLIGHT_OUT', 'output/daylight')
 TAG = os.environ.get('ROV_DAYLIGHT_TAG', 'after')
 TIER = os.environ.get('ROV_DAYLIGHT_TIER', 'medium')
 WIDTH = 1600
@@ -41,7 +43,20 @@ SURFACE_VIEWS = {
     'jacket-surface': ('jacket_inspection', (-6, -9, -2.2), (20, 4, -9)),
     'hull-surface': ('hull_inspection', (2, -16, -2.5), (34, 0, -3)),
     'harbour-surface': ('harbor_inspection', (12, -16, -2.0), (40, 0, -2)),
+    # Wind farm review: a chase-height view over the vehicle's start, and a raised view across the farm.
+    'chase-surface': ('jacket_inspection', (-9, 3, -3.2), (40, -14, -4)),
+    'farm-wide': ('jacket_inspection', (-60, -40, -38), (1400, 900, -60)),
+    'monopile-surface': ('monopile_current', (-8, -6, -2.4), (30, 10, -8)),
+    'open-surface': ('open_water', (-6, -6, -2.4), (30, 10, -6)),
 }
+# What the above-water set placed (surface_set.js), in NED, for aiming review cameras; null before it existed.
+SURFACE_SET = '''() => {
+  const set = window.__viewer.scene.getObjectByName('surface-set');
+  if (!set) return null;
+  const c = set.userData.farmCentre;
+  return {kind: set.userData.plan?.kind, turbines: set.userData.turbines || 0,
+          farmCentreNed: c ? [c.z, -c.x, -c.y].map(Math.round) : null};
+}'''
 GRAB = '''(quality) => document.querySelector('canvas.gl').toDataURL('image/jpeg', quality)'''
 
 ADVANCE = '''([seconds, settle, fps]) => {
@@ -155,7 +170,8 @@ def main():
             page.evaluate(PLACE, [[at, look], SETTLE_S, FPS])
             size = grab(page, OUT / f'{name}-{TAG}.jpg')
             perf = page.evaluate(MEASURE, [5])
-            report['views'][name] = {'jpeg_bytes': size, 'perf': perf, 'errors': errors}
+            report['views'][name] = {'jpeg_bytes': size, 'perf': perf, 'errors': errors,
+                                     'set': page.evaluate(SURFACE_SET)}
             print(name, json.dumps(report['views'][name]), flush=True)
             page.close()
         browser.close()
