@@ -22,6 +22,7 @@ X1 values are provisional (vehicles.py X1_TETHER_PARAMETERS); none is an X1 meas
 from __future__ import annotations
 
 import math
+from collections import deque
 from dataclasses import dataclass, fields
 
 import numpy as np
@@ -39,8 +40,29 @@ from .world import World
 
 # Rolling stream of solver events for clients (optional state.tether.events). Matches the radio-window
 # length used by tether_ops so a late-joining viewer still sees the recent break / snag / stall / twist.
+# Cap the in-memory queue itself — do not let it grow for the whole connection and only trim on send.
 EVENT_LIMIT = 32
 TWIST_WARN_TURNS = 2.0          # same console threshold as tether_ops (warning only; no extra force)
+
+
+class EventQueue(deque):
+    """Bounded event deque that also counts every append for pilot-log cursor tracking."""
+
+    def __init__(self, maxlen: int = EVENT_LIMIT):
+        super().__init__(maxlen=maxlen)
+        self.total = 0
+
+    def append(self, item) -> None:  # noqa: ANN001 — event dicts from several solvers
+        super().append(item)
+        self.total += 1
+
+    def extend(self, items) -> None:  # noqa: ANN001
+        for item in items:
+            self.append(item)
+
+    def clear(self) -> None:
+        super().clear()
+        self.total = 0
 
 GLAND_BODY = np.array(X1_PARAMETERS["gland_body"]["value"])     # tether strain-relief gland, rear of the hull
 
@@ -188,7 +210,7 @@ class Tether:
         self.contact_nodes = 0
         self.snag_names: list[str] = []
         self.wraps: dict[str, float] = {}
-        self.events: list[dict] = []
+        self.events = EventQueue(EVENT_LIMIT)
         self.turns = 0.0
         self._twist_warned = False
         self._heading = None
@@ -668,7 +690,7 @@ class Tether:
             "gland_working_load_n": round(self.p.gland_warn_n, 1),
             "break_reason": self.break_reason or None,
             # Optional: recent solver events. Absent on older hosts; clients that ignore it keep working.
-            "events": list(self.events[-EVENT_LIMIT:]),
+            "events": list(self.events),
         }
 
 

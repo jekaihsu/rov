@@ -43,6 +43,7 @@
   --z-controls: 40;    /* what the pointer must reach: HUD tool buttons, replay bar, touch sticks, skip intro */
   --z-banner: 50;      /* mission banner and movie title card */
   --z-drawer: 60;      /* engineering drawer */
+  --z-drawer-toggle: 61; /* HUD tool buttons: the drawer toggle stays reachable while the drawer is open */
   --z-blocker: 70;     /* offline card covering the viewport */
   --z-menu: 80;        /* launch menu; its own panel and footer are raised inside it */
   --z-toast: 90;       /* storage warnings */

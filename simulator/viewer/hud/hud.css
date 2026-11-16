@@ -8,7 +8,7 @@ body .topbar { display: none; }
 body .rack { display: none; }
 #engineering { position: fixed; inset: 4% 4% 4% auto; width: min(740px,92vw); z-index: var(--z-drawer);
   overflow: auto; background: var(--panel); backdrop-filter: blur(14px); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 24px; color: var(--text); }
+  border-radius: var(--radius); padding: 24px 64px 24px 24px; color: var(--text); }
 #engineering .rack { display: flex; overflow: visible; width: 100%; }
 #engineering .topbar { display: flex; flex-wrap: wrap; }
 #engineering .menu-only-settings { display: block !important; }
@@ -197,7 +197,8 @@ body.replaying #replayBar.idle { pointer-events: none; }
 /* Stacking: every layer takes its z-index from the scale in tokens.css. */
 body .hud, .flight { z-index: var(--z-hud); }
 #flightPeek, #flightWarning { z-index: var(--z-notice); }
-#flightTools { z-index: var(--z-controls); }
+/* Stay above the engineering drawer so Tab / the tool button can always close it. */
+#flightTools { z-index: var(--z-drawer-toggle); }
 .banner { z-index: var(--z-banner); }
 .sticks { z-index: var(--z-controls); }
 

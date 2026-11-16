@@ -5,6 +5,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import launch, http_base, ws_base
 from _menu import open_settings_tab, set_intro, to_briefing
+from _campaign_drive import hold_until
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'paint-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -13,6 +14,16 @@ QUERY = f'?ws={ws_base(8793)}&room=paint_{int(time.time())}&model=bluerov2_heavy
 PAINT_COUNT = "window.__viewer.scene.getObjectByName('Shared surface paint')?.userData.markCount||0"
 STICKER_COUNT = "(()=>{let count=0;window.__viewer.scene.traverse(o=>{if(o.name==='Vehicle stickers')count+=o.children.length;});return count;})()"
 results = {}
+
+NEAR_SURFACE = """
+  const start = new v.THREE.Vector3(-v.S.pos[1], -v.S.pos[2], v.S.pos[0]);
+  const meshes = [];
+  v.scene.traverse(function collect(object) {
+    if (object.isMesh && object.userData.paintable && object.visible) meshes.push(object);
+  });
+  const hits = new v.THREE.Raycaster(start, new v.THREE.Vector3(0, -1, 0)).intersectObjects(meshes, false);
+  return hits.length > 0 && hits[0].distance < 2.2;
+"""
 
 with sync_playwright() as p:
     browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
@@ -58,15 +69,10 @@ with sync_playwright() as p:
         assert page.evaluate('window.__viewer.S.paint_marks.length') == 0
         results['far_surface_rejected'] = True
         page.click('#bLock')
-        page.keyboard.down('q')
-        page.wait_for_function("""()=>{
-          const v=window.__viewer;if(!v?.S)return false;
-          const start=new v.THREE.Vector3(-v.S.pos[1],-v.S.pos[2],v.S.pos[0]);
-          const meshes=[];v.scene.traverse(o=>{if(o.isMesh&&o.userData.paintable&&o.visible)meshes.push(o);});
-          const hits=new v.THREE.Raycaster(start,new v.THREE.Vector3(0,-1,0)).intersectObjects(meshes,false);
-          return hits.length&&hits[0].distance<2.2;
-        }""", timeout=180000)
-        page.keyboard.up('q')
+        # Descend until a paintable surface is within reach. Budgeted in simulated seconds (the old wait was
+        # 180 s of wall time, which on an idle host is about 180 simulated s); see _campaign_drive.py.
+        hold_until(page, 'q', NEAR_SURFACE, lambda: page.click('#bLock'), 'descent to the seabed', budget=150,
+                   allies=(peer,))
         page.click('#bLock')
         page.click('#btnPause')
         page.wait_for_function('window.__viewer.S.paused')
@@ -92,13 +98,24 @@ with sync_playwright() as p:
         assert results['shared_first_mark'] == peer.evaluate('window.__viewer.S.paint_marks[0]')
         print('Real terrain F paint and peer rendering passed', flush=True)
 
+        assert page.locator('#engineering').is_visible()
         page.click('#flightDrawer')
+        assert page.locator('#engineering').is_hidden()
         canvas=page.locator('.viewport canvas').first
         box=canvas.bounding_box()
         page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
         page.mouse.down();page.mouse.move(box['x']+box['width']/2+40,box['y']+box['height']/2+20);page.mouse.up()
         assert page.evaluate('window.__viewer.S.paint_marks.length')==1
-        canvas.click(position={'x':box['width']/2+8,'y':box['height']/2})
+        # Dragging changes the camera. Project the verified exposed surface
+        # into the current view rather than assuming a fixed pixel is clear.
+        point = page.evaluate("""() => {
+          const v = window.__viewer;
+          const p = v.S.paint_marks[0].pos;
+          const projected = new v.THREE.Vector3(-p[1], -p[2], p[0]).project(v.camera);
+          const rect = document.querySelector('.viewport canvas').getBoundingClientRect();
+          return {x: (projected.x + 1) * rect.width / 2, y: (1 - projected.y) * rect.height / 2};
+        }""")
+        canvas.click(position=point)
         page.wait_for_function('window.__viewer.S.paint_marks.length===2')
         page.wait_for_function(PAINT_COUNT+'===2')
         peer.wait_for_function(PAINT_COUNT+'===2')

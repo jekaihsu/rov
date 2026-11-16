@@ -59,6 +59,7 @@ import { readReplay } from './replay_store.js';
 import { installDebrief } from './debrief/install.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
+import { createLinkInbox } from './input/link_inbox.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
@@ -488,29 +489,42 @@ const connectionNotice = installConnectionNotice({element: $('offline')});
 function send(obj) { if (ws && wsOpen) { try { ws.send(JSON.stringify(obj)); return true; } catch { } } return false; }
 function setConn(kind, text) { const el = $('conn'); el.className = 'pill ' + kind; el.textContent = text; }
 const sonarPanel = createSonar(send);
+const linkInbox = createLinkInbox({
+  onWorld(m) { if (session) onWorld(m); },
+  onState(m) { if (session) onState(m); },
+  onSession(m) {
+    session = m; needResync = true;
+    try { sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`, m.resume_token); } catch { }
+    for (const id of ['btnLoad', 'btnReset', 'btnPause', 'btnCur']) $(id).disabled = !m.is_host;
+  },
+  onOther(m) {
+    if (m.type === 'error' || m.type === 'operation_result') {
+      photoClient.receive(m); cockpit.message(m);
+      if (m.message) expeditionPanel.notify(m.message);
+    }
+  },
+});
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
   setConn('wait', '連線中…');
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
     wsOpen = true; retry = 0; needResync = true; session=null;inputSequence=0;
+    linkInbox.dispose();
     stateMerger.reset();
     setConn('wait', '已連線 · 等待資料'); rcPump.reset();
     let token;try{token=sessionStorage.getItem(`rov.session:${WS_URL}:${cockpit.room}`);}catch{}
     send({type:'join',room_id:cockpit.room,name:cockpit.name,resume_token:token,model_id:cockpit.model,
       caps:VIEWER_CAPS});
   };
+  // Coalesce state on the page so software-GL stalls cannot bury host_only behind a snapshot backlog.
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
+    // Deltas are merged in arrival order first; only complete snapshots are coalesced by the inbox.
     if (m.type === 'state') m = stateMerger.merge(m);
-    if (m.type === 'world' && session) onWorld(m); else if (m.type === 'state' && session) onState(m);
-    else if(m.type === 'session'){
-      session=m;needResync=true;
-      try{sessionStorage.setItem(`rov.session:${WS_URL}:${cockpit.room}`,m.resume_token);}catch{}
-      for(const id of ['btnLoad','btnReset','btnPause','btnCur'])$(id).disabled=!m.is_host;
-    }else if(m.type==='error'||m.type==='operation_result'){photoClient.receive(m);cockpit.message(m);if(m.message)expeditionPanel.notify(m.message);}
+    linkInbox.receive(m);
   };
-  ws.onclose = () => { wsOpen = false; ws = null; setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
+  ws.onclose = () => { wsOpen = false; ws = null; linkInbox.dispose(); setConn('stop', '離線'); connectionNotice.lost(); scheduleRetry(); };
   ws.onerror = () => { };
 }
 function scheduleRetry() {
@@ -1127,6 +1141,7 @@ async function startReplay(url) {
   wake();
   debrief = installDebrief({
     replayBar: $('replayBar'), getReplay: () => rep, setReplayTime, setCam, feed: feedReplay,
+    source: url, recording: data,
     capture() { renderer.render(scene, camera); return renderer.domElement; },
   });
   loadClip(0);
@@ -1223,6 +1238,7 @@ installVoice({engine: audio, music});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
+  linkInbox.flush();
   if (!CAPTURE && skipFrame(now)) {
     requestAnimationFrame(frame);
     return;
@@ -1309,7 +1325,7 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, touch, toggleLock, takePhoto:options=>photoClient.takePhoto(options) };
 Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;

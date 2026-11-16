@@ -123,6 +123,18 @@ class TestPilotLogTether(unittest.TestCase):
             sim._log_tether_and_environment()
         self.assertEqual([row["text"] for row in sim.log].count("揚沙全白"), 2)
 
+    def test_events_queue_is_bounded(self):
+        from qysim.tether import EVENT_LIMIT
+        tether = Tether(World(20), np.array([0.0, 0.0, 0.0]), np.array([10.0, 0.0, 5.0]), 10.5)
+        for k in range(EVENT_LIMIT + 40):
+            tether.events.append({"t": float(k), "type": "reel_stall", "tension_n": 1.0})
+        self.assertEqual(len(tether.events), EVENT_LIMIT)
+        self.assertEqual(tether.events.total, EVENT_LIMIT + 40)
+        streamed = tether.state()["events"]
+        self.assertEqual(len(streamed), EVENT_LIMIT)
+        self.assertEqual(streamed[0]["t"], 40.0)
+        self.assertEqual(streamed[-1]["t"], float(EVENT_LIMIT + 39))
+
 
 if __name__ == "__main__":
     unittest.main()

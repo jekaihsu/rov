@@ -2,9 +2,10 @@
 // Controller tuning reuses the input layer's own settings dialog (input/settings.js) with the same storage.
 import { BINDINGS_VERSION, migrateBindings } from '../input/bindings.js';
 import { createHaptics } from '../input/haptics.js';
-import '../input/haptics_fidelity.js';
+import { migratePadHapticsFromInput } from '../input/haptics_fidelity.js';
 import { rowsFor } from '../input/keyboard_layout.js';
 import { installSettings } from '../input/settings.js';
+import { getFidelity } from '../fidelity.js';
 import { CONTROL_LAYOUTS } from '../control_layout.js';
 import { renderQualityInfo } from '../render_quality.js';
 import { rememberInterface, rememberQuality } from './preferences.js';
@@ -80,6 +81,7 @@ async function readInputSettings() {
 // The input layer's controller dialog; its button is moved into the controls tab.
 async function mountControllerDialog(container, onLayout) {
   const settings = await readInputSettings();
+  const fidelity = getFidelity();
   let pad = null;
   function save() {
     try {
@@ -89,9 +91,10 @@ async function mountControllerDialog(container, onLayout) {
     }
     window.rovDesktop?.rememberInput?.(settings);
   }
+  if (migratePadHapticsFromInput(settings, fidelity)) save();
   const haptics = createHaptics(function currentPad() {
     return pad;
-  }, settings);
+  }, settings, fidelity);
   const panel = installSettings(settings, save, haptics, onLayout);
   const button = document.getElementById('inputSettingsButton');
   button.textContent = STRINGS.controllerSettings;
