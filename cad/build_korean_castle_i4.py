@@ -1,11 +1,12 @@
 """I4: rebuild Korean Castle visuals within triangle and texture budgets (headless bpy).
 
-Opens the existing illustrative .blend, replaces packed 1K PBR maps with softer
-low-saturation underwater atlases (deep rust, muted fouling, neutral rubble),
-raises hull texel density via UV tiling, drops the embedded flat seabed plane
-(scene uses seabed.js), trims heavy accretion, adds sparse fracture flakes and
-depth-weighted biofouling, then exports LOD0/1/2 raw GLBs plus collision/route
-arrays. Never writes the .blend back.
+Opens the existing illustrative .blend, replaces packed 1K PBR maps with seamless
+fBm/Worley underwater atlases (deep rust, muted fouling, neutral rubble), keeps
+authored SurfaceMeters UVs (no 4.2× wallpaper), textures aft superstructure and
+flat silt/recess materials, drops the embedded flat seabed plane (scene uses
+seabed.js), trims heavy accretion, adds sparse fracture flakes and depth-weighted
+biofouling, then exports LOD0/1/2 raw GLBs plus collision/route arrays. Never
+writes the .blend back.
 
 Run from the repository root:
   /tmp/i4env/bin/python cad/build_korean_castle_i4.py
@@ -30,26 +31,71 @@ EXCLUDE_VISUAL = {"Seabed_sand_ripples"}
 RNG = random.Random(1404)
 TAU = math.tau
 SIZE = 1024
-# Metres of hull per atlas tile: denser than the authored unwrap so 1 m shots keep grit.
-HULL_UV_SCALE = 4.2
-GROWTH_UV_SCALE = 0.28
-ROCK_UV_SCALE = 0.22
+# Keep authored SurfaceMeters UVs (no 4.2× densify — that caused brick seams).
+HULL_UV_SCALE = 1.0
+GROWTH_UV_SCALE = 0.12
+ROCK_UV_SCALE = 0.1
 
 
-def noise(size: int, cells: int, seed: int) -> np.ndarray:
+def seamless_value_noise(size: int, cells: int, seed: int) -> np.ndarray:
+    """Axis-aligned value noise that tiles: lattice wraps, so atlas edges match."""
     rng = np.random.default_rng(seed)
-    grid = rng.random((cells + 1, cells + 1), dtype=np.float32)
-    p = np.linspace(0, cells - 0.001, size, dtype=np.float32)
-    idx = p.astype(np.int32)
+    grid = rng.random((cells, cells), dtype=np.float32)
+    p = np.linspace(0, cells, size, endpoint=False, dtype=np.float32)
+    idx = np.floor(p).astype(np.int32)
     t = p - idx
     t = t * t * (3 - 2 * t)
-    a = grid[idx[:, None], idx[None, :]]
-    b = grid[idx[:, None] + 1, idx[None, :]]
-    c = grid[idx[:, None], idx[None, :] + 1]
-    d = grid[idx[:, None] + 1, idx[None, :] + 1]
+    i0 = idx % cells
+    i1 = (idx + 1) % cells
+    a = grid[i0[:, None], i0[None, :]]
+    b = grid[i1[:, None], i0[None, :]]
+    c = grid[i0[:, None], i1[None, :]]
+    d = grid[i1[:, None], i1[None, :]]
     return (a * (1 - t[:, None]) + b * t[:, None]) * (1 - t[None, :]) + (
         c * (1 - t[:, None]) + d * t[:, None]
     ) * t[None, :]
+
+
+def fbm(size: int, seed: int, octaves: int = 5, base_cells: int = 4) -> np.ndarray:
+    """Smooth multi-octave seamless noise; soft transitions, no hard square cells."""
+    total = np.zeros((size, size), dtype=np.float32)
+    amp = 1.0
+    norm = 0.0
+    cells = base_cells
+    for octave in range(octaves):
+        total += amp * seamless_value_noise(size, cells, seed + octave * 17)
+        norm += amp
+        amp *= 0.5
+        cells = min(cells * 2, size // 2)
+    return total / max(norm, 1e-6)
+
+
+def worley(size: int, cells: int, seed: int) -> np.ndarray:
+    """Soft periodic Worley (F1); used for barnacle-scale mottling, not hard bricks."""
+    rng = np.random.default_rng(seed)
+    points = rng.random((cells, cells, 2), dtype=np.float32)
+    yy, xx = np.meshgrid(
+        np.linspace(0, cells, size, endpoint=False, dtype=np.float32),
+        np.linspace(0, cells, size, endpoint=False, dtype=np.float32),
+        indexing="ij",
+    )
+    best = np.full((size, size), 1e9, dtype=np.float32)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            cell_y = np.floor(yy).astype(np.int32)
+            cell_x = np.floor(xx).astype(np.int32)
+            ny = (cell_y + dy) % cells
+            nx = (cell_x + dx) % cells
+            py = cell_y + dy + points[ny, nx, 0]
+            px = cell_x + dx + points[ny, nx, 1]
+            dist = (yy - py) ** 2 + (xx - px) ** 2
+            best = np.minimum(best, dist)
+    return np.sqrt(best)
+
+
+def noise(size: int, cells: int, seed: int) -> np.ndarray:
+    """Back-compat alias: seamless value noise at the requested cell density."""
+    return seamless_value_noise(size, max(2, cells), seed)
 
 
 def write_image(image: bpy.types.Image, rgb: np.ndarray, data: bool = False) -> None:
@@ -78,80 +124,113 @@ def set_repeat(image: bpy.types.Image | None) -> None:
 
 
 def steel_maps() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Deep brown / dark ochre rust with soft grey-green film — not bright orange or mint."""
-    broad = noise(SIZE, 11, 41)
-    medium = noise(SIZE, 47, 42)
-    fine = noise(SIZE, 180, 43)
-    micro = noise(SIZE, 900, 44)
+    """High-contrast seamless rust + green-grey fouling (match main grit, no brick cells).
+
+    Main's atlas has albedo std≈20 and normal std≈15; earlier I4 drafts were too flat
+    (std≈5 / 1.5) and washed out under real-mode lamps. Soft fBm + Worley stay tileable.
+    """
+    broad = fbm(SIZE, 41, octaves=4, base_cells=2)
+    medium = fbm(SIZE, 42, octaves=5, base_cells=5)
+    fine = fbm(SIZE, 43, octaves=6, base_cells=10)
+    micro = fbm(SIZE, 44, octaves=6, base_cells=22)
+    # Barnacle-scale pits / clumps — soft Worley, not axis-aligned bricks.
+    pits = worley(SIZE, 14, 45)
+    pits = np.clip(1.0 - pits / max(float(pits.max()), 1e-6), 0, 1)
+    clumps = worley(SIZE, 8, 46)
+    clumps = np.clip(1.0 - clumps / max(float(clumps.max()), 1e-6), 0, 1)
     rows = np.arange(SIZE, dtype=np.float32)[:, None]
     cols = np.arange(SIZE, dtype=np.float32)[None, :]
-    seam_u = np.abs(((cols / SIZE) * 18) % 1 - 0.5)
-    seam_v = np.abs(((rows / SIZE) * 10) % 1 - 0.5)
-    rivet = ((np.sin(cols * 0.22) * np.sin(rows * 0.22)) > 0.92).astype(np.float32)
-    # Soft paint-loss mask (no hard camouflage edges).
-    paint = np.clip((broad * 0.55 + medium * 0.3 + fine * 0.15 - 0.42) * 3.2, 0, 1)
-    pit = np.clip((0.32 - fine) * 6, 0, 1)
-    silt = np.clip(0.55 - rows / SIZE, 0, 1) * (0.35 + medium * 0.65)
-    # Deep brown / dark ochre (low chroma). Lifted slightly so real-mode optics still read grit.
+    plate = 0.5 + 0.5 * np.sin(cols * (TAU / SIZE) * 2.5) * np.sin(rows * (TAU / SIZE) * 1.8)
+    rivet = ((np.sin(cols * 0.2) * np.sin(rows * 0.2)) > 0.91).astype(np.float32)
+
+    # Soft masks with enough range that WebP keeps grit (target albedo std ~18–22).
+    fouling = np.clip((broad * 0.45 + medium * 0.4 + fine * 0.15 - 0.38) * 3.5, 0, 1)
+    rust_mask = np.clip((0.55 - medium) * 2.8 + fine * 0.4, 0, 1)
+    pit = np.clip(pits * 0.85 + clumps * 0.35 + (0.4 - fine) * 1.8, 0, 1)
+    dark = np.clip(1.0 - broad * 0.7 - medium * 0.4, 0, 1)
+
+    # Deep brown / dark ochre steel base.
     rust = np.stack(
         [
-            0.18 + medium * 0.07 + fine * 0.03,
-            0.11 + fine * 0.04 + micro * 0.02,
-            0.07 + micro * 0.02,
+            0.24 + medium * 0.22 + fine * 0.12 + micro * 0.08,
+            0.13 + fine * 0.1 + micro * 0.05,
+            0.07 + micro * 0.04,
         ],
         axis=-1,
     )
-    # Soft green-grey / brown-grey film (desaturated fouling remnant), not mint.
+    # Soft green-grey film (like main), low chroma — not mint.
     coating = np.stack(
         [
-            0.15 + fine * 0.03 + medium * 0.02,
-            0.16 + fine * 0.04 + micro * 0.02,
-            0.14 + micro * 0.02,
+            0.11 + fine * 0.09 + micro * 0.05,
+            0.2 + medium * 0.14 + fine * 0.1 + micro * 0.05,
+            0.1 + fine * 0.07 + micro * 0.04,
         ],
         axis=-1,
     )
-    color = rust * (1 - paint[:, :, None]) + coating * paint[:, :, None]
-    color *= 1 - 0.18 * pit[:, :, None]
-    silt_col = np.array([0.20, 0.18, 0.14], dtype=np.float32)
-    color = color * (1 - 0.28 * silt[:, :, None]) + silt_col * silt[:, :, None]
-    color = np.clip(color, 0, 1)
-    height = fine * 0.45 + micro * 0.2 - pit * 0.25 + paint * 0.08
-    height -= np.clip(0.08 - seam_u, 0, 0.08) * 0.35
-    height -= np.clip(0.1 - seam_v, 0, 0.1) * 0.2
-    height += rivet * 0.08
+    # Near-black recesses between patches.
+    charcoal = np.stack(
+        [
+            0.03 + micro * 0.03,
+            0.028 + micro * 0.02,
+            0.022 + micro * 0.015,
+        ],
+        axis=-1,
+    )
+    color = rust * (1 - fouling[:, :, None]) + coating * fouling[:, :, None]
+    color = color * (1 - 0.6 * dark[:, :, None]) + charcoal * (0.6 * dark[:, :, None])
+    color = color * (1 - 0.4 * pit[:, :, None]) + rust * rust_mask[:, :, None] * 0.3
+    # Large-scale break-up so many tiled metres do not read as wallpaper.
+    color *= 0.65 + 0.7 * broad[:, :, None]
+    # Salt-pepper grit (seamless via high-cell fBm) so close-ups keep grain like main.
+    grit = (micro - 0.5) * 0.22
+    color = np.clip(color + grit[:, :, None], 0, 1)
+
+    # Strong height for barnacle-scale normals (target normal RGB std ~12–16).
+    height = (
+        fine * 0.7
+        + micro * 0.55
+        - pit * 0.55
+        + fouling * 0.15
+        + plate * 0.08
+        + rivet * 0.14
+        - dark * 0.2
+    )
     dy, dx = np.gradient(height)
-    normal = np.stack([-dx * 3.2, -dy * 3.2, np.ones_like(dx)], axis=-1)
+    normal = np.stack([-dx * 11.0, -dy * 11.0, np.ones_like(dx)], axis=-1)
+
     normal /= np.linalg.norm(normal, axis=-1)[:, :, None]
     normal = normal * 0.5 + 0.5
-    roughness = np.clip(0.84 + 0.12 * micro - 0.14 * paint + 0.08 * pit, 0.58, 1.0)
+    roughness = np.clip(0.78 + 0.16 * micro - 0.14 * fouling + 0.1 * pit, 0.55, 1.0)
     rough = np.repeat(roughness[:, :, None], 3, axis=-1)
     return color, rough, normal
 
 
 def growth_maps() -> tuple[np.ndarray, np.ndarray]:
-    """Soft low-sat green-grey and brown-grey fouling; mottled depth layers in one atlas."""
-    n = noise(SIZE, 160, 90)
-    m = noise(SIZE, 28, 91)
-    speck = noise(SIZE, 700, 92)
-    depth = noise(SIZE, 8, 93)
-    # Brown-grey (deeper / siltier) ↔ green-grey (shallower film). Both low chroma.
+    """Soft low-sat green-grey and brown-grey fouling; seamless fBm with grit."""
+    n = fbm(SIZE, 90, octaves=5, base_cells=5)
+    m = fbm(SIZE, 91, octaves=4, base_cells=3)
+    speck = fbm(SIZE, 92, octaves=6, base_cells=14)
+    depth = fbm(SIZE, 93, octaves=3, base_cells=2)
+    clumps = worley(SIZE, 9, 94)
+    clumps = np.clip(1.0 - clumps / max(float(clumps.max()), 1e-6), 0, 1)
     brown = np.stack(
-        [0.23 + n * 0.07, 0.20 + n * 0.05, 0.16 + n * 0.04],
+        [0.28 + n * 0.16, 0.22 + n * 0.12, 0.14 + n * 0.08],
         axis=-1,
     )
     green_grey = np.stack(
-        [0.19 + n * 0.05, 0.21 + n * 0.05 + m * 0.02, 0.18 + n * 0.04],
+        [0.16 + n * 0.1, 0.24 + n * 0.12 + m * 0.06, 0.15 + n * 0.08],
         axis=-1,
     )
     mix = np.clip(0.35 + depth * 0.45 + m * 0.15, 0, 1)[:, :, None]
     color = brown * (1 - mix) + green_grey * mix
-    freckles = np.clip((speck - 0.62) * 5, 0, 1)
-    freckle_col = np.array([0.28, 0.24, 0.18], dtype=np.float32)
-    color = color * (1 - freckles[:, :, None] * 0.35) + freckles[:, :, None] * freckle_col
+    freckles = np.clip((speck - 0.5) * 3.2, 0, 1) * (0.35 + 0.65 * clumps)
+    freckle_col = np.array([0.32, 0.26, 0.16], dtype=np.float32)
+    color = color * (1 - freckles[:, :, None] * 0.4) + freckles[:, :, None] * freckle_col
+    color *= 0.7 + 0.6 * n[:, :, None]
     color = np.clip(color, 0, 1)
-    height = n * 0.55 + speck * 0.25
+    height = n * 0.55 + speck * 0.35 + clumps * 0.25
     dy, dx = np.gradient(height)
-    normal = np.stack([-dx * 2.8, -dy * 2.8, np.ones_like(dx)], axis=-1)
+    normal = np.stack([-dx * 6.5, -dy * 6.5, np.ones_like(dx)], axis=-1)
     normal /= np.linalg.norm(normal, axis=-1)[:, :, None]
     normal = normal * 0.5 + 0.5
     return color, normal
@@ -161,12 +240,12 @@ def rock_maps() -> np.ndarray:
     """Neutral rock / rubble albedo — no fluorescent growth tint.
 
     Shares the steel normal atlas so the packed set stays at six 1K maps (≤32 MiB).
-    Multi-octave noise avoids the large square cells that read as pixel blocks.
+    Seamless multi-octave fBm avoids the large square cells that read as pixel blocks.
     """
-    broad = noise(SIZE, 18, 70)
-    medium = noise(SIZE, 64, 71)
-    fine = noise(SIZE, 220, 72)
-    micro = noise(SIZE, 800, 73)
+    broad = fbm(SIZE, 70, octaves=4, base_cells=3)
+    medium = fbm(SIZE, 71, octaves=5, base_cells=6)
+    fine = fbm(SIZE, 72, octaves=5, base_cells=12)
+    micro = fbm(SIZE, 73, octaves=4, base_cells=20)
     base = 0.20 + broad * 0.07 + medium * 0.06 + fine * 0.04
     color = np.stack(
         [
@@ -266,10 +345,13 @@ def apply_growth_textures() -> None:
     set_repeat(norm)
     # Depth layering via tint: limestone (deeper/brown-grey) vs olive (shallower green-grey).
     variants = {
-        "Marine growth | limestone": ((0.22, 0.19, 0.15), 0.28),
-        "Marine growth | olive": ((0.17, 0.21, 0.17), 0.22),
-        "Marine growth | mustard": ((0.23, 0.20, 0.15), 0.25),
+        "Marine growth | limestone": ((0.55, 0.48, 0.38), 0.35),
+        "Marine growth | olive": ((0.42, 0.52, 0.42), 0.3),
+        "Marine growth | mustard": ((0.55, 0.48, 0.36), 0.32),
+        "Marine growth | grey green": ((0.4, 0.48, 0.42), 0.28),
+        "Marine growth | muted ochre": ((0.52, 0.45, 0.34), 0.3),
     }
+
     for name in list(bpy.data.materials.keys()):
         if not name.startswith("Marine growth"):
             continue
@@ -318,6 +400,74 @@ def apply_oxide_texture() -> None:
         tint=(0.22, 0.11, 0.06),
         tint_factor=0.4,
     )
+
+
+def apply_flat_materials() -> None:
+    """Give previously flat-grey materials the steel/growth atlases (silt, recesses)."""
+    steel_c = bpy.data.images.get("encrusted_steel_basecolor.png")
+    steel_r = bpy.data.images.get("encrusted_steel_roughness.png")
+    steel_n = bpy.data.images.get("encrusted_steel_normal.png")
+    growth_c = bpy.data.images.get("I4_growth_basecolor.png")
+    growth_n = bpy.data.images.get("I4_growth_normal.png")
+    silt = bpy.data.materials.get("Dark settled silt inside cargo holds")
+    if silt is not None:
+        wire_pbr(
+            silt,
+            color=growth_c or steel_c,
+            normal=growth_n or steel_n,
+            roughness=0.96,
+            normal_strength=0.45,
+            tint=(0.18, 0.16, 0.13),
+            tint_factor=0.45,
+        )
+    recess = bpy.data.materials.get("Dark recess steel")
+    if recess is not None:
+        wire_pbr(
+            recess,
+            color=steel_c,
+            rough=steel_r,
+            normal=steel_n,
+            metallic=0.18,
+            normal_strength=0.5,
+            tint=(0.12, 0.1, 0.08),
+            tint_factor=0.5,
+        )
+
+
+def texture_aft_superstructure() -> None:
+    """Ensure aft deckhouse / roof / rails keep authored UVs and steel+oxide materials.
+
+    Review called these flat grey; they already use Weathered steel, but some faces
+    lacked useful UV span after edits. Re-assert steel maps and mild UV density.
+    """
+    steel = bpy.data.materials.get("Weathered steel | original PBR maps")
+    oxide = bpy.data.materials.get("Fresh exposed oxide")
+    growth = bpy.data.materials.get("Marine growth | limestone")
+    for name in (
+        "Aft_deckhouse_broken_walls",
+        "Aft_partial_roof",
+        "Aft_bent_railings",
+        "Aft_mast_remnants",
+        "Aft_window_frames",
+    ):
+        obj = bpy.data.objects.get(name)
+        if obj is None or obj.type != "MESH":
+            continue
+        if not obj.data.uv_layers:
+            project_uv(obj, 0.08)
+        # Mild densify only on sparse-UV roofs so 1 m shots keep grit without 4.2× bricks.
+        if name in ("Aft_partial_roof", "Aft_deckhouse_broken_walls"):
+            scale_uvs(obj, 1.35)
+        if not obj.data.materials:
+            obj.data.materials.append(steel or oxide)
+        # Splatter a growth slot on deckhouse walls for mud/fouling read.
+        if name == "Aft_deckhouse_broken_walls" and growth is not None:
+            if growth.name not in [m.name if m else "" for m in obj.data.materials]:
+                obj.data.materials.append(growth)
+            # Assign ~30% of polygons to growth for silted look.
+            for i, poly in enumerate(obj.data.polygons):
+                if (i * 17 + 3) % 10 < 3:
+                    poly.material_index = len(obj.data.materials) - 1
 
 
 def scale_uvs(obj: bpy.types.Object, scale: float) -> None:
@@ -544,6 +694,9 @@ def clear_i4_objects() -> None:
 
 
 def densify_hull_uvs() -> None:
+    """Keep authored SurfaceMeters UVs (HULL_UV_SCALE=1). No 4.2× wallpaper tiling."""
+    if abs(HULL_UV_SCALE - 1.0) < 1e-6:
+        return
     for name in ("01_BOW_HullShell", "02_MID_HullShell", "03_STERN_HullShell"):
         obj = bpy.data.objects.get(name)
         if obj:
@@ -626,8 +779,10 @@ def main() -> None:
     replace_steel_textures()
     apply_growth_textures()
     apply_oxide_texture()
+    apply_flat_materials()
     apply_rock_textures()
     densify_hull_uvs()
+    texture_aft_superstructure()
     for name in (
         "Surface_accretion_0",
         "Surface_accretion_1",

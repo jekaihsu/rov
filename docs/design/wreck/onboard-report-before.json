@@ -1,52 +1,150 @@
 {
-  "before-onboard-dark": {
+  "before-onboard-1m-dark": {
     "scenario": "korean_castle",
     "eye_ned": [
-      13.3,
+      17.7,
       -20.0,
       27.0
     ],
     "heading_deg": 0.0,
-    "pitch_deg": -3.3,
+    "pitch_deg": -0.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 1.67,
+    "seconds_per_frame": 2.052,
     "quality": "high",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 2.8407353121813072e-05,
+      "meteredLuminance": 1.5128107689276035e-05,
       "whiteBalance": [
         3.000000059502263,
         1,
         3.000000059502263
       ]
     },
-    "bytes": 41466
+    "bytes": 48564,
+    "stand_off_m": 1.0,
+    "eye_local": [
+      50.0,
+      -10.3,
+      5.0
+    ],
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 0
   },
-  "before-onboard-lit": {
+  "before-onboard-1m-lit": {
     "scenario": "korean_castle",
     "eye_ned": [
-      13.3,
+      17.7,
       -20.0,
       27.0
     ],
     "heading_deg": 0.0,
-    "pitch_deg": -3.3,
+    "pitch_deg": -0.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 2.544,
+    "seconds_per_frame": 2.127,
     "quality": "high",
     "exposure": {
-      "exposure": 100.35851381118276,
-      "target": 100.21309322409157,
-      "meteredLuminance": 0.0010293806091489152,
+      "exposure": 5.941861547997229,
+      "target": 5.573328350644358,
+      "meteredLuminance": 0.08771072879225293,
       "whiteBalance": [
-        1.0192458530173274,
+        1.216657534054525,
         1,
-        1.2158969627972471
+        1.6822704567720126
       ]
     },
-    "bytes": 63702
+    "bytes": 131448,
+    "stand_off_m": 1.0,
+    "eye_local": [
+      50.0,
+      -10.3,
+      5.0
+    ],
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 2
+  },
+  "before-onboard-3m-dark": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      15.7,
+      -20.0,
+      27.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 1.988,
+    "quality": "high",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 2.5127181643576816e-05,
+      "whiteBalance": [
+        3.000000059502263,
+        1,
+        3.000000059502263
+      ]
+    },
+    "bytes": 45619,
+    "stand_off_m": 3.0,
+    "eye_local": [
+      50.0,
+      -12.3,
+      5.0
+    ],
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 0
+  },
+  "before-onboard-3m-lit": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      15.7,
+      -20.0,
+      27.0
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 3.017,
+    "quality": "high",
+    "exposure": {
+      "exposure": 77.74665623556976,
+      "target": 76.46491793082497,
+      "meteredLuminance": 0.0015605840734036827,
+      "whiteBalance": [
+        1.2307733775731473,
+        1,
+        1.4237687372345684
+      ]
+    },
+    "bytes": 127870,
+    "stand_off_m": 3.0,
+    "eye_local": [
+      50.0,
+      -12.3,
+      5.0
+    ],
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 2
   }
 }

@@ -85,15 +85,20 @@ def main() -> None:
         # Authoring already hit the LOD triangle targets; a light simplify only cleans seams.
         if "lod1" in target_name:
             run(cli, "simplify", current, current, "--ratio", "0.95", "--error", "0.002")
+            # 512² atlases: LOD1 is a mid-range swap; shrink disk vs LOD0's 1K set.
+            run(cli, "resize", current, current, "--width", "512", "--height", "512")
         elif "lod2" in target_name:
             run(cli, "simplify", current, current, "--ratio", "0.9", "--error", "0.004")
-        # Quality 78: softer albedo edges than 70 (fewer WebP blocks) while staying small on disk.
-        run(cli, "webp", current, current, "--quality", "78", "--effort", "90")
+            run(cli, "resize", current, current, "--width", "256", "--height", "256")
+        # Quality 88: keep grit in low-chroma underwater albedos (q78 crushed std≈5 maps).
+        run(cli, "webp", current, current, "--quality", "88", "--effort", "90")
         run(cli, "prune", current, current)
         target = MODELS / target_name
         # LOD0 stays above the 2 MB new-asset soft limit (tris + 1K atlases); see PR description.
+        # LOD1/LOD2 use smaller atlases so they stay near/under the soft limit.
         level = "high" if source_name.startswith("lod0") else "medium"
         run(cli, "meshopt", current, target, "--level", level)
+
         info = describe(target)
         assert info["triangles"] <= tri_budget, (target_name, info["triangles"], tri_budget)
         assert info["texture_bytes_with_mips"] <= tex_budget, (

@@ -620,6 +620,10 @@ def main(argv=None):
         browser = launch(playwright, headless=True, args=extra_args)
         probe = browser.new_page()
         report['chrome_gpu'] = read_chrome_gpu(probe)
+        # chrome://gpu can leave the tab on chrome-error://; probe WebGL on a fresh page.
+        probe.close()
+        probe = browser.new_page()
+        probe.goto('about:blank', timeout=timeout(15000))
         report['webgl'] = read_webgl_renderer(probe)
         probe.close()
         rows, heavy = run_browser_matrix(
