@@ -32,6 +32,13 @@ def assert_title(panel, text, wait=None):
     panel.locator('.pp-title', has_text=text).wait_for(state='visible', timeout=wait)
 
 
+def toggle_pause(page):
+    """Toggle the simulation pause with the host button and wait for the state to follow."""
+    paused = page.evaluate('!!window.__viewer.S.paused')
+    page.evaluate('document.getElementById("btnPause").click()')
+    page.wait_for_function(f'!!window.__viewer.S.paused === {"false" if paused else "true"}')
+
+
 def stage(page):
     return page.evaluate('window.__procedure().stage')
 
@@ -99,18 +106,22 @@ def run_checks(page, panel):
     thrusters = page.evaluate(f'{P}.thrusters')
     primary = panel.locator('#procedurePrimary')
     for motor in range(thrusters):
-        before = page.evaluate(f'window.__viewer.rotorOf[{motor}]?.ang ?? null')
         assert primary.text_content() == f'短測 T{motor + 1}', primary.text_content()
+        # A software-rendered page can lag the 2 s pulse by seconds: hold the simulation while it is checked.
+        toggle_pause(page)
+        before = page.evaluate(f'window.__viewer.rotorOf[{motor}]?.ang ?? null')
         primary.click()
-        # The pulse lasts 2 simulated seconds; a slow page may only see it finished.
-        page.wait_for_function(f'{P}.diagnostic_index === {motor} || {P}.tests.includes({motor})')
-        if motor == 0:
-            page.screenshot(path=str(OUT / 'thruster.png'))
-        page.wait_for_function(f'{P}.tests.includes({motor}) && !({P}.diagnostic > 0)', timeout=timeout(30000))
+        page.wait_for_function(f'{P}.diagnostic_index === {motor}')
         if before is not None:
-            # The prop turned during the pulse (the vehicle is locked on deck, so only the pulse can turn it).
+            # The prop turns while pulsed (the vehicle is locked on deck, so only the pulse can turn it).
+            page.wait_for_function('window.__procedure().stage.spinning')
             page.wait_for_function(f'Math.abs(window.__viewer.rotorOf[{motor}].ang - {before}) > 1',
                                    timeout=timeout(15000))
+        if motor == 0:
+            page.screenshot(path=str(OUT / 'thruster.png'))
+        toggle_pause(page)
+        page.wait_for_function(f'{P}.tests.includes({motor}) && !({P}.diagnostic > 0)', timeout=timeout(30000))
+        page.wait_for_function('!window.__procedure().stage.spinning')
         print('Motor pulsed and spun', motor + 1, flush=True)
     assert_title(panel, '燈光測試')
     assert not stage(page)['lamps']
