@@ -58,7 +58,8 @@ function paintMaterial(detail) {
   material.map = scanTexture('coating_c', {repeat}, function assignMap(texture) {
     material.map = texture;
   });
-  material.normalMap = scanTexture('coating_n', {repeat}, function assignNormal(texture) {
+  const size = detail === 'high' ? 0 : 512;
+  material.normalMap = scanTexture('coating_n', {repeat, size}, function assignNormal(texture) {
     material.normalMap = texture;
   });
   material.onBeforeCompile = function compileTopsidePaint(shader) {

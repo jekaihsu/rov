@@ -138,7 +138,8 @@ export function applyRockAtlas(material, detail = 'medium') {
     material.map = texture;
   });
   if (detail !== 'low') {
-    material.normalMap = scanTexture('rocks_n', {flipY: false}, function assignNormal(texture) {
+    const half = detail === 'high' ? 0 : 512;
+    material.normalMap = scanTexture('rocks_n', {flipY: false, size: half}, function assignNormal(texture) {
       material.normalMap = texture;
     });
   }
@@ -180,11 +181,11 @@ export function upgradeRockMesh(mesh, makeGeometry, detail) {
 
 /**
  * Rock armour (scour protection, quay toe): every instance is scaled to stay inside its capsule from the unit
- * sphere, so the scan (all vertices inside the unit sphere) can replace the procedural rock as is. High uses
- * 320 triangles a rock, medium 96; low keeps the procedural 8-face rocks.
+ * sphere, so the scan (all vertices inside the unit sphere) can replace the procedural rock as is. Medium and high
+ * use 96 triangles a rock (a scour apron has about a thousand); low keeps the procedural 8-face rocks.
  */
 export function upgradeArmourRocks(mesh, kind, detail) {
   if (detail === 'low') return Promise.resolve(false);
   const rock = ARMOUR_ROCKS[kind] || 'boulder_01';
-  return upgradeRockMesh(mesh, (rocks) => rocks.geometry(rock, detail === 'high' ? 1 : 2), detail);
+  return upgradeRockMesh(mesh, (rocks) => rocks.geometry(rock, 2), detail);
 }

@@ -125,7 +125,8 @@ def shoot_underwater(browser, report, only, size, tier=TIER, suffix=''):
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
             replay, meta = looks.build_replay(shot, site, eye, target, lamp)
-            meta.update(looks.capture(page, looks.REAL, f'{shot}{suffix}-{TAG}', replay, None))
+            query = looks.REAL.replace('quality=medium', f'quality={tier}')
+            meta.update(looks.capture(page, query, f'{shot}{suffix}-{TAG}', replay, None))
             meta['perf'] = measure(page)
             meta['tier'] = tier
             report[shot + suffix] = meta

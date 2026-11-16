@@ -125,10 +125,12 @@ function scanSet(profile, quality) {
   const low = quality === 0;
   const set = {uBaseC: scanUniform(`${profile.base}_c`, {size: low ? 512 : 0})};
   if (low) return set;
-  set.uSecondC = scanUniform(`${profile.second}_c`);
+  // medium: secondary and ripple maps at 512 px (they are seen further off or only as relief)
+  const small = quality >= 2 ? 0 : 512;
+  set.uSecondC = scanUniform(`${profile.second}_c`, {size: small});
   set.uBaseN = scanUniform(`${profile.base}_n`);
-  set.uRippleN = scanUniform('ripple_n');
-  if (profile.rockSet) set.uRockC = scanUniform(`${profile.rockSet}_c`);
+  set.uRippleN = scanUniform('ripple_n', {size: small});
+  if (profile.rockSet) set.uRockC = scanUniform(`${profile.rockSet}_c`, {size: small});
   if (quality >= 2) {
     set.uSecondN = scanUniform(`${profile.second}_n`);
     set.uMacro = scanUniform('macro_c');

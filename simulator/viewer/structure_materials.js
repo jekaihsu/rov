@@ -322,14 +322,15 @@ function foulingShader(params, textures) {
 }
 
 /** Scanned colour and normal (roughness in alpha) maps; painted steel reads its colour through SCAN_COAT. */
-function addScanMaps(material, params, normals = true) {
+function addScanMaps(material, params, normals = true, detail = 'medium') {
   const repeat = params.repeat ?? 1 / SCAN_TILE[params.scan];
   material.map = scanTexture(`${params.scan}_c`, {repeat, mask: !!params.alphaTest}, function assignMap(texture) {
     material.map = texture;
   });
   material.color.setHex(params.scanColor ?? 0xffffff);   // raw scan colour, tinted
   if (!normals) return;
-  material.normalMap = scanTexture(`${params.scan}_n`, {repeat}, function assignNormal(texture) {
+  const size = detail === 'high' ? 0 : 512;      // medium: half-resolution relief
+  material.normalMap = scanTexture(`${params.scan}_n`, {repeat, size}, function assignNormal(texture) {
     material.normalMap = texture;
   });
   material.defines.SCAN_ROUGH = 1;
@@ -357,7 +358,7 @@ export function structureMaterial(kind, detail = 'medium') {
   } else {
     material.onBeforeCompile = foulingShader(params, textures);
     material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};
-    if (params.scan) addScanMaps(material, params);
+    if (params.scan) addScanMaps(material, params, true, detail);
     material.customProgramCacheKey = function foulingProgramKey() {
       return `structure-fouling-v6-${material.defines.FOUL_QUALITY}-${params.scan ? params.scan : '-'}`;
     };
