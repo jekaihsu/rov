@@ -87,14 +87,15 @@ target 9), but working-camera footage with auto WB keeps the water strongly colo
 model is a camera AWB, not grey world:
 
 - each meter cell is a white-point candidate only if its colour is close to neutral (Gaussian gate across the
-  green-magenta axis, width 0.25 in log units, and along the warm-cool axis, width 0.9): saturated water is
+  green-magenta axis, width 0.45 in log units, and along the warm-cool axis, width 1.0): saturated water is
   rejected, near lamp-lit subjects (white LED light over a short path) are accepted;
-- candidates count in proportion to their brightness relative to the previous frame's metered average, so dark,
-  noisy cells do not steer the balance;
-- with fewer than 3 % of the centre-weighted frame as candidates the camera keeps its default (daylight) balance,
-  fully correcting from 25 %;
+- candidates count with the square of their brightness relative to the previous frame's metered average, capped
+  at twice the average (white-patch behaviour): lamp-lit subjects several times brighter than the water drive the
+  balance even with a daylight cyan cast, while dark, noisy cells and uniform water of a similar hue do not;
+- below 10 % of the centre-weighted frame as candidates the camera keeps its default (daylight) balance, fully
+  correcting from 35 % (a uniform frame reaches at most 25 %, so plain water is never pulled grey);
 - the correction removes 80 % of the candidates' cast, limited to 0.6 (about 1.8x) along the warm-cool axis and
-  0.08 along the green-magenta axis, lagged like the exposure;
+  0.2 along the green-magenta axis, lagged like the exposure;
 - before metering and gain the image passes the sensor's channel overlap (`SENSOR_RESPONSE`: 20 % of green
   into red, 15 % into blue, 6 % of red and blue into green). The renderer's three bands are narrow; a real red
   filter also passes 570-600 nm light that water absorbs far less than 620 nm, so deep green and cyan water
@@ -127,9 +128,9 @@ Everything numeric here is a visualization assumption; nothing is X1 data. Mark 
 - Water types and their `a_g(440)` values, the spectral slope 0.015/nm and the biome mapping: orders of
   magnitude for open-ocean, coastal and estuarine water, not site data; chlorophyll absorption is not
   modelled separately.
-- Auto white balance gate widths, confidence range, strength 0.8 and the 0.6 / 0.08 correction limits, the sensor overlap shares: no measured
-  WB behaviour of the vehicle camera exists; tuned so the footage colour targets of
-  `docs/design/underwater-look/README.md` hold.
+- Auto white balance gate widths, confidence range, strength 0.8, the brightness weighting, the 0.6 / 0.2
+  correction limits and the sensor overlap shares: no measured WB behaviour of the vehicle camera exists; tuned so
+  the footage colour targets of `docs/design/underwater-look/README.md` hold.
 - Exposure key 0.15, partial compensation 0.65 around gain 50, range 0.3-400, lag 0.35 s, centre weighting: the research report has no measured
   auto-exposure or gain behaviour.
 - Particle sizes, density (scaled by `b`) and drift; sun shaft and caustic patterns. Size and the order of

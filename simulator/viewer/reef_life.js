@@ -27,7 +27,6 @@ const TINTS = {
 };
 // Dead coral rubble and turf-covered hard ground round each colony: darker than the coral sand.
 const RUBBLE_TINTS = [0x7d7966, 0x67644f, 0x525840, 0x5e5645, 0x959079];
-const FISH_TINTS = [0xd8b830, 0x5aa7a0, 0xd9742c, 0x3a3f46];
 const COUNTS = {
   low: {rubble: 360, recruits: 0, fish: 18},
   medium: {rubble: 640, recruits: 96, fish: 42},
@@ -426,11 +425,11 @@ function scatterRecruits(group, world, corals, count, random) {
 }
 
 // Site-attached reef fish by species (fish_life.js bodies): small damselfish, butterflyfish and surgeonfish in
-// the tints of FISH_TINTS. One instanced mesh per species, all named 'reef-fish'.
+// their own colour patterns (fish_life.js SPECIES). One instanced mesh per species, all named 'reef-fish'.
 const REEF_SPECIES = [
-  {name: 'damsel', tints: [1, 2], share: 0.5},
-  {name: 'butterfly', tints: [0], share: 0.25},
-  {name: 'surgeon', tints: [3, 1], share: 0.25},
+  {name: 'damsel', share: 0.5},
+  {name: 'butterfly', share: 0.25},
+  {name: 'surgeon', share: 0.25},
 ];
 
 function reefFish(group, corals, count, random, detail) {
@@ -450,10 +449,12 @@ function reefFish(group, corals, count, random, detail) {
       fish.push({
         home: new THREE.Vector3(-home.pos[1], -home.pos[2] + home.scale * (.8 + random() * .7), home.pos[0]),
         radius: home.scale * (.3 + random() * .7), speed: (.25 + random() * .5) * (random() < .5 ? -1 : 1),
-        phase: random() * Math.PI * 2, scale: .8 + random() * .6,
+        // Size within +-15 % of the species' typical length.
+        phase: random() * Math.PI * 2, scale: 1 + (random() * 2 - 1) * .15,
       });
-      const tint = FISH_TINTS[kind.tints[i % kind.tints.length]];
-      mesh.setColorAt(i, colour.setHex(tint).multiplyScalar(.85 + random() * .3));
+      // Slight individual brightness and hue variation over the species pattern.
+      colour.setRGB(1 + (random() - .5) * .06, 1, 1 + (random() - .5) * .06).multiplyScalar(.92 + random() * .16);
+      mesh.setColorAt(i, colour);
     }
     placed += share;
     mesh.name = 'reef-fish';

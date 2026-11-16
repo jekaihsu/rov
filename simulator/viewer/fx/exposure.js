@@ -144,7 +144,7 @@ const METER = /* glsl */ `
     vec2 colourCast = log(max(colour.rb, vec2(1e-6)) / max(colour.g, 1e-6));
     float luminance = max(dot(colour / 16.0, vec3(0.2126, 0.7152, 0.0722)), 1e-6);
     float average = exp(texelFetch(tHistory, ivec2(0, 0), 0).b);
-    float candidate = weight * luminance / (luminance + average) * whitePointWeight(colourCast);
+    float candidate = weight * brightnessWeight(luminance, average) * whitePointWeight(colourCast);
     gl_FragColor = vec4(sum / 16.0 * weight, candidate, colourCast.x * candidate, colourCast.y * candidate);
   }`;
 

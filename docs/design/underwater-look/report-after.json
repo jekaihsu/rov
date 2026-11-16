@@ -16,16 +16,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 47.68261199249948,
-      "target": 47.6412034582524,
-      "meteredLuminance": 0.003231538301181039,
+      "exposure": 45.13670261108423,
+      "target": 45.058062109346594,
+      "meteredLuminance": 0.003520917934761105,
       "whiteBalance": [
+        1.000080487888492,
         1,
-        1,
-        1
+        1.0000932587982252
       ]
     },
-    "bytes": 60708,
+    "bytes": 74688,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -46,16 +46,16 @@
     "visibility_m": 18,
     "water_type": "oceanic",
     "exposure": {
-      "exposure": 28.37588907281422,
-      "target": 28.366669413660226,
-      "meteredLuminance": 0.007175158326258696,
+      "exposure": 28.59046751326463,
+      "target": 28.58102822120655,
+      "meteredLuminance": 0.007092535762909874,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 84671,
+    "bytes": 81956,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -76,16 +76,16 @@
     "visibility_m": 7,
     "water_type": "harbour",
     "exposure": {
-      "exposure": 190.25665668784953,
-      "target": 190.26019485704515,
-      "meteredLuminance": 0.0003839124246383054,
+      "exposure": 191.8383919250527,
+      "target": 191.83830044940086,
+      "meteredLuminance": 0.0003790644633587394,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 53950,
+    "bytes": 51239,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -106,16 +106,16 @@
     "visibility_m": 7,
     "water_type": "harbour",
     "exposure": {
-      "exposure": 67.80556607711563,
-      "target": 67.69633893439668,
-      "meteredLuminance": 0.0018822065071195187,
+      "exposure": 68.30179729415333,
+      "target": 68.20045320227413,
+      "meteredLuminance": 0.0018608441609354277,
       "whiteBalance": [
-        0.9747106719249391,
+        1.0332485136568978,
         1,
-        1.1536465519333743
+        1.1304154186871704
       ]
     },
-    "bytes": 63379,
+    "bytes": 60981,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -136,16 +136,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 66.3098728932793,
-      "target": 66.31445780842711,
-      "meteredLuminance": 0.001942885004176258,
+      "exposure": 66.75647091970127,
+      "target": 66.73556059370034,
+      "meteredLuminance": 0.0019240561555362264,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 57266,
+    "bytes": 65289,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -166,16 +166,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 54.44942303220936,
-      "target": 54.305658489090455,
-      "meteredLuminance": 0.002641975687325972,
+      "exposure": 54.3742716408193,
+      "target": 54.257670456092534,
+      "meteredLuminance": 0.0026455710588097372,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 33026,
+    "bytes": 33726,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   },
@@ -196,16 +196,16 @@
     "visibility_m": 18,
     "water_type": "oceanic",
     "exposure": {
-      "exposure": 26.469095634052763,
-      "target": 26.44025241898319,
-      "meteredLuminance": 0.00799503408436937,
+      "exposure": 26.80020964150467,
+      "target": 26.803443008495712,
+      "meteredLuminance": 0.007828979309595167,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 84168,
+    "bytes": 81386,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -226,16 +226,16 @@
     "visibility_m": 18,
     "water_type": "oceanic",
     "exposure": {
-      "exposure": 26.751035198848474,
-      "target": 26.640987528757375,
-      "meteredLuminance": 0.007902544760245534,
+      "exposure": 26.843361823865315,
+      "target": 26.739812372564984,
+      "meteredLuminance": 0.007857657487655736,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 69899,
+    "bytes": 68579,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   },
@@ -256,16 +256,16 @@
     "visibility_m": 7,
     "water_type": "harbour",
     "exposure": {
-      "exposure": 119.41122677314256,
-      "target": 118.71676748548764,
-      "meteredLuminance": 0.0007931662354013301,
+      "exposure": 119.4605467444481,
+      "target": 118.75826881677823,
+      "meteredLuminance": 0.0007927397279561048,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 25347,
+    "bytes": 24493,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   },
@@ -286,16 +286,16 @@
     "visibility_m": 12,
     "water_type": "coastal",
     "exposure": {
-      "exposure": 20.22183058740641,
-      "target": 20.22578922938414,
-      "meteredLuminance": 0.012073580429741299,
+      "exposure": 20.47423821127184,
+      "target": 20.47142669558899,
+      "meteredLuminance": 0.011851421002748377,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 53761,
+    "bytes": 50792,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -316,16 +316,16 @@
     "visibility_m": 12,
     "water_type": "coastal",
     "exposure": {
-      "exposure": 18.900096402332057,
-      "target": 18.908082958961202,
-      "meteredLuminance": 0.01339208687631305,
+      "exposure": 19.343534636165447,
+      "target": 19.34400043943608,
+      "meteredLuminance": 0.012930622687359906,
       "whiteBalance": [
+        1.0000001915862995,
         1,
-        1,
-        1
+        0.9999999823105626
       ]
     },
-    "bytes": 56748,
+    "bytes": 52975,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -346,16 +346,16 @@
     "visibility_m": 12,
     "water_type": "coastal",
     "exposure": {
-      "exposure": 18.171876724020194,
-      "target": 18.168891867712283,
-      "meteredLuminance": 0.014239442814584509,
+      "exposure": 18.192732402975324,
+      "target": 18.187497811304617,
+      "meteredLuminance": 0.014217033441862512,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 32241,
+    "bytes": 30780,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   },
@@ -376,16 +376,16 @@
     "visibility_m": 4.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 147.6433567503185,
-      "target": 147.65074912843673,
-      "meteredLuminance": 0.000567068786297423,
+      "exposure": 148.4041717232633,
+      "target": 148.38832129411637,
+      "meteredLuminance": 0.0005627379263138127,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 47983,
+    "bytes": 48336,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -406,16 +406,16 @@
     "visibility_m": 4.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 44.45432261793691,
-      "target": 44.378733175777235,
-      "meteredLuminance": 0.003604176922037147,
+      "exposure": 44.126194471049146,
+      "target": 44.06889495607016,
+      "meteredLuminance": 0.003643234391253474,
       "whiteBalance": [
-        0.9761538700111237,
+        0.996352313382555,
         1,
-        1.2018676155678851
+        1.132091610134529
       ]
     },
-    "bytes": 49880,
+    "bytes": 51562,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -436,16 +436,16 @@
     "visibility_m": 4.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 64.9743537158636,
-      "target": 64.36327148464922,
-      "meteredLuminance": 0.002034234596214336,
+      "exposure": 65.00757510960779,
+      "target": 64.36406945038186,
+      "meteredLuminance": 0.0020341957966385996,
       "whiteBalance": [
-        0.9890205280882373,
+        1.0230338436911737,
         1,
-        1.113811422462377
+        1.0693962576737648
       ]
     },
-    "bytes": 19616,
+    "bytes": 19330,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   },
@@ -466,16 +466,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 60.850607473889305,
-      "target": 60.85536625620016,
-      "meteredLuminance": 0.002217411156351151,
+      "exposure": 61.21441762221065,
+      "target": 61.214096540654374,
+      "meteredLuminance": 0.0021974511193781393,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 52467,
+    "bytes": 50663,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -496,16 +496,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 44.77062783345015,
-      "target": 44.77839928868816,
-      "meteredLuminance": 0.003554805810276237,
+      "exposure": 45.025362522483526,
+      "target": 45.00356525305107,
+      "meteredLuminance": 0.0035274784825102615,
       "whiteBalance": [
+        1.0000257454615964,
         1,
-        1,
-        1
+        1.0000261702011901
       ]
     },
-    "bytes": 54925,
+    "bytes": 53207,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -526,16 +526,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 50.29874839997285,
-      "target": 50.08215804468807,
-      "meteredLuminance": 0.0029924333414165644,
+      "exposure": 50.3356017980561,
+      "target": 50.10841017900117,
+      "meteredLuminance": 0.002990019994531041,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 31702,
+    "bytes": 31076,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   },
@@ -556,16 +556,16 @@
     "visibility_m": 20,
     "water_type": "fresh_clear",
     "exposure": {
-      "exposure": 15.326663012274036,
-      "target": 15.325665458726458,
-      "meteredLuminance": 0.018501173934594727,
+      "exposure": 15.470581286388397,
+      "target": 15.469821479401531,
+      "meteredLuminance": 0.018236605088600658,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 78390,
+    "bytes": 78901,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -586,16 +586,16 @@
     "visibility_m": 20,
     "water_type": "fresh_clear",
     "exposure": {
-      "exposure": 14.91097701819861,
-      "target": 14.915400161220575,
-      "meteredLuminance": 0.019289865390348306,
+      "exposure": 15.008826023697726,
+      "target": 15.002890660246537,
+      "meteredLuminance": 0.01911707076253867,
       "whiteBalance": [
-        1.000000018785068,
+        1.0000003375039057,
         1,
-        0.9999999872023287
+        0.9999998764464172
       ]
     },
-    "bytes": 79019,
+    "bytes": 79499,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -616,16 +616,16 @@
     "visibility_m": 20,
     "water_type": "fresh_clear",
     "exposure": {
-      "exposure": 14.067226131067335,
-      "target": 14.08255168002151,
-      "meteredLuminance": 0.021072658571572967,
+      "exposure": 14.087216078102628,
+      "target": 14.10355195982387,
+      "meteredLuminance": 0.021024397023733977,
       "whiteBalance": [
-        1.0016987125440935,
         1,
-        0.9988617802208917
+        1,
+        1
       ]
     },
-    "bytes": 70759,
+    "bytes": 69603,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   },
@@ -646,16 +646,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 68.2845054320565,
-      "target": 68.24941413632452,
-      "meteredLuminance": 0.0018587911493108968,
+      "exposure": 69.03492009456522,
+      "target": 69.01599460050176,
+      "meteredLuminance": 0.0018271238300010288,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 56324,
+    "bytes": 68202,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -676,16 +676,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 48.942970649403115,
-      "target": 48.88616436365333,
-      "meteredLuminance": 0.0031058008295719863,
+      "exposure": 44.15483005150555,
+      "target": 44.21707989432828,
+      "meteredLuminance": 0.003624466963236402,
       "whiteBalance": [
+        1.0001115516284007,
         1,
-        1,
-        1
+        1.0001385558217235
       ]
     },
-    "bytes": 79710,
+    "bytes": 96223,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=real&cam=onboard"
   },
@@ -706,16 +706,16 @@
     "visibility_m": 8.0,
     "water_type": "shelf",
     "exposure": {
-      "exposure": 56.24222753091967,
-      "target": 56.052673520452196,
-      "meteredLuminance": 0.0025163609652125766,
+      "exposure": 56.201424758571044,
+      "target": 56.05924899350012,
+      "meteredLuminance": 0.0025159074459983545,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 35817,
+    "bytes": 36357,
     "jpeg_quality": 82,
     "query": "quality=medium&fidelity=assisted&cam=chase"
   }

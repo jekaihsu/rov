@@ -49,3 +49,13 @@ test('a dark frame does not drive the balance (cells count by brightness)', () =
   const gains = whiteBalanceGains(frame([[[0.0001, 0.0001, 0.00008], 0.95], [[0.0008, 0.01, 0.003], 0.05]]));
   assert.ok(gains.every((g) => g > 0.8 && g < 1.25), `${gains}`);
 });
+
+test('bright lamp-lit subjects with a daylight cyan cast are warmed; uniform water of that hue is not', () => {
+  const pool = [0.0025, 0.01, 0.011];
+  const lampLit = [0.05, 0.07, 0.07];
+  const lit = whiteBalanceGains(frame([[lampLit, 0.4], [pool, 0.6]]));
+  assert.ok(lit[0] > 1.1 && lit[2] < lit[0], `lamp-lit reef sand is balanced warmer: ${lit}`);
+  const water = whiteBalanceGains(frame([[[0.004, 0.01, 0.011], 1]]));
+  const slight = Math.abs(Math.log(water[0])) < 0.1 && Math.abs(Math.log(water[2])) < 0.1;
+  assert.ok(slight, `at most a slight warming: ${water}`);
+});

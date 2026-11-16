@@ -130,3 +130,53 @@ test('pen fish use the salmon body and keep the pen layout', () => {
     assert.ok(Math.hypot(position.x, position.z - 24) < 17.5, 'inside the 18 m net');
   }
 });
+
+test('a dense pen school uses a near / far level of detail, keeps sizes within 15 % and stays in the net', () => {
+  const world = {scenario: {key: 'aquaculture_pen'}, biome: 'aquaculture', world_seed: 71,
+    habitat: {fish_schools: [{id: 'pen-school-0', pos: [34, 0, 6], count: 48, variant: 0}]}};
+  const drawn = schools.createSharedSchools(new THREE.Group(), world, 'medium', 71);
+  const school = drawn.schools[0];
+  assert.equal(school.fish.length, 96, 'medium draws two fish per server fish');
+  assert.equal(school.near.geometry.userData.fishSpecies, 'salmon');
+  assert.ok(school.far.geometry.index.count < school.near.geometry.index.count, 'far fish use the cheap body');
+  const sizes = school.fish.map((fish) => fish.scale);
+  const mean = sizes.reduce((sum, size) => sum + size, 0) / sizes.length;
+  assert.ok(sizes.every((size) => Math.abs(size / mean - 1) < 0.17), 'size spread about +-15 %');
+  const server = {id: 'pen-school-0', pos: [34, 0, 6], vel: [0, 0.3, 0]};
+  const camera = {position: new THREE.Vector3(0, -6, 33)};
+  drawn.update(1 / 30, 1, camera, {pos: [3, 0, 7], environment: {fish_schools: [server]}});
+  assert.ok(school.near.count <= 24 && school.near.count > 0, `near ${school.near.count}`);
+  assert.equal(school.near.count + school.far.count, 96, 'every fish is drawn once');
+  const matrix = new THREE.Matrix4();
+  const position = new THREE.Vector3();
+  for (const mesh of [school.near, school.far]) {
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, matrix);
+      position.setFromMatrixPosition(matrix);
+      assert.ok(Math.hypot(position.x, position.z - 24) < 17.5, 'inside the 18 m net');
+      if (mesh === school.near) assert.ok(position.distanceTo(camera.position) < 6, 'near fish are near');
+    }
+  }
+});
+
+test('reef species carry their own colour patterns and are not mirrors', () => {
+  function average(name) {
+    const colour = life.fishGeometry(name, 'medium').attributes.color;
+    const sum = [0, 0, 0];
+    for (let i = 0; i < colour.count; i++) {
+      sum[0] += colour.getX(i);
+      sum[1] += colour.getY(i);
+      sum[2] += colour.getZ(i);
+    }
+    return sum.map((value) => value / colour.count);
+  }
+  const butterfly = average('butterfly');
+  const damselColour = life.fishGeometry('damsel', 'medium').attributes.color;
+  const surgeon = average('surgeon');
+  assert.ok(butterfly[0] > butterfly[2] * 2, 'butterflyfish are yellow');
+  let blue = 0;
+  for (let i = 0; i < damselColour.count; i++) blue += damselColour.getZ(i) > 2 * damselColour.getX(i) ? 1 : 0;
+  assert.ok(blue > damselColour.count * 0.3, 'damselfish: blue back and head, yellow belly and tail');
+  assert.ok(surgeon[0] + surgeon[1] + surgeon[2] < 0.6, 'surgeonfish are dark');
+  assert.ok(life.SPECIES.butterfly.sheen < 0.2 && life.SPECIES.salmon.sheen === 1);
+});

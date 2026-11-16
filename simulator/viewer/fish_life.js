@@ -34,7 +34,8 @@ export const SPECIES = Object.freeze({
     anal: [[0.62, -0.068], [0.65, -0.112], [0.71, -0.05]],
     pelvic: [[0.47, -0.088], [0.52, -0.12], [0.55, -0.083]],
     pectoral: [[0.17, -0.06], [0.27, -0.1], [0.25, -0.07]],
-    colours: {back: [0.09, 0.12, 0.13], flank: [0.72, 0.75, 0.76], belly: [0.92, 0.92, 0.9], fin: [0.2, 0.22, 0.23]},
+    colours: {back: [0.018, 0.026, 0.03], flank: [0.17, 0.19, 0.2], belly: [0.34, 0.34, 0.33],
+      fin: [0.04, 0.045, 0.045]},
     sheen: 1, spots: 0.55, wave: 0.09, waveLength: 1.05,
   },
   saithe: {
@@ -48,7 +49,10 @@ export const SPECIES = Object.freeze({
     anal: [[0.44, -0.08], [0.5, -0.115], [0.66, -0.06]],
     pelvic: [[0.2, -0.085], [0.24, -0.12], [0.27, -0.085]],
     pectoral: [[0.18, -0.03], [0.3, -0.06], [0.27, -0.035]],
-    colours: {back: [0.08, 0.1, 0.08], flank: [0.5, 0.53, 0.52], belly: [0.82, 0.83, 0.8], fin: [0.16, 0.17, 0.16]},
+    colours: {back: [0.016, 0.022, 0.016], flank: [0.14, 0.15, 0.145], belly: [0.3, 0.3, 0.29],
+      fin: [0.03, 0.035, 0.03]},
+    // Pale lateral line along the flank, as in saithe and pollack.
+    marks: [{from: 0.12, to: 0.8, upMin: 0.05, upMax: 0.3, colour: [0.22, 0.23, 0.22]}],
     sheen: 0.8, spots: 0, wave: 0.09, waveLength: 1.0,
   },
   fusilier: {
@@ -59,8 +63,11 @@ export const SPECIES = Object.freeze({
     dorsal: [[0.26, 0.1], [0.34, 0.135], [0.62, 0.075]],
     anal: [[0.5, -0.085], [0.56, -0.11], [0.68, -0.055]],
     pectoral: [[0.17, -0.035], [0.29, -0.065], [0.26, -0.04]],
-    colours: {back: [0.1, 0.22, 0.42], flank: [0.55, 0.62, 0.7], belly: [0.88, 0.86, 0.84], fin: [0.75, 0.6, 0.15]},
-    sheen: 0.7, spots: 0, wave: 0.1, waveLength: 1.0,
+    // Fusilier: blue back, a yellow stripe along the upper flank, blue-silver flank, pale belly, yellow tail.
+    colours: {back: [0.02, 0.05, 0.18], flank: [0.11, 0.17, 0.27], belly: [0.36, 0.34, 0.35], fin: [0.15, 0.2, 0.3]},
+    marks: [{from: 0.08, to: 0.86, upMin: 0.35, upMax: 0.75, colour: [0.5, 0.38, 0.03]}],
+    finColours: {caudal: [0.55, 0.42, 0.03], dorsal: [0.05, 0.09, 0.22]},
+    sheen: 0.35, spots: 0, wave: 0.1, waveLength: 1.0,
   },
   damsel: {
     length: 0.09,
@@ -71,8 +78,11 @@ export const SPECIES = Object.freeze({
     anal: [[0.5, -0.2], [0.62, -0.26], [0.74, -0.12]],
     pelvic: [[0.24, -0.2], [0.3, -0.3], [0.34, -0.21]],
     pectoral: [[0.22, -0.02], [0.36, -0.08], [0.33, -0.04]],
-    colours: {back: [0.55, 0.55, 0.55], flank: [0.82, 0.82, 0.82], belly: [0.95, 0.95, 0.95], fin: [0.6, 0.6, 0.6]},
-    sheen: 0.25, spots: 0, wave: 0.06, waveLength: 1.15,
+    // Damselfish: electric-blue body, yellow belly and tail (blue-yellow damsel).
+    colours: {back: [0.02, 0.12, 0.5], flank: [0.05, 0.2, 0.62], belly: [0.7, 0.58, 0.06], fin: [0.04, 0.14, 0.5]},
+    marks: [{from: 0.62, to: 1, upMin: -1, upMax: 1, colour: [0.75, 0.6, 0.06]}],
+    finColours: {caudal: [0.78, 0.62, 0.06], anal: [0.7, 0.55, 0.06], pelvic: [0.7, 0.55, 0.06]},
+    sheen: 0.12, spots: 0, wave: 0.06, waveLength: 1.15,
   },
   butterfly: {
     length: 0.13,
@@ -82,8 +92,12 @@ export const SPECIES = Object.freeze({
     dorsal: [[0.2, 0.28], [0.44, 0.4], [0.74, 0.16]],
     anal: [[0.44, -0.3], [0.6, -0.36], [0.76, -0.14]],
     pectoral: [[0.24, -0.04], [0.36, -0.1], [0.34, -0.06]],
-    colours: {back: [0.85, 0.85, 0.82], flank: [0.95, 0.95, 0.93], belly: [0.98, 0.98, 0.97], fin: [0.9, 0.88, 0.8]},
-    sheen: 0.1, spots: 0, eyeBand: true, wave: 0.05, waveLength: 1.2,
+    // Butterflyfish: yellow with a white face and chest, a black bar through the eye and a dark rear patch.
+    colours: {back: [0.72, 0.56, 0.05], flank: [0.78, 0.62, 0.08], belly: [0.78, 0.76, 0.66], fin: [0.75, 0.58, 0.05]},
+    marks: [{from: 0, to: 0.3, upMin: -1, upMax: 0.1, colour: [0.8, 0.8, 0.76]},
+      {from: 0.52, to: 0.72, upMin: 0.3, upMax: 1, colour: [0.04, 0.04, 0.05]}],
+    finColours: {dorsal: [0.7, 0.52, 0.05], caudal: [0.8, 0.78, 0.7]},
+    sheen: 0.06, spots: 0, eyeBand: true, wave: 0.05, waveLength: 1.2,
   },
   surgeon: {
     length: 0.2,
@@ -93,8 +107,11 @@ export const SPECIES = Object.freeze({
     dorsal: [[0.18, 0.22], [0.3, 0.3], [0.78, 0.1]],
     anal: [[0.4, -0.22], [0.5, -0.29], [0.8, -0.09]],
     pectoral: [[0.22, -0.02], [0.36, -0.09], [0.32, -0.04]],
-    colours: {back: [0.6, 0.6, 0.62], flank: [0.72, 0.72, 0.74], belly: [0.82, 0.82, 0.82], fin: [0.5, 0.5, 0.52]},
-    sheen: 0.15, spots: 0, wave: 0.06, waveLength: 1.1,
+    // Surgeonfish: dark blue-grey body with a bright yellow spine patch on the tail stalk and a pale tail edge.
+    colours: {back: [0.04, 0.05, 0.1], flank: [0.07, 0.09, 0.18], belly: [0.1, 0.12, 0.2], fin: [0.05, 0.07, 0.16]},
+    marks: [{from: 0.72, to: 0.86, upMin: -0.6, upMax: 0.6, colour: [0.8, 0.62, 0.05]}],
+    finColours: {caudal: [0.1, 0.14, 0.3], dorsal: [0.12, 0.16, 0.35]},
+    sheen: 0.08, spots: 0, wave: 0.06, waveLength: 1.1,
   },
 });
 // Rings along the body and vertices round each ring per render tier. Low keeps the old fish's triangle budget.
@@ -104,8 +121,12 @@ const DETAIL = {
   high: {rings: 13, around: 10, fins: true, eyes: true},
 };
 const FLANK_EXPONENT = 2.6;          // superellipse cross-section: compressed body with flat, mirror-like flanks
-const SHEEN_METALNESS = 0.55;        // flank guanine as a partly metallic reflector (lamp flash, see README)
-const SHEEN_ROUGHNESS = 0.26;
+// Flank guanine as a partly metallic reflector: the diffuse albedo of a silver fish is low (dark in footage away
+// from the lamps); the white flash comes from the specular reflection of the lamps off the flat flank, and only
+// where the flank faces the lamps (scales are not a perfect mirror: moderate roughness). Colours above are linear
+// albedo (0.17 linear is about 45 % on screen in white light).
+const SHEEN_METALNESS = 0.5;
+const SHEEN_ROUGHNESS = 0.38;
 const BODY_ROUGHNESS = 0.55;
 const PROGRAM_KEY = 'fish-swim-v1';
 
@@ -148,6 +169,11 @@ function bodyColour(species, s, up, angle) {
     const lower = belly[i] + (flank[i] - belly[i]) * toFlank;
     return lower + (back[i] - lower) * toBack;
   });
+  for (const mark of species.marks || []) {
+    if (s >= mark.from && s <= mark.to && up >= mark.upMin && up <= mark.upMax) {
+      for (let i = 0; i < 3; i++) colour[i] = mark.colour[i];
+    }
+  }
   if (species.spots && up > 0.05 && speckle(s, angle) < species.spots * 0.45) {
     for (let i = 0; i < 3; i++) colour[i] *= 0.45;
   }
@@ -206,7 +232,7 @@ function pushBody(out, species, detail) {
 
 // A flat fin drawn on both sides with its own vertices, so each side has a proper normal. `side` places paired
 // fins off the mid plane and tilts them outwards.
-function pushFin(out, species, outline, side = 0) {
+function pushFin(out, species, outline, side = 0, colour = species.colours.fin) {
   const L = species.length;
   const noseZ = L / 2;
   for (const facing of [1, -1]) {
@@ -217,7 +243,7 @@ function pushFin(out, species, outline, side = 0) {
       const spread = side ? side * (Math.abs(h) * 0.6 + 0.02) * L : 0;
       out.positions.push(spread, h * L, noseZ - s * L);
       out.normals.set(out.positions.length / 3 - 1, [nx, ny, 0]);
-      out.colours.push(...species.colours.fin);
+      out.colours.push(...colour);
       out.sheen.push(0);
     }
     for (let i = 1; i < outline.length - 1; i++) {
@@ -268,18 +294,19 @@ export function fishGeometry(name, detailName = 'medium') {
   const detail = DETAIL[detailName] || DETAIL.medium;
   const out = {positions: [], colours: [], sheen: [], indices: [], normals: new Map()};
   pushBody(out, species, detail);
-  pushFin(out, species, species.caudal);
+  const finColour = (key) => species.finColours?.[key] || species.colours.fin;
+  pushFin(out, species, species.caudal, 0, finColour('caudal'));
   if (detail.fins) {
     for (const key of ['dorsal', 'dorsal2', 'adipose', 'anal']) {
-      if (species[key]) pushFin(out, species, species[key]);
+      if (species[key]) pushFin(out, species, species[key], 0, finColour(key === 'dorsal2' ? 'dorsal' : key));
     }
     for (const key of ['pelvic', 'pectoral']) {
       if (!species[key]) continue;
-      pushFin(out, species, species[key], 1);
-      pushFin(out, species, species[key], -1);
+      pushFin(out, species, species[key], 1, finColour(key));
+      pushFin(out, species, species[key], -1, finColour(key));
     }
   } else if (species.dorsal) {
-    pushFin(out, species, species.dorsal);
+    pushFin(out, species, species.dorsal, 0, finColour('dorsal'));
   }
   if (detail.eyes) pushEyes(out, species);
   const geometry = new THREE.BufferGeometry();
@@ -408,6 +435,8 @@ export function createSchoolMotion(fish, speciesName, random = Math.random) {
         pitch: 0,
         tail: random() * Math.PI * 2,
         turn: 0,
+        // Small individual tilt so a school is not a set of perfectly level copies.
+        tilt: (random() - 0.5) * 0.12,
         position: new THREE.Vector3(),
       };
     }),
@@ -463,13 +492,71 @@ function avoidVehicle(state, position, vehicle, dt) {
   position.add(state.avoid);
 }
 
+const instanceColour = new THREE.Color();
+
+function writeInstance(mesh, index, item) {
+  mesh.setMatrixAt(index, matrix);
+  mesh.geometry.attributes.aSwim.setXYZ(index, swimValue[0], swimValue[1], swimValue[2]);
+  if (item.colour && mesh.instanceColor) mesh.setColorAt(index, instanceColour.setHex(item.colour));
+}
+
+function finishMesh(mesh, count) {
+  mesh.count = count;
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.geometry.attributes.aSwim.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+}
+
+/** Writes every fish into one instanced mesh, at its own index. */
+export function meshSink(mesh) {
+  return {
+    put(i, distance, item) {
+      writeInstance(mesh, i, item);
+    },
+    end(total) {
+      finishMesh(mesh, total);
+    },
+  };
+}
+
+/**
+ * Near / far level of detail for big schools: fish within `split` metres of the eye go to `near` (full body, at
+ * most near.instanceMatrix.count of them), the rest to `far` (cheap body). Both meshes are drawn every frame.
+ */
+export function lodSink(near, far, eye, split) {
+  let nearCount = 0;
+  let farCount = 0;
+  const nearLimit = near.instanceMatrix.count;
+  return {
+    put(i, distance, item) {
+      if (distance < split && nearCount < nearLimit) {
+        writeInstance(near, nearCount, item);
+        nearCount++;
+      } else {
+        writeInstance(far, farCount, item);
+        farCount++;
+      }
+    },
+    end() {
+      finishMesh(near, nearCount);
+      finishMesh(far, farCount);
+      nearCount = 0;
+      farCount = 0;
+    },
+    eye,
+  };
+}
+
+const swimValue = [0, 1, 0];
+
 /**
  * Move one school's instances. `placeFish(item, t, position, euler)` gives the fish's slot (school layout,
  * server centre) and base heading; `base` is the school's speed through the water (m/s). `vehicle` is
- * {position, velocity, lamps} in three space or null. Writes the instance matrices and the swim attribute.
+ * {position, velocity, lamps} in three space or null. `target` is an instanced mesh or a sink (meshSink,
+ * lodSink); it receives the instance matrices, swim attributes and per-fish colours.
  */
-export function updateSchoolMotion(motion, mesh, dt, t, placeFish, base, vehicle) {
-  const swim = mesh.geometry.attributes.aSwim;
+export function updateSchoolMotion(motion, target, dt, t, placeFish, base, vehicle) {
+  const sink = target.isInstancedMesh ? meshSink(target) : target;
   const step = Math.max(0, Math.min(dt, 0.1));
   motion.fish.forEach(function moveFish(state, i) {
     const {item} = state;
@@ -495,18 +582,21 @@ export function updateSchoolMotion(motion, mesh, dt, t, placeFish, base, vehicle
     state.heading += change;
     state.turn += ((step > 0 ? change / step : 0) - state.turn) * (1 - Math.exp(-6 * step));
     // Positive rotation about X turns the nose (+Z) down, so climbing fish get a negative pitch.
-    state.pitch = -Math.atan2(local.y, along) * 0.6;
+    state.pitch = -Math.atan2(local.y, along) * 0.9 + state.tilt;
     // Tail beat from swimming speed in body lengths per second (Bainbridge: f = (4 U / L + 4) / 3).
     const speed = Math.hypot(lateral, along) * (1 + 2.5 * state.startle);
     const frequency = Math.min(9, (4 * speed / length + 4) / 3);
     state.tail = (state.tail + Math.PI * 2 * frequency * step) % (Math.PI * 200);
     const amplitude = 1 + 0.5 * state.startle;
     const bend = THREE.MathUtils.clamp(-state.turn * 0.35, -0.6, 0.6);
-    swim.setXYZ(i, state.tail, amplitude, bend);
-    rotation.setFromEuler(motionEuler.set(state.pitch, state.heading, placedEuler.z));
+    swimValue[0] = state.tail;
+    swimValue[1] = amplitude;
+    swimValue[2] = bend;
+    // Fish bank into turns (top towards the inside of the turn).
+    const roll = THREE.MathUtils.clamp(-state.turn * 0.35, -0.4, 0.4) + state.tilt * 0.5;
+    rotation.setFromEuler(motionEuler.set(state.pitch, state.heading, roll));
     matrix.compose(placed, rotation, scaleVector.setScalar(item.scale));
-    mesh.setMatrixAt(i, matrix);
+    sink.put(i, sink.eye ? placed.distanceTo(sink.eye) : 0, item);
   });
-  swim.needsUpdate = true;
-  mesh.instanceMatrix.needsUpdate = true;
+  sink.end(motion.fish.length);
 }

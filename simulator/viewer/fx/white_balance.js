@@ -9,8 +9,11 @@
 //   keeps its default (daylight) balance instead of pulling the water to grey.
 // - Near, lamp-lit objects are close to neutral (white LED light over a short path) and do become candidates, so
 //   under the lamps the camera balances on them, as footage of lit nets, fish and hulls shows.
-// - Dark cells carry noise, not colour information: each cell counts in proportion to how bright it is relative
-//   to the frame (the previous frame's metered average).
+// - The camera trusts bright regions most (white-patch behaviour): a cell counts with the square of its brightness
+//   relative to the frame (the previous frame's metered average), capped at twice the average. Lamp-lit subjects
+//   are several times brighter than the water around them, so they drive the balance even when daylight gives
+//   them a cyan cast; uniform water of a similar hue (a pool, clear reef water) stays below the confidence floor.
+//   Dark cells carry noise, not colour information.
 // - Correction runs along the colour-temperature axis (warm / cool, red against blue) with a limited range and
 //   only a small green-magenta tint correction, like a camera's AWB range; the old grey-world balance corrected
 //   the green cast fully along the tint axis, which turned green and grey-green water mauve and grey.
@@ -18,12 +21,13 @@
 // colour targets.
 export const WHITE_BALANCE = Object.freeze({
   strength: 0.8,        // share of the candidates' cast removed (log ratios)
-  tintGate: 0.25,       // width of the candidate gate across the green-magenta axis (log units)
-  temperatureGate: 0.9, // width of the candidate gate along the warm-cool axis (log units)
-  confidenceLow: 0.03,  // share of the (centre-weighted) frame that must be candidates before the camera acts
-  confidenceHigh: 0.25, // share at which it corrects fully
+  tintGate: 0.45,       // width of the candidate gate across the green-magenta axis (log units)
+  temperatureGate: 1.0, // width of the candidate gate along the warm-cool axis (log units)
+  brightnessCap: 2.0,   // a cell's brightness weight saturates at this multiple of the frame average
+  confidenceLow: 0.1,   // share of the (centre-weighted) frame that must be candidates before the camera acts
+  confidenceHigh: 0.35, // share at which it corrects fully
   temperatureLimit: 0.6, // largest warm / cool correction, log gain per channel (about 1.8x)
-  tintLimit: 0.08       // largest green-magenta correction, log gain (about 1.08x)
+  tintLimit: 0.2        // largest green-magenta correction, log gain (about 1.2x)
 });
 
 // Sensor spectral overlap: each colour channel of a real camera also sees part of its neighbours' light (broad
@@ -52,6 +56,12 @@ function clampAbs(value, limit) {
   return Math.max(-limit, Math.min(limit, value));
 }
 
+/** Brightness weight of a cell of luminance `l` in a frame of average luminance `average`: 0..1. */
+export function brightnessWeight(l, average) {
+  const relative = Math.min(l / Math.max(average, 1e-9), WHITE_BALANCE.brightnessCap) / WHITE_BALANCE.brightnessCap;
+  return relative * relative;
+}
+
 /** Candidate weight of a cell with log(R/G) = castR and log(B/G) = castB: 1 near neutral, 0 for saturated water. */
 export function whitePointWeight(castR, castB) {
   const temperature = (castR - castB) / 2 / WHITE_BALANCE.temperatureGate;
@@ -77,7 +87,7 @@ export function whiteBalanceGains(rendered) {
     const green = Math.max(cell.rgb[1], 1e-6);
     const r = Math.log(Math.max(cell.rgb[0], 1e-6) / green);
     const b = Math.log(Math.max(cell.rgb[2], 1e-6) / green);
-    const w = weights[i] * luminances[i] / (luminances[i] + average) * whitePointWeight(r, b);
+    const w = weights[i] * brightnessWeight(luminances[i], average) * whitePointWeight(r, b);
     candidates += w;
     castR += r * w;
     castB += b * w;
@@ -104,6 +114,11 @@ const SENSOR_COLUMNS = [0, 1, 2].map(function sensorColumn(j) {
 
 // GLSL used by exposure.js: the candidate weight of a cell and the gains from the averaged cast.
 export const WHITE_BALANCE_GLSL = `
+  float brightnessWeight(float l, float average) {
+    float relative = min(l / max(average, 1e-9), ${glslFloat(WHITE_BALANCE.brightnessCap)}) /
+      ${glslFloat(WHITE_BALANCE.brightnessCap)};
+    return relative * relative;
+  }
   // GLSL mat3 takes columns: column j holds what rendered channel j adds to each sensor channel.
   const mat3 SENSOR_RESPONSE = mat3(
     ${SENSOR_COLUMNS[0]},
