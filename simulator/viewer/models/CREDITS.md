@@ -77,3 +77,12 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
 養殖魚與死魚（`pen_life.js`）、珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`）皆為本專案原創程式幾何，
 CC0-1.0，沒有外部模型、照片或貼圖。
+
+## N1 原創魚模型（CC0-1.0）
+
+`fish/{salmon,saithe,fusilier,damselfish,butterflyfish,surgeonfish}.glb` 與同目錄的
+`*_basecolor.png`、`*_orm.png`，全部由 `cad/build_fish_models.py` 原創程式生成，
+資產以 CC0-1.0 釋出。幾何、鱗片、色素花紋、鰭條與眼睛皆沒有使用照片、掃描、
+網路貼圖或第三方模型；GLB 內嵌的兩張 PNG 與外部 PNG 完全相同。
+Blender（GPL）與隨附 NumPy（BSD）只用於離線製作，不加入遊戲依賴。
+文字形態參考與規格取捨列於 `docs/design/fish-models/README.md`。

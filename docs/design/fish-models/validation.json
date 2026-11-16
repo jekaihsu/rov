@@ -1,0 +1,110 @@
+[
+  {
+    "id": "salmon",
+    "length_m": 0.6,
+    "triangles": [
+      2276,
+      700,
+      236
+    ],
+    "glb_bytes": 133144,
+    "basecolor": [
+      512,
+      256
+    ],
+    "orm": [
+      512,
+      256
+    ]
+  },
+  {
+    "id": "saithe",
+    "length_m": 0.45,
+    "triangles": [
+      2276,
+      700,
+      236
+    ],
+    "glb_bytes": 132628,
+    "basecolor": [
+      512,
+      256
+    ],
+    "orm": [
+      512,
+      256
+    ]
+  },
+  {
+    "id": "fusilier",
+    "length_m": 0.25,
+    "triangles": [
+      2258,
+      692,
+      233
+    ],
+    "glb_bytes": 129488,
+    "basecolor": [
+      512,
+      256
+    ],
+    "orm": [
+      512,
+      256
+    ]
+  },
+  {
+    "id": "damselfish",
+    "length_m": 0.09,
+    "triangles": [
+      2258,
+      692,
+      233
+    ],
+    "glb_bytes": 131336,
+    "basecolor": [
+      512,
+      256
+    ],
+    "orm": [
+      512,
+      256
+    ]
+  },
+  {
+    "id": "butterflyfish",
+    "length_m": 0.13,
+    "triangles": [
+      2258,
+      692,
+      233
+    ],
+    "glb_bytes": 186376,
+    "basecolor": [
+      512,
+      256
+    ],
+    "orm": [
+      512,
+      256
+    ]
+  },
+  {
+    "id": "surgeonfish",
+    "length_m": 0.2,
+    "triangles": [
+      2258,
+      692,
+      233
+    ],
+    "glb_bytes": 130000,
+    "basecolor": [
+      512,
+      256
+    ],
+    "orm": [
+      512,
+      256
+    ]
+  }
+]
