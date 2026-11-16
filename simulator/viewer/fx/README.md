@@ -79,13 +79,31 @@ visibly brighter than level 1 and the near-field lamp pool is not flattened to m
 dark and objects read as silhouettes against slightly brighter water. No pixel is read back for rendering
 (`state.exposure()` is a synchronous diagnostic for tools only).
 
-**White balance.** The same pass runs a partial grey-world auto white balance, because small ROV cameras
-default to auto WB and real footage shows the WB setting changes the look more than depth
-(`research_notes/洋流與波浪對ROV作業/real_dive_footage.md` §8 target 9). The meter also records each cell's
-log(red / green) and log(blue / green); red and blue gains remove 60 % of the average cast, lagged like the
-exposure, limited to 3x. It cannot recover red the water removed completely, so deep shelf water stays green,
-but it takes the extreme saturation off (teal-green instead of emerald, cyan instead of deep blue). Unlit
-helpers are divided by these gains too.
+**White balance.** The same pass runs the camera's auto white balance (`white_balance.js`, pure functions
+mirrored by the GPU meter, tested by `tests/test_white_balance.mjs`). Small ROV cameras default to auto WB and
+the WB setting changes the look more than depth (`research_notes/洋流與波浪對ROV作業/real_dive_footage.md` §8
+target 9), but working-camera footage with auto WB keeps the water strongly coloured (net pens R/G 0-0.1, B/G
+0.25-0.7 linear; reef water blue; lake and harbour water green; `docs/design/underwater-look/README.md`). So the
+model is a camera AWB, not grey world:
+
+- each meter cell is a white-point candidate only if its colour is close to neutral (Gaussian gate across the
+  green-magenta axis, width 0.45 in log units, and along the warm-cool axis, width 1.0): saturated water is
+  rejected, near lamp-lit subjects (white LED light over a short path) are accepted;
+- candidates count with the square of their brightness relative to the previous frame's metered average, capped
+  at twice the average (white-patch behaviour): lamp-lit subjects several times brighter than the water drive the
+  balance even with a daylight cyan cast, while dark, noisy cells and uniform water of a similar hue do not;
+- below 10 % of the centre-weighted frame as candidates the camera keeps its default (daylight) balance, fully
+  correcting from 35 % (a uniform frame reaches at most 25 %, so plain water is never pulled grey);
+- the correction removes 80 % of the candidates' cast, limited to 0.6 (about 1.8x) along the warm-cool axis and
+  0.2 along the green-magenta axis, lagged like the exposure;
+- before metering and gain the image passes the sensor's channel overlap (`SENSOR_RESPONSE`: 20 % of green
+  into red, 15 % into blue, 6 % of red and blue into green). The renderer's three bands are narrow; a real red
+  filter also passes 570-600 nm light that water absorbs far less than 620 nm, so deep green and cyan water
+  keeps some red, as in footage (assumed shares, tuned to the footage ranges).
+
+The previous grey-world balance (60 % of the average log cast of every cell, equal weight however dark, gains up
+to 3x) pulled green water along the green-magenta axis, which is why harbour and jacket frames turned mauve and
+grey. Unlit helpers are divided by these gains too.
 
 Unlit helpers (`MeshBasicMaterial`, lines, points, sprites: objective markers, the flow particles, lamp
 glows) are divided by the same exposure (`neutraliseExposure`), so they keep their designed screen
@@ -110,8 +128,9 @@ Everything numeric here is a visualization assumption; nothing is X1 data. Mark 
 - Water types and their `a_g(440)` values, the spectral slope 0.015/nm and the biome mapping: orders of
   magnitude for open-ocean, coastal and estuarine water, not site data; chlorophyll absorption is not
   modelled separately.
-- Auto white balance strength 0.6 of the log cast, gain limit 3: no measured WB behaviour of the vehicle
-  camera exists; the footage notes only show that WB matters.
+- Auto white balance gate widths, confidence range, strength 0.8, the brightness weighting, the 0.6 / 0.2
+  correction limits and the sensor overlap shares: no measured WB behaviour of the vehicle camera exists; tuned so
+  the footage colour targets of `docs/design/underwater-look/README.md` hold.
 - Exposure key 0.15, partial compensation 0.65 around gain 50, range 0.3-400, lag 0.35 s, centre weighting: the research report has no measured
   auto-exposure or gain behaviour.
 - Particle sizes, density (scaled by `b`) and drift; sun shaft and caustic patterns. Size and the order of
