@@ -4,11 +4,13 @@ import {createMap} from './map.js';
 import {buildDebriefHtml, downloadDebriefHtml} from '../debrief/report.js';
 import {STRINGS as DEBRIEF_S} from '../debrief/strings.js';
 import {extractEventsFromFrames} from '../debrief/events.js';
+import {createStateMerger, VIEWER_CAPS} from '../state_merge.js';
 const root = document.querySelector('#app');
 let socket;
 let authenticated = false;
 let lastStateAt = 0;
 let state = {};
+const stateMerger = createStateMerger();
 let report;
 let pending = false;
 let reportPending = false;
@@ -103,6 +105,7 @@ login.addEventListener('submit', function join(event) {
   reportPending = false;
   report = null;
   state = {};
+  stateMerger.reset();
   cards.clear();
   fleet.replaceChildren();
   target.replaceChildren();
@@ -120,7 +123,9 @@ login.addEventListener('submit', function join(event) {
   updateAvailability();
   connection.onopen = function authenticate() {
     if (socket !== connection) return;
-    connection.send(JSON.stringify({type: 'instructor_join', room_id: room.value.trim(), code: secret}));
+    connection.send(JSON.stringify({
+      type: 'instructor_join', room_id: room.value.trim(), code: secret, caps: VIEWER_CAPS,
+    }));
   };
   connection.onmessage = function message(event) {
     if (socket === connection) receive(JSON.parse(event.data));
@@ -167,13 +172,30 @@ const inputs = el('div', '', injection, 'fields');
 const strength = field('strength', '.5', inputs, 'number', 0, 1, .05);
 const duration = field('duration', '30', inputs, 'number', .1, 3600);
 const index = field('index', '0', inputs, 'number', 0, 7, 1);
+const ramp = field('ramp_s', '60', inputs, 'number', 30, 120, 1);
+const rotate = field('rotate_deg', '0', inputs, 'number', -180, 180, 1);
 for (const input of [strength, duration, index]) input.required = true;
-kind.addEventListener('change', function kindChanged() { index.disabled = kind.value !== 'thruster'; });
+function syncInjectionFields() {
+  index.disabled = kind.value !== 'thruster';
+  const current = kind.value === 'current';
+  for (const input of [ramp, rotate]) {
+    input.disabled = !current;
+    input.required = current;
+    input.closest('label')?.toggleAttribute('hidden', !current);
+  }
+}
+kind.addEventListener('change', syncInjectionFields);
+syncInjectionFields();
 const inject = button('inject', function noop() {}, injection);
 inject.type = 'submit';
 injection.addEventListener('submit', function submit(event) {
   event.preventDefault();
-  command('inject', {kind: kind.value, strength: +strength.value, duration: +duration.value, index: +index.value});
+  const payload = {kind: kind.value, strength: +strength.value, duration: +duration.value, index: +index.value};
+  if (kind.value === 'current') {
+    payload.ramp_s = +ramp.value;
+    payload.rotate_deg = +rotate.value;
+  }
+  command('inject', payload);
 });
 el('h3', S.active, faults);
 const active = el('div', S.emptyActive, faults, 'active-events');
@@ -393,6 +415,7 @@ function receive(message) {
     } else refreshReport();
     updateAvailability();
   }
+  if (message.type === 'state') message = stateMerger.merge(message);
   if (message.type !== 'state' || !authenticated) return;
   state = message;
   lastStateAt = Date.now();

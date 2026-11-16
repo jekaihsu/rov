@@ -16,10 +16,12 @@ function wrapAngle(delta) {
   return ((delta + 180) % 360 + 360) % 360 - 180;
 }
 
-export function studentDisplayTime(clipTime, frame) {
+/** Student view lags by base video delay (fidelity videoDelayMs) plus recorded link.video_lag_s. */
+export function studentDisplayTime(clipTime, frame, baseDelaySec = 0) {
   const lag = Number(frame?.link?.video_lag_s);
-  const delay = Number.isFinite(lag) && lag > 0 ? lag : 0;
-  return Math.max(0, clipTime - delay);
+  const linkLag = Number.isFinite(lag) && lag > 0 ? lag : 0;
+  const base = Number.isFinite(baseDelaySec) && baseDelaySec > 0 ? baseDelaySec : 0;
+  return Math.max(0, clipTime - base - linkLag);
 }
 
 export function sensorErrorSummary(state) {

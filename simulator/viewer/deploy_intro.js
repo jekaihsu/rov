@@ -11,19 +11,17 @@
 // worked from the pendant, a two-person deck crew.
 //
 // Models (see models/CREDITS.md): ROV support work boat (original, cad/build_support_vessel.py), deck crew
-// (Quaternius "Animated Men", CC0, dressed by cad/build_deck_crew.py), sea + sky (three.js Water / Sky, MIT).
+// (Quaternius "Animated Men", CC0, dressed by cad/build_deck_crew.py). Sea, sky and sunlight come from the
+// viewer's shared daylight model (fx/daylight.js), the same as every other view above the water.
 //
 //   const assets = await DeployIntro.loadAssets('models/');
 //   const intro = new DeployIntro(scene, { spool: [n,e,d], start: [n,e,d], seabed: 30, assets });
 //   intro.play(rovObject3D, camera, () => { /* hand control back */ });
 //   each frame: intro.update(dt)            // returns true while playing
 //   intro.skip()                            // jump to the end
-//   intro.aboveWater(camera)                // true while the intro's sea/sky should replace the viewer's surface
 // World mapping (same as the viewer): three = (-east, -down, north).
 import * as THREE from 'three';
 import { loadGLTF } from './glb.js';
-import { Water } from 'three/addons/objects/Water.js';
-import { Sky } from 'three/addons/objects/Sky.js';
 import { Humanoid } from './humanoid.js';
 import { Cable } from './cable.js';
 import { LaunchRig } from './launch_rig.js';
@@ -174,30 +172,6 @@ function buildFallbackDrum(boat) {
   ud.exit = exit;
 }
 
-function makeSea(scene, normals, objects) {
-  normals.wrapS = THREE.RepeatWrapping;
-  normals.wrapT = THREE.RepeatWrapping;
-  const sun = V(0.45, 0.42, -0.8).normalize();
-  const water = new Water(new THREE.PlaneGeometry(5000, 5000), {
-    textureWidth: 512, textureHeight: 512, waterNormals: normals, sunDirection: sun,
-    sunColor: 0xfff1d6, waterColor: 0x0a3347, distortionScale: 1.3, fog: false, alpha: 0.98,
-  });
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = 0.005;
-  water.material.uniforms.size.value = 1.6;
-  const sky = new Sky();
-  sky.scale.setScalar(900);
-  const u = sky.material.uniforms;
-  u.turbidity.value = 2.2;
-  u.rayleigh.value = 0.9;
-  u.mieCoefficient.value = 0.003;
-  u.mieDirectionalG.value = 0.85;
-  u.sunPosition.value.copy(sun).multiplyScalar(400);
-  scene.add(water, sky);
-  objects.push(water, sky);
-  return { water, sky };
-}
-
 /** Head yaw/pitch (Humanoid convention) for a figure looking at world point ``target``. */
 function lookAt(person, target) {
   const local = person.root.worldToLocal(target.clone());
@@ -233,6 +207,26 @@ function sagLine(out, a, b, sag, count, floorY = -Infinity) {
   }
 }
 
+/**
+ * The work boat at the launch point: stern (-Z local) at the spool, bow pointing away from the dive site.
+ * Shared with spool_station.js, which keeps the same boat there when no intro is shown.
+ */
+export function placeWorkBoat(assets, spool, start) {
+  const boat = (assets.boat && placeVesselModel(assets.boat)) || buildFallbackBoat();
+  const at = toThree(spool);
+  const dir = new THREE.Vector3().subVectors(toThree(start), at);
+  dir.y = 0;
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+  dir.normalize();
+  boat.rotation.y = Math.atan2(-dir.x, -dir.z);
+  const ud = boat.userData;
+  boat.position.copy(at).addScaledVector(dir, ud.sternZ + 0.15);   // transom just inboard of the spool
+  boat.position.y = 0;
+  if (!ud.drum || !ud.exit) buildFallbackDrum(boat);
+  boat.updateMatrixWorld(true);
+  return boat;
+}
+
 export class DeployIntro {
   static async loadAssets(base = 'models/', { tier = assetTextureTier() } = {}) {
     const boatFile = tier === 'high' ? 'workboat_high.glb' : 'workboat.glb';
@@ -241,12 +235,11 @@ export class DeployIntro {
         return loadGLTF(base + 'workboat.glb');
       });
     };
-    const [boat, human, normals] = await Promise.all([
+    const [boat, human] = await Promise.all([
       loadBoat().then((g) => g.scene).catch(() => null),
       Humanoid.load(base + 'worker.glb').catch(() => null),
-      new THREE.TextureLoader().loadAsync(base + 'waternormals.jpg').catch(() => null),
     ]);
-    return { boat, human, normals };
+    return { boat, human };
   }
 
   constructor(scene, { spool, start, seabed = 30, assets = {} }) {
@@ -259,19 +252,9 @@ export class DeployIntro {
     this.playing = false;
     this.objects = [];
 
-    // boat: stern (-Z local) at the spool, bow pointing away from the dive site
-    this.boat = (assets.boat && placeVesselModel(assets.boat)) || buildFallbackBoat();
-    const dir = new THREE.Vector3().subVectors(this.start, this.spool);
-    dir.y = 0;
-    if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
-    dir.normalize();
-    this.boat.rotation.y = Math.atan2(-dir.x, -dir.z);
+    this.boat = placeWorkBoat(assets, spool, start);
     const ud = this.boat.userData;
-    this.boat.position.copy(this.spool).addScaledVector(dir, ud.sternZ + 0.15);   // transom just inboard of the spool
-    this.boat.position.y = 0;
     this._add(this.boat);
-    if (!ud.drum || !ud.exit) buildFallbackDrum(this.boat);
-    this.boat.updateMatrixWorld(true);
 
     this.rig = new LaunchRig(this.boat);
     this._add(this.rig.group);
@@ -296,12 +279,6 @@ export class DeployIntro {
       this.boat.add(this.tender.root);
       this.pendant = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.17, 0.05), material(0xe0a21a));
       this.boat.add(this.pendant);
-    }
-
-    if (assets.normals) {
-      const sea = makeSea(scene, assets.normals, this.objects);
-      this.water = sea.water;
-      this.sky = sea.sky;
     }
 
     // tether: real-thickness yellow cable, rebuilt each frame
@@ -343,11 +320,6 @@ export class DeployIntro {
     return this.boat.localToWorld(V(x, y, z));
   }
 
-  /** true while the intro's own water/sky should be shown instead of the viewer's flat surface. */
-  aboveWater(camera) {
-    return !!this.water && this.playing && camera.position.y > 0.02;
-  }
-
   play(rov, camera, onDone) {
     this.rov = rov;
     this.camera = camera;
@@ -362,10 +334,6 @@ export class DeployIntro {
     this._measureVehicle();
     this.rig.group.visible = true;
     this.cable.mesh.visible = true;
-    if (this.water) {
-      this.water.visible = true;
-      this.sky.visible = true;
-    }
     this.update(0);
   }
 
@@ -511,12 +479,6 @@ export class DeployIntro {
     this._crew(t, dt);
     this._drawTether(t, dt);
     this.effects.update(dt);
-    if (this.water) {
-      this.water.material.uniforms.time.value += dt * 0.6;
-      const above = !this.camera || this.camera.position.y > 0.02;
-      this.water.visible = above;                 // under water the viewer's own surface takes over
-      this.sky.visible = above;
-    }
     this._cameraPath(t);
 
     if (this.t >= this.duration) this._finish();
@@ -532,10 +494,6 @@ export class DeployIntro {
     this._restoreVehicleVisibility();
     this.effects.clear();
     this.cable.mesh.visible = false;               // the viewer draws the live tether from here on
-    if (this.water) {
-      this.water.visible = false;
-      this.sky.visible = false;
-    }
     if (this.onDone) this.onDone();
   }
 
@@ -743,9 +701,5 @@ export class DeployIntro {
     this.cable.dispose();
     this.rig.dispose();
     this.effects.dispose();
-    if (this.water) {
-      this.water.geometry.dispose();
-      this.water.material.dispose();
-    }
   }
 }

@@ -1,4 +1,5 @@
-"""Rebuild original CC0 pen reference GLB, WebP net and NED mission manifest.
+"""Rebuild original CC0 pen reference GLB and NED mission manifest; the runtime WebP net is rebuilt by
+simulator/tools/build_pen_net_texture.py, which this script calls.
 
 blender -b --python cad/build_aquaculture_pen.py
 Requires system Python with Pillow, Node/npm; exporter invokes pinned glTF Transform.
@@ -39,9 +40,9 @@ def main():
     image.filepath_raw = str(TEMP / "net.png")
     image.file_format = "PNG"
     image.save()
-    subprocess.run(["python", "-c",
-                    "from PIL import Image; import sys; Image.open(sys.argv[1]).save(sys.argv[2], lossless=True)",
-                    str(TEMP / "net.png"), str(OUT / "net.webp")], check=True)
+    # The diamond image above only textures the portable reference GLB. The runtime net texture (square
+    # knotless mesh with a soft alpha ramp, see viewer/aquaculture.js) has its own generator.
+    subprocess.run(["python", str(ROOT / "simulator/tools/build_pen_net_texture.py")], check=True)
     mats = {}
     colors = {"pen_net": (.48, .53, .31), "pen_frame": (.03, .07, .08),
               "pen_sinker": (.2, .2, .17), "pen_rope": (.38, .32, .2),

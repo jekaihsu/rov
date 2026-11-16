@@ -7,12 +7,14 @@ import { hintItems } from '../input/bindings.js';
 import { renderPrompts } from './navigator.js';
 import './fidelity_items.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.settings', {
   hintsTitle: '目前鍵位',
   action: '動作',
   keys: '鍵盤',
   pad: '手把',
-};
+});
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -21,8 +23,9 @@ function element(tag, className, text) {
   return node;
 }
 
-// tabs: [{id, label, mount(container)}]; each tab is built the first time it is shown.
-export function createSettingsPanel({ tabs, idPrefix = 'settings' }) {
+// tabs: [{id, label, title, mount(container)}]; each tab is built the first time it is shown.
+// onSelect(id, pane): optional, called whenever a tab is shown.
+export function createSettingsPanel({ tabs, idPrefix = 'settings', onSelect = null }) {
   const root = element('section', 'menu-settings');
   const bar = element('div', 'menu-tabs');
   bar.setAttribute('role', 'tablist');
@@ -39,6 +42,7 @@ export function createSettingsPanel({ tabs, idPrefix = 'settings' }) {
     button.id = `${idPrefix}-tab-${tab.id}`;
     button.dataset.tab = tab.id;
     button.setAttribute('role', 'tab');
+    if (tab.title) button.title = tab.title;
     button.addEventListener('click', function chooseTab() {
       select(tab.id);
     });
@@ -62,6 +66,7 @@ export function createSettingsPanel({ tabs, idPrefix = 'settings' }) {
     }
     for (const [key, pane] of panes) pane.hidden = key !== tab.id;
     for (const [key, button] of buttons) button.setAttribute('aria-selected', String(key === tab.id));
+    onSelect?.(tab.id, panes.get(tab.id));
   }
   function step(direction) {
     const index = tabs.findIndex(function byId(entry) {

@@ -1,0 +1,6 @@
+{
+  "badServer": "Enter a valid server address.",
+  "needSecure": "Secure pages require a wss:// server.",
+  "badRoom": "Room codes must be 1–32 letters, digits, underscores or hyphens.",
+  "defaultName": "Operator"
+}

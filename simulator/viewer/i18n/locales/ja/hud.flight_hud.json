@@ -1,0 +1,60 @@
+{
+  "sonarSource": "ソナー",
+  "close": "技術パネルを閉じる",
+  "depth": "深度",
+  "altitude": "対底高度",
+  "engineering": "技術 Tab",
+  "density": [
+    "最小",
+    "標準",
+    "詳細"
+  ],
+  "view": "視点切替 V",
+  "locked": "ディスアーム",
+  "unlocked": "アーム",
+  "unlockHint": "{key} / コントローラー Y でアーム",
+  "axes": [
+    [
+      "surge",
+      "前進／後退"
+    ],
+    [
+      "sway",
+      "右移動／左移動"
+    ],
+    [
+      "heave",
+      "上昇／潜航"
+    ],
+    [
+      "yaw",
+      "右旋回／左旋回"
+    ]
+  ],
+  "hide": "HUD 切替",
+  "north": "北を上に",
+  "head": "機首を上に",
+  "cards": [
+    "任務と目標",
+    "機体システム",
+    "地図とチーム",
+    "操作ガイド"
+  ],
+  "cable": "テザー",
+  "battery": "バッテリー",
+  "tension": "張力",
+  "light": "照明",
+  "danger": "危険：テザー破断",
+  "warn": "注意：テザー張力",
+  "near": "注意：海底に接近",
+  "obstacleDanger": "危険：障害物に近すぎ",
+  "lowBattery": "通知：バッテリー残量低下",
+  "forward": "前方推定距離",
+  "controller": "USB コントローラー接続済み",
+  "dvlLost": "注意：DVL ボトムロック喪失",
+  "fidelity": {
+    "real": "presetReal",
+    "assisted": "presetAssisted",
+    "custom": "presetCustom"
+  }
+}

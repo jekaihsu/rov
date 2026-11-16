@@ -210,12 +210,17 @@ class TestStateEncoding(unittest.TestCase):
         self.assertEqual(state["room"]["host_id"], self.players[1].id)
 
     def test_controller_metadata_is_not_cached_with_fleet(self):
+        # Freeze wall time so the 1/30 s fleet snapshot age cannot hide a regression:
+        # controller metadata must refresh while the fleet fragment stays shared.
         self.host.qirc_enabled = True
         self.host.controller_revision = 1
-        a = self.assert_payload_matches(self.players[0])
-        self.host.controller_revision = 2
-        self.host.sim.rc_physical.left_lr = 1700
-        b = self.assert_payload_matches(self.players[0])
+        with patch("qysim.room.time.monotonic", return_value=100.):
+            a = self.assert_payload_matches(self.players[0])
+            fleet_before = self.room._snapshot
+            self.host.controller_revision = 2
+            self.host.sim.rc_physical.left_lr = 1700
+            b = self.assert_payload_matches(self.players[0])
+            self.assertIs(self.room._snapshot, fleet_before)
         self.assertEqual(a["controller"]["revision"], 1)
         self.assertEqual(b["controller"]["revision"], 2)
         self.assertEqual(b["controller"]["axes"]["left_lr"], 1700)

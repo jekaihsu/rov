@@ -1,0 +1,50 @@
+{
+  "rows": {
+    "objectives": "Objectives",
+    "time": "Time",
+    "tether": "Tether management",
+    "contacts": "Collisions & contact",
+    "procedure": "Operating procedure",
+    "other": "Other penalties"
+  },
+  "kinds": {
+    "scenario": "Scenario training",
+    "coop": "Co-op inspection",
+    "chapter": "Story",
+    "drill": "Incident drills",
+    "contract": "Engineering contracts",
+    "career": "YX work order"
+  },
+  "times": "{n} times",
+  "noContacts": "No collisions",
+  "tetherBroken": "Tether broken",
+  "tetherClean": "Tension normal",
+  "overload": "{n} overloads",
+  "contract": "Contract complete",
+  "medals": {
+    "gold": "Gold",
+    "silver": "Silver",
+    "bronze": "Bronze",
+    "none": "No medal"
+  },
+  "rewards": {
+    "first_dive": "First dive badge",
+    "harbor_badge": "Harbour inspection badge",
+    "hull_badge": "Hull inspection badge",
+    "harbor_signoff_badge": "Handover check badge",
+    "offshore_badge": "Offshore operations badge",
+    "reef_badge": "Reef operations badge",
+    "wreck_badge": "Wreck survey badge",
+    "ending_open_question": "Ending: questions remain",
+    "ending_evidence_complete": "Ending: evidence complete"
+  },
+  "unlockSticker": "Hull sticker unlocked: {name}",
+  "unlockVehicle": "Work vehicle unlocked: {name}",
+  "stickers": {
+    "dive": "Diver-down flag"
+  },
+  "vehicles": {
+    "falcon": "YX Model V (light work class)"
+  },
+  "unknownReward": "Reward: {id}"
+}

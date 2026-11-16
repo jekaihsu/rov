@@ -3,12 +3,14 @@
 // countdown and the developer command stay inside a collapsed 技術資訊 section. app.js reports connected() when
 // world or state data arrives and lost() when the socket closes.
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.connection_notice', {
   title: '無法連線到模擬器',
   body: '畫面會在連線恢復後自動繼續，不需要重新開始。若持續無法連線，請返回主選單後再試一次。',
   menu: '返回主選單',
   details: '技術資訊',
-};
+});
 // Before the first data: the menu → game hand-off and a cold server start can take several seconds.
 export const STARTUP_TIMEOUT_MS = 8000;
 // After a drop: the client retries within about a second; a short blip should not flash a panel.

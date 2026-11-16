@@ -13,7 +13,7 @@ import time
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import to_briefing, wait_screen
+from _menu import to_briefing, wait_screen, wait_title_card_gone
 
 BASE_URL = http_base()
 WS_URL = ws_base()
@@ -158,6 +158,7 @@ def campaign(browser, size):
       const radio = document.querySelector('.story-radio');
       return radio && !radio.hidden && window.__viewer.S.campaign.node?.type === 'dialogue';
     })()''', timeout=timeout(120000))
+    wait_title_card_gone(page)
     # Let the typewriter finish, then stretch the line far beyond anything the chapters contain.
     page.wait_for_function('''(() => {
       const text = document.querySelector('.story-radio p').textContent;

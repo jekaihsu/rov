@@ -2,12 +2,15 @@
 // the engineering drawer (both stay in the drawer too). For a player's first dives it mirrors the pilot guide's
 // four steps (pilot_guide.js owns the checks; this card only reads its list), and in the expedition sea it shows
 // the active contract's steps or the contracts on offer with an accept button. Collapsible; never shown during a
-// chapter (the story radio teaches the same steps) or a replay.
+// chapter (the story radio teaches the same steps) or a replay. During a YX work order (career/dive.js) the card
+// shows the order's deliverable checklist instead.
 import { acceptContract, cancelContract, contractBoard } from './contracts.js';
 import { recordLine } from '../menu/cards.js';
 import { recordFor } from './results_model.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.objective_card', {
   guide: '首次潛航練習',
   guideDone: '基本操作完成，開始探索吧！',
   hideGuide: '不再顯示練習',
@@ -18,7 +21,7 @@ const STRINGS = {
   collapse: '收合',
   expand: '展開',
   meters: '{d} m',
-};
+});
 export const CARD_KEY = 'rov.objectiveCard.v1';
 // The checklist is offered on the first few dives and until the player hides it.
 export const GUIDE_DIVES = 3;
@@ -56,7 +59,8 @@ function guideSteps() {
   });
 }
 
-export function installObjectiveCard({ send, getSession, readOnly = false }) {
+// career: optional career/dive.js runtime; its panel(state) returns {title, count, node} during a work order.
+export function installObjectiveCard({ send, getSession, readOnly = false, career = null }) {
   const save = readSave();
   if (!readOnly) {
     save.dives += 1;
@@ -79,9 +83,10 @@ export function installObjectiveCard({ send, getSession, readOnly = false }) {
   hideGuide.type = 'button';
   guide.append(guideHead, guideList, hideGuide);
   const board = element('div', 'objective-contracts');
+  const careerSlot = element('div', 'objective-career');
   const feedback = element('p', 'objective-feedback');
   feedback.setAttribute('role', 'status');
-  body.append(guide, board, feedback);
+  body.append(careerSlot, guide, board, feedback);
   root.append(head, body);
   document.body.append(root);
   let collapsed = save.collapsed;
@@ -180,6 +185,17 @@ export function installObjectiveCard({ send, getSession, readOnly = false }) {
     const now = performance.now();
     if (now - last < UPDATE_MS) return;
     last = now;
+    const work = career?.panel?.(state) || null;
+    careerSlot.hidden = !work;
+    if (work) {
+      if (careerSlot.firstChild !== work.node) careerSlot.replaceChildren(work.node);
+      guide.hidden = true;
+      board.hidden = true;
+      root.hidden = false;
+      title.textContent = work.title;
+      count.textContent = work.count;
+      return;
+    }
     const inChapter = ['active', 'completed'].includes(state.campaign?.status);
     const data = inChapter ? null : contractBoard(state, host());
     const steps = guideSteps();

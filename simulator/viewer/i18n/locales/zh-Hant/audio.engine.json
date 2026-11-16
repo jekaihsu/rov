@@ -1,0 +1,10 @@
+{
+  "title": "音效",
+  "master": "主音量",
+  "vehicle": "載具",
+  "environment": "環境",
+  "ui": "介面",
+  "warning": "警告",
+  "music": "音樂",
+  "mute": "靜音"
+}

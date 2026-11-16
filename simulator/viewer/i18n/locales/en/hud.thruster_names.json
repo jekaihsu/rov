@@ -1,0 +1,13 @@
+{
+  "positions": {
+    "PORT_FRONT": "Front left",
+    "STBD_FRONT": "Front right",
+    "PORT_AFT": "Rear left",
+    "STBD_AFT": "Rear right",
+    "PORT_LONG": "Left longitudinal",
+    "STBD_LONG": "Right longitudinal",
+    "HORIZONTAL": "Horizontal",
+    "VERTICAL": "Vertical"
+  },
+  "thruster": "Thruster"
+}

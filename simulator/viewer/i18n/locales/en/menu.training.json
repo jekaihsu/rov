@@ -1,0 +1,11 @@
+{
+  "title": "Training",
+  "tabs": {
+    "story": "Story & tutorial",
+    "drills": "Incident drills",
+    "scenarios": "Scenario training"
+  },
+  "storyHelp": "Unlock in order. Chapter progress is saved on this device.",
+  "drillHelp": "Independent incident response drills. No unlock required; repeat individually as needed.",
+  "scenarioHelp": "Difficulty based on current and visibility; each description explains the training focus."
+}

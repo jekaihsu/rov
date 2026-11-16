@@ -101,7 +101,7 @@ def update_objective(scorer, ob, sim):
 
 
 def photo(sim):
-    if sim.scenario.key != "aquaculture_pen":
+    if not str(sim.scenario.key).startswith("aquaculture_pen"):
         return
     from .physics import q_rot
     pos = sim.vehicle.s.pos

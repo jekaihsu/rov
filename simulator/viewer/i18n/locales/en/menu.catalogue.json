@@ -1,0 +1,17 @@
+{
+  "activities": {
+    "photo": "Wildlife photography",
+    "inspect": "Structure inspection",
+    "station": "Station keeping in current",
+    "tether": "Tether escape",
+    "route": "Route checkpoints",
+    "free": "Free exploration",
+    "coop": "Co-op inspection",
+    "expedition": "Explore & take contracts"
+  },
+  "difficulty": [
+    "Beginner",
+    "Advanced",
+    "Hard"
+  ]
+}

@@ -5,11 +5,13 @@
 // Servers that predate `state.sensors` keep the previous truth-based presentation.
 import {getFidelity, registerFidelityItem} from '../fidelity.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('hud.sensor_view', {
   truthTelemetry: '模擬真值儀表',
   truthTelemetryHelp: '顯示真機沒有的資訊：實際洋流、對水速度、平坦海床離底高度與真實航向深度；'
     + '關閉時只顯示感測器估計值。'
-};
+});
 // Proximity readout range of the HUD's forward-range text, metres (same as the geometric estimate).
 const FORWARD_SHOWN_M = 5;
 

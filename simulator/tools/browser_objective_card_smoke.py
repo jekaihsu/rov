@@ -1,6 +1,6 @@
 """Contracts and the first-dive checklist are reachable without the engineering drawer.
 
-Main menu 工程委託 → expedition sea → dive; the in-flight objective card lists the contracts on offer and the
+Main menu YX 委託看板 → 海洋探索委託 → expedition sea → dive; the in-flight objective card lists the contracts on offer and the
 first-dive checklist, accepting a contract from the card starts it, and the drawer is never opened.
 """
 import time
@@ -17,6 +17,8 @@ def run():
     with sync_playwright() as p:
         browser = launch(p, headless=True)
         page = browser.new_page(viewport={'width': 1600, 'height': 900})
+        # Clicks and waits follow ROV_BROWSER_TIMEOUT_SCALE; the default scale leaves CI timing unchanged.
+        page.set_default_timeout(timeout(30000))
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=card{time.time_ns()}&quality=performance'
@@ -24,6 +26,9 @@ def run():
         page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
         open_main(page)
         page.click('#entry-contracts')
+        wait_screen(page, 'board')
+        page.click('#board-tab-other')
+        page.click('#boardExpedition')
         wait_screen(page, 'hangar')
         assert page.evaluate('window.__menu.mission') == 'expedition'
         page.click('#hangarNext')

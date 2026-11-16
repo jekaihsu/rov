@@ -1,0 +1,47 @@
+{
+  "language": "語言",
+  "languageHelp": "語言切換後，尚未更新的畫面會在返回主選單後生效。",
+  "window": "顯示模式",
+  "modes": {
+    "windowed": "視窗",
+    "borderless": "無邊框視窗",
+    "fullscreen": "全螢幕"
+  },
+  "resolution": "解析度",
+  "apply": "套用顯示設定",
+  "applied": "已套用。",
+  "failed": "無法套用：{reason}",
+  "browserFullscreen": [
+    "全螢幕",
+    "瀏覽器版以瀏覽器的全螢幕顯示；解析度跟隨螢幕。"
+  ],
+  "brightness": "亮度",
+  "brightnessHelp": "只調整水下畫面，不影響儀表文字。",
+  "uiScale": "介面與文字縮放",
+  "fpsCap": "幀率上限",
+  "fps": {
+    "0": "不限制",
+    "30": "30 FPS",
+    "60": "60 FPS",
+    "120": "120 FPS"
+  },
+  "colorBlind": "色盲輔助（警示顏色）",
+  "colorBlindModes": {
+    "off": "關閉",
+    "deuteranopia": "綠色弱（Deuteranopia）",
+    "protanopia": "紅色弱（Protanopia）",
+    "tritanopia": "藍色弱（Tritanopia）"
+  },
+  "units": "單位",
+  "unitModes": {
+    "metric": "公制（m）",
+    "imperial": "英制（ft）"
+  },
+  "unitsHelp": "套用於遊戲 HUD 與選單；機載 OSD 照真機維持公制。",
+  "fov": "外部視角視野（FOV）",
+  "fovHelp": "追蹤、環繞、俯視視角；機載鏡頭維持真實鏡頭。",
+  "comfort": [
+    "動態舒適",
+    "關閉追蹤視角隨速度拉遠與視野放大，並減少介面動畫。"
+  ]
+}

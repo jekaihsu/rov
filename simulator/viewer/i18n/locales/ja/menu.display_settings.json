@@ -1,0 +1,47 @@
+{
+  "language": "言語",
+  "languageHelp": "言語変更後、表示が変わらない画面はメインメニューに戻ると反映されます。",
+  "window": "画面モード",
+  "modes": {
+    "windowed": "ウィンドウ",
+    "borderless": "ボーダーレス",
+    "fullscreen": "全画面"
+  },
+  "resolution": "解像度",
+  "apply": "表示設定を適用",
+  "applied": "適用しました。",
+  "failed": "適用できません：{reason}",
+  "browserFullscreen": [
+    "全画面",
+    "ブラウザーの全画面表示を使用します。解像度は画面に合わせます。"
+  ],
+  "brightness": "明るさ",
+  "brightnessHelp": "水中映像のみ調整します。計器の文字には影響しません。",
+  "uiScale": "UI・文字サイズ",
+  "fpsCap": "フレームレート上限",
+  "fps": {
+    "0": "無制限",
+    "30": "30 FPS",
+    "60": "60 FPS",
+    "120": "120 FPS"
+  },
+  "colorBlind": "色覚サポート（警告色）",
+  "colorBlindModes": {
+    "off": "オフ",
+    "deuteranopia": "2 型色覚（緑）",
+    "protanopia": "1 型色覚（赤）",
+    "tritanopia": "3 型色覚（青）"
+  },
+  "units": "単位",
+  "unitModes": {
+    "metric": "メートル法（m）",
+    "imperial": "ヤード・ポンド法（ft）"
+  },
+  "unitsHelp": "ゲーム HUD とメニューに適用します。搭載 OSD は実機と同じメートル法を維持します。",
+  "fov": "外部視点の視野角",
+  "fovHelp": "追従・周回・俯瞰視点に適用します。搭載カメラは実際の視野角を維持します。",
+  "comfort": [
+    "動きの軽減",
+    "速度に応じた追従距離・視野角の変化を無効にし、UI アニメーションを減らします。"
+  ]
+}

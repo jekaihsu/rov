@@ -4,7 +4,9 @@
 // temperature, camera tilt) is left out rather than invented. Field labels stay short English abbreviations
 // like real inspection overlays (docs/reference/real-rov-research.md: VideoRay burns in "H" and "D"); the
 // lock and pause lines are instructions to the player, not burn-in, so they are in the player's language.
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('hud.osd', {
   depth: 'DEPTH',
   alt: 'ALT',
   pitch: 'PITCH',
@@ -21,7 +23,7 @@ const STRINGS = {
   levels: ['MANUAL', 'VEL ASSIST', 'POS HOLD'],
   locked: '馬達鎖定 · 按 {key} 解鎖',
   cardinals: {0: 'N', 90: 'E', 180: 'S', 270: 'W'},
-};
+});
 const TAPE_HALF_DEG = 30;
 let root = null;
 let recordingSince = null;

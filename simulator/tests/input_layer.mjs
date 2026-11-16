@@ -56,6 +56,7 @@ test("haptics ignores unsupported devices and respects strength", async () => {
   createHaptics(() => null, {}).pulse("photo");
   let effect;
   const settings = { strength: 0.5 };
+  const fidelity = { get: () => true };
   const haptics = createHaptics(
     () => ({
       vibrationActuator: {
@@ -65,6 +66,7 @@ test("haptics ignores unsupported devices and respects strength", async () => {
       },
     }),
     settings,
+    fidelity,
   );
   haptics.pulse("unlock");
   assert.equal(effect[1].strongMagnitude, 0.15);
@@ -74,7 +76,7 @@ test("haptics ignores unsupported devices and respects strength", async () => {
     felt[name] = `${effect[1].duration}:${effect[1].strongMagnitude}`;
   }
   assert.equal(new Set(Object.values(felt)).size, 8, "each event has its own rumble");
-  settings.haptics = false;
+  fidelity.get = () => false;
   effect = null;
   haptics.pulse("hard");
   assert.equal(effect, null);

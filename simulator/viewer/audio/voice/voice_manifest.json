@@ -1,0 +1,1016 @@
+{
+  "version": 1,
+  "count": 101,
+  "lines": [
+    {
+      "id": "080476cad43afac04312",
+      "chapter": "finale",
+      "node": "brief",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "今晚在港內接封存匣。轉運隊先放到交接點；工程畫面仍標工具箱。舊影像只供比對，結論要靠這趟重新核實。"
+    },
+    {
+      "id": "760e381f0f535580b98d",
+      "chapter": "finale",
+      "node": "closing",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "潮間帶工作隊的日誌到這裡。留白就寫留白，查到的就負責說清楚。"
+    },
+    {
+      "id": "696f7275965d65ef1346",
+      "chapter": "finale",
+      "node": "crew_wrap",
+      "source": "campaign/finale.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "收工。潮間帶工作隊又活過一季。下回水池見。"
+    },
+    {
+      "id": "0037de1f3516c13d751c",
+      "chapter": "finale",
+      "node": "deploy",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "開部署合約，把觀測儀放穩並拍照。下一班要能回到同一處。"
+    },
+    {
+      "id": "c21281f209e1293ecd37",
+      "chapter": "finale",
+      "node": "deploy_cable",
+      "source": "campaign/finale.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "收到。我把交接位置寫清楚，省得明天再猜一次。"
+    },
+    {
+      "id": "718215b457acfae5c647",
+      "chapter": "finale",
+      "node": "full",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "三處都對上了：加裝的壓艙座擋住排水，修補紀錄卻被抽走。不是一句「天氣不好」就能帶過。把完整證據交出去。"
+    },
+    {
+      "id": "6eef49a090ac6d5ea8a0",
+      "chapter": "finale",
+      "node": "full_tender",
+      "source": "campaign/finale.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "原來我們那幾張慢慢拍的照片，真有用。好，收線，回家。"
+    },
+    {
+      "id": "2adf040ae6ad700095cc",
+      "chapter": "finale",
+      "node": "partial",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "匣子和基準都有了，現場比對還缺一段。我們只能說有疑點，不能宣布沉沒原因。報告封存，申請下一個潮窗。"
+    },
+    {
+      "id": "0a6fe8097208a88b7f0f",
+      "chapter": "finale",
+      "node": "partial_tender",
+      "source": "campaign/finale.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "人和機器都值得等下一趟。飯我留著，明天再把空白補上。"
+    },
+    {
+      "id": "18cdb5ad4aa4a5ec2487",
+      "chapter": "finale",
+      "node": "recover",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "先開回收合約。拍原位、夾取、送交接點、放穩。別為趕潮把證物拖過地面。"
+    },
+    {
+      "id": "0538b8f7da705b9fee81",
+      "chapter": "finale",
+      "node": "recover_cable",
+      "source": "campaign/finale.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "線在手上。你報夾穩，我再跟著收，今晚不猜手勢。"
+    },
+    {
+      "id": "60450add79ec0e133b3e",
+      "chapter": "finale",
+      "node": "recovered",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "封存匣交接了。裡面的維修索引指向排水口，但還缺現場對照。"
+    },
+    {
+      "id": "b2dcfc6ca8efb9bca015",
+      "chapter": "finale",
+      "node": "verify",
+      "source": "campaign/finale.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "開定點巡檢合約，核對三處證物標牌。從接案起十二分鐘；不足就回到一點五公尺以淺，資料照實封存。"
+    },
+    {
+      "id": "11f1656420485da047f2",
+      "chapter": "finale",
+      "node": "verify_cable",
+      "source": "campaign/finale.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我報收線，你報剩幾站。少一張不丟人，硬湊一個結論才麻煩。"
+    },
+    {
+      "id": "2310c169d3e00c2be681",
+      "chapter": "harbor",
+      "node": "brief",
+      "source": "campaign/harbor.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "第一筆案子。樁腳有舊裂痕，先替船主拍清楚。"
+    },
+    {
+      "id": "4a04c33c104a0ee53d04",
+      "chapter": "harbor",
+      "node": "cable",
+      "source": "campaign/harbor.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "阿禾在甲板上看線。繞樁之前，先想好退路。"
+    },
+    {
+      "id": "8415a34c6141ed7885b6",
+      "chapter": "harbor",
+      "node": "done",
+      "source": "campaign/harbor.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "三站都看過了。接著去船旁，那裡更暗。"
+    },
+    {
+      "id": "3f38bec6f47e1cdc3728",
+      "chapter": "harbor_signoff",
+      "node": "brief",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "交班前再看一次。照片要能讓下一班找到同一處，今天練貼近結構與留退路。"
+    },
+    {
+      "id": "c9c19eddf2c0594a7861",
+      "chapter": "harbor_signoff",
+      "node": "done",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "港灣案結了，作業載具也能部署了。下一趟去離岸，別把平潮當成保證。"
+    },
+    {
+      "id": "04d7215f269054b0d3f2",
+      "chapter": "harbor_signoff",
+      "node": "task_1_brief",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "面對樁往下看，別一邊轉一邊掉深度。"
+    },
+    {
+      "id": "cad07d854ec5942784ec",
+      "chapter": "harbor_signoff",
+      "node": "task_1_cable",
+      "source": "campaign/harbor_signoff.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "線在你後面。先看清這一面，再換下一面。"
+    },
+    {
+      "id": "2ac695d88434a26fab50",
+      "chapter": "harbor_signoff",
+      "node": "task_1_report",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "位置對上了。這張留作全景。"
+    },
+    {
+      "id": "06c87ce1e9541484ce5a",
+      "chapter": "harbor_signoff",
+      "node": "task_2_brief",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "新刮痕在下面。先拍位置，再拍細節，不碰樁。"
+    },
+    {
+      "id": "97b6333bbb27f259c760",
+      "chapter": "harbor_signoff",
+      "node": "task_2_cable",
+      "source": "campaign/harbor_signoff.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我先理好甲板的線。你別繞滿一圈又接著繞。"
+    },
+    {
+      "id": "a0c201c5b2b68a9f76f2",
+      "chapter": "harbor_signoff",
+      "node": "task_2_report",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "痕跡是一圈磨漆，沒有足夠證據說是裂痕。"
+    },
+    {
+      "id": "ac9a0ffe00d9199cab98",
+      "chapter": "harbor_signoff",
+      "node": "task_3_brief",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "最後這張要讓夜班看得懂。把鄰近結構也帶進去。"
+    },
+    {
+      "id": "182b09e61223c21ebead",
+      "chapter": "harbor_signoff",
+      "node": "task_3_cable",
+      "source": "campaign/harbor_signoff.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "收到。今天的線沒有變麻花，我也有功勞吧。"
+    },
+    {
+      "id": "2ee5dafb3072acfa3320",
+      "chapter": "harbor_signoff",
+      "node": "task_3_report",
+      "source": "campaign/harbor_signoff.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "有。日誌寫你一筆。交班不是把機器交出去就算完。"
+    },
+    {
+      "id": "04600ebcfc3a18771d60",
+      "chapter": "hull",
+      "node": "brief",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "船主說靠泊時擦到了。先看船底，不鑽看不見的縫。今天練的是看不清時還能慢下來。"
+    },
+    {
+      "id": "9f0687a0a3b3cb76f469",
+      "chapter": "hull",
+      "node": "done",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "阿禾，照原路帶線回來。下趟回碼頭，把交班紀錄補完整。"
+    },
+    {
+      "id": "d3a8a688e740435f2d8d",
+      "chapter": "hull",
+      "node": "task_1_brief",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "先在入口找輪廓。燈越亮，懸浮物不一定讓你看得更清楚。"
+    },
+    {
+      "id": "d078ccb50c9cabc864da",
+      "chapter": "hull",
+      "node": "task_1_cable",
+      "source": "campaign/hull.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我看著入口的線。你要退就說，別自己往黑處追。"
+    },
+    {
+      "id": "806c16a641786ccfc6a8",
+      "chapter": "hull",
+      "node": "task_1_report",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "入口照片有了。這是回程的參考，別只記羅盤。"
+    },
+    {
+      "id": "0520d045fabfa99a5f9c",
+      "chapter": "hull",
+      "node": "task_2_brief",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "沿龍骨接著看。上一段邊緣留在畫面裡，才知道有沒有漏。"
+    },
+    {
+      "id": "f82add723d684aae02a4",
+      "chapter": "hull",
+      "node": "task_2_cable",
+      "source": "campaign/hull.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "線要多少我放多少，多了也會拖你。慢慢走。"
+    },
+    {
+      "id": "001b42a28682a616b39b",
+      "chapter": "hull",
+      "node": "task_2_report",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "這段是舊漆脫落。只記看得到的，不替船主猜裂縫。"
+    },
+    {
+      "id": "62e94f73577ac00cef36",
+      "chapter": "hull",
+      "node": "task_3_brief",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "最後一站。先站穩再補近照，船殼不能拿來煞車。"
+    },
+    {
+      "id": "a095f9c2bc02a7f42404",
+      "chapter": "hull",
+      "node": "task_3_cable",
+      "source": "campaign/hull.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我等你退回入口再收線。飯還熱著，不用搶。"
+    },
+    {
+      "id": "8f9d3485563d9a7fcdde",
+      "chapter": "hull",
+      "node": "task_3_report",
+      "source": "campaign/hull.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "三站照片齊了。報告寫擦痕，沒看清的地方另排複查。"
+    },
+    {
+      "id": "31ecfb0240664ab8074f",
+      "chapter": "incident_compass",
+      "node": "brief",
+      "source": "campaign/incident_compass.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "演練注入通報：羅盤偏移，定向不可信。退出自動定向，以目視、纜線方向和深度撤離。此版本只注入通報，不改寫儀表數值。"
+    },
+    {
+      "id": "fcdd124a12cb1c5a62be",
+      "chapter": "incident_compass",
+      "node": "debrief",
+      "source": "campaign/incident_compass.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "研究的現場回報摘要描述鋼質沉船附近打轉與偏航重對準警告，建議後退並避免附近自動航向；它不是完整事故調查。靠近鋼構應交叉檢查目視與纜線方向，不能只信羅盤。偏差角度與距離均無來源，不設定為真機數字。"
+    },
+    {
+      "id": "c5161f590b9b5063c729",
+      "chapter": "incident_current",
+      "node": "brief",
+      "source": "campaign/incident_current.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "演練事件：站位持續漂移，請中止並收回；不要持續滿推硬守。流速為固定演練設定，未模擬潮流隨時間轉強。"
+    },
+    {
+      "id": "3e1a964c2af97d6df149",
+      "chapter": "incident_current",
+      "node": "debrief",
+      "source": "campaign/incident_current.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "研究中通報 02/23 的強流導致受困、磨纜與載具遺失，改正措施包含環境限值與流速顯示。強流操作指引建議平潮作業、實地確認潮況，結構背流區可作遮蔽。本題採中止回收路線，未模擬結構尾流；演練流速不是機型的真實抗流極限。"
+    },
+    {
+      "id": "ab3a671b80ce6bfe20a6",
+      "chapter": "incident_jacket",
+      "node": "brief",
+      "source": "campaign/incident_jacket.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "演練事件：潮流已轉強；原需三人但現場只有兩人。信標詢問過密有耗電風險。立即評估中止，向西側開放出口退回，避免纜線貼構件。"
+    },
+    {
+      "id": "aaba82be9e19cf3adab9",
+      "chapter": "incident_jacket",
+      "node": "debrief",
+      "source": "campaign/incident_jacket.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "通報 02/23 中，強流把載具推入導管架，纜線受損後失去電力與遙測。拉扯未果後切纜繫於結構，隔日受損纜線斷裂、載具漂走，信標數小時後失聯。檢討包括人手不足、緊急程序缺口及詢問頻率過高耗電。程序應納入環境限值並顯示流速，及早中止；勾纏先評估，不要盲目拉纜。"
+    },
+    {
+      "id": "df80ece5ee5e791f1abd",
+      "chapter": "incident_silt",
+      "node": "brief",
+      "source": "campaign/incident_silt.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "演練事件：觸底揚沙，影像不可依賴。以深度、羅盤與纜線走向退回出發點；若裝有聲納可交叉確認。載具貼近鬆軟泥底懸停，揚沙由你起飛時朝下的推進水流產生，濃時能見度可降到零；泥沙會隨流漂走或慢慢沉降。"
+    },
+    {
+      "id": "227d973855fd8a639140",
+      "chapter": "incident_silt",
+      "node": "debrief",
+      "source": "campaign/incident_silt.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "研究指出揚沙嚴重時攝影機完全失效、聲納仍可運作，但沒有具細節的公開零能見度迷航事故。此為典型險情練習，不是特定事故重建。保持離底、濁水調暗或關主燈減少背散射；沿纜線回卡點的程序供撤離參考，並非已驗證的盲航回收 SOP。"
+    },
+    {
+      "id": "21af7df6780ea89c704d",
+      "chapter": "incident_wreck",
+      "node": "brief",
+      "source": "campaign/incident_wreck.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "深處纜線已纏住殘骸卡點。先評估，不要從水面硬拉；能動就沿纜線回卡點，反向繞開再回收。"
+    },
+    {
+      "id": "802e2519b9d58afad117",
+      "chapter": "incident_wreck",
+      "node": "debrief",
+      "source": "campaign/incident_wreck.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "研究中的湖泊沉船案：2014 年約 134 m 深處纏到測深銅線，拉纜反而收緊，三四小時後切纜棄置。2021 年以聲納找到，2022 年由另一台載具掛回收纜、潛水員割斷纏線後回收。正確程序是先評估，能動就沿纜線回卡點；只有確信不會收緊才從水面拉。此演練用既有繞樁模型代替細線，並非重現銅線打結。"
+    },
+    {
+      "id": "1c86e9761669be9a992c",
+      "chapter": "incident_wreck",
+      "node": "failure",
+      "source": "campaign/incident_wreck.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "演練失敗：請檢視斷纜、碰撞或逾時原因，重試時提前中止。"
+    },
+    {
+      "id": "be3f73240bf7265134c7",
+      "chapter": "incident_wreck",
+      "node": "success",
+      "source": "campaign/incident_wreck.json",
+      "character": "instructor",
+      "speaker": "訓練督導",
+      "language": "zh-TW",
+      "text": "撤離完成。請檢視分數、碰撞與最大纜線張力。"
+    },
+    {
+      "id": "85dbacbdfc147eda2734",
+      "chapter": "offshore",
+      "node": "brief",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "風場給我們一個潮窗。先看導管架外側的陽極塊，不穿斜撐。流一旦超出能控制的程度就停工。"
+    },
+    {
+      "id": "55e55e38f6f08c326c5f",
+      "chapter": "offshore",
+      "node": "done",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "研究站還有一份小案子。帶上機械臂載具，明天去礁區。"
+    },
+    {
+      "id": "f5d43cef3db86fa4e245",
+      "chapter": "offshore",
+      "node": "task_1_brief",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "推桿給的是推力。先在外側試小幅修正，定深不會替你守住水平位置。"
+    },
+    {
+      "id": "37edf02db99a0d86d04f",
+      "chapter": "offshore",
+      "node": "task_1_cable",
+      "source": "campaign/offshore.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我把多餘的線留在甲板，水裡那段也會吃你的推力。"
+    },
+    {
+      "id": "c036fb372f58ca38d485",
+      "chapter": "offshore",
+      "node": "task_1_report",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "第一處有影像了。小修正比來回打滿桿省事。"
+    },
+    {
+      "id": "a2ca5bd3cfc5cd73b63f",
+      "chapter": "offshore",
+      "node": "task_2_brief",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "看目標有沒有在畫面裡走。有效底鎖才談定點，守不住就退出。"
+    },
+    {
+      "id": "dba4fef90960e20f14b8",
+      "chapter": "offshore",
+      "node": "task_2_cable",
+      "source": "campaign/offshore.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我不拿收線替你煞車。你報要退，我就配合。"
+    },
+    {
+      "id": "bd4774d8deb88a05e3ea",
+      "chapter": "offshore",
+      "node": "task_2_report",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "站穩才拍得到。照片只算外觀，不是陰極保護讀值。"
+    },
+    {
+      "id": "7af35db29e2b13828e01",
+      "chapter": "offshore",
+      "node": "task_3_brief",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "沿外側換面。若纜線卡住，先回頭找卡點，別往反方向拉更緊。"
+    },
+    {
+      "id": "58d47490291f9fe26cb1",
+      "chapter": "offshore",
+      "node": "task_3_cable",
+      "source": "campaign/offshore.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "斜撐會吃線。你轉彎前先喊；我盯張力，不跟那根斜撐拔河。"
+    },
+    {
+      "id": "901bd9ebd05aa561ea25",
+      "chapter": "offshore",
+      "node": "task_3_report",
+      "source": "campaign/offshore.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "這趟沒有必要為一張照片鑽進去。保住退路，才有下一趟。"
+    },
+    {
+      "id": "9e8e3cecc5ae0a950ef1",
+      "chapter": "prologue",
+      "node": "depth_line",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "停一下。把定深打開，讓手鬆一口氣。"
+    },
+    {
+      "id": "d44b66a78e234628457e",
+      "chapter": "prologue",
+      "node": "end",
+      "source": "campaign/prologue.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "收工。明天去港裡，船主等著我們查樁和船殼。"
+    },
+    {
+      "id": "c285976738436325c938",
+      "chapter": "prologue",
+      "node": "light_line",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "水裡看不清，別急著往前。先開燈。"
+    },
+    {
+      "id": "326c2996dd361095b85b",
+      "chapter": "prologue",
+      "node": "move",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "很好。慢慢來，先往前，再退回來。"
+    },
+    {
+      "id": "c93dfcbcef6efc74b722",
+      "chapter": "prologue",
+      "node": "photo_line",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "阿禾，把這張留著。這是新人的第一張水下照。"
+    },
+    {
+      "id": "eb9a26ce05ac6856c10e",
+      "chapter": "prologue",
+      "node": "predive_brief",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "下水前先確認密封、接頭與配平。完整作業流程可在主選單開啟；入水且人員離開才解鎖，回收先上鎖。"
+    },
+    {
+      "id": "136002151815d99bdb71",
+      "chapter": "prologue",
+      "node": "welcome",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "船老了，人可不能馬虎。我是林岑。今天先在池裡認識你的搭檔。"
+    },
+    {
+      "id": "c59c93f8bb49fb848a2e",
+      "chapter": "reef",
+      "node": "biology",
+      "source": "campaign/reef.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "先留一張環境基準。與生物保持距離，別為湊近照把底泥吹起來。"
+    },
+    {
+      "id": "37be467ce1f9e5cb9b47",
+      "chapter": "reef",
+      "node": "biology_cable",
+      "source": "campaign/reef.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我把線留在外側。你顧鏡頭，也幫底下那些住戶留點空間。"
+    },
+    {
+      "id": "3ebb4fd408a5cb2e65a1",
+      "chapter": "reef",
+      "node": "brief",
+      "source": "campaign/reef.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "研究站要換觀測儀。先在章節面板部署已解鎖的作業載具，再開始本章。抓手只搬小件，不拿來吊重物。"
+    },
+    {
+      "id": "225c6d96d87360ca6817",
+      "chapter": "reef",
+      "node": "deploy",
+      "source": "campaign/reef.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "再開部署合約。放到指定位置，等它穩住，再拍完工照。不要把珊瑚當底座。"
+    },
+    {
+      "id": "4c4f01d7e15c861157ee",
+      "chapter": "reef",
+      "node": "deploy_cable",
+      "source": "campaign/reef.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "放好了也別急著走。我想看它站穩，你大概也想。"
+    },
+    {
+      "id": "2eeb6d65bbbd38c37e6b",
+      "chapter": "reef",
+      "node": "done",
+      "source": "campaign/reef.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "兩件器材交接完成。研究站在舊影像裡找到殘骸輪廓，要請我們再看一眼。"
+    },
+    {
+      "id": "e6a74f1cf490cf186b50",
+      "chapter": "reef",
+      "node": "recover",
+      "source": "campaign/reef.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "開啟海底物件回收合約。先拍原位，再夾取，送到指定交接點才放開。"
+    },
+    {
+      "id": "03a0c16b78bae08c1f86",
+      "chapter": "reef",
+      "node": "recover_cable",
+      "source": "campaign/reef.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "我守著回程。夾住先別衝，看看東西是不是跟著走。"
+    },
+    {
+      "id": "514ed49979ca9e9eea41",
+      "chapter": "tether",
+      "node": "launch",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "從作業區上游下水，保持視線，僅放出所需纜線。"
+    },
+    {
+      "id": "de69695f76bba9dcfbcd",
+      "chapter": "tether",
+      "node": "reel_auto",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "自動恆張力收放。"
+    },
+    {
+      "id": "8c731d683fd422d0af74",
+      "chapter": "tether",
+      "node": "reel_free",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "纜盤放開，纜線隨載具拉出。"
+    },
+    {
+      "id": "c3567afa4fcb9f9b3e4a",
+      "chapter": "tether",
+      "node": "reel_haul_in",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "收纜中，注意張力。"
+    },
+    {
+      "id": "568213d7f9be52ca7f1a",
+      "chapter": "tether",
+      "node": "reel_hold",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "纜盤剎住，長度固定。"
+    },
+    {
+      "id": "1b6781c55cc810bd0c0a",
+      "chapter": "tether",
+      "node": "reel_pay_out",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "手動放纜中。"
+    },
+    {
+      "id": "1b25c9204edff5174fb0",
+      "chapter": "tether",
+      "node": "released",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "脫困程序已記錄。"
+    },
+    {
+      "id": "1d210468b75e3994e37b",
+      "chapter": "tether",
+      "node": "snag",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "纜線卡住或纏繞。不要拉纜，掉頭沿纜線回到卡點，再反向解開。"
+    },
+    {
+      "id": "d81c1505bdb6fb7eef1c",
+      "chapter": "tether",
+      "node": "stall",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "收纜受阻停止，可能卡纜，請勿硬拉。"
+    },
+    {
+      "id": "6f52f0905e04e2c0d2e8",
+      "chapter": "tether",
+      "node": "structure",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "纜線接近結構，留意纜線走向並減少多餘放纜。"
+    },
+    {
+      "id": "5fa04cb67e7d980f8d0e",
+      "chapter": "tether",
+      "node": "tension",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "張力超過額定工作負載，停止硬拉並評估纜線。"
+    },
+    {
+      "id": "442baa744b194c93be20",
+      "chapter": "tether",
+      "node": "twist",
+      "source": "tether/radio",
+      "character": "tender",
+      "speaker": "甲板 · 纜線手",
+      "language": "zh-TW",
+      "text": "扭轉超過兩圈，請反向解開。"
+    },
+    {
+      "id": "0644f470161d8e0617d2",
+      "chapter": "wreck",
+      "node": "abort",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "停工。這趟不交合格報告。從章節面板重開本章，先確認退路和剩餘時間。"
+    },
+    {
+      "id": "eaf2b142da73f3857f88",
+      "chapter": "wreck",
+      "node": "brief",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "研究站影像裡有一段舊貨輪殘骸。我們叫它「折潮」案，不是船名。先查外側，艙內不進。"
+    },
+    {
+      "id": "c8a7ecccddcbf196eb1d",
+      "chapter": "wreck",
+      "node": "done",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "紀錄匣能不能把修補和裝載改動接起來，還要驗。今晚回港，趁潮窗把它接上來。"
+    },
+    {
+      "id": "c1d72d1c5cfd63fcafa2",
+      "chapter": "wreck",
+      "node": "task_1_brief",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "下到測站深度，別直衝海床。暗處先認輪廓，推進器別對著泥。"
+    },
+    {
+      "id": "b5e23202cf531fadb084",
+      "chapter": "wreck",
+      "node": "task_1_cable",
+      "source": "campaign/wreck.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "桅桿在上面也會勾線。我盯著來路，你慢一點。"
+    },
+    {
+      "id": "626184f2e4321caea7bd",
+      "chapter": "wreck",
+      "node": "task_1_report",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "這裡的固定座和舊裝載圖不一致。先標成疑點，別急著下結論。"
+    },
+    {
+      "id": "73b5af38996c15e56be5",
+      "chapter": "wreck",
+      "node": "task_2_brief",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "換面走外圍。近鋼構別只信航向，拿剛才的輪廓核對。"
+    },
+    {
+      "id": "6daf5390a9fb80035452",
+      "chapter": "wreck",
+      "node": "task_2_cable",
+      "source": "campaign/wreck.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "又想抄近路了吧？我這條線可穿不過船。"
+    },
+    {
+      "id": "3dc40a5ac1c608de7724",
+      "chapter": "wreck",
+      "node": "task_2_report",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "固定座旁有修補痕。額外壓艙物若擋住排水，兩件事可能有關。只是可能。"
+    },
+    {
+      "id": "6f0e5ca8f5a98421caa2",
+      "chapter": "wreck",
+      "node": "task_3_brief",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "最後一站對照破口。抓手不撬船板，我們只取影像。"
+    },
+    {
+      "id": "e7164b16f19e03ceba6d",
+      "chapter": "wreck",
+      "node": "task_3_cable",
+      "source": "campaign/wreck.json",
+      "character": "tender",
+      "speaker": "阿禾",
+      "language": "zh-TW",
+      "text": "潮要換了。拍不清就另排一趟，我寧可多煮一次飯。"
+    },
+    {
+      "id": "5100ea46102d9d92ffd7",
+      "chapter": "wreck",
+      "node": "task_3_report",
+      "source": "campaign/wreck.json",
+      "character": "supervisor",
+      "speaker": "林督導",
+      "language": "zh-TW",
+      "text": "交叉照片齊了。研究站找到一只封存紀錄匣，已轉運到港內暫存區。"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import json
 import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from _browser import launch, host, http_port, ws_port
+from _browser import launch, host, http_port, ws_port, timeout
 from _menu import launch_from_menu, open_main
 
 parser = argparse.ArgumentParser()
@@ -18,17 +18,36 @@ BASE = f'http://{host()}:{args.http_port}/'
 WS = f'ws://{host()}:{args.ws_port}'
 errors = []
 room = 'exp' + str(int(time.time()))
-instrument = """window.__testSockets=[];window.__testMessages=[];
-const OriginalWebSocket=window.WebSocket;window.WebSocket=class extends OriginalWebSocket{
- constructor(...args){super(...args);window.__testSockets.push(this);this.addEventListener('message',e=>{
- try{const m=JSON.parse(e.data);if(!['world','state'].includes(m.type))window.__testMessages.push(m);}catch{}});}
-};"""
+# Observe the real worker transport. Replacing WebSocket makes rc_link.js fall back to a page socket,
+# which bypasses the worker's bounded state queue and made the guest's host_only reply wait behind
+# every queued state under load (H1). Messages are recorded from the worker, not from a test socket.
+instrument = """
+window.__testMessages = [];
+window.__testWorkers = [];
+const NativeWorker = window.Worker;
+window.Worker = class extends NativeWorker {
+  constructor(...args) {
+    super(...args);
+    if (!String(args[0]).includes('/rc_worker.js')) return;
+    window.__testWorkers.push(this);
+    this.addEventListener('message', function received(event) {
+      if (event.data.event !== 'message') return;
+      const value = JSON.parse(event.data.data);
+      if (!['world', 'state'].includes(value.type)) window.__testMessages.push(value);
+    });
+  }
+};
+"""
 
 def operation(page, action, **values):
-    page.evaluate("m=>window.__testSockets.find(s=>s.readyState===1).send(JSON.stringify(m))", {'type':'operation','action':action,**values})
+    page.evaluate("""m => {
+      const worker = window.__testWorkers.at(-1);
+      worker.postMessage({op: 'send', text: JSON.stringify(m)});
+    }""", {'type':'operation','action':action,**values})
 
 def wait_state(page):
-    page.wait_for_function("window.__viewer?.S?.mission?.mode==='expedition' && window.__modelLoaded", timeout=90000)
+    page.wait_for_function("window.__viewer?.S?.mission?.mode==='expedition' && window.__modelLoaded",
+                           timeout=timeout(90000))
 
 def current_host(tabs):
     # Disconnect transfers the host; reconnecting resumes the pilot, not a lost
@@ -40,12 +59,14 @@ with sync_playwright() as p:
     contexts=[]
     def page():
         context=browser.new_context(viewport={'width':1366,'height':768},accept_downloads=True)
+        # Same ROV_BROWSER_TIMEOUT_SCALE as the other smokes; the default (1) leaves CI timing unchanged.
+        context.set_default_timeout(timeout(30000))
         contexts.append(context)
         tab=context.new_page();tab.on('pageerror',lambda e:errors.append(str(e)));tab.add_init_script(instrument)
         return tab
     main=page()
     main.goto(f'{BASE}?ws={WS}&room={room}&model=falcon&scenario=coral_reef&mission=expedition',wait_until='domcontentloaded')
-    main.wait_for_function('window.__menu?.ready',timeout=90000)
+    main.wait_for_function('window.__menu?.ready',timeout=timeout(90000))
     assert main.evaluate('window.__menu.mission')=='expedition'
     open_main(main)
     main.click('#menuCollection')

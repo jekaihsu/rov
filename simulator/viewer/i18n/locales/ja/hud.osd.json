@@ -1,0 +1,27 @@
+{
+  "depth": "DEPTH",
+  "alt": "ALT",
+  "pitch": "PITCH",
+  "roll": "ROLL",
+  "tether": "TETHER",
+  "light": "LIGHT",
+  "mode": "MODE",
+  "rec": "● REC",
+  "dive": "DIVE",
+  "hold": "D-HOLD",
+  "nav": "NAV",
+  "paused": "シミュレーション一時停止中",
+  "heading": "HDG",
+  "levels": [
+    "MANUAL",
+    "VEL ASSIST",
+    "POS HOLD"
+  ],
+  "locked": "ディスアーム · {key} でアーム",
+  "cardinals": {
+    "0": "N",
+    "90": "E",
+    "180": "S",
+    "270": "W"
+  }
+}

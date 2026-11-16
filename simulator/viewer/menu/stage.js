@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { Environment } from '../environment.js';
 import { buildStructures } from '../structures.js';
 import { createVehicleModel } from '../vehicle_models.js';
-import { loadGLTF } from '../glb.js';
+import { placeSceneModelLow } from '../scene_models.js';
 import { applyVehicleSticker } from '../vehicle_stickers.js';
 import { configureRenderQuality, updateRenderQuality } from '../render_quality.js';
 import { createFrameGate } from '../prefs/display.js';
@@ -14,7 +14,7 @@ import { createFrameGate } from '../prefs/display.js';
 const POSES = {
   title: { eye: [-3.6, 1.1, 4.6], shift: 1.4, lift: 0.35, orbit: 0.03 },
   main: { eye: [-2.2, 0.7, 2.8], shift: 1.0, lift: 0.15, orbit: 0 },
-  modes: { eye: [-1.6, 2.0, 3.2], shift: 0, lift: -0.8, orbit: 0 },
+  modes: { eye: [-2.3, 0.45, 3.0], shift: 0.9, lift: -0.3, orbit: 0 },
   hangar: { eye: [0.9, 0.35, 1.5], shift: 0.42, lift: 0, orbit: 0 },
   // Overview of the site itself: eye direction scaled by the site's extent, looking at its structures.
   sites: { eye: [-0.55, 0.42, 0.72], shift: 0, lift: -0.22, orbit: 0.02, site: true },
@@ -23,6 +23,7 @@ const POSES = {
   briefing: { eye: [-1.3, 0.5, -1.9], shift: 0.8, lift: 0.05, orbit: 0 },
   multiplayer: { eye: [-2.6, 1.2, 3.2], shift: 1.4, lift: 0.1, orbit: 0 },
   settings: { eye: [-3.0, 1.4, 3.8], shift: 1.7, lift: 0.1, orbit: 0 },
+  shop: { eye: [0.9, 0.35, 1.5], shift: 0.42, lift: 0, orbit: 0 },
   launch: { eye: [-0.25, 0.12, -0.55], shift: 0, lift: -0.2, orbit: 0 },
 };
 const NARROW = 850;
@@ -35,6 +36,8 @@ export const SHOWCASE = {
   poses: {
     title: { eye: [1.6, 0.4, -3.6], shift: 1.3, lift: 0.5, orbit: 0.012 },
     main: { eye: [1.3, 0.3, -2.9], shift: 1.0, lift: 0.5, orbit: 0 },
+    // YX 裝備部: the vehicle close up, where the equipment goes.
+    shop: { eye: [0.9, 0.3, -1.7], shift: 0.5, lift: 0.1, orbit: 0 },
   },
 };
 
@@ -110,6 +113,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
   let spinVelocity = 0;
   let sticker = 'none';
   let showcase = false;
+  // The fog set by setSea (SEA or SHOWCASE.fog); site cards widen it per frame and other poses restore it.
+  let sea = SEA;
   // Large vehicles push the hangar camera back so they are never cropped (1 = the size the poses were set for).
   let modelScale = 1;
   let last = performance.now();
@@ -173,10 +178,13 @@ export function createStage(host, { quality = 'auto' } = {}) {
     for (const point of points) siteFocus.add(point);
     siteFocus.divideScalar(points.length);
     seabed = -world.seabed_depth;
-    siteFocus.y = Math.max(seabed + 1.5, Math.min(-2, siteFocus.y));
+    // Lift the look point off the sand so a half-buried wreck's deck stays in frame.
+    siteFocus.y = Math.max(seabed + 4, Math.min(-2, siteFocus.y + 3));
     let spread = 0;
     for (const point of points) spread = Math.max(spread, point.distanceTo(siteFocus));
-    siteExtent = Math.max(8, Math.min(26, spread * 1.3 + 6));
+    // Single authored models need a mid-hull overview inside the menu fog far plane.
+    const floor = spread > 1 ? 8 : 14;
+    siteExtent = Math.max(floor, Math.min(26, spread * 1.3 + 6));
   }
   function placeAnchor(world) {
     if (showcase) {
@@ -196,6 +204,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     }
   }
   function setSea([color, near, far]) {
+    sea = [color, near, far];
     scene.background.set(color);
     scene.fog.color.set(color);
     scene.fog.near = near;
@@ -224,13 +233,10 @@ export function createStage(host, { quality = 'auto' } = {}) {
     structures.add(buildStructures(world, { detail: 'low' }).group);
     for (const obstacle of world.obstacles || []) {
       if (obstacle.type === 'model') {
-        loadGLTF(obstacle.model).then(function placeModel(gltf) {
-          if (ticket !== sceneTicket) return;
-          const heading = obstacle.heading_deg * Math.PI / 180;
-          gltf.scene.position.copy(P(obstacle.origin));
-          gltf.scene.rotation.y = Math.atan2(-Math.cos(heading), -Math.sin(heading));
-          structures.add(gltf.scene);
-        }).catch(function ignoreMissingModel() {});
+        // Menu background loads one reduced authored LOD (scene_models.js placeSceneModelLow), never the full mesh.
+        placeSceneModelLow(obstacle, structures, P, function current() {
+          return ticket === sceneTicket;
+        });
       }
     }
     placeAnchor(world);
@@ -301,6 +307,14 @@ export function createStage(host, { quality = 'auto' } = {}) {
     }
     camera.position.copy(eye);
     camera.lookAt(look);
+    // Site overview cards need a longer fog reach than the hangar turntable.
+    if (pose.site) {
+      scene.fog.near = Math.max(4, siteExtent * 0.35);
+      scene.fog.far = Math.max(40, siteExtent * 3);
+    } else {
+      scene.fog.near = sea[1];
+      scene.fog.far = sea[2];
+    }
     environment?.update(dt, camera, new THREE.Vector3(0.1, 0, 0));
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
@@ -310,6 +324,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
   requestAnimationFrame(frame);
   return {
     renderer,
+    scene,
+    camera,
     state,
     setModel,
     setScene,

@@ -2,8 +2,8 @@
 //   under water  seabed with a per-site material (seabed.js), rock outcrops, scattered steel debris,
 //                kelp that sways with the current, fish schools circling the structures, kelp and
 //                anemones on structures; marine meshes come from marine_registry.js
-//   on the surface  coastline and islands on the horizon, other vessels, navigation buoys and a
-//                row of offshore wind turbines
+//   on the surface  surface_set.js: an offshore wind farm where the site has one, distant land where the
+//                site is near shore, other vessels and navigation buoys
 // Everything is placed from a seeded random generator (same layout every time for a scenario)
 // and kept clear of the structures, objectives and the start area, because the ROV can fly
 // through these props: they must never sit where the training happens.
@@ -14,7 +14,10 @@
 import * as THREE from 'three';
 import { KELP_FLOW_GLSL, createKelpFlowUniforms, updateKelpFlow } from './kelp_flow.js';
 import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
+import {createSharedSchools} from './fish_schools.js';
+import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyle, reefCoralTint} from './reef_life.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
+import {buildSurfaceSet} from './surface_set.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.05, ...o });
@@ -97,7 +100,8 @@ export class Environment {
     this._terrain();
     if (world.habitat) {
       this._habitat(world.habitat);
-      this._sharedFish(world.habitat.fish_schools || []);
+      this._sharedFish();
+      this.reef = installReefDressing(this.group, world, this.detail);
     } else {
       this._rocks(R);
       this._debris(R);
@@ -261,7 +265,7 @@ export class Environment {
   _habitat(habitat) {
     const buckets = new Map();
     for (const entity of habitat.entities || []) {
-      const key = `${entity.kind}:${entity.variant}`;
+      const key = `${entity.kind}:${entity.kind === 'coral' ? reefCoralStyle(entity) : entity.variant}`;
       if (!buckets.has(key)) buckets.set(key, []);
       buckets.get(key).push(entity);
     }
@@ -269,8 +273,8 @@ export class Environment {
     for (const entities of buckets.values()) {
       const {kind,variant} = entities[0]; let geo, mat;
       if (kind === 'coral') {
-        geo = marineGeometry('coral', variant);
-        mat = M([0x94765b,0x98785e,0x8a7c58][variant],{roughness:.94});
+        geo = reefCoralGeometry(reefCoralStyle(entities[0]), this.detail);
+        mat = reefCoralMaterial(reefCoralStyle(entities[0]));
       } else if (kind === 'seastar') {
         geo = marineGeometry('seastar', variant); mat=M([0xaf7148,0x927650,0x765e55][variant]);
       } else if (kind === 'rock') {
@@ -291,6 +295,7 @@ export class Environment {
         if(kind==='kelp') scale.y*=2.3;
         if(kind==='seagrass') scale.y*=.55;
         matrix.compose(p,rotation,scale);mesh.setMatrixAt(i,matrix);
+        if (kind === 'coral') mesh.setColorAt(i, reefCoralTint(item));
         if(['coral','seastar','kelp','seagrass'].includes(kind))
           this.observationTargets.push({entity_id:item.id,category:kind,mesh,instanceIds:[i]});
       }
@@ -303,27 +308,11 @@ export class Environment {
     }
   }
 
-  _sharedFish(schools) {
-    this.sharedSchools = [];
-    const geo = marineGeometry('fish');
-    const farm = this.world.scenario?.key === 'aquaculture_pen';
-    const fraction = farm ? {low: .25, medium: .6, high: 1}[this.detail] || 1 : 1;
-    for (const school of schools) {
-      const R = rng(school.id + ':' + this.world.world_seed);
-      const fish = Array.from({length: Math.ceil(school.count * fraction)}, () => ({
-        offset: new THREE.Vector3((R() - .5) * 2.1, (R() - .5) * .8, (R() - .5) * 2.1),
-        phase: R() * Math.PI * 2, scale: .65 + R() * .75,
-      }));
-      const material = M([0x9caaa1, 0x8d9784, 0x94919e][school.variant], {metalness: .25, roughness: .45});
-      const mesh = new THREE.InstancedMesh(geo, material, fish.length);
-      mesh.userData.observationEntities = fish.map(() => ({entity_id: school.id, category: 'fish_school'}));
-      this.observationTargets.push({entity_id: school.id, category: 'fish_school', mesh,
-        instanceIds: fish.map((_, i) => i)});
-      mesh.frustumCulled = false;
-      this.group.add(mesh);
-      this.sharedSchools.push({id: school.id, mesh, fish, pos: P(school.pos), target: P(school.pos),
-        vel: new THREE.Vector3(0, 0, .3)});
-    }
+  _sharedFish() {
+    // Server schools drawn as swimming, schooling fish (fish_schools.js); one instanced mesh per school.
+    this.fishSchools = createSharedSchools(this.group, this.world, this.detail, this.world.world_seed);
+    this.sharedSchools = this.fishSchools.schools;
+    this.observationTargets.push(...this.fishSchools.observationTargets);
   }
 
   _rocks(R) {
@@ -411,82 +400,21 @@ export class Environment {
     }
   }
 
-  // ── surface ───────────────────────────────────────────────────────────
+  // ── surface: wind farm, coastline, vessels and buoys (surface_set.js) ─────
   _surface(R) {
-    const S = (this.surf = new THREE.Group());
-    this.group.add(S);
-    const c = this.centre;
-    // coastline and islands on the horizon: low-poly mountains, hazed by the fog
-    const rockM = M(0x5d6b5a, { flatShading: true, roughness: 1 }), cliffM = M(0x77705f, { flatShading: true, roughness: 1 });
-    for (let i = 0; i < 9; i++) {
-      const a = -0.6 + i * 0.28 + (R() - 0.5) * 0.12, d = 700 + R() * 380;
-      const g = new THREE.ConeGeometry(60 + R() * 140, 25 + R() * 90, 9, 4);
-      const p = g.attributes.position;
-      for (let k = 0; k < p.count; k++) {
-        const x = p.getX(k), y = p.getY(k), z = p.getZ(k);
-        const n = noise3(x * 0.02 + i * 7, y * 0.03, z * 0.02) - 0.5;
-        p.setXYZ(k, x * (1 + n * 0.5), y + n * 12, z * (1 + n * 0.5));
-      }
-      g.computeVertexNormals();
-      const m = new THREE.Mesh(g, i % 3 === 0 ? cliffM : rockM);
-      m.position.set(c.x + Math.cos(a) * d, g.parameters.height / 2 - 6, c.z + Math.sin(a) * d);
-      m.scale.set(1, 1, 0.6 + R() * 0.6); m.rotation.y = R() * 6.28;
-      S.add(m);
-    }
-    // offshore wind farm: a row of turbines, blades turning
-    this.rotors = [];
-    const white = M(0xe9eef0, { roughness: 0.5 }), yellow = M(0xf2b705, { roughness: 0.5 });
-    const rowA = R() * 6.28;
-    for (let i = 0; i < 6; i++) {
-      const base = new THREE.Vector3(c.x + Math.cos(rowA) * 520 + Math.cos(rowA + 1.57) * (i - 2.5) * 260, 0, c.z + Math.sin(rowA) * 520 + Math.sin(rowA + 1.57) * (i - 2.5) * 260);
-      const t = new THREE.Group(); t.position.copy(base); S.add(t);
-      const tp = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 14, 16), yellow); tp.position.y = 5; t.add(tp);
-      const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.1, 90, 16), white); tower.position.y = 57; t.add(tower);
-      const nac = new THREE.Mesh(new THREE.BoxGeometry(4.5, 4.5, 13), white); nac.position.set(0, 104, -1.5); t.add(nac);
-      const rotor = new THREE.Group(); rotor.position.set(0, 104, 5.5); t.add(rotor);
-      rotor.add(new THREE.Mesh(new THREE.SphereGeometry(2.2, 12, 8), white));
-      for (let b = 0; b < 3; b++) {
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(2.6, 62, 0.6), white);
-        blade.geometry.translate(0, 31, 0); blade.rotation.z = b * 2.094; rotor.add(blade);
-      }
-      rotor.rotation.z = R() * 6.28;
-      t.rotation.y = rowA + Math.PI;                               // all facing the same wind
-      this.rotors.push({ rotor, w: 0.9 + R() * 0.25 });
-    }
-    // other vessels: simple hull + superstructure silhouettes of different sizes
-    this.vessels = [];
-    for (let i = 0; i < 4; i++) {
-      const a = R() * 6.28, d = 160 + R() * 420, L = 18 + R() * 70;
-      const v = new THREE.Group();
-      const hullM = M([0x2b3a4a, 0x7a2222, 0x23313c, 0x3f5a3c][i % 4], { roughness: 0.6 });
-      const hull = new THREE.Mesh(new THREE.BoxGeometry(L * 0.18, L * 0.1, L), hullM); hull.position.y = L * 0.02; v.add(hull);
-      const bow = new THREE.Mesh(new THREE.ConeGeometry(L * 0.09, L * 0.22, 4), hullM); bow.rotation.set(Math.PI / 2, Math.PI / 4, 0); bow.scale.set(1, 1, 0.55); bow.position.set(0, L * 0.02, L * 0.6); v.add(bow);
-      const sup = new THREE.Mesh(new THREE.BoxGeometry(L * 0.14, L * 0.12, L * 0.2), M(0xe8ebec)); sup.position.set(0, L * 0.12, -L * 0.28); v.add(sup);
-      v.position.set(c.x + Math.cos(a) * d, 0, c.z + Math.sin(a) * d); v.rotation.y = R() * 6.28;
-      S.add(v);
-      this.vessels.push({ v, ph: R() * 6.28, speed: (R() < 0.5 ? 0 : 1.5 + R() * 3) });
-    }
-    // navigation buoys (cardinal/lateral colours) around the work site
-    this.buoys = [];
-    const cols = [0xf2c200, 0xc62828, 0x2e7d32, 0xf2c200];
-    for (let i = 0; i < 5; i++) {
-      const a = i * 1.26 + R() * 0.4, d = 70 + R() * 90;
-      const b = new THREE.Group();
-      const m = M(cols[i % 4], { roughness: 0.5 });
-      const float = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 1.6, 16), m); b.add(float);
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.6, 8), m); mast.position.y = 2; b.add(mast);
-      const top = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.8, 12), M(0x222222)); top.position.y = 3.5; b.add(top);
-      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff1a8 })); lamp.position.y = 4.05; b.add(lamp);
-      b.position.set(c.x + Math.cos(a) * d, 0, c.z + Math.sin(a) * d);
-      S.add(b);
-      this.buoys.push({ b, lamp, ph: R() * 6.28 });
-    }
+    const set = buildSurfaceSet(this.world, this.centre, R, {detail: this.detail, time: this.uniforms.uTime});
+    this.surf = set.group;
+    this.group.add(set.group);
+    this.rotors = [];                                              // rotors turn in the farm's vertex shader
+    this.vessels = set.vessels;
+    this.buoys = set.buoys;
   }
 
   // ── per frame ─────────────────────────────────────────────────────────
   update(dt, camera, flow = null, state = null, flowField = null) {
     this.t = Number.isFinite(state?.t) ? state.t : this.t + dt;
     const t = this.t;
+    this.reef?.update(t, this.fishSchools?.vehicle);
     this.uniforms.uTime.value = t;
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
     updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
@@ -500,24 +428,7 @@ export class Environment {
     }
     // fish: each circles its school centre with its own radius, height and speed; tails wag
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
-    const schools = state?.environment?.fish_schools || [];
-    for(const school of this.sharedSchools || []) {
-      const live=schools.find(x=>x.id===school.id);
-      if(live){school.target.copy(P(live.pos));school.vel.copy(P(live.vel));}
-      school.pos.copy(school.target);
-      school.mesh.visible=school.pos.distanceTo(camera.position)<55;
-      if(!school.mesh.visible)continue;
-      const heading=Math.atan2(school.vel.x,school.vel.z);
-      school.fish.forEach((f,i)=>{
-        p.copy(school.pos).add(f.offset);
-        p.y+=Math.sin(t*1.7+f.phase)*.12;
-        q.setFromEuler(e.set(0,heading+Math.sin(t*6+f.phase)*.07,Math.sin(t*5+f.phase)*.04));
-        s.setScalar(f.scale * (this.world.scenario?.key === 'aquaculture_pen' ? 2 : 1));
-        m4.compose(p, q, s);
-        school.mesh.setMatrixAt(i, m4);
-      });
-      school.mesh.instanceMatrix.needsUpdate=true;
-    }
+    this.fishSchools?.update(dt, t, camera, state);
     for (const sc of this.schools || []) {
       if (sc.c.distanceTo(camera.position) > 60) continue;         // out of sight: skip the work
       sc.fish.forEach((f, i) => {

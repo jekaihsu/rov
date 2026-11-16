@@ -9,7 +9,8 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, set_intro, wait_screen
+from _menu import open_main, set_intro, wait_screen, wait_title_card_gone
+from _campaign_drive import hold_until_advanced, wait_left
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'results-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -25,14 +26,9 @@ def play_prologue(page):
         node = campaign['node']
         if node['type'] == 'dialogue':
             page.locator('.story-radio button').evaluate('button => { button.click(); button.click(); }')
+            wait_left(page, node['id'])
         else:
-            key = KEYS[node['id']]
-            page.keyboard.down(key)
-            page.wait_for_function('id => window.__viewer.S.campaign.node?.id !== id', arg=node['id'],
-                                   timeout=timeout(45000))
-            page.keyboard.up(key)
-        page.wait_for_function('id => window.__viewer.S.campaign.node?.id !== id', arg=node['id'],
-                               timeout=timeout(45000))
+            hold_until_advanced(page, node['id'], KEYS[node['id']], KEYS['unlock'])
     raise AssertionError('prologue did not finish')
 
 
@@ -40,6 +36,8 @@ def run():
     with sync_playwright() as p:
         browser = launch(p, headless=True)
         page = browser.new_page(viewport={'width': 1600, 'height': 900})
+        # Clicks and waits follow ROV_BROWSER_TIMEOUT_SCALE; the default scale leaves CI timing unchanged.
+        page.set_default_timeout(timeout(30000))
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.goto(f'{http_base(8092)}/?nointro&mission=campaign&control=UAV_CHN&room=results{time.time_ns()}'
@@ -53,6 +51,7 @@ def run():
         set_intro(page, False)
         page.click('#startDive')
         page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(90000))
+        wait_title_card_gone(page)
         assert page.locator('#resultsScreen').is_hidden(), 'no results card while flying'
         play_prologue(page)
         page.wait_for_selector('#resultsScreen:not([hidden])', timeout=timeout(15000))

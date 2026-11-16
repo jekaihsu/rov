@@ -2,9 +2,10 @@
 import json
 import time
 from pathlib import Path
-from playwright.sync_api import sync_playwright
-from _browser import launch, http_base, ws_base
-from _menu import open_main, set_intro, wait_screen
+from playwright.sync_api import sync_playwright, Error
+from _browser import launch, http_base, ws_base, timeout
+from _menu import open_main, set_intro, wait_screen, wait_title_card_gone
+from _campaign_drive import hold_until_advanced, wait_left
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'campaign-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -16,12 +17,23 @@ def run():
                                     args=['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'])
         context = browser.new_context(viewport=dict(width=1600, height=900), record_video_dir=str(OUT),
                                       record_video_size=dict(width=800, height=450))
-        page = context.new_page()
+        try:
+            page = context.new_page()
+        except Error as error:
+            if 'ffmpeg' not in str(error).lower() or "Executable doesn't exist" not in str(error):
+                raise
+            print('SKIP video recording: Playwright ffmpeg executable is missing; all campaign checks still run.',
+                  flush=True)
+            context.close()
+            context = browser.new_context(viewport=dict(width=1600, height=900))
+            page = context.new_page()
+        # Clicks and waits follow ROV_BROWSER_TIMEOUT_SCALE; the default scale leaves CI timing unchanged.
+        page.set_default_timeout(timeout(30000))
         errors = []
         page.on('pageerror', lambda error: (errors.append(str(error)), print('ERROR', error, flush=True)))
         page.goto(f'{http_base(8092)}/?nointro&mission=campaign&control=UAV_CHN'
                   f'&room=campaign{time.time_ns()}&quality=performance&model=bluerov2_heavy&ws={ws_base(8792)}')
-        page.wait_for_function('window.__menu?.ready', timeout=90000)
+        page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
         open_main(page)
         page.click('#entry-story')
         page.click('[data-chapter="prologue"]')
@@ -29,7 +41,8 @@ def run():
         wait_screen(page, 'briefing')
         set_intro(page, False)
         page.click('#startDive')
-        page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=90000)
+        page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(90000))
+        wait_title_card_gone(page)
         page.wait_for_timeout(1500)
         page.screenshot(path=str(OUT / 'prologue.png'))
 
@@ -52,21 +65,9 @@ def run():
             print(node['id'], flush=True)
             if node['type'] == 'dialogue':
                 page.locator('.story-radio button').evaluate('button => { button.click(); button.click(); }')
+                wait_left(page, node['id'])
             else:
-                key = inputs[node['id']]
-                page.keyboard.down(key)
-                try:
-                    page.wait_for_function('id => window.__viewer.S.campaign.node?.id !== id',
-                                           arg=node['id'], timeout=45000)
-                except Exception:
-                    diagnostic = page.evaluate('''({mode:window.__viewer.S.operation_mode,
-                        locked:window.__viewer.S.locked, rc:window.__viewer.S.rc,
-                        pos:window.__viewer.S.pos, vel:window.__viewer.S.vel})''')
-                    print(diagnostic, flush=True)
-                    raise
-                page.keyboard.up(key)
-            page.wait_for_function('id => window.__viewer.S.campaign.node?.id !== id',
-                                   arg=node['id'], timeout=45000)
+                hold_until_advanced(page, node['id'], inputs[node['id']], inputs['unlock'])
         page.wait_for_function('window.__viewer.S.campaign.status === "completed"')
         result = page.evaluate('window.__viewer.S.campaign')
         assert 'prologue' in result['completed'], result
@@ -76,7 +77,8 @@ def run():
                                                     ensure_ascii=False, indent=2))
         video = page.video
         context.close()
-        Path(video.path()).replace(OUT / 'prologue.webm')
+        if video is not None:
+            Path(video.path()).replace(OUT / 'prologue.webm')
         browser.close()
     print('Campaign browser input proof passed:', OUT)
 

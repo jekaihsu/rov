@@ -2,7 +2,9 @@
 // with its steps, or the contracts on offer with why one is unavailable. Pure functions over state.expedition
 // (qysim/expedition.py); accepting and cancelling send the same operations as the drawer's expedition panel.
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('play.contracts', {
   help: {
     inspect: '穩定停靠三個站點，以機載相機完成巡檢。',
     recover: '拍攝目標，使用機械臂帶回交付區並釋放。',
@@ -10,7 +12,7 @@ const STRINGS = {
   },
   hostOnly: '等待房主接案',
   offline: '目前離線，請等待重新連線。',
-};
+});
 
 function distance(a, b) {
   if (!a || !b) return null;

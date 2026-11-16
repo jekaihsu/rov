@@ -1,0 +1,145 @@
+/* Deployment procedure column and dive prompt (procedure/index.js). Big-picture language (menu/big_picture.css):
+   text on a scrim gradient at the lower left, never a box over the scene; one solid accent button, secondary
+   actions as text, focus as a thick ice-white frame. The column keeps out of the middle third of the screen.
+   Sizes follow the viewport through --pp-u (1% of the height of a 16:9 frame). Colours come from the palette
+   (palette_631.css, falling back to the HUD tokens), stacking from hud/tokens.css. */
+
+#procedurePanel, #procedurePrompt {
+  --pp-main: var(--color-main, var(--bg-0));
+  --pp-ice: var(--color-second, var(--text));
+  --pp-accent: var(--color-accent, var(--warn));
+  --pp-dim: color-mix(in srgb, var(--pp-ice) 68%, transparent);
+  --pp-fill: color-mix(in srgb, var(--pp-ice) 15%, transparent);
+  --pp-u: min(1vh, .5625vw);
+  --pp-body: max(14px, calc(var(--pp-u) * 1.7));
+  --pp-large: max(16px, calc(var(--pp-u) * 2.1));
+  --pp-title: max(24px, calc(var(--pp-u) * 3.8));
+  --pp-frame: max(3px, calc(var(--pp-u) * .37));
+  --pp-radius: calc(var(--pp-u) * .4);
+  --pp-font: Inter, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --pp-shadow: 0 1px 2px color-mix(in srgb, var(--pp-main) 80%, transparent),
+    0 2px 18px color-mix(in srgb, var(--pp-main) 60%, transparent);
+}
+
+/* ── column ──────────────────────────────────────────────────────────────── */
+/* Anchored at the lower left; the scrim darkens only the left edge and fades out well before the middle third. */
+#procedurePanel {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: var(--z-controls);
+  box-sizing: border-box;
+  width: 32vw;
+  max-height: 72vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--pp-u) * 1.4);
+  padding: calc(var(--pp-u) * 10) 2vw 7vh 4vw;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--pp-main) 72%, transparent),
+      color-mix(in srgb, var(--pp-main) 40%, transparent) 62%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 calc(var(--pp-u) * 9));
+  mask-image: linear-gradient(180deg, transparent, #000 calc(var(--pp-u) * 9));
+  color: var(--pp-ice);
+  font: 600 var(--pp-body) / 1.35 var(--pp-font);
+  text-shadow: var(--pp-shadow);
+  scrollbar-width: none;
+  outline: none;
+  animation: pp-enter 200ms ease-out;
+}
+#procedurePanel[hidden] { display: none; }
+#procedurePanel > * { max-width: 100%; margin: 0; }
+/* After the dive the column may take a little more room for the numbers and the log; still clear of the centre. */
+#procedurePanel[data-stage=post] { width: 34vw; padding-right: 3vw; }
+
+#procedurePanel .pp-kicker { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3em .9em; font-weight: 700;
+  letter-spacing: .14em; color: var(--pp-dim); }
+#procedurePanel .pp-count { font-variant-numeric: tabular-nums; letter-spacing: .06em; color: var(--pp-ice); }
+#procedurePanel .pp-title { font-size: var(--pp-title); font-weight: 900; line-height: 1.12; letter-spacing: 0;
+  overflow-wrap: anywhere; text-wrap: balance; }
+#procedurePanel .pp-note { font-weight: 500; line-height: 1.5; color: var(--pp-dim); }
+#procedurePanel .pp-note[data-level=warn] { font-weight: 700; color: var(--warn); }
+
+/* ── actions ─────────────────────────────────────────────────────────────── */
+#procedurePanel button { font-family: inherit; font-size: inherit; line-height: 1.3; text-shadow: none;
+  cursor: pointer; }
+#procedurePanel .pp-primary { min-height: calc(var(--pp-u) * 6.2); padding: 0 calc(var(--pp-u) * 3.6); border: 0;
+  border-radius: var(--pp-radius); background: var(--pp-accent); color: var(--pp-main);
+  font-size: var(--pp-large); font-weight: 800; letter-spacing: .08em;
+  transition: transform .16s ease-out; }
+#procedurePanel .pp-primary:is(:hover, :focus) { transform: translateY(-2px); }
+#procedurePanel .pp-primary:disabled { background: var(--pp-fill); color: var(--pp-dim); transform: none;
+  cursor: default; }
+#procedurePanel .pp-link { padding: .2em 0; border: 0; border-bottom: var(--pp-frame) solid transparent;
+  border-radius: 0;   background: none; color: var(--pp-ice); opacity: .75; font-weight: 700; text-align: left;
+  transition: opacity .16s ease-out, border-color .16s ease-out; }
+#procedurePanel .pp-link:is(:hover, :focus) { opacity: 1; border-bottom-color: var(--pp-ice); }
+#procedurePanel .pp-link:disabled { opacity: .35; cursor: default; }
+#procedurePanel .pp-link[data-focus=skip] { font-size: var(--pp-body); font-weight: 600; color: var(--pp-dim); }
+
+/* Focus: a thick ice-white frame when the keys or the pad steer (data-nav), or the browser says keyboard. */
+#procedurePanel :focus-visible, #procedurePanel[data-nav] :focus { outline: var(--pp-frame) solid var(--pp-ice);
+  outline-offset: 3px; }
+#procedurePanel .pp-link:focus-visible, #procedurePanel[data-nav] .pp-link:focus { outline: none; }
+
+/* Thruster pulses: a row of numbers; a tested one is struck through in the accent colour. */
+#procedurePanel .pp-tests { display: flex; flex-wrap: wrap; align-items: center;
+  gap: calc(var(--pp-u) * .6) calc(var(--pp-u) * 1.8); }
+#procedurePanel .pp-tests-label { flex-basis: 100%; font-weight: 700; letter-spacing: .1em; color: var(--pp-dim); }
+#procedurePanel .pp-test { min-width: 1.6em; font-size: var(--pp-large); font-variant-numeric: tabular-nums;
+  text-align: center; }
+#procedurePanel .pp-test[data-done=true] { opacity: 1; color: var(--pp-accent);
+  border-bottom-color: var(--pp-accent); }
+#procedurePanel .pp-test[data-done=true]:disabled { opacity: 1; }
+
+/* ── after the dive: a few big numbers and the log ───────────────────────── */
+#procedurePanel .pp-stats { display: flex; flex-wrap: wrap; gap: calc(var(--pp-u) * 1.2) calc(var(--pp-u) * 3.4); }
+#procedurePanel .pp-stat { display: grid; gap: .2em; }
+#procedurePanel .pp-stat-value { white-space: nowrap; }
+#procedurePanel .pp-stat-value b { font-size: max(24px, calc(var(--pp-u) * 4.2)); font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums; }
+#procedurePanel .pp-stat-value small { margin-left: .25em; font-weight: 700; color: var(--pp-dim); }
+#procedurePanel .pp-stat-label { font-weight: 600; letter-spacing: .06em; color: var(--pp-dim); }
+#procedurePanel .pp-stat[data-level=warn] b { color: var(--warn); }
+#procedurePanel .pp-notes { box-sizing: border-box; width: 100%; min-height: calc(var(--pp-u) * 9);
+  padding: .6em .8em;   border: 0; border-radius: var(--pp-radius); background: var(--pp-fill); color: var(--pp-ice);
+  font: 500 var(--pp-body) / 1.45 var(--pp-font); text-shadow: none; resize: vertical; }
+#procedurePanel .pp-notes::placeholder { color: var(--pp-dim); }
+
+/* While the column is up the lower-left instruments (map, depth ladder, attitude text) step aside; the column
+   covers their corner and the vehicle is held by the procedure. Depth and heading stay at the top. */
+body.procedure-open :is(#flightDepth, #flightMapBox, .osd-bl),
+body.procedure-open[data-hud-style=osd] #flightMission { visibility: hidden; }
+
+/* ── dive prompt: one short line in the upper middle, fades by itself ────── */
+#procedurePrompt {
+  position: fixed;
+  left: 50%;
+  top: 31%;
+  z-index: var(--z-notice);
+  max-width: min(46vw, 720px);
+  margin: 0;
+  padding: .45em 1.2em;
+  transform: translateX(-50%);
+  border-radius: var(--pp-radius);
+  background: color-mix(in srgb, var(--pp-main) 55%, transparent);
+  color: var(--pp-ice);
+  font: 700 var(--pp-large) / 1.35 var(--pp-font);
+  letter-spacing: .04em;
+  text-align: center;
+  text-shadow: var(--pp-shadow);
+  pointer-events: none;
+  animation: pp-enter 200ms ease-out;
+}
+#procedurePrompt[hidden] { display: none; }
+#procedurePrompt[data-level=warn] { color: var(--warn); }
+
+@keyframes pp-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #procedurePanel, #procedurePrompt, #procedurePanel :is(.pp-primary, .pp-link) { animation: none; transition: none; }
+}

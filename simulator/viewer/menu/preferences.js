@@ -3,12 +3,14 @@
 // rov.quality, rov.playerName, rov.menuSettings, the control layout key) and adds one record for 快速開始.
 import { CONTROL_LAYOUTS, controlLayout, rememberControlLayout } from '../control_layout.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('menu.preferences', {
   badServer: '請填寫有效的伺服器位址。',
   needSecure: '安全網頁需要使用 wss:// 伺服器。',
   badRoom: '房間代碼須為 1–32 個英數字、底線或連字號。',
   defaultName: '操作員',
-};
+});
 
 export const LAST_KEY = 'rov.menu.last.v1';
 export const MODEL_IDS = ['x1', 'bluerov2_heavy', 'falcon'];
@@ -131,6 +133,22 @@ export function validRoom(room) {
   return room;
 }
 
+// A YX contract dive carries ?contract=<id>; an exam also forces the real fidelity preset (?fidelity=real&exam=1)
+// and drops the per-item fidelity overrides so nothing beyond the real vehicle leaks into it.
+export const EXAM_CLEARED_PARAMS = ['cam', 'gimbal', 'videoDelayMs', 'presentation', 'thirdPerson', 'underwaterAudio',
+  'diveMusic', 'procedure', 'beautify', 'vision'];
+function careerParams(url, choice) {
+  if (choice.contract) url.searchParams.set('contract', choice.contract);
+  else url.searchParams.delete('contract');
+  if (!choice.contract || !choice.exam) {
+    url.searchParams.delete('exam');
+    return;
+  }
+  url.searchParams.set('exam', '1');
+  url.searchParams.set('fidelity', 'real');
+  for (const name of EXAM_CLEARED_PARAMS) url.searchParams.delete(name);
+}
+
 // The game URL for a choice. Parameters the menu does not own (fidelity, cam, gimbal, …) pass through.
 export function launchUrl(href, choice, pageProtocol = 'http:') {
   const url = new URL(href);
@@ -152,6 +170,7 @@ export function launchUrl(href, choice, pageProtocol = 'http:') {
   else url.searchParams.delete('chapter');
   if (choice.intro) url.searchParams.delete('nointro');
   else url.searchParams.set('nointro', '1');
+  careerParams(url, choice);
   return url;
 }
 

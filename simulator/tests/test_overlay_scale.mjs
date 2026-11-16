@@ -16,6 +16,7 @@ const SCALE = [
   "--z-controls",
   "--z-banner",
   "--z-drawer",
+  "--z-drawer-toggle",
   "--z-blocker",
   "--z-menu",
   "--z-toast",
@@ -65,6 +66,7 @@ test("the layers named by the audit use the scale", async () => {
   const style = await readFile(new URL("style.css", VIEWER), "utf8");
   const story = await readFile(new URL("story/campaign.js", VIEWER), "utf8");
   const menu = await readFile(new URL("menu.css", VIEWER), "utf8");
+  assert.match(hud, /#flightTools \{ z-index: var\(--z-drawer-toggle\)/);
   assert.match(hud, /#engineering \{[^}]*z-index: var\(--z-drawer\)/);
   assert.match(hud, /body \.hud, \.flight \{ z-index: var\(--z-hud\)/);
   assert.match(style, /\.viewport \.replay\{[^}]*z-index:var\(--z-controls\)/);
