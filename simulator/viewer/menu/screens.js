@@ -7,6 +7,7 @@ import { MODES, siteFacts, supportsMode, vehicleSpecs } from './catalogue.js';
 import { briefingTimeLimit } from '../play/mission_text.js';
 import { lengthIn, lengthUnit } from '../prefs/display.js';
 import { introForLaunch } from './preferences.js';
+import { hasDifficultyChosen } from './new_game.js';
 
 const STRINGS = {
   title: 'ROV Solution',
@@ -126,7 +127,7 @@ export function buildTitle(ctx) {
   cap.dataset.promptAction = 'accept';
   start.append(cap, element('span', '', STRINGS.pressStart));
   start.addEventListener('click', function begin() {
-    ctx.go('main');
+    ctx.go(hasDifficultyChosen() ? 'main' : 'new_game');
   });
   block.append(start);
   root.append(block, element('p', 'menu-version', STRINGS.version));

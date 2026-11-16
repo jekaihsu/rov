@@ -25,6 +25,8 @@ const STRINGS = {
   tabs: {
     fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
   },
+  difficultyScreen: '難度選擇',
+  difficultyScreenHelp: '重新開啟開場的難度畫面（簡單／標準／真實）。',
   pad: '輸入裝置',
   padAuto: '自動偵測手把＋鍵盤',
   padKeyboard: '只使用鍵盤',
@@ -194,10 +196,21 @@ export function buildLaunchSettings(ctx) {
       };
     }));
   }
+  function fidelityTab(pane) {
+    const reopen = element('button', 'menu-next menu-wide', STRINGS.difficultyScreen);
+    reopen.type = 'button';
+    reopen.id = 'menuDifficultyScreen';
+    reopen.title = STRINGS.difficultyScreenHelp;
+    reopen.addEventListener('click', function openDifficulty() {
+      ctx.openNewGame();
+    });
+    pane.append(reopen);
+    mountFidelity(pane);
+  }
   const panel = createSettingsPanel({
     idPrefix: 'menuSettings',
     tabs: [
-      { id: 'fidelity', label: STRINGS.tabs.fidelity, mount: mountFidelity },
+      { id: 'fidelity', label: STRINGS.tabs.fidelity, mount: fidelityTab },
       { id: 'controls', label: STRINGS.tabs.controls, mount: controls },
       { id: 'audio', label: STRINGS.tabs.audio, mount: mountAudio },
       { id: 'quality', label: STRINGS.tabs.quality, mount: quality },

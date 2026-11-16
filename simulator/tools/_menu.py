@@ -15,11 +15,23 @@ def wait_screen(page, name, timeout=30000):
     page.wait_for_function('name => window.__menu?.screen === name', arg=name, timeout=scaled(timeout))
 
 
+def dismiss_new_game(page, preset='real'):
+    """Confirm the first-run difficulty screen when it appears (fresh localStorage)."""
+    if page.evaluate('window.__menu?.screen') != 'new_game':
+        return
+    page.click(f'#newGame-{preset}')
+    page.locator('#newGameConfirm').click(timeout=scaled(30000))
+    page.wait_for_function('window.__menu?.screen !== "new_game"', timeout=scaled(30000))
+
+
 def open_main(page):
     """From the title screen (or any screen reached from it) to the main menu."""
     wait_ready(page)
     if page.evaluate('window.__menu.screen') == 'title':
         page.click('#titleStart')
+        dismiss_new_game(page)
+    elif page.evaluate('window.__menu.screen') == 'new_game':
+        dismiss_new_game(page)
     else:
         page.evaluate('window.__menu.go("main")')
     wait_screen(page, 'main')

@@ -29,7 +29,9 @@ const STRINGS = {
   danger: '危險：纜線斷裂', warn: '注意：纜線張力', near: '注意：接近海床',
   obstacleDanger: '危險：障礙距離不足', lowBattery: '提示：電量偏低',
   forward: '前方估距', controller: 'USB 控制器已連線', dvlLost: '注意：DVL 失去底鎖',
-  fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
+  fidelity: {
+    real: 'presetReal', standard: 'presetStandard', assisted: 'presetAssisted', custom: 'presetCustom',
+  },
 };
 const $ = id => document.getElementById(id);
 let ready = false;

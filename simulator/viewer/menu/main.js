@@ -21,6 +21,7 @@ import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTit
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
+import { buildNewGame, hasDifficultyChosen } from './new_game.js';
 import { SHOWCASE, createStage } from './stage.js';
 import { installDisplayPrefs } from '../prefs/display.js';
 import { installAudio } from '../audio/engine.js';
@@ -55,7 +56,7 @@ const ROUTES = {
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
-const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training']);
+const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'new_game']);
 const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
@@ -187,6 +188,10 @@ function promptsFor(name) {
   const base = [['navigate', STRINGS.prompts.move], ['accept', STRINGS.prompts.accept]];
   // The title's own button already shows the confirm key; the footer stays empty so it is not said twice.
   if (name === 'title') return [];
+  // New-game has no back on first visit; settings re-open still allows Escape via the navigator.
+  if (name === 'new_game' && !hasDifficultyChosen()) {
+    return [...base];
+  }
   const extra = [];
   if (screens[name]?.tabs) extra.push([['tabPrevious', 'tabNext'], STRINGS.prompts.tabs]);
   if (screens[name]?.rotatable) extra.push([['menuRotate'], STRINGS.prompts.rotate]);
@@ -337,6 +342,18 @@ const ctx = {
   openCollection() {
     collection.open();
   },
+  openNewGame() {
+    go('new_game');
+  },
+  onDifficultyChosen() {
+    // Settings re-open returns there; the first-run path (title → new_game) continues to main.
+    if (history.at(-1) === 'settings') {
+      back();
+      return;
+    }
+    history.length = 0;
+    show('main');
+  },
   // Expedition contracts as their own entry: the expedition sea, then vehicle and site as usual.
   openContracts() {
     choice.route = 'dive';
@@ -385,6 +402,7 @@ const ctx = {
 };
 
 screens.title = buildTitle(ctx);
+screens.new_game = buildNewGame(ctx);
 screens.main = buildMain(ctx);
 screens.modes = buildModes(ctx);
 screens.hangar = buildHangar(ctx);

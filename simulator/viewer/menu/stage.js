@@ -24,6 +24,9 @@ const POSES = {
   multiplayer: { eye: [-2.6, 1.2, 3.2], shift: 1.4, lift: 0.1, orbit: 0 },
   settings: { eye: [-3.0, 1.4, 3.8], shift: 1.7, lift: 0.1, orbit: 0 },
   launch: { eye: [-0.25, 0.12, -0.55], shift: 0, lift: -0.2, orbit: 0 },
+  new_game_assisted: { eye: [-4.2, 1.6, 5.2], shift: 1.8, lift: 0.2, orbit: 0.02 },
+  new_game_standard: { eye: [-1.2, 0.35, 1.6], shift: 1.5, lift: 0.05, orbit: 0 },
+  new_game_real: { eye: [-0.35, 0.12, 0.55], shift: 1.4, lift: 0, orbit: 0 },
 };
 const NARROW = 850;
 // The title and main menu backdrop: the vehicle with its lamps on beside a lit jacket structure, a darker and
@@ -35,6 +38,10 @@ export const SHOWCASE = {
   poses: {
     title: { eye: [1.6, 0.4, -3.6], shift: 1.3, lift: 0.5, orbit: 0.012 },
     main: { eye: [1.3, 0.3, -2.9], shift: 1.0, lift: 0.5, orbit: 0 },
+    // New-game difficulty previews: same site, vehicle framed on the right half of the screen.
+    new_game_assisted: { eye: [2.4, 1.1, -4.2], shift: 1.8, lift: 0.35, orbit: 0.02 },
+    new_game_standard: { eye: [0.6, 0.25, -1.4], shift: 1.6, lift: 0.15, orbit: 0 },
+    new_game_real: { eye: [0.15, 0.08, -0.55], shift: 1.5, lift: 0.05, orbit: 0 },
   },
 };
 

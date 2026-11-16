@@ -102,9 +102,11 @@ test('reel parameters track powered speed, brake and fairlead friction', () => {
 
 test('underwaterAudio fidelity is off in real and on in assisted', () => {
   const real = createFidelity({edition: null});
-  const assisted = createFidelity({edition: 'steam'});
+  // L3: Steam defaults to real; assisted must be requested explicitly.
+  const assisted = createFidelity({search: '?fidelity=assisted'});
   assert.equal(real.get(UNDERWATER_AUDIO_ID), false);
   assert.equal(assisted.get(UNDERWATER_AUDIO_ID), true);
+  assert.equal(createFidelity({edition: 'steam'}).get(UNDERWATER_AUDIO_ID), false);
   assert.equal(underwaterAudioEnabled(real), false);
   assert.equal(underwaterAudioEnabled(assisted), true);
   assert.deepEqual(layerGains(false), {topside: 1, underwater: 0});
