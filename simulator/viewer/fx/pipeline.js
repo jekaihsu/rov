@@ -1,5 +1,6 @@
 // Screen pipeline for the optics tiers: scene (linear HDR) -> camera auto-exposure -> optional camera pass
-// (T14b) -> beautify finish -> OutputPass, the only tone-mapping and output-transfer step.
+// (T14b) -> beautify finish -> OutputPass, the only tone-mapping and output-transfer step -> daylight grade
+// (above water only, fx/daylight.js).
 // The renderer's screen render is wrapped once, so normal frames, render_movie.js, recordings and photo
 // captures all take the same path. Offscreen renders and the low / fallback tiers bypass it untouched.
 import * as THREE from 'three';
@@ -12,6 +13,7 @@ import { updateWaterSurface, disposeWaterSurface } from './surface.js';
 import { updateSuspension, hideSuspension } from './suspension.js';
 import { updateWaterOptics, createWaterBackground, horizontalWaterColour, hideLegacyBeams } from './water_optics.js';
 import { AutoExposurePass } from './exposure.js';
+import { DAYLIGHT_GRADE } from './daylight.js';
 import { beautifyEnabled, BEAUTIFY_ID } from './beautify.js';
 import { getFidelity } from '../fidelity.js';
 import { legacyWaterLook } from '../underwater_lighting.js';
@@ -51,6 +53,10 @@ function buildComposer(state, renderer, scene, camera) {
   if (state.cameraPass) state.composer.addPass(state.cameraPass);
   state.composer.addPass(state.finishPass);
   state.composer.addPass(new OutputPass());
+  // Daylight camera colour rendering, after tone mapping; only enabled while the camera is above water.
+  state.gradePass = new ShaderPass(DAYLIGHT_GRADE);
+  state.gradePass.enabled = false;
+  state.composer.addPass(state.gradePass);
 }
 
 function resizeComposer(state, renderer) {
@@ -87,6 +93,9 @@ function renderOptics(state, original, scene, camera) {
   updateWaterSurface(state.surface, camera, scene, false, beauty);
   updateSuspension(scene, camera, renderQualityState(renderer));
   if (!state.composer) buildComposer(state, renderer, scene, camera);
+  // Above water the daylight camera model (fx/daylight.js) replaces the underwater metering.
+  state.exposurePass.metering = camera.position.y > 0 ? scene.userData.daylightMetering ?? null : null;
+  state.gradePass.enabled = !!state.exposurePass.metering;
   resizeComposer(state, renderer);
   state.renderPass.scene = scene;
   state.renderPass.camera = camera;
