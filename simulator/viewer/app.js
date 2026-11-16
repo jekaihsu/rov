@@ -657,7 +657,8 @@ const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || 
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY, extraActions: () => careerDive.pauseActions()});
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY,
+  extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}

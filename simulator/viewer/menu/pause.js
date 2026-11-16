@@ -161,8 +161,9 @@ function buildSettings(input) {
 }
 
 // input: the object installInput returned; send: app's socket sender; state(): latest server state.
-// extraActions(): optional [{id, label, run, keepOpen}] shown with the objective (the YX work order's confirmations
-// and early hand-in from career/dive.js), so a pad player reaches them without the mouse.
+// extraActions(): optional [{id, label, run, keepOpen, disabled, title}] shown with the objective (the YX work
+// order's confirmations and early hand-in from career/dive.js, recovery during a dive from procedure/index.js), so
+// a pad player reaches them without the mouse. A disabled entry shows its title as the reason.
 export function installPauseMenu({ input, send, state, replay = false, extraActions = null }) {
   const root = element('section', 'pause-menu');
   root.id = 'pauseMenu';
@@ -243,6 +244,8 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
       const button = element('button', 'menu-chip menu-chip-small', action.label);
       button.type = 'button';
       button.dataset.action = action.id;
+      button.disabled = !!action.disabled;
+      if (action.title) button.title = action.title;
       button.addEventListener('click', function runAction() {
         action.run();
         if (!action.keepOpen) {
