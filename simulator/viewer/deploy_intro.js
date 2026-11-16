@@ -252,6 +252,7 @@ export class DeployIntro {
     this.duration = T.end;
     this.t = 0;
     this.playing = false;
+    this.disposed = false;
     this.objects = [];
 
     this.boat = placeWorkBoat(assets, spool, start);
@@ -477,7 +478,7 @@ export class DeployIntro {
 
   update(dt) {
     if (!this.playing) {
-      this.effects.update(dt);
+      if (!this.disposed) this.effects.update(dt);
       return false;
     }
     if (!this.held) this.t += dt;
@@ -520,6 +521,17 @@ export class DeployIntro {
     this.effects.clear();
     this.cable.mesh.visible = false;               // the viewer draws the live tether from here on
     if (this.onDone) this.onDone();
+  }
+
+  /**
+   * True until dispose(). The viewer disposes the intro as soon as the launch is over, so the spool station
+   * (spool_station.js: the same boat at the same place, one crew member at the reel) holds station for the
+   * rest of the dive exactly as in a dive without the intro. Left in the scene, the cinematic's two animated
+   * crew (never frustum-culled), its A-frame rig and its lamp light doubled the frame time under software
+   * rendering, long enough to trip the 2.6 s input failsafe on a loaded machine.
+   */
+  get onScene() {
+    return !this.disposed;
   }
 
   /** Lifting wire, hook and bridle: link above the vehicle while lifting, slack after set-down, hook home. */
@@ -729,6 +741,8 @@ export class DeployIntro {
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
     this._restoreVehicleVisibility();
     for (const o of this.objects) this.scene.remove(o);
     this.cable.dispose();

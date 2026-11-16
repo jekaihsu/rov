@@ -90,6 +90,19 @@ const fakePad = {
   get timestamp() { return performance.now(); },
 };
 Object.defineProperty(navigator, 'getGamepads', {value: () => [fakePad, null, null, null], configurable: true});
+// Longest page-timer and frame gaps since the vehicle was unlocked (printed with the thrust diagnostics): a gap
+// beyond the 2 s worker hold lets the server's input failsafe lock the vehicle.
+window.__gaps = {interval: 0, frame: 0, last: performance.now(), lastFrame: performance.now()};
+setInterval(function timerGap() {
+  const now = performance.now();
+  window.__gaps.interval = Math.max(window.__gaps.interval, now - window.__gaps.last);
+  window.__gaps.last = now;
+}, 33);
+requestAnimationFrame(function frameGap(now) {
+  window.__gaps.frame = Math.max(window.__gaps.frame, now - window.__gaps.lastFrame);
+  window.__gaps.lastFrame = now;
+  requestAnimationFrame(frameGap);
+});
 window.__setPs = function setPs(profile) {
   window.__ps.profile = profile;
 };
@@ -105,6 +118,23 @@ TAP_SCRIPT = """i => new Promise(resolve => {
   document.addEventListener('rov-input-device', release);
   window.__ps.buttons[i] = 1;
   setTimeout(release, 3000);
+})"""
+
+
+# Frame times for 10 s right after the launch (evidence for the input failsafe under load; not asserted).
+FRAME_STATS = """() => new Promise(resolve => {
+  const gaps = [];
+  let last = performance.now();
+  const end = last + 10000;
+  (function frame(now) {
+    gaps.push(now - last);
+    last = now;
+    if (now < end) requestAnimationFrame(frame);
+    else {
+      gaps.sort((a, b) => a - b);
+      resolve({frames: gaps.length, median: Math.round(gaps[gaps.length >> 1]), max: Math.round(gaps.at(-1))});
+    }
+  })(last);
 })"""
 
 
@@ -309,12 +339,36 @@ def drive_channel(page, channel, direction):
     return value
 
 
+def flight_state(page):
+    """What the server and the input layer say when the vehicle does not respond (printed on failure only)."""
+    return page.evaluate("""() => {
+      const S = window.__viewer.S || {};
+      const p = S.procedure || {};
+      return {locked: S.locked, paused: S.paused, depth: S.depth, pos: S.pos, rc: S.rc, thrust: S.thrust,
+        health: S.health, controller: S.controller, failsafe: S.failsafe, input_latched: S.input_latched,
+        procedure: {phase: p.phase, flow: p.flow, missed: p.missed, events: (p.events || []).slice(-6)},
+        local: window.__viewer.rc, gaps: window.__gaps, generation: S.control_generation,
+        log: (S.log || []).slice(-6), pad: window.__ps.axes};
+    }""")
+
+
+FAILSAFE_REARMS = 2
+
+
+def failsafe_locked(page, generation):
+    """True when the vehicle is locked by a server failsafe since `generation`, not by a lock press."""
+    return page.evaluate('g => window.__viewer.S.locked === true && window.__viewer.S.control_generation !== g',
+                         generation)
+
+
 def fly(page, results):
     page.wait_for_function('window.__viewer.S.locked === true || window.__viewer.S.locked === false')
     if page.evaluate('window.__viewer.S.locked') is not False:
         press(page, TRIANGLE, hold_ms=250)
         page.wait_for_function('window.__viewer.S.locked === false', timeout=timeout(20000))
     results['unlocked'] = True
+    generation = page.evaluate('window.__viewer.S.control_generation')
+    page.evaluate('() => { window.__gaps.interval = 0; window.__gaps.frame = 0; }')
     mode = page.evaluate('window.__viewer.S.operation_mode || "ROV_USA"')
     channels = page.evaluate("""async mode => {
       const mod = await import('./input/bindings.js');
@@ -328,8 +382,24 @@ def fly(page, results):
         moved[axis] = [channel, drive_channel(page, channel, 1), drive_channel(page, channel, -1)]
     results['operation_mode'] = mode
     results['axes'] = moved
-    page.evaluate('() => { window.__ps.axes[3] = -0.9; }')
-    page.wait_for_function('(window.__viewer.S.thrust || []).some(v => Math.abs(v) > 0.05)', timeout=timeout(20000))
+    results['failsafe_rearms'] = 0
+    for attempt in range(FAILSAFE_REARMS + 1):
+        page.evaluate('() => { window.__ps.axes[3] = -0.9; }')
+        try:
+            page.wait_for_function('(window.__viewer.S.thrust || []).some(v => Math.abs(v) > 0.05)',
+                                   timeout=timeout(20000))
+            break
+        except Exception:
+            print('THRUST DIAGNOSTICS', json.dumps(flight_state(page), ensure_ascii=False), flush=True)
+            if attempt == FAILSAFE_REARMS or not failsafe_locked(page, generation):
+                raise
+        # The server's input failsafe locked the vehicle (a page frame outlasted the 2.6 s heartbeat hold; see
+        # AGENTS.md). A pilot centres the sticks and unlocks again; so does the test, and it says so.
+        page.evaluate('() => { window.__ps.axes[3] = 0; }')
+        results['failsafe_rearms'] += 1
+        press(page, TRIANGLE, hold_ms=250)
+        page.wait_for_function('window.__viewer.S.locked === false', timeout=timeout(20000))
+        generation = page.evaluate('window.__viewer.S.control_generation')
     page.evaluate('() => { window.__ps.axes[3] = 0; }')
     results['thrust'] = True
 
@@ -406,6 +476,7 @@ def run_profile(playwright, name):
     page.wait_for_function('window.__viewer?.S?.vehicle_id', timeout=timeout(120000))
     seconds['menu'] = round(time.monotonic() - started)
     walk_checklist(page, results)
+    results['dive_frames'] = page.evaluate(FRAME_STATS)
     seconds['checklist'] = round(time.monotonic() - started)
     fly(page, results)
     feature_buttons(page, results)
