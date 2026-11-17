@@ -41,15 +41,6 @@ MAX_PROP_BYTES = 2 * 1024 * 1024
 BLENDER = os.environ.get('BLENDER') or shutil.which('blender') or str(Path.home() / 'blender/blender')
 
 
-def srgb_to_linear(c):
-    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
-
-
-def linear_to_srgb(c):
-    c = np.clip(c, 0, 1)
-    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055)
-
-
 def source_files():
     files = [
         ('wood_floor_deck/wood_floor_deck_diff_1k.jpg',
@@ -176,15 +167,12 @@ def scrub_lifebuoy_diffuse(image):
     return Image.fromarray(arr.astype(np.uint8))
 
 
-def whitened_paint(rgb):
-    """Plastic010 as a pale gelcoat: shift mean toward white while keeping micro-variation."""
-    linear = srgb_to_linear(rgb)
-    mean = linear.mean(-1, keepdims=True)
-    lifted = np.clip(linear + (0.78 - mean) * 0.55, 0, 1)
-    return linear_to_srgb(lifted)
-
-
 def write_textures(src):
+    """Ship only teak + paint normal under boat/. Plate/rust/coating stay in scan/ (shared).
+
+    paint_c is omitted: gelcoat is a flat factor colour + Plastic010 normal (saves ~1 MiB GPU).
+    DiamondPlate and rust reuse scan/ maps so boat/ does not duplicate UHD texture budget.
+    """
     OUT.mkdir(parents=True, exist_ok=True)
     teak_c = array(src.image('wood_floor_deck/wood_floor_deck_diff_1k.jpg'))
     teak_n = normal_array(src.image('wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg'))
@@ -192,21 +180,18 @@ def write_textures(src):
     (OUT / 'teak_c.webp').write_bytes(webp(pack(teak_c), 82))
     (OUT / 'teak_n.webp').write_bytes(webp(pack(normal_rgb(teak_n), teak_r), NORMAL_Q))
 
-    paint_c = whitened_paint(array(src.acg('Plastic010', 'Color')))
+    # Plastic010 normal only (flat gelcoat colour is a material factor in build_small_boat.py).
     paint_n = normal_array(src.acg('Plastic010', 'NormalGL'))
     paint_r = array(src.acg('Plastic010', 'Roughness', 'L'))
-    (OUT / 'paint_c.webp').write_bytes(webp(pack(paint_c), 82))
     (OUT / 'paint_n.webp').write_bytes(webp(pack(normal_rgb(paint_n), paint_r), NORMAL_Q))
 
-    plate_c = array(src.acg('DiamondPlate008C', 'Color'))
-    plate_n = normal_array(src.acg('DiamondPlate008C', 'NormalGL'))
-    plate_r = array(src.acg('DiamondPlate008C', 'Roughness', 'L'))
-    (OUT / 'plate_c.webp').write_bytes(webp(pack(plate_c), 80))
-    (OUT / 'plate_n.webp').write_bytes(webp(pack(normal_rgb(plate_n), plate_r), NORMAL_Q))
-
-    # Rust maps are already in scan/; copy for a self-contained boat rebuild path.
-    for name in ('rust_c.webp', 'rust_n.webp', 'coating_c.webp', 'coating_n.webp'):
-        shutil.copy2(SCAN / name, OUT / name)
+    # DiamondPlate stays in the scratch checksum set; runtime reads scan/plate_*.
+    src.acg('DiamondPlate008C', 'Color')
+    src.acg('DiamondPlate008C', 'NormalGL')
+    if not (SCAN / 'plate_n.webp').is_file():
+        raise SystemExit('scan/plate_n.webp missing; run build_scan_materials.py first')
+    if not (SCAN / 'rust_c.webp').is_file():
+        raise SystemExit('scan/rust_c.webp missing; run build_scan_materials.py first')
 
 
 def pack_prop(source_dir, gltf_name, out_name, node_name):
@@ -240,8 +225,8 @@ def pack_prop(source_dir, gltf_name, out_name, node_name):
     )
     subprocess.run([BLENDER, '-b', '--python', str(script)], check=True)
     out = OUT / f'{out_name}.glb'
-    # Downscale embedded maps to 512 so props stay inside the 2 MB file budget.
-    compress(raw, out, (('*', 512),))
+    # Downscale embedded maps to 256 so props stay inside the shared 24 MiB GPU budget.
+    compress(raw, out, (('*', 256),))
     report = glb_report(out)
     print(f"{out.name}: {report['triangles']} tris, {report['bytes']/1e6:.2f} MB, "
           f"GPU ~{report['gpu_bytes']/1024/1024:.1f} MiB")

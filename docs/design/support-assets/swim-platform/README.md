@@ -75,12 +75,10 @@
 截圖由實際 qysim 伺服器／viewer 產生，1600×900、`quality=high`。`introReview` 是明確啟用的
 審圖參數：固定過場時間，不更動模擬狀態；因此程序面板仍顯示潛前狀態。沒有照片合成。
 
-現況檢查：`deploy_intro.js` 使用 `0xe9c534` 金黃纜線與出舷後下垂曲線；航行的
-`tether/tension.js` 也以 `#e9c534` 為低張力色，依張力漸變橘／紅，`app.js` 從後端節點畫線。
-M3 修正新過場纜線的外側繞序（既有 tube 的法線與面方向相反），只改新過場為黃綠 `0xc5f500`，中段貼近水面且蜿蜒、末段跟隨接頭，另加紅色末端套管。
-**航行調整方案**：日後將實體纜線低張力底色改黃綠，保留既有警示色／勾點提示；紅標須另繪短套管，
-不混入張力色。水面呈現僅依伺服器節點的水面區段加細小視覺波動，不改節點、受力或把水下纜線
-硬抬至水面。該方案未改動目前航行顯示，避免把視覺浮纜誤認為物理浮力證據。
+**纜線色（已定案）**：過場、選單與航行低張力底色統一為 `#e9c534`（`deploy_intro.js`、
+`swim_platform_intro.js`、`tether/tension.js`、`pilot_station.js`）。張力升高時仍依
+`tension.js` 漸變橘／紅；紅標是獨立短套管材質（`0xd52128`），不混入張力色。過場只修正
+tube 外側繞序與水面視覺彎曲，不改伺服器節點或受力。不再採用黃綠 `0xc5f500` 分叉方案。
 
 ## 可重建與預算
 
@@ -89,27 +87,29 @@ M3 修正新過場纜線的外側繞序（既有 tube 的法線與面方向相�
 python simulator/tools/build_boat_scan_materials.py --source <scratch>
 blender -b --python cad/build_small_boat.py -- /tmp/small_boat.glb
 python -c "from simulator.tools.build_support_assets import compress; from pathlib import Path; \
-compress(Path('/tmp/small_boat.glb'), Path('simulator/viewer/models/small_boat.glb'), (('*', 512),))"
+compress(Path('/tmp/small_boat.glb'), Path('simulator/viewer/models/small_boat.glb'), \\
+(('*', 512), ('paint*', 256), ('plate*', 256)))"
 python simulator/tools/render_swim_platform.py
 python simulator/tools/browser_swim_platform_smoke.py
 ```
 
 建置使用 Blender 4.3.2、既有 `support_assets_lib.py` 的 numpy／Pillow 與 gltf-transform 4.5.1。
 不存 .blend、不提交原始 PNG；CC0 授權見 `simulator/viewer/models/CREDITS.md`。
+船身：硬舭／外飄／舷弧／吃水線水下防污；柚木為連續平板＋嵌縫；止滑板與鏽蝕讀 `scan/`，
+不在 `boat/` 複製 atlas。`ocean_buoy` 僅作遠距浮標資產（`buoy_slot`），選單不掛在泳台旁。
 
 | 指標 | 實測 | 上限 |
 |---|---:|---:|
-| 小艇全部三角形 | 18,628 | 60,000 |
-| GLB 大小 | ~1.18 MB | — |
-| 材質／mesh | 10／18 | — |
-| WebP 貼圖 | 512² ×12（paint／plate／rust／teak 的 base／normal／ORM） | — |
-| GPU 貼圖含 mipmap，RGBA8 ×4/3 | ~16 MiB | 24 MiB |
-| `boat/lifebuoy.glb` | 10,728 tris，~0.25 MB | — |
-| `boat/ocean_buoy.glb` | 12,240 tris，~0.32 MB | — |
+| 小艇全部三角形 | 14,464 | 60,000 |
+| GLB 大小 | ~0.55 MB | — |
+| WebP 貼圖 | teak 512² + paint_n／plate_n 256²；無 paint_c／ORM／boat 內 plate／rust 副本 | — |
+| GPU 貼圖含 mipmap，RGBA8 ×4/3（小艇） | ~5.3 MiB | 24 MiB |
+| `boat/lifebuoy.glb` | 10,728 tris，~0.13 MB，textures 256 | — |
+| `boat/ocean_buoy.glb` | 12,240 tris，~0.17 MB；選單不載入 | — |
 
 詳見 [機器可讀報告](asset-report.json)，測試直接讀 GLB 驗證壓縮擴充、節點與預算，非只讀報告。
 既有 Model R、海面 normal、PiP 人員資產不計入小艇預算；小艇模式不另載入工作船模型。
-選單執行時的 6 張既有 480×270 預覽與 3 張 512×384 畫布另佔約 6.96 MiB；小艇加選單平面合計約 12.29 MiB，低於 24 MiB。
+選單執行時的 6 張既有 480×270 預覽與 3 張 512×384 畫布另佔約 6.96 MiB；小艇＋救生圈＋選單平面合計遠低於 24 MiB。
 
 ## 假設與限制
 

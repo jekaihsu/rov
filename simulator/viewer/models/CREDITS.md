@@ -144,11 +144,11 @@ meshopt + WebP). No .blend source is required.
 | File(s) | Source page | Author | Changes |
 |---|---|---|---|
 | `boat/teak_c.webp`, `boat/teak_n.webp` | [wood_floor_deck](https://polyhaven.com/a/wood_floor_deck) | Dimitrios Savva | 1K maps → WebP; roughness in normal alpha |
-| `boat/paint_c.webp`, `boat/paint_n.webp` | [ambientCG Plastic010](https://ambientcg.com/view?id=Plastic010) | ambientCG | lifted toward pale gelcoat, WebP |
-| `boat/plate_c.webp`, `boat/plate_n.webp` | [ambientCG DiamondPlate008C](https://ambientcg.com/view?id=DiamondPlate008C) | ambientCG | non-slip plate, WebP (same source as `scan/plate_*`) |
-| `boat/rust_*.webp`, `boat/coating_*.webp` | copies of `scan/rust_*` and `scan/coating_*` | see Scanned materials above | byte copies for a self-contained boat rebuild |
-| `boat/lifebuoy.glb` | [lifebuoy](https://polyhaven.com/a/lifebuoy) | Hank Kaamura | 1K glTF; Latin stencils scrubbed from diffuse; textures 512 WebP; meshopt |
-| `boat/ocean_buoy.glb` | [ocean_buoy](https://polyhaven.com/a/ocean_buoy) | Mateusz Sadek | 1K glTF; textures 512 WebP; meshopt |
+| `boat/paint_n.webp` | [ambientCG Plastic010](https://ambientcg.com/view?id=Plastic010) | ambientCG | gelcoat micro-normal only (flat factor colour; no paint_c); roughness in alpha |
+| `scan/plate_*` (non-slip sole) | [ambientCG DiamondPlate008C](https://ambientcg.com/view?id=DiamondPlate008C) | ambientCG | reused from `scan/` — not duplicated under `boat/` |
+| rust accents | `scan/rust_*` colour factor | see Scanned materials above | flat rust colour on fittings; no second rust atlas under `boat/` |
+| `boat/lifebuoy.glb` | [lifebuoy](https://polyhaven.com/a/lifebuoy) | Hank Kaamura | 1K glTF; Latin stencils scrubbed from diffuse; textures 256 WebP; meshopt |
+| `boat/ocean_buoy.glb` | [ocean_buoy](https://polyhaven.com/a/ocean_buoy) | Mateusz Sadek | 1K glTF; textures 256 WebP; meshopt; menu stage does not place it on the swim platform (`buoy_slot` is ~14 m abeam) |
 
 Launch crew reuses the existing rigged `worker.glb` and its credits above. Sea, sky, sunlight and wind-farm
 silhouettes reuse `fx/daylight.js`, `surface_set.js` and `wind_farm.js` from main — no second horizon is

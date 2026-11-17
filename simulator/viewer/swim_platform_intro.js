@@ -53,8 +53,9 @@ export class SwimPlatformIntro extends DeployIntro {
     this.cable.dispose();
     this.cable.mesh.material.dispose();
     this.scene.remove(this.cable.mesh);
+    // Match the live tether low-tension colour (#e9c534) so the hand-off is not a colour jump.
     this.cable = outwardCable(new THREE.MeshStandardMaterial({
-      color: 0xc5f500, roughness: 0.48, emissive: 0x839e00, emissiveIntensity: 0.15 }),
+      color: 0xe9c534, roughness: 0.5, metalness: 0 }),
       { radius: 0.008, segments: 160, radial: 6 });
     this._add(this.cable.mesh);
     this.marker = outwardCable(new THREE.MeshStandardMaterial({
@@ -72,6 +73,14 @@ export class SwimPlatformIntro extends DeployIntro {
     this.parked.name = 'ParkedModelR';
     this.parked.traverse(function show(o) {
       o.visible = !o.isLight && !(o.material?.transparent || o.material?.isShaderMaterial);
+      // Prefer LOD1 for the parked twin (same policy as the menu boat / fleet peers).
+      if (o.isLOD && o.levels?.length > 1) {
+        for (let i = 0; i < o.levels.length; i++) o.levels[i].object.visible = i === 0 || o.levels[i].distance <= 12;
+        if (o.levels[0].distance === 0 && o.levels.length > 1) {
+          o.levels[0].object.visible = false;
+          o.levels[1].object.visible = true;
+        }
+      }
     });
     const slot = this.boat.getObjectByName('rov_slot_1');
     this.boat.add(this.parked);
@@ -111,13 +120,19 @@ export class SwimPlatformIntro extends DeployIntro {
     crew.root.position.z -= .17 * phase(t, 1.2, 2.3) * (1 - phase(t, 2.4, 4.2));
     crew.root.rotation.y = Math.PI;
     crew.root.updateMatrixWorld(true);
-    const release = phase(t, 6.4, 7);
+    const release = phase(t, 6.4, 7.2);
     const handL = crew.root.worldToLocal(this._local(V(this.half.x * .8, this.half.y * .7, 0)));
     const handR = crew.root.worldToLocal(this._local(V(-this.half.x * .8, this.half.y * .7, 0)));
-    handL.lerp(V(.2, .85, .3), release);
-    handR.lerp(V(-.2, .85, .3), release);
+    // Rest at the sides after release — not up behind the helmet.
+    handL.lerp(V(.28, .42, .22), release);
+    handR.lerp(V(-.28, .42, .22), release);
     const crouch = 1 - phase(t, 1.2, 2.3) + phase(t, 3.8, 5.2);
-    crew.update(dt, { pelvis: [0, -.52 * crouch, .12 * crouch], bend: .45 + .5 * crouch, handL, handR });
+    const stand = phase(t, 6.4, 7.6);
+    crew.update(dt, {
+      pelvis: [0, -.52 * crouch * (1 - stand), .12 * crouch * (1 - stand)],
+      bend: .45 + .5 * crouch * (1 - stand),
+      handL, handR,
+    });
   }
 
   _drawTether(t) {
@@ -152,6 +167,8 @@ export class SwimPlatformIntro extends DeployIntro {
 
   _cameraPath(t) {
     if (!this.camera) return;
+    // While the pre-dive checklist holds the intro, yield to deck_stage walk-around shots.
+    if (this.held) return super._cameraPath(t);
     if (t >= 8.8) return super._cameraPath(t);
     const eye = this.boat.getObjectByName('menu_camera').getWorldPosition(V(0, 0, 0));
     const target = this.boat.getObjectByName('menu_target').getWorldPosition(V(0, 0, 0));

@@ -5,7 +5,7 @@ import {loadGLTF} from '../glb.js';
 import {createVehicleModel} from '../vehicle_models.js';
 import {applyVehicleSticker} from '../vehicle_stickers.js';
 import {createDaylight} from '../fx/daylight.js';
-import {buildSurfaceSet} from '../surface_set.js';
+import {buildSurfaceSet, surfacePlan} from '../surface_set.js';
 import {configureRenderQuality} from '../render_quality.js';
 import {createFrameGate} from '../prefs/display.js';
 
@@ -14,6 +14,19 @@ const ROUTES = {
   hangar: 'platform', shop: 'platform', settings: 'logbook', training: 'logbook',
   sites: 'horizon', preview: 'horizon', multiplayer: 'cockpit', launch: 'platform',
 };
+
+/** Stand the menu boat clear of the site's surface structures (jacket, harbour wall, pen, …). */
+function boatStandOff(world) {
+  const plan = surfacePlan(world || {}, new THREE.Vector3());
+  const kinds = new Set((world?.obstacles || []).map((ob) => ob.kind).filter(Boolean));
+  if (kinds.has('jacket_leg') || kinds.has('jacket')) return new THREE.Vector3(-28, 0, -48);
+  if (kinds.has('harbour_wall') || kinds.has('quay') || kinds.has('pier')) {
+    return new THREE.Vector3(-18, 0, -22);
+  }
+  if (plan.coast || plan.farm) return new THREE.Vector3(-22, 0, -36);
+  return new THREE.Vector3(-16, 0, -28);
+}
+
 export function createBoatStage(host, {quality = 'auto'} = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x7594aa);
@@ -38,21 +51,27 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
   let last = performance.now();
   let frameId;
   let snap = true;
-  let buoy;
   const skipFrame = createFrameGate();
   const eye = new THREE.Vector3();
   const look = new THREE.Vector3();
   const target = new THREE.Vector3();
+  const anchors = {};
   const ready = Promise.all([
     loadGLTF('models/small_boat.glb'),
-    loadGLTF('models/boat/ocean_buoy.glb').catch(function missing() { return null; }),
     loadGLTF('models/boat/lifebuoy.glb').catch(function missing() { return null; }),
-  ]).then(async function loaded([asset, buoyAsset, ringAsset]) {
+  ]).then(async function loaded([asset, ringAsset]) {
     boat = asset.scene;
-    // Stand off from the inspected foundation; the menu boat must not sit inside its legs.
-    boat.position.set(-25, 0, -45);
-    boat.getObjectByName('target_horizon').position.x += 25;
+    boat.position.copy(boatStandOff(world));
+    const horizonTarget = boat.getObjectByName('target_horizon');
+    if (horizonTarget) horizonTarget.position.x += Math.abs(boat.position.x);
     scene.add(boat);
+    for (const name of [
+      'anchor_cockpit', 'anchor_platform', 'anchor_logbook', 'anchor_horizon',
+      'target_cockpit', 'target_platform', 'target_logbook', 'target_horizon',
+      'rov_slot_0', 'rov_slot_1', 'lifebuoy_slot',
+    ]) {
+      anchors[name] = boat.getObjectByName(name);
+    }
     boat.traverse(function prepare(node) {
       if (node.isMesh) {
         node.castShadow = true;
@@ -63,22 +82,11 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
     if (ringAsset) {
       const ring = ringAsset.scene;
       ring.name = 'Lifebuoy';
-      const slot = boat.getObjectByName('lifebuoy_slot') || boat;
+      const slot = anchors.lifebuoy_slot || boat;
       slot.add(ring);
       ring.rotation.set(0.14, -0.1, Math.PI / 2);
     }
-    if (buoyAsset) {
-      buoy = buoyAsset.scene;
-      buoy.name = 'OceanBuoy';
-      // Poly Haven buoy is ~2.7 m tall; keep full scale beside the boat in open water.
-      const slot = boat.getObjectByName('buoy_slot');
-      const world = new THREE.Vector3();
-      if (slot) slot.getWorldPosition(world);
-      else world.set(-22, 0, -48);
-      buoy.position.copy(world);
-      buoy.position.y = 0;
-      scene.add(buoy);
-    }
+    // Ocean buoy is a 2.7 m nav mark: keep it out of the menu texture budget and off the swim platform.
     releaseSurfaces = await dressBoatSurfaces(boat);
     state.sceneReady = true;
   });
@@ -91,7 +99,11 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
     const current = ++ticket;
     state.modelReady = false;
     await ready;
-    const next = await Promise.all([createVehicleModel(id), createVehicleModel('x1')]);
+    // Parked display vehicles stay on LOD1 like fleet peers (avoids ~0.5 M LOD0 tris on the menu boat).
+    const next = await Promise.all([
+      createVehicleModel(id, {lod: 1}),
+      createVehicleModel('x1', {lod: 1}),
+    ]);
     if (current !== ticket || disposed) {
       next.forEach(function release(model) { model.dispose(); });
       return;
@@ -107,7 +119,7 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
     }
     models = next;
     models.forEach(function place(model, i) {
-      const slot = boat.getObjectByName(`rov_slot_${i}`);
+      const slot = anchors[`rov_slot_${i}`];
       slot.add(model.root);
       model.root.rotation.y = Math.PI;
       const bounds = new THREE.Box3().setFromObject(model.root);
@@ -121,6 +133,7 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
     if (!entry) return;
     world = entry.world;
     state.sceneKey = entry.key;
+    if (boat) boat.position.copy(boatStandOff(world));
     if (surface) {
       surface.group.removeFromParent();
       surface.group.traverse(function release(node) {
@@ -149,9 +162,9 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
     }
     const dt = Math.min(.1, (now - last) / 1000);
     last = now;
-    if (boat) {
-      boat.getObjectByName(desired).getWorldPosition(eye);
-      boat.getObjectByName(desired.replace('anchor_', 'target_')).getWorldPosition(target);
+    if (boat && anchors[desired]) {
+      anchors[desired].getWorldPosition(eye);
+      anchors[desired.replace('anchor_', 'target_')].getWorldPosition(target);
       const blend = snap ? 1 : 1 - Math.exp(-dt * 3);
       camera.position.lerp(eye, blend);
       look.lerp(target, blend);
