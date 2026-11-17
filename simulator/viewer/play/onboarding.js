@@ -115,7 +115,7 @@ function padSourceCaps(source, family) {
 }
 
 // HTML caps for an action on the current device: the bound pad source, or the first bound key.
-function actionCaps(action, family, controls) {
+export function actionCaps(action, family, controls) {
   if (family !== 'keyboard') {
     const source = controls.bindings?.[action] ?? bindingRow(action)?.pad;
     const caps = padSourceCaps(source, family);
@@ -128,7 +128,7 @@ function actionCaps(action, family, controls) {
 }
 
 // HTML caps for a pilot axis (surge, yaw, heave) in the operation mode, positive direction first.
-function axisCaps(axis, family, controls) {
+export function axisCaps(axis, family, controls) {
   const mode = controls.operationMode;
   if (family === 'keyboard') return pilotAxisKeys(axis, controls.rows, mode).map(keyCap).join('');
   const drive = axisChannel(axis, mode);
@@ -295,6 +295,11 @@ export function installOnboarding({ input, readOnly = false }) {
   }
   function update(state) {
     if (readOnly) return;
+    // The cold open (story/cold_open.js) gives its own single hint; its flying does not tick the steps off.
+    if (document.body.classList.contains('cold-open')) {
+      if (shown) hide();
+      return;
+    }
     lastState = state || lastState;
     const now = performance.now();
     const completed = observe(progress, tracker, state, {

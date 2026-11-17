@@ -1,0 +1,69 @@
+{
+  "id": "cold_open",
+  "title": "開場｜導管架",
+  "scenario": "cold_open_jacket",
+  "mode": "free_explore",
+  "category": "prelude",
+  "order": 0,
+  "requires": null,
+  "nodes": [
+    {
+      "id": "task_anode",
+      "type": "objective",
+      "text_key": "task_anode"
+    },
+    {
+      "id": "photo",
+      "type": "wait",
+      "condition": {
+        "path": "photos",
+        "op": "gt",
+        "value": 0
+      }
+    },
+    {
+      "id": "task_leg_b",
+      "type": "objective",
+      "text_key": "task_leg_b"
+    },
+    {
+      "id": "snag",
+      "type": "wait",
+      "condition": {
+        "path": "tether.snags.0.name",
+        "op": "gt",
+        "value": ""
+      }
+    },
+    {
+      "id": "task_back_out",
+      "type": "objective",
+      "text_key": "task_back_out"
+    },
+    {
+      "id": "released",
+      "type": "wait",
+      "condition": {
+        "path": "tether.snags",
+        "op": "eq",
+        "value": []
+      }
+    },
+    {
+      "id": "closing",
+      "type": "dialogue",
+      "voice": null,
+      "speaker_key": "supervisor",
+      "text_key": "closing"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "task_anode": "拍下 C 腿 12 m 陽極",
+      "task_leg_b": "沿西面往北前往 B 腿",
+      "task_back_out": "停止推進，照原路退回 C 腿陽極",
+      "supervisor": "林岑",
+      "closing": "記住這個感覺。"
+    }
+  }
+}

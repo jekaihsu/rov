@@ -232,7 +232,9 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
     resume.disabled = !host;
     skip.disabled = !host || campaign.chapter !== 'prologue';
     next.disabled = !host;
-    root.hidden = !['active', 'completed'].includes(campaign.status);
+    // The prelude (the cold open) draws its own radio subtitles (story/cold_open.js).
+    const prelude = campaign.chapters.find(entry => entry.id === campaign.chapter)?.category === 'prelude';
+    root.hidden = prelude || !['active', 'completed'].includes(campaign.status);
     const node = campaign.node;
     const key = JSON.stringify([campaign.chapter, campaign.index, campaign.status]);
     if (key === signature) return;
@@ -252,7 +254,7 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
       hint.textContent += ' · ' + ((family !== 'keyboard' ? CHANNELS[channel] : keys) || '');
     }
     next.hidden = node?.type !== 'dialogue';
-    if (node?.type === 'dialogue' && node.speaker && node.text) {
+    if (!prelude && node?.type === 'dialogue' && node.speaker && node.text) {
       Promise.resolve(radioVoice.playLine({
         speaker: node.speaker,
         text: node.text,

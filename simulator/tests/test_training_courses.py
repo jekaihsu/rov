@@ -56,10 +56,10 @@ class TrainingCourseTests(unittest.TestCase):
 
     def test_only_course_category_is_added(self):
         schema_data = read_script(DATA / 'schema.json')
-        self.assertEqual(schema_data['properties']['category']['enum'], ['story', 'incident', 'course'])
+        self.assertEqual(schema_data['properties']['category']['enum'], ['prelude', 'story', 'incident', 'course'])
         schema = Draft202012Validator(schema_data)
         script = read_script(COURSES[0])
-        for category in ('story', 'incident', 'course'):
+        for category in ('prelude', 'story', 'incident', 'course'):
             script['category'] = category
             schema.validate(script)
         script['category'] = 'unknown'

@@ -23,6 +23,12 @@ SOFTWARE_GL_ARGS = ('--enable-unsafe-swiftshader',)
 # Hardware path for real-GPU benches: ignore the blocklist so older GPUs still report acceleration.
 GPU_GL_ARGS = ('--enable-gpu', '--ignore-gpu-blocklist')
 FALLBACK_CHROMIUM = Path('/opt/pw-browsers/chromium')
+# Every check starts as a player who has already seen the new-game cold open (viewer/story/cold_open_flow.js), so
+# the title's 開始 and a first prologue keep their usual paths. browser_cold_open_smoke.py passes cold_open=True to
+# new_page / new_context to start from a truly fresh profile instead.
+COLD_OPEN_SEEN = ("try { if (!localStorage.getItem('rov.coldOpen.v1')) "
+                  "localStorage.setItem('rov.coldOpen.v1', JSON.stringify({seen: true, enabled: true})); "
+                  "} catch (e) {}")
 _resolved = {}
 _timeout_scale = None
 # Soft-GL smokes under a fully busy host still check the same conditions; they only need more wall time.
@@ -103,13 +109,19 @@ def _start(playwright, path, kwargs):
     original_page = browser.new_page
     original_context = browser.new_context
 
-    def new_page(**options):
+    def new_page(cold_open=False, **options):
         options.setdefault('locale', os.environ.get('ROV_BROWSER_LOCALE', 'zh-TW'))
-        return original_page(**options)
+        page = original_page(**options)
+        if not cold_open:
+            page.add_init_script(COLD_OPEN_SEEN)
+        return page
 
-    def new_context(**options):
+    def new_context(cold_open=False, **options):
         options.setdefault('locale', os.environ.get('ROV_BROWSER_LOCALE', 'zh-TW'))
-        return original_context(**options)
+        context = original_context(**options)
+        if not cold_open:
+            context.add_init_script(COLD_OPEN_SEEN)
+        return context
 
     browser.new_page = new_page
     browser.new_context = new_context

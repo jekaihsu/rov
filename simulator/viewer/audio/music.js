@@ -20,6 +20,15 @@ export const MUSIC_TRACKS = Object.freeze({
   tension: [{id: 'tension_peer_gynt_aase', file: 'tension_peer_gynt_aase.opus', loop: true, level: 0.55}]
 });
 
+// Score of the cold open's non-interactive shots (story/cold_open.js): the black opening and establishing shot, and
+// the flash-back title card. Cutscene music like the menu's, not dive music: it plays only while the player is not
+// flying. The same files and ids as the dive and results tracks, so a cue that hands over to the dive bed (when
+// `diveMusic` allows it) keeps playing instead of restarting.
+export const CINEMATIC_TRACKS = Object.freeze({
+  cinematic: [MUSIC_TRACKS.dive[0]],
+  flashback: [MUSIC_TRACKS.results[0]]
+});
+
 // Contexts heard while the vehicle is in the water; a real operator does not hear them.
 export const IN_DIVE_CONTEXTS = new Set(['dive', 'tension']);
 
@@ -27,7 +36,7 @@ const BRIEFING_SCREENS = new Set(['hangar', 'sites', 'briefing']);
 const DUCKING_CUES = new Set(['warn', 'broken', 'hard', 'severe']);
 const TENSION_HOLD_SECONDS = 20;
 const DUCK_ALERT_SECONDS = 2.5;
-const RADIO_SELECTOR = '.story-radio:not([hidden]), .tether-radio:not([hidden])';
+const RADIO_SELECTOR = '.story-radio:not([hidden]), .tether-radio:not([hidden]), .cold-open-radio.speaking';
 const TICK_MS = 100;
 
 // Launch-menu screen name → music context. No screen (leaving the menu) means silence.
@@ -188,7 +197,7 @@ let sharedMusic;
 // Connects the director to <audio> elements on the engine's music bus. Call once per page.
 export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BASE} = {}) {
   if (sharedMusic) return sharedMusic;
-  const director = createMusicDirector();
+  const director = createMusicDirector({tracks: {...MUSIC_TRACKS, ...CINEMATIC_TRACKS}});
   const players = new Map();
   const memory = {};
   let requested = null;
@@ -239,6 +248,8 @@ export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BAS
   }
 
   let resultsShown = false;
+  // A cold-open cue (CINEMATIC_TRACKS) overrides the dive context while it is set.
+  let cinematic = null;
   function setRequested(context) {
     requested = context;
     tick();
@@ -260,12 +271,17 @@ export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BAS
     },
     // In game: pass the displayed state snapshot every frame.
     update(state) {
-      const context = resultsShown ? 'results' : diveContext(state, memory);
+      const context = cinematic || (resultsShown ? 'results' : diveContext(state, memory));
       if (context !== requested) setRequested(context);
     },
     // The results screen (play/results.js) is up: play the results track whatever the run was.
     showResults(open) {
       resultsShown = !!open;
+    },
+    // Cold open: play a cutscene cue ('cinematic', 'flashback') or hand back to the dive rules with null.
+    cue(name) {
+      cinematic = Object.hasOwn(CINEMATIC_TRACKS, name) ? name : null;
+      if (cinematic) setRequested(cinematic);
     },
     duck(seconds) {
       director.duckFor(performance.now() / 1000, seconds);

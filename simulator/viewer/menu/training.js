@@ -5,6 +5,7 @@ import { chapterStatus, chaptersByCategory, trainingScenarios } from './catalogu
 import { chapterCard, scenarioCard } from './cards.js';
 import { createSettingsPanel } from './settings.js';
 import { readout } from './screens.js';
+import { replayCard } from '../story/cold_open_menu.js';
 
 import { localize } from '../i18n/index.js';
 
@@ -76,7 +77,9 @@ export function buildTraining(ctx) {
         id: 'story',
         label: STRINGS.tabs.story,
         mount: list(STRINGS.storyHelp, function storyRows() {
-          return chapterCards(ctx, 'story', completedChapters());
+          const rows = chapterCards(ctx, 'story', completedChapters());
+          if (ctx.replayColdOpen) rows.push(replayCard(rows.length, ctx.replayColdOpen));
+          return rows;
         }),
       },
       {

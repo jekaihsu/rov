@@ -1,0 +1,51 @@
+{
+  "speakers": {
+    "supervisor": "Lin Cen · Tide Control",
+    "tender": "Zhou Kai · Tide Cable",
+    "senior": "Ma Li · R-Two"
+  },
+  "lines": {
+    "open": "R-One, Tide Control. Twenty minutes of slack water left.",
+    "crew": "Tether's laid out, plenty of slack. Fly easy.",
+    "task": "Shoot the leg C anode first. Dead ahead of you.",
+    "nudgeMove": "R-One, push forward a little. The anode's right in front of you.",
+    "nudgePhoto": "Close to about two metres. One shot is all we need.",
+    "praise": "Clean. You can read the anode wastage clearly.",
+    "praiseFar": "Got it. Get closer next time.",
+    "skipPhoto": "Leave the photo for now. Move on to leg B.",
+    "toLegB": "Good. North along the west face to leg B. Hold your depth.",
+    "nudgeLegB": "R-One, leg B is north of you. Turn and go.",
+    "tension": "Tension {n}! We're caught!",
+    "stop": "Stop! Do you know your way out?",
+    "backOut": "Don't pull. Back out the way you came — south, past the anode.",
+    "dontPull": "Still pulling! {n} newtons, don't force it!",
+    "free": "...It's off. The tether's free.",
+    "remember": "Good. Remember how that felt.",
+    "slipped": "...It slid off by itself. The tether's free.",
+    "lucky": "That was luck. Next time, know your way out first. Remember how that felt.",
+    "stuck": "Hold there. We'll pay out and clear it at slack water.",
+    "noSnag": "Right, that's it for now. Leg B on the next dive.",
+    "snapped": "...It parted. Tension's gone to zero.",
+    "lost": "Nobody's hurt. The vehicle has a beacon; we'll get it back. Remember how that felt."
+  },
+  "hints": {
+    "move": "Forward",
+    "photo": "Photo",
+    "turn": "Turn",
+    "forward": "Forward",
+    "release": "Let go of the sticks",
+    "reverse": "Back up",
+    "unlock": "Unlock the thrusters"
+  },
+  "location": [
+    "Offshore wind farm · Jacket leg C",
+    "Depth 12 m · Slack water"
+  ],
+  "stamp": "Photo logged · Leg C anode",
+  "tension": "Tether tension",
+  "skip": "Skip the opening",
+  "card": {
+    "title": "Three months earlier",
+    "chapterTitle": "Prologue｜Three months earlier"
+  }
+}

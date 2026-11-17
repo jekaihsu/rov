@@ -1,0 +1,79 @@
+/* Cold open (story/cold_open.js): black opening, letterbox, documentary location super, deck-radio subtitles, one
+   hint, the photo stamp and the tension read-out. While body.cold-open is set the flight HUD is stripped to what
+   the moment needs; body[data-cold-reveal] lists what has been revealed (depth, heading, photo, tether). Flight HUD
+   vocabulary: thin cyan rule, translucent glass, ice-white text; warning orange only for the tension. */
+
+.cold-open-layer { position: fixed; inset: 0; pointer-events: none; z-index: calc(var(--z-notice) + 2);
+  font-family: var(--f-hud, Inter, "Noto Sans TC", system-ui, sans-serif); color: var(--hud-ink, #eaf4f7); }
+.cold-open-black { position: absolute; inset: 0; background: #000; opacity: 1; transition: opacity .25s linear; }
+
+/* ── letterbox: 2.39:1 bars that retract at the handover ── */
+.cold-open-bars i { position: absolute; left: 0; right: 0; height: 0; background: #000;
+  transition: height 1.4s cubic-bezier(.4, 0, .2, 1); }
+.cold-open-bars i:first-child { top: 0; }
+.cold-open-bars i:last-child { bottom: 0; }
+.cold-open-layer.letterbox .cold-open-bars i { height: calc((100vh - 100vw / 2.39) / 2); }
+
+/* ── location super, lower left, documentary style ── */
+.cold-open-super { position: absolute; left: 6vw; bottom: calc((100vh - 100vw / 2.39) / 2 + 5vh);
+  display: grid; gap: 6px; padding-left: 14px; border-left: 2px solid var(--accent, #4fd1e0);
+  opacity: 0; transform: translateY(6px); transition: opacity 1.2s ease-out, transform 1.2s ease-out;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }
+.cold-open-super.visible { opacity: 1; transform: none; }
+.cold-open-super strong { font-size: clamp(18px, 1.6vw, 26px); font-weight: 600; letter-spacing: .08em; }
+.cold-open-super span { font-size: clamp(12px, .95vw, 15px); letter-spacing: .18em; color: var(--text-dim, #a9bcc4); }
+
+/* ── deck radio: a subtitle line, bottom centre ── */
+.cold-open-radio { position: absolute; left: 50%; bottom: 11vh; width: min(760px, 70vw);
+  transform: translate(-50%, 6px); text-align: center; opacity: 0; transition: opacity .25s ease-out, transform .25s;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 0 18px rgba(0, 0, 0, .55); }
+.cold-open-radio.speaking { opacity: 1; transform: translate(-50%, 0); }
+.cold-open-speaker { display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .2em;
+  color: var(--accent, #4fd1e0); }
+.cold-open-words { margin: 0; font-size: clamp(17px, 1.45vw, 24px); line-height: 1.45; font-weight: 500; }
+.cold-open-layer.letterbox .cold-open-radio { bottom: calc((100vh - 100vw / 2.39) / 2 + 3vh); }
+
+/* ── the one hint: lower left, a cap and a word ── */
+.cold-open-hint { position: absolute; left: 6vw; bottom: 24vh; display: grid; gap: 8px; padding: 10px 14px 10px 12px;
+  border-left: 1px solid var(--accent, #4fd1e0); background: rgba(4, 14, 20, .5); opacity: 0;
+  transform: translateX(-8px); transition: opacity .35s ease-out, transform .35s ease-out;
+  zoom: var(--rov-ui-scale, 1); }
+.cold-open-hint.visible { opacity: 1; transform: none; }
+.cold-open-hint-line { display: flex; align-items: center; gap: 10px; }
+.cold-open-hint-label { font-size: 17px; letter-spacing: .06em; }
+.cold-open-hint .ob-caps:empty { display: none; }
+
+/* ── photo payoff stamp ── */
+.cold-open-stamp { position: absolute; left: 50%; top: 22vh; transform: translate(-50%, -4px); padding: 8px 18px;
+  border: 1px solid rgba(234, 244, 247, .7); font-size: 15px; letter-spacing: .16em; background: rgba(4, 14, 20, .35);
+  opacity: 0; transition: opacity .3s ease-out, transform .3s ease-out; }
+.cold-open-stamp.visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* ── tension read-out, lower right, appears with the snag ── */
+.cold-open-tension { position: absolute; right: 6vw; bottom: 24vh; padding: 6px 12px; font: 600 18px/1.2 var(--f-mono,
+  "JetBrains Mono", ui-monospace, monospace); letter-spacing: .06em; border-right: 2px solid var(--accent, #4fd1e0);
+  opacity: 0; transition: opacity .4s ease-out; text-shadow: 0 1px 4px rgba(0, 0, 0, .8); }
+.cold-open-tension.visible { opacity: 1; }
+.cold-open-tension[data-tone=warn] { color: var(--warn, #ff9a3c); border-right-color: var(--warn, #ff9a3c); }
+
+/* ── what the flight HUD shows during the cold open ── */
+body.cold-open #objectiveCard, body.cold-open .story-radio, body.cold-open .tether-radio,
+body.cold-open #onboardingHint, body.cold-open #labels, body.cold-open #vp > .hud:not(.tc),
+body.cold-open #flightMission, body.cold-open #flightRange, body.cold-open #flightController,
+body.cold-open #flightMapBox, body.cold-open #flightAttitude, body.cold-open #flightTools,
+body.cold-open #flightPeek, body.cold-open #flightWarning, body.cold-open #flightSystem,
+body.cold-open #flightOsd .osd-tr, body.cold-open #flightOsd .osd-bl, body.cold-open #flightOsd .osd-br,
+body.cold-open #flightOsd .osd-lock, body.cold-open #vision-overlay, body.cold-open #pip { display: none !important; }
+body.cold-open #flightOsd .osd-tl > div + div { display: none; }
+body.cold-open:not([data-cold-reveal~=depth]) #flightOsd .osd-tl,
+body.cold-open:not([data-cold-reveal~=depth]) #flightDepth,
+body.cold-open:not([data-cold-reveal~=heading]) #flightOsd .osd-heading,
+body.cold-open:not([data-cold-reveal~=heading]) #vp .hud.tc,
+body.cold-open:not([data-cold-reveal~=heading]) #flightHeading { visibility: hidden; }
+body.cold-open:not([data-cold-hint=photo]):not([data-cold-reveal~=photo]) #flightOsd .osd-cross,
+body.cold-open:not([data-cold-hint=photo]):not([data-cold-reveal~=photo]) #xhair { visibility: hidden; }
+body.cold-open-cinematic #vp > .flight, body.cold-open-cinematic #xhair { visibility: hidden !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cold-open-bars i, .cold-open-super, .cold-open-radio, .cold-open-hint, .cold-open-stamp { transition: none; }
+}

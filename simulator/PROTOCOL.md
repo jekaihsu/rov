@@ -525,10 +525,13 @@ Rooms may publish `state.campaign`: `chapter`, `index`, `node`, `status`,
 `objective`, `dialogue` (bounded radio history), `completed`, `rewards`, `results`,
 `checkpoint`, `unlocks` (earned vehicle/sticker IDs), `next_story`, and `chapters`. Existing clients can ignore this entire field.
 Each `chapters` entry carries `id`, `title`, `requires`, `placeholder`, `outline`, `category`
-(`story` or `incident`) and `order`. The list is sorted by category (`story` first) and then by `order`.
+(`prelude`, `story`, `incident` or `course`) and `order`. The list is sorted by category (in that order)
+and then by `order`.
 `next_story` is the id of the first playable, unfinished `story` chapter (or `null`): a client that
 auto-starts the campaign must use only `story` chapters. `incident` chapters are standalone drills that
-start only through an explicit `campaign_start` with their `chapter` id.
+start only through an explicit `campaign_start` with their `chapter` id. A `prelude` chapter (the new-game
+cold open, `cold_open`) likewise starts only through an explicit `campaign_start`; it is never `next_story`
+and does not unlock or require any story chapter. Clients that do not know the category can ignore it.
 The default is idle; existing mission modes and SDK semantics are unchanged.
 
 Host-only operation actions (reply: `operation_result` with `ok` and `action`):

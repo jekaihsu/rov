@@ -212,6 +212,11 @@ export function installChapterCards({
     if (key === activeKey) return;
     activeKey = key;
     if (!key) return;
+    const chapter = campaign.chapters?.find(function byId(entry) {
+      return entry.id === key;
+    }) || {id: key, title: key};
+    // The prelude (cold open) opens on black and ends on its own card (story/cold_open.js).
+    if (chapter.category === 'prelude') return;
     const allowed = shouldShowChapterCard({
       replay: readOnly,
       bootOpen: bootOpen(),
@@ -219,9 +224,7 @@ export function installChapterCards({
     });
     bootUsed = true;
     if (!allowed) return;
-    const chapter = campaign.chapters?.find(function byId(entry) {
-      return entry.id === key;
-    }) || {id: key, title: key};
+
     report.shown += 1;
     report.last = key;
     report.dismissed = '';

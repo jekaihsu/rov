@@ -1,0 +1,59 @@
+{
+  "about": "browser_gpu_bench.py --profile --sites cold_open_jacket --tiers performance,medium (1280x720, SwiftShader software GL: fps is not representative; counts are). Start pose = the cold open start; third = the establishing-shot camera distance.",
+  "scenes": {
+    "intro:cold_open_jacket:performance": {
+      "draws": 138,
+      "triangles": 203615,
+      "passes": 1,
+      "fullScreenPasses": 0,
+      "textureMB": 43.5,
+      "fps": 1.33,
+      "frame_ms": 750.5
+    },
+    "intro:cold_open_jacket:medium": {
+      "draws": 219,
+      "triangles": 298773,
+      "passes": 7,
+      "fullScreenPasses": 5,
+      "textureMB": 97.9,
+      "fps": 0.98,
+      "frame_ms": 1023.0
+    },
+    "dive:cold_open_jacket:performance:onboard": {
+      "draws": 45,
+      "triangles": 35522,
+      "passes": 1,
+      "fullScreenPasses": 0,
+      "textureMB": 21.2,
+      "fps": 4.97,
+      "frame_ms": 201.4
+    },
+    "dive:cold_open_jacket:performance:third": {
+      "draws": 80,
+      "triangles": 115776,
+      "passes": 1,
+      "fullScreenPasses": 0,
+      "textureMB": 21.2,
+      "fps": 2.82,
+      "frame_ms": 354.1
+    },
+    "dive:cold_open_jacket:medium:onboard": {
+      "draws": 51,
+      "triangles": 61644,
+      "passes": 5,
+      "fullScreenPasses": 4,
+      "textureMB": 62.9,
+      "fps": 1.67,
+      "frame_ms": 599.6
+    },
+    "dive:cold_open_jacket:medium:third": {
+      "draws": 87,
+      "triangles": 141978,
+      "passes": 5,
+      "fullScreenPasses": 4,
+      "textureMB": 62.9,
+      "fps": 1.79,
+      "frame_ms": 557.5
+    }
+  }
+}

@@ -53,12 +53,13 @@ OUT_ROOT = ROOT / 'output' / 'gpu-bench'
 BUDGETS = Path(__file__).resolve().parent / 'perf_budgets.json'
 TOOLS = Path(__file__).resolve().parent
 
-# browser_scene_review's sites plus the fish pen. Each page starts at the scenario's seed=1 start pose and only switches the
-# camera mode (onboard / chase); free-camera poses would fight camera_rig every frame.
+# browser_scene_review's sites plus the fish pen and the new-game cold open's jacket (its start pose is the cold
+# open's). Each page starts at the scenario's seed=1 start pose and only switches the camera mode (onboard /
+# chase); free-camera poses would fight camera_rig every frame.
 SITES = (
     'jacket_inspection', 'monopile_current', 'tether_untangle', 'hull_inspection', 'wreck_survey',
     'korean_castle', 'harbor_inspection', 'tutorial_pool', 'coral_reef', 'seagrass_meadow', 'open_water',
-    'aquaculture_pen',
+    'aquaculture_pen', 'cold_open_jacket',
 )
 TIERS = ('performance', 'medium', 'high', 'ultra')
 VIEWS = ('onboard', 'third')

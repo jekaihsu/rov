@@ -38,6 +38,8 @@ DEFAULT_CHECKS = (
     'browser_objective_card_smoke',
     # Fresh profile: launch cinematic and its pad skip, then the new-player hints over two dives.
     'browser_onboarding_smoke',
+    # Fresh profile: the title's 開始 plays the new-game cold open, flown by keyboard and by pad, into the prologue.
+    'browser_cold_open_smoke',
     'browser_career_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
@@ -47,7 +49,7 @@ DEFAULT_CHECKS = (
 )
 
 # Per-script time limits above run_browser_checks' --timeout default, for checks that walk several full dives.
-SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 3600}
+SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 3600, 'browser_cold_open_smoke': 5400}
 
 TIERS = {
     'quick': {

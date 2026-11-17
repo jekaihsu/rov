@@ -169,7 +169,8 @@ export function buildTitle(ctx) {
   cap.dataset.promptAction = 'accept';
   start.append(cap, element('span', '', STRINGS.pressStart));
   start.addEventListener('click', function begin() {
-    ctx.go('main');
+    if (ctx.pressStart) ctx.pressStart();
+    else ctx.go('main');
   });
   block.append(start);
   root.append(block, element('p', 'menu-version', STRINGS.version));

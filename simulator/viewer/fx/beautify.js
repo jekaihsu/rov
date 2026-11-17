@@ -2,6 +2,7 @@
 // camera shows none of these, so the item exceeds the real vehicle and is off in the `real` preset.
 // `?beautify=1` / `?beautify=0` overrides the preset for one session, like the other per-item URL flags.
 import { registerFidelityItem, getFidelity } from '../fidelity.js';
+import { cinematicLookActive } from '../story/cold_open_presentation.js';
 
 const STRINGS = {
   waterBeautify: '水下畫面美化',
@@ -22,7 +23,9 @@ registerFidelityItem({
   defaults: { real: false, assisted: true }, exceedsReal: true, exceeds: isOn, urlValue: beautifyFromUrl
 }, STRINGS);
 
-// Current value; consumers read it every frame, so preset changes in flight apply immediately.
+// Current value; consumers read it every frame, so preset changes in flight apply immediately. The cold open's
+// scripted beats may hold the look on for the picture alone (story/cold_open_presentation.js, an owner-approved
+// cutscene exception); the fidelity item itself is never changed by that.
 export function beautifyEnabled() {
-  return getFidelity().get(BEAUTIFY_ID) === true;
+  return cinematicLookActive() || getFidelity().get(BEAUTIFY_ID) === true;
 }

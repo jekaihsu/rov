@@ -31,6 +31,8 @@ import { installAudio } from '../audio/engine.js';
 import { installMusic } from '../audio/music.js';
 import { installCareerMenu } from '../career/menu.js';
 import { installBrandMenu } from '../brand/menu_brand.js';
+import { launchNewGame, routeLaunch, startsNewGame } from '../story/cold_open_menu.js';
+import { completedChapters } from './training.js';
 
 import { localize } from '../i18n/index.js';
 
@@ -310,15 +312,18 @@ function lastSummary() {
   });
   return [STRINGS.modes[last.mission], chapter?.title || site?.name, vehicle?.name].filter(Boolean).join(' · ');
 }
-function launch() {
+// replay: 重玩開場 from the story list (story/cold_open_menu.js); it does not become the 快速開始 session.
+function launch({ replay = false } = {}) {
   let url;
   try {
-    url = launchUrl(location.href, choice, location.protocol);
+    const prologue = { mission: 'campaign', chapter: 'prologue', scenario: 'tutorial_pool' };
+    const launched = replay ? { ...choice, ...prologue } : choice;
+    url = routeLaunch(launchUrl(location.href, launched, location.protocol), launched, { replay });
   } catch (error) {
     setStatus(error.message);
     return;
   }
-  rememberChoice(choice);
+  if (!replay) rememberChoice(choice);
   setStatus(STRINGS.launching);
   menu.classList.add('departing');
   stage.setPose('launch');
@@ -397,6 +402,19 @@ const ctx = {
   chooseSite(key) {
     choice.scenario = key;
     go('briefing');
+  },
+  // Title 開始: a new game goes straight into the cold open and the prologue; anyone else gets the main menu.
+  pressStart() {
+    const profile = {
+      hasLastSession: hasLastSession(),
+      career: ctx.career?.save,
+      completedChapters: completedChapters(),
+    };
+    if (startsNewGame(profile)) launchNewGame(ctx);
+    else go('main');
+  },
+  replayColdOpen() {
+    launch({ replay: true });
   },
   quickStart() {
     Object.assign(choice, lastSession());

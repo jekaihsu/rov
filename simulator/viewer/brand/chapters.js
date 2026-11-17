@@ -11,6 +11,7 @@ export const STRINGS = localize('brand.chapters', {
   cardLabel: '章節標題',
   generic: {number: '任務', client: 'YX', sub: 'DIVE BRIEF'},
   cards: {
+    cold_open: {number: '開場 / 00', client: 'YX · 離岸風場', sub: 'JACKET · TETHER SNAG'},
     prologue: {number: '序章 / 00', client: 'YX · 訓練中心', sub: 'CHECKOUT DIVE · TRAINING POOL'},
     harbor: {number: '第一章 / 01', client: '港務單位', sub: 'PILES · CRACK SURVEY'},
     hull: {number: '第一章 / 02', client: '船東', sub: 'HULL · IN-WATER SURVEY'},
@@ -41,6 +42,7 @@ export const STRINGS = localize('brand.chapters', {
 
 // Chapter id → symbol name in brand/marks.js (CHAPTER_SYMBOL_IDS).
 const SYMBOLS = {
+  cold_open: 'offshore',
   prologue: 'pool',
   harbor: 'harbor',
   hull: 'hull',
@@ -54,6 +56,7 @@ const PREFIX_SYMBOLS = [['incident_', 'incident'], ['course_', 'course']];
 // Chapter id → scenario key whose plate (brand/plates/<key>.jpg) fills the photo half. The server's campaign state
 // does not carry the scenario, so the card keeps its own copy; tests compare it with simulator/campaign/*.json.
 const SCENES = {
+  cold_open: 'cold_open_jacket',
   prologue: 'tutorial_pool',
   harbor: 'harbor_inspection',
   hull: 'hull_inspection',
@@ -82,6 +85,7 @@ const SCENES = {
 };
 // Scenarios that share another site's plate (the drills run at the same structures).
 const PLATE_ALIASES = {
+  cold_open_jacket: 'jacket_inspection',
   incident_jacket: 'jacket_inspection',
   incident_wreck: 'wreck_survey',
   incident_compass: 'harbor_inspection',
