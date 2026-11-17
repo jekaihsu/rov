@@ -8,7 +8,7 @@
 // camera exposure for daylight is fixed (a sunny day meters to the same exposure; "sunny 16"), so sunlit white
 // paint lands near the top of the tone curve while shade and sky stay well below it. The target values come
 // from field photographs measured for docs/design/daylight/README.md; every number here is a presentation
-// assumption, not X1 data. The wave-normal sampling (four scrolled taps of waternormals.jpg) follows three.js's
+// assumption, not X1 data. The wave-normal sampling (four scrolled taps of waternormals.webp) follows three.js's
 // Water.js (MIT); the sea has no planar mirror pass, it reflects the analytic sky.
 //
 //   const daylight = createDaylight(scene, {base: 'models/'});
@@ -435,7 +435,7 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
   let shadowsLive = false;
   if (normals) useNormals(normals);
   else if (base) {
-    new THREE.TextureLoader().loadAsync(base + 'waternormals.jpg').then(useNormals).catch(function noNormals() {
+    new THREE.TextureLoader().loadAsync(base + 'waternormals.webp').then(useNormals).catch(function noNormals() {
       return null;
     });
   }

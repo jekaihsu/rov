@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!-- One-frame GLB shot for the asset-slimming comparison. Same camera query before and after. -->
+<meta charset="utf-8">
+<title>asset shot</title>
+<style>
+  html, body { margin: 0; background: #12343c; }
+  canvas { display: block; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "/viewer/vendor/three/build/three.module.js",
+    "three/addons/": "/viewer/vendor/three/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
+const WIDTH = 960;
+const HEIGHT = 540;
+const params = new URLSearchParams(location.search);
+const file = params.get('file');
+const gap = Number(params.get('gap') || '1');
+const isolate = params.get('isolate');
+const clipName = params.get('clip');
+const givenCam = params.get('cam');
+const givenTarget = params.get('target');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(1);
+renderer.setSize(WIDTH, HEIGHT, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x12343c);
+const camera = new THREE.PerspectiveCamera(32, WIDTH / HEIGHT, 0.02, 5000);
+scene.add(new THREE.HemisphereLight(0xc5d6dc, 0x243038, 0.85));
+const sun = new THREE.DirectionalLight(0xfff4e0, 1.35);
+sun.position.set(4, 8, 6);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x9bb7c4, 0.45);
+fill.position.set(-6, 2, -3);
+scene.add(fill);
+
+window.__shot = { ready: false, error: null };
+
+function numbers(text) {
+  return text.split(',').map((item) => Number(item));
+}
+
+try {
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  const gltf = await loader.loadAsync('/viewer/' + file);
+  const root = gltf.scene;
+  scene.add(root);
+  root.updateMatrixWorld(true);
+  root.traverse(function hideProxy(object) {
+    if (object.name === 'CollisionProxy') object.visible = false;
+  });
+  if (isolate) {
+    root.traverse(function keepLevel(object) {
+      if (/^LOD\d$/.test(object.name)) object.visible = object.name === isolate;
+    });
+  }
+  if (clipName && gltf.animations.length) {
+    const mixer = new THREE.AnimationMixer(root);
+    const chosen = gltf.animations.find((item) => item.name === clipName) || gltf.animations[0];
+    const action = mixer.clipAction(chosen);
+    action.play();
+    mixer.setTime(0);
+    mixer.update(0);
+    root.updateMatrixWorld(true);
+  }
+  const parts = [];
+  root.traverse(function collect(object) {
+    if (!object.isMesh || !object.visible) return;
+    const part = new THREE.Box3().setFromObject(object);
+    const partSize = part.getSize(new THREE.Vector3());
+    const partRadius = 0.5 * Math.hypot(partSize.x, partSize.y, partSize.z);
+    if (partRadius > 0) parts.push({ box: part, radius: partRadius });
+  });
+  parts.sort((a, b) => a.radius - b.radius);
+  const median = parts.length ? parts[Math.floor(parts.length / 2)].radius : 1;
+  const kept = parts.filter((part) => part.radius <= median * 8);
+  const box = new THREE.Box3();
+  for (const part of (kept.length ? kept : parts)) box.union(part.box);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const radius = 0.5 * Math.hypot(size.x, size.y, size.z);
+  const givenFov = params.get('fov');
+  if (givenCam && givenTarget) {
+    const cam = numbers(givenCam);
+    const target = numbers(givenTarget);
+    camera.position.set(cam[0], cam[1], cam[2]);
+    camera.lookAt(target[0], target[1], target[2]);
+    const distance = camera.position.distanceTo(new THREE.Vector3(target[0], target[1], target[2]));
+    camera.near = Math.max(0.01, distance / 500);
+    camera.far = distance * 40;
+    if (givenFov) camera.fov = Number(givenFov);
+  } else {
+    const direction = new THREE.Vector3(0.55, 0.32, 1).normalize();
+    const distance = Math.max(radius + gap, 0.05);
+    camera.position.copy(center).addScaledVector(direction, distance);
+    camera.near = Math.max(0.01, distance / 500);
+    camera.far = distance * 40;
+    const span = Math.max(size.y, size.x / camera.aspect, size.z);
+    camera.fov = THREE.MathUtils.clamp(
+      THREE.MathUtils.radToDeg(2 * Math.atan(span / (2 * distance * 0.72))),
+      8,
+      45,
+    );
+    camera.lookAt(center);
+  }
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  let triangles = 0;
+  root.traverse(function count(object) {
+    if (!object.isMesh || !object.visible || !object.geometry) return;
+    const index = object.geometry.index;
+    triangles += index ? index.count / 3 : object.geometry.getAttribute('position').count / 3;
+  });
+  window.__shot = {
+    ready: true,
+    error: null,
+    triangles,
+    radius,
+    cam: camera.position.toArray(),
+    target: (givenTarget ? numbers(givenTarget) : center.toArray()),
+    fov: camera.fov,
+  };
+} catch (error) {
+  window.__shot = { ready: true, error: String(error && error.stack || error) };
+}
+</script>

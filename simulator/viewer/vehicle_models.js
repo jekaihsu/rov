@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { loadGLTF } from './glb.js';
 import { genericVehicleUrl } from './asset_config.js';
+import { FALCON_LOD, HEAVY_LOD, releaseLodQuality, watchLodQuality } from './model_lod.js';
 
 const point = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 const defaults = {
@@ -36,6 +37,7 @@ function matchLegacyRotors(rotors, thrusters) {
 }
 
 function disposeTree(root) {
+  releaseLodQuality(root);
   const geometries = new Set(), materials = new Set(), textures = new Set();
   root.traverse((o) => {
     if (o.geometry) geometries.add(o.geometry);
@@ -170,15 +172,21 @@ function disposeObject(object) {
   object.removeFromParent();
 }
 
+const ROTOR_LODS = {
+  falcon: FALCON_LOD,
+  bluerov2_heavy: HEAVY_LOD,
+};
+
 /**
- * Load training-X1 LOD files into a THREE.LOD. Spinning rotors are lifted out of
- * every level and kept at the nearest level's detail so app.js still sees six
- * thruster-mapped rotors. options.lod >= 1 skips nearer static levels so peer
- * vehicles start at LOD1 (and may still drop to LOD2 by distance).
+ * Load a rotor vehicle's LOD files into a THREE.LOD. Spinning rotors (and the
+ * falcon arm, when the file has one) are lifted out of every level and kept at
+ * the nearest level's detail. options.lod >= 1 skips nearer static levels so
+ * peer vehicles start at LOD1 and may still drop to LOD2 by distance.
+ * Quality mode scales the authored distances (model_lod.js).
  */
-async function loadTrainingX1Lod(minLod = 0) {
-  const start = Math.max(0, Math.min(minLod, TRAINING_X1_LODS.length - 1));
-  const candidates = TRAINING_X1_LODS.slice(start);
+async function loadRotorLod(levels, minLod, label) {
+  const start = Math.max(0, Math.min(minLod, levels.length - 1));
+  const candidates = levels.slice(start);
   const loaded = [];
   for (const level of candidates) {
     try {
@@ -186,14 +194,14 @@ async function loadTrainingX1Lod(minLod = 0) {
     } catch (error) {
       // Sidecar LODs may be absent during packing / compare renders; keep going.
       if (loaded.length === 0) throw error;
-      console.warn(`X1 LOD unavailable (${level.url}); using ${loaded.length} level(s)`, error);
+      console.warn(`${label} LOD unavailable (${level.url}); using ${loaded.length} level(s)`, error);
       break;
     }
   }
   const wrap = new THREE.Group();
-  wrap.name = 'X1Visual';
+  wrap.name = label + 'Visual';
   const rotorRoot = new THREE.Group();
-  rotorRoot.name = 'X1Rotors';
+  rotorRoot.name = label + 'Rotors';
   wrap.add(rotorRoot);
 
   const attachNearestRotors = (scene) => {
@@ -208,6 +216,12 @@ async function loadTrainingX1Lod(minLod = 0) {
     for (const rotor of findRotorNodes(scene)) disposeObject(rotor);
   };
 
+  const stripArm = (scene) => {
+    const arms = [];
+    scene.traverse((o) => { if (o.name === 'arm_yaw') arms.push(o); });
+    for (const arm of arms) disposeObject(arm);
+  };
+
   if (loaded.length === 1) {
     const scene = loaded[0].gltf.scene;
     attachNearestRotors(scene);
@@ -216,18 +230,26 @@ async function loadTrainingX1Lod(minLod = 0) {
   }
 
   const lod = new THREE.LOD();
-  lod.name = 'X1LOD';
+  lod.name = label + 'LOD';
   loaded.forEach((entry, index) => {
     const scene = entry.gltf.scene;
     scene.name = `LOD${start + index}`;
     if (index === 0) attachNearestRotors(scene);
-    else stripRotors(scene);
+    else {
+      stripRotors(scene);
+      stripArm(scene);
+    }
     // Peer vehicles omit LOD0: their first entry is LOD1 at distance 0.
     const distance = index === 0 ? 0 : entry.level.distance;
     lod.addLevel(scene, distance);
   });
+  watchLodQuality(lod);
   wrap.add(lod);
   return wrap;
+}
+
+function loadTrainingX1Lod(minLod = 0) {
+  return loadRotorLod(TRAINING_X1_LODS, minLod, 'X1');
 }
 
 // Centre the pre-I1 rov.glb had under the loose (per-mesh) Box3: its sheared node scales inflated the box to
@@ -255,6 +277,7 @@ export async function createVehicleModel(definition='x1', options={}) {
   let model, loadError=null;
   try {
     if (legacyX1) model = await loadTrainingX1Lod(options.lod ?? 0);
+    else if (ROTOR_LODS[id]) model = await loadRotorLod(ROTOR_LODS[id], options.lod ?? 0, id);
     else model = (await loadGLTF(def.model)).scene;
   } catch (e) {
     loadError = e;

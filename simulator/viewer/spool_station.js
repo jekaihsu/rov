@@ -13,6 +13,7 @@
 //   station.labelPosition(world)             // where the "spool" label sits: the boat's stern
 import * as THREE from 'three';
 import {Humanoid} from './humanoid.js';
+import {releaseLodQuality} from './model_lod.js';
 import {placeWorkBoat} from './deploy_intro.js';
 import {surfacePlan} from './surface_set.js';
 
@@ -75,7 +76,10 @@ export class SpoolStation {
 
   clear() {
     this.generation++;
-    if (this.boat) this.scene.remove(this.boat);
+    if (this.boat) {
+      releaseLodQuality(this.boat);
+      this.scene.remove(this.boat);
+    }
     this.boat = null;
     this.crew = null;
   }

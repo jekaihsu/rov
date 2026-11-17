@@ -7,6 +7,7 @@ must lie inside the unit sphere; habitat rocks fit the scan round the collision 
 import json
 import re
 import struct
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -21,6 +22,9 @@ TEXTURES = ('sand', 'shell', 'gravel', 'mud', 'rockbed', 'coating', 'rust', 'con
 
 def read_glb(path):
     data = path.read_bytes()
+    if b'EXT_meshopt_compression' in data:
+        script = Path(__file__).resolve().parents[1] / 'tools' / 'decode_meshopt.mjs'
+        data = subprocess.check_output(['node', str(script), str(path)])
     magic, version, _ = struct.unpack_from('<III', data, 0)
     assert magic == 0x46546C67 and version == 2
     length, _ = struct.unpack_from('<II', data, 12)

@@ -9,7 +9,7 @@
 //   material.map = scanTexture('coating_c', {repeat: 1 / 1.6}, (t) => { material.map = t; });
 //   loadScanRocks().then((rocks) => rocks.geometry('rock_07', 1));
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {loadGLTF} from './glb.js';
 
 const BASE = 'models/scan/';
 // Metres covered by one repeat of each texture (scan sizes from the source pages; ambientCG gives none, assumed).
@@ -108,7 +108,7 @@ export function scanUniform(name, options = {}) {
 export function loadScanRocks() {
   if (rocksPromise) return rocksPromise;
   if (!globalThis.document) return Promise.resolve(null);
-  rocksPromise = new GLTFLoader().loadAsync(BASE + 'rocks.glb').then(function indexRocks(gltf) {
+  rocksPromise = loadGLTF(BASE + 'rocks.glb').then(function indexRocks(gltf) {
     const levels = new Map();
     const inner = new Map();
     gltf.scene.traverse(function collect(node) {

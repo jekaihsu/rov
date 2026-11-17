@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "gpu_bytes": "Decoded mesh accessors (what the loader uploads) plus RGBA8 textures with mipmaps, width * height * 4 * 4/3. WebP and JPEG do not stay compressed on the GPU. KTX2 would; this project does not ship a Basis transcoder.",
+  "defaults": {
+    "max_bytes": 2097152,
+    "max_triangles": 160000,
+    "max_gpu_bytes": 20000000
+  },
+  "files": {
+    "models/korean_castle.glb": {
+      "max_bytes": 6000000,
+      "max_triangles": 340000,
+      "max_gpu_bytes": 35000000,
+      "note": "Already meshopt. Re-quantizing the geometry made the file larger, so only the JPEGs moved to WebP. The encrusted-steel maps are 1024 and dominate the GPU estimate."
+    },
+    "models/observation_rov.glb": {
+      "max_bytes": 2500000,
+      "max_triangles": 80000,
+      "max_gpu_bytes": 96000000,
+      "note": "Rotor positions are tested at 1e-5, so the meshopt geometry was not quantized again. Textures are WebP. Six 2K maps decode to RGBA8."
+    },
+    "models/observation_rov_lod1.glb": {
+      "max_bytes": 2097152,
+      "max_gpu_bytes": 39000000,
+      "note": "Same texture set as the near model, already downscaled, now WebP."
+    },
+    "models/rov.glb": {
+      "max_bytes": 3600000,
+      "max_triangles": 520000,
+      "note": "Training X1 LOD0 is already meshopt and the legacy centre plus rotor tests depend on it. It was not recompressed."
+    },
+    "models/workboat.glb": {
+      "max_gpu_bytes": 30000000,
+      "note": "Authored LOD0/1/2 are already in the file. Quality mode scales those distances."
+    },
+    "models/workboat_high.glb": {
+      "max_bytes": 2097152,
+      "max_gpu_bytes": 72000000,
+      "note": "2048 hull maps, loaded only at high and ultra."
+    }
+  },
+  "totals": {
+    "max_bytes": 35500000
+  },
+  "retained_unloaded": {
+    "models/aquaculture/pen.glb": "Portable preview of the pen. The runtime draws the net from net.webp. docs/design/scene-looks/README.md",
+    "models/aquaculture/mission.json": "Sample mission committed for portable viewing, not fetched by the viewer. docs/design/scenes/aquaculture/README.md"
+  }
+}

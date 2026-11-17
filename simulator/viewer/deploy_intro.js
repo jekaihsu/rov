@@ -27,6 +27,7 @@ import { Cable } from './cable.js';
 import { LaunchRig } from './launch_rig.js';
 import { IntroEffects } from './intro_effects.js';
 import { assetTextureTier } from './render_quality.js';
+import { CREW_LOD_FILES, releaseLodQuality, watchLodQuality } from './model_lod.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -106,6 +107,7 @@ function setUpDetailLevels(model) {
     lod.addLevel(level, level.userData.lodDistance ?? 0);
   }
   parent.add(lod);
+  watchLodQuality(lod);
   return { lod, proxy };
 }
 
@@ -239,7 +241,7 @@ export class DeployIntro {
     };
     const [boat, human] = await Promise.all([
       loadBoat().then((g) => g.scene).catch(() => null),
-      Humanoid.load(base + 'worker.glb').catch(() => null),
+      Humanoid.load(base + 'worker.glb', CREW_LOD_FILES.map((file) => base + file)).catch(() => null),
     ]);
     return { boat, human };
   }
@@ -744,7 +746,10 @@ export class DeployIntro {
     if (this.disposed) return;
     this.disposed = true;
     this._restoreVehicleVisibility();
-    for (const o of this.objects) this.scene.remove(o);
+    for (const o of this.objects) {
+      releaseLodQuality(o);
+      this.scene.remove(o);
+    }
     this.cable.dispose();
     this.rig.dispose();
     this.effects.dispose();
