@@ -1,25 +1,44 @@
 # ROV model provenance and rebuilding
 
-The X1 uses the existing project reconstruction. The first generic Falcon approximation has been superseded by `build_falcon_reference.py`, reconstructed against official Saab photographs of the Falcon with a five-function manipulator skid. Its distinguishing geometry includes white polypropylene side plates with three upper slots, sculpted twin yellow shoulders with vent bores, red deck castings and bumpers, black thruster shrouds with red propellers, a high central camera, two lower LED lamps, an equipment skid and a scanning-sonar cage. This is still a photograph-based reconstruction; factory dimensional CAD has not been supplied. BlueROV2 Heavy currently remains an estimated study model pending replacement with verified manufacturer geometry.
+The three training visuals are original YX machines (Model R / O / V, internal ids `x1`,
+`bluerov2_heavy`, `falcon`). They share one PBR rule set and are not a copy of any
+manufacturer's vehicle: no logos, lettering or product silhouette. Thruster positions and
+thrust axes are taken from `simulator/qysim/vehicles.py`. Blade count is an estimated visual
+(that file does not publish a blade count): three blades, pitched so a positive spin about
+the thrust axis produces positive thrust. Hull size, fastener pitch and foam colour are
+estimated geometry, not measurements, and are not X1 facts.
 
-The Falcon arm is now an articulated GLB hierarchy containing pantograph plates, hydraulic cylinders, hoses and hooked jaws. The viewer animates the authored joints rather than drawing a generic arm. Joint distances and mount coordinates are checked against the server mechanics. Link motion, loads and internal equipment dimensions remain simulation estimates.
+Model V keeps the articulated arm the viewer already drives (`arm_yaw`, `arm_shoulder`,
+`arm_elbow`, `arm_wrist`, `arm_jaw_left`, `arm_jaw_right`, `arm_tip`). Joint distances match
+the server chain. Link motion and internal equipment sizes remain simulation estimates.
 
-Authoritative topology references:
+Each vehicle has three levels of detail (near ≤ 40k, mid ≤ 12k, far ≤ 3k triangles) and each
+GLB is at most 1.5 MB (meshopt + WebP). The viewer loads them as a `THREE.LOD`. Nodes the
+viewer moves or anchors:
 
-- [Blue Robotics Heavy configuration](https://bluerobotics.com/introducing-bluerov2-heavy/): four horizontal vectored and four vertical thrusters, six controlled degrees of freedom.
-- [BlueROV2 technical specifications](https://bluerobotics.com/store/rov/bluerov2/): base platform dimensions and component construction. The 13.5 kg Heavy weight here is a configured estimate, not the base vehicle specification.
-- [Saab Seaeye Falcon specifications](https://www.saabseaeye.com/solutions/underwater-vehicles/falcon): five thrusters, approximately 1.0 × 0.6 × 0.5 m, 60 kg, depth/heading automation. Four horizontal thrusters and one vertical provide surge, sway, heave and yaw control; this simulator does not add active roll or pitch authority.
-- Official photograph reference set: [port quarter](https://www.saabseaeye.com/uploads/falcon2.jpg), [starboard quarter](https://www.saabseaeye.com/uploads/falcon1_%281%29.jpg), [front](https://www.saabseaeye.com/uploads/falcon-front-on.jpg), [skid and manipulator](https://www.saabseaeye.com/uploads/seaeye-falcon-with-skid-and-manip_%281%29.jpg). Photographs are reference-only and are not embedded in the distributed models.
+| Node | Extras |
+|---|---|
+| `ROTOR_i` (Model R) or `Rotor_i` (O, V) | `role: rotor`, `thruster_index`, `axis` |
+| `camera_gimbal`, `lamp_pivot_0`, `lamp_pivot_1` | pivot for the dome and the two lamps |
+| `anchor_camera`, `anchor_tether`, `anchor_arm_mount`, `anchor_lamp_0`, `anchor_lamp_1` | physics anchors |
+| `yx_frame` | `frame: cg` (authored on the centre of gravity; the viewer does not apply the old offset) |
+| Model V arm names above | local translations locked to the existing chain |
 
-Mass/size for Falcon and propulsion topology are grounded in those references. Individual thruster placement/force, inertia, added mass, drag, flotation offset, collision proxies, camera/light/arm anchors and controller response are estimates for simulation. Matching motor counts does not imply validated real-vehicle handling. X1 coefficients remain compatible with the existing project tests.
+Material rules (same on every vehicle): aluminium metallic 0.92 / roughness 0.34, polymer 0.04 / 0.48,
+syntactic foam 0 / 0.74 with a procedural pore colour and normal, acrylic 0 / 0.05 plus a clear coat,
+propeller 0.12 / 0.40, stainless fasteners 0.95 / 0.24, cable jacket 0 / 0.64. The pore map is
+generated in the build script. No scanned texture is embedded.
 
-Run from repository root:
+Rebuild from the repository root:
 
-```powershell
-& 'C:/Users/asus/AppData/Local/Programs/Blender/blender-4.5.9-windows-x64/blender.exe' --background --factory-startup --python cad/build_vehicle_fleet.py -- (Get-Location).Path
+```bash
+blender -b --factory-startup -P cad/build_yx_vehicles.py -- .
+python cad/pack_yx_vehicles.py
 ```
 
-Outputs: `cad/bluerov2_heavy.blend`, `cad/falcon.blend`, and matching `simulator/viewer/models/*.glb`. The reproducible source is `build_vehicle_fleet.py`, with physical definitions in `simulator/qysim/vehicles.py`. No manufacturer logos or downloaded proprietary CAD are included. Coordinates originate at the defined centre of gravity; GLB +Z is forward and +Y is up. `thruster_index` extras provide stable rotor-to-motor mapping. The visual dimensions are approximations and should be refined against approved orthographic references before claiming replica fidelity.
+Coordinates originate at the centre of gravity. GLB +Z is forward and +Y is up. Physics
+coefficients, evidence levels and sources stay in `simulator/qysim/vehicles.py`. X1
+coefficients are unchanged provisional values.
 
 ## Generic asset set (Steam edition)
 
@@ -28,18 +47,10 @@ Outputs: `cad/bluerov2_heavy.blend`, `cad/falcon.blend`, and matching `simulator
 textures) and packed into three LODs by `cad/pack_observation_rov.py`. Design notes, the asset report and
 side-by-side renders against the X1 are in `docs/design/vehicle/README.md`.
 
-## X1 training LODs (I1)
+## YX fleet LODs (Q5)
 
-The training `rov.glb` is packed by `cad/pack_x1_rov.py` (glTF-Transform): static meshes are joined by
-material (draw calls ≤ 40) while the six `role: rotor` propeller empties stay independent. Sidecars
-`rov_lod1.glb` (~80k tris) and `rov_lod2.glb` (~20k) feed a `THREE.LOD` in `vehicle_models.js`; peer
-vehicles start at LOD1. Re-run after replacing the baseline:
-
-```bash
-cp simulator/viewer/models/rov.glb simulator/output/x1-lod/baseline/rov.glb   # only when intentionally updating the bar
-python cad/pack_x1_rov.py
-python simulator/tools/render_x1_lod_compare.py
-```
-
-Report: `docs/design/vehicle/x1-lod-report.json`. LOD0 may exceed 2 MB because joining shared thruster
-instances duplicates geometry that the pre-I1 file instanced.
+`cad/build_yx_vehicles.py` writes the raw GLBs. `cad/pack_yx_vehicles.py` meshopt-compresses them into
+`simulator/viewer/models/` and writes `docs/design/vehicle-models/report.json`. Model R static meshes are
+joined by material so the draw-call count stays within the existing limit of 40. Model O and Model V keep
+separate part meshes (the fleet test requires more than 60). Peer vehicles start at LOD1. Studio and
+in-game before/after frames are in `docs/design/vehicle-models/`.

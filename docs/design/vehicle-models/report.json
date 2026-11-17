@@ -1,0 +1,155 @@
+{
+  "source": "cad/build_yx_vehicles.py",
+  "vehicles": {
+    "x1": [
+      {
+        "file": "rov.glb",
+        "bytes": 236360,
+        "triangles": 18024,
+        "meshes": 17,
+        "nodes": 28,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 0,
+        "triangle_budget": 40000,
+        "byte_budget": 1572864
+      },
+      {
+        "file": "rov_lod1.glb",
+        "bytes": 83108,
+        "triangles": 4364,
+        "meshes": 15,
+        "nodes": 26,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 1,
+        "triangle_budget": 12000,
+        "byte_budget": 1572864
+      },
+      {
+        "file": "rov_lod2.glb",
+        "bytes": 54356,
+        "triangles": 2236,
+        "meshes": 14,
+        "nodes": 25,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 2,
+        "triangle_budget": 3000,
+        "byte_budget": 1572864
+      }
+    ],
+    "bluerov2_heavy": [
+      {
+        "file": "bluerov2_heavy.glb",
+        "bytes": 432712,
+        "triangles": 21312,
+        "meshes": 191,
+        "nodes": 300,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 0,
+        "triangle_budget": 40000,
+        "byte_budget": 1572864
+      },
+      {
+        "file": "bluerov2_heavy_lod1.glb",
+        "bytes": 79684,
+        "triangles": 5332,
+        "meshes": 28,
+        "nodes": 96,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 1,
+        "triangle_budget": 12000,
+        "byte_budget": 1572864
+      },
+      {
+        "file": "bluerov2_heavy_lod2.glb",
+        "bytes": 54944,
+        "triangles": 2728,
+        "meshes": 24,
+        "nodes": 65,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 2,
+        "triangle_budget": 3000,
+        "byte_budget": 1572864
+      }
+    ],
+    "falcon": [
+      {
+        "file": "falcon.glb",
+        "bytes": 384860,
+        "triangles": 16884,
+        "meshes": 179,
+        "nodes": 259,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 0,
+        "triangle_budget": 40000,
+        "byte_budget": 1572864
+      },
+      {
+        "file": "falcon_lod1.glb",
+        "bytes": 80136,
+        "triangles": 4078,
+        "meshes": 34,
+        "nodes": 88,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 1,
+        "triangle_budget": 12000,
+        "byte_budget": 1572864
+      },
+      {
+        "file": "falcon_lod2.glb",
+        "bytes": 56040,
+        "triangles": 2118,
+        "meshes": 27,
+        "nodes": 63,
+        "extensions": [
+          "EXT_meshopt_compression",
+          "EXT_texture_webp",
+          "KHR_materials_clearcoat",
+          "KHR_materials_emissive_strength"
+        ],
+        "lod": 2,
+        "triangle_budget": 3000,
+        "byte_budget": 1572864
+      }
+    ]
+  }
+}
