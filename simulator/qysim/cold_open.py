@@ -7,13 +7,22 @@ in the vehicle, tether or snag model changes:
 
 * the jacket, anodes and mud mats are the same builders as ``jacket_inspection`` (scenarios.jacket,
   site_dressing.dress_jacket);
-* leg C's 12 m anode with its straps and the two diagonals that meet leg C carry ``snag_hold`` (site_dressing.
-  snaggable), so the tether snag model (tether_snag.py) can hook on them like on any other snaggable fitting.
-  Stand-off anodes and brace nodes are the classic places a small ROV's tether catches on a jacket (VideoRay
-  snag response and operations notes in research_notes/真实 ROV 操作体验研究/operations_tether_sonar.md);
-* the support boat (spool) stands off to the south-east, so a vehicle that leaves the anode northwards along the
-  west face drags its tether round the south-west corner of leg C, across that anode. Backing out the way it
-  came, south past the anode, unwinds the bend and the snag lets go (tether_snag.py "release");
+* leg C's 12 m anode and its two straps carry ``snag_hold`` (site_dressing.snaggable), so the tether snag model
+  (tether_snag.py) can hook on them like on any other snaggable fitting. Stand-off anodes are a classic place for
+  a small ROV's tether to catch on a jacket (VideoRay snag response and operations notes in
+  research_notes/真实 ROV 操作体验研究/operations_tether_sonar.md);
+* the incident is set up by where the tether lies, not by chance. The support boat (spool) stands off to the
+  south-east with about ten metres more tether out than the straight run to the vehicle. The slack-water current
+  sets north-north-west, so that spare tether streams against the outside of the jacket's south face and reaches
+  the vehicle from the east, past the south side of leg C, a little below the vehicle. A vehicle that leaves the
+  anode northwards along the west face pulls it round the south-west corner of leg C, across the anode, through
+  most of a right angle, and it hooks there within a few metres. The hook only opens when that bend is gone
+  (tether_snag.py "release"), which needs the vehicle back south, abeam of the anode: the way it came. Letting
+  go of the sticks does not do it: the same current carries a drifting vehicle further round the snagged side;
+* the tether hand keeps the slack short on purpose (``TETHER_LENGTH``). With 60 m out and the current setting
+  east, the spare tether hung in a deep bight on the far side of the boat, the tether reached the anode from
+  whichever way that bight happened to lie, and the hook opened by itself or never opened (see
+  docs/design/cold-open/README.md §5);
 * the fish schools are placed round the legs (a jacket works as an artificial reef) instead of the biome's
   random schools.
 
@@ -43,12 +52,14 @@ ANODE_DEPTH = 12.0
 ANODE_DEPTHS = {f"{PREFIX} leg {leg}": (ANODE_DEPTH, 24.0) for leg in "ABCD"}
 SNAG_HOLD = (150.0, 260.0)          # N, like SnagFeature's training default; no published data exists
 SNAG_ANODE = f"{PREFIX} leg C anode {ANODE_DEPTH:.0f}m"
-SNAG_NAMES = (SNAG_ANODE, f"{PREFIX} X 8-18 B", f"{PREFIX} X 8-18 C")
+SNAG_NAMES = (SNAG_ANODE, SNAG_ANODE + " strap 1", SNAG_ANODE + " strap 2")
 # Vehicle start: south-west of leg C, just above the anode's depth, the anode a little right of the bow.
 START = (-12.0, -9.0, ANODE_DEPTH - 0.5)
 START_HEADING = 33.0
-SPOOL = (-28.0, 12.0, 0.0)
-TETHER_LENGTH = 60.0
+SPOOL = (-26.0, 20.0, 0.0)
+TETHER_LENGTH = 45.0
+CURRENT_KN = 0.15
+CURRENT_DIR = (345.0, 345.0, 345.0)
 # Schools at home positions round the legs, at least 3 m off the steel (ecology.step_schools keeps them clear).
 FISH = (
     {"home": (-5.6, -9.6, 11.6), "count": 64},     # front left of the start view, between the vehicle and leg C
@@ -74,7 +85,7 @@ def _photo_spot(leg, standoff: float = 1.4) -> tuple:
 def cold_open_jacket() -> Scenario:
     obstacles = jacket(0.0, 0.0, SEABED, prefix=PREFIX)
     obstacles += dressing.dress_jacket(obstacles, 0.0, 0.0, SEABED, ANODE_DEPTHS)
-    snaggable = [o for o in obstacles if o.name in SNAG_NAMES or o.name.startswith(SNAG_ANODE + " strap")]
+    snaggable = [o for o in obstacles if o.name in SNAG_NAMES]
     dressing.snaggable(snaggable, SNAG_HOLD)
     legs = {o.name[-1]: o for o in obstacles if o.kind == "jacket_leg"}
     objectives = []
@@ -85,7 +96,8 @@ def cold_open_jacket() -> Scenario:
     objectives.append(Objective("surface", STRINGS["surface"], (SPOOL[0] + 3.0, SPOOL[1], 0.5), radius=3.0))
     return Scenario(
         "cold_open_jacket", STRINGS["name"], STRINGS["brief"], seabed_depth=SEABED, obstacles=obstacles,
-        current=CurrentProfile(0.15, 80, 0.1, 90, 0.05, 100, TI_OFFSHORE),
+        current=CurrentProfile(CURRENT_KN, CURRENT_DIR[0], CURRENT_KN * 2 / 3, CURRENT_DIR[1], CURRENT_KN / 3,
+                               CURRENT_DIR[2], TI_OFFSHORE),
         visibility_m=22.0, start_pos=START, start_heading_deg=START_HEADING, spool_pos=SPOOL,
         tether_length=TETHER_LENGTH, objectives=objectives, time_limit_s=1200, water_type="oceanic",
         fish_schools=[dict(spec) for spec in FISH])

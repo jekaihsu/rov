@@ -1248,8 +1248,8 @@ const audio = installAudio({
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
-const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow], music,
-  readOnly: !!REPLAY});
+const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
+  music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;

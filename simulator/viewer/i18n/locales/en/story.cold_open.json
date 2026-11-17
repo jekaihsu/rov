@@ -21,6 +21,8 @@
     "dontPull": "Still pulling! {n} newtons, don't force it!",
     "free": "...It's off. The tether's free.",
     "remember": "Good. Remember how that felt.",
+    "slipped": "...It slid off by itself. The tether's free.",
+    "lucky": "That was luck. Next time, know your way out first. Remember how that felt.",
     "stuck": "Hold there. We'll pay out and clear it at slack water.",
     "noSnag": "Right, that's it for now. Leg B on the next dive.",
     "snapped": "...It parted. Tension's gone to zero.",

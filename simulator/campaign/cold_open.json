@@ -30,7 +30,7 @@
       "id": "snag",
       "type": "wait",
       "condition": {
-        "path": "tether.snagged_on.0",
+        "path": "tether.snags.0.name",
         "op": "gt",
         "value": ""
       }
@@ -44,7 +44,7 @@
       "id": "released",
       "type": "wait",
       "condition": {
-        "path": "tether.snagged_on",
+        "path": "tether.snags",
         "op": "eq",
         "value": []
       }

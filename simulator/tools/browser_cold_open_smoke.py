@@ -47,10 +47,16 @@ STATE = '''() => {
   const d = window.__coldOpen?.debug?.() || {};
   return {pos: s.pos, heading: (s.euler || [0, 0, 0])[2], locked: s.locked, latched: s.input_latched,
           tension: s.tether?.tension_rov || 0, snags: (s.tether?.snags || []).map(h => h.name),
+          photos: s.photos || 0, length: s.tether?.length || 0, reel: s.tether?.reel?.mode || '',
+          touching: s.tether?.snagged_on || [],
           beat: d.beat, hint: d.hint, lines: d.lines || []};
 }'''
 STEER_DT = 0.25
 DEPTH = 12.0                 # m, the anodes' depth at the cold-open jacket (qysim/cold_open.py)
+CRUISE = 0.6                 # stick deflection past the structure: 慢慢飛 (also the keyboard's default deflection)
+SNAG_ANODE = 'J leg C anode 12m'
+HANDS_OFF_S = 6.0            # s the snag is watched with the sticks centred before backing out
+LEAD_S = 1.5                 # s of the vehicle's own way the pilot allows for when easing onto a spot
 
 
 def arguments():
@@ -111,9 +117,14 @@ class Pilot:
         if self.pad == 'none':
             self.page.keyboard.press(self.controls['photo']['keys'][0])
             return
+        # Held until the dive has the photo: a pad is polled once a frame, and a slow frame can miss a short tap.
         index = int(str(self.controls['photo']['pad']).lstrip('b'))
+        before = self.page.evaluate(STATE)['photos']
         self.page.evaluate('i => { window.__pad.buttons[i] = 1; }', index)
+        deadline = time.monotonic() + timeout(5000) / 1000
         time.sleep(0.3)
+        while self.page.evaluate(STATE)['photos'] <= before and time.monotonic() < deadline:
+            time.sleep(0.1)
         self.page.evaluate('i => { window.__pad.buttons[i] = 0; }', index)
 
 
@@ -125,6 +136,8 @@ class Run:
         self.suffix = suffix
         self.frames = []
         self.last_frame = 0.0
+        self.trace = None
+        self.started = 0.0
 
     def shot(self, name):
         path = self.shots / f'{name}-{self.suffix}.jpg'
@@ -142,7 +155,18 @@ class Run:
         self.frames.append((path, self.state()['beat']))
 
     def state(self):
-        return self.page.evaluate(STATE)
+        """The dive and the director as the page sees them; every sample also goes to the run's trace file."""
+        state = self.page.evaluate(STATE)
+        if self.trace is None:
+            self.trace = (self.shots / f'trace-{self.suffix}.jsonl').open('w', encoding='utf-8')
+            self.started = time.monotonic()
+        sample = {'t': round(time.monotonic() - self.started, 2), 'pos': state['pos'], 'heading': state['heading'],
+                  'tension': state['tension'], 'snags': state['snags'], 'beat': state['beat'],
+                  'locked': state['locked'], 'length': state['length'], 'reel': state['reel'],
+                  'touching': state['touching']}
+        self.trace.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        self.trace.flush()
+        return state
 
     def wait_beat(self, names, wait=180000):
         names = [names] if isinstance(names, str) else names
@@ -171,8 +195,10 @@ def ensure_unlocked(run, pilot):
     run.page.wait_for_timeout(600)
 
 
-def steer(run, pilot, target, done, limit_s, radius=0.8, reverse=False):
-    """Fly to `target` (north, east) until done(state) or the radius; returns the last state."""
+def steer(run, pilot, target, done, limit_s, radius=0.8, reverse=False, top=1.0):
+    """Fly to `target` (north, east) until done(state) or the radius; returns the last state.
+
+    `top` caps the surge deflection (a pad's stick; the keyboard's own deflection setting already does)."""
     deadline = time.monotonic() + timeout(int(limit_s * 1000)) / 1000
     state = run.state()
     while time.monotonic() < deadline:
@@ -189,7 +215,7 @@ def steer(run, pilot, target, done, limit_s, radius=0.8, reverse=False):
         pilot.hold_depth(state, DEPTH)
         turn = max(-1.0, min(1.0, error / 35.0))
         pilot.axis('yaw', turn if abs(error) > 8 else 0)
-        drive = 0.0 if abs(error) > 35 else min(1.0, 0.35 + distance / 4)
+        drive = 0.0 if abs(error) > 35 else min(top, 0.35 + distance / 4)
         pilot.axis('surge', -drive if reverse else drive)
         run.frame()
         run.page.wait_for_timeout(int(STEER_DT * 1000))
@@ -197,13 +223,14 @@ def steer(run, pilot, target, done, limit_s, radius=0.8, reverse=False):
     return state
 
 
-def face(run, pilot, heading, limit_s=20):
+def face(run, pilot, heading, limit_s=20, done=None):
     deadline = time.monotonic() + timeout(int(limit_s * 1000)) / 1000
     while time.monotonic() < deadline:
         state = run.state()
         error = (heading - state['heading'] + 540) % 360 - 180
-        if abs(error) < 6 and abs(DEPTH - state['pos'][2]) < 0.6:
+        if (abs(error) < 6 and abs(DEPTH - state['pos'][2]) < 0.6) or (done and done(state)):
             break
+        ensure_unlocked(run, pilot)
         pilot.hold_depth(state, DEPTH)
         pilot.axis('yaw', max(-0.6, min(0.6, error / 40.0)))
         run.page.wait_for_timeout(int(STEER_DT * 1000))
@@ -231,12 +258,24 @@ def start_new_game(run, quality):
     page.wait_for_function('window.__coldOpen && window.__viewer?.S', timeout=timeout(120000))
 
 
+LOOK = '''() => {
+  const look = window.__coldOpen.debug().look;
+  return {cinematic: look.cinematic, beautify: look.beautify, fidelity: JSON.stringify(look.fidelity),
+          stored: localStorage.getItem('rov.fidelity.v1')};
+}'''
+
+
 def opening(run):
     page = run.page
-    run.wait_beat('black', 120000)
-    page.wait_for_selector('.cold-open-radio.speaking', timeout=timeout(60000))
-    assert page.evaluate('getComputedStyle(document.querySelector(".cold-open-black")).opacity') == '1'
+    # One look for the whole beat (it lasts five seconds, and a busy host can take that long between two looks).
+    page.wait_for_function(f'''{BEAT} === "black" && !!document.querySelector(".cold-open-radio.speaking")
+      && getComputedStyle(document.querySelector(".cold-open-black")).opacity === "1"''', timeout=timeout(180000))
     run.shot('01-black')
+    # The scripted beats hold the beautified picture on (owner-approved cutscene exception) without touching the
+    # player's fidelity settings; `before` is what those settings must still be once the player has control.
+    before = page.evaluate(LOOK)
+    assert before['cinematic'] and before['beautify'], before
+    assert before['stored'] is None, ('a fresh profile has no stored fidelity', before)
     run.wait_beat('establish')
     page.wait_for_function('document.querySelector(".cold-open-super.visible") && '
                            'Number(getComputedStyle(document.querySelector(".cold-open-black")).opacity) < 0.05',
@@ -258,6 +297,10 @@ def opening(run):
     })''')
     assert hud == {'depth': 'visible', 'heading': 'visible', 'tether': 'none', 'map': 'none', 'card': 'none'}, hud
     run.shot('03-first-hint')
+    after = page.evaluate(LOOK)
+    assert not after['cinematic'], after
+    assert after['fidelity'] == before['fidelity'] and after['stored'] == before['stored'], (before, after)
+    assert after['beautify'] is json.loads(after['fidelity'])['values']['waterBeautify'] is False, after
 
 
 def photo(run, pilot):
@@ -266,63 +309,118 @@ def photo(run, pilot):
     # A little further out than the objective, as a pilot frames a whole anode: the jacket stands at (0, 0).
     out = math.hypot(spot[0], spot[1])
     stand = [spot[0] * (1 + 0.8 / out), spot[1] * (1 + 0.8 / out)]
+    facing = math.degrees(math.atan2(-spot[1], -spot[0])) % 360
+    flown = lambda s: s['beat'] != 'approach'  # noqa: E731
     with without_render(page):
-        steer(run, pilot, stand, lambda s: s['beat'] != 'approach', 120, radius=0.5)
-        face(run, pilot, math.degrees(math.atan2(-spot[1], -spot[0])) % 360)
+        # Off the throttle a couple of metres short (a key is all or nothing and the vehicle coasts), then ease
+        # onto the spot facing the anode, so the photo is framed from where a pilot would take it.
+        steer(run, pilot, stand, flown, 120, radius=2.5, top=CRUISE)
+        face(run, pilot, facing, done=flown)
+        crab(run, pilot, stand, flown, 30, radius=0.5, top=CRUISE, heading=facing, lead=LEAD_S, settle=True)
+        face(run, pilot, facing, done=flown)
     page.wait_for_selector('#coldOpenHint.visible[data-hint="photo"]', timeout=timeout(60000))
     pilot.photo()
     run.wait_beat('payoff', 60000)
     page.wait_for_selector('.cold-open-stamp.visible', timeout=timeout(30000))
     page.wait_for_timeout(600)
     run.shot('04-photo-payoff')
+    return stand, facing
 
 
-def snag(run, pilot):
+def snag(run, pilot, stand, facing):
     page = run.page
+    # While the crew talks the pilot holds station off the anode (the slack-water current sets north-north-west).
+    waiting = lambda s: s['beat'] != 'payoff'  # noqa: E731
+    with without_render(page):
+        while run.state()['beat'] == 'payoff':
+            crab(run, pilot, stand, waiting, 5, radius=0.6, top=CRUISE, heading=facing, lead=LEAD_S, settle=True)
+            page.wait_for_timeout(int(STEER_DT * 1000))
     run.wait_beat('transit', 60000)
     leg_b = page.evaluate('window.__viewer.W.objectives[1].point')
+    # 轉向／前進: turn north on the spot, then straight along the outside of the west face for leg B. Holding the
+    # heading and side-stepping keeps the track off the steel even when a busy host delays the controls.
+    moved_on = lambda s: s['beat'] != 'transit'  # noqa: E731
     with without_render(page):
-        state = steer(run, pilot, leg_b, lambda s: s['beat'] != 'transit', 150, radius=0.5)
+        face(run, pilot, 0, done=moved_on)
+        # Short legs along the line due south of leg B's photo spot (about 1.6 m outside the west face), so the
+        # track does not wander out to sea: the further out the vehicle flies, the less the tether bends round
+        # leg C.
+        state = run.state()
+        track = leg_b[1]
+        north = state['pos'][0]
+        while state['beat'] == 'transit' and north < leg_b[0] - 3:
+            north += 3
+            state = crab(run, pilot, [north, track], moved_on, 40, radius=0.8, top=CRUISE, heading=0)
         if state['beat'] == 'transit':
-            # Pressed against leg B without a snag yet: keep pushing north as a pilot would.
-            steer(run, pilot, [leg_b[0] + 6, leg_b[1]], lambda s: s['beat'] != 'transit', 60, radius=0.3)
-    assert run.state()['beat'] == 'incident', run.state()
+            state = crab(run, pilot, leg_b, moved_on, 60, radius=0.5, top=CRUISE, heading=0)
+        if state['beat'] == 'transit':
+            # Abeam of leg B without a snag yet: keep going north as a pilot would.
+            crab(run, pilot, [leg_b[0] + 6, leg_b[1]], moved_on, 60, radius=0.3, top=CRUISE, heading=0)
     # 先停: a pilot who keeps pulling at full thrust can part the tether at its termination (tether.py).
     pilot.stop()
+    state = run.state()
+    assert state['beat'] == 'incident', state
+    assert state['snags'] == [SNAG_ANODE], state
+    assert state['pos'][0] < leg_b[0] - 3, ('the snag stops the vehicle short of leg B', state)
     page.wait_for_selector('#coldOpenTension.visible', timeout=timeout(30000))
     page.wait_for_timeout(600)
     run.shot('05-snag-incident')
     with without_render(page):
         page.wait_for_function('window.__coldOpen.debug().lines.includes("backOut")', timeout=timeout(90000))
+        # Hands off the sticks: the snag does not let go by itself (the server's physics runs in real time).
+        held = time.monotonic()
+        while time.monotonic() - held < HANDS_OFF_S:
+            page.wait_for_timeout(500)
+            state = run.state()
+            assert state['beat'] == 'incident' and state['snags'] == [SNAG_ANODE], ('freed by itself', state)
+    return state
 
 
-def crab(run, pilot, target, done, limit_s, radius=0.6):
-    """Back out without turning, as the radio asks: reverse and side-step towards `target` (north, east)."""
+def crab(run, pilot, target, done, limit_s, radius=0.6, top=1.0, heading=None, lead=0.0, settle=False):
+    """Slide to `target` (north, east) without turning: surge and side-step, capped at `top` deflection.
+
+    This is how the radio asks the pilot to back out. With `heading` (deg) the bow is also kept on that bearing.
+    With `lead` (s) the pilot aims at where the vehicle will be that much later, so it comes off the sticks (or
+    brakes) in time instead of coasting past the target (the vehicle carries a lot of way); with `settle` it is
+    only there once it has also stopped."""
     deadline = time.monotonic() + timeout(int(limit_s * 1000)) / 1000
     state = run.state()
+    before = (time.monotonic(), state['pos'])
     while time.monotonic() < deadline:
         state = run.state()
         if done(state):
             break
         ensure_unlocked(run, pilot)
-        north = target[0] - state['pos'][0]
-        east = target[1] - state['pos'][1]
-        if math.hypot(north, east) < radius:
+        now = time.monotonic()
+        elapsed = max(now - before[0], 0.05)
+        speed = [(state['pos'][k] - before[1][k]) / elapsed for k in range(2)]
+        before = (now, state['pos'])
+        there = math.hypot(target[0] - state['pos'][0], target[1] - state['pos'][1]) < radius
+        if there and (not settle or math.hypot(*speed) < 0.25):
             break
-        heading = math.radians(state['heading'])
-        ahead = math.cos(heading) * north + math.sin(heading) * east
-        right = -math.sin(heading) * north + math.cos(heading) * east
+        north = target[0] - state['pos'][0] - lead * speed[0]
+        east = target[1] - state['pos'][1] - lead * speed[1]
+        bow = math.radians(state['heading'])
+        ahead = math.cos(bow) * north + math.sin(bow) * east
+        right = -math.sin(bow) * north + math.cos(bow) * east
+        error = 0.0 if heading is None else (heading - state['heading'] + 540) % 360 - 180
+        # One scale for both axes, so a capped stick still points at the target; a quarter of the cap is a dead
+        # band (a key is all or nothing, and would otherwise zigzag across the track).
+        scale = min(1.0, top / max(abs(ahead) / 2, abs(right) / 2, 1e-6))
+        surge = ahead / 2 * scale
+        sway = right / 2 * scale
         pilot.hold_depth(state, DEPTH)
-        pilot.axis('yaw', 0)
-        pilot.axis('surge', 0 if abs(ahead) < 0.3 else max(-1.0, min(1.0, ahead / 2)))
-        pilot.axis('sway', 0 if abs(right) < 0.3 else max(-1.0, min(1.0, right / 2)))
+        pilot.axis('yaw', 0 if abs(error) < 8 else max(-0.5, min(0.5, error / 40.0)))
+        pilot.axis('surge', 0 if abs(ahead) < 0.4 or abs(surge) < top / 4 else surge)
+        pilot.axis('sway', 0 if abs(right) < 0.4 or abs(sway) < top / 4 else sway)
         run.frame()
         run.page.wait_for_timeout(int(STEER_DT * 1000))
     pilot.stop()
     return state
 
 
-def back_out(run, pilot):
+def back_out(run, pilot, caught):
+    """Back out the way the vehicle came; `caught` is the state while it hung on the snag."""
     page = run.page
     anode = page.evaluate('window.__viewer.W.objectives[0].point')
     out = math.hypot(anode[0], anode[1])
@@ -330,26 +428,37 @@ def back_out(run, pilot):
     start = [-12.0, -9.0]
     free = lambda s: s['beat'] != 'incident'  # noqa: E731
     with without_render(page):
-        crab(run, pilot, beside, free, 15, radius=1.5)
+        crab(run, pilot, beside, free, 15, radius=1.5, top=CRUISE)
     run.shot('06-backing-out')
     with without_render(page):
-        state = crab(run, pilot, beside, free, 90)
+        state = crab(run, pilot, beside, free, 90, top=CRUISE)
         if state['beat'] == 'incident':
-            crab(run, pilot, start, free, 90)
+            crab(run, pilot, start, free, 90, top=CRUISE)
     run.wait_beat(['relief', 'fade', 'card'], 120000)
     outcome = page.evaluate('window.__coldOpen.debug().outcome')
     assert outcome['released'] and not outcome['broken'], outcome
-    page.wait_for_selector('.cold-open-radio.speaking', timeout=timeout(30000))
+    state = run.state()
+    assert not state['snags'] and state['pos'][0] < caught['pos'][0] - 2, ('it freed on the way back', caught, state)
+    # Freed by the pilot backing out after the call, not by a hook that slipped off by itself: the tether hand
+    # says which (the line is logged once the radio gets to it, after any call still on the air).
+    page.wait_for_function('window.__coldOpen.debug().lines.some(id => id === "free" || id === "slipped")',
+                           timeout=timeout(60000))
+    lines = page.evaluate('window.__coldOpen.debug().lines')
+    assert 'free' in lines and 'slipped' not in lines and lines.index('backOut') < lines.index('free'), lines
     run.shot('07-relief')
 
 
 def ending(run):
     page = run.page
-    page.wait_for_selector('.brand-card-overlay', timeout=timeout(120000))
-    page.wait_for_timeout(900)
-    assert '三個月前' in page.inner_text('.brand-card-overlay')
+    # The card and the run's report in one look: the card is up for a few seconds, then the page moves on to the
+    # prologue, and a busy host must not find the next page where it expected this one.
+    report = page.wait_for_function('''() => {
+      const card = document.querySelector('.brand-card-overlay');
+      if (!card || !card.innerText.includes('三個月前') || !window.__coldOpen?.report?.outcome) return null;
+      return JSON.parse(JSON.stringify(window.__coldOpen.report));
+    }''', timeout=timeout(120000)).json_value()
+    page.wait_for_timeout(600)
     run.shot('08-title-card')
-    report = page.evaluate('window.__coldOpen.report')
     page.wait_for_url('**contract=p0_induction**', timeout=timeout(90000))
     page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(120000))
     page.wait_for_timeout(2500)
@@ -427,9 +536,9 @@ def fly(browser, pad, shots, size, quality):
     start_new_game(run, quality)
     opening(run)
     pilot = Pilot(page, pad)
-    photo(run, pilot)
-    snag(run, pilot)
-    back_out(run, pilot)
+    stand, facing = photo(run, pilot)
+    caught = snag(run, pilot, stand, facing)
+    back_out(run, pilot, caught)
     report = ending(run)
     contact_sheet(run.frames, shots / f'contact-sheet-{run.suffix}.jpg')
     once_only(run)

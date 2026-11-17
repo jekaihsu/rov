@@ -125,6 +125,30 @@ test('a snag that is never cleared still ends the scene', () => {
   assert.ok(stuck.at(-1).outcome.snag && !stuck.at(-1).outcome.released);
 });
 
+test('a snag that lets go before the back-out call is luck, not a recovery', () => {
+  const director = createColdOpenDirector(SPOTS);
+  run(director, 0, 15, () => AT_START);
+  director.step(16, {...AT_START, photos: 1});
+  run(director, 16.1, 23, () => ({...AT_START, photos: 1}));
+  // A hook shorter than the confirmation time is not the incident.
+  const brief = run(director, 23.1, 23 + TIMING.snagConfirm - 0.2, () => ({...AT_START, photos: 1, snagged: true,
+    tension: 30}));
+  assert.equal(brief.at(-1).beat, 'transit');
+  run(director, 24, 25, () => ({...AT_START, photos: 1}));
+  const caught = run(director, 25.1, 26.5, () => ({...AT_START, photos: 1, snagged: true, tension: 55}));
+  assert.equal(caught.at(-1).beat, 'incident');
+  assert.ok(!said(caught).includes('backOut'));
+  // Still pulling, the hook slides off by itself: the story goes on, and nobody calls it a clean recovery.
+  const slipped = run(director, 26.6, 26.6 + TIMING.releaseConfirm + 0.3, () => ({...AT_START, photos: 1,
+    snagged: false, tension: 30}));
+  assert.equal(slipped.at(-1).beat, 'relief');
+  assert.deepEqual(said(slipped), ['slipped', 'lucky']);
+  assert.ok(slipped.at(-1).outcome.snag && slipped.at(-1).outcome.released);
+  const end = 26.6 + TIMING.releaseConfirm + 0.4;
+  const closing = run(director, end, end + TIMING.relief + TIMING.fade + 0.5, () => ({...AT_START, photos: 1}));
+  assert.ok(closing.at(-1).ended);
+});
+
 test('a tether pulled apart ends the scene without calling it free', () => {
   const director = createColdOpenDirector(SPOTS);
   run(director, 0, 15, () => AT_START);

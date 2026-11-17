@@ -8,13 +8,18 @@
 // changes the vehicle's physics or controls: it puts the vehicle in its mid-job state from the first frame
 // (thrusters unlocked, depth hold on, lamps on: the dive is already under way) and leaves the flying to the player;
 // the simulation keeps running under the cutscene so the fish keep moving. Guidance stays on the radio, so nothing
-// here exceeds the real vehicle.
+// here exceeds the real vehicle while the player flies. The one exception, approved by the owner, is the look of
+// the scripted beats before the handover (cold_open_presentation.js): sun shafts and cutscene music, dropped the
+// moment the player takes control.
 //
 //   const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide], music});
 //   coldOpen.update(state, world);   // every server state
 //   coldOpen.frame(dt);              // every frame, after the camera rig and before the render
 import { TIMING, createColdOpenDirector } from './cold_open_model.js';
 import { CHAPTER, FLAG, followUpUrl, markColdOpenSeen } from './cold_open_flow.js';
+import { CINEMATIC_MUSIC, createCinematicLook, isScriptedBeat } from './cold_open_presentation.js';
+import { beautifyEnabled } from '../fx/beautify.js';
+import { getFidelity } from '../fidelity.js';
 import { actionCaps, axisCaps } from '../play/onboarding.js';
 import { deviceFamily } from '../input/glyphs.js';
 import { axisChannel, bindingRow } from '../input/bindings.js';
@@ -46,6 +51,8 @@ const STRINGS = localize('story.cold_open', {
     backOut: '別拉。照原路退，往南，退過陽極。',
     dontPull: '還在拉！{n} 牛頓，別硬拉！',
     free: '……鬆了。線是自由的。',
+    slipped: '……自己滑開了。線鬆了。',
+    lucky: '這次是運氣。下次先想好退路。記住這個感覺。',
     remember: '很好。記住這個感覺。',
     stuck: '停住。我們放纜，等平潮再解。',
     snapped: '……線斷了。張力歸零。',
@@ -72,11 +79,16 @@ const SPEAKER_OF = {
   open: 'supervisor', crew: 'tender', task: 'supervisor', nudgeMove: 'supervisor', nudgePhoto: 'senior',
   praise: 'senior', praiseFar: 'senior', skipPhoto: 'supervisor', toLegB: 'supervisor', nudgeLegB: 'supervisor',
   tension: 'tender', stop: 'supervisor', backOut: 'supervisor', dontPull: 'tender', free: 'tender',
-  remember: 'supervisor', stuck: 'supervisor', noSnag: 'supervisor', snapped: 'tender', lost: 'supervisor',
+  remember: 'supervisor', slipped: 'tender', lucky: 'supervisor', stuck: 'supervisor', noSnag: 'supervisor',
+  snapped: 'tender', lost: 'supervisor',
 };
 // Fallback spots (NED) of qysim/cold_open.py when the world message carries no objectives.
 const FALLBACK_SPOTS = {anode: [-6.93, -6.93], start: [-12.0, -9.0]};
 const CARD_MS = 4800;
+// Longest step of the cold open's clock per rendered frame (s). The dive runs in real time on the server: the
+// vehicle drifts with the slack-water current through the opening, so a page drawing a frame a second must not
+// stretch those fifteen seconds into minutes. A page that stalls for longer still does not skip beats.
+const CLOCK_STEP_MAX_S = 1.0;
 const ESTABLISH_ARC = Object.freeze({from: 1.3, to: 2.85, radiusFrom: 5.5, radiusTo: 2.4, liftFrom: -0.2,
   liftTo: 0.75});
 const CINE_FOV = 46;
@@ -118,10 +130,12 @@ function wantedMode(params) {
 
 /**
  * Options: input (installInput result), setCam(mode), camera, rovG, hidden (objects kept hidden while the
- * cold open runs: objective markers and guide line), music (installMusic result), readOnly, params, navigate.
+ * cold open runs: objective markers, guide line, tether wrap rings and contact dots), plain (called every frame
+ * to clear the viewer's tether-contact tint on the structure: the scene is the bare camera view, and the crew's
+ * radio is the only word on where the tether lies), music (installMusic result), readOnly, params, navigate.
  */
 export function installColdOpen({
-  input, setCam, camera, rovG, hidden = [], music = null, readOnly = false,
+  input, setCam, camera, rovG, hidden = [], plain = null, music = null, readOnly = false,
   params = new URLSearchParams(globalThis.location?.search || ''),
   navigate = function go(href) {
     location.assign(href);
@@ -167,6 +181,7 @@ export function installColdOpen({
   let view = null;
   let family = 'keyboard';
   let clock = 0;
+  let lastFrameAt = null;
   let queue = [];
   let speaking = null;
   let ended = false;
@@ -176,6 +191,7 @@ export function installColdOpen({
   let cutAt = -Infinity;
   let hintSignature = '';
   let lastCue = '';
+  const look = createCinematicLook();
   const log = [];
   const report = {beats: [], lines: log, hints: [], outcome: null, mode};
   window.__coldOpen = {
@@ -184,7 +200,7 @@ export function installColdOpen({
     debug: () => ({beat: view?.beat || 'waiting', reveal: view?.reveal || [], hint: view?.hint || null,
       outcome: view?.outcome || null, lines: log.map(function id(entry) {
         return entry.id;
-      })}),
+      }), look: {cinematic: look.active, beautify: beautifyEnabled(), fidelity: getFidelity().snapshot()}}),
     report,
     skip: () => skip('api'),
   };
@@ -209,7 +225,7 @@ export function installColdOpen({
   });
 
   // The cold open's own clock advances with rendered frames, so a stalled or captured page keeps the beats in
-  // step with what was actually shown.
+  // step with what was actually shown; each frame adds the real time since the last one, up to CLOCK_STEP_MAX_S.
   function now() {
     return clock;
   }
@@ -252,7 +268,9 @@ export function installColdOpen({
   }
   function telemetry(s) {
     const tether = s?.tether || {};
-    const snags = (tether.snags || []).length || (tether.snagged_on || []).length;
+    // Held hooks only: `snagged_on` lists every obstacle the tether touches, which is not a snag. Hosts older
+    // than the `snags` list fall back to it.
+    const snags = Array.isArray(tether.snags) ? tether.snags.length : (tether.snagged_on || []).length;
     const vel = s?.vel || [0, 0, 0];
     const sticks = Object.values(input?.out || {}).reduce(function largest(most, value) {
       return Math.max(most, Math.abs(Number(value) || 0));
@@ -397,8 +415,11 @@ export function installColdOpen({
     tension.classList.toggle('visible', next.reveal.includes('tether') && !next.ended);
     body.dataset.coldReveal = next.reveal.join(' ');
     renderHint(next.ended ? null : relockHint(next) || next.hint);
-    if (next.cinematic) cue('cinematic');
-    else if (next.ended) cue('flashback');
+    // Scripted beats only: the beautified picture and the cutscene music. From the handover on, and after an end
+    // or a skip, the picture and the music are the player's own fidelity settings again.
+    look.set(isScriptedBeat(next));
+    if (isScriptedBeat(next)) cue(CINEMATIC_MUSIC.scripted);
+    else if (next.ended) cue(CINEMATIC_MUSIC.closing);
     else cue(null);
     if (skipButton && skippable) skipButton.hidden = next.ended;
     if (next.ended && !ended) end();
@@ -411,6 +432,7 @@ export function installColdOpen({
   }
   function end() {
     ended = true;
+    look.release();
     report.outcome = view.outcome;
     setIntroSkipLabel(null);
     markColdOpenSeen();
@@ -429,6 +451,7 @@ export function installColdOpen({
   }
   function begin(s) {
     clock = 0;
+    lastFrameAt = null;
     director = createColdOpenDirector(spots());
     if (skippable) {
       setIntroSkipLabel(STRINGS.skip);
@@ -474,8 +497,12 @@ export function installColdOpen({
     for (const object of hidden) {
       if (object) object.visible = false;
     }
+    plain?.();
     if (!director || ended) return;
-    clock += Math.max(0, Math.min(0.25, dt));
+    const wall = performance.now() / 1000;
+    const since = lastFrameAt === null ? dt : wall - lastFrameAt;
+    lastFrameAt = wall;
+    clock += Math.max(0, Math.min(CLOCK_STEP_MAX_S, since));
     applyView(director.step(now(), telemetry(state)));
     if (ended) return;
     updateRadio(now());

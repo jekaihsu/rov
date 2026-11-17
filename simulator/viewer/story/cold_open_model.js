@@ -8,6 +8,8 @@
 // → payoff → transit (head for leg B) → incident (the tether snags; stop, back out) → relief → fade → card → done.
 // Nothing waits on the player for ever: idle nudges come over the radio, and every beat that needs the player has
 // a time limit after which the story moves on (a missed photo, a route that never snags, a snag never cleared).
+// `snagged` is a held hook of the server's snag model (state.tether.snags), not a tether merely touching steel.
+// A hook that lets go before the back-out call was not cleared by the pilot: the radio calls it luck (`slipped`).
 
 export const TIMING = Object.freeze({
   black: 5.0,              // black screen with the first radio line
@@ -22,7 +24,7 @@ export const TIMING = Object.freeze({
   payoff: 6.0,
   transitNudge: 20,
   transitLimit: 85,        // s without a snag: the story ends without the incident
-  snagConfirm: 0.6,        // s the raw snag flag must hold before it counts (the model can hook and let go at once)
+  snagConfirm: 0.6,        // s a hook must hold before it is the incident (a hook can form and let go at once)
   stopFirst: 6.0,          // s after the incident before the back-out call comes anyway
   pullCall: 7.0,           // s between two tension calls
   pullTension: 40,         // N: the tender calls it out above this
@@ -99,7 +101,10 @@ export function createColdOpenDirector(spots = {}) {
       freeSince = null;
     }
     if (next === 'relief') {
-      if (outcome.released) {
+      if (outcome.released && !backOutCalled) {
+        say('slipped');
+        say('lucky');
+      } else if (outcome.released) {
         say('free');
         say('remember');
       } else if (outcome.broken) {
