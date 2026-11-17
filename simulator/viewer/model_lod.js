@@ -30,10 +30,28 @@ export function bindLodQuality(lod, mode) {
   lod.levels.sort((a, b) => a.distance - b.distance);
 }
 
-/** Apply the current quality now, and again whenever the quality mode changes. */
+/**
+ * Apply the current quality now, and again whenever the quality mode changes.
+ * Returns the unsubscribe function. It is also stored on the LOD so disposal
+ * can drop the listener; otherwise a removed model stays reachable forever.
+ */
 export function watchLodQuality(lod) {
   bindLodQuality(lod, currentQualityMode());
-  onQualityMode((mode) => bindLodQuality(lod, mode));
+  if (lod.userData.releaseLodQuality) lod.userData.releaseLodQuality();
+  const unsubscribe = onQualityMode((mode) => bindLodQuality(lod, mode));
+  lod.userData.releaseLodQuality = unsubscribe;
+  return unsubscribe;
+}
+
+/** Drop quality listeners stored on this object and its children. */
+export function releaseLodQuality(root) {
+  if (!root || !root.traverse) return;
+  root.traverse((object) => {
+    const release = object.userData && object.userData.releaseLodQuality;
+    if (!release) return;
+    release();
+    object.userData.releaseLodQuality = null;
+  });
 }
 
 // Falcon and the heavy configuration. Training X1 keeps its own 0 / 12 / 40 m table.

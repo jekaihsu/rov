@@ -27,7 +27,7 @@ import { Cable } from './cable.js';
 import { LaunchRig } from './launch_rig.js';
 import { IntroEffects } from './intro_effects.js';
 import { assetTextureTier } from './render_quality.js';
-import { CREW_LOD_FILES, watchLodQuality } from './model_lod.js';
+import { CREW_LOD_FILES, releaseLodQuality, watchLodQuality } from './model_lod.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -746,7 +746,10 @@ export class DeployIntro {
     if (this.disposed) return;
     this.disposed = true;
     this._restoreVehicleVisibility();
-    for (const o of this.objects) this.scene.remove(o);
+    for (const o of this.objects) {
+      releaseLodQuality(o);
+      this.scene.remove(o);
+    }
     this.cable.dispose();
     this.rig.dispose();
     this.effects.dispose();

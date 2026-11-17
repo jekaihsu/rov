@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { loadGLTF } from './glb.js';
 import { genericVehicleUrl } from './asset_config.js';
-import { FALCON_LOD, HEAVY_LOD, watchLodQuality } from './model_lod.js';
+import { FALCON_LOD, HEAVY_LOD, releaseLodQuality, watchLodQuality } from './model_lod.js';
 
 const point = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 const defaults = {
@@ -37,6 +37,7 @@ function matchLegacyRotors(rotors, thrusters) {
 }
 
 function disposeTree(root) {
+  releaseLodQuality(root);
   const geometries = new Set(), materials = new Set(), textures = new Set();
   root.traverse((o) => {
     if (o.geometry) geometries.add(o.geometry);

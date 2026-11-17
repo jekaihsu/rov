@@ -104,8 +104,13 @@ export function currentQualityMode() {
   return lastMode ?? storedQualityMode();
 }
 
+/** Subscribe to quality-mode changes. The returned function drops that listener. */
 export function onQualityMode(listener) {
   qualityListeners.push(listener);
+  return function unsubscribeQualityMode() {
+    const index = qualityListeners.indexOf(listener);
+    if (index >= 0) qualityListeners.splice(index, 1);
+  };
 }
 
 function storedQualityMode() {
