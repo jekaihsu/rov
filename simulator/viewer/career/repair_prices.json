@@ -1,0 +1,19 @@
+{
+  "note": "維修與墊付價格表為遊戲設定值，不是業界報價；對照真實 ROV 只有數量級參考。單位：元。",
+  "thruster": {
+    "minor": 800,
+    "major": 2500,
+    "replace": 6000,
+    "minorBelow": 0.85,
+    "majorBelow": 0.6
+  },
+  "leak": 4500,
+  "tether": {
+    "service": 1200,
+    "replace": 9000
+  },
+  "accessory": {
+    "recover": 1500,
+    "note": "纜線斷裂後公司代為找回／補裝已掛載作業配件的費用；不從存檔移除擁有狀態。"
+  }
+}

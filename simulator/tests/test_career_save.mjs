@@ -18,10 +18,11 @@ function memoryStorage(initial = {}) {
 
 const NOW = Date.parse('2026-11-15T08:00:00Z');
 
-test('a fresh career has no licence, no money and Block 1 everywhere', () => {
+test('a fresh career has no licence, no money, no debt and Block 1 everywhere', () => {
   const save = defaultSave(NOW);
   assert.equal(save.version, 1);
   assert.equal(save.money, 0);
+  assert.equal(save.debt, 0);
   assert.equal(save.licence, 'none');
   assert.deepEqual(save.vehicles, {x1: {block: 1}, bluerov2_heavy: {block: 1}, falcon: {block: 1}});
   assert.deepEqual(save.hours, {real_s: 0, assisted_s: 0});

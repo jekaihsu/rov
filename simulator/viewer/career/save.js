@@ -62,13 +62,14 @@ function defaultVehicles() {
   return vehicles;
 }
 
-/** A fresh career: no licence, no money, Block 1 everywhere. */
+/** A fresh career: no licence, no money, no company debt, Block 1 everywhere. */
 export function defaultSave(now = Date.now()) {
   return {
     version: CAREER_VERSION,
     createdAt: iso(now),
     updatedAt: iso(now),
     money: 0,
+    debt: 0,
     licence: 'none',
     endorsements: [],
     reputation: {},
@@ -112,6 +113,7 @@ export function normalizeLogEntry(entry) {
     medal,
     score: Math.max(0, Math.min(100, Math.round(finite(entry?.score)))),
     pay: amount(entry?.pay),
+    repair: amount(entry?.repair),
     deliverables: deliverables.map(normalizeDeliverable),
     exam: !!entry?.exam,
     examPassed: !!entry?.examPassed,
@@ -178,6 +180,8 @@ export function normalizeSave(raw, now = Date.now()) {
     createdAt: text(raw.createdAt, 40) || base.createdAt,
     updatedAt: text(raw.updatedAt, 40) || base.updatedAt,
     money: amount(raw.money),
+    // Older saves omit debt; default 0 so they keep loading without a soft lock.
+    debt: amount(raw.debt),
     licence: /^[a-z0-9_]{1,32}$/.test(raw.licence || '') ? raw.licence : 'none',
     endorsements: strings(raw.endorsements, 32),
     reputation: normalizeReputation(raw.reputation),

@@ -1,0 +1,10 @@
+{
+  "thrusterMinor": "スラスター T{n} 整備",
+  "thrusterMajor": "スラスター T{n} オーバーホール",
+  "thrusterReplace": "スラスター T{n} 交換",
+  "leak": "浸水シール修理",
+  "tetherService": "テザー点検と整理",
+  "tetherReplace": "アンビリカル交換",
+  "accessory": "紛失機材の回収／再装着（{item}）",
+  "accessoryGeneric": "作業機材"
+}

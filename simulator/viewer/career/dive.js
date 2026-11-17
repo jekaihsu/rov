@@ -217,7 +217,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
       return entry.key;
     })) : null;
     const result = settleDive(save, data, contract, {
-      ...dive, snapshot, submitted, examValid: exam() && !examVoid,
+      ...dive, snapshot, submitted, examValid: exam() && !examVoid, state: lastState,
     }, { sceneKeys });
     save = result.save;
     storeCareer(save);

@@ -1,11 +1,13 @@
 // Career part of the results screen (play/results.js) for a YX work order. On the screen itself
 // (careerHeadline): the net payout as the one huge number, one line of licence progress with a thick bar, and
 // what the work order opened as short chips. Behind 明細 (renderCareerPanel): the pay slip (base × quality −
-// itemised deductions = net), reputation with the client, the logbook hours of this dive (real and assisted
-// apart) and in total, the licence progress with the next exam, the exam verdict, newly opened work orders and
-// equipment, and the deliverable record with its readings. DOM only; the numbers come from settle.js.
+// itemised deductions = net), the repair bill, company advance / debt repayment, reputation with the client,
+// the logbook hours of this dive (real and assisted apart) and in total, the licence progress with the next
+// exam, the exam verdict, newly opened work orders and equipment, and the deliverable record with its readings.
+// DOM only; the numbers come from settle.js.
+import { localize } from '../i18n/core.js';
 
-const STRINGS = {
+const STRINGS = localize('career.results_panel', {
   pay: '報酬',
   base: '基本報酬',
   repeat: '（重接 {rate}%）',
@@ -14,6 +16,12 @@ const STRINGS = {
   net: '實領',
   moneyUnit: '元',
   balance: '帳戶餘額 {money} 元',
+  repairs: '維修單',
+  repairTotal: '維修合計',
+  advance: '公司墊付',
+  repaid: '償還欠款',
+  debt: '尚欠公司 {debt} 元（不影響接案）',
+  debtClear: '公司欠款已結清',
   reputation: '{client}聲譽 {delta}（累計 {total}）',
   hours: '本次駕駛 真實 {real} · 輔助 {assisted}',
   hoursTotal: '日誌累計 真實 {real} h · 輔助 {assisted} h',
@@ -31,7 +39,7 @@ const STRINGS = {
   unlockItem: '裝備部：{label}',
   deliverables: '交付紀錄',
   minutes: '{m} 分',
-};
+});
 
 const MAX_UNLOCK_CHIPS = 3;
 
@@ -60,6 +68,10 @@ function line(label, value, className = '') {
   return row;
 }
 
+function receivedOf(summary) {
+  return summary.received != null ? summary.received : summary.pay.net;
+}
+
 function paySlip(summary) {
   const pay = summary.pay;
   const box = element('section', 'career-slip');
@@ -75,9 +87,26 @@ function paySlip(summary) {
   }
   for (const entry of pay.penalties) box.append(line(entry.label, `−${money(entry.amount)}`, 'career-slip-minus'));
   if (pay.deduction > 0 && !pay.penalties.length) box.append(line('', `−${money(pay.deduction)}`));
-  const net = line(STRINGS.net, `${money(pay.net)} ${STRINGS.moneyUnit}`, 'career-slip-net');
+  const repairs = summary.repairs;
+  if (repairs?.items?.length) {
+    box.append(element('h3', 'menu-label', STRINGS.repairs));
+    for (const entry of repairs.items) {
+      box.append(line(entry.label, `−${money(entry.amount)}`, 'career-slip-minus'));
+    }
+    box.append(line(STRINGS.repairTotal, `−${money(repairs.total)}`, 'career-slip-minus'));
+  }
+  const debt = summary.debt;
+  if (debt?.advance > 0) box.append(line(STRINGS.advance, money(debt.advance)));
+  if (debt?.repaid > 0) box.append(line(STRINGS.repaid, `−${money(debt.repaid)}`, 'career-slip-minus'));
+  const net = line(STRINGS.net, `${money(receivedOf(summary))} ${STRINGS.moneyUnit}`, 'career-slip-net');
   box.append(net);
   box.append(element('p', 'menu-help', STRINGS.balance.replace('{money}', money(summary.money))));
+  if (debt) {
+    const debtLine = debt.after > 0
+      ? STRINGS.debt.replace('{debt}', money(debt.after))
+      : STRINGS.debtClear;
+    box.append(element('p', 'menu-help career-debt', debtLine));
+  }
   return box;
 }
 
@@ -177,6 +206,7 @@ function licenceLine(summary) {
 /**
  * What the results screen itself shows for a work order, or null for any other outcome:
  * {pay: [label, value, unit], licence: element, unlocks: [text]} with at most three unlock chips.
+ * The huge number is 實領 (after repairs and debt repayment).
  */
 export function careerHeadline(outcome) {
   const summary = outcome?.career;
@@ -187,7 +217,7 @@ export function careerHeadline(outcome) {
     unlocks.push(STRINGS.moreUnlocks.replace('{n}', String(texts.length - unlocks.length)));
   }
   return {
-    pay: [STRINGS.net, money(summary.pay.net), STRINGS.moneyUnit],
+    pay: [STRINGS.net, money(receivedOf(summary)), STRINGS.moneyUnit],
     licence: licenceLine(summary),
     unlocks,
   };

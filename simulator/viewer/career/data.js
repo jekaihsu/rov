@@ -1,11 +1,12 @@
-// Career data loader: the YX work orders (contracts.json), licence grades (licences.json) and the equipment
-// department catalogue (equipment.json), fetched once next to this module and joined into one object that the
-// pure rules (rules.js, scoring.js) take as an argument. Tests build the same object with careerDataFrom().
+// Career data loader: the YX work orders (contracts.json), licence grades (licences.json), the equipment
+// department catalogue (equipment.json) and the repair price table (repair_prices.json), fetched once next to
+// this module and joined into one object that the pure rules (rules.js, scoring.js, repair.js) take as an
+// argument. Tests build the same object with careerDataFrom().
 
 let pending = null;
 
-/** Joins the three parsed files into the data object the rules use. */
-export function careerDataFrom({ contractsFile, licencesFile, equipmentFile }) {
+/** Joins the parsed files into the data object the rules use. */
+export function careerDataFrom({ contractsFile, licencesFile, equipmentFile, repairPricesFile = null }) {
   const contracts = [...(contractsFile?.contracts || [])].sort(function byChapterOrder(a, b) {
     const chapters = (contractsFile?.chapters || []).map(function chapterId(entry) {
       return entry.id;
@@ -20,6 +21,7 @@ export function careerDataFrom({ contractsFile, licencesFile, equipmentFile }) {
     grades: licencesFile?.grades || [],
     endorsements: licencesFile?.endorsements || [],
     items: equipmentFile?.items || [],
+    repairPrices: repairPricesFile || null,
   };
 }
 
@@ -37,8 +39,9 @@ export function loadCareerData() {
     fetchJson(new URL('contracts.json', base)),
     fetchJson(new URL('licences.json', base)),
     fetchJson(new URL('equipment.json', base)),
-  ]).then(function join([contractsFile, licencesFile, equipmentFile]) {
-    return careerDataFrom({ contractsFile, licencesFile, equipmentFile });
+    fetchJson(new URL('repair_prices.json', base)),
+  ]).then(function join([contractsFile, licencesFile, equipmentFile, repairPricesFile]) {
+    return careerDataFrom({ contractsFile, licencesFile, equipmentFile, repairPricesFile });
   });
   pending.catch(function retryLater() {
     pending = null;

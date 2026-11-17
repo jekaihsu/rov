@@ -48,6 +48,7 @@
 .career-slip-net { margin-top: .3em; color: var(--bp-ice); }
 .career-slip-net b { font-size: 1.5em; font-weight: 800; }
 .career-rep { color: var(--bp-ice); }
+.career-debt { color: var(--warn); }
 .career-licence-name { display: block; margin-bottom: .2em; font-weight: 700; }
 .career-granted { color: var(--go); }
 .career-licence .career-bar { margin: .4em 0; }

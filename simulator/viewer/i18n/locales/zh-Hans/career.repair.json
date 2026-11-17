@@ -1,0 +1,10 @@
+{
+  "thrusterMinor": "推进器 T{n} 保养",
+  "thrusterMajor": "推进器 T{n} 大修",
+  "thrusterReplace": "推进器 T{n} 更换",
+  "leak": "舱体进水密封修复",
+  "tetherService": "缆线检查与整理",
+  "tetherReplace": "脐带缆更换",
+  "accessory": "遗失配件找回／补装（{item}）",
+  "accessoryGeneric": "作业配件"
+}
