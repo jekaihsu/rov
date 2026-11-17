@@ -1,6 +1,6 @@
 # Input layer
 
-Open controller settings with F8, the sidebar button, or controller Back + Start.
+Open controller settings with F9, the sidebar button, or controller Back + Start.
 D-pad up/down moves focus; left/right adjusts sliders and selects options; primary
 button activates, secondary returns. Focus a binding field and move an axis or
 press a button to capture a binding, or enter `a0`, `-a1`, `b7`, `b7~` (digital
