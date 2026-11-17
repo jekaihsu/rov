@@ -10,12 +10,25 @@ const defaults = {
   falcon: { id: 'falcon', model: 'models/falcon.glb', camera_body: [.485, 0, -.175], lamp_body: [[.418, -.225, .025], [.418, .225, .025]], gland_body: [-.25, 0, -.27], arm_mount_body: [.30, -.12, .40] },
 };
 
-// Training X1 LODs (nearest first). Distances are metres from the camera.
-const TRAINING_X1_LODS = [
-  { url: 'models/rov.glb', distance: 0 },
-  { url: 'models/rov_lod1.glb', distance: 12 },
-  { url: 'models/rov_lod2.glb', distance: 40 },
-];
+// Fleet LODs (nearest first). Distances are metres from the camera. Close inspection
+// (under about 12 m) stays on LOD0; peers pass options.lod >= 1 and start further out.
+const FLEET_LODS = {
+  x1: [
+    { url: 'models/rov.glb', distance: 0 },
+    { url: 'models/rov_lod1.glb', distance: 12 },
+    { url: 'models/rov_lod2.glb', distance: 40 },
+  ],
+  bluerov2_heavy: [
+    { url: 'models/bluerov2_heavy.glb', distance: 0 },
+    { url: 'models/bluerov2_heavy_lod1.glb', distance: 14 },
+    { url: 'models/bluerov2_heavy_lod2.glb', distance: 42 },
+  ],
+  falcon: [
+    { url: 'models/falcon.glb', distance: 0 },
+    { url: 'models/falcon_lod1.glb', distance: 16 },
+    { url: 'models/falcon_lod2.glb', distance: 48 },
+  ],
+};
 
 function matchLegacyRotors(rotors, thrusters) {
   // Legacy X1 exports have swapped L/R names, so use the original spatial match.
@@ -170,59 +183,85 @@ function disposeObject(object) {
   object.removeFromParent();
 }
 
+function usesCgFrame(root) {
+  let found = false;
+  root.traverse((object) => {
+    if (object.userData && object.userData.frame === 'cg') found = true;
+  });
+  return found;
+}
+
 /**
- * Load training-X1 LOD files into a THREE.LOD. Spinning rotors are lifted out of
- * every level and kept at the nearest level's detail so app.js still sees six
- * thruster-mapped rotors. options.lod >= 1 skips nearer static levels so peer
- * vehicles start at LOD1 (and may still drop to LOD2 by distance).
+ * Detach a subtree and free its geometries. Materials stay: a stripped arm or
+ * rotor often shares them with the hull that remains in that same GLB.
  */
-async function loadTrainingX1Lod(minLod = 0) {
-  const start = Math.max(0, Math.min(minLod, TRAINING_X1_LODS.length - 1));
-  const candidates = TRAINING_X1_LODS.slice(start);
+function dropTree(object) {
+  object.traverse((node) => {
+    node.geometry?.dispose?.();
+  });
+  object.removeFromParent();
+}
+
+function stripNamed(scene, name) {
+  const found = [];
+  scene.traverse((object) => {
+    if (object.name === name) found.push(object);
+  });
+  for (const object of found) dropTree(object);
+}
+
+/**
+ * Load one fleet vehicle's LOD files into a THREE.LOD. Rotors (and Model V's
+ * arm) are lifted out of every level and kept at the nearest loaded detail, so
+ * they keep spinning and articulating when the hull drops a level. minLod >= 1
+ * skips nearer static levels so peer vehicles start further out.
+ */
+async function loadFleetLod(id, minLod = 0) {
+  const table = FLEET_LODS[id];
+  const start = Math.max(0, Math.min(minLod, table.length - 1));
+  const candidates = table.slice(start);
   const loaded = [];
   for (const level of candidates) {
     try {
       loaded.push({ level, gltf: await loadGLTF(level.url) });
     } catch (error) {
-      // Sidecar LODs may be absent during packing / compare renders; keep going.
       if (loaded.length === 0) throw error;
-      console.warn(`X1 LOD unavailable (${level.url}); using ${loaded.length} level(s)`, error);
+      console.warn(`Vehicle LOD unavailable (${level.url}); using ${loaded.length} level(s)`, error);
       break;
     }
   }
   const wrap = new THREE.Group();
-  wrap.name = 'X1Visual';
+  wrap.name = `${id}Visual`;
   const rotorRoot = new THREE.Group();
-  rotorRoot.name = 'X1Rotors';
+  rotorRoot.name = `${id}Rotors`;
   wrap.add(rotorRoot);
 
-  const attachNearestRotors = (scene) => {
+  const liftNearest = (scene) => {
     scene.updateMatrixWorld(true);
     for (const rotor of findRotorNodes(scene)) {
-      // Object3D.attach keeps the world transform while reparenting.
       rotorRoot.attach(rotor);
     }
   };
 
-  const stripRotors = (scene) => {
-    for (const rotor of findRotorNodes(scene)) disposeObject(rotor);
+  const stripFar = (scene) => {
+    for (const rotor of findRotorNodes(scene)) dropTree(rotor);
+    stripNamed(scene, 'arm_yaw');
   };
 
   if (loaded.length === 1) {
     const scene = loaded[0].gltf.scene;
-    attachNearestRotors(scene);
+    liftNearest(scene);
     wrap.add(scene);
     return wrap;
   }
 
   const lod = new THREE.LOD();
-  lod.name = 'X1LOD';
+  lod.name = `${id}LOD`;
   loaded.forEach((entry, index) => {
     const scene = entry.gltf.scene;
     scene.name = `LOD${start + index}`;
-    if (index === 0) attachNearestRotors(scene);
-    else stripRotors(scene);
-    // Peer vehicles omit LOD0: their first entry is LOD1 at distance 0.
+    if (index === 0) liftNearest(scene);
+    else stripFar(scene);
     const distance = index === 0 ? 0 : entry.level.distance;
     lod.addLevel(scene, distance);
   });
@@ -254,18 +293,21 @@ export async function createVehicleModel(definition='x1', options={}) {
   if (genericUrl) def.model = genericUrl;
   let model, loadError=null;
   try {
-    if (legacyX1) model = await loadTrainingX1Lod(options.lod ?? 0);
+    if (!genericUrl && FLEET_LODS[id]) model = await loadFleetLod(id, options.lod ?? 0);
     else model = (await loadGLTF(def.model)).scene;
   } catch (e) {
     loadError = e;
     console.warn(`Vehicle model ${id} unavailable; using fallback`, e);
     model = fallback(id);
   }
-  // Preserve the legacy X1 centring convention; fleet GLBs are authored about CG.
-  if (legacyX1) model.position.sub(legacyX1Centre(model, loadError));
+  // Older training X1 files were not centred on the CG. A rebuilt file marks
+  // itself with frame=cg and is left on the origin, like the other two vehicles.
+  const cgFrame = usesCgFrame(model);
+  if (legacyX1 && !cgFrame) model.position.sub(legacyX1Centre(model, loadError));
   root.add(model); root.updateMatrixWorld(true);
   const rotors = collectRotors(model, def);
-  if (legacyX1) matchLegacyRotors(rotors, def.thrusters);
+  const indexed = rotors.length > 0 && rotors.every((rotor) => Number.isInteger(rotor.thrusterIndex));
+  if (legacyX1 && !indexed) matchLegacyRotors(rotors, def.thrusters);
   const arm=id==='falcon'?(bindModelArm(root,model) || manipulator(def.arm_mount_body)):null;
   if(arm && arm.root.parent!==root) root.add(arm.root);
   const lampAnchors=(def.lamp_body || []).map((p) => ({position:point(p),direction:new THREE.Vector3(0,-.055,1).normalize()}));
