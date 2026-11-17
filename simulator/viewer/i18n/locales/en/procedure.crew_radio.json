@@ -1,13 +1,13 @@
 {
   "speakers": {
-    "tender": "周楷",
-    "deck": "方晴",
-    "supervisor": "林岑"
+    "tender": "Zhou Kai",
+    "deck": "Fang Qing",
+    "supervisor": "Lin Cen"
   },
   "roles": {
-    "tender": "tether hand",
-    "deck": "deck",
-    "supervisor": "supervisor"
+    "tender": "Tether hand",
+    "deck": "Deck",
+    "supervisor": "Supervisor"
   },
   "crew": {
     "trim": [
