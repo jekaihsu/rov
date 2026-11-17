@@ -77,7 +77,7 @@ const SPEAKER_OF = {
 // Fallback spots (NED) of qysim/cold_open.py when the world message carries no objectives.
 const FALLBACK_SPOTS = {anode: [-6.93, -6.93], start: [-12.0, -9.0]};
 const CARD_MS = 4800;
-const ESTABLISH_ARC = Object.freeze({from: 1.35, to: 2.85, radiusFrom: 5.0, radiusTo: 2.4, liftFrom: -0.2,
+const ESTABLISH_ARC = Object.freeze({from: 1.3, to: 2.85, radiusFrom: 5.5, radiusTo: 2.4, liftFrom: -0.2,
   liftTo: 0.75});
 const CINE_FOV = 46;
 
@@ -442,7 +442,7 @@ export function installColdOpen({
       .add(right.clone().multiplyScalar(Math.sin(angle) * radius));
     camera.position.copy(rovG.position).add(offset);
     camera.position.y += lift;
-    const look = rovG.position.clone().add(forward.clone().multiplyScalar(2.6 + 2.9 * k));
+    const look = rovG.position.clone().add(forward.clone().multiplyScalar(1.9 + 3.6 * k));
     look.y += 0.2 * (1 - k);
     camera.up.set(0, 1, 0);
     camera.lookAt(look);
