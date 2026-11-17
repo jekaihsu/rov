@@ -50,6 +50,7 @@ STATE = '''() => {
           beat: d.beat, hint: d.hint, lines: d.lines || []};
 }'''
 STEER_DT = 0.25
+DEPTH = 12.0                 # m, the anodes' depth at the cold-open jacket (qysim/cold_open.py)
 
 
 def arguments():
@@ -87,7 +88,12 @@ class Pilot:
             self.held[name] = want
             return
         source = control['pad']
-        source = source[0] if isinstance(source, list) else source
+        if isinstance(source, list):
+            # A pair of buttons (heave on the triggers): [positive, negative].
+            positive, negative = (int(str(entry).lstrip('b')) for entry in source)
+            self.page.evaluate('([p, n, v]) => { window.__pad.buttons[p] = v > 0 ? 1 : 0; '
+                               'window.__pad.buttons[n] = v < 0 ? 1 : 0; }', [positive, negative, value])
+            return
         index = int(source.lstrip('+-a').rstrip('~'))
         flip = -1 if source.startswith('-') else 1
         self.page.evaluate('([i, v]) => { window.__pad.axes[i] = v; }', [index, flip * value])
@@ -95,6 +101,12 @@ class Pilot:
     def stop(self):
         self.axis('surge', 0)
         self.axis('yaw', 0)
+        self.axis('heave', 0)
+
+    def hold_depth(self, state, depth):
+        """Correct the depth like a pilot taps the vertical control (a stalled page can leave it off the anode)."""
+        error = depth - state['pos'][2]
+        self.axis('heave', 0 if abs(error) < 0.6 else (-1 if error > 0 else 1))
 
     def photo(self):
         if self.pad == 'none':
@@ -175,6 +187,7 @@ def steer(run, pilot, target, done, limit_s, radius=0.8, reverse=False):
         if distance < radius:
             pilot.stop()
             break
+        pilot.hold_depth(state, DEPTH)
         turn = max(-1.0, min(1.0, error / 35.0))
         pilot.axis('yaw', turn if abs(error) > 8 else 0)
         drive = 0.0 if abs(error) > 35 else min(1.0, 0.35 + distance / 4)
@@ -190,8 +203,9 @@ def face(run, pilot, heading, limit_s=20):
     while time.monotonic() < deadline:
         state = run.state()
         error = (heading - state['heading'] + 540) % 360 - 180
-        if abs(error) < 6:
+        if abs(error) < 6 and abs(DEPTH - state['pos'][2]) < 0.6:
             break
+        pilot.hold_depth(state, DEPTH)
         pilot.axis('yaw', max(-0.6, min(0.6, error / 40.0)))
         run.page.wait_for_timeout(int(STEER_DT * 1000))
     pilot.stop()

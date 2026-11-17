@@ -176,7 +176,8 @@ export function installColdOpen({
   const log = [];
   const report = {beats: [], lines: log, hints: [], outcome: null, mode};
   window.__coldOpen = {
-    controls: () => ({surge: axisControl('surge'), yaw: axisControl('yaw'), photo: actionControl('photo')}),
+    controls: () => ({surge: axisControl('surge'), yaw: axisControl('yaw'), heave: axisControl('heave'),
+      photo: actionControl('photo')}),
     debug: () => ({beat: view?.beat || 'waiting', reveal: view?.reveal || [], hint: view?.hint || null,
       outcome: view?.outcome || null, lines: log.map(function id(entry) {
         return entry.id;
