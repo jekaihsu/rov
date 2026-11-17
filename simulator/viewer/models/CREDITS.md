@@ -133,3 +133,27 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
 珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）
 皆為本專案原創程式幾何，CC0-1.0，沒有外部模型、照片或貼圖。養殖魚與死魚載入後改用上方 Fish Kit 的嘉鱲（`fish/madai*`）。
+
+### Reef life (`reef/`) — N3
+
+Photogrammetry / museum scans rebuilt by `cad/build_reef_life.py` (decimate, bake colour + tangent normals to
+≤ 512 px WebP, meshopt). Credit is not required by CC0; listed for provenance. Licence was re-checked on each
+Sketchfab model page / API (`license.slug == cc0`) on 2026-11-17 before use. Corals are dry skeletons in the
+source scans; living colours are procedural (no photographs used as textures). Rebuild notes:
+`docs/design/reef-life/README.md`. Source downloads stay outside the repository
+(`cad/download_reef_sources.py`).
+
+| Files | Source page | Author | License evidence | Changes |
+|---|---|---|---|---|
+| `acropora_palmata.glb`, `_lo.glb` | [Acropora palmata](https://sketchfab.com/3d-models/acropora-palmata-8cb986313c824ac38c373c0fabd0805f) (SI package [6fd30c79…](https://3d.si.edu/object/3d/acropora-palmata:6fd30c79-3345-4d06-b27c-99d5b320ce5f)) | Smithsonian Institution | Sketchfab licence CC0; page text “public domain (free of copyright restrictions)” | Decimated ≤ 4000 / 800 tris; normals baked; living golden-brown procedural albedo (dry bone discarded); scaled to ~0.45 m |
+| `acropora_hyacinthus.glb`, `_lo.glb` | [Madrepora hyacinthus](https://sketchfab.com/3d-models/madrepora-hyacinthus-5e8f3939400d4753bcb8e4a43819473c) | Smithsonian Institution | Sketchfab licence CC0 | Same pipeline; table-coral brown/cream procedural colour; ~0.40 m |
+| `brain_coral.glb`, `_lo.glb` | [Diploria labyrinthiformis](https://sketchfab.com/3d-models/diploria-labyrinthiformis-cbbf64f211f84a7cb62887fec11f54fe) | Smithsonian Institution | Sketchfab licence CC0 | Same pipeline; yellow-brown living colour; ~0.35 m |
+| `pocillopora.glb`, `_lo.glb` | [Pocillopora damicornis](https://sketchfab.com/3d-models/pocillopora-damicornis-925b1db06f1d407f8bbca23d91031049) | Smithsonian Institution | Sketchfab licence CC0 | Same pipeline; pink living colour; ~0.22 m |
+| `porites.glb`, `_lo.glb` | [Porites monticulosa](https://sketchfab.com/3d-models/porites-monticulosa-68c44f2315374bb0a4f088c9a1ab174e) | Smithsonian Institution | Sketchfab licence CC0 | Same pipeline; mustard/green living colour; ~0.30 m |
+
+ffishAsia invertebrates and reef fish listed in `docs/prompts/N3-reef-life.md` were verified CC0 on Sketchfab
+(API `license.slug=cc0`, 2026-11-17) but are **not yet vendored**: Sketchfab downloads require an API token
+(`SKETCHFAB_API_TOKEN`), and new Sketchfab accounts can only be created through Epic Games. UIDs ready for
+`cad/download_reef_sources.py`: urchin `4cbc27da…`, starfish `14319712…`, crab `4915ee5a…`, sea cucumber
+`c8fcb7b0…`, mussel `0920004b…`, barnacle `7e2bbead…`, butterflyfish `27f435f8…`, angelfish `a5c0bb68…`,
+stripey `32e3ef9d…`, wrasse `a1fa2be4…`.
