@@ -24,7 +24,15 @@ export function chooseHardwareProfile(hints={}){
     reason='偵測到整合式或行動 GPU；先降低像素負載，依實際 FPS 調整。';
     if((logicalCores!==null&&logicalCores<=2)||(memoryGB!==null&&memoryGB<=2)){initialRatio=.75;reason+=' 瀏覽器回報資源較少，採保守起始值。';}
   }
-  return {tier,entryLevel,label,reason,renderer,vendor,logicalCores,memoryGB,initialRatio,floor,ceiling,pixelBudget};
+  // The minimum-spec class: Intel HD / UHD Graphics (Gen9-era, e.g. UHD 620 in a 15 W i5-8250U laptop, where Chrome
+  // renders even when a GeForce MX110 is present) and GeForce MX1xx. They cannot hold the underwater optics at 60 fps
+  // even at a reduced scale: automatic quality starts them on the low look and low scene rather than discovering it
+  // after seconds of stutter and a full shader rebuild (docs/design/performance/). Iris Xe, Radeon and Apple
+  // integrated GPUs keep the optics and adapt by measured frame rate.
+  const lowIntel = /intel/i.test(name) && /\bu?hd\b/i.test(name) && !/\biris\b|\barc\b/i.test(name);
+  const startsLow = tier !== 'software' && (lowIntel || /\bmx\s*1\d{2}\b/i.test(name));
+  return {tier,entryLevel,label,reason,renderer,vendor,logicalCores,memoryGB,initialRatio,floor,ceiling,pixelBudget,
+    startsLow};
 }
 
 export function detectHardware(renderer){
@@ -47,20 +55,95 @@ function bounds(renderer,hardware){
   const ceiling=Math.min(dpr,hardware.ceiling,Math.sqrt(hardware.pixelBudget/(width*height)));
   return {ceiling,floor:Math.min(ceiling,hardware.floor)};
 }
-export function configureRenderQuality(renderer,mode='auto'){
+// Automatic quality ladder, judged on the measured frame rate in 1.5 s windows (after a 3 s warm-up):
+// 1. below SLOW_FPS the render scale drops by SCALE_STEP per window down to the floor (dynamic resolution);
+// 2. only when it is already at the floor and still below SLOW_FPS for SUPPRESS_WINDOWS windows are the
+//    underwater screen effects dropped (the legacy look, which recompiles every material once);
+// 3. above FAST_FPS for 8 s the scale climbs back by RAISE_STEP up to the ceiling (effects stay off this session).
+// Resolution goes first because it costs the least to look at and is undone smoothly.
+const SLOW_FPS = 50;
+const FAST_FPS = 58;
+const SCALE_STEP = .1;
+const RAISE_STEP = .05;
+const SUPPRESS_WINDOWS = 2;
+// What automatic quality learned on this GPU in an earlier dive: the next dive starts there instead of starting
+// high, stuttering for several seconds and stepping down again (first launch still starts from the hints above).
+const LEARNED_KEY = 'rov.quality.learned.v1';
+let learnedApplied = false;
+
+function readLearned(hardware) {
+  try {
+    const value = JSON.parse(globalThis.localStorage?.getItem(LEARNED_KEY) || 'null');
+    if (!value || value.renderer !== hardware.renderer || !Number.isFinite(value.ratio)) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function writeLearned(state) {
+  if (!state.learn) return;
+  const value = {renderer: state.hardware.renderer, ratio: state.ratio, effectsSuppressed: state.effectsSuppressed};
+  try {
+    globalThis.localStorage?.setItem(LEARNED_KEY, JSON.stringify(value));
+  } catch {
+    /* Private browsing: start from the hints next time. */
+  }
+}
+
+// learn: the game view (not the menu backdrop) remembers what automatic quality settled on for this GPU and the
+// first such call in a page starts from it.
+export function configureRenderQuality(renderer,mode='auto',{learn=false}={}){
   const requested = new URLSearchParams(globalThis.location?.search || '').get('quality');
   if (!mode && ['low', 'ultra'].includes(requested)) mode = requested;
   if(!['auto','performance','low','medium','high','ultra'].includes(mode))mode='auto';
   const hardware=detectHardware(renderer),dpr=positive(globalThis.devicePixelRatio)||1;
   const limits=mode==='auto'?bounds(renderer,hardware):{ceiling:Math.min(dpr,['high','ultra'].includes(mode)?2:1),floor:Math.min(dpr,.6)};
-  const ratio=mode==='auto'?Math.min(limits.ceiling,hardware.initialRatio):['performance','low'].includes(mode)?Math.min(dpr,.75):limits.ceiling;
-  // Automatic quality on software GL starts without screen effects (underwater optics); there is no frame budget.
-  const effectsSuppressed=mode==='auto'&&hardware.tier==='software';
-  const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3,effectsSuppressed};
+  let ratio = limits.ceiling;
+  if (mode === 'auto') ratio = Math.min(limits.ceiling, hardware.initialRatio);
+  else if (['performance', 'low'].includes(mode)) ratio = Math.min(dpr, .75);
+  // Automatic quality on software GL, integrated and entry-level GPUs starts without the underwater screen effects
+  // (optics); software GL has no frame budget for them, the others lose 60 fps (see startsLow).
+  let effectsSuppressed = mode === 'auto' && (hardware.tier === 'software' || hardware.startsLow);
+  const learned = mode === 'auto' && learn && !learnedApplied ? readLearned(hardware) : null;
+  if (learn) learnedApplied = true;
+  if (learned) {
+    ratio = Math.max(limits.floor, Math.min(limits.ceiling, learned.ratio));
+    effectsSuppressed = effectsSuppressed || learned.effectsSuppressed === true;
+  }
+  const state = {mode, ...limits, hardware, ratio, elapsed: 0, frames: 0, stable: 0, warmup: 3, effectsSuppressed,
+    slowAtFloor: 0, learn};
   lastMode=mode;
   profiles.set(renderer,state);renderer.shadowMap.enabled=['medium','high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
   return state;
 }
+
+function nextRatio(s, fps) {
+  if (fps < SLOW_FPS) {
+    s.stable = 0;
+    if (s.ratio > s.floor + .001) {
+      s.slowAtFloor = 0;
+      return s.ratio - SCALE_STEP;
+    }
+    s.slowAtFloor++;
+    if (!s.effectsSuppressed && s.slowAtFloor >= SUPPRESS_WINDOWS) {
+      s.effectsSuppressed = true;
+      s.slowAtFloor = 0;
+      writeLearned(s);
+    }
+    return s.ratio;
+  }
+  s.slowAtFloor = 0;
+  if (fps <= FAST_FPS) {
+    s.stable = 0;
+    return s.ratio;
+  }
+  s.stable += s.elapsed;
+  if (s.stable < 8) return s.ratio;
+  s.stable = 0;
+  return s.ratio + RAISE_STEP;
+}
+
 export function updateRenderQuality(renderer,seconds,{suspended=false}={}){
   const s=profiles.get(renderer);if(!s||s.mode!=='auto')return;
   if(suspended||globalThis.document?.hidden||!Number.isFinite(seconds)||seconds<=0){s.elapsed=0;s.frames=0;s.stable=0;return;}
@@ -71,14 +154,14 @@ export function updateRenderQuality(renderer,seconds,{suspended=false}={}){
   s.elapsed+=seconds;s.frames++;
   if(s.elapsed<1.5)return;
   Object.assign(s,bounds(renderer,s.hardware));
-  const fps=s.frames/s.elapsed;let next=Math.max(s.floor,Math.min(s.ceiling,s.ratio));
-  if(fps<50&&!s.effectsSuppressed){s.effectsSuppressed=true;s.elapsed=0;s.frames=0;s.stable=0;return;}
-  if(fps<50){next=Math.max(s.floor,s.ratio-.1);s.stable=0;}
-  else if(fps>58){s.stable+=s.elapsed;if(s.stable>=8){next=Math.min(s.ceiling,s.ratio+.05);s.stable=0;}}
-  else s.stable=0;
+  const applied=s.ratio;
+  // The viewport (and so the pixel budget) may have changed: judge from the clamped scale.
+  s.ratio=Math.max(s.floor,Math.min(s.ceiling,s.ratio));
+  const fps=s.frames/s.elapsed;
+  const next=Math.max(s.floor,Math.min(s.ceiling,nextRatio(s,fps)));
+  s.ratio=applied;
   s.elapsed=0;s.frames=0;
-  next=Math.max(s.floor,Math.min(s.ceiling,next));
-  if(Math.abs(next-s.ratio)>.001){s.ratio=next;renderer.setPixelRatio(next);}
+  if(Math.abs(next-s.ratio)>.001){s.ratio=next;renderer.setPixelRatio(next);writeLearned(s);}
 }
 export function renderQualityInfo(renderer){
   const s=profiles.get(renderer);return s?{mode:s.mode,effectsSuppressed:s.effectsSuppressed,scale:Math.round(s.ratio*100),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
@@ -96,6 +179,41 @@ export function renderQualityState(renderer) {
 // Without an explicit mode it uses the last configured mode, else the same URL / stored choice the menus use.
 export function assetTextureTier(mode = lastMode ?? storedQualityMode()) {
   return ['high', 'ultra'].includes(mode) ? 'high' : 'standard';
+}
+
+// Whether the game canvas needs its own multisampling. The optics tiers draw the scene into the pipeline's
+// half-float target (fx/pipeline.js) and only a full-screen quad reaches the canvas, so a multisampled canvas there
+// costs memory and a resolve every frame for nothing. Only the low tiers draw the scene straight to the canvas.
+// The context's antialias flag is fixed at creation; a tier changed in flight keeps the canvas it started with.
+// The low class (startsLow: Intel HD / UHD, whose drivers Chrome flags msaa_is_slow) never gets a multisampled
+// canvas either. hints: chooseHardwareProfile hints; by default read from a throwaway WebGL context.
+export function canvasAntialias(mode = storedQualityMode(), hints = null) {
+  if (!['performance', 'low'].includes(mode)) return false;
+  return !chooseHardwareProfile(hints ?? probeHints()).startsLow;
+}
+
+function probeHints() {
+  try {
+    const canvas = globalThis.document?.createElement('canvas');
+    const gl = canvas?.getContext('webgl2') || canvas?.getContext('webgl');
+    if (!gl) return {};
+    const extension = gl.getExtension('WEBGL_debug_renderer_info');
+    const hints = {
+      renderer: gl.getParameter(extension ? extension.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '',
+      vendor: gl.getParameter(extension ? extension.UNMASKED_VENDOR_WEBGL : gl.VENDOR) || '',
+    };
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return hints;
+  } catch {
+    return {};
+  }
+}
+
+// Scene detail for automatic quality on this renderer's GPU: the low scene (structures, seabed, habitat) wherever
+// automatic quality starts on the low look.
+export function automaticSceneDetail(renderer) {
+  const hardware = detectHardware(renderer);
+  return hardware.tier === 'software' || hardware.startsLow ? 'low' : 'medium';
 }
 
 function storedQualityMode() {

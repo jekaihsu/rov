@@ -187,13 +187,16 @@ def ship_hull_local_sdf(L: np.ndarray, hp: dict) -> np.ndarray:
     propeller aperture instead of the transom (``_aft_end``), which opens the space for propeller and rudder.
     """
     x, y, z = L[:, 0], L[:, 1], L[:, 2]
-    hb, fwd_end = _half_breadth(x, z, hp)
+    # The three samples at depth z share every depth-only term (the same arithmetic, evaluated once).
+    at_z = _depth_terms(z, hp)
+    hb = _half_breadth_at(x, at_z, hp)
+    fwd_end = at_z[0]
     e = 0.05
-    hx = (_half_breadth(x + e, z, hp)[0] - _half_breadth(x - e, z, hp)[0]) / (2 * e)
+    hx = (_half_breadth_at(x + e, at_z, hp) - _half_breadth_at(x - e, at_z, hp)) / (2 * e)
     hz = (_half_breadth(x, z + e, hp)[0] - _half_breadth(x, z - e, hp)[0]) / (2 * e)
     slope = np.minimum(np.sqrt(1 + hx * hx + hz * hz), 6.0)
     side = (np.abs(y) - hb) / slope
-    return np.maximum.reduce([side, z - hp["draft"], hp["top"] - z, x - fwd_end, _aft_end(z, hp) - x])
+    return np.maximum.reduce([side, z - hp["draft"], hp["top"] - z, x - fwd_end, at_z[3] - x])
 
 
 def _aft_end(z, hp):
@@ -202,18 +205,33 @@ def _aft_end(z, hp):
     return -hp["length"] / 2 + hp["aperture"] * t * t * (3 - 2 * t)
 
 
-def _half_breadth(x, z, hp):
+def _depth_terms(z, hp):
+    """Depth-only parts of the half breadth: (bow end, bow span, stern span, stern end, bilge inset)."""
     half = hp["length"] / 2
     fwd_mid = half - hp["bow"]
     aft_mid = -half + hp["stern"]
     fwd_end = half - hp["rake"] * np.clip(z / hp["draft"], 0.0, 1.0)
-    u_bow = np.clip((x - fwd_mid) / np.maximum(fwd_end - fwd_mid, 1e-6), 0.0, 1.0)
-    u_aft = np.clip((aft_mid - x) / np.maximum(aft_mid - _aft_end(z, hp), 1e-6), 0.0, 1.0)
-    width = (1 - u_bow ** 2) * (1 - u_aft ** 2)
+    aft_end = _aft_end(z, hp)
     rb = hp["bilge"]
     s = np.clip(z - (hp["draft"] - rb), 0.0, rb)
     bilge = rb - np.sqrt(np.maximum(rb * rb - s * s, 0.0))
-    return width * hp["beam"] / 2 - bilge, fwd_end
+    return fwd_end, np.maximum(fwd_end - fwd_mid, 1e-6), np.maximum(aft_mid - aft_end, 1e-6), aft_end, bilge
+
+
+def _half_breadth_at(x, terms, hp):
+    fwd_end, bow_span, aft_span, _, bilge = terms
+    half = hp["length"] / 2
+    fwd_mid = half - hp["bow"]
+    aft_mid = -half + hp["stern"]
+    u_bow = np.clip((x - fwd_mid) / bow_span, 0.0, 1.0)
+    u_aft = np.clip((aft_mid - x) / aft_span, 0.0, 1.0)
+    width = (1 - u_bow ** 2) * (1 - u_aft ** 2)
+    return width * hp["beam"] / 2 - bilge
+
+
+def _half_breadth(x, z, hp):
+    terms = _depth_terms(z, hp)
+    return _half_breadth_at(x, terms, hp), terms[0]
 
 
 class ShipHull:

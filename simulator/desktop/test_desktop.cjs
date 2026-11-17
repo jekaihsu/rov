@@ -5,6 +5,17 @@ const os = require('node:os');
 const path = require('node:path');
 const { validate } = require('./window_settings.cjs');
 const { generate } = require('./steam/generate_vdf.cjs');
+const { requestDiscreteGpu } = require('./gpu_preference.cjs');
+{
+  // Hybrid-graphics laptops: the discrete GPU is requested in both spellings, unless the player opts out.
+  const appended = [];
+  const fakeApp = { commandLine: { appendSwitch: name => appended.push(name) } };
+  requestDiscreteGpu(fakeApp, {});
+  assert.deepEqual(appended, ['force-high-performance-gpu', 'force_high_performance_gpu']);
+  appended.length = 0;
+  assert.deepEqual(requestDiscreteGpu(fakeApp, { ROV_LOW_POWER_GPU: '1' }), []);
+  assert.deepEqual(appended, []);
+}
 assert.throws(() => validate({ mode: 'fullscreen', display: 1, width: -1, height: 800 }));
 assert.throws(() => validate({ mode: 'anything', display: 1, width: 1280, height: 800 }));
 assert.throws(() => generate({ STEAM_APP_ID: '"escape' }, '/unused'));

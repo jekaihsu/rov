@@ -6,7 +6,7 @@ import { buildStructures } from '../structures.js';
 import { createVehicleModel } from '../vehicle_models.js';
 import { placeSceneModelLow } from '../scene_models.js';
 import { applyVehicleSticker } from '../vehicle_stickers.js';
-import { configureRenderQuality, updateRenderQuality } from '../render_quality.js';
+import { automaticSceneDetail, configureRenderQuality, updateRenderQuality } from '../render_quality.js';
 import { createFrameGate } from '../prefs/display.js';
 
 // Camera per screen: eye offset from the vehicle (metres, three.js axes); shift moves the vehicle right of
@@ -90,6 +90,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
   renderer.domElement.className = 'menu-canvas';
   host.prepend(renderer.domElement);
   configureRenderQuality(renderer, quality);
+  let qualityMode = quality;
   const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.02, 5000);
   const structures = new THREE.Group();
   scene.add(structures);
@@ -227,7 +228,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     const ticket = ++sceneTicket;
     const world = entry.world;
     environment?.dispose();
-    environment = new Environment(scene, world, { detail: hero ? 'high' : 'medium' });
+    environment = new Environment(scene, world, { detail: backdropDetail(hero) });
     disposeTree(structures);
     // the same dressed structures as the dive (low tier), so the site cards and the background match the game
     structures.add(buildStructures(world, { detail: 'low' }).group);
@@ -243,6 +244,15 @@ export function createStage(host, { quality = 'auto' } = {}) {
     placeSiteFocus(world);
     snapped = false;
     state.sceneReady = true;
+  }
+  // Backdrop detail follows the quality setting: the low scene wherever the dive uses it (performance, or automatic
+  // quality on software / integrated / entry-level GPUs), medium for medium. Otherwise the title scene keeps its high
+  // detail (structure life: two instanced draws) and the site cards medium.
+  function backdropDetail(hero) {
+    if (qualityMode === 'performance' || qualityMode === 'low') return 'low';
+    if (qualityMode === 'auto' && automaticSceneDetail(renderer) === 'low') return 'low';
+    if (qualityMode === 'medium') return 'medium';
+    return hero ? 'high' : 'medium';
   }
   function setPose(name) {
     poseName = name;
@@ -333,6 +343,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     setPose,
     rotate,
     configureQuality(mode) {
+      qualityMode = mode;
       configureRenderQuality(renderer, mode);
     },
     get showcase() {

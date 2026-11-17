@@ -12,6 +12,8 @@ if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_DATA){
 const { createSteam } = require('./steam_service.cjs');
 const { installBackendLifecycle } = require('./backend_lifecycle.cjs');
 const displaySettings = require('./window_settings.cjs');
+const { requestDiscreteGpu } = require('./gpu_preference.cjs');
+requestDiscreteGpu(app);
 if (!app.requestSingleInstanceLock()) app.exit(0);
 app.on('second-instance', () => {
   const existing = BrowserWindow.getAllWindows()[0];

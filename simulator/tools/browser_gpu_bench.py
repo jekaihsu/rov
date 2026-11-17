@@ -21,6 +21,15 @@ Usage (from the simulator directory, server already running or via run_browser_c
 
 Output: simulator/output/gpu-bench/<machine>/results.json and a Markdown report path
 printed at the end. Does not modify renderer code.
+
+Frame-cost profile and budgets (tools/_perf_profile.py, tools/perf_probe.js, tools/perf_budgets.json):
+
+  # Draw calls, triangles, passes, uploads, texture memory and main-thread ms per scene (menu, intro, dives):
+  python tools/run_browser_checks.py browser_gpu_bench   # with ROV_GPU_BENCH_ARGS='--profile --sites open_water'
+  python tools/browser_gpu_bench.py --profile --sites jacket_inspection --tiers medium --attribute
+
+  # Regression check against the stored budgets (counts, so valid on software GL); exits 1 on a violation:
+  python tools/browser_gpu_bench.py --check
 """
 from __future__ import annotations
 
@@ -41,13 +50,15 @@ from _browser import gl_mode, http_base, launch, timeout, ws_base
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_ROOT = ROOT / 'output' / 'gpu-bench'
+BUDGETS = Path(__file__).resolve().parent / 'perf_budgets.json'
 TOOLS = Path(__file__).resolve().parent
 
-# Same sites as browser_scene_review. Each page starts at the scenario's seed=1 start pose and only switches the
+# browser_scene_review's sites plus the fish pen. Each page starts at the scenario's seed=1 start pose and only switches the
 # camera mode (onboard / chase); free-camera poses would fight camera_rig every frame.
 SITES = (
     'jacket_inspection', 'monopile_current', 'tether_untangle', 'hull_inspection', 'wreck_survey',
     'korean_castle', 'harbor_inspection', 'tutorial_pool', 'coral_reef', 'seagrass_meadow', 'open_water',
+    'aquaculture_pen',
 )
 TIERS = ('performance', 'medium', 'high', 'ultra')
 VIEWS = ('onboard', 'third')
@@ -571,12 +582,59 @@ def parse_args(argv=None):
     parser.add_argument('--no-heavy', action='store_true', help='skip silt / wreck lamp-2 shots')
     parser.add_argument('--no-docs', action='store_true',
                         help='do not write docs/perf/gpu-<machine>.md (smoke defaults to this)')
-    return parser.parse_args(argv)
+    parser.add_argument('--profile', action='store_true',
+                        help='frame-cost profile (draw calls, passes, memory, JS ms) instead of the frame-time matrix')
+    parser.add_argument('--check', action='store_true', help='compare the scenes in --budgets against their budgets')
+    parser.add_argument('--budgets', default=str(BUDGETS), help='budget JSON for --check')
+    parser.add_argument('--attribute', action='store_true', help='--profile: CPU profiler time per viewer module')
+    extra = (os.environ.get('ROV_GPU_BENCH_ARGS') or '').split()
+    return parser.parse_args((argv if argv is not None else sys.argv[1:]) + extra)
+
+
+def run_profile(args, machine):
+    """--profile / --check: count what each scene asks of the GPU and the main thread."""
+    import _perf_profile
+    width, height = (int(part) for part in args.size.split('x'))
+    out_dir = OUT_ROOT / machine
+    out_dir.mkdir(parents=True, exist_ok=True)
+    budgets = {}
+    if args.check:
+        stored = json.loads(Path(args.budgets).read_text(encoding='utf-8'))
+        budgets = stored['scenes']
+        width, height = stored.get('viewport', [width, height])
+        keys = list(budgets)
+    else:
+        sites = [s for s in args.sites.split(',') if s in SITES] if args.sites else list(SITES)
+        tiers = [t for t in args.tiers.split(',') if t] if args.tiers else ['performance', 'medium', 'high']
+        views = [v for v in args.views.split(',') if v in VIEWS] if args.views else list(VIEWS)
+        keys = _perf_profile.profile_keys(sites, tiers, views, intro=[(sites[0], tier) for tier in tiers[:2]])
+    extra_args = ['--disable-dev-shm-usage']
+    if 'no-sandbox' not in (os.environ.get('ROV_BROWSER_EXTRA_ARGS') or ''):
+        extra_args.append('--no-sandbox')
+    with sync_playwright() as playwright:
+        browser = launch(playwright, headless=True, args=extra_args)
+        rows = _perf_profile.measure(browser, keys, (width, height), seconds=args.duration or 4.0,
+                                     attribute=args.attribute, log=lambda line: print(line, flush=True))
+        browser.close()
+    name = 'check' if args.check else 'profile'
+    (out_dir / f'{name}.json').write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding='utf-8')
+    (out_dir / f'{name}.md').write_text(_perf_profile.markdown(rows), encoding='utf-8')
+    print('Wrote', out_dir / f'{name}.json', flush=True)
+    print(_perf_profile.markdown(rows), flush=True)
+    if not args.check:
+        return 0 if all('error' not in row for row in rows.values()) else 1
+    failures = _perf_profile.check(rows, budgets)
+    for failure in failures:
+        print('BUDGET', failure, flush=True)
+    print('budget check:', 'FAIL' if failures else 'PASS', flush=True)
+    return 1 if failures else 0
 
 
 def main(argv=None):
     args = parse_args(argv)
     machine = ensure_machine_id(args.machine)
+    if args.profile or args.check:
+        return run_profile(args, machine)
     # Default is smoke so `run_browser_checks.py browser_gpu_bench` stays optional and fast.
     # Explicit --sites/--tiers/--views select a custom matrix (not the short smoke list).
     custom_matrix = bool(args.sites or args.tiers or args.views)

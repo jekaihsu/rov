@@ -154,7 +154,14 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
     }catch(e){notify(e.message);}
   };
   $('quality').value=new URLSearchParams(location.search).get('quality')||read('rov.quality','auto');
-  function quality(){configureRenderQuality(renderer,$('quality').value);try{localStorage.setItem('rov.quality',$('quality').value);}catch{} window.dispatchEvent(new Event('resize'));}
+  // learn: automatic quality remembers what it settled on for this GPU (render_quality.js).
+  function quality() {
+    configureRenderQuality(renderer, $('quality').value, {learn: true});
+    try {
+      localStorage.setItem('rov.quality', $('quality').value);
+    } catch { /* Private browsing. */ }
+    window.dispatchEvent(new Event('resize'));
+  }
   $('quality').onchange=quality; quality();
   if(readOnly){
     for(const id of ['changeVehicle','pairController','addMarker','addWaypoint','clearRoute','coverageRoute','startRoute','stopRoute','holdAltitude','stopAltitude','gripOpen','gripClose','armMode','recordFlight'])$(id).disabled=true;

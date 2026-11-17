@@ -11,9 +11,12 @@ const defaults = {
 };
 
 // Training X1 LODs (nearest first). Distances are metres from the camera.
+// LOD0 (486k triangles) only for close-ups: the third-person chase camera sits about 2.7 m away, where the vehicle
+// is a few hundred pixels tall and LOD1 (80k) already has more than one triangle per pixel
+// (docs/design/performance/ has the side-by-side shots at 1600x900).
 const TRAINING_X1_LODS = [
   { url: 'models/rov.glb', distance: 0 },
-  { url: 'models/rov_lod1.glb', distance: 12 },
+  { url: 'models/rov_lod1.glb', distance: 2.2 },
   { url: 'models/rov_lod2.glb', distance: 40 },
 ];
 
@@ -39,6 +42,7 @@ function disposeTree(root) {
   const geometries = new Set(), materials = new Set(), textures = new Set();
   root.traverse((o) => {
     if (o.geometry) geometries.add(o.geometry);
+    for (const g of o.userData.levelGeometries || []) geometries.add(g);
     for (const m of (Array.isArray(o.material) ? o.material : o.material ? [o.material] : [])) {
       materials.add(m);
       for (const value of Object.values(m)) if (value?.isTexture) textures.add(value);
@@ -208,6 +212,37 @@ async function loadTrainingX1Lod(minLod = 0) {
     for (const rotor of findRotorNodes(scene)) disposeObject(rotor);
   };
 
+  // The spinning rotors stay in one group (app.js turns them), so they cannot sit in the LOD levels. From the first
+  // coarser level on they draw that level's rotor geometry instead (a frame after the LOD switches): 6 x 9k
+  // triangles at LOD0, 6 x 1.2k at LOD1, where a rotor is a few pixels wide.
+  const coarseRotors = (scene, lod) => {
+    const fine = new Map(rotorRoot.children.map((rotor) => [rotor.name, rotor]));
+    for (const rotor of findRotorNodes(scene)) {
+      const near = fine.get(rotor.name);
+      const nearMeshes = [];
+      const farMeshes = [];
+      near?.traverse((o) => { if (o.isMesh) nearMeshes.push(o); });
+      rotor.traverse((o) => { if (o.isMesh) farMeshes.push(o); });
+      if (!near || nearMeshes.length !== farMeshes.length) {
+        disposeObject(rotor);
+        continue;
+      }
+      nearMeshes.forEach((mesh, i) => {
+        const detailed = mesh.geometry;
+        const coarse = farMeshes[i].geometry;
+        mesh.userData.levelGeometries = [coarse];
+        mesh.onBeforeRender = function followLevel() {
+          this.geometry = lod.getCurrentLevel() === 0 ? detailed : coarse;
+        };
+        farMeshes[i].geometry = null;
+      });
+      rotor.traverse((o) => {
+        for (const material of [].concat(o.material || [])) material?.dispose?.();
+      });
+      rotor.removeFromParent();
+    }
+  };
+
   if (loaded.length === 1) {
     const scene = loaded[0].gltf.scene;
     attachNearestRotors(scene);
@@ -221,6 +256,7 @@ async function loadTrainingX1Lod(minLod = 0) {
     const scene = entry.gltf.scene;
     scene.name = `LOD${start + index}`;
     if (index === 0) attachNearestRotors(scene);
+    else if (index === 1) coarseRotors(scene, lod);
     else stripRotors(scene);
     // Peer vehicles omit LOD0: their first entry is LOD1 at distance 0.
     const distance = index === 0 ? 0 : entry.level.distance;

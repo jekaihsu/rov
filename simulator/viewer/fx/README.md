@@ -30,6 +30,12 @@ lamp-lit seabed blew out. This document describes the reworked version.
 5. `pipeline.js` renders: scene (linear HDR, half float) -> `AutoExposurePass` -> camera pass (optional,
    T14b) -> beautify finish (vignette, only when enabled) -> `OutputPass`. `OutputPass` is the only tone
    mapping (ACES) and output transfer; `renderer.toneMappingExposure` is held at 1 while composing.
+   Since the performance pass (`docs/design/performance/`) the exposure gain, the onboard camera look, the vignette
+   and the output step are one full-screen pass (`camera_output.js`); `AutoExposurePass` then only runs its three
+   tiny meter passes (`deferApply`). A camera pass that is not the known camera look still runs on its own, on the
+   exposed image, and the exposure pass applies the gain for it as before. The water background is drawn after the
+   other opaque meshes, depth tested on the far plane, so only uncovered pixels evaluate its in-scatter integral;
+   the surface seen from below (no depth write) is drawn right after it.
 
 ### The water model (`water_model.js`, pure functions, tested by `tests/test_water_optics.mjs`)
 

@@ -251,6 +251,9 @@ export class AutoExposurePass extends Pass {
       vertexShader: VERTEX, fragmentShader: APPLY, depthTest: false, depthWrite: false
     });
     this.quad = new FullScreenQuad(null);
+    // When the pipeline's last pass applies the gain itself (fx/camera_output.js), this pass only meters and adapts
+    // (three tiny passes) and hands the scene image on unchanged instead of copying it at full size.
+    this.deferApply = false;
     // Optional override while the camera is above water ({compensation, reference, balance, highlight?},
     // fx/daylight.js); null keeps the underwater camera model above.
     this.metering = null;
@@ -303,6 +306,8 @@ export class AutoExposurePass extends Pass {
     this.reset = false;
     exposureUniforms.tCameraExposure.value = next.texture;
     exposureUniforms.tCameraBalance.value = balanceNext.texture;
+    this.needsSwap = !this.deferApply;
+    if (this.deferApply) return;
     this.applyMaterial.uniforms.tDiffuse.value = readBuffer.texture;
     this.applyMaterial.uniforms.tExposure.value = next.texture;
     this.applyMaterial.uniforms.tBalance.value = balanceNext.texture;

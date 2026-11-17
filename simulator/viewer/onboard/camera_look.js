@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { registerFidelityItem } from '../fidelity.js';
 import { exposureUniforms } from '../fx/exposure.js';
+import { CAMERA_LOOK_FOLD } from '../fx/camera_output.js';
 import { legacyWaterLook } from '../underwater_lighting.js';
 
 export const CAMERA_LOOK_ITEM = 'cameraLook';
@@ -37,6 +38,7 @@ registerFidelityItem({
   cameraLookHelp: '機載畫面加入鏡頭畸變、隨增益變大的感光雜訊與輕度壓縮感（參數暫定）。低畫質檔不套用。',
 });
 
+// fx/camera_output.js draws the same look inside the output pass; change both together.
 const LOOK_SHADER = {
   uniforms: {
     tDiffuse: { value: null }, tCameraExposure: exposureUniforms.tCameraExposure,
@@ -74,6 +76,10 @@ const LOOK_SHADER = {
 export function installCameraLook({renderer, getMode, fidelity}) {
   const pass = new ShaderPass(LOOK_SHADER);
   pass.enabled = false;
+  // The pipeline's output pass draws this same look itself instead of a separate full-screen pass
+  // (fx/camera_output.js mirrors LOOK_SHADER).
+  pass.outputFold = CAMERA_LOOK_FOLD;
+  const size = new THREE.Vector2();
   let attached = null;
   function wanted() {
     return getMode() === 'onboard' && fidelity.get(CAMERA_LOOK_ITEM) === true;
@@ -92,7 +98,7 @@ export function installCameraLook({renderer, getMode, fidelity}) {
     const pipeline = attach();
     pass.enabled = !!pipeline && !legacyWaterLook(renderer) && wanted();
     if (!pass.enabled) return;
-    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+    renderer.getDrawingBufferSize(size);
     pass.uniforms.uBlocks.value.set(Math.max(1, size.x / 2), Math.max(1, size.y / 2));
     pass.uniforms.uTime.value = performance.now() / 1000;
   }

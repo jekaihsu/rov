@@ -9,12 +9,13 @@
 //
 //   const station = new SpoolStation(scene, loadIntroAssets);
 //   station.build(world, startNed);          // after every world (re)build
-//   each frame: station.update(dt, introBoatShown)
+//   each frame: station.update(dt, introBoatShown, camera)   // camera: hide it while the water hides it
 //   station.labelPosition(world)             // where the "spool" label sits: the boat's stern
 import * as THREE from 'three';
 import {Humanoid} from './humanoid.js';
 import {placeWorkBoat} from './deploy_intro.js';
 import {surfacePlan} from './surface_set.js';
+import {hiddenByWater, localBoundingSphere} from './water_cull.js';
 
 const LABEL_LIFT = 1.2;
 
@@ -24,6 +25,7 @@ export class SpoolStation {
     this.loadAssets = loadAssets;
     this.boat = null;
     this.crew = null;
+    this.sphere = null;
     this.generation = 0;
     this.t = 0;
   }
@@ -47,14 +49,19 @@ export class SpoolStation {
       boat.add(this.crew.root);
     }
     this.boat = boat;
+    this.sphere = localBoundingSphere(boat);
     this.scene.add(boat);
   }
 
-  /** introBoat: the deployment intro's own boat is in the scene, so this one stays hidden. */
-  update(dt, introBoat) {
+  /**
+   * introBoat: the deployment intro's own boat is in the scene, so this one stays hidden. camera (optional): the
+   * boat is skipped, crew animation included, while the water between it and the camera hides it (water_cull.js).
+   */
+  update(dt, introBoat, camera = null) {
     if (!this.boat) return;
-    this.boat.visible = !introBoat;
-    if (introBoat) return;
+    const hidden = introBoat || (!!camera && hiddenByWater(this.boat, this.sphere, camera, this.scene));
+    this.boat.visible = !hidden;
+    if (hidden) return;
     this.t += dt;
     // Holding station in a slight sea: the same gentle motion the intro gives its boat.
     this.boat.rotation.z = Math.sin(this.t * 0.9) * 0.018;

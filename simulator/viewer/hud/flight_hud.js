@@ -52,6 +52,9 @@ const values = {};
 const CARD_KEYS = ['up', 'left', 'right', 'down'].map(action => bindingRow(action).keys[0]);
 const DRAWER_KEYS = bindingRow('engineering').keys;
 let hudStyle = '';
+// Minimap redraw rate (the peek card map and the corner map): vehicle and peers move slowly on its scale.
+const MAP_HZ = 15;
+let mapDrawn = -Infinity;
 function storage(key, fallback) {
   try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
 }
@@ -120,8 +123,9 @@ function showAssist(s) {
   status.title = pill.help;
 }
 function toolIcon(button, icon, label) {
-  button.title = label;
-  button.setAttribute('aria-label', label);
+  // Called every frame for the view button: write attributes only when they change (no style invalidation).
+  if (button.title !== label) button.title = label;
+  if (button.getAttribute('aria-label') !== label) button.setAttribute('aria-label', label);
   if (button.querySelector('svg')) return;
   button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24">'
     + `<use href="/hud/icons.svg#${icon}"></use></svg>`;
@@ -257,6 +261,9 @@ function dvlWarning(s) {
 function setText(el, text) {
   if (el.textContent !== text) el.textContent = text;
 }
+function setData(el, key, value) {
+  if (el.dataset[key] !== value) el.dataset[key] = value;
+}
 // Smoothed read-outs shared by both presentations.
 // sensed: pilotReadings() — sensor estimates in the real preset, simulator truth otherwise.
 function readings(s, w, dt, sensed) {
@@ -301,18 +308,18 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   if (!s?.pos) return;
   applyStyle();
   toolIcon($('camBtn'), 'camera', $('camBtn').dataset.label || STRINGS.view);
-  $('lockBadge').querySelector('b').textContent = s.locked ? STRINGS.locked : STRINGS.unlocked;
+  setText($('lockBadge').querySelector('b'), s.locked ? STRINGS.locked : STRINGS.unlocked);
   const unlockHint = s.locked ? STRINGS.unlockHint.replace('{key}', lockKey(input)) : '';
-  $('lockBadge').querySelector('span').textContent = unlockHint;
+  setText($('lockBadge').querySelector('span'), unlockHint);
   $('flightTools').classList.toggle('controller-visible', !!input.active);
   const sensed = pilotReadings(s, w);
   // One forward range: the imaging sonar's centre beams while it is scanning (labelled as such), otherwise the
   // sensor layer's forward echo, falling back to the geometric estimate in truth mode.
   const range = s.sonar || sensed.range === undefined ? forwardRange(s, w) : sensed.range;
   const rangeSource = s.sonar ? STRINGS.sonarSource : STRINGS.forward;
-  $('flightRange').textContent = range == null ? '' : `${rangeSource} ${range.toFixed(1)} m`;
-  $('flightRange').dataset.level = range < .5 ? 'danger' : 'warning';
-  $('flightController').textContent = s.controller ? STRINGS.controller : '';
+  setText($('flightRange'), range == null ? '' : `${rangeSource} ${range.toFixed(1)} m`);
+  setData($('flightRange'), 'level', range < .5 ? 'danger' : 'warning');
+  setText($('flightController'), s.controller ? STRINGS.controller : '');
   const alt = sensed.altitude;
   if (!$('flightCable')) addReadouts();
   const r = readings(s, w, dt, sensed);
@@ -329,8 +336,8 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   const objective = s.expedition?.active?.steps?.find(item => !item.completed)
     || s.mission?.targets?.find(item => !item.done)
     || s.score?.objectives?.find(item => !item.done);
-  $('flightMission').textContent = (objective?.label || objective?.name || $('scoreState').textContent)
-    + (objective?.progress != null ? ` · ${Math.round(objective.progress * 100)}%` : '');
+  setText($('flightMission'), (objective?.label || objective?.name || $('scoreState').textContent)
+    + (objective?.progress != null ? ` · ${Math.round(objective.progress * 100)}%` : ''));
   const nearDanger = alt != null && alt < .25 || range != null && range < .25;
   const danger = !!s.tether?.broken || nearDanger;
   const nextMissionKey = [s.mission?.mode, objective?.id, objective?.label, s.score?.current_index].join(':');
@@ -348,9 +355,9 @@ export function updateFlightHUD(s, w, dt, input = {}) {
     : alt != null && alt < 1 || range != null && range < 1 ? STRINGS.near
       : batteryApplies(s) && s.battery < 20 ? STRINGS.lowBattery
         : sensed.dvlLost && s.rc?.assist ? dvlWarning(s) : '';
-  $('flightWarning').textContent = warning;
-  $('flightWarning').dataset.level = danger ? 'danger'
-    : warning === STRINGS.lowBattery ? 'info' : 'warning';
+  setText($('flightWarning'), warning);
+  setData($('flightWarning'), 'level', danger ? 'danger'
+    : warning === STRINGS.lowBattery ? 'info' : 'warning');
   document.body.classList.toggle('hud-danger', danger);
   if (warning && warning !== lastWarning) {
     if (!held) showEventCard(1);
@@ -372,28 +379,34 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   card.classList.toggle('visible', active >= 0 || density === 2);
   document.body.classList.toggle('hud-peek', active >= 0);
   const index = active < 0 ? 1 : active;
-  card.querySelector('strong').textContent = STRINGS.cards[index];
-  card.dataset.card = String(index);
+  setText(card.querySelector('strong'), STRINGS.cards[index]);
+  setData(card, 'card', String(index));
   const sources = [
     ['brief', 'objs', 'missionStatus'], ['thrBars', 'tState', 'tRov', 'gBat', 'damage'], ['activeRoomName'], [],
   ];
-  card.querySelector('p').textContent = index === 3
+  let text = index === 3
     ? keyCardText(input)
     : sources[index].map(id => $(id)?.textContent || '').join('\n');
   if (index === 1) {
     const thrusters = Array.from($('thrBars').children).map(function thrusterRow(row) {
       return Array.from(row.children).map(el => el.textContent).filter(Boolean).join(' · ');
     });
-    card.querySelector('p').textContent = [
+    text = [
       warning, ...thrusters,
       `${STRINGS.cable} ${$('flightCable').textContent} m · ${$('tRov').textContent}`,
       `${STRINGS.battery} ${$('flightBattery').textContent}%`, $('damage').textContent,
     ].filter(Boolean).join('\n');
   }
   if (index === 0 && s.mission?.targets?.length) {
-    card.querySelector('p').textContent = document.querySelector('.mission-mode-targets')?.textContent || '';
+    text = document.querySelector('.mission-mode-targets')?.textContent || '';
   }
-  card.querySelector('canvas').hidden = index !== 2;
-  if (index === 2) drawMinimap(card.querySelector('canvas'), s, w, north);
+  setText(card.querySelector('p'), text);
+  const mapCanvas = card.querySelector('canvas');
+  if (mapCanvas.hidden !== (index !== 2)) mapCanvas.hidden = index !== 2;
+  // The maps change slowly; redraw them at MAP_HZ instead of every frame.
+  const now = performance.now();
+  if (now - mapDrawn < 1000 / MAP_HZ) return;
+  mapDrawn = now;
+  if (index === 2) drawMinimap(mapCanvas, s, w, north);
   if (density > 0) drawMinimap($('flightMap'), s, w, north);
 }
