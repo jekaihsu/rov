@@ -30,7 +30,7 @@ def free_port():
 
 
 def cpu_seconds(pid):
-    fields = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
+    fields = Path(f'/proc/{pid}/stat').read_text(encoding='ascii').rsplit(')', 1)[1].split()
     return (int(fields[11]) + int(fields[12])) / TICKS
 
 

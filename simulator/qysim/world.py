@@ -760,8 +760,18 @@ class World:
         name = "seabed"
         a, b = self._bounds()
         gaps = np.maximum(a - x, 0) + np.maximum(x - b, 0)
-        candidates = np.flatnonzero(np.linalg.norm(gaps, axis=1) <= max(0., best))
-        for i in candidates:
+        box_gaps = np.linalg.norm(gaps, axis=1)
+        candidates = np.flatnonzero(box_gaps <= max(0., best))
+        box_mask, box_centre, box_reach = self._box_spheres()
+        # Lower bounds of a box's or capsule's distance: the distance to its bounding box, and for a box also to its
+        # bounding sphere (see sdf_many). One that cannot be strictly closer than the best found so far is skipped,
+        # in the same order, so the result is unchanged bit for bit.
+        sphere = np.linalg.norm(box_centre[candidates] - x, axis=1) - box_reach[candidates]
+        lower = np.where(box_mask[candidates], np.maximum(sphere, box_gaps[candidates]), box_gaps[candidates]) - 1e-9
+        bounded = box_mask[candidates] | self._cylinder_mask[candidates]
+        for i, low, exact in zip(candidates, lower, bounded):
+            if exact and low >= best:
+                continue
             ob = self.obstacles[i]
             d, n = ob.sdf(x)
             if d < best:
@@ -844,6 +854,24 @@ class World:
             self._cylinder_r = np.array([ob.radius if isinstance(ob, Cylinder) else 0 for ob in self.obstacles])
         return cached
 
+    def _box_spheres(self):
+        """Bounding spheres of the Box obstacles (mask, centres, radii), cached per obstacle list.
+
+        Boxes never move (no code assigns ``center`` / ``half`` after construction); a list that is replaced, grown or
+        shrunk (scenario load, habitat, sonar snapshot) gets new spheres."""
+        obstacles = self.obstacles
+        key = (id(obstacles), len(obstacles), id(obstacles[0]) if obstacles else 0,
+               id(obstacles[-1]) if obstacles else 0)
+        cached = getattr(self, "_box_sphere_cache", None)
+        if cached is None or cached[0] != key:
+            boxes = [type(ob) is Box for ob in self.obstacles]
+            centre = np.array([ob.center if box else (0, 0, 0) for ob, box in zip(self.obstacles, boxes)],
+                              float).reshape(-1, 3)
+            reach = np.array([float(np.linalg.norm(ob.half)) if box else 0.0 for ob, box in zip(self.obstacles, boxes)])
+            cached = (key, (np.array(boxes, bool), centre, reach))
+            self._box_sphere_cache = cached
+        return cached[1]
+
     def near(self, lo: np.ndarray, hi: np.ndarray, margin: float = 1.0) -> list[int]:
         """Vectorised cached broad phase for obstacles overlapping the grown box."""
         cached = self._bounds()
@@ -884,7 +912,19 @@ class World:
             n = delta[rows,choice] / np.maximum(lengths[rows,choice,None],1e-9)
             n[lengths[rows,choice] < 1e-9] = [1.,0.,0.]
             dist[hit], normal[hit], idx[hit] = closest[hit], n[hit], cylinders[choice[hit]]
-        for i in ids[~self._cylinder_mask[ids]]:
+        others = ids[~self._cylinder_mask[ids]]
+        box_mask, box_centre, box_reach = self._box_spheres()
+        boxes = others[box_mask[others]]
+        # A box lies inside its bounding sphere, so its distance from a point is at least the distance to that sphere.
+        # A box whose sphere is farther than the current best from every point cannot be the nearest surface: skip
+        # it (the same result, bit for bit; the margin covers rounding at the sphere).
+        far = set()
+        if len(boxes):
+            gap = np.linalg.norm(X[:, None, :] - box_centre[boxes][None, :, :], axis=2) - box_reach[boxes]
+            far = set(boxes[np.all(gap - 1e-9 >= dist[:, None], axis=0)].tolist())
+        for i in others:
+            if i in far:
+                continue
             ob = self.obstacles[i]
             d, n = ob.sdf_many(X)
             closer = d < dist
