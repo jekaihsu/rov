@@ -57,7 +57,8 @@ class TestPhysicsValidation(unittest.TestCase):
             np.testing.assert_allclose(vehicle.s.thrust, -vehicle.p.thruster_max * ratio)
 
     def test_legacy_force_and_drag_unchanged(self):
-        for model in ('x1', 'bluerov2_heavy', 'falcon'):
+        # The heavy catalogue entry is calibrated in test_model_o_literature.
+        for model in ('x1', 'falcon'):
             vehicle = Vehicle(model_id=model)
             self.assertEqual(vehicle.p.reverse_ratio, 1.)
             self.assertIsNone(vehicle.p.quadratic_drag)

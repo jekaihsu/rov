@@ -109,7 +109,12 @@ class FlightController:
             target = q_rot(q_conj(frame), 0.8 * error + 0.15 * self.position_integral)
             target -= 0.25 * velocity
             target = np.clip(target, -limits, limits)
-        jerk_command = 256.0 * (target - self.velocity_target) - 32.0 * self.acceleration
+        # `assist_speed_gain` multiplies the stiffness and keeps the filter critically
+        # damped. The heavy hull's published caps are a few tenths of a metre per
+        # second, so the unscaled 256 sits inside every profile's jerk clip and the
+        # three stops tie. Other vehicles leave the gain at 1, which is the original filter.
+        follow = getattr(v, "assist_speed_gain", 1.0)
+        jerk_command = 256.0 * follow * (target - self.velocity_target) - 32.0 * follow ** 0.5 * self.acceleration
         self.acceleration = np.clip(
             self.acceleration + np.clip(jerk_command, -amax * jerk, amax * jerk) * dt, -amax, amax)
         self.velocity_target += self.acceleration * dt

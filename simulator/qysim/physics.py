@@ -17,7 +17,8 @@ import math
 from dataclasses import dataclass, field
 
 import numpy as np
-from .vehicles import X1_THRUSTERS, X1_PARAMETERS, get_vehicle_definition
+from .model_o import demand_thrust, published_thrust
+from .vehicles import X1_THRUSTERS, X1_PARAMETERS, VEHICLE_DEFINITIONS, get_vehicle_definition
 
 KNOT = 0.514444
 RHO = 1025.0
@@ -180,6 +181,18 @@ class Vehicle:
         self.B_pinv = np.zeros((len(self.thrusters), 6))
         self.B_pinv[:, controlled] = np.linalg.pinv(self.B[controlled, :])
         self.s = VehicleState(thrust=np.zeros(len(self.thrusters)))
+        # The published PWM map belongs only to the catalogue object. The offline benchmark
+        # is a different instance with the same id and must keep the linear motor model.
+        catalogue = VEHICLE_DEFINITIONS.get(self.model_id)
+        uses_published_map = self.model_id == "bluerov2_heavy" and catalogue is self.definition
+        self.thrust_map = published_thrust if uses_published_map else None
+        self.supply_voltage = 16.0
+        # The assist reference filter was tuned so its 256 gain saturates the jerk
+        # limit of a hull that cruises near 1 m/s. These published caps are a few
+        # tenths, which leaves every profile inside the clip, so sport does not
+        # stop before normal. Multiplying that stiffness by 6 (and the damping
+        # by its square root) puts each profile back on its own jerk limit.
+        self.assist_speed_gain = 6.0 if uses_published_map else 1.0
         self.current_ned = np.zeros(3)      # water current, world m/s
         self.current_accel_ned = np.zeros(3)  # water acceleration along the path, world m/s^2
         self.current_points = None          # optional (body points (k,3), world currents (k,3))
@@ -244,9 +257,7 @@ class Vehicle:
         (contact forces, tether tension). A non-finite result rolls the state back."""
         p, s = self.p, self.s
         saved = (s.pos.copy(), s.q.copy(), s.vel.copy(), s.omega.copy())
-        target = np.clip(np.asarray(thrust_cmd, float), -1, 1) * p.thruster_max
-        if p.thrust_asymmetry:
-            target = np.where(target < 0, target * p.reverse_ratio, target)
+        target = self._thrust_target(thrust_cmd)
         s.thrust += (target - s.thrust) * min(1.0, dt / p.motor_tau)
         wrench = self.B @ s.thrust
         if extra_wrench is not None:
@@ -309,6 +320,21 @@ class Vehicle:
             s.pos[2] = self.seabed_depth - 0.05
             if v_world[2] > 0:
                 s.vel = q_rot(q_conj(s.q), v_world * np.array([1, 1, 0]))
+
+    def _thrust_target(self, thrust_cmd: np.ndarray) -> np.ndarray:
+        """Newtons commanded from each thruster.
+
+        Other vehicles stay linear in the normalised demand. The heavy catalogue
+        entry inverts its published PWM sheet, so the demand is a force fraction
+        of ``thruster_max`` and the bus voltage clips that force.
+        """
+        command = np.clip(np.asarray(thrust_cmd, dtype=float), -1.0, 1.0)
+        if self.thrust_map is None:
+            target = command * self.p.thruster_max
+            if self.p.thrust_asymmetry:
+                target = np.where(target < 0.0, target * self.p.reverse_ratio, target)
+            return target
+        return demand_thrust(command, self.supply_voltage, self.p.thruster_max)
 
     # convenience ------------------------------------------------------------
     @property
