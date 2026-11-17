@@ -17,9 +17,7 @@ export const MODEL_IDS = ['x1', 'bluerov2_heavy', 'falcon'];
 export const QUALITY_MODES = ['auto', 'performance', 'medium', 'high'];
 const MISSIONS = ['campaign', 'expedition', 'free_explore', 'inspection_coop', 'scenario_training'];
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
-const INTERFACE_DEFAULTS = { pip: false, intro: true, alwaysIntro: false, sticks: true, fog: true, labels: true };
-// Set once the launch cinematic has been chosen for a dive; afterwards it is skipped unless alwaysIntro is on.
-export const INTRO_SEEN_KEY = 'rov.intro.seen.v1';
+const INTERFACE_DEFAULTS = { pip: false, intro: true, sticks: true, fog: true, labels: true };
 
 function storage() {
   try {
@@ -87,18 +85,14 @@ export function initialChoice(location = globalThis.location) {
   }
   // introPreference is the stored 下水動畫 setting; intro is what this launch does (introForLaunch()).
   choice.introPreference = choice.intro;
-  choice.introSeen = read(INTRO_SEEN_KEY, '') === '1';
   if (query.has('nointro')) choice.intro = false;
   return choice;
 }
 
-// The launch cinematic plays on the first dive; later dives start in the water unless the player keeps it on
-// (alwaysIntro). The full pre-dive procedure, which the same switch controls, is never skipped this way.
-export function introForLaunch(choice, procedureFull = false) {
-  const preferred = !!(choice.introPreference ?? choice.intro);
-  if (!preferred) return false;
-  if (procedureFull || choice.alwaysIntro) return true;
-  return !choice.introSeen;
+// The launch cinematic opens every dive (the player can skip it while it plays); the 下水動畫 setting turns it off.
+// The full pre-dive procedure follows the same switch, so a procedure dive always opens on deck unless it is off.
+export function introForLaunch(choice) {
+  return !!(choice.introPreference ?? choice.intro);
 }
 
 export function hasLastSession() {
@@ -180,7 +174,6 @@ export function rememberChoice(choice) {
   for (const key of Object.keys(INTERFACE_DEFAULTS)) settings[key] = !!choice[key];
   settings.intro = !!(choice.introPreference ?? choice.intro);
   write('rov.menuSettings', JSON.stringify(settings));
-  if (choice.intro) write(INTRO_SEEN_KEY, '1');
   write('rov.playerName', choice.name.trim() || STRINGS.defaultName);
   write('rov.quality', choice.quality);
   write('rov.operatorVisible', String(settings.pip));

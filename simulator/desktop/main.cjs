@@ -149,7 +149,9 @@ app.whenReady().then(async()=>{
   });
   await window.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent('<html lang="zh-Hant"><meta charset="utf-8"><body style="margin:0;background:#081722;color:#dce8ea;font:18px system-ui;display:grid;place-content:center;height:100vh"><h1>ROV Simulator</h1><p>正在準備模擬環境，首次啟動可能需要一點時間。</p></body></html>'));
   try { await waitReady(http); } catch (error) { await lifecycle.fail(error.message); return; }
-  await window.loadURL(`http://127.0.0.1:${http}/?ws=${encodeURIComponent(`ws://127.0.0.1:${ws}`)}&nointro&model=${preferredModel}&quality=${preferredQuality}`);
+  // The launch menu decides the cinematic per dive (下水動畫 setting and the briefing switch); a ?nointro here would
+  // turn it, and the pre-dive procedure, off for every desktop dive.
+  await window.loadURL(`http://127.0.0.1:${http}/?ws=${encodeURIComponent(`ws://127.0.0.1:${ws}`)}&model=${preferredModel}&quality=${preferredQuality}`);
   if(process.env.ROV_DESKTOP_SMOKE){
     setTimeout(async()=>{
       try {

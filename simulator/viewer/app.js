@@ -21,6 +21,8 @@ import {thrusterLabel} from './hud/thruster_names.js';
 import {installStartPresentation} from './start_presentation.js';
 import {objectiveFade, objectiveNearFade} from './hud/objective_fade.js';
 import {installPhotoFeedback} from './hud/photo_feedback.js';
+import {installIntroSkip} from './play/intro_skip.js';
+import {installOnboarding} from './play/onboarding.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -577,6 +579,7 @@ function onState(m) {
   startPresentation?.update(m, W);
   careerDive.update(m);
   objectiveCard.update(m);
+  onboarding.update(m);
   results.update(m);
   achievements.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
@@ -660,7 +663,8 @@ const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || 
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY,
+const onboarding = installOnboarding({input, readOnly: !!REPLAY});
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
   extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
 
 document.addEventListener('visibilitychange',()=>{
@@ -1080,10 +1084,9 @@ async function startIntro(held = false) {
     heldIntro.release();
   };
 }
-$('skipIntro').onclick = () => intro?.skip();
+installIntroSkip({input, button: $('skipIntro'), skip: () => intro?.skip(), active: introActive});
 let introStarts = 0;
 window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
-addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) { e.preventDefault(); intro.skip(); } });
 async function ensurePip() {
   const on = $('optPip').checked && !params.has('nopip');
   $('pip').hidden = !on;

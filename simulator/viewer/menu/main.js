@@ -17,8 +17,8 @@ import {
   launchUrl,
   rememberChoice,
 } from './preferences.js';
-import { getFidelity } from '../fidelity.js';
-import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
+// Registers the 下水流程 fidelity item so the launch menu's fidelity panel lists it.
+import '../procedure/fidelity_item.js';
 import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTitle } from './screens.js';
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
@@ -400,7 +400,7 @@ const ctx = {
   },
   quickStart() {
     Object.assign(choice, lastSession());
-    choice.intro = introForLaunch(choice, getFidelity().get(PROCEDURE_ITEM) === 'full');
+    choice.intro = introForLaunch(choice);
     launch();
   },
 };

@@ -124,12 +124,14 @@ test("focus moves to the nearest control in the pressed direction", () => {
   assert.equal(nearestInDirection(box(0, 0), items, "left"), null);
 });
 
-test("the launch cinematic plays on the first dive only, unless kept on or the full procedure runs", () => {
-  assert.equal(introForLaunch({ introPreference: true, introSeen: false }), true);
-  assert.equal(introForLaunch({ introPreference: true, introSeen: true }), false);
-  assert.equal(introForLaunch({ introPreference: true, introSeen: true, alwaysIntro: true }), true);
-  assert.equal(introForLaunch({ introPreference: true, introSeen: true }, true), true, "real pre-dive procedure");
-  assert.equal(introForLaunch({ introPreference: false, introSeen: false }), false);
+test("the launch cinematic opens every dive while the 下水動畫 setting is on", () => {
+  // Owner request (2026-11-17): the cinematic is the first impression of every dive, skippable while it plays.
+  assert.equal(introForLaunch({ introPreference: true }), true, "first dive");
+  assert.equal(introForLaunch({ introPreference: true, introSeen: true }), true, "later dives as well");
+  assert.equal(introForLaunch({ introPreference: false }), false, "the setting turns it off");
+  assert.equal(introForLaunch({ intro: true }), true, "a choice without a stored preference");
+  assert.equal(introForLaunch({ intro: false }), false);
+  assert.equal(introForLaunch({ introPreference: false, intro: true }), false, "the stored setting decides");
 });
 
 test("menu and tab parameters of the results screen do not leak into the game URL", () => {

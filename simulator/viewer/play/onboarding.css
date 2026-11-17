@@ -1,0 +1,64 @@
+/* New-player hints (play/onboarding.js), the 操作教學 page of the pause menu and the launch-cinematic skip prompt
+   (play/intro_skip.js). Flight HUD vocabulary: a thin cyan rule, translucent glass, ice-white text. No orange:
+   the safety orange stays reserved for the one primary button of the menus. */
+
+/* ── hint card: lower left of the view, between the minimap and the bottom read-outs, clear of the centre ── */
+.onboarding-hint { position: fixed; left: calc(4% + 200px); bottom: calc(4% + 96px); z-index: var(--z-controls);
+  width: min(320px, 30vw); padding: 12px 14px 12px 16px; color: var(--hud-ink, #eaf4f7);
+  font: 13px var(--f-hud, Inter, "Noto Sans TC", system-ui, sans-serif); border-left: 1px solid var(--accent);
+  background: rgba(4, 14, 20, .66); opacity: 0; transform: translateX(-8px);
+  transition: opacity .3s ease-out, transform .3s ease-out; pointer-events: auto; zoom: var(--rov-ui-scale, 1); }
+.onboarding-hint[hidden] { display: none; }
+.onboarding-hint.visible { opacity: 1; transform: none; }
+.onboarding-hint[data-done=true] { border-left-color: var(--go); }
+.onboarding-hint[data-kind=tip] { border-left-color: var(--warn); }
+.onboarding-hint .ob-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.onboarding-hint .ob-kicker { font-size: 11px; letter-spacing: .14em; color: var(--accent); }
+.onboarding-hint[data-kind=tip] .ob-kicker { color: var(--warn); }
+.onboarding-hint .ob-dismiss { width: 24px; height: 24px; padding: 0; border: 0; background: transparent;
+  color: var(--text-dim); font: 18px/1 system-ui, sans-serif; cursor: pointer; }
+.onboarding-hint .ob-dismiss:hover, .onboarding-hint .ob-dismiss:focus-visible { color: var(--hud-ink, #fff); }
+.onboarding-hint .ob-title { display: block; margin: 4px 0 8px; font-size: 18px; font-weight: 600;
+  letter-spacing: .04em; text-shadow: var(--hud-shadow); }
+.onboarding-hint[data-done=true] .ob-title::after { content: " ✓"; color: var(--go); }
+.onboarding-hint .ob-lines { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.onboarding-hint .ob-lines[hidden] { display: none; }
+.onboarding-hint .ob-lines li, .onboarding-tutorial .ob-line { display: flex; align-items: center; gap: 8px; }
+.onboarding-hint .ob-lines li[data-done=true] { color: var(--go); }
+.onboarding-hint .ob-lines li[data-done=true] .ob-label::after { content: " ✓"; }
+.ob-caps { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.ob-caps svg { display: block; }
+.ob-caps .ob-hold { font-size: 11px; color: var(--text-dim); }
+.ob-caps .ob-cap-name { font-size: 12px; color: var(--text-dim); }
+.onboarding-hint .ob-label { font-size: 14px; }
+.onboarding-hint .ob-body { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-dim); }
+@media (max-width: 900px) {
+  .onboarding-hint { left: 4%; bottom: calc(4% + 180px); width: min(300px, 60vw); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-hint { transition: none; transform: none; }
+}
+
+/* ── 操作教學 (pause menu) ── */
+.pause-tutorial { display: grid; gap: 12px; align-content: start; outline: none; }
+.pause-tutorial[hidden] { display: none; }
+.onboarding-tutorial { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.onboarding-tutorial li { display: grid; gap: 6px; padding-left: 12px; border-left: 1px solid var(--line); }
+.onboarding-tutorial li[data-done=true] { border-left-color: var(--go); }
+.onboarding-tutorial strong { font-size: 15px; }
+.onboarding-tutorial .ob-state { font-size: 11px; letter-spacing: .1em; color: var(--text-dim); }
+.onboarding-tutorial li[data-done=true] .ob-state { color: var(--go); }
+
+/* ── launch cinematic skip prompt: a small caption, the pad hold fills it from the left ── */
+.viewport .skip { display: inline-flex; align-items: center; gap: 8px; right: 4%; bottom: calc(4% + 56px);
+  padding: 6px 12px; border: 0; border-left: 1px solid var(--accent); border-radius: 0;
+  background: linear-gradient(90deg, rgba(95, 224, 208, .28) calc(var(--skip-hold, 0) * 100%),
+    rgba(4, 14, 20, .52) 0);
+  color: var(--hud-ink, #eaf4f7); font: 600 13px var(--f-hud, system-ui, sans-serif); letter-spacing: .04em; }
+.viewport .skip:hover { background: rgba(4, 14, 20, .72); }
+.viewport .skip[hidden] { display: none; }
+.viewport .skip .skip-cap svg { display: block; }
+
+/* The first-dive checklist card waits with the rest of the HUD while the launch cinematic plays. */
+body:has(.viewport.intro) .objective-card { opacity: 0; pointer-events: none; }
