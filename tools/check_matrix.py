@@ -36,6 +36,7 @@ DEFAULT_CHECKS = (
     'browser_results_smoke',
     'browser_objective_card_smoke',
     'browser_career_smoke',
+    'browser_chapter2_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
     'browser_link_smoke',
@@ -59,6 +60,7 @@ BROWSER_PATHS = {
     # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
     'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
                                 'browser_campaign_smoke'),
+    'simulator/viewer/career/': ('browser_career_smoke', 'browser_chapter2_smoke', 'browser_results_smoke'),
 }
 
 

@@ -5,22 +5,16 @@
   "submitPartial": "再按一次：部分交件（約 {pay} 元）",
   "submitAbort": "再按一次：中止作業（不支付報酬）",
   "confirm": "確認：{label}",
+  "report": "回報：{label}",
   "penalties": "扣分項目 {n}",
   "examOn": "執照考核中 · 真實模式",
   "examVoid": "考核期間開啟了超出真機的設定，本次不計入執照。",
   "photoSaved": "照片已存檔，交件後由客戶審閱。",
-  "outcome": {
-    "complete": "委託完成",
-    "partial": "部分交件",
-    "aborted": "中止作業"
-  },
+  "outcome": {"complete": "委託完成", "partial": "部分交件", "aborted": "中止作業"},
   "aborted": "未達部分交件門檻，這次沒有報酬；時數已記入日誌。",
   "broken": "纜線斷裂，載具回收失敗。",
   "partial": "已交出部分成果，按比例支付。",
   "examPassed": "考核通過：{label}",
   "examFailed": "考核未通過：{reason}",
-  "rows": {
-    "deliverables": "交付項目",
-    "time": "作業時間"
-  }
+  "rows": {"deliverables": "交付項目", "time": "作業時間"}
 }

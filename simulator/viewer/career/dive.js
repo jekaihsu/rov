@@ -6,22 +6,26 @@
 // (?exam=1) checks the whole time that nothing beyond the real vehicle is on; if something is, the exam is void.
 import { getFidelity } from '../fidelity.js';
 import { blockFor } from '../fleet_names.js';
+import { localize } from '../i18n/index.js';
 import { formatTime } from '../play/results_model.js';
+import { installChapter2Radio } from './chapter2_radio.js';
 import { loadCareerData } from './data.js';
 import { createTracker } from './deliverables.js';
 import { PHOTO_VERDICT_ITEM } from './fidelity_item.js';
+import { createHoleReport } from './hole_report.js';
 import { contractById, itemLabel } from './rules.js';
 import { loadCareer, storeCareer } from './save.js';
 import { partialAccepted, payout, DELIVERABLE_KIND_LABELS } from './scoring.js';
 import { settleDive } from './settle.js';
 
-const STRINGS = {
+const STRINGS = localize('career.dive', {
   card: 'YX 工單',
   meters: '{d} m',
   submit: '提前交件',
   submitPartial: '再按一次：部分交件（約 {pay} 元）',
   submitAbort: '再按一次：中止作業（不支付報酬）',
   confirm: '確認：{label}',
+  report: '回報：{label}',
   penalties: '扣分項目 {n}',
   examOn: '執照考核中 · 真實模式',
   examVoid: '考核期間開啟了超出真機的設定，本次不計入執照。',
@@ -33,7 +37,7 @@ const STRINGS = {
   examPassed: '考核通過：{label}',
   examFailed: '考核未通過：{reason}',
   rows: { deliverables: '交付項目', time: '作業時間' },
-};
+});
 const PERSIST_MS = 5000;
 const MAX_STEP_S = 1;
 
@@ -105,7 +109,13 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   const actions = element('div', 'career-card-actions');
   const note = element('p', 'objective-feedback');
   note.setAttribute('role', 'status');
-  node.append(radio, subhead, list, status, actions, note);
+  const holeReport = createHoleReport({
+    onSubmit(id, values) {
+      submitReport(id, values);
+    },
+  });
+  node.append(radio, subhead, list, status, actions, holeReport.root, note);
+  let cueRadio = { observe() {}, dispose() {} };
 
   loadCareerData().then(function ready(loaded) {
     data = loaded;
@@ -132,6 +142,9 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     confirmSubmit = false;
     feedback = '';
     dive = null;
+    cueRadio.dispose?.();
+    cueRadio = installChapter2Radio(contract.radio?.cues || []);
+    holeReport.hide();
     radio.replaceChildren(element('strong', '', contract.radio?.speaker || ''), contract.radio?.start || '');
     radio.hidden = !contract.radio?.start;
   }
@@ -190,9 +203,10 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     if (!dive) openDive(state);
     const dt = countTime(state);
     tracker.observe(state, dt);
+    const snapshot = tracker.snapshot();
+    cueRadio.observe(state, snapshot);
     persist();
     if (contract.runtime === 'chapter') return;
-    const snapshot = tracker.snapshot();
     if (snapshot.tetherBroken) settle(true);
     else if (snapshot.complete) settle(false);
   }
@@ -288,6 +302,13 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   function confirmItem(id) {
     tracker?.confirm(id);
   }
+  function submitReport(id, values) {
+    if (!tracker || settled) return null;
+    const result = tracker.report(id, values);
+    feedback = result.message;
+    if (result.ok) holeReport.hide();
+    return result;
+  }
   function distanceText(item, state) {
     const pos = state?.pos;
     if (!item.point || item.done || !Array.isArray(pos)) return '';
@@ -330,6 +351,21 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
       });
       return button;
     });
+    const reporting = snapshot.items.find(function reportable(item) {
+      return item.reportable;
+    });
+    if (reporting) {
+      holeReport.show(reporting);
+      const button = element('button', 'objective-accept', STRINGS.report.replace('{label}', reporting.label));
+      button.type = 'button';
+      button.dataset.report = reporting.id;
+      button.addEventListener('click', function openReport() {
+        holeReport.show(reporting);
+      });
+      buttons.push(button);
+    } else {
+      holeReport.hide();
+    }
     if (contract.runtime !== 'chapter') {
       const button = element('button', 'objective-link', submitLabel(snapshot));
       button.type = 'button';
@@ -417,6 +453,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
       return tracker?.snapshot() || null;
     },
     submit,
+    report: submitReport,
     get settled() {
       return settled;
     },

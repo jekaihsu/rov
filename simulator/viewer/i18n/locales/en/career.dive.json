@@ -1,0 +1,20 @@
+{
+  "card": "YX work order",
+  "meters": "{d} m",
+  "submit": "Hand in early",
+  "submitPartial": "Press again: partial delivery (~{pay})",
+  "submitAbort": "Press again: abort (no pay)",
+  "confirm": "Confirm: {label}",
+  "report": "Report: {label}",
+  "penalties": "Penalty items {n}",
+  "examOn": "Licence exam · real mode",
+  "examVoid": "Assist beyond the real vehicle was on; this exam does not count.",
+  "photoSaved": "Photo saved for client review after hand-in.",
+  "outcome": {"complete": "Contract complete", "partial": "Partial delivery", "aborted": "Aborted"},
+  "aborted": "Below the partial threshold; no pay. Hours are logged.",
+  "broken": "Tether parted; vehicle recovery failed.",
+  "partial": "Partial results handed in; pay is prorated.",
+  "examPassed": "Exam passed: {label}",
+  "examFailed": "Exam failed: {reason}",
+  "rows": {"deliverables": "Deliverables", "time": "Time on task"}
+}

@@ -1,9 +1,10 @@
 // In-dive deliverable tracker of a YX work order: turns the state stream into the contract's checklist —
 // procedure steps, points reached, station keeping, photos with the target in frame, laser-scaler measurements,
-// contact probes (CP / UT), objects lifted with the arm and manual confirmations (LOTO) — plus the contacts,
-// tether overloads, tether wraps and safety violations the score deducts. Pure (no DOM): the dive module feeds it states and photo events.
+// contact probes (CP / UT), objects lifted with the arm, deposits into a basket, net-lap coverage, hole reports
+// (clock bearing + depth) and manual confirmations (LOTO) — plus the contacts, tether overloads, tether wraps and
+// safety violations the score deducts. Pure (no DOM): the dive module feeds it states and photo events.
 // It only reads what the server already sends; scoring here is a presentation layer and never touches physics.
-// Readings (growth thickness, CP potential, wall thickness) are scenario data shown when the work is done.
+// Readings (growth thickness, CP potential, wall thickness, hole reports) are scenario data shown when the work is done.
 
 const STRINGS = {
   offboard: '照片未列入交付：請用機載鏡頭拍攝。',
@@ -20,6 +21,9 @@ const STRINGS = {
   needs: '需要裝備：{item}',
   after: '先完成：{label}',
   last: '完成其他必要項目後回收',
+  reportBad: '方位或深度與破洞不符，再報一次。',
+  reportOk: '破洞回報已記入：{clock} 點鐘 · {depth} m',
+  reportNeed: '請回報時鐘方位與深度',
 };
 // Score points per event: contacts follow qysim/scenarios.py PENALTY; the rest are game values.
 export const PENALTY_POINTS = { touch: 5, hard: 15, severe: 30, overload: 10, wrap: 10 };
@@ -66,6 +70,30 @@ export function aim(state, point) {
   const bearing = Math.atan2(de, dn) * 180 / Math.PI;
   const elevation = Math.atan2(Math.abs(dd), Math.hypot(dn, de)) * 180 / Math.PI;
   return { yaw: Math.abs(wrapDegrees(bearing - heading)), elevation };
+}
+
+/** Clock face on a pen: 12 = +N, 3 = +E. Returns 1–12. */
+export function clockBearing(pos, center = [24, 0]) {
+  const dn = pos[0] - center[0];
+  const de = pos[1] - center[1];
+  const deg = ((Math.atan2(de, dn) * 180 / Math.PI) + 360) % 360;
+  const clock = deg / 30;
+  if (clock < 0.5) return 12;
+  return clock > 12 ? 12 : clock;
+}
+
+/** Absolute hour difference on a 12-hour face (0–6). */
+export function clockDelta(a, b) {
+  const raw = Math.abs(Number(a) - Number(b)) % 12;
+  return raw > 6 ? 12 - raw : raw;
+}
+
+/** Whether a reported clock/depth matches the hole truth within the contract tolerances. */
+export function reportMatches(truth, report, { clockTol = 1, depthTol = 2 } = {}) {
+  if (!truth || !report) return false;
+  const clockOk = clockDelta(truth.clock, report.clock) <= clockTol;
+  const depthOk = Math.abs(Number(truth.depth) - Number(report.depth)) <= depthTol;
+  return clockOk && depthOk;
 }
 
 // Same limit as observation_camera.js: farthest distance a subject still keeps enough contrast.
@@ -122,6 +150,8 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
   }));
   const penalties = [];
   const lifted = new Map();
+  const deposited = new Map();
+  const lapSectors = new Map();
   const seenEvents = new Set();
   const violated = new Set();
   const wrapped = new Set();
@@ -154,10 +184,10 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     else item.progress = Math.max(0, item.progress - dt / seconds * 0.5);
     if (item.progress >= 1) finish(item);
   }
-  function finish(item) {
+  function finish(item, reading) {
     item.done = true;
     item.progress = 1;
-    item.reading = item.def.reading || '';
+    item.reading = reading != null ? reading : (item.def.reading || '');
   }
   function within(state, item, radius) {
     const pos = vector(state.pos);
@@ -184,6 +214,10 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
       hold(item, within(state, item, def.radius || PROBE_CONTACT_M) && speed(state) < PROBE_SPEED, dt);
     } else if (def.kind === 'lift') {
       trackLift(item, state);
+    } else if (def.kind === 'deposit') {
+      trackDeposit(item, state);
+    } else if (def.kind === 'lap') {
+      trackLap(item, state);
     }
   }
   // An object of def.object_kind held by the arm (state.operations) and raised above def.below (depth, m)
@@ -200,6 +234,47 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     const count = item.def.count || 1;
     item.progress = Math.min(1, set.size / count);
     if (set.size >= count) finish(item);
+  }
+  // Released objects of object_kind that sit inside the basket radius count toward the deposit.
+  function trackDeposit(item, state) {
+    const held = state.operations?.arm?.held;
+    const set = deposited.get(item) || new Set();
+    deposited.set(item, set);
+    const point = item.def.point;
+    const radius = item.def.radius || 1.2;
+    for (const object of state.operations?.objects || []) {
+      if (object.kind !== item.def.object_kind) continue;
+      if (object.id === held) continue;
+      if (!Array.isArray(object.pos) || !point) continue;
+      if (distance(object.pos, point) <= radius) set.add(object.id);
+    }
+    const count = item.def.count || 1;
+    item.progress = Math.min(1, set.size / count);
+    if (set.size >= count) finish(item);
+  }
+  // Angular coverage around center while the vehicle stays in the radius and depth band.
+  function trackLap(item, state) {
+    const pos = vector(state.pos);
+    if (!pos) return;
+    const center = item.def.center || [24, 0];
+    const [rMin, rMax] = item.def.radius_range || [19.2, 22.5];
+    const [dMin, dMax] = item.def.depth_range || [3, 14];
+    const sectors = item.def.sectors || 24;
+    const dn = pos[0] - center[0];
+    const de = pos[1] - center[1];
+    const radius = Math.hypot(dn, de);
+    if (radius < rMin || radius > rMax || pos[2] < dMin || pos[2] > dMax) {
+      const set = lapSectors.get(item) || new Set();
+      item.progress = set.size / sectors;
+      return;
+    }
+    const set = lapSectors.get(item) || new Set();
+    lapSectors.set(item, set);
+    const angle = Math.atan2(de, dn);
+    const index = Math.floor(((angle + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2 / sectors));
+    set.add(index);
+    item.progress = set.size / sectors;
+    if (set.size >= sectors) finish(item);
   }
   function trackEvents(state) {
     for (const event of state.events || []) {
@@ -272,6 +347,36 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     finish(item);
     return true;
   }
+  /**
+   * Submit a hole report {clock, depth}. Returns {ok, message, itemId}.
+   * Tolerance comes from the deliverable (clock_tol hours, depth_tol metres).
+   */
+  function report(id, values) {
+    const item = byId.get(id);
+    if (!item || item.def.kind !== 'report' || !workable(item)) {
+      return { ok: false, message: STRINGS.reportNeed, itemId: null };
+    }
+    const truth = item.def.truth || {};
+    const clock = Number(values?.clock);
+    const depth = Number(values?.depth);
+    if (!Number.isFinite(clock) || !Number.isFinite(depth)) {
+      return { ok: false, message: STRINGS.reportNeed, itemId: item.def.id };
+    }
+    const match = reportMatches(truth, { clock, depth }, {
+      clockTol: item.def.clock_tol ?? 1,
+      depthTol: item.def.depth_tol ?? 2,
+    });
+    if (!match) return { ok: false, message: STRINGS.reportBad, itemId: item.def.id };
+    const clockLabel = Math.round(clock);
+    const depthLabel = depth.toFixed(1);
+    const reading = `${clockLabel} 點鐘 · ${depthLabel} m`;
+    finish(item, reading);
+    return {
+      ok: true,
+      message: format(STRINGS.reportOk, { clock: String(clockLabel), depth: depthLabel }),
+      itemId: item.def.id,
+    };
+  }
   function note(item) {
     const equipment = missingEquipment(item);
     if (equipment) return format(STRINGS.needs, { item: itemLabel(equipment) });
@@ -293,6 +398,8 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
         reading: item.reading,
         note: note(item),
         confirmable: item.def.kind === 'confirm' && workable(item),
+        reportable: item.def.kind === 'report' && workable(item),
+        truth: item.def.truth || null,
       };
     });
     const mandatory = list.filter(function isRequired(item) {
@@ -315,5 +422,5 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
       tetherBroken: broken,
     };
   }
-  return { observe, photo, confirm, snapshot };
+  return { observe, photo, confirm, report, snapshot };
 }
