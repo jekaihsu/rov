@@ -1,0 +1,152 @@
+{
+  "acropora_hyacinthus": {
+    "near": {
+      "bytes": 148256,
+      "tris": 3998
+    },
+    "far": {
+      "bytes": 96672,
+      "tris": 798
+    }
+  },
+  "acropora_palmata": {
+    "near": {
+      "bytes": 105724,
+      "tris": 3998
+    },
+    "far": {
+      "bytes": 70224,
+      "tris": 800
+    }
+  },
+  "angelfish": {
+    "near": {
+      "bytes": 116344,
+      "tris": 2299
+    },
+    "far": {
+      "bytes": 113760,
+      "tris": 506
+    }
+  },
+  "barnacle": {
+    "near": {
+      "bytes": 144044,
+      "tris": 1500
+    },
+    "far": {
+      "bytes": 129184,
+      "tris": 300
+    }
+  },
+  "butterflyfish": {
+    "near": {
+      "bytes": 111704,
+      "tris": 2268
+    },
+    "far": {
+      "bytes": 85564,
+      "tris": 480
+    }
+  },
+  "crab": {
+    "near": {
+      "bytes": 159668,
+      "tris": 1487
+    },
+    "far": {
+      "bytes": 114960,
+      "tris": 258
+    }
+  },
+  "cucumber": {
+    "near": {
+      "bytes": 113292,
+      "tris": 1500
+    },
+    "far": {
+      "bytes": 77856,
+      "tris": 300
+    }
+  },
+  "diploria": {
+    "near": {
+      "bytes": 140984,
+      "tris": 3967
+    },
+    "far": {
+      "bytes": 88560,
+      "tris": 765
+    }
+  },
+  "mussel": {
+    "near": {
+      "bytes": 133852,
+      "tris": 1388
+    },
+    "far": {
+      "bytes": 79880,
+      "tris": 300
+    }
+  },
+  "pocillopora": {
+    "near": {
+      "bytes": 144780,
+      "tris": 3997
+    },
+    "far": {
+      "bytes": 96072,
+      "tris": 797
+    }
+  },
+  "porites": {
+    "near": {
+      "bytes": 119456,
+      "tris": 4000
+    },
+    "far": {
+      "bytes": 82944,
+      "tris": 800
+    }
+  },
+  "starfish": {
+    "near": {
+      "bytes": 136844,
+      "tris": 1499
+    },
+    "far": {
+      "bytes": 106608,
+      "tris": 299
+    }
+  },
+  "stripey": {
+    "near": {
+      "bytes": 142960,
+      "tris": 2290
+    },
+    "far": {
+      "bytes": 122764,
+      "tris": 494
+    }
+  },
+  "urchin": {
+    "near": {
+      "bytes": 182808,
+      "tris": 1482
+    },
+    "far": {
+      "bytes": 158316,
+      "tris": 281
+    }
+  },
+  "wrasse": {
+    "near": {
+      "bytes": 111088,
+      "tris": 1916
+    },
+    "far": {
+      "bytes": 114080,
+      "tris": 690
+    }
+  }
+}
