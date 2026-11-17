@@ -99,9 +99,8 @@ class Pilot:
         self.page.evaluate('([i, v]) => { window.__pad.axes[i] = v; }', [index, flip * value])
 
     def stop(self):
-        self.axis('surge', 0)
-        self.axis('yaw', 0)
-        self.axis('heave', 0)
+        for axis in ('surge', 'yaw', 'heave', 'sway'):
+            self.axis(axis, 0)
 
     def hold_depth(self, state, depth):
         """Correct the depth like a pilot taps the vertical control (a stalled page can leave it off the anode)."""
@@ -297,17 +296,46 @@ def snag(run, pilot):
         page.wait_for_function('window.__coldOpen.debug().lines.includes("backOut")', timeout=timeout(90000))
 
 
+def crab(run, pilot, target, done, limit_s, radius=0.6):
+    """Back out without turning, as the radio asks: reverse and side-step towards `target` (north, east)."""
+    deadline = time.monotonic() + timeout(int(limit_s * 1000)) / 1000
+    state = run.state()
+    while time.monotonic() < deadline:
+        state = run.state()
+        if done(state):
+            break
+        ensure_unlocked(run, pilot)
+        north = target[0] - state['pos'][0]
+        east = target[1] - state['pos'][1]
+        if math.hypot(north, east) < radius:
+            break
+        heading = math.radians(state['heading'])
+        ahead = math.cos(heading) * north + math.sin(heading) * east
+        right = -math.sin(heading) * north + math.cos(heading) * east
+        pilot.hold_depth(state, DEPTH)
+        pilot.axis('yaw', 0)
+        pilot.axis('surge', 0 if abs(ahead) < 0.3 else max(-1.0, min(1.0, ahead / 2)))
+        pilot.axis('sway', 0 if abs(right) < 0.3 else max(-1.0, min(1.0, right / 2)))
+        run.frame()
+        run.page.wait_for_timeout(int(STEER_DT * 1000))
+    pilot.stop()
+    return state
+
+
 def back_out(run, pilot):
     page = run.page
     anode = page.evaluate('window.__viewer.W.objectives[0].point')
+    out = math.hypot(anode[0], anode[1])
+    beside = [anode[0] * (1 + 1.2 / out), anode[1] * (1 + 1.2 / out)]
     start = [-12.0, -9.0]
+    free = lambda s: s['beat'] != 'incident'  # noqa: E731
     with without_render(page):
-        steer(run, pilot, anode, lambda s: s['beat'] != 'incident', 30, radius=1.5, reverse=True)
+        crab(run, pilot, beside, free, 15, radius=1.5)
     run.shot('06-backing-out')
     with without_render(page):
-        state = steer(run, pilot, anode, lambda s: s['beat'] != 'incident', 120, radius=0.6, reverse=True)
+        state = crab(run, pilot, beside, free, 90)
         if state['beat'] == 'incident':
-            steer(run, pilot, start, lambda s: s['beat'] != 'incident', 120, radius=0.6, reverse=True)
+            crab(run, pilot, start, free, 90)
     run.wait_beat(['relief', 'fade', 'card'], 120000)
     outcome = page.evaluate('window.__coldOpen.debug().outcome')
     assert outcome['released'] and not outcome['broken'], outcome

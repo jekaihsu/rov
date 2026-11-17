@@ -80,6 +80,8 @@ const CARD_MS = 4800;
 const ESTABLISH_ARC = Object.freeze({from: 1.3, to: 2.85, radiusFrom: 5.5, radiusTo: 2.4, liftFrom: -0.2,
   liftTo: 0.75});
 const CINE_FOV = 46;
+const TENSION_HOLD_S = 3;
+const CUT_SETTLE_S = 0.6;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -171,13 +173,14 @@ export function installColdOpen({
   let lampsSet = false;
   let unlockedOnce = false;
   let cineMode = false;
+  let cutAt = -Infinity;
   let hintSignature = '';
   let lastCue = '';
   const log = [];
   const report = {beats: [], lines: log, hints: [], outcome: null, mode};
   window.__coldOpen = {
     controls: () => ({surge: axisControl('surge'), yaw: axisControl('yaw'), heave: axisControl('heave'),
-      photo: actionControl('photo')}),
+      sway: axisControl('sway'), photo: actionControl('photo')}),
     debug: () => ({beat: view?.beat || 'waiting', reveal: view?.reveal || [], hint: view?.hint || null,
       outcome: view?.outcome || null, lines: log.map(function id(entry) {
         return entry.id;
@@ -322,8 +325,15 @@ export function installColdOpen({
     const flying = ['approach', 'payoff', 'transit', 'incident'].includes(next.beat);
     return flying && unlockedOnce && state?.locked ? 'unlock' : null;
   }
+  // The read-out holds its peak for a few seconds, like a deck tension meter, so a spike is readable.
+  const peaks = [];
   function renderTension(s) {
-    const value = Math.round(s?.tether?.tension_rov || 0);
+    const time = now();
+    peaks.push([time, s?.tether?.tension_rov || 0]);
+    while (peaks.length && time - peaks[0][0] > TENSION_HOLD_S) peaks.shift();
+    const value = Math.round(peaks.reduce(function highest(most, [, tension]) {
+      return Math.max(most, tension);
+    }, 0));
     const text = `${STRINGS.tension} ${value} N`;
     if (tension.textContent !== text) tension.textContent = text;
     tension.dataset.tone = value >= TIMING.pullTension ? 'warn' : '';
@@ -353,6 +363,13 @@ export function installColdOpen({
     lastCue = name;
     music?.cue?.(name);
   }
+  // A short dip to black on the cut from the establishing shot to the onboard camera, so the rig's blend between the
+  // two poses (through the lamp beams) is never seen.
+  function cutDip() {
+    const since = now() - cutAt;
+    if (since < 0 || since > CUT_SETTLE_S) return 0;
+    return since < CUT_SETTLE_S / 2 ? 1 : 2 - 2 * since / CUT_SETTLE_S;
+  }
   function applyView(next) {
     const before = view?.beat;
     view = next;
@@ -361,9 +378,20 @@ export function installColdOpen({
       body.dataset.coldBeat = next.beat;
     }
     enqueue(next.said);
-    black.style.opacity = String(next.black);
+    if (next.cinematic && !cineMode) {
+      cineMode = true;
+      setCam?.('cine');
+    } else if (!next.cinematic && cineMode) {
+      cineMode = false;
+      cutAt = now();
+      setCam?.('onboard');
+    }
+    const dip = cutDip();
+    black.style.transition = dip > 0 ? 'none' : '';
+    black.style.opacity = String(Math.max(next.black, dip));
     root.classList.toggle('letterbox', next.letterbox);
-    body.classList.toggle('cold-open-cinematic', next.cinematic);
+    // The HUD stays hidden a moment past the cut, until the camera rig has settled on the onboard view.
+    body.classList.toggle('cold-open-cinematic', next.cinematic || cineMode || now() - cutAt < CUT_SETTLE_S);
     superCard.classList.toggle('visible', next.beat === 'establish' && now() > TIMING.black + 1.2);
     stamp.classList.toggle('visible', next.beat === 'payoff');
     tension.classList.toggle('visible', next.reveal.includes('tether') && !next.ended);
@@ -372,13 +400,6 @@ export function installColdOpen({
     if (next.cinematic) cue('cinematic');
     else if (next.ended) cue('flashback');
     else cue(null);
-    if (next.cinematic && !cineMode) {
-      cineMode = true;
-      setCam?.('cine');
-    } else if (!next.cinematic && cineMode) {
-      cineMode = false;
-      setCam?.('onboard');
-    }
     if (skipButton && skippable) skipButton.hidden = next.ended;
     if (next.ended && !ended) end();
   }

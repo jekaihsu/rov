@@ -27,7 +27,7 @@ export const TIMING = Object.freeze({
   pullCall: 7.0,           // s between two tension calls
   pullTension: 40,         // N: the tender calls it out above this
   releaseConfirm: 1.5,     // s with no snag before it counts as free
-  incidentLimit: 80,
+  incidentLimit: 100,
   relief: 6.5,
   fade: 2.0,
   stickInput: 0.15,        // stick deflection (0..1) above which the pilot counts as flying
