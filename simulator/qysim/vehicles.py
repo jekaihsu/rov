@@ -1,10 +1,12 @@
-"""Vehicle catalogue. FRD metres about CG; hydrodynamics are engineering estimates.
+"""Vehicle catalogue. FRD metres about CG.
 
-Topology references: Blue Robotics Heavy configuration (four vectored + four
-vertical), Saab Seaeye Falcon (four horizontal + one vertical). These models
-are visual reconstructions, not manufacturer CAD or certified digital twins.
+X1 hydrodynamics are provisional. The heavy catalogue entry uses the published
+coefficients in ``model_o.py``. The remaining entry is still an engineering
+estimate. These models are visual reconstructions, not certified digital twins.
 """
 from dataclasses import asdict, dataclass, replace
+
+from .model_o import MODEL_O_PARAMS
 
 # Canonical provisional X1 values and evidence levels; no measured data yet.
 X1_PARAMETERS = {'mass': {'value': 30.0, 'level': 'official', 'source': 'real-rov-research.md: X1 官方 ≤30 kg（此處取上限）'},
@@ -212,9 +214,7 @@ VEHICLE_DEFINITIONS = {
         **{key: item["value"] for key, item in X1_PARAMETERS.items()
            if key not in X1_PHYSICS_KEYS}),
     "bluerov2_heavy": VehicleDefinition("bluerov2_heavy", "BlueROV2 Heavy", "models/bluerov2_heavy.glb",
-        dict(mass=13.5, net_buoyancy=1.5, gm=.055, added_mass=(7., 10., 13.),
-             inertia=(.7, .9, 1.), thruster_max=50., motor_tau=.12,
-             vmax=(1.5, 1.0, .8), wmax=(1.1, 1., 1.2), linear_drag=(7., 10., 12., 1., 1., 1.)),
+        dict(MODEL_O_PARAMS),
         vectored(.18, .20) + tuple((f"T{i+5} VERTICAL", (x*.13, y*.24, -.11), (0., 0., -1.))
                                   for i, (x, y) in enumerate(((1, -1), (1, 1), (-1, -1), (-1, 1)))),
         ((-.17, 0., 0.), (.17, 0., 0.)), .24,
@@ -247,6 +247,7 @@ def vehicle_catalogue():
 # Offline reference profile, deliberately excluded from the operator catalogue.
 # Source: von Benzon 2022 Appendix A (see docs/rov-dynamics-research.md).
 # Motor axis signs are paired, unlike the visually reoriented legacy geometry.
+# Must stay a distinct object: only the catalogue instance uses the published PWM map.
 _heavy = VEHICLE_DEFINITIONS["bluerov2_heavy"]
 BENCHMARK_HEAVY = replace(
     _heavy,
