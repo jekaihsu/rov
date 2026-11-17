@@ -681,10 +681,15 @@ class FleetBuilder:
             jaw.location = (0.0, -0.075, 0.0)
             jaw['arm_node'] = f'arm_jaw_{label}'
             finger = box_local((0.07, 0.012, 0.016))
-            # Shift the finger forward of the jaw origin (FRD +X is blender -Y).
+            # Jaw frame: blender -Y is forward, toward arm_tip. Keep the mesh local to the
+            # jaw. parent() would freeze the world pose, which leaves the fingers at the arm base.
             shifted = [(v[0], v[1] - 0.04, v[2]) for v in finger[0]]
-            mesh_obj = self.add('jaw', shifted, finger[1], 'polymer', at_matrix(base), unique=True)
-            self.parent(mesh_obj, jaw)
+            mesh_obj = self.add('jaw', shifted, finger[1], 'polymer', Matrix.Identity(4), unique=True)
+            mesh_obj.parent = jaw
+            mesh_obj.matrix_parent_inverse = Matrix.Identity(4)
+            mesh_obj.location = (0.0, 0.0, 0.0)
+            mesh_obj.rotation_euler = (0.0, 0.0, 0.0)
+            mesh_obj.scale = (1.0, 1.0, 1.0)
         pedestal = lathe([(0.04, 0.0), (0.04, 0.03), (0.02, 0.04)], max(6, sides))
         ped = self.add('pedestal', pedestal[0], pedestal[1], 'polymer',
                        axis_matrix(base, (0.0, 0.0, -1.0)), unique=True)

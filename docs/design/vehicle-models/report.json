@@ -104,7 +104,7 @@
     "falcon": [
       {
         "file": "falcon.glb",
-        "bytes": 384860,
+        "bytes": 384780,
         "triangles": 16884,
         "meshes": 179,
         "nodes": 259,
@@ -120,7 +120,7 @@
       },
       {
         "file": "falcon_lod1.glb",
-        "bytes": 80136,
+        "bytes": 80056,
         "triangles": 4078,
         "meshes": 34,
         "nodes": 88,
@@ -136,7 +136,7 @@
       },
       {
         "file": "falcon_lod2.glb",
-        "bytes": 56040,
+        "bytes": 55960,
         "triangles": 2118,
         "meshes": 27,
         "nodes": 63,

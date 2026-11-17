@@ -138,6 +138,18 @@ class TestYxVehicleAssets(unittest.TestCase):
             np.testing.assert_allclose(by_name['arm_yaw']['translation'], [0.12, -0.40, 0.30], atol=1e-6)
             for joint, length in (('arm_elbow', 0.32), ('arm_wrist', 0.30), ('arm_tip', 0.12)):
                 np.testing.assert_allclose(by_name[joint]['translation'], [0, 0, length], atol=1e-6)
+            for name in files_for('falcon'):
+                with self.subTest(file=name):
+                    lodged, _raw = read_glb(name)
+                    lodged_by_name = {node.get('name'): node for node in lodged['nodes']}
+                    for label in ('arm_jaw_left', 'arm_jaw_right'):
+                        children = lodged_by_name[label].get('children', [])
+                        self.assertTrue(children, label)
+                        for child in children:
+                            finger = lodged['nodes'][child]
+                            self.assertIn('mesh', finger)
+                            offset = finger.get('translation', [0, 0, 0])
+                            self.assertLess(float(np.linalg.norm(offset)), 0.05)
 
     def test_mesh_count_and_no_brand_strings(self):
         for model_id, stem, _count in FLEET:

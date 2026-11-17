@@ -22,9 +22,9 @@ quantize, so rotor pivots stay on the physics points). Counts below are from
 | Model O | 0 | `bluerov2_heavy.glb` | 21312 | 432712 |
 | Model O | 1 | `bluerov2_heavy_lod1.glb` | 5332 | 79684 |
 | Model O | 2 | `bluerov2_heavy_lod2.glb` | 2728 | 54944 |
-| Model V | 0 | `falcon.glb` | 16884 | 384860 |
-| Model V | 1 | `falcon_lod1.glb` | 4078 | 80136 |
-| Model V | 2 | `falcon_lod2.glb` | 2118 | 56040 |
+| Model V | 0 | `falcon.glb` | 16884 | 384780 |
+| Model V | 1 | `falcon_lod1.glb` | 4078 | 80056 |
+| Model V | 2 | `falcon_lod2.glb` | 2118 | 55960 |
 
 Budgets: near ≤ 40k, mid ≤ 12k, far ≤ 3k triangles, each file ≤ 1.5 MB. The viewer loads
 all three levels (`vehicle_models.js`). Peers start at LOD1. Model R static parts are
