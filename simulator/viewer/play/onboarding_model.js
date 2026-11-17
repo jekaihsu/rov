@@ -112,7 +112,8 @@ function depthSwitch(state) {
 
 function observeDepth(progress, tracker, state, done) {
   const on = depthSwitch(state);
-  if (tracker.depth === null) tracker.depth = on;
+  // Until the pilot first unlocks, the switch follows the launch defaults and resynchronisation, not the pilot.
+  if (tracker.depth === null || state.locked !== false) tracker.depth = on;
   if (on !== tracker.depth) tracker.depthChanged = true;
   tracker.depth = on;
   // Done once the pilot has used the switch and depth hold is on again, so the lesson never leaves it off.

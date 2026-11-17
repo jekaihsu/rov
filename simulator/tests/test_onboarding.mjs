@@ -78,24 +78,26 @@ test("move ticks off surge, yaw and heave after sustained stick input in the ope
 test("only the pilot's depth-hold switch counts, not the simulator dropping the hold by itself", () => {
   const progress = loadProgress(memoryStorage());
   const tracker = createTracker();
-  observe(progress, tracker, state({ t: 0, keep_depth: true, rc: { keep_depth: 1 } }));
-  observe(progress, tracker, state({ t: 0.1, keep_depth: false, rc: { keep_depth: 1 } }));
-  observe(progress, tracker, state({ t: 0.2, keep_depth: true, rc: { keep_depth: 1 } }));
+  observe(progress, tracker, state({ t: 0, rc: { keep_depth: 0 } }));
+  observe(progress, tracker, state({ t: 0.05, rc: { keep_depth: 1 } }));
+  assert.equal(progress.steps.depth, false, "launch defaults while locked are not the pilot");
+  observe(progress, tracker, state({ t: 0.1, locked: false, keep_depth: false, rc: { keep_depth: 1 } }));
+  observe(progress, tracker, state({ t: 0.2, locked: false, keep_depth: true, rc: { keep_depth: 1 } }));
   assert.equal(progress.steps.depth, false);
-  observe(progress, tracker, state({ t: 0.3, keep_depth: false, rc: { keep_depth: 0 } }));
-  observe(progress, tracker, state({ t: 0.4, keep_depth: true, rc: { keep_depth: 1 } }));
+  observe(progress, tracker, state({ t: 0.3, locked: false, keep_depth: false, rc: { keep_depth: 0 } }));
+  observe(progress, tracker, state({ t: 0.4, locked: false, keep_depth: true, rc: { keep_depth: 1 } }));
   assert.equal(progress.steps.depth, true);
 });
 
 test("depth hold is learnt by using the switch and ends with depth hold on", () => {
   const progress = loadProgress(memoryStorage());
   const tracker = createTracker();
-  observe(progress, tracker, state({ t: 0, keep_depth: true }));
-  observe(progress, tracker, state({ t: 0.1, keep_depth: true }));
+  observe(progress, tracker, state({ t: 0, locked: false, keep_depth: true }));
+  observe(progress, tracker, state({ t: 0.1, locked: false, keep_depth: true }));
   assert.equal(progress.steps.depth, false, "already on is not a lesson");
-  observe(progress, tracker, state({ t: 0.2, keep_depth: false }));
+  observe(progress, tracker, state({ t: 0.2, locked: false, keep_depth: false }));
   assert.equal(progress.steps.depth, false, "switched off is not finished");
-  observe(progress, tracker, state({ t: 0.3, keep_depth: true }));
+  observe(progress, tracker, state({ t: 0.3, locked: false, keep_depth: true }));
   assert.equal(progress.steps.depth, true);
 });
 
