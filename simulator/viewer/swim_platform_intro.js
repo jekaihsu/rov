@@ -28,11 +28,20 @@ function outwardCable(material, options) {
 
 export class SwimPlatformIntro extends DeployIntro {
   static async loadAssets(base = 'models/') {
-    const [boat, human] = await Promise.all([
+    const [boat, human, ring] = await Promise.all([
       loadGLTF(base + 'small_boat.glb'),
       Humanoid.load(base + 'worker.glb'),
+      loadGLTF(base + 'boat/lifebuoy.glb').catch(function missing() { return null; }),
     ]);
-    return { boat: boat.scene, human };
+    const root = boat.scene;
+    if (ring) {
+      const slot = root.getObjectByName('lifebuoy_slot') || root;
+      const prop = ring.scene;
+      prop.name = 'Lifebuoy';
+      slot.add(prop);
+      prop.rotation.set(0.14, -0.1, Math.PI / 2);
+    }
+    return { boat: root, human };
   }
 
   constructor(scene, options) {

@@ -152,7 +152,8 @@ function careerParams(url, choice) {
 // The game URL for a choice. Parameters the menu does not own (fidelity, cam, gimbal, …) pass through.
 export function launchUrl(href, choice, pageProtocol = 'http:') {
   const url = new URL(href);
-  for (const name of ['replay', 'menu', 'tab']) url.searchParams.delete(name);
+  // Menu-only staging must not leak into the dive URL (dusk sky, boat stage).
+  for (const name of ['replay', 'menu', 'tab', 'menuStage']) url.searchParams.delete(name);
   url.searchParams.set('play', '1');
   url.searchParams.set('model', choice.model);
   url.searchParams.set('ws', normaliseServer(choice.server, pageProtocol));

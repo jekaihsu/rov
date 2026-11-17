@@ -7,6 +7,7 @@ import {applyVehicleSticker} from '../vehicle_stickers.js';
 import {createDaylight} from '../fx/daylight.js';
 import {buildSurfaceSet} from '../surface_set.js';
 import {configureRenderQuality} from '../render_quality.js';
+import {createFrameGate} from '../prefs/display.js';
 
 const ROUTES = {
   title: 'platform', main: 'cockpit', modes: 'cockpit', briefing: 'cockpit',
@@ -37,10 +38,16 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
   let last = performance.now();
   let frameId;
   let snap = true;
+  let buoy;
+  const skipFrame = createFrameGate();
   const eye = new THREE.Vector3();
   const look = new THREE.Vector3();
   const target = new THREE.Vector3();
-  const ready = loadGLTF('models/small_boat.glb').then(async function loaded(asset) {
+  const ready = Promise.all([
+    loadGLTF('models/small_boat.glb'),
+    loadGLTF('models/boat/ocean_buoy.glb').catch(function missing() { return null; }),
+    loadGLTF('models/boat/lifebuoy.glb').catch(function missing() { return null; }),
+  ]).then(async function loaded([asset, buoyAsset, ringAsset]) {
     boat = asset.scene;
     // Stand off from the inspected foundation; the menu boat must not sit inside its legs.
     boat.position.set(-25, 0, -45);
@@ -53,6 +60,25 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
         if (/screen_|photo_wall_|frame_licence/.test(node.name)) node.material.side = THREE.DoubleSide;
       }
     });
+    if (ringAsset) {
+      const ring = ringAsset.scene;
+      ring.name = 'Lifebuoy';
+      const slot = boat.getObjectByName('lifebuoy_slot') || boat;
+      slot.add(ring);
+      ring.rotation.set(0.14, -0.1, Math.PI / 2);
+    }
+    if (buoyAsset) {
+      buoy = buoyAsset.scene;
+      buoy.name = 'OceanBuoy';
+      // Poly Haven buoy is ~2.7 m tall; keep full scale beside the boat in open water.
+      const slot = boat.getObjectByName('buoy_slot');
+      const world = new THREE.Vector3();
+      if (slot) slot.getWorldPosition(world);
+      else world.set(-22, 0, -48);
+      buoy.position.copy(world);
+      buoy.position.y = 0;
+      scene.add(buoy);
+    }
     releaseSurfaces = await dressBoatSurfaces(boat);
     state.sceneReady = true;
   });
@@ -117,6 +143,10 @@ export function createBoatStage(host, {quality = 'auto'} = {}) {
   }
   function frame(now) {
     if (disposed) return;
+    if (skipFrame(now)) {
+      frameId = requestAnimationFrame(frame);
+      return;
+    }
     const dt = Math.min(.1, (now - last) / 1000);
     last = now;
     if (boat) {

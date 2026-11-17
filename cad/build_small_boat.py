@@ -1,9 +1,14 @@
 """Original swim-platform stern, metres, Blender Z up; no reference image input.
 
+Materials: CC0 Poly Haven / ambientCG scans from simulator/viewer/models/boat/ (teak, gelcoat paint,
+diamond plate) plus rust/coating copies; rebuild those with simulator/tools/build_boat_scan_materials.py.
+Hull and deck geometry remain original procedural work. Lifebuoy prop is appended from the CC0 Poly Haven
+model (stencil text scrubbed at build time).
+
 blender -b --python cad/build_small_boat.py -- /tmp/small_boat.glb
 python -c "from simulator.tools.build_support_assets import compress; from pathlib import Path; \
 compress(Path('/tmp/small_boat.glb'), Path('simulator/viewer/models/small_boat.glb'), ())"
-No .blend is saved. Geometry/texture copyright dedicated to CC0 by this contribution.
+No .blend is saved. Geometry copyright dedicated to CC0 by this contribution.
 """
 import math
 import sys
@@ -15,6 +20,30 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import support_assets_lib as kit
+
+ROOT = Path(__file__).resolve().parents[1]
+BOAT_MATS = ROOT / 'simulator/viewer/models/boat'
+def scan_textures(stem):
+    """Load boat/ WebP maps (base + normal; roughness lives in the normal map's alpha)."""
+    from PIL import Image
+
+    base = BOAT_MATS / f'{stem}_c.webp'
+    normal = BOAT_MATS / f'{stem}_n.webp'
+    if not base.is_file():
+        raise FileNotFoundError(f'Missing {base}; run simulator/tools/build_boat_scan_materials.py first')
+    work = Path(bpy.app.tempdir)
+    # Blender's image loader is happier with PNG paths for the ORM split.
+    base_png = work / f'{stem}_c.png'
+    normal_png = work / f'{stem}_n.png'
+    orm_png = work / f'{stem}_orm.png'
+    Image.open(base).convert('RGB').save(base_png)
+    n_img = Image.open(normal).convert('RGBA')
+    n_img.save(normal_png)
+    alpha = np.asarray(n_img.split()[-1], dtype=np.uint8)
+    orm = np.zeros((alpha.shape[0], alpha.shape[1], 3), dtype=np.uint8)
+    orm[..., 1] = alpha
+    Image.fromarray(orm, 'RGB').save(orm_png)
+    return {'base': base_png, 'normal': normal_png, 'orm': orm_png}
 
 
 def build(output):
@@ -41,20 +70,20 @@ def build(output):
     def tube(part, points, radius=0.02):
         part.add_bmesh(kit.sweep([point(p) for p in points], radius=radius, seg=10))
 
-    paint = kit.worn_paint_set(Path(output).parent, 'boat_gelcoat', size=512, seed=83, streaks=0.65)
-    white = kit.Part('Fibreglass', kit.make_material('Gelcoat', (0.88, 0.9, 0.89),
-                     rough=0.36, textures=paint))
+    paint = scan_textures('paint')
+    plate = scan_textures('plate')
+    teak = scan_textures('teak')
+    rust = scan_textures('rust')
+    white = kit.Part('Fibreglass', kit.make_material('Gelcoat', (0.92, 0.93, 0.91),
+                     rough=0.34, textures=paint), uv_tile=1.6)
     dark = kit.Part('SeamsAndRubber', kit.make_material('Rubber', (0.018, 0.024, 0.028), rough=0.8))
     steel = kit.Part('Stainless', kit.make_material('Stainless', (0.55, 0.61, 0.65), metal=0.65, rough=0.22))
+    rusty = kit.Part('RustAccents', kit.make_material('Rust', (1, 1, 1), rough=0.85, textures=rust), uv_tile=0.7)
     yellow = kit.Part('CoiledUmbilical', kit.make_material('FluorescentLime', (0.65, 0.95, 0.005), rough=0.45))
     rope = kit.Part('SafetyLanyard', kit.make_material('WovenSafetyLine', (0.14, 0.19, 0.24), rough=0.9))
-    tex = Path(output).with_suffix('.teak.png')
-    rng = np.random.default_rng(3)
-    grain = rng.random((512, 64))
-    grain = np.repeat(grain, 8, axis=1)
-    rgb = np.stack([0.67 + grain * 0.1, 0.38 + grain * 0.08, 0.17 + grain * 0.05], axis=-1)
-    kit.save_image(tex, rgb)
-    wood = kit.Part('TeakPlanks', kit.make_material('Teak', (1, 1, 1), rough=0.65, textures={'base': tex}), uv_tile=1)
+    wood = kit.Part('TeakPlanks', kit.make_material('Teak', (1, 1, 1), rough=0.62, textures=teak), uv_tile=1.2)
+    grip = kit.Part('NonSlip', kit.make_material('NonSlipPlate', (1, 1, 1), rough=0.9, metal=0.35,
+                    textures=plate), uv_tile=0.55)
     # Hard-chine hull: fine bow entry, flared topsides and a closed transom.
     sections = [(-1.05, 1.65), (0, 1.67), (1.8, 1.6), (3.2, 1.38), (4.5, 0.85), (5.6, 0.025)]
     hull = bmesh.new()
@@ -65,21 +94,23 @@ def build(output):
             (0, -.85, z), (width * .62, -.65, z), (width * .92, -.15, z), (width, .95, z)]])
     for a, b in zip(rings, rings[1:]):
         for i in range(6):
-            hull.faces.new([a[i], b[i], b[i+1], a[i+1]])
+            hull.faces.new([a[i], b[i], b[i + 1], a[i + 1]])
     hull.faces.new(rings[0][::-1])
     hull.faces.new(rings[-1])
     bmesh.ops.recalc_face_normals(hull, faces=list(hull.faces))
     white.add_bmesh(hull)
     box(white, (3.12, .12, 4.2), (0, .24, 1.05))
     for side in (-1, 1):
-        tube(dark, [(side*w, .87, z) for z,w in sections], .045)
-        tube(steel, [(side*w, 1.28, z) for z,w in sections[1:]], .022)
-        for z,w in sections[1:-1]:
-            tube(steel, [(side*w, .94, z), (side*w, 1.28, z)], .018)
+        tube(dark, [(side * w, .87, z) for z, w in sections], .045)
+        tube(steel, [(side * w, 1.28, z) for z, w in sections[1:]], .022)
+        for z, w in sections[1:-1]:
+            tube(steel, [(side * w, .94, z), (side * w, 1.28, z)], .018)
+        # Light rust weep under the gunwale and on the transom corners.
+        box(rusty, (0.08, 0.02, 0.35), (side * 1.55, 0.88, -1.7), 0.01)
     # Foredeck tapers with the bow rather than extending as a rectangular platform.
     deck = bmesh.new()
-    ring = [deck.verts.new(point((side*w, .96, z)))
-            for side, seq in [(1, sections[3:]), (-1, sections[3:][::-1])] for z,w in seq]
+    ring = [deck.verts.new(point((side * w, .96, z)))
+            for side, seq in [(1, sections[3:]), (-1, sections[3:][::-1])] for z, w in seq]
     deck.faces.new(ring)
     white.add_bmesh(deck)
     box(white, (3.4, 0.18, 2.0), (0, 0.17, -1.9), 0.15)
@@ -110,7 +141,7 @@ def build(output):
     tube(yellow, [points[-1], (1.25, 0.31, -1.7), (0.7, 0.31, -2.5)], 0.008)
     tube(dark, [(0.7, 0.32, -2.5), (0.7, 0.32, -2.88)], 0.02)
     tube(rope, [(-1.55, .37, -1.1), (-1.35, .31, -1.6), (-1.1, .31, -1.7),
-                 (-1.22, .31, -1.3), (-1.55, .37, -1.1)], .012)
+                (-1.22, .31, -1.3), (-1.55, .37, -1.1)], .012)
     tube(steel, [(-1.6, .32, -1.1), (-1.6, .39, -1.1), (-1.5, .39, -1.1),
                  (-1.5, .32, -1.1)], .016)
     # Engine well and transom wings leave the central manual launch lane clear.
@@ -120,7 +151,7 @@ def build(output):
     tube(steel, [(1.95, -.68, -1.05), (1.95, -.68, -1.4)], .075)
     for i in range(3):
         a = i * math.tau / 3
-        tube(dark, [(1.95, -.68, -1.4), (1.95+.2*math.cos(a), -.68+.2*math.sin(a), -1.4)], .045)
+        tube(dark, [(1.95, -.68, -1.4), (1.95 + .2 * math.cos(a), -.68 + .2 * math.sin(a), -1.4)], .045)
     # Console, sloping windshield, helm, seat and the port chart table.
     box(white, (1.22, .85, .6), (.65, .72, 2.1))
     box(dark, (1.18, .08, .64), (.65, 1.17, 2.1))
@@ -131,66 +162,68 @@ def build(output):
     tube(steel, [(-1.4, 1.95, 2.5), (1.4, 1.95, 2.5)], .025)
     steel.add_bmesh(kit.torus(.22, .018, center=point((.72, 1.13, 1.72)), axis=(0, 1, .4)))
     for i in range(3):
-        a = i*math.tau/3
-        tube(steel, [(.72,1.13,1.72), (.72+.21*math.cos(a),1.13+.21*math.sin(a),1.72)], .012)
+        a = i * math.tau / 3
+        tube(steel, [(.72, 1.13, 1.72), (.72 + .21 * math.cos(a), 1.13 + .21 * math.sin(a), 1.72)], .012)
     box(steel, (.13, .58, .13), (.7, .56, .95))
     box(dark, (.65, .13, .62), (.7, .87, .95), .025)
     box(dark, (.65, .53, .1), (.7, 1.15, .65), .025)
     box(wood, (1.02, .07, 1.3), (-.85, .96, 1.48))
     for z in (1, 1.95):
-        tube(steel, [(-.85,.3,z), (-.85,.94,z)], .035)
+        tube(steel, [(-.85, .3, z), (-.85, .94, z)], .035)
     # Open rugged controller case and portable accessories; no baked language or logos.
     box(dark, (.75, .13, .45), (.15, 1.25, 2.05))
     box(dark, (.75, .48, .07), (.15, 1.51, 2.29))
     for x in (-.1, .4):
-        tube(steel, [(x,1.32,2), (x,1.43,2)], .025)
-        box(dark, (.09,.04,.09), (x,1.44,2))
-    box(dark, (.12,.24,.065), (1.04,1.33,2.12))
-    tube(dark, [(1.04,1.44,2.12),(1.04,1.69,2.12)], .008)
-    tube(steel, [(1.18,1.21,1.93),(1.18,1.47,1.93)], .055)
-    box(dark, (.5,.035,.65), (-.85,1.02,1.35))
-    box(white, (.46,.018,.61), (-.85,1.045,1.35))
-    tube(steel, [(-.5,1.02,1.2),(-.5,1.02,1.5)], .008)
-    box(white, (.06,1.15,1.5), (-1.39,1.48,1.45))
+        tube(steel, [(x, 1.32, 2), (x, 1.43, 2)], .025)
+        box(dark, (.09, .04, .09), (x, 1.44, 2))
+    box(dark, (.12, .24, .065), (1.04, 1.33, 2.12))
+    tube(dark, [(1.04, 1.44, 2.12), (1.04, 1.69, 2.12)], .008)
+    tube(steel, [(1.18, 1.21, 1.93), (1.18, 1.47, 1.93)], .055)
+    box(dark, (.5, .035, .65), (-.85, 1.02, 1.35))
+    box(white, (.46, .018, .61), (-.85, 1.045, 1.35))
+    tube(steel, [(-.5, 1.02, 1.2), (-.5, 1.02, 1.5)], .008)
+    box(white, (.06, 1.15, 1.5), (-1.39, 1.48, 1.45))
     # UV 0-1 replaceable display surfaces, kept as separate named meshes.
     blank = kit.save_image(Path(output).with_suffix('.display.png'), np.ones((2, 2, 3)) * .8)
 
     def plane(name, center, width, height, vertical=True):
         mesh = bpy.data.meshes.new(name)
-        x,y,z = center
-        coords = [(x-width/2,y-height/2,z),(x+width/2,y-height/2,z),
-                  (x+width/2,y+height/2,z),(x-width/2,y+height/2,z)]
+        x, y, z = center
+        coords = [(x - width / 2, y - height / 2, z), (x + width / 2, y - height / 2, z),
+                  (x + width / 2, y + height / 2, z), (x - width / 2, y + height / 2, z)]
         if not vertical:
-            coords = [(x-width/2,y,z-height/2),(x+width/2,y,z-height/2),
-                      (x+width/2,y,z+height/2),(x-width/2,y,z+height/2)]
-        mesh.from_pydata([point(v) for v in coords], [], [(0,1,2,3)])
+            coords = [(x - width / 2, y, z - height / 2), (x + width / 2, y, z - height / 2),
+                      (x + width / 2, y, z + height / 2), (x - width / 2, y, z + height / 2)]
+        mesh.from_pydata([point(v) for v in coords], [], [(0, 1, 2, 3)])
         uv = mesh.uv_layers.new()
-        for loop, xy in zip(uv.data, [(0,0),(1,0),(1,1),(0,1)]):
+        for loop, xy in zip(uv.data, [(0, 0), (1, 0), (1, 1), (0, 1)]):
             loop.uv = xy
-        mesh.materials.append(kit.make_material(name, (.12,.24,.29), rough=.5, textures={'base': blank}))
-        ob = bpy.data.objects.new(name,mesh)
+        mesh.materials.append(kit.make_material(name, (.12, .24, .29), rough=.5, textures={'base': blank}))
+        ob = bpy.data.objects.new(name, mesh)
         collection.objects.link(ob)
         ob.parent = root
         return ob
-    plane('screen_main', (.15,1.51,2.245), .65,.37)
-    plane('screen_log', (-.85,1.058,1.35), .43,.57, False)
+
+    plane('screen_main', (.15, 1.51, 2.245), .65, .37)
+    plane('screen_log', (-.85, 1.058, 1.35), .43, .57, False)
     # Gallery mounted on forward bulkhead, facing aft.
-    box(wood, (1.2,.75,.06), (-.78,1.55,2.44))
-    plane('frame_licence', (-1.02,1.68,2.4), .42,.37)
+    box(wood, (1.2, .75, .06), (-.78, 1.55, 2.44))
+    plane('frame_licence', (-1.02, 1.68, 2.4), .42, .37)
     for i in range(6):
-        plane('photo_wall_'+str(i), (-.6+(i%2)*.27,1.78-(i//2)*.21,2.4), .23,.17)
+        plane('photo_wall_' + str(i), (-.6 + (i % 2) * .27, 1.78 - (i // 2) * .21, 2.4), .23, .17)
     # Rack pockets with individual equipment attachment nodes.
     for i in range(6):
-        x = -1.12+(i%3)*.28
-        z = -.4+(i//3)*.35
-        box(dark, (.25,.12,.3), (x,.91,z))
-        anchor('gear_slot_'+str(i), x, .98, z)
-    grip = kit.Part('NonSlip', kit.make_material('NonSlip', (.57,.59,.58), rough=.95))
-    # Fine anti-slip ribs on cockpit sole; sparse scuff strips along traffic lanes.
-    for i in range(75):
-        box(grip, (.52,.002,.009), (.1,.306,-.8+i*.047), 0)
+        x = -1.12 + (i % 3) * .28
+        z = -.4 + (i // 3) * .35
+        box(dark, (.25, .12, .3), (x, .91, z))
+        anchor('gear_slot_' + str(i), x, .98, z)
+    # Diamond-plate anti-slip on the cockpit sole and traffic lanes.
+    for i in range(12):
+        box(grip, (.95, .004, .28), (.05, .308, -.95 + i * .29), 0)
+    box(grip, (0.55, 0.004, 1.6), (1.15, 0.308, -1.9), 0)
     glass.obj(collection, root)
     grip.obj(collection, root)
+    rusty.obj(collection, root)
     for part in (white, dark, steel, yellow, rope, wood):
         part.obj(collection, root)
     for name, position in {
@@ -203,6 +236,9 @@ def build(output):
         'TetherExit': (1.3, 0.35, -1.55), 'TetherDrum': (1.3, 0.35, -1.55),
         'hand_left': (-1.1, 1.1, -1.4), 'hand_right': (-0.45, 1.1, -1.4),
         'water_entry': (-0.78, 0, -3.45),
+        # Runtime props (CC0 Poly Haven) attach here — see menu/boat_stage.js.
+        'lifebuoy_slot': (1.55, 1.15, -0.55),
+        'buoy_slot': (3.2, 0.0, -1.0),
     }.items():
         anchor(name, *position)
     triangles = kit.triangle_count(bpy.data.objects)

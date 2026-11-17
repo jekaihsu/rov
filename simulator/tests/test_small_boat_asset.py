@@ -13,7 +13,7 @@ class SmallBoatAssetTests(unittest.TestCase):
         doc = json.loads(raw[20:20 + length])
         names = {node.get('name') for node in doc['nodes']}
         self.assertTrue({'rov_slot_0', 'rov_slot_1', 'menu_camera', 'menu_target',
-                         'water_entry', 'TetherExit'} <= names)
+                         'water_entry', 'TetherExit', 'lifebuoy_slot', 'buoy_slot'} <= names)
         self.assertIn('EXT_meshopt_compression', doc['extensionsUsed'])
         self.assertIn('EXT_texture_webp', doc['extensionsUsed'])
         triangles = sum(doc['accessors'][p['indices']]['count'] // 3

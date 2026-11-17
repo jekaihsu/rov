@@ -131,14 +131,31 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 
 ## Small swim-platform boat (M3)
 
-- `small_boat.glb`: original procedural geometry and seeded teak texture, dedicated to **CC0-1.0** by this
-  contribution. Rebuild: `cad/build_small_boat.py` (Blender 4.3.2), then the existing `compress()` helper
-  (`@gltf-transform/cli@4.5.1`, MIT; meshopt + WebP). No .blend source is required.
-- Launch crew reuses the existing rigged `worker.glb` and its credits above.
-  Sea, sky and surface structures reuse `fx/daylight.js` and `surface_set.js`; no second horizon is generated.
-  Existing YX Model R vehicles retain their existing credits above.
-- User reference photographs are visual references only: not distributed, embedded, cropped, projected,
-  or used as textures. No photographed vehicle branding is reproduced.
+Hull and deck **geometry** in `small_boat.glb` are original procedural work (`cad/build_small_boat.py`, Blender
+4.3.2), dedicated to **CC0-1.0**. No authorised (CC0／MIT) realistic small-boat mesh was available; the shell is
+therefore modelled in-house. Compress with the existing `compress()` helper (`@gltf-transform/cli@4.5.1`, MIT;
+meshopt + WebP). No .blend source is required.
+
+**Materials** under `boat/` are CC0 photo-scans. Rebuild with
+`python simulator/tools/build_boat_scan_materials.py --source <scratch>` (URLs and SHA-256 in
+`../../tools/boat_scan_sources.json`). Licence proof: Poly Haven <https://polyhaven.com/license>; ambientCG
+<https://docs.ambientcg.com/license/>. Selection notes: `research_notes/素材/open_assets.md`.
+
+| File(s) | Source page | Author | Changes |
+|---|---|---|---|
+| `boat/teak_c.webp`, `boat/teak_n.webp` | [wood_floor_deck](https://polyhaven.com/a/wood_floor_deck) | Dimitrios Savva | 1K maps → WebP; roughness in normal alpha |
+| `boat/paint_c.webp`, `boat/paint_n.webp` | [ambientCG Plastic010](https://ambientcg.com/view?id=Plastic010) | ambientCG | lifted toward pale gelcoat, WebP |
+| `boat/plate_c.webp`, `boat/plate_n.webp` | [ambientCG DiamondPlate008C](https://ambientcg.com/view?id=DiamondPlate008C) | ambientCG | non-slip plate, WebP (same source as `scan/plate_*`) |
+| `boat/rust_*.webp`, `boat/coating_*.webp` | copies of `scan/rust_*` and `scan/coating_*` | see Scanned materials above | byte copies for a self-contained boat rebuild |
+| `boat/lifebuoy.glb` | [lifebuoy](https://polyhaven.com/a/lifebuoy) | Hank Kaamura | 1K glTF; Latin stencils scrubbed from diffuse; textures 512 WebP; meshopt |
+| `boat/ocean_buoy.glb` | [ocean_buoy](https://polyhaven.com/a/ocean_buoy) | Mateusz Sadek | 1K glTF; textures 512 WebP; meshopt |
+
+Launch crew reuses the existing rigged `worker.glb` and its credits above. Sea, sky, sunlight and wind-farm
+silhouettes reuse `fx/daylight.js`, `surface_set.js` and `wind_farm.js` from main — no second horizon is
+generated. Existing YX Model R vehicles retain their existing credits above. User reference photographs are
+visual references only: not distributed, embedded, cropped, projected, or used as textures. No photographed
+vehicle branding is reproduced.
+
 `aquaculture/net.webp` 自 scene-looks 起改由 `simulator/tools/build_pen_net_texture.py`（Pillow，固定 seed 71）產生：
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
 珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）

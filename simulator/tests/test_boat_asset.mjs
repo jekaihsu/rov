@@ -9,7 +9,8 @@ test('small boat ships all camera, vehicle, equipment and replaceable display no
   const names = new Set(doc.nodes.map(node => node.name));
   const required = ['anchor_cockpit', 'anchor_platform', 'anchor_logbook', 'anchor_horizon',
     'target_cockpit', 'target_platform', 'target_logbook', 'target_horizon',
-    'rov_slot_0', 'rov_slot_1', 'screen_main', 'screen_log', 'frame_licence'];
+    'rov_slot_0', 'rov_slot_1', 'screen_main', 'screen_log', 'frame_licence',
+    'lifebuoy_slot', 'buoy_slot'];
   for (let i = 0; i < 6; i++) required.push(`gear_slot_${i}`, `photo_wall_${i}`);
   for (const name of required) assert.ok(names.has(name), name);
   for (const node of doc.nodes.filter(node => /^(screen_|frame_licence|photo_wall_)/.test(node.name))) {

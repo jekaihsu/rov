@@ -110,6 +110,9 @@ test("the launch URL keeps foreign parameters and the URL contract of the game",
   assert.throws(() => launchUrl("http://host/", { ...choice, room: "bad room" }));
   assert.throws(() => normaliseServer("ws://127.0.0.1:1", "https:"));
   assert.throws(() => normaliseServer("ftp://x"));
+  const fromBoat = launchUrl("http://host/?menuStage=boat&sky=dusk&fidelity=real", choice);
+  assert.equal(fromBoat.searchParams.has("menuStage"), false);
+  assert.equal(fromBoat.searchParams.get("fidelity"), "real");
 });
 
 test("focus moves to the nearest control in the pressed direction", () => {

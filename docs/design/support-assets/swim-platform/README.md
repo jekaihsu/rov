@@ -25,9 +25,12 @@
 
 ## 內容與節點
 
-原創硬舭、收尖船艏、白色玻璃纖維船殼、25 條柚木板與黑色填縫、兩側座位／艙蓋、不鏽鋼欄杆與艉緣下水梯、
-螢光黃綠捲纜、黑色防磨護套、安全掛繩。只複用專案既有載具，沒有從照片重建載具或品牌字樣。
-參考照片未下載、未放入版本庫、未裁切、未作投影或任何貼圖輸入。貼圖由固定亂數種子產生。
+原創硬舭、收尖船艏、白色玻璃纖維船殼（幾何自建：已確認無授權可用的寫實小艇模型）、25 條柚木板與黑色填縫、
+兩側座位／艙蓋、不鏽鋼欄杆與艉緣下水梯、螢光黃綠捲纜、黑色防磨護套、安全掛繩。材質改用 Poly Haven／ambientCG
+的 CC0 掃描：船漆（Plastic010）、甲板止滑板（DiamondPlate008C）、柚木甲板（wood_floor_deck）、鏽蝕（既有
+`scan/rust_*`／coating）。救生圈與浮標為 Poly Haven CC0 模型，執行時掛到 `lifebuoy_slot`／`buoy_slot`。
+只複用專案既有載具，沒有從照片重建載具或品牌字樣。參考照片未下載、未放入版本庫、未裁切、未作投影。
+日光、海面與風場直接沿用 main 的 `fx/daylight.js`／`surface_set.js`／`wind_farm.js`。
 
 座標：glTF 公尺、Y 向上、尾板朝 -Z、水線 Y=0。`SmallBoat` extras 與既有工作船讀取契約相同。
 
@@ -82,8 +85,11 @@ M3 修正新過場纜線的外側繞序（既有 tube 的法線與面方向相�
 ## 可重建與預算
 
 ```bash
+# Scratch downloads (see simulator/tools/boat_scan_sources.json); Poly Haven asks not to scrape.
+python simulator/tools/build_boat_scan_materials.py --source <scratch>
 blender -b --python cad/build_small_boat.py -- /tmp/small_boat.glb
-python -c "from simulator.tools.build_support_assets import compress; from pathlib import Path; compress(Path('/tmp/small_boat.glb'), Path('simulator/viewer/models/small_boat.glb'), ())"
+python -c "from simulator.tools.build_support_assets import compress; from pathlib import Path; \
+compress(Path('/tmp/small_boat.glb'), Path('simulator/viewer/models/small_boat.glb'), (('*', 512),))"
 python simulator/tools/render_swim_platform.py
 python simulator/tools/browser_swim_platform_smoke.py
 ```
@@ -93,11 +99,13 @@ python simulator/tools/browser_swim_platform_smoke.py
 
 | 指標 | 實測 | 上限 |
 |---|---:|---:|
-| 小艇全部三角形 | 19,156 | 60,000 |
-| GLB 大小 | 292,840 B | — |
-| 材質／mesh | 9／17 | — |
-| WebP 貼圖 | 512×512 四張（膠殼 base／normal／ORM、柚木） | — |
-| GPU 貼圖含 mipmap，RGBA8 ×4/3 | 5.33 MiB | 24 MiB |
+| 小艇全部三角形 | 18,628 | 60,000 |
+| GLB 大小 | ~1.18 MB | — |
+| 材質／mesh | 10／18 | — |
+| WebP 貼圖 | 512² ×12（paint／plate／rust／teak 的 base／normal／ORM） | — |
+| GPU 貼圖含 mipmap，RGBA8 ×4/3 | ~16 MiB | 24 MiB |
+| `boat/lifebuoy.glb` | 10,728 tris，~0.25 MB | — |
+| `boat/ocean_buoy.glb` | 12,240 tris，~0.32 MB | — |
 
 詳見 [機器可讀報告](asset-report.json)，測試直接讀 GLB 驗證壓縮擴充、節點與預算，非只讀報告。
 既有 Model R、海面 normal、PiP 人員資產不計入小艇預算；小艇模式不另載入工作船模型。
