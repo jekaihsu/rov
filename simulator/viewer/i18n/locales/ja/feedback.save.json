@@ -1,0 +1,13 @@
+{
+  "desktopOnly": "報告フォルダーを開けるのはデスクトップ版のみです",
+  "errors": {
+    "untrusted": "このページから報告機能にはアクセスできません",
+    "invalid_stamp": "報告のタイムスタンプが無効です",
+    "payload_too_large": "報告データが大きすぎるか無効です",
+    "screenshot_too_large": "スクリーンショットが大きすぎます",
+    "save_failed": "報告の保存に失敗しました",
+    "open_failed": "報告フォルダーを開けません",
+    "desktop_save_failed": "デスクトップ版の保存に失敗しました",
+    "unknown": "不明なエラー"
+  }
+}

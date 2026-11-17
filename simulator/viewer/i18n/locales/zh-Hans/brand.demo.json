@@ -1,0 +1,40 @@
+{
+  "title": "YX 识别元件",
+  "caption": "YX — IDENTITY COMPONENTS",
+  "sections": {
+    "mark": [
+      "01",
+      "标志",
+      "MARK"
+    ],
+    "fleet": [
+      "02",
+      "机队符号",
+      "FLEET SYMBOLS"
+    ],
+    "chapters": [
+      "03",
+      "章节符号",
+      "CHAPTER SYMBOLS"
+    ],
+    "cards": [
+      "04",
+      "章节标题卡",
+      "CHAPTER TITLE CARDS"
+    ],
+    "licence": [
+      "05",
+      "操作员执照",
+      "PILOT LICENCE"
+    ]
+  },
+  "model": "MODEL",
+  "play": "全屏播放",
+  "sampleTitles": {
+    "prologue": "序章｜水池",
+    "harbor": "第一章｜港湾",
+    "offshore": "第二章｜离岸"
+  },
+  "sampleHolder": "林见习",
+  "sampleSerialPrefix": "YX-PL-"
+}

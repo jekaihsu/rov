@@ -8,6 +8,8 @@
   "contracts": "工程委託",
   "accept": "接取：{label}",
   "settings": "設定",
+  "report": "回報問題",
+  "openReports": "開啟回報資料夾",
   "home": "返回主選單",
   "solo": [
     "模擬已暫停 · 繼續後先回中再解鎖",

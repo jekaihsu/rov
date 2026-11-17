@@ -1,0 +1,6 @@
+{
+  "deployProcedure": "Deployment procedure",
+  "deployProcedureHelp": "Real operations run pre-dive checks, confirm with the tether hand, then lower into the water; quick deploy starts already submerged. Takes effect on the next scene load; ?nointro always skips.",
+  "procedureFull": "Full operating procedure",
+  "procedureQuick": "Quick deploy"
+}

@@ -1,0 +1,30 @@
+{
+  "title": "YX equipment store",
+  "strip": "{licence} · {money} credits",
+  "tabs": {
+    "equipment": "Work gear",
+    "cosmetic": "Appearance"
+  },
+  "help": {
+    "equipment": "Only real accessories are sold: they let you take more kinds of work order; they do not make the vehicle faster or stronger.",
+    "cosmetic": "Hull stickers and paint stripes — appearance only."
+  },
+  "price": "Price",
+  "moneyUnit": "credits",
+  "priceNote": "{price} credits",
+  "fitsStat": "Fits",
+  "fitsUnit": "models",
+  "blockStat": "Block",
+  "blockValue": "+1",
+  "use": "Use",
+  "opens": "Unlocks",
+  "fits": "Compatible models",
+  "fleet": "Current fleet",
+  "rule": "Notes",
+  "owned": "Owned",
+  "buy": "Buy",
+  "confirm": "Press again to confirm",
+  "unavailable": "Unavailable",
+  "bought": "Purchased “{item}”.",
+  "upgraded": "{vehicle} upgraded to Block {block}."
+}

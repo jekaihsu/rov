@@ -1,0 +1,13 @@
+{
+  "desktopOnly": "Opening the reports folder is only available in the desktop app",
+  "errors": {
+    "untrusted": "This page cannot access the report feature",
+    "invalid_stamp": "Invalid report timestamp",
+    "payload_too_large": "Report payload is too large or invalid",
+    "screenshot_too_large": "Screenshot is too large",
+    "save_failed": "Could not save the report",
+    "open_failed": "Could not open the reports folder",
+    "desktop_save_failed": "Desktop save failed",
+    "unknown": "Unknown error"
+  }
+}

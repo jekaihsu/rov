@@ -3,19 +3,23 @@
 // a dive submitted early with enough of the required work still pays a share, and progress is never locked.
 // Pure functions, no DOM; the numbers are game values, not an industry standard.
 import { medalFor } from '../play/results_model.js';
+import { localize } from '../i18n/index.js';
 
-export const DELIVERABLE_KIND_LABELS = {
-  state: '程序',
-  checkpoint: '到點',
-  station_keep: '懸停',
-  inspect: '目視',
-  photo: '照片',
-  measure: '量測',
-  probe: '探測',
-  confirm: '確認',
-  lift: '回收',
-  surface: '回收',
-};
+const STRINGS = localize('career.scoring', {
+  kinds: {
+    state: '程序',
+    checkpoint: '到點',
+    station_keep: '懸停',
+    inspect: '目視',
+    photo: '照片',
+    measure: '量測',
+    probe: '探測',
+    confirm: '確認',
+    lift: '回收',
+    surface: '回收',
+  },
+});
+export const DELIVERABLE_KIND_LABELS = STRINGS.kinds;
 
 // Repeating a contract already completed pays this share of its base pay.
 export const REPEAT_RATE = 0.75;

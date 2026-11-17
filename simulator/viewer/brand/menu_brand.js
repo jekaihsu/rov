@@ -3,11 +3,12 @@
 // each vehicle chip, a small symbol in the briefing kicker, and the hidden ?brandDemo component sheet.
 // menu/main.js calls installBrandMenu() once after the screens are built; everything else follows the DOM.
 import {fleetSymbol, svgNode, yxMark} from './marks.js';
+import { localize } from '../i18n/index.js';
 
-export const STRINGS = {
+export const STRINGS = localize('brand.menu_brand', {
   demoClose: '關閉',
   demoLabel: 'YX 識別元件',
-};
+});
 
 const TITLE_MARK_SIZE = 120;
 const HANGAR_SYMBOL_SIZE = 64;

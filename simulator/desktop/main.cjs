@@ -1,4 +1,4 @@
-const {app,BrowserWindow,dialog,ipcMain,screen}=require('electron');
+const {app,BrowserWindow,dialog,ipcMain,screen,shell}=require('electron');
 const {spawn}=require('node:child_process');
 const net=require('node:net');
 const fs=require('node:fs');
@@ -148,6 +148,44 @@ app.whenReady().then(async()=>{
   ipcMain.on('rov:quality-selected',(event,quality)=>{
     if(event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!event.senderFrame.url.startsWith(`http://127.0.0.1:${http}/`)||!qualityModes.includes(quality))return;
     try{preferredQuality=quality;savePreferences();}catch(error){log.write(`Could not save quality preference: ${error.message}\n`);}
+  });
+  const reportsRoot = path.join(data, 'reports');
+  fs.mkdirSync(reportsRoot, { recursive: true });
+  function reportTrusted(event) {
+    return event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame &&
+      event.senderFrame.url.startsWith(origin + '/');
+  }
+  ipcMain.handle('rov:report-save', (event, payload) => {
+    // error codes are translated in viewer/feedback/save.js — keep them language-neutral here.
+    if (!reportTrusted(event)) return { ok: false, code: 'untrusted' };
+    const stamp = String(payload?.stamp || '').replace(/[^0-9A-Za-zT_-]/g, '').slice(0, 40);
+    if (!stamp) return { ok: false, code: 'invalid_stamp' };
+    const json = typeof payload?.json === 'string' ? payload.json : '';
+    if (!json || json.length > 2_000_000) return { ok: false, code: 'payload_too_large' };
+    try {
+      const folder = path.join(reportsRoot, stamp);
+      fs.mkdirSync(folder, { recursive: true });
+      fs.writeFileSync(path.join(folder, 'report.json'), json, 'utf8');
+      const pngBase64 = typeof payload?.pngBase64 === 'string' ? payload.pngBase64 : '';
+      if (pngBase64) {
+        if (pngBase64.length > 12_000_000) return { ok: false, code: 'screenshot_too_large' };
+        fs.writeFileSync(path.join(folder, 'screenshot.png'), Buffer.from(pngBase64, 'base64'));
+      }
+      return { ok: true, path: folder };
+    } catch {
+      return { ok: false, code: 'save_failed' };
+    }
+  });
+  ipcMain.handle('rov:report-open', async (event) => {
+    if (!reportTrusted(event)) return { ok: false, code: 'untrusted' };
+    try {
+      fs.mkdirSync(reportsRoot, { recursive: true });
+      const error = await shell.openPath(reportsRoot);
+      if (error) return { ok: false, code: 'open_failed' };
+      return { ok: true, path: reportsRoot };
+    } catch {
+      return { ok: false, code: 'open_failed' };
+    }
   });
   await window.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent('<html lang="zh-Hant"><meta charset="utf-8"><body style="margin:0;background:#081722;color:#dce8ea;font:18px system-ui;display:grid;place-content:center;height:100vh"><h1>ROV Simulator</h1><p>正在準備模擬環境，首次啟動可能需要一點時間。</p></body></html>'));
   try { await waitReady(http); } catch (error) { await lifecycle.fail(error.message); return; }

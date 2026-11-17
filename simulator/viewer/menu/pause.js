@@ -20,6 +20,11 @@ import {
 } from './settings.js';
 
 import { localize } from '../i18n/index.js';
+import {
+  canOpenReportsFolder,
+  openFeedbackReport,
+  openReportsFolder,
+} from '../feedback/index.js';
 
 const STRINGS = localize('menu.pause', {
   title: '暫停',
@@ -31,6 +36,8 @@ const STRINGS = localize('menu.pause', {
   contracts: '工程委託',
   accept: '接取：{label}',
   settings: '設定',
+  report: '回報問題',
+  openReports: '開啟回報資料夾',
   home: '返回主選單',
   // [short line on the screen, full explanation as its tooltip]
   solo: ['模擬已暫停 · 繼續後先回中再解鎖', '單人潛航：模擬已暫停。繼續後請先回中、再解鎖。'],
@@ -334,6 +341,16 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     restartLabel.textContent = STRINGS.restart;
   });
   entry('pauseSettings', STRINGS.settings, showSettings);
+  entry('pauseReport', STRINGS.report, function report() {
+    openFeedbackReport();
+  });
+  if (canOpenReportsFolder()) {
+    entry('pauseReportsFolder', STRINGS.openReports, function openFolder() {
+      openReportsFolder().catch(function failed(error) {
+        note.textContent = error?.message || STRINGS.openReports;
+      });
+    });
+  }
   entry('pauseHome', STRINGS.home, function home() {
     hide();
     byId('returnMenu')?.click();

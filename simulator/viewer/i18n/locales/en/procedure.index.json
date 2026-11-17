@@ -1,0 +1,78 @@
+{
+  "title": "Pre-dive checks & recovery",
+  "provisional": "Pulse tests are simulated diagnostics, 2 s each; do not throw the vehicle.",
+  "provisionalDetail": "Power-on order, chimes, lamp cues and recovery speed are provisional pending field measurement.",
+  "checks": [
+    "Hull, seals and penetrators checked",
+    "Tether connector and locking collar confirmed",
+    "Ballast and trim confirmed",
+    "Shore power and vehicle power-on confirmed",
+    "Communications confirmed",
+    "Camera video confirmed",
+    "Lights confirmed",
+    "Per-thruster pulse tests complete",
+    "Depth zero and compass confirmed",
+    "In water, clear of personnel before arming — confirmed"
+  ],
+  "keys": [
+    "seals",
+    "connector",
+    "trim",
+    "power",
+    "communication",
+    "camera",
+    "lights",
+    "thrusters",
+    "instruments",
+    "unlock"
+  ],
+  "kickers": {
+    "checks": "Pre-dive checks",
+    "launch": "Deploy",
+    "recovering": "Recovery",
+    "post": "Post-dive"
+  },
+  "progress": "{done} / {total}",
+  "confirm": "Confirm",
+  "skip": "Skip unfinished checks (may cause faults and penalties)",
+  "tender": "Confirm ready with tether hand",
+  "lower": "Pick an upstream point and lower into the water on the tether",
+  "lowerAction": "Lower into water",
+  "waterTitle": "In-water check",
+  "water": "Video, trim and functions OK; personnel clear",
+  "waterAction": "Confirm, begin operations",
+  "recover": "Reel in and recover",
+  "recoverReady": "Disarm at the surface, then reel in and recover",
+  "recoverDepth": "Surface within 0.8 m before reeling in for recovery.",
+  "recoverLock": "Disarm before reeling in for recovery.",
+  "recoverPending": {
+    "depth": "{label} · Surface first",
+    "lock": "{label} · Disarm first"
+  },
+  "surfacedReady": "Back at the surface · Open the pause menu to reel in and recover",
+  "surfacedLock": "Back at the surface · Disarm, then recover from the pause menu",
+  "recoveringTitle": "Reeling in",
+  "rinse": "Rinsed with fresh water",
+  "inspect": "Post-dive inspection complete",
+  "logTitle": "Dive log",
+  "save": "Save log",
+  "export": "Export log",
+  "notes": "Dive notes",
+  "test": "Pulse thrusters",
+  "testing": "Pulsing…",
+  "stats": {
+    "elapsed": "Dive time",
+    "depth": "Max depth",
+    "cable": "Max tether",
+    "penalty": "Penalty"
+  },
+  "units": {
+    "depth": "m",
+    "cable": "m"
+  },
+  "fault": "An unchecked item failed; penalty applied. Abort and reel in if needed.",
+  "dry": "Ran dry for over 30 s; alarm raised and penalty applied.",
+  "recovering": "Reeling in; current and simulated sea state slow recovery",
+  "complete": "Post-dive complete",
+  "onDeck": "Vehicle is on the workboat aft deck, not yet in the water; finish checks, lower in and confirm before arming."
+}

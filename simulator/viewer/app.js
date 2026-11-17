@@ -64,6 +64,7 @@ import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
 import { createLinkInbox } from './input/link_inbox.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
+import {installFeedbackReport, feedbackOpen} from './feedback/index.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
 import { installResults, resultsOpen } from './play/results.js';
@@ -656,7 +657,7 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen(),
+const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
@@ -665,6 +666,16 @@ const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed}
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 installPauseMenu({input, send, state: () => S, replay: !!REPLAY,
   extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
+installFeedbackReport({
+  input,
+  getState: () => S,
+  getWorld: () => W,
+  capture() {
+    renderer.render(scene, camera);
+    return renderer.domElement;
+  },
+  getPerformance: () => window.__viewer?.performance?.(),
+});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}

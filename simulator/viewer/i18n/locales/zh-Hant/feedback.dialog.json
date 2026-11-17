@@ -1,0 +1,21 @@
+{
+  "title": "回報問題",
+  "lead": "請用一句話描述問題（只用手把時可留空）。截圖與最近 60 秒狀態會一併附上，只存在本機，不會自動上傳。",
+  "description": "問題描述",
+  "placeholder": "例如：解鎖後右搖桿無反應",
+  "category": "分類",
+  "categories": {
+    "visual": "畫面",
+    "feel": "手感",
+    "crash": "當機",
+    "text": "文字",
+    "other": "其他"
+  },
+  "submit": "儲存回報",
+  "cancel": "取消",
+  "saving": "正在儲存…",
+  "savedDesktop": "已存到本機回報資料夾",
+  "savedBrowser": "已下載回報 ZIP",
+  "failed": "儲存失敗：{reason}",
+  "openFolder": "開啟回報資料夾"
+}

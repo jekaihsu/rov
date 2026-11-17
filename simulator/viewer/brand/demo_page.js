@@ -5,8 +5,9 @@ import {CHAPTER_CARDS, chapterCardData} from './chapters.js';
 import {titleCard} from './chapter_card.js';
 import {buildBrandDemo} from './demo.js';
 import {LICENCE_GRADES, licenceCard} from './licence_card.js';
+import { localize } from '../i18n/index.js';
 
-export const STRINGS = {
+export const STRINGS = localize('brand.demo_page', {
   titles: {
     prologue: '序章｜水池',
     harbor: '第一章｜港灣',
@@ -17,7 +18,7 @@ export const STRINGS = {
     finale: '終章｜夜間回收',
   },
   holder: '林見習',
-};
+});
 
 const SAMPLE_LICENCE = {
   trainee: {issuedOn: Date.UTC(2026, 10, 15), hoursReal: 3.5, hoursAssisted: 1.5, serial: 'YX-PL-00417'},

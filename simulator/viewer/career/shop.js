@@ -17,10 +17,12 @@ import {
 } from '../menu/big_picture.js';
 import { vehicleName, vehicleTitle } from '../fleet_names.js';
 import { moneyText } from './board.js';
-import { gradeFor } from './rules.js';
+import { gradeFor, itemView } from './rules.js';
 import { itemStatus, purchase } from './shop_rules.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('career.shop', {
   title: 'YX 裝備部',
   strip: '{licence} · {money} 元',
   tabs: { equipment: '作業裝備', cosmetic: '外觀' },
@@ -46,7 +48,7 @@ const STRINGS = {
   unavailable: '無法購買',
   bought: '已購入「{item}」。',
   upgraded: '{vehicle} 升級為 Block {block}。',
-};
+});
 const FLEET = ['x1', 'bluerov2_heavy', 'falcon'];
 
 function paragraph(text) {
@@ -70,9 +72,10 @@ export function buildShop(ctx) {
   let armed = '';
 
   function itemFor(id) {
-    return career.data.items.find(function byId(item) {
-      return item.id === id;
+    const item = career.data.items.find(function byId(entry) {
+      return entry.id === id;
     }) || null;
+    return item ? itemView(item) : null;
   }
   function currentItem() {
     return itemFor(strips.get(activeTab)?.current?.dataset.item);
@@ -179,7 +182,7 @@ export function buildShop(ctx) {
           const keep = strip.current?.dataset.item;
           const cards = career.data.items.filter(function ofKind(item) {
             return item.kind === kind;
-          }).map(itemTile);
+          }).map(itemView).map(itemTile);
           strip.fill(cards, cards.find(function kept(card) {
             return card.dataset.item === keep;
           }));

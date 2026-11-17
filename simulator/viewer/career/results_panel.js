@@ -5,7 +5,8 @@
 // apart) and in total, the licence progress with the next exam, the exam verdict, newly opened work orders and
 // equipment, and the deliverable record with its readings. DOM only; the numbers come from settle.js.
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+const STRINGS = localize('career.results_panel', {
   pay: '報酬',
   base: '基本報酬',
   repeat: '（重接 {rate}%）',
@@ -31,7 +32,7 @@ const STRINGS = {
   unlockItem: '裝備部：{label}',
   deliverables: '交付紀錄',
   minutes: '{m} 分',
-};
+});
 
 const MAX_UNLOCK_CHIPS = 3;
 

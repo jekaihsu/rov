@@ -1,0 +1,16 @@
+{
+  "offboard": "Photo not accepted: use the onboard camera.",
+  "tooFar": "Photo not accepted: too far from the target.",
+  "tooClose": "Photo not accepted: too close to capture the full target.",
+  "murky": "Photo not accepted: visibility too low to see the target.",
+  "offFrame": "Photo not accepted: target is not in frame.",
+  "noTarget": "Photo saved, but no pending deliverable nearby.",
+  "accepted": "Photo accepted as deliverable: {label}",
+  "saved": "Photo saved.",
+  "contact": "Collision with {name}",
+  "overload": "Tether tension overload",
+  "wrap": "Tether wrapped on {name}",
+  "needs": "Requires equipment: {item}",
+  "after": "Complete first: {label}",
+  "last": "Recover after other required items"
+}

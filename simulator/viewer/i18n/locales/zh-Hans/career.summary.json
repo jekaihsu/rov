@@ -1,0 +1,9 @@
+{
+  "kicker": "下一张委托",
+  "status": "{licence} · {money} 元 · 真实 {real} h",
+  "hours": "真实 {real} h · 辅助 {assisted} h",
+  "next": "下一张执照：{label}",
+  "top": "已取得当前最高的执照",
+  "resume": "继续生涯",
+  "nothing": "暂无可接工单"
+}

@@ -6,8 +6,9 @@ import { createHero, primaryButton, statusLine } from '../menu/big_picture.js';
 import { licenceProgress, recommendedContract } from './rules.js';
 import { assistedHours, realHours } from './save.js';
 import { moneyText } from './board.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('career.summary', {
   kicker: '下一張委託',
   status: '{licence} · {money} 元 · 真實 {real} h',
   hours: '真實 {real} h · 輔助 {assisted} h',
@@ -15,7 +16,7 @@ const STRINGS = {
   top: '已取得目前最高的執照',
   resume: '繼續職涯',
   nothing: '暫無可接工單',
-};
+});
 
 /**
  * {element, refresh(), actions} for the main screen (actions: the row other text actions join).

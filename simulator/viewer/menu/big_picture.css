@@ -338,7 +338,7 @@ html[data-menu-input] .pause-menu .menu-entry:focus, .bp-screen .menu-entry:focu
 /* The scene behind the pause menu and the results screen is shown clean: the instruments drawn over the
    viewport and the floating panels step aside (dialogs and the photo-save warning stay). */
 body:is(.pause-open, .results-open) #vp > :not(canvas.gl),
-body:is(.pause-open, .results-open) > :not(.app, .pause-menu, .results-screen, dialog, [role=alert]) {
+body:is(.pause-open, .results-open) > :not(.app, .pause-menu, .results-screen, .feedback-dialog, dialog, [role=dialog], [role=alert]) {
   visibility: hidden; }
 
 /* ── the other lists (settings, training, multiplayer): same weight, no hairlines ── */

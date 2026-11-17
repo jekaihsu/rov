@@ -1,0 +1,40 @@
+{
+  "title": "YX アイデンティティ構成要素",
+  "caption": "YX — IDENTITY COMPONENTS",
+  "sections": {
+    "mark": [
+      "01",
+      "マーク",
+      "MARK"
+    ],
+    "fleet": [
+      "02",
+      "フリート記号",
+      "FLEET SYMBOLS"
+    ],
+    "chapters": [
+      "03",
+      "チャプター記号",
+      "CHAPTER SYMBOLS"
+    ],
+    "cards": [
+      "04",
+      "チャプタータイトルカード",
+      "CHAPTER TITLE CARDS"
+    ],
+    "licence": [
+      "05",
+      "操縦者ライセンス",
+      "PILOT LICENCE"
+    ]
+  },
+  "model": "MODEL",
+  "play": "全画面再生",
+  "sampleTitles": {
+    "prologue": "プロローグ｜プール",
+    "harbor": "第1章｜港",
+    "offshore": "第2章｜洋上"
+  },
+  "sampleHolder": "リン見習い",
+  "sampleSerialPrefix": "YX-PL-"
+}
