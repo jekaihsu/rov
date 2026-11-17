@@ -52,10 +52,20 @@
         "value": {}
       }
     },
+    "compareSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "yaw_tol_deg": {"type": "number", "minimum": 0},
+        "standoff_tol_m": {"type": "number", "minimum": 0}
+      }
+    },
     "referencePose": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "yaw_deg": {"type": "number"},
+        "standoff_m": {"type": "number", "minimum": 0},
         "point": {"$ref": "#/$defs/point"},
         "look_at": {"$ref": "#/$defs/point"},
         "heading_deg": {"type": "number"},
@@ -64,7 +74,7 @@
     },
     "radioTrigger": {
       "type": "object",
-      "required": ["id", "text"],
+      "required": ["id", "when", "speaker", "text"],
       "additionalProperties": false,
       "properties": {
         "id": {"$ref": "#/$defs/id"},
@@ -103,9 +113,16 @@
         "truth_cm": {"type": "number", "minimum": 0},
         "growth": {"enum": ["soft", "hard"]},
         "rating": {"type": "integer", "minimum": 0, "maximum": 4},
-        "compare": {"type": "boolean"},
+        "compare": {
+          "oneOf": [
+            {"type": "boolean"},
+            {"$ref": "#/$defs/compareSpec"}
+          ]
+        },
         "reference": {"$ref": "#/$defs/referencePose"},
         "gate": {"type": "string", "minLength": 1},
+        "face": {"$ref": "#/$defs/point"},
+        "work": {"type": "string"},
         "after": {"$ref": "#/$defs/id"},
         "object_kind": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
         "below": {"type": "number", "minimum": 0},
