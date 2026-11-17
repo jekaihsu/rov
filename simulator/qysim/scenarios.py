@@ -79,6 +79,8 @@ class Scenario:
     # Optical water type for the viewer's colour (oceanic / coastal / shelf / harbour / fresh_clear);
     # None: from the biome (water_type_for). Presentation only; it does not change physics or visibility_m.
     water_type: str | None = None
+    # Optional scenario-placed fish schools ({"home": (n, e, d), "count": int}); None: the biome's random schools.
+    fish_schools: list | None = None
 
     def summary(self) -> dict:
         from .aquaculture import layout
@@ -567,6 +569,12 @@ def aquaculture_pen_inside() -> Scenario:
     return sc
 
 
+def cold_open_jacket() -> Scenario:
+    """The cold open's offshore jacket (qysim/cold_open.py), imported lazily to keep one scenario table."""
+    from .cold_open import cold_open_jacket as build_site
+    return build_site()
+
+
 LIBRARY = {
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
@@ -589,6 +597,7 @@ LIBRARY = {
     "aquaculture_pen": aquaculture_pen,
     "aquaculture_pen_slack": aquaculture_pen_slack,
     "aquaculture_pen_inside": aquaculture_pen_inside,
+    "cold_open_jacket": cold_open_jacket,
 }
 
 

@@ -52,7 +52,9 @@ class CampaignTests(unittest.TestCase):
         story = [entry['id'] for entry in state['chapters'] if entry['category'] == 'story']
         incidents = [entry['id'] for entry in state['chapters'] if entry['category'] == 'incident']
         courses = [entry['id'] for entry in state['chapters'] if entry['category'] == 'course']
-        self.assertEqual(ids, story + incidents + courses)
+        prelude = [entry['id'] for entry in state['chapters'] if entry['category'] == 'prelude']
+        self.assertEqual(prelude, ['cold_open'])
+        self.assertEqual(ids, prelude + story + incidents + courses)
         self.assertEqual(story, STORY_CHAIN)
         self.assertTrue(all(not entry.get('placeholder') for entry in state['chapters']
                             if entry['category'] == 'story'))

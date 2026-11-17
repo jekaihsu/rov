@@ -30,8 +30,9 @@
       ]
     },
     "category": {
-      "description": "story chapters form the auto-started campaign; incidents are launched explicitly.",
+      "description": "story chapters form the auto-started campaign; incidents are launched explicitly; the prelude (cold open) is launched by the new-game flow only.",
       "enum": [
+        "prelude",
         "story",
         "incident",
         "course"

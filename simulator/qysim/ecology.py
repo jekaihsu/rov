@@ -41,8 +41,11 @@ class SeabedTerrain:
                 "size": [41, 41], "depths": self.depths.round(4).tolist()}
 
 
-def create_habitat(world, biome: str, seed: int, keep_clear=()):
-    """Generate once on the server; no cross-language PRNG agreement is needed."""
+def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None):
+    """Generate once on the server; no cross-language PRNG agreement is needed.
+
+    ``placed``: optional scenario-placed fish schools, a list of ``{"home": (n, e, d), "count": int}``. A site
+    that sets them (a jacket that works as an artificial reef) gets those schools instead of the random ones."""
     from .world import Cylinder
     rng = np.random.default_rng(np.random.SeedSequence([seed, 8271]))
     entities = []
@@ -87,6 +90,8 @@ def create_habitat(world, biome: str, seed: int, keep_clear=()):
                 # Capsule proxy kept entirely inside the visible procedural mound/colony envelope.
                 world.obstacles.append(Cylinder(eid, tuple(pos - [0, 0, r]),
                                                 tuple(pos - [0, 0, max(r, scale-r)]), r, "habitat"))
+    if placed:
+        return entities, placed_schools(placed, rng)
     for k in range(4):
         for _ in range(100):
             pos = np.array([rng.uniform(6, 48), rng.uniform(-20, 20), rng.uniform(3, max(4, world.seabed_depth - 4))])
@@ -98,6 +103,18 @@ def create_habitat(world, biome: str, seed: int, keep_clear=()):
                         "vel": np.array([.3, 0, 0]), "count": 24 + int(rng.integers(0, 16)),
                         "phase": float(rng.uniform(0, 2*math.pi)), "variant": k % 3})
     return entities, schools
+
+
+def placed_schools(specs, rng) -> list:
+    """Schools at scenario-given homes, each starting on its orbit (see step_schools) at a seeded phase."""
+    out = []
+    for k, spec in enumerate(specs):
+        home = np.asarray(spec["home"], float)
+        phase = float(rng.uniform(0, 2 * math.pi))
+        pos = home + np.array([math.cos(phase) * 5, math.sin(phase) * 5, 0.0])
+        out.append({"id": f"school-{k}", "pos": pos, "home": home.copy(), "vel": np.array([.3, 0, 0]),
+                    "count": int(spec.get("count", 32)), "phase": phase, "variant": k % 3})
+    return out
 
 
 def step_schools(world, dt, vehicles):

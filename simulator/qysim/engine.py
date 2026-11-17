@@ -133,7 +133,8 @@ class Simulator:
             self.world.current = sc.current
             self.world.current.reseed(sc.seed or 0)
             clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
-            self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
+            self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear,
+                                         schools=getattr(sc, "fish_schools", None))
             self.world.configure_silt(sc_mod.silt_seabed_type(sc.biome, sc.seabed_type), sc.bnl_height_m, sc.bnl_mg_l)
             self.world.visibility_m = sc.visibility_m
         self.geo = GeoFrame()
