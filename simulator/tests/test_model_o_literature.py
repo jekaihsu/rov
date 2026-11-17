@@ -3,6 +3,7 @@
 X1 and the other catalogue vehicle keep the authority they had before this calibration.
 """
 import unittest
+from pathlib import Path
 
 import numpy as np
 
@@ -144,6 +145,11 @@ class TestModelOLiterature(unittest.TestCase):
         self.assertLess(_relative(float(yaw.s.omega[2]), MEASURED_RATE[2]), YAW)
         print(f"Model O yaw at 22 N·m: table={MEASURED_RATE[2]}, balance={balance:.3f}, "
               f"simulated={yaw.s.omega[2]:.3f}")
+
+    def test_desktop_backend_ships_the_thrust_sheet_beside_the_module(self):
+        recipe = Path(__file__).resolve().parents[1] / "desktop" / "build_backend.py"
+        text = recipe.read_text(encoding="utf8")
+        self.assertIn('qysim" / "model_o_thrust.csv"}:qysim', text)
 
     def test_literature_yaw_arm(self):
         vehicle = prepared_vehicle(POOL_VOLTAGE, literature=True)
