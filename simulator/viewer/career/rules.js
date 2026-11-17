@@ -179,8 +179,9 @@ export function recommendedContract(data, save, sceneKeys = null) {
 /** Licence ladder position: the grade held, the next one, its real-hour requirement and exam contract. */
 export function licenceProgress(save, data) {
   const index = gradeIndex(data, save.licence);
-  const current = data.grades[index] || data.grades[0];
-  const next = data.grades[index + 1] || null;
+  const current = localizedGrade(data.grades[index] || data.grades[0]);
+  const nextGrade = data.grades[index + 1] || null;
+  const next = nextGrade ? localizedGrade(nextGrade) : null;
   const hours = realHours(save);
   const required = next?.realHours || 0;
   const exam = next?.exam ? contractById(data, next.exam) : null;
@@ -191,7 +192,7 @@ export function licenceProgress(save, data) {
     realHours: hours,
     requiredHours: required,
     hoursFraction,
-    exam,
+    exam: exam ? contractView(exam) : null,
     // Half the bar is hours, half is the exam (passing it grants the grade, so it is never half done here).
     fraction: next ? hoursFraction * (exam ? 0.5 : 1) : 1,
   };

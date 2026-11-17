@@ -5,6 +5,7 @@
 import {
   clientLabel, contractStatus, contractView, gradeFor, gradeIndex, hasLicence, itemView, licenceProgress,
 } from './rules.js';
+import { localizedEndorsement } from './localize_data.js';
 import { logDive } from './save.js';
 import { payout, reputationGain } from './scoring.js';
 import { localize } from '../i18n/index.js';
@@ -150,9 +151,10 @@ export function examResult(save, data, contract, pay, dive) {
   const endorsement = contract.exam.endorsement;
   if (endorsement) {
     if (!save.endorsements.includes(endorsement)) save.endorsements.push(endorsement);
-    granted.push(data.endorsements.find(function byId(entry) {
-      return entry.id === endorsement;
-    })?.label || endorsement);
+    const entry = data.endorsements.find(function byId(row) {
+      return row.id === endorsement;
+    });
+    granted.push(localizedEndorsement(entry)?.label || endorsement);
   }
   return { taken: true, passed: true, reason: '', granted: granted.join('、') };
 }

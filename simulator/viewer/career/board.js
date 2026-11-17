@@ -17,7 +17,7 @@ import {
   tile,
 } from '../menu/big_picture.js';
 import { medalLabel } from '../play/results_model.js';
-import { boardChapters, clientLabel, gradeFor, jobLabel } from './rules.js';
+import { boardChapters, clientLabel, contractView, gradeFor, jobLabel } from './rules.js';
 import { exportCareer, importCareer } from './save.js';
 
 import { localize } from '../i18n/index.js';
@@ -128,9 +128,10 @@ export function buildBoard(ctx) {
   let activeTab = '';
 
   function contractFor(id) {
-    return career.data.contracts.find(function byId(contract) {
+    const raw = career.data.contracts.find(function byId(contract) {
       return contract.id === id;
     }) || null;
+    return raw ? contractView(raw) : null;
   }
   function statusChips(contract, status) {
     if (status.status === 'locked') {
