@@ -42,8 +42,12 @@ export function createShaderWarmup({ renderer, scene, camera }) {
     }
   }
 
+  // Without the extension a compile blocks just as it would on first sight, and would also block for materials that
+  // are never shown: warm only where the driver compiles in the background (Chrome on D3D11 / Metal / most GL).
+  const parallel = !!renderer.extensions?.has?.('KHR_parallel_shader_compile');
+
   function update(now = performance.now()) {
-    if (now < nextCheck) return;
+    if (!parallel || now < nextCheck) return;
     nextCheck = now + CHECK_MS;
     const count = objectCount();
     if (count === signature) return;
@@ -53,6 +57,7 @@ export function createShaderWarmup({ renderer, scene, camera }) {
 
   return {
     update,
+    parallel,
     get warmed() {
       return warmed;
     },

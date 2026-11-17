@@ -222,23 +222,21 @@
   };
 
   const raf = window.requestAnimationFrame.bind(window);
-  let pendingFrame = false;
+  let frameTime = null;
   function finishFrame() {
-    pendingFrame = false;
     if (current.draws || current.jsMs) {
       frames.push(current);
       if (frames.length > LIMIT) frames.shift();
     }
     current = newFrame();
   }
+  // Every callback of one animation frame receives the same timestamp: a new timestamp closes the previous frame,
+  // so GL work and JS time are attributed per vsync even when the page is too slow for timers to run in between.
   window.requestAnimationFrame = function probedRaf(callback) {
     return raf(function timed(now) {
-      if (!pendingFrame) {
-        pendingFrame = true;
-        // All callbacks of this vsync run before the microtask after the last one; close the frame then.
-        queueMicrotask(function closeLater() {
-          setTimeout(finishFrame, 0);
-        });
+      if (now !== frameTime) {
+        if (frameTime !== null) finishFrame();
+        frameTime = now;
       }
       const start = performance.now();
       try {
