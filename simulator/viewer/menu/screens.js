@@ -18,6 +18,7 @@ import {
   primaryButton,
   tile,
 } from './big_picture.js';
+import { hasDifficultyChosen } from './new_game.js';
 
 import { localize } from '../i18n/index.js';
 
@@ -161,7 +162,7 @@ export function buildTitle(ctx) {
   cap.dataset.promptAction = 'accept';
   start.append(cap, element('span', '', STRINGS.pressStart));
   start.addEventListener('click', function begin() {
-    ctx.go('main');
+    ctx.go(hasDifficultyChosen() ? 'main' : 'new_game');
   });
   block.append(start);
   root.append(block, element('p', 'menu-version', STRINGS.version));

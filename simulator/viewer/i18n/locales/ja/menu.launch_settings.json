@@ -8,6 +8,8 @@
     "display": "表示",
     "interface": "インターフェース"
   },
+  "difficultyScreen": "難易度",
+  "difficultyScreenHelp": "初回の難易度画面を開き直します（かんたん／標準／リアル）。",
   "pad": "入力機器",
   "padAuto": "コントローラー＋キーボード自動検出",
   "padKeyboard": "キーボードのみ",

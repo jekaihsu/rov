@@ -1,0 +1,17 @@
+{
+  "title": "Realism",
+  "intro": "Real mode matches the vehicle. Assists that go beyond hardware can be toggled one by one.",
+  "presets": {
+    "real": "Real",
+    "standard": "Standard",
+    "assisted": "Simple",
+    "custom": "Custom"
+  },
+  "presetGroup": "Realism preset",
+  "difficulty": "Difficulty",
+  "exceeds": "Beyond vehicle",
+  "exceedsHint": "This option exceeds what the real vehicle can do",
+  "fromUrl": "Set by URL",
+  "prev": "◀",
+  "next": "▶"
+}

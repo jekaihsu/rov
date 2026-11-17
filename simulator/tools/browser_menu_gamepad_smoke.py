@@ -89,7 +89,16 @@ with sync_playwright() as playwright:
     assert glyph == 'A', f'accept prompt shows {glyph!r} for an Xbox-family pad'
     expect_focus(page, 'titleStart')
     press(page, A)
-    screen(page, 'main')
+    # Fresh storage shows the difficulty picker; Accept once to arm, Accept again to confirm.
+    if page.evaluate('window.__menu?.screen') == 'new_game':
+        screen(page, 'new_game')
+        frames(page, 4)
+        press(page, A)
+        frames(page, 4)
+        press(page, A)
+        screen(page, 'main')
+    else:
+        screen(page, 'main')
     expect_focus(page, 'entry-dive')
     # Settings: RB walks the tabs, B returns.
     press_until(page, DOWN, 'entry-settings')

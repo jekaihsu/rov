@@ -1,0 +1,17 @@
+{
+  "title": "リアルさ",
+  "intro": "リアルは実機どおり。実機を超える補助は項目ごとに切り替えられます。",
+  "presets": {
+    "real": "リアル",
+    "standard": "標準",
+    "assisted": "かんたん",
+    "custom": "カスタム"
+  },
+  "presetGroup": "リアルさプリセット",
+  "difficulty": "難易度",
+  "exceeds": "実機超え",
+  "exceedsHint": "有効にすると実機の能力を超えます",
+  "fromUrl": "URL指定",
+  "prev": "◀",
+  "next": "▶"
+}

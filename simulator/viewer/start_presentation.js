@@ -14,7 +14,8 @@ registerFidelityItem({
   labelKey: NEAR_START_ITEM,
   descriptionKey: 'nearStartHelp',
   type: 'toggle',
-  defaults: {real: false, assisted: true},
+  // standard keeps the easier near-target spawn; real starts at the surface.
+  defaults: {real: false, standard: true, assisted: true},
   exceedsReal: true,
 }, {
   nearStart: '從作業點附近開始',
@@ -26,7 +27,8 @@ registerFidelityItem({
   labelKey: DEPTH_HOLD_START_ITEM,
   descriptionKey: 'depthHoldStartHelp',
   type: 'toggle',
-  defaults: {real: false, assisted: true},
+  // standard: 定深輔助開 — arm depth hold at dive start; real leaves it off.
+  defaults: {real: false, standard: true, assisted: true},
 }, {
   depthHoldStart: '下潛時先開定深',
   depthHoldStartHelp: '每次下潛開始時自動按下定深，鬆桿後維持深度；之後可隨時用定深鍵關閉。',

@@ -8,7 +8,7 @@
 **最高目標：體驗與真實 ROV 一致。** 依據是 `docs/reference/real-rov-research.md`（研究報告）與 `docs/reference/own/`（自有 X1 實測）。任何畫面、手感、流程的決定，先查這兩處；查不到就在 PR 描述中寫明是假設，不要憑印象。
 
 - **真實模式是預設，也是驗收基準**：控制語意照真機（水平方向推桿是推力；定深、定向為閉迴路；定點只在 DVL 有效時可用）；駕駛以機載第一人稱為主，第三人稱是訓練輔助；纜線是主動的力；影像有延遲。
-- **輔助與美化是可關的另一層**：超出真機能力的輔助、第三人稱運鏡、畫面美化都必須能關，且關掉後等同真實模式。Steam 版可以預設開部分輔助，內部訓練版預設全關。
+- **輔助與美化是可關的另一層**：超出真機能力的輔助、第三人稱運鏡、畫面美化都必須能關，且關掉後等同真實模式。較容易的「簡單／標準」由新遊戲畫面或設定選擇，不改版本預設。
 - **X1 專屬參數目前都是暫定值**：公開資料不足，待 `docs/reference/x1-measurement-checklist.md` 的實測補齊。不得把其他機型或廠商宣稱的數字當成 X1 的事實寫死。
 
 兩者共用同一套物理與協定。遊戲化只能加在「控制輔助層」與「前端呈現層」，**不得為了好玩改動物理真實性或 SDK 語意**。
@@ -79,10 +79,11 @@ RC 封包新增選填欄位：
 
 「真實模式／輔助模式」只有一個來源：`simulator/viewer/fidelity.js`。不要再各自發明開關、URL 參數或 localStorage 鍵。
 
-- 預設組：`real`（與真機一致，內部訓練版預設）、`assisted`（Steam 版預設，僅在 `window.rovDesktop?.edition === 'steam'` 時）、
-  `custom`（使用者改了任何一項非偏好項目時自動顯示）。
+- 預設組：`real`（與真機一致；玩家介面顯示「真實」，版本預設）、`standard`（「標準」，介於真實與簡單之間）、
+  `assisted`（「簡單」）、`custom`（使用者改了任何一項非偏好項目時自動顯示）。
+  未指定 `standard` 預設值的項目會沿用 `real`。新玩家以新遊戲畫面選難度；之後可在設定更改。
 - 優先順序：項目自己的 URL 參數（`cam`、`gimbal`、`videoDelayMs`、`presentation=assisted`、`thirdPerson`）＞
-  `?fidelity=real|assisted`＞localStorage（`rov.fidelity.v1`）＞版本預設。
+  `?fidelity=real|standard|assisted`＞localStorage（`rov.fidelity.v1`）＞版本預設（`real`）。
 - 讀取與訂閱：`getFidelity().get(id)`、`.set(id, value)`、`.setPreset(name)`、`.subscribe(listener)`、`.preset`。
   設定可在飛行中變更，使用端必須訂閱變更，不要只在啟動時讀一次。
 - **任何超出真機能力的功能（畫面美化、AI 疊圖、聲納輔助、額外視角、控制輔助…）都必須註冊一個項目，且在 `real` 預設為關**：

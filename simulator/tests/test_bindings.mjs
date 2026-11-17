@@ -298,12 +298,14 @@ test("the operation-mode axis table mirrors qysim/rc.py", async () => {
   assert.deepEqual(OPERATION_AXES, python);
 });
 
-test("the keyboard layout is a preset-neutral preference: real console, assisted game", async () => {
+test("the keyboard layout is a preset-neutral preference: real console, assisted/standard game", async () => {
   const { createFidelity } = await import("../viewer/fidelity.js");
   await import("../viewer/input/keyboard_layout.js");
   assert.equal(createFidelity({ search: "?fidelity=real" }).get("keyboardLayout"), "console");
   assert.equal(createFidelity({ search: "?fidelity=assisted" }).get("keyboardLayout"), "game");
-  assert.equal(createFidelity({ edition: "steam" }).get("keyboardLayout"), "game");
+  assert.equal(createFidelity({ search: "?fidelity=standard" }).get("keyboardLayout"), "game");
+  // L3: Steam edition defaults to real (console), not assisted.
+  assert.equal(createFidelity({ edition: "steam" }).get("keyboardLayout"), "console");
   const store = createFidelity({ search: "?fidelity=real" });
   store.set("keyboardLayout", "game");
   assert.equal(store.preset, "real", "changing the keyboard layout does not leave the real preset");

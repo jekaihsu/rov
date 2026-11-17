@@ -1,6 +1,7 @@
 // Deployment checklist, tended launch, recovery and post-dive log. The server owns progression and safety gates
 // (qysim/procedure.py); this module only renders the current phase and sends the operator's confirmations.
-// Whether the full procedure runs is the `deployProcedure` fidelity item (real: full, assisted: quick); `?nointro`
+// Whether the full procedure runs is the `deployProcedure` fidelity item (all difficulty presets: full;
+// simple difficulty still begins with checks:"crew"). Quick skips the flow; `?nointro`
 // always skips it. Gamepad and keyboard navigation use the menu-context rows of input/bindings.js while the
 // checklist has something to press.
 // Presentation (procedure.css): a low column at the lower left on a scrim gradient, never a box over the scene.
@@ -406,7 +407,12 @@ export function installProcedure({send, readOnly = false, deck = null}) {
       begunGeneration = state.control_generation;
       pilotLog.clear();
       faultsSeen = 0;
-      if (wanted() && !state.procedure?.active) command('begin', beginFields(query));
+      if (wanted() && !state.procedure?.active) {
+        // Simple difficulty: crew reports every check done. Use base (not preset) so a customised
+        // simple profile still gets crew-done checks; standard/real stay hands-on.
+        const crew = fidelity.base === 'assisted';
+        command('begin', beginFields(query, Math.random, {crew}));
+      }
     }
     latestState = state;
     const p = state.procedure;

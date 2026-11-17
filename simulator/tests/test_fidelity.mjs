@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {
-  createFidelity, registerFidelityItem, fidelityItems, fidelityText, STORAGE_KEY
+  createFidelity, registerFidelityItem, fidelityItems, fidelityText, STORAGE_KEY, PRESET_NAMES,
+  DIFFICULTY_ORDER
 } from '../viewer/fidelity.js';
 
 function memoryStorage(initial = {}) {
@@ -30,6 +31,17 @@ test('real is the default preset and matches the real vehicle', function () {
   assert.equal(fidelity.get('hudDensity'), 1);
   for (const item of fidelityItems()) assert.equal(fidelity.exceeds(item.id), false, item.id);
 });
+test('standard preset keeps latency and onboard view without station keeping', function () {
+  const fidelity = createFidelity({search: '?fidelity=standard'});
+  assert.equal(fidelity.preset, 'standard');
+  assert.equal(fidelity.get('assistLevel'), 0);
+  assert.equal(fidelity.get('videoDelayMs'), 150);
+  assert.equal(fidelity.get('cameraView'), 'onboard');
+  assert.equal(fidelity.get('thirdPerson'), false);
+  assert.equal(fidelity.get('gimbal'), false);
+  assert.deepEqual(DIFFICULTY_ORDER, ['assisted', 'standard', 'real']);
+  assert.ok(PRESET_NAMES.includes('standard'));
+});
 test('assisted preset enables the assists and marks them as exceeding the real vehicle', function () {
   const fidelity = createFidelity({search: '?fidelity=assisted'});
   assert.equal(fidelity.preset, 'assisted');
@@ -40,12 +52,13 @@ test('assisted preset enables the assists and marks them as exceeding the real v
   for (const id of ['assistLevel', 'videoDelayMs', 'gimbal', 'thirdPerson']) assert.equal(fidelity.exceeds(id), true);
   assert.equal(fidelity.exceeds('hudDensity'), false);
 });
-test('edition default applies only without a stored or URL preset', function () {
-  assert.equal(createFidelity({edition: 'steam'}).preset, 'assisted');
+test('edition default is real for steam and training; URL and storage still win', function () {
+  // Behaviour change (L3): Steam no longer defaults to assisted.
+  assert.equal(createFidelity({edition: 'steam'}).preset, 'real');
   assert.equal(createFidelity({edition: 'training'}).preset, 'real');
-  assert.equal(createFidelity({edition: 'steam', search: 'fidelity=real'}).preset, 'real');
-  const storage = memoryStorage({[STORAGE_KEY]: JSON.stringify({base: 'real', overrides: {}})});
-  assert.equal(createFidelity({edition: 'steam', storage}).preset, 'real');
+  assert.equal(createFidelity({edition: 'steam', search: 'fidelity=assisted'}).preset, 'assisted');
+  const storage = memoryStorage({[STORAGE_KEY]: JSON.stringify({base: 'assisted', overrides: {}})});
+  assert.equal(createFidelity({edition: 'steam', storage}).preset, 'assisted');
 });
 test('URL preset wins over stored settings without overwriting them', function () {
   const saved = JSON.stringify({version: 1, base: 'assisted', overrides: {videoDelayMs: 80}});
@@ -188,6 +201,8 @@ test('registerFidelityItem adds an item to live stores and enforces the real-pre
   assert.equal(fidelity.preset, 'custom');
   assert.equal(createFidelity().get('testOverlay'), false);
   assert.equal(createFidelity({search: 'fidelity=assisted'}).get('testOverlay'), true);
+  // Missing standard falls back to real (false); assisted stays true.
+  assert.equal(createFidelity({search: 'fidelity=standard'}).get('testOverlay'), false);
   assert.throws(function duplicate() {
     registerFidelityItem({id: 'testOverlay', type: 'toggle', defaults: {real: false, assisted: false}});
   }, /already registered/);
@@ -203,6 +218,11 @@ test('registerFidelityItem adds an item to live stores and enforces the real-pre
   assert.equal(fidelityItems().some(function bad(item) {
     return item.id.startsWith('testBad') || item.id === 'testIncomplete';
   }), false);
+});
+test('player-facing difficulty labels keep internal keys', function () {
+  assert.equal(fidelityText('presetAssisted'), '簡單');
+  assert.equal(fidelityText('presetStandard'), '標準');
+  assert.equal(fidelityText('presetReal'), '真實');
 });
 test('render state follows the fidelity video delay live', async function () {
   const {createRenderState} = await import('../viewer/state_buffer.js');

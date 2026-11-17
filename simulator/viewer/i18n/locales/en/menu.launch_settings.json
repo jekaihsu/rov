@@ -8,6 +8,8 @@
     "display": "Display",
     "interface": "Interface"
   },
+  "difficultyScreen": "Difficulty",
+  "difficultyScreenHelp": "Reopen the first-run difficulty screen (Simple / Standard / Real).",
   "pad": "Input device",
   "padAuto": "Auto-detect controller + keyboard",
   "padKeyboard": "Keyboard only",

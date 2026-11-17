@@ -1,15 +1,20 @@
-// Settings section for the fidelity profile: preset selector plus one row per registered item.
+// Settings section for the fidelity profile: difficulty stepper, preset selector, plus one row per item.
 // Purely a view over fidelity.js; it holds no state of its own and never sends vehicle controls.
-import {getFidelity, fidelityText, PRESET_NAMES} from './fidelity.js';
-const STRINGS = {
+import {getFidelity, fidelityText, DIFFICULTY_ORDER} from './fidelity.js';
+import {localize} from './i18n/index.js';
+
+const STRINGS = localize('menu.fidelity_panel', {
   title: '擬真設定',
   intro: '真實模式與真機一致；輔助項目超出真機能力，可逐項開關。',
-  presets: {real: '真實', assisted: '輔助', custom: '自訂'},
+  presets: {real: '真實', standard: '標準', assisted: '簡單', custom: '自訂'},
   presetGroup: '擬真預設',
+  difficulty: '難度',
   exceeds: '超出真機',
   exceedsHint: '此項目啟用後超出真機能力',
-  fromUrl: '網址指定'
-};
+  fromUrl: '網址指定',
+  prev: '◀',
+  next: '▶',
+});
 let serial = 0;
 
 function element(tag, className, text) {
@@ -95,6 +100,48 @@ function buildRow(item, fidelity, prefix) {
   }
   return {row, show};
 }
+
+function buildDifficultyRow(fidelity) {
+  const row = element('div', 'fidelity-difficulty');
+  row.dataset.fidelityDifficulty = '';
+  const label = element('span', 'fidelity-difficulty-label', STRINGS.difficulty);
+  const prev = element('button', 'fidelity-difficulty-step', STRINGS.prev);
+  const value = element('span', 'fidelity-difficulty-value');
+  const next = element('button', 'fidelity-difficulty-step', STRINGS.next);
+  prev.type = 'button';
+  next.type = 'button';
+  prev.dataset.fidelityDifficulty = 'prev';
+  next.dataset.fidelityDifficulty = 'next';
+  value.dataset.fidelityDifficulty = 'value';
+  function currentIndex() {
+    const preset = fidelity.preset;
+    if (preset === 'custom') return -1;
+    return DIFFICULTY_ORDER.indexOf(preset);
+  }
+  function step(delta) {
+    let index = currentIndex();
+    if (index < 0) {
+      // From custom, jump to real (the default hardcore preset) then step from there.
+      index = DIFFICULTY_ORDER.indexOf('real');
+    }
+    const nextName = DIFFICULTY_ORDER[(index + delta + DIFFICULTY_ORDER.length) % DIFFICULTY_ORDER.length];
+    fidelity.setPreset(nextName);
+  }
+  prev.addEventListener('click', function goPrev() {
+    step(-1);
+  });
+  next.addEventListener('click', function goNext() {
+    step(1);
+  });
+  function show() {
+    const preset = fidelity.preset;
+    value.textContent = STRINGS.presets[preset] || STRINGS.presets.custom;
+    value.dataset.preset = preset;
+  }
+  row.append(label, prev, value, next);
+  return {row, show};
+}
+
 // Mounts the section into `parent` and keeps it in step with the store. Returns the section element.
 export function installFidelityPanel(parent, fidelity = getFidelity()) {
   const prefix = `fidelity${serial++}`;
@@ -102,6 +149,8 @@ export function installFidelityPanel(parent, fidelity = getFidelity()) {
   section.open = true;
   section.append(element('summary', '', STRINGS.title));
   section.append(element('p', 'fidelity-help', STRINGS.intro));
+  const difficulty = buildDifficultyRow(fidelity);
+  section.append(difficulty.row);
   const presets = element('div', 'fidelity-presets');
   presets.setAttribute('role', 'group');
   presets.setAttribute('aria-label', STRINGS.presetGroup);
@@ -117,7 +166,7 @@ export function installFidelityPanel(parent, fidelity = getFidelity()) {
     buttons[name] = button;
     presets.append(button);
   }
-  for (const name of [...PRESET_NAMES, 'custom']) addPreset(name);
+  for (const name of [...DIFFICULTY_ORDER, 'custom']) addPreset(name);
   section.append(presets);
   const list = element('div', 'fidelity-items');
   section.append(list);
@@ -141,6 +190,7 @@ export function installFidelityPanel(parent, fidelity = getFidelity()) {
     for (const [name, button] of Object.entries(buttons)) {
       button.setAttribute('aria-pressed', String(name === preset));
     }
+    difficulty.show();
     for (const entry of rows) entry.show();
   }
   fidelity.subscribe(render);
