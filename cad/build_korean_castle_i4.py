@@ -398,7 +398,7 @@ def apply_rock_textures() -> None:
 
 
 def apply_oxide_texture() -> None:
-    """Reuse the steel atlas; bias toward deep brown oxide, not bright orange."""
+    """Reuse the steel atlas; deep brown oxide — avoid washed clay-grey baseColorFactor."""
     mat = bpy.data.materials.get("Fresh exposed oxide")
     if not mat:
         return
@@ -407,10 +407,10 @@ def apply_oxide_texture() -> None:
         color=bpy.data.images.get("encrusted_steel_basecolor.png"),
         rough=bpy.data.images.get("encrusted_steel_roughness.png"),
         normal=bpy.data.images.get("encrusted_steel_normal.png"),
-        metallic=0.28,
+        metallic=0.22,
         normal_strength=0.55,
-        tint=(0.22, 0.11, 0.06),
-        tint_factor=0.4,
+        tint=(0.16, 0.09, 0.05),
+        tint_factor=0.72,
     )
 
 
@@ -707,7 +707,10 @@ def densify_hull_uvs() -> None:
 
 
 def apply_macro_colors() -> None:
-    """Independent metre-space staining: interpolated vertex colors never repeat with UVs."""
+    """Independent metre-space staining: interpolated vertex colors never repeat with UVs.
+
+    Keep multipliers near mid-grey so lamps do not wash fracture plates into clay-white.
+    """
     for obj in visual_objects():
         if obj.name == "Rubble_apron":
             continue
@@ -718,7 +721,7 @@ def apply_macro_colors() -> None:
             p = obj.matrix_world @ vertex.co
             stain = 0.5 + 0.25 * math.sin(p.x * 0.31 + math.sin(p.z * 0.43))
             stain += 0.25 * math.sin(p.y * 0.37 + p.x * 0.11 + 1.7)
-            color.color = (0.70 + 0.27 * stain, 0.74 + 0.24 * stain, 0.72 + 0.24 * stain, 1.0)
+            color.color = (0.52 + 0.18 * stain, 0.54 + 0.16 * stain, 0.50 + 0.15 * stain, 1.0)
 
 
 def export_visual(path: Path) -> None:
@@ -770,17 +773,68 @@ def export_collision_and_route() -> None:
     print("collision tris", tri.shape[0], "route verts", len(verts))
 
 
-def apply_lod_decimate(ratio: float) -> list[str]:
+HULL_SHELL_NAMES = frozenset(
+    {"01_BOW_HullShell", "02_MID_HullShell", "03_STERN_HullShell"}
+)
+
+
+def apply_lod_decimate(ratio: float, *, hull_ratio: float | None = None) -> list[str]:
+    """Decimate visuals; keep hull shells denser so plates stay closed (no hole punch)."""
     applied = []
+    hull_keep = hull_ratio if hull_ratio is not None else min(1.0, ratio * 2.4)
     for obj in visual_objects():
         if obj.name.startswith("COL_"):
             continue
         before = triangle_count(obj)
         if before < 200:
             continue
-        decimate(obj, ratio)
+        use = hull_keep if obj.name in HULL_SHELL_NAMES else ratio
+        if use >= 0.999:
+            continue
+        decimate(obj, use)
         applied.append(obj.name)
     return applied
+
+
+def consolidate_lod_materials() -> None:
+    """Collapse growth/oxide variants onto steel/growth so LOD joins need fewer draws."""
+    steel = bpy.data.materials.get("Weathered steel | original PBR maps")
+    growth = bpy.data.materials.get("Marine growth | limestone") or steel
+    rock = bpy.data.materials.get("Encrusted debris") or steel
+    remap = {
+        "Fresh exposed oxide": steel,
+        "Dark recess steel": steel,
+        "Dark settled silt inside cargo holds": growth,
+        "Marine growth | olive": growth,
+        "Marine growth | muted ochre": growth,
+        "Marine growth | grey green": growth,
+        "Marine growth | mustard": growth,
+        "Encrusted debris": rock,
+    }
+    for obj in visual_objects():
+        for slot in obj.material_slots:
+            if slot.material and slot.material.name in remap:
+                slot.material = remap[slot.material.name]
+
+
+def join_visuals_by_material() -> None:
+    """Join every visual mesh that shares a material into one object (fewer draw calls)."""
+    groups: dict[str, list[bpy.types.Object]] = {}
+    for obj in visual_objects():
+        mat = obj.material_slots[0].material if obj.material_slots else None
+        key = mat.name if mat else "_none"
+        groups.setdefault(key, []).append(obj)
+    for key, objs in groups.items():
+        if len(objs) < 2:
+            continue
+        bpy.ops.object.select_all(action="DESELECT")
+        for obj in objs:
+            obj.select_set(True)
+        bpy.context.view_layer.objects.active = objs[0]
+        bpy.ops.object.join()
+        joined = bpy.context.view_layer.objects.active
+        if joined is not None:
+            joined.name = f"I4_LOD_{key[:40]}"
 
 
 def purge_unused_seabed_image() -> None:
@@ -841,20 +895,27 @@ def main() -> None:
     apply_macro_colors()
     export_collision_and_route()
     export_visual(OUT / "lod0_raw.glb")
-    apply_lod_decimate(0.34)
+    # LOD1/2: protect hull shells (closed plating), collapse materials, then decimate.
+    consolidate_lod_materials()
+    apply_lod_decimate(0.38, hull_ratio=0.78)
     lod1 = total_visual_tris()
     print("LOD1 tris", lod1)
     if lod1 > 100_000:
-        apply_lod_decimate(100_000 / max(lod1, 1))
+        apply_lod_decimate(100_000 / max(lod1, 1), hull_ratio=min(0.95, 100_000 / max(lod1, 1) * 2.0))
         print("LOD1 tris after trim", total_visual_tris())
+    join_visuals_by_material()
+    print("LOD1 draws~objects", len(visual_objects()), "tris", total_visual_tris())
     export_visual(OUT / "lod1_raw.glb")
-    apply_lod_decimate(0.18)
+    # Hull shells are already joined; use a mild uniform collapse so plates stay closed.
+    apply_lod_decimate(0.28, hull_ratio=0.28)
     lod2 = total_visual_tris()
     print("LOD2 tris", lod2)
     if lod2 > 20_000:
-        apply_lod_decimate(20_000 / max(lod2, 1) * 0.95)
+        apply_lod_decimate(20_000 / max(lod2, 1) * 0.95, hull_ratio=0.4)
         print("LOD2 tris after trim", total_visual_tris())
     assert total_visual_tris() <= 20_000, total_visual_tris()
+    join_visuals_by_material()
+    print("LOD2 draws~objects", len(visual_objects()), "tris", total_visual_tris())
     export_visual(OUT / "lod2_raw.glb")
     print("wrote", OUT)
 

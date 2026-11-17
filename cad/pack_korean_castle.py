@@ -82,21 +82,43 @@ def main() -> None:
         shutil.copyfile(source, current)
         run(cli, "dedup", current, current)
         run(cli, "weld", current, current)
-        # Authoring already hit the LOD triangle targets; a light simplify only cleans seams.
-        if "lod1" in target_name:
-            run(cli, "simplify", current, current, "--ratio", "0.95", "--error", "0.002")
-            # 512² atlases: LOD1 is a mid-range swap; shrink disk vs LOD0's 1K set.
-            run(cli, "resize", current, current, "--width", "512", "--height", "512")
-        elif "lod2" in target_name:
-            run(cli, "simplify", current, current, "--ratio", "0.9", "--error", "0.004")
-            run(cli, "resize", current, current, "--width", "256", "--height", "256")
-        # Quality 88: keep grit in low-chroma underwater albedos (q78 crushed std≈5 maps).
+        is_lod0 = source_name.startswith("lod0")
+        if not is_lod0:
+            # Merge sibling primitives → far fewer draws on integrated GPUs.
+            run(cli, "join", current, current)
+            # Authoring already hit triangle targets; border-locked clean-up only.
+            if "lod1" in target_name:
+                run(
+                    cli,
+                    "simplify",
+                    current,
+                    current,
+                    "--ratio",
+                    "0.98",
+                    "--error",
+                    "0.0005",
+                    "--lock-border",
+                    "true",
+                )
+                run(cli, "resize", current, current, "--width", "512", "--height", "512")
+            else:
+                run(
+                    cli,
+                    "simplify",
+                    current,
+                    current,
+                    "--ratio",
+                    "0.95",
+                    "--error",
+                    "0.001",
+                    "--lock-border",
+                    "true",
+                )
+                run(cli, "resize", current, current, "--width", "256", "--height", "256")
         run(cli, "webp", current, current, "--quality", "88", "--effort", "90")
         run(cli, "prune", current, current)
         target = MODELS / target_name
-        # LOD0 stays above the 2 MB new-asset soft limit (tris + 1K atlases); see PR description.
-        # LOD1/LOD2 use smaller atlases so they stay near/under the soft limit.
-        level = "high" if source_name.startswith("lod0") else "medium"
+        level = "high" if is_lod0 else "medium"
         run(cli, "meshopt", current, target, "--level", level)
 
         info = describe(target)

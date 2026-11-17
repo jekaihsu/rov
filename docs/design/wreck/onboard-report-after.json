@@ -10,20 +10,21 @@
     "pitch_deg": -0.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 4.234,
+    "seconds_per_frame": 2.35,
     "quality": "high",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 1.5637781293031207e-05,
+      "meteredLuminance": 1.5013558090710035e-05,
+      "brightLuminance": 1.8976725810995936e-05,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 45682,
-    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "bytes": 44233,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
     "rendered_eye_ned": [
       17.72767410860934,
       -20,
@@ -60,20 +61,21 @@
     "pitch_deg": -0.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 6.778,
+    "seconds_per_frame": 3.365,
     "quality": "high",
     "exposure": {
-      "exposure": 17.09662805325773,
-      "target": 17.178579256962447,
-      "meteredLuminance": 0.015521757001144117,
+      "exposure": 84.03564343601222,
+      "target": 84.60146343840118,
+      "meteredLuminance": 0.001335748164227046,
+      "brightLuminance": 0.005117031380143707,
       "whiteBalance": [
-        1.0153358641299464,
+        1.0201432137734732,
         1,
-        1.2616862241658326
+        1.2591879216643767
       ]
     },
-    "bytes": 104970,
-    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "bytes": 96174,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
     "rendered_eye_ned": [
       17.72767410860934,
       -20,
@@ -110,20 +112,21 @@
     "pitch_deg": -0.0,
     "lamp_level": 0,
     "visibility_m": 10.0,
-    "seconds_per_frame": 3.964,
+    "seconds_per_frame": 2.188,
     "quality": "high",
     "exposure": {
       "exposure": 400.00002710407375,
       "target": 400.00002710407375,
-      "meteredLuminance": 2.488940127528115e-05,
+      "meteredLuminance": 2.469149502971077e-05,
+      "brightLuminance": 3.0678990459837485e-05,
       "whiteBalance": [
         1,
         1,
         1
       ]
     },
-    "bytes": 44550,
-    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "bytes": 43139,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
     "rendered_eye_ned": [
       15.6324288212104,
       -20,
@@ -160,20 +163,21 @@
     "pitch_deg": -0.0,
     "lamp_level": 2,
     "visibility_m": 10.0,
-    "seconds_per_frame": 7.353,
+    "seconds_per_frame": 3.072,
     "quality": "high",
     "exposure": {
-      "exposure": 87.52431807147826,
-      "target": 87.64288353774444,
-      "meteredLuminance": 0.0012651048570141655,
+      "exposure": 352.56477879501455,
+      "target": 353.5184433412941,
+      "meteredLuminance": 0.00014800874293850548,
+      "brightLuminance": 0.00022051513632451704,
       "whiteBalance": [
-        1.04751963685814,
+        1.0149611180925384,
         1,
-        1.1291160147497878
+        1.0362446941236303
       ]
     },
-    "bytes": 80535,
-    "model_sha256": "575c921d49e8db1f15bcee7b881fb3f2be67f659f9e2a558f4a35cfbd9d90942",
+    "bytes": 64779,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
     "rendered_eye_ned": [
       15.6324288212104,
       -20,

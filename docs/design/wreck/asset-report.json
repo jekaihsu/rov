@@ -1,7 +1,7 @@
 [
   {
     "file": "korean_castle.glb",
-    "bytes": 5573712,
+    "bytes": 5512088,
     "triangles": 248341,
     "draw_calls": 61,
     "materials": 8,
@@ -66,10 +66,10 @@
   },
   {
     "file": "korean_castle_lod1.glb",
-    "bytes": 3119760,
-    "triangles": 83120,
-    "draw_calls": 61,
-    "materials": 8,
+    "bytes": 2521448,
+    "triangles": 73012,
+    "draw_calls": 3,
+    "materials": 3,
     "textures": [
       {
         "name": "encrusted_steel_normal",
@@ -131,10 +131,10 @@
   },
   {
     "file": "korean_castle_lod2.glb",
-    "bytes": 896196,
-    "triangles": 17953,
-    "draw_calls": 61,
-    "materials": 8,
+    "bytes": 765144,
+    "triangles": 18628,
+    "draw_calls": 3,
+    "materials": 3,
     "textures": [
       {
         "name": "encrusted_steel_normal",

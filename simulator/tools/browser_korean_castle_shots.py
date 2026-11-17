@@ -25,6 +25,8 @@ import browser_underwater_shots as shots
 
 OUT = Path(__file__).resolve().parents[2] / "docs/design/wreck"
 TAG = os.environ.get("ROV_WRECK_TAG", "after")
+QUALITY = os.environ.get("ROV_WRECK_QUALITY", "high")
+QUALITY_SUFFIX = "" if QUALITY == "high" else f"-{QUALITY}"
 
 # Look toward the port plating; the target is inside the hull, not a distance reference.
 # Eyes at y −10.3 / −12.3 keep FieldMesh.sdf ≈ 1 m / 3 m (review stand-offs).
@@ -87,28 +89,39 @@ def main():
     with sync_playwright() as p:
         browser = launch(p)
         page = browser.new_page(viewport={"width": 1600, "height": 900})
+        baseline = None
         if TAG == "before":
             baseline = subprocess.check_output(
                 ["git", "show", "origin/main:simulator/viewer/models/korean_castle.glb"])
             page.route("**/models/korean_castle.glb", lambda route: route.fulfill(
                 body=baseline, content_type="model/gltf-binary"))
-        model_bytes = baseline if TAG == "before" else (
-            OUT.parents[2] / "simulator/viewer/models/korean_castle.glb").read_bytes()
+            # main has no LOD1/2; force every quality tier onto the baseline GLB.
+            page.route("**/models/korean_castle_lod1.glb", lambda route: route.fulfill(
+                body=baseline, content_type="model/gltf-binary"))
+            page.route("**/models/korean_castle_lod2.glb", lambda route: route.fulfill(
+                body=baseline, content_type="model/gltf-binary"))
+        model_path = OUT.parents[2] / "simulator/viewer/models" / (
+            "korean_castle.glb" if QUALITY == "high"
+            else ("korean_castle_lod1.glb" if QUALITY == "medium" else "korean_castle_lod2.glb")
+        )
+        model_bytes = baseline if baseline is not None else model_path.read_bytes()
         model_hash = hashlib.sha256(model_bytes).hexdigest()
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
+        query = f"fidelity=real&quality={QUALITY}&nointro"
         for label, stand_off in POSES:
             shots.subject_pose = make_pose(stand_off)
             for lamp_name, lamp in (("dark", 0), ("lit", 2)):
                 name = f"onboard-{label}-{lamp_name}"
+                tagged = f"{TAG}{QUALITY_SUFFIX}-{name}"
                 replay, meta = shots.build_replay(name, "korean_castle", "wreck", lamp)
                 # Calibrate the mounted camera from the rendered pose (including async model
                 # initialization), then recapture. Temporary shots never enter the docs folder.
                 with tempfile.TemporaryDirectory() as tmp:
                     for attempt in range(2):
-                        print(f"Capturing {TAG}-{name}, attempt {attempt + 1}", flush=True)
+                        print(f"Capturing {tagged}, attempt {attempt + 1}", flush=True)
                         capture_meta = shots.capture(
-                            page, http_base(), "fidelity=real&quality=high&nointro",
+                            page, http_base(), query,
                             name, replay, Path(tmp), 1 if attempt == 0 else 10,
                         )
                         camera = page.evaluate("window.__viewer.camera.position.toArray()")
@@ -120,10 +133,10 @@ def main():
                         for frame in replay["clips"][0]["frames"]:
                             frame["pos"] = (np.asarray(frame["pos"]) + correction).tolist()
                     meta.update(capture_meta)
-                    if lamp:
-                        exposure = meta["exposure"]
+                    exposure = meta.get("exposure") or {}
+                    if lamp and exposure.get("exposure") and exposure.get("target"):
                         assert abs(np.log(exposure["exposure"] / exposure["target"])) < 0.05, exposure
-                    (Path(tmp) / f"{name}.jpg").replace(OUT / f"{TAG}-{name}.jpg")
+                    (Path(tmp) / f"{name}.jpg").replace(OUT / f"{tagged}.jpg")
                 camera = page.evaluate("window.__viewer.camera.position.toArray()")
                 actual_ned = [camera[2], -camera[0], -camera[1]]
                 sim = PoseSimulator("korean_castle", seed=42)
@@ -131,17 +144,19 @@ def main():
                 assert abs(float(measured) - stand_off) < DIST_TOL_M, (actual_ned, measured)
                 assert "碧海號" in page.locator("body").inner_text()
                 meta["model_sha256"] = model_hash
+                meta["quality"] = QUALITY
                 meta["rendered_eye_ned"] = actual_ned
                 meta["rendered_distance_m"] = float(measured)
                 meta["stand_off_m"] = stand_off
                 meta.update(POSE_REPORT)
                 meta["hull_target_local"] = list(HULL_TARGET)
                 meta["lamps"] = lamp
-                report[f"{TAG}-{name}"] = meta
-                print(f"{TAG}-{name}: SDF={float(measured):.6f} m", flush=True)
+                report[tagged] = meta
+                print(f"{tagged}: SDF={float(measured):.6f} m", flush=True)
         browser.close()
     _cleanup_untagged_jpegs()
-    (OUT / f"onboard-report-{TAG}.json").write_text(json.dumps(report, indent=2) + "\n")
+    report_name = f"onboard-report-{TAG}{QUALITY_SUFFIX}.json"
+    (OUT / report_name).write_text(json.dumps(report, indent=2) + "\n")
     assert not errors, errors
 
 
