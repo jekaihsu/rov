@@ -12,6 +12,14 @@
     "dive:open_water:medium:third": {"draws": 168, "triangles": 270000, "passes": 7, "fullScreenPasses": 5,
       "textureMB": 64},
     "dive:harbor_inspection:medium:onboard": {"draws": 64, "triangles": 95000, "passes": 5, "fullScreenPasses": 4,
-      "textureMB": 75}
+      "textureMB": 75},
+    "dive:cold_open_jacket:performance:onboard": {"draws": 52, "triangles": 41000, "passes": 1, "fullScreenPasses": 0,
+      "textureMB": 25},
+    "dive:cold_open_jacket:performance:third": {"draws": 92, "triangles": 133000, "passes": 1, "fullScreenPasses": 0,
+      "textureMB": 25},
+    "dive:cold_open_jacket:medium:onboard": {"draws": 59, "triangles": 71000, "passes": 5, "fullScreenPasses": 4,
+      "textureMB": 73},
+    "dive:cold_open_jacket:medium:third": {"draws": 100, "triangles": 164000, "passes": 5, "fullScreenPasses": 4,
+      "textureMB": 73}
   }
 }
