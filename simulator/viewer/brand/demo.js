@@ -8,9 +8,9 @@ import {
   BRAND_COLOURS, CHAPTER_SYMBOL_IDS, FLEET_SYMBOL_IDS, chapterSymbol, fleetLetter, fleetSymbol, svgNode, yxMark,
 } from './marks.js';
 
-export import { localize } from '../i18n/index.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = localize('brand.demo', {
+export const STRINGS = localize('brand.demo', {
   title: 'YX 識別元件',
   caption: 'YX — IDENTITY COMPONENTS',
   sections: {
