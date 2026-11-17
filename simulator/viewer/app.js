@@ -6,6 +6,7 @@ import { updateTetherOperations } from './tether/operations.js';
 import { tensionColor, warnLoad, gaugePercent } from './tether/tension.js';
 import { cableTensionColor } from './tether/snag_focus.js';
 import { installProcedure } from './procedure/index.js';
+import { rotorRate } from './procedure/deck_flow.js';
 import { createSonar } from './sonar/panel.js';
 import { hidesTargets } from './sonar/scenario.js';
 import {visionTargets} from './vision/targets.js';
@@ -463,7 +464,9 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
   })});
 const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
-const procedurePanel = installProcedure({send, readOnly: !!REPLAY});
+const rotorSpin = [];
+const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
+  deck: {getIntro: () => intro, rov: rovG, getRotors: () => rotorOf}});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
@@ -1063,6 +1066,7 @@ async function startIntro(held = false) {
   if (!wasPaused && !held) send({ type: 'pause', value: true });
   intro.play(rovG, camera, () => {
     endIntroUI();
+    intro?.dispose();                           // the spool station holds station from here on (deploy_intro.js)
     target.init = false;                        // snap back to the simulated pose
     if (!wasPaused) send({ type: 'pause', value: false });
   });
@@ -1258,7 +1262,7 @@ function frame(now) {
   // rotors
   if (S && rotorOf.length) {
     rotorOf.forEach((r, j) => {
-      if (!r) return; r.ang += (S.thrust?.[j] || 0) * 40 * dt * (S.locked ? 0 : 1);
+      if (!r) return; r.ang += rotorRate(S, j, dt, rotorSpin) * dt;
       r.o.quaternion.copy(r.base).multiply(_q.setFromAxisAngle(r.axis, r.ang));
     });
   }
@@ -1272,7 +1276,7 @@ function frame(now) {
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
-  spoolStation.update(dt, !!intro);                            // the intro brings its own boat
+  spoolStation.update(dt, !!intro?.onScene);                   // the intro brings its own boat while it plays
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);

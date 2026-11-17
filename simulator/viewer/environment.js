@@ -17,6 +17,7 @@ import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
 import {createSharedSchools} from './fish_schools.js';
 import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyle, reefCoralTint} from './reef_life.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
+import {HABITAT_ROCKS, habitatRockGeometry, rockLod, upgradeRockMesh} from './scan_materials.js';
 import {buildSurfaceSet} from './surface_set.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
@@ -286,6 +287,8 @@ export class Environment {
       }
       const mesh = new THREE.InstancedMesh(geo,mat,entities.length);
       if(kind!=='rock')upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
+      else upgradeRockMesh(mesh, (rocks) => habitatRockGeometry(rocks, variant, this.detail), this.detail)
+        .catch(() => false);
       mesh.userData.observationEntities = entities.map(e=>({entity_id:e.id,category:e.kind}));
       if(kind==='kelp'||kind==='seagrass') mesh.userData.observationBend = this.uniforms;
       for (let i=0;i<entities.length;i++) {
@@ -328,7 +331,8 @@ export class Environment {
       for (let k = 0; k < n; k++) {
         const x = at.x + (R() - 0.5) * 22, z = at.z + (R() - 0.5) * 22;
         if (!this._clear(x, z)) continue;
-        const big = R() < 0.18 ? 2.2 + R() * 2.5 : 0.35 + R() * 1.3;
+        // visual only (no collider): stones up to 0.6 m, never boulders the vehicle would fly through
+        const big = R() < 0.18 ? 0.45 + R() * 0.15 : 0.15 + R() * 0.3;
         s.set(big * (0.8 + R() * 0.5), big * (0.7 + R() * 0.6), big * (0.8 + R() * 0.5));
         q.setFromEuler(e.set((R() - 0.5) * 0.4, R() * 6.28, (R() - 0.5) * 0.4));
         m4.compose(new THREE.Vector3(x, this.seabedY + s.y * 0.25, z), q, s);
@@ -336,6 +340,9 @@ export class Environment {
       }
     }
     mesh.forEach((m) => { m.instanceMatrix.needsUpdate = true; });
+    const lod = rockLod(this.detail);
+    mesh.forEach((m, i) => upgradeRockMesh(m, (rocks) => rocks.geometry(HABITAT_ROCKS[i], lod), this.detail)
+      .catch(() => false));
   }
 
   _debris(R) {

@@ -10,6 +10,7 @@ import {
   chordIds,
   createResolver,
   keyRow,
+  menuPadBindings,
   migrateBindings,
 } from "./bindings.js";
 import { publishKeyRows, rowsFor } from "./keyboard_layout.js";
@@ -319,7 +320,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       );
       snapshot.axes.splice(offset, 2, ...pair);
     }
-    const actions = resolver.resolve(settings.bindings, snapshot, activeContexts(), now);
+    // Menu rows are fixed, so they are not in the stored bindings; without them a feature module's menu actions
+    // (deck checklist focus and confirm) would never see the pad.
+    const sources = { ...menuPadBindings(), ...settings.bindings };
+    const actions = resolver.resolve(sources, snapshot, activeContexts(), now);
     const consumed = features.sample(snapshot, featureDt, actions);
     for (const channel of consumed) actions[channel] = 0;
     hudActions = actions;

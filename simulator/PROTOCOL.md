@@ -773,6 +773,40 @@ peak cable length and notes. Physics enforces locked flight outside `diving`, in
 `state.score.procedure_penalty` is optional. Skips have a seeded 35% per-check fault probability
 (training assumption); missing communication checks may cause control loss and forced cable recovery.
 Recovery rate and wave modulation are provisional training approximations, not measured vessel limits.
+`state.procedure.diagnostic_index` (optional) names the thruster being pulsed while `diagnostic > 0`.
+
+### Optional deck flow (pre-dive check on the aft deck)
+
+`{"type":"procedure","action":"begin","flow":"deck"}` selects the deck flow instead of the ten confirmations above
+(without `flow` everything above is unchanged). Its hands-on checks run in the order
+`walkaround, power, thrusters, lights, camera`:
+
+* `look` (`station` 0–4: `front, port, top, rear, starboard`) records that the walk-around looked at a station;
+  `check` `walkaround` needs all five. `report` (`station`, already looked at) reports a defect there: a hit sets
+  `defect.found`, a miss adds 2 penalty points (`false_report` event). `fix` clears a found defect in 3 s
+  (`defect.fixed`); the walk-around cannot be confirmed while a found defect is still on the vehicle.
+* `check` `power` powers the vehicle (`powered`); `power` completes after a 3 s start-up (`boot` seconds left).
+  `test` (`index`) is the same 2 s pulse as above; `thrusters` completes by itself after every thruster has been
+  pulsed. The first `check` `lights` switches the lamps on (`lamps:true`); the second confirms them, switches them
+  off and completes `lights`. `check` `camera` completes the checks and enters `launch`.
+* The crew reports `trim` (4 s after begin), `instruments` and `communication` (2 s and 4 s after power) and
+  `tender` (2 s after entering `launch`; sets `confirmed`) as `crew` events; nothing has to be sent for them.
+  `tender` is still accepted. `skip` adds one penalty point per unfinished hands-on check and draws no random
+  fault in this flow.
+* Optional `begin` fields: `checks:"crew"` (easier presets: every check reported done, no defect, no penalty),
+  `defects:true` (career, campaign or exam context: with a seeded 50 % chance one defect is planted),
+  `defect` (`line_fouled`, `guard_cracked`, `oring_debris`, `connector_unlocked` or `none`: force one, for
+  scenario authors and tests) and `seed` (integer, mixed with the scenario key and seed; default 0). Without
+  `defects` or `defect` nothing is ever planted; SDK sessions and quick launches never send `begin`.
+* `state.procedure` adds `flow:"deck"`, `order`, `stations`, `seen`, `crew`, `powered`, `boot`, `lamps`, `fix` and
+  `defect` (`null` or `{kind, station, thruster, found, fixed}`; `thruster` is the zero-based index for the two
+  thruster defects).
+* A defect not found before the walk-around is confirmed (or skipped) becomes a `fault` event
+  (`check:"walkaround"`, `defect`, `fault`, `thruster`, 10 penalty points) during the dive, through models that
+  already exist: `line_fouled` sets that thruster's `health` to 0.35 after it has run (> 10 % thrust) for 2 s in
+  the water; `guard_cracked` sets it to 0 after 15 s of running; `oring_debris` raises the existing leak alarm
+  (`leak.detected`) at 3 m; `connector_unlocked` degrades the link (severity 0.6: video lag, freeze episodes,
+  lower telemetry rate) 8 s into the dive below 1 m. All timings and thresholds are training assumptions.
 
 ## Optional start point (assisted presentation)
 

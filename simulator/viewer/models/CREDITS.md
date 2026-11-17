@@ -14,8 +14,42 @@ the water now use the project's own sky, sea and sunlight (`../fx/daylight.js`, 
 `waternormals.jpg` for the wave normals.
 
 Inspection structures, marine fouling, rock armour and seabed materials (`../structures.js`, `../structure_materials.js`,
-`../seabed.js`) are original procedural work of this project: geometry and canvas textures are generated at run time,
-no external files. Marine-life GLBs registered later in `../marine_registry.js` (`models/marine/`) must be listed here.
+`../seabed.js`) are original procedural work of this project (geometry, fouling, canvas textures generated at run
+time), now combined with the CC0 scanned textures and rocks of `scan/` below. Marine-life GLBs registered later in
+`../marine_registry.js` (`models/marine/`) must be listed here.
+
+### Scanned materials and rocks (`scan/`)
+
+Photo-scanned textures and rock models from [Poly Haven](https://polyhaven.com) and
+[ambientCG](https://ambientcg.com), all **CC0 1.0**. Licence proof: Poly Haven <https://polyhaven.com/license>
+("Our assets are all licensed as CC0"); ambientCG <https://docs.ambientcg.com/license/> ("All ambientCG assets are
+provided under the Creative Commons CC0 1.0 Universal License"). Both pages checked 2026-11-16. Verified list and selection notes: `research_notes/素材/open_assets.md`. All sources are the 1K
+downloads (JPG maps, glTF models, ambientCG `1K-JPG` zips) listed with URL and SHA-256 in
+`../../tools/scan_materials_sources.json`; `python simulator/tools/build_scan_materials.py --source <scratch>`
+rebuilds every file below from them (`--list` prints the URLs; download by hand outside the repository). Credit is
+not required by CC0; it is given here for provenance. None of the textures contains text or a logo.
+
+| File(s) | Source page | Author | Changes |
+|---|---|---|---|
+| `sand_c.webp`, `sand_n.webp` | [sand_03](https://polyhaven.com/a/sand_03) | Charlotte Baglioni | colour normalised to a neutral grey mean (the viewer tints it per site), normal + roughness (alpha) at 512 px, WebP |
+| `shell_c.webp`, `shell_n.webp` | [shell_floor_01](https://polyhaven.com/a/shell_floor_01) | Rob Tuytel | as sand |
+| `gravel_c.webp`, `gravel_n.webp` | [coral_gravel](https://polyhaven.com/a/coral_gravel) | Rob Tuytel | as sand |
+| `rockbed_c.webp`, `rockbed_n.webp` | [low_tide_rocks](https://polyhaven.com/a/low_tide_rocks) | Dimitrios Savva | as sand |
+| `mud_c.webp`, `mud_n.webp` | [ambientCG Ground054](https://ambientcg.com/view?id=Ground054) | ambientCG | as sand |
+| `ripple_n.webp` | [aerial_beach_01](https://polyhaven.com/a/aerial_beach_01) | Rob Tuytel | normal map with the displacement map in alpha (sand ripples, used at a 12 m tile instead of 30 m) |
+| `macro_c.webp` | [coast_sand_01](https://polyhaven.com/a/coast_sand_01) | Rob Tuytel | diffuse blurred, normalised, 256 px: large-scale colour variation |
+| `coating_c.webp`, `coating_n.webp` | [ambientCG PaintedMetal016](https://ambientcg.com/view?id=PaintedMetal016) and [green_metal_rust](https://polyhaven.com/a/green_metal_rust) | ambientCG; Rob Tuytel | combined: rust areas of PaintedMetal016 (graded by a generated tileable noise) and the rust spots of green_metal_rust as a rust-propensity alpha; paint pixels reduced to grey luminance (the hazard stripes and the green paint are not shown; the viewer applies the site's coat colour); normals whiteout-blended; roughness in the normal map's alpha |
+| `rust_c.webp`, `rust_n.webp` | [rust_coarse_01](https://polyhaven.com/a/rust_coarse_01) | Dimitrios Savva, Rico Cilliers | resized, roughness in normal alpha, WebP |
+| `concrete_c.webp`, `concrete_n.webp` | [concrete](https://polyhaven.com/a/concrete) | Rob Tuytel | as rust |
+| `plate_c.webp`, `plate_n.webp` | [ambientCG DiamondPlate008C](https://ambientcg.com/view?id=DiamondPlate008C) | ambientCG | as rust |
+| `grating_c.webp`, `grating_n.webp` | [ambientCG MetalWalkway014](https://ambientcg.com/view?id=MetalWalkway014) | ambientCG | colour mostly desaturated towards galvanised grey, opacity map in the colour alpha |
+| `rocks.glb`, `rocks_c.webp`, `rocks_n.webp` | [rock_07](https://polyhaven.com/a/rock_07), [rock_09](https://polyhaven.com/a/rock_09) (Jenelle van Heerden), [boulder_01](https://polyhaven.com/a/boulder_01) (Rico Cilliers), [stone_01](https://polyhaven.com/a/stone_01) (Dario Barresi, Rico Cilliers) | as listed | decimated in Blender (collapse) to 1,200 / 320 / 96 triangles per rock, principal extents evened out and radial spurs compressed so the rocks are blockier, normalised into the unit sphere; the four 1K maps packed into a 2x2 atlas (colour normalised like the seabed, roughness from the ARM map in the normal alpha); the original normal maps are reused on the decimated meshes (not re-baked) |
+
+Rejected after download: Poly Haven `rusty_painted_metal` (a corrugated container: its normals would ripple every
+tube), `painted_concrete`, `rebar_reinforced_concrete` (green / red paint), `metal_grate_rusty` (no opacity),
+ambientCG `Rust009` (not needed next to rust_coarse_01) and `Ground083` (yellow-green). PaintedMetal016's hazard
+stripes are not used as stripes. Real tile sizes: Poly Haven pages; ambientCG gives none (assumed, see
+`../scan_materials.js` `SCAN_TILE`).
 
 `rov.glb` is the project's existing X1 reconstruction. `bluerov2_heavy.glb` is an estimated study model. `falcon.glb` is generated by `cad/build_falcon_reference.py` from original geometry using [Saab Seaeye's official photographs](https://www.saabseaeye.com/solutions/underwater-vehicles/falcon) as visual references. Photographs are not embedded. See `cad/VEHICLE_MODELS.md` for provenance and estimated dimensions/physics. These models are not manufacturer-certified replicas.
 
@@ -31,6 +65,28 @@ third-party models, photographs, scans or texture libraries are embedded; the la
 committed. See `docs/design/wreck/README.md`.
 
 An official BlueROV2 R3 CAD conversion exists only in the developer's `.runtime` reference directory. It is not included here or in the desktop distribution.
+
+### Fish (`fish/`)
+
+Photo-textured fish models from the **Fish Kit** by cda-social: [kit zip](https://cda-social.github.io/fish/kit/fish-kit.zip),
+[gallery](https://cda-social.github.io/fish/gallery.html), [terms](https://cda-social.github.io/fish/terms.html).
+Licence: **CC0 1.0** for the fish models, textures, motions, code and scripts (the kit's `LICENSE.txt` and the terms page).
+three.js, which the kit embeds only in its `example.html`, is MIT and was not copied; nothing of the kit's code is
+vendored (the swim wave is our own shader in `../fish_life.js`, using the wave parameters stored in each model).
+
+**Provenance of the textures: AI-generated images.** The kit's `making/README.md` states that the side-view fish
+"photos" were generated with OpenAI's image generation (driven through the Codex CLI) and then meshed in Blender;
+they are not photographs of real fish. Disclosed in the Steam AI-content notes (`docs/store/steam/page.md`).
+
+| Files | Species (kit id) | Changes |
+|---|---|---|
+| `<id>.glb` | aji, saba, buri, kurodai, mebaru, madai, isaki, isaki_young, shibudai, onagagure, kuchibuto | none (byte-for-byte copies) |
+| `<id>_lo.glb` | same | embedded texture removed (it is byte-identical to the one in `<id>.glb`, which the viewer uses) |
+| `<id>_card.webp` | same | derived: orthographic side and top views of `<id>.glb` rendered from its own texture (far-fish cards) |
+
+Rebuild: `python simulator/tools/build_fish_kit.py --source <fish-kit>/fish` (reads the GLBs as data only).
+The head and gill-cover images of the kit (`*_head.webp`, `*_cover.webp`) drive its mouth and gill motion, which the
+viewer does not use; they are not vendored. Credit is not required by CC0; it is given here for provenance.
 
 ### Music (`../audio/music/`)
 Every recording below is public domain or CC0 — the *performance*, not only the composition. Files were trimmed,
@@ -84,5 +140,5 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 
 `aquaculture/net.webp` 自 scene-looks 起改由 `simulator/tools/build_pen_net_texture.py`（Pillow，固定 seed 71）產生：
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
-養殖魚與死魚（`pen_life.js`）、珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`）皆為本專案原創程式幾何，
-CC0-1.0，沒有外部模型、照片或貼圖。
+珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）
+皆為本專案原創程式幾何，CC0-1.0，沒有外部模型、照片或貼圖。養殖魚與死魚載入後改用上方 Fish Kit 的嘉鱲（`fish/madai*`）。

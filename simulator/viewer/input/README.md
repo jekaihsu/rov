@@ -39,7 +39,8 @@ channels by what they do (前進／後退), not by the stick.
 
 Menu context (launch menu, pause menu, settings): D-pad or arrow keys and the left stick move focus, A / Enter
 confirms, B / Esc goes back, LB / RB or Q / E switch tabs, the right stick turns the hangar turntable. These rows are
-fixed (not rebindable) and are read by `../menu/navigator.js`.
+fixed (not rebindable) and are read by `../menu/navigator.js`; the flight input layer adds them to the stored
+bindings (`menuPadBindings`) so feature modules that register menu actions, such as the deck checklist, see the pad.
 
 Assist level and flight profile belong to the fidelity profile (`../fidelity.js`); the `real` preset starts
 at assist 0. Both RC fields are omitted until telemetry advertises an assist object. Selecting the drone
@@ -51,9 +52,15 @@ then press each requested standard button. Release between steps. Extra axes and
 buttons may be assigned to any requested control; optional buttons may be skipped.
 The profile is saved under `rov.input.v1` → `custom[pad.id]`. Calibrate again when
 changing driver/browser: SDL indices vary across platforms, especially hat switches.
-The compact database contains Linux axis records; unsupported SDL hat descriptors
-produce no action, so calibrate a custom profile when the live display differs from
-the device. Compatibility notes: `research_notes/手把/compatibility.md`. Steam Input
+The compact database contains Linux axis records. `devices.js` decodes their hat
+descriptors (`h0.1` up, `.2` right, `.4` down, `.8` left: the stepped axis 9 that
+Chromium reports on Windows/macOS, or the x/y axis pair after the plain axes on Linux)
+and scales a bare full-range axis on a trigger slot to 0..1; calibrate a custom profile
+when the live display still differs from the device. PlayStation pads (DualShock 4,
+DualSense) that arrive without the standard mapping skip the database and use the raw
+layouts in `playstation.js`, chosen from the id format; see
+`docs/reference/playstation-controller.md`. Menu prompts name the shoulders and menu
+buttons per family (`glyphs.js` `padNames`, e.g. L1/R1/Options). Compatibility notes: `research_notes/手把/compatibility.md`. Steam Input
 partner setup: `docs/steam/steam-input.md`.
 
 Browser preferences use `rov.input.v1`; desktop mirrors them in the existing

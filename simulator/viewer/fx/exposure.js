@@ -1,8 +1,9 @@
 // Camera auto-exposure on the GPU: meter the linear scene image (centre-weighted log-average luminance),
 // adapt towards the target with a lag like a real camera's exposure loop, and scale the image before the
 // single tone-mapping step in OutputPass. No pixels are read back to the CPU.
-// Convergence time, metering weights and the gain range are assumptions (the research report has no
-// measured exposure behaviour for the vehicle camera); see fx/README.md.
+// The target (fx/metering.js) protects highlights: a lamp-lit subject is not clipped just because dark water fills
+// most of the frame. Convergence time, metering weights, the gain range and the highlight level are assumptions
+// (the research report has no measured exposure behaviour for the vehicle camera); see fx/README.md.
 // The same pass runs the camera's auto white balance (white_balance.js): only bright, near-neutral cells count
 // as white-point candidates, so saturated water keeps its colour as in real footage, while lamp-lit near objects
 // are balanced. It only rescales the red and blue that reached the sensor, within a limited range. The sensor's
@@ -11,17 +12,16 @@ import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { WATER_COMMON, shareWaterUniforms } from './water_optics.js';
 import { WHITE_BALANCE, WHITE_BALANCE_GLSL } from './white_balance.js';
+import { METERING, meterTargetGlsl } from './metering.js';
 
 export { WHITE_BALANCE };
 
 export const EXPOSURE = Object.freeze({
-  key: 0.15,          // mid-grey the meter aims for, before ACES
-  // The loop corrects only part of the metered error in stops around a reference gain, like a video camera
-  // with a limited AE range: brighter lamps still give a brighter picture and the near-field pool stays visible.
-  compensation: 0.65,
-  reference: 50.0,
-  minimum: 0.3,       // strongest darkening (bright shallow water, sun-lit sand)
-  maximum: 400.0,     // most gain the camera adds in the dark (beyond this the image just gets darker)
+  // Metering target: key, partial compensation around a reference gain, gain range and highlight protection
+  // (fx/metering.js). The loop corrects only part of the metered error in stops, like a video camera with a
+  // limited AE range, so brighter lamps still give a brighter picture; the highlight cap keeps a lamp-lit subject
+  // from clipping when dark water fills most of the frame.
+  ...METERING,
   tau: 0.35,          // seconds, first-order lag in stops
   maxStep: 0.25       // longest frame step the adaptation accepts, seconds
 });
@@ -148,32 +148,21 @@ const METER = /* glsl */ `
     gl_FragColor = vec4(sum / 16.0 * weight, candidate, colourCast.x * candidate, colourCast.y * candidate);
   }`;
 
-// One texel: log exposure, moved towards the metered target by the elapsed time.
+// One texel: log exposure, moved towards the metered target by the elapsed time; also the metered log average and
+// the log of the bright end (fx/metering.js) for diagnostics.
 const ADAPT = /* glsl */ `
   uniform sampler2D tMeter;
   uniform sampler2D tPrevious;
   uniform float uStep;
   uniform float uReset;
-  uniform vec3 uRange;
-  uniform vec2 uPartial;
   varying vec2 vUv;
   ${METER_WEIGHT}
+  ${meterTargetGlsl(METER_WIDTH, METER_HEIGHT)}
   void main() {
-    float logSum = 0.0;
-    float weights = 0.0;
-    for (int y = 0; y < ${METER_HEIGHT}; y++) {
-      for (int x = 0; x < ${METER_WIDTH}; x++) {
-        logSum += texelFetch(tMeter, ivec2(x, y), 0).r;
-        weights += meterWeight((vec2(float(x), float(y)) + 0.5) / vec2(${METER_WIDTH}.0, ${METER_HEIGHT}.0));
-      }
-    }
-    float average = logSum / max(weights, 1e-4);
-    float full = log(uRange.x) - average;
-    float partial = uPartial.x * full + (1.0 - uPartial.x) * uPartial.y;
-    float target = clamp(partial, log(uRange.y), log(uRange.z));
+    vec3 metered = meterTarget(tMeter);
     float previous = texelFetch(tPrevious, ivec2(0, 0), 0).r;
-    float next = uReset > 0.5 ? target : previous + (target - previous) * uStep;
-    gl_FragColor = vec4(next, target, average, 1.0);
+    float next = uReset > 0.5 ? metered.x : previous + (metered.x - previous) * uStep;
+    gl_FragColor = vec4(next, metered.x, metered.y, metered.z);
   }`;
 
 // One texel: log channel gains (red, green, blue) of the white balance, lagged like the exposure.
@@ -245,7 +234,8 @@ export class AutoExposurePass extends Pass {
       uniforms: {
         tMeter: { value: this.meter.texture }, tPrevious: { value: null }, uStep: { value: 1 },
         uReset: { value: 1 }, uRange: { value: new THREE.Vector3(EXPOSURE.key, EXPOSURE.minimum, EXPOSURE.maximum) },
-        uPartial: { value: new THREE.Vector2(EXPOSURE.compensation, Math.log(EXPOSURE.reference)) }
+        uPartial: { value: new THREE.Vector2(EXPOSURE.compensation, Math.log(EXPOSURE.reference)) },
+        uHighlight: { value: EXPOSURE.highlight }
       },
       vertexShader: VERTEX, fragmentShader: ADAPT, depthTest: false, depthWrite: false
     });
@@ -261,8 +251,8 @@ export class AutoExposurePass extends Pass {
       vertexShader: VERTEX, fragmentShader: APPLY, depthTest: false, depthWrite: false
     });
     this.quad = new FullScreenQuad(null);
-    // Optional override while the camera is above water ({compensation, reference, balance}, fx/daylight.js);
-    // null keeps the underwater camera model above.
+    // Optional override while the camera is above water ({compensation, reference, balance, highlight?},
+    // fx/daylight.js); null keeps the underwater camera model above.
     this.metering = null;
   }
 
@@ -271,6 +261,8 @@ export class AutoExposurePass extends Pass {
     const compensation = metering ? metering.compensation : EXPOSURE.compensation;
     const reference = metering ? metering.reference : EXPOSURE.reference;
     this.adaptMaterial.uniforms.uPartial.value.set(compensation, Math.log(reference));
+    // The daylight camera above water keeps its fixed gain unless its override names a highlight level.
+    this.adaptMaterial.uniforms.uHighlight.value = metering ? metering.highlight ?? 0 : EXPOSURE.highlight;
     // The override's `balance` is the share of the camera's own white balance to apply (0 = fixed daylight).
     this.balanceMaterial.uniforms.uBalanceScale.value = metering ? metering.balance : 1;
   }
@@ -328,7 +320,7 @@ export class AutoExposurePass extends Pass {
     const balance = new Float32Array(4);
     renderer.readRenderTargetPixels(this.balanceHistory[this.current], 0, 0, 1, 1, balance);
     return { exposure: Math.exp(value[0]), target: Math.exp(value[1]), meteredLuminance: Math.exp(value[2]),
-      whiteBalance: [Math.exp(balance[0]), 1, Math.exp(balance[2])] };
+      brightLuminance: Math.exp(value[3]), whiteBalance: [Math.exp(balance[0]), 1, Math.exp(balance[2])] };
   }
 
   dispose() {

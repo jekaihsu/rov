@@ -43,4 +43,41 @@
 - **地理要合理**：離岸風場距岸約 10–60 km，旁邊不會有山；港口有碼頭與城市；水庫有壩與山。場景四周的東西要符合真實地點。
 - **形狀要利落**：工業結構細長、硬邊；避免圓胖、倒角過大、像玩具的比例。
 - **模型要真的載入遊戲**：提交的 GLB 必須在執行時被載入；只放在儲存庫裡、遊戲畫的還是碰撞方塊，不算完成。
-- **照片只能參考**：不得提交照片、照片裁切或由照片像素做成的貼圖。
+- **擁有者的現場照片只能參考**：不得提交擁有者提供的照片、其裁切或由其像素做成的貼圖。公開的 CC0 材質掃描（沙、石、鏽、混凝土等，如 Poly Haven、ambientCG）可以使用（擁有者 2026-11-17 同意），但不得含人臉、真實品牌或產品外觀，並須在 `simulator/viewer/models/CREDITS.md` 記錄來源與授權證明。
+
+## 2026-11-17 新增
+
+| 順序 | 檔案 | 內容 | 派給 |
+|---|---|---|---|
+| 1 | `N5-windows-build.md` | 在你的 Windows 電腦上打包給同事 | 你本機的代理（等我說 main 已合併） |
+| 1 | `N2-voice-run.md` | 序章語音產生與試聽 | 你本機的代理（需 OpenAI 金鑰） |
+| 2 | `N4-i18n-coverage.md` | 職涯、品牌、潛前檢查等新畫面接入四語 | Codex／Cursor |
+| 2 | `N3-reef-life.md` | CC0 海洋生物與珊瑚掃描做成遊戲模型 | GPT＋Blender（需 Sketchfab 帳號） |
+| 2 | `M3.md`＋PR #81 評論 | 小艇重做（沒有可用的 CC0 寫實小艇，仍需自建；可用 Poly Haven／ambientCG 的 CC0 材質與救生圈、浮標） | GPT＋Blender |
+| 隨時 | `N6-x1-footage.md` | X1 實機量測與影片 | 你和同事 |
+
+`N1-fish.md` 已不需要：改用 CC0 魚模型包。
+
+## 2026-11-17 持續開發（可落地的功能 PR）
+
+| 順序 | 檔案 | 內容 | 派給 |
+|---|---|---|---|
+| 1 | `P6-playtest-feedback.md` | 試玩回報工具（同事試玩前最好先有） | Codex／Cursor |
+| 1 | `P1-difficulty.md` | 難度三檔與開新遊戲畫面 | Codex／Cursor |
+| 2 | `P5-prologue.md` | 序章改寫、角色台詞、執照卡 | Codex／Cursor |
+| 2 | `P2-repair-reputation.md` | 維修費與聲譽 | Codex／Cursor |
+| 3 | `P3-chapter1.md` | 第一章工單與工具（雷射尺、評級、LOTO、大事件） | Codex／Cursor，P5 合併後 |
+| 3 | `P4-chapter2.md` | 第二章工單與大事件 | Codex／Cursor，P5 合併後 |
+| 隨時 | `P7-settings.md` | 設定補齊 | Codex／Cursor |
+
+P3、P4、P5 都會動到 `career/contracts.json` 與 `simulator/campaign/`，請依序派，避免衝突。
+
+## 2026-11-17 模型與資料優化
+
+| 順序 | 檔案 | 內容 | 派給 |
+|---|---|---|---|
+| 1 | `Q1-asset-slimming.md` | 素材瘦身、壓縮、LOD、載入速度、預算檢查工具 | Codex／Cursor |
+| 1 | `Q4-x1-fitting-pipeline.md` | X1 實測資料一到就能擬合的管線 | Codex／Cursor |
+| 2 | `Q2-model-o-literature.md` | Model O 依公開文獻校準水動力與推進器 | Codex／Cursor |
+| 2 | `Q3-tether-parameters.md` | 臍帶纜參數依公開規格校準 | Codex／Cursor |
+| 3 | `Q5-vehicle-models.md` | 三台載具模型品質、一致材質、三級 LOD | GPT＋Blender，Q1 合併後 |

@@ -74,7 +74,7 @@ ROV Solution 是以真實操作為核心的水下遙控載具模擬遊戲。你�
 
 ### AI 內容揭露
 
-本作的無線電對話語音使用 AI 語音合成製作。另有以 AI 協助起草的商店說明與翻譯，發布前須經人工審核。遊戲內其他 AI 輔助生成的文字、翻譯、美術或音樂，以及是否在執行時生成內容，仍待發行素材清冊確認；送審前會補齊實際使用範圍。
+本作的無線電對話語音使用 AI 語音合成製作。水中魚類的模型貼圖取自第三方 CC0 魚類模型包，該包的貼圖是預先以 AI 圖像生成產生的圖片（非實拍照片），隨遊戲發行，執行時不生成。另有以 AI 協助起草的商店說明與翻譯，發布前須經人工審核。遊戲內其他 AI 輔助生成的文字、翻譯、美術或音樂，以及是否在執行時生成內容，仍待發行素材清冊確認；送審前會補齊實際使用範圍。
 
 ## English (english)
 
@@ -140,7 +140,7 @@ The game depicts underwater industrial work, equipment collisions and operationa
 
 ### AI content disclosure
 
-Radio dialogue voices are produced using AI speech synthesis. Store descriptions and translations have also been drafted with AI assistance and require human review before publication. Other AI-assisted in-game text, localization, artwork or music, and any runtime generation, remain subject to the release asset inventory. The disclosure will be completed with the actual scope before submission.
+Radio dialogue voices are produced using AI speech synthesis. The fish models' textures come from a third-party CC0 fish model kit whose textures are pre-generated AI images (not photographs); they ship with the game and nothing is generated at runtime. Store descriptions and translations have also been drafted with AI assistance and require human review before publication. Other AI-assisted in-game text, localization, artwork or music, and any runtime generation, remain subject to the release asset inventory. The disclosure will be completed with the actual scope before submission.
 
 ## 简体中文（schinese）
 
@@ -206,7 +206,7 @@ ROV Solution 是以真实操作为核心的水下遥控载具模拟游戏。你�
 
 ### AI 内容披露
 
-本作的无线电对话语音使用 AI 语音合成制作。另有以 AI 协助起草的商店说明与翻译，发布前须经人工审核。游戏内其他 AI 辅助生成的文字、翻译、美术或音乐，以及是否在运行时生成内容，仍待发行素材清单确认；送审前会补齐实际使用范围。
+本作的无线电对话语音使用 AI 语音合成制作。水中鱼类的模型贴图取自第三方 CC0 鱼类模型包，该包的贴图是预先以 AI 图像生成产生的图片（非实拍照片），随游戏发行，运行时不生成。另有以 AI 协助起草的商店说明与翻译，发布前须经人工审核。游戏内其他 AI 辅助生成的文字、翻译、美术或音乐，以及是否在运行时生成内容，仍待发行素材清单确认；送审前会补齐实际使用范围。
 
 ## 日本語（japanese）
 
@@ -272,7 +272,7 @@ Steam掲示板で報告や提案を受け付け、パッチノートで修正を
 
 ### AI生成コンテンツの説明
 
-無線交信の音声はAI音声合成で制作します。また、ストア説明と翻訳の草案作成にAIを使用しており、公開前に人による確認が必要です。ゲーム内のその他の文章、翻訳、美術、音楽へのAI利用、および実行中の生成の有無は、リリース素材一覧で確認する必要があります。審査提出前に実際の利用範囲を追記します。
+無線交信の音声はAI音声合成で制作します。水中の魚のモデルのテクスチャは第三者のCC0魚モデルキットのもので、あらかじめAI画像生成で作られた画像（実写写真ではありません）です。ゲームに同梱し、実行中には生成しません。また、ストア説明と翻訳の草案作成にAIを使用しており、公開前に人による確認が必要です。ゲーム内のその他の文章、翻訳、美術、音楽へのAI利用、および実行中の生成の有無は、リリース素材一覧で確認する必要があります。審査提出前に実際の利用範囲を追記します。
 
 ## 揭露提交對照（內部）
 
@@ -281,6 +281,7 @@ Steam掲示板で報告や提案を受け付け、パッチノートで修正を
 | 類別 | 目前證據 | 提交方式 |
 |---|---|---|
 | 無線電 AI 語音 | 擁有者已確認用途；供應商、授權及離線／即時方式未提供 | 必須揭露；若先合成檔案隨包發行選 Pre-Generated；若執行時合成另選 Live-Generated 並填防護措施，不猜測 |
+| 魚類模型貼圖（`simulator/viewer/models/fish/`） | 第三方 CC0 Fish Kit；作者說明（`making/README.md`）貼圖由 OpenAI 圖像生成（經 Codex）產生，再以 Blender 建模；見 `simulator/viewer/models/CREDITS.md` | 必須揭露；檔案隨包發行，選 Pre-Generated；執行時不生成 |
 | 本文件商店文字、四語翻譯 | 此次由 AI 協助起草 | 保留此製作紀錄並人工校對；不等同已完成遊戲內四語本地化 |
 | 遊戲內文字、翻譯、圖像、模型、貼圖、音樂 | 未完成逐檔來源盤點 | 未查證；不可直接填「除語音外沒有 AI」。逐項列檔案、工具、人工處理、授權與是否隨包發行 |
 | 即時物件辨識、腳本 NPC、物理程序生成 | 功能名稱含 AI 不足以證明生成式內容 | 按實際實作分類；不要誤填成即時生成對話 |

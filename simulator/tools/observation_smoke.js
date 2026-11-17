@@ -35,8 +35,16 @@ async (payload) => {
   environment.dispose();world.habitat={entities:[],fish_schools:[{id:'school-test',pos:[4,0,10],count:24,variant:0}]};environment=new Environment(scene,world);
   environment.update(.016,camera,null,state);
   check('actual_fish_instances',e=>e.ok&&e.entity_id==='school-test'&&e.visible_samples>3);
-  const fishMesh=environment.sharedSchools[0].mesh;
-  for(let i=0;i<fishMesh.count;i++){const matrix=new THREE.Matrix4();fishMesh.getMatrixAt(i,matrix);matrix.elements[12]+=25;fishMesh.setMatrixAt(i,matrix);}fishMesh.instanceMatrix.needsUpdate=true;
+  // A school is a group of level-of-detail instanced meshes (fish_schools.js); move every drawn instance.
+  for (const fishMesh of environment.sharedSchools[0].mesh.children) {
+    for (let i = 0; i < fishMesh.count; i++) {
+      const matrix = new THREE.Matrix4();
+      fishMesh.getMatrixAt(i, matrix);
+      matrix.elements[12] += 25;
+      fishMesh.setMatrixAt(i, matrix);
+    }
+    fishMesh.instanceMatrix.needsUpdate = true;
+  }
   check('fish_moved_offscreen',e=>!e.ok);
   camera.lookAt(25,-10,4);check('fish_current_matrix',e=>e.entity_id==='school-test');
   environment.dispose();world.habitat={entities:[{id:'kelp-test',kind:'kelp',variant:0,pos:[3,0,10],scale:1,yaw:0}],fish_schools:[]};environment=new Environment(scene,world);

@@ -5,18 +5,42 @@
 import * as THREE from 'three';
 import { waterCoefficients, waterRadianceAtInfinity, combineMedium } from './water_model.js';
 
-// Visualization calibration (assumptions, not measurements; see fx/README.md):
-// lamp candela values from the app are scaled into the same relative units as the scene's daylight
-// (hemisphere 1.5 + directional 1.6 at the surface). With this, two lamps at full power give about the
-// irradiance of overcast surface daylight at 2 m, and outshine daylight by 20-50x at 25-32 m in 10 m water.
-export const LAMP_SCALE = 0.03;
-// Fraction of scattered light that returns towards the camera, for daylight and for the lamps.
+// Vehicle lamps, in the same relative units as the scene's daylight (hemisphere 1.5 + directional 1.6 at the
+// surface, three's physical light units: an irradiance of 1 is "1 lux" of this scale). The lamp is a vehicle
+// parameter and every number below is provisional (docs/reference/x1-measurement-checklist.md has no lamp item
+// measured yet): research gives "several thousand lumens, 120-160 degree beams" for observation-class lamps
+// (1,500-3,000 lm per lamp; the vendor claims 2 x 6,000 lm, 120 degrees for X1, unverified). The surface
+// daylight the rig stands for is an assumption too (overcast, the low end of 10,000-100,000 lux).
+export const LAMP_ASSUMED = Object.freeze({
+  lumens: 4000,          // effective flux of one lamp at full power, in water
+  beamHalfAngleDeg: 60,  // 120 degree flood; intensity falls smoothly from the axis to the edge (penumbra 1)
+  appCandela: 260,       // what app.js sets on each SpotLight at full power
+  surfaceLux: 10000      // what the daylight rig at the surface stands for
+});
+// Daylight rig at the surface, hemisphere + directional (fx/daylight.js UNDERWATER_DAYLIGHT).
+const DAYLIGHT_RIG = 3.1;
+// Solid angle of the smooth cone: smoothstep from the edge to the axis averages one half over the cone.
+const LAMP_SOLID_ANGLE = Math.PI * (1 - Math.cos(LAMP_ASSUMED.beamHalfAngleDeg * Math.PI / 180));
+// App candela -> scene units: on-axis intensity (lm / sr) over the app's value, times scene units per lux. About
+// 0.003: each lamp is about 2,500 cd on its axis, so two at full power give about 5,000 lux at 1 m before water,
+// half of overcast surface daylight.
+// The first optics calibration (0.03) made the lamps ten times brighter than this relative to daylight: lamp-lit
+// subjects outshone daylight 7-150 times at 1 m and up to 18 times at 2 m and clipped, while footage shows colour
+// coming back only within about 1 m (research_notes/洋流與波浪對ROV作業/real_dive_footage.md §2.4);
+// docs/design/lamp-exposure/.
+export const LAMP_SCALE = LAMP_ASSUMED.lumens / LAMP_SOLID_ANGLE / LAMP_ASSUMED.appCandela *
+  DAYLIGHT_RIG / LAMP_ASSUMED.surfaceLux;
+// Fraction of scattered light that returns towards the camera, for daylight and for the lamps. The lamp value sets
+// the veil relative to the lamp-lit subjects (both scale with lamp power), which was tuned on the review shots and is
+// kept: with a phase of 0.0025 (Petzold-type particles near 180 degrees, about 0.002-0.005 per steradian) the
+// single-scatter integral here, with the lamps at the lens and the near-lamp 1/d^2 limited at 0.5 m, buries a hull at
+// 1 m in 4 m water (docs/design/lamp-exposure/README.md).
 export const DAYLIGHT_PHASE = 0.015;
 const LAMP_PHASE = 0.00025;
 // Daylight reaching the surface, as the radiance factor used by the in-scatter integral.
 const SURFACE_DAYLIGHT = new THREE.Color(0.93, 1.0, 1.0).multiplyScalar(3.1);
 // Generic soft LED flood: a wide beam without a hard spot edge (research: 120-160 degree beams).
-const LAMP_HALF_ANGLE = Math.PI / 3;
+const LAMP_HALF_ANGLE = LAMP_ASSUMED.beamHalfAngleDeg * Math.PI / 180;
 // Full penumbra: intensity falls smoothly from the beam axis to the 60 degree edge, so the near-field pool
 // has a readable hot centre instead of a flat disc.
 const LAMP_PENUMBRA = 1.0;
@@ -25,7 +49,9 @@ const MAX_LAMPS = 2;
 // vehicle that single scattering misses, since extinction then kills the single-scatter path within
 // centimetres. Empirical: lamp power x single-scatter albedo b/c x (1 - exp(-0.3 c))^3, so it is negligible in
 // ordinary water (c below about 1/m) and saturates in a silt-out. Calibrated against main's silt look
-// (docs/design/silt/after_onboard_lamps_full.jpg: grey-brown near white-out with the lamps full).
+// (docs/design/silt/after_onboard_lamps_full.jpg: grey-brown near white-out with the lamps full). Like the veil it
+// scales with lamp power, so its ratio to the lamp-lit subjects is kept when the lamp scale changes (keeping its
+// absolute level instead fogged a hull at 1 m in 4 m water, docs/design/lamp-exposure/README.md).
 const LAMP_GLOW = 0.007;
 const LAMP_REFRESH_FRAMES = 30;
 

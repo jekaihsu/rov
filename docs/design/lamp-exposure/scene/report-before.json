@@ -1,0 +1,92 @@
+{
+  "pen-net-lamps": {
+    "scenario": "aquaculture_pen",
+    "seed": 71,
+    "eye_ned": [
+      4.9,
+      3.6,
+      6.5
+    ],
+    "target_ned": [
+      6.5,
+      5.0,
+      6.8
+    ],
+    "lamp_level": 1,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 35.97399568004656,
+      "target": 35.96601150121609,
+      "meteredLuminance": 0.004980131300780537,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 165554,
+    "jpeg_quality": 82,
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "pen-mort-lamps": {
+    "scenario": "aquaculture_pen",
+    "seed": 71,
+    "eye_ned": [
+      8.25,
+      2.3,
+      14.9
+    ],
+    "target_ned": [
+      9.0,
+      1.0,
+      15.8
+    ],
+    "lamp_level": 1,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 88.50157120928729,
+      "target": 88.34295396902147,
+      "meteredLuminance": 0.0012497144392934157,
+      "whiteBalance": [
+        1.0324762816880553,
+        1,
+        1.1175341900865539
+      ]
+    },
+    "bytes": 258878,
+    "jpeg_quality": 82,
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  },
+  "reef-close-lamps": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      6.77,
+      -7.24,
+      12.97
+    ],
+    "target_ned": [
+      8.61,
+      -6.88,
+      13.78
+    ],
+    "lamp_level": 1,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 8.677702688348583,
+      "target": 8.677110995816074,
+      "meteredLuminance": 0.04438816791878094,
+      "whiteBalance": [
+        1.0939421447837512,
+        1,
+        1.0489683262103469
+      ]
+    },
+    "bytes": 100745,
+    "jpeg_quality": 82,
+    "query": "quality=medium&fidelity=real&cam=onboard"
+  }
+}

@@ -56,6 +56,8 @@ const FLOAT_DRAFT = 0.55;       // fraction of the half height below the surface
 const LIGHT_BLINKS = [[7.15, 7.45], [7.65, 7.95]];
 const TWITCH_PULSES = [8.15, 8.35, 8.55];
 const DRUM_RADIUS = 0.27;
+const TENDER_X = -0.62;          // tender beside the vehicle, hands on its frame
+const TENDER_CLEAR_X = -1.45;   // tender back at the rail while the operator walks round the vehicle
 
 const toThree = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 
@@ -250,6 +252,7 @@ export class DeployIntro {
     this.duration = T.end;
     this.t = 0;
     this.playing = false;
+    this.disposed = false;
     this.objects = [];
 
     this.boat = placeWorkBoat(assets, spool, start);
@@ -273,7 +276,7 @@ export class DeployIntro {
       this.boat.add(this.deckhand.root);
       this.tender = new Humanoid(assets.human, { shirt: 0x5b6770, pants: 0x30343a, vest: 0xffc21a,
         helmet: 0xf4f4ef, height: 1.7 });
-      this.tender.root.position.set(-0.62, ud.deckY, ud.sternZ + 0.78);
+      this.tender.root.position.set(TENDER_X, ud.deckY, ud.sternZ + 0.78);
       this.tender.root.rotation.y = Math.PI / 2;
       this.tender.play('Idle', { at: 1.3 });
       this.boat.add(this.tender.root);
@@ -347,6 +350,29 @@ export class DeployIntro {
 
   release() {
     this.held = false;
+    this._deckShot = null;
+  }
+
+  /**
+   * While held on deck, ``shot()`` (or null for the opening frame) places the camera: it returns world-space
+   * ``{pos, look}``. The pre-dive check (procedure/deck_stage.js) uses it to walk the camera round the vehicle.
+   */
+  setDeckShot(shot) {
+    this._deckShot = shot || null;
+    // While the operator walks round the vehicle the tender steps back to the rail, out of the way; he comes
+    // back to the frame when the deck shots end (the launch, or the opening frame again).
+    if (this.tender) this.tender.root.position.x = this._deckShot ? TENDER_CLEAR_X : TENDER_X;
+  }
+
+  /** Vehicle half extents and the lamp, thruster and gland points measured for the cinematic (vehicle frame). */
+  vehicleGeometry() {
+    let deck = -this.half.y;
+    if (this.rov) {
+      // Deck height under the vehicle, in its own frame (the hull rests on skids, not exactly on its bounds).
+      const under = this.boat.worldToLocal(this.rov.position.clone());
+      deck = this.rov.worldToLocal(this._boatPoint(under.x, this.boat.userData.deckY, under.z)).y;
+    }
+    return { half: this.half, lamps: this.lampPoints, thrusters: this.thrusterPoints, gland: this.glandPoint, deck };
   }
 
   skip() {
@@ -452,7 +478,7 @@ export class DeployIntro {
 
   update(dt) {
     if (!this.playing) {
-      this.effects.update(dt);
+      if (!this.disposed) this.effects.update(dt);
       return false;
     }
     if (!this.held) this.t += dt;
@@ -495,6 +521,17 @@ export class DeployIntro {
     this.effects.clear();
     this.cable.mesh.visible = false;               // the viewer draws the live tether from here on
     if (this.onDone) this.onDone();
+  }
+
+  /**
+   * True until dispose(). The viewer disposes the intro as soon as the launch is over, so the spool station
+   * (spool_station.js: the same boat at the same place, one crew member at the reel) holds station for the
+   * rest of the dive exactly as in a dive without the intro. Left in the scene, the cinematic's two animated
+   * crew (never frustum-culled), its A-frame rig and its lamp light doubled the frame time under software
+   * rendering, long enough to trip the 2.6 s input failsafe on a loaded machine.
+   */
+  get onScene() {
+    return !this.disposed;
   }
 
   /** Lifting wire, hook and bridle: link above the vehicle while lifting, slack after set-down, hook home. */
@@ -641,6 +678,14 @@ export class DeployIntro {
   _cameraPath(t) {
     const cam = this.camera;
     if (!cam) return;
+    const shot = this.held && this._deckShot ? this._deckShot() : null;
+    if (shot) {
+      cam.position.copy(shot.pos);
+      cam.lookAt(shot.look);
+      this._camPos = shot.pos.clone();
+      this._camLook = shot.look.clone();
+      return;
+    }
     const ud = this.boat.userData;
     const sz = ud.sternZ;
     const dy = ud.deckY;
@@ -696,6 +741,8 @@ export class DeployIntro {
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
     this._restoreVehicleVisibility();
     for (const o of this.objects) this.scene.remove(o);
     this.cable.dispose();

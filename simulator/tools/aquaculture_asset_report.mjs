@@ -1,34 +1,48 @@
-// Offline reproducible geometry budget; includes all 384 high-tier instanced fish.
+// Offline reproducible geometry budget; includes every drawn pen fish and the four morts.
 import {register} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {readFileSync, statSync, writeFileSync} from 'node:fs';
 register('./three_resolve_hooks.mjs', import.meta.url);
 const {buildStructures} = await import('../viewer/structures.js');
-const {fishGeometry} = await import('../viewer/fish_life.js');
-const {salmonGeometry} = await import('../viewer/pen_life.js');
+const {FARMED_SPECIES, KIT_SPECIES, cardGeometry, kitGeometry, parseFishGlb} = await import('../viewer/fish_kit.js');
+const {FISH_LOD, PEN_CROWD} = await import('../viewer/fish_schools.js');
 const obstacles = JSON.parse(execFileSync('python', ['-c',
   'import json; from qysim.aquaculture import layout; print(json.dumps([o.as_dict() for o in layout()[0]]))'],
 {cwd: new URL('..', import.meta.url), encoding: 'utf8'}));
-const result = {tiers: {}, files: {}};
+function kitModel(name) {
+  const bytes = readFileSync(new URL(`../viewer/models/fish/${name}`, import.meta.url));
+  return parseFishGlb(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+}
+const triangles = (geometry) => geometry.index.count / 3;
+const length = KIT_SPECIES[FARMED_SPECIES].length;
+const farmed = kitModel(`${FARMED_SPECIES}.glb`);
+const perFish = {full: triangles(kitGeometry(farmed, length)),
+  distance: triangles(kitGeometry(kitModel(`${FARMED_SPECIES}_lo.glb`), length)),
+  card: triangles(cardGeometry(farmed, length))};
+const result = {species: FARMED_SPECIES, trianglesPerFish: perFish, tiers: {}, files: {}};
 for (const detail of ['low', 'medium', 'high']) {
-  // Pen fish are the swimming salmon of fish_life.js: a dense band per school (fish_schools.js), the full body for
-  // at most 24 near fish per school and the low body for the rest. Worst case: every near slot in use. Plus the
-  // four morts (pen_life.js salmonGeometry).
-  const body = fishGeometry('salmon', detail).index.count / 3;
-  const farBody = fishGeometry('salmon', 'low').index.count / 3;
-  const perSchool = Math.ceil(48 * {low: 0.25, medium: 2, high: 2.5}[detail]);
-  const near = detail === 'low' ? perSchool * 8 : Math.min(24, perSchool) * 8;
-  const fishTriangles = near * body + (perSchool * 8 - near) * farBody + 4 * salmonGeometry().index.count / 3;
+  // Pen fish are the farmed species of fish_kit.js in a dense band per school (fish_schools.js). Worst case: the
+  // scene-wide full and distance counts of FISH_LOD all in use, every other fish a card. Plus the four morts
+  // (pen_life.js: the full model, the distance model on low).
+  const lod = FISH_LOD[detail];
+  const drawn = Math.ceil(48 * PEN_CROWD[detail]) * 8;
+  const full = Math.min(lod.full, drawn);
+  const distance = Math.min(lod.distance, drawn - full);
+  const morts = 4 * (detail === 'low' ? perFish.distance : perFish.full);
+  const fishTriangles = full * perFish.full + distance * perFish.distance + (drawn - full - distance) * perFish.card +
+    morts;
+  const perSchool = drawn / 8;
   const set = buildStructures({obstacles, seabed_depth: 25}, {detail});
-  let triangles = 0;
+  let structureTriangles = 0;
   let calls = 0;
   set.group.traverse((mesh) => {
     if (!mesh.isMesh) return;
     calls++;
-    triangles += (mesh.geometry.index?.count ?? mesh.geometry.attributes.position.count) / 3;
+    structureTriangles += (mesh.geometry.index?.count ?? mesh.geometry.attributes.position.count) / 3;
   });
-  result.tiers[detail] = {structureTriangles: triangles, fishTriangles, fishDrawn: perSchool * 8,
-    totalTriangles: triangles + fishTriangles, structureDrawCalls: calls, fishDrawCalls: detail === 'low' ? 12 : 20};
+  result.tiers[detail] = {structureTriangles, fishTriangles, fishDrawn: perSchool * 8,
+    totalTriangles: structureTriangles + fishTriangles, structureDrawCalls: calls,
+    fishDrawCalls: 8 * (detail === 'low' ? 2 : 3) + 4};
   if (result.tiers[detail].totalTriangles > 200000) throw new Error('Triangle budget exceeded');
   set.dispose();
 }

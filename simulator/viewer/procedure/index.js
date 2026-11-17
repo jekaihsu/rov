@@ -7,12 +7,19 @@
 // On deck it shows the current item large, the finished ones as a count and one primary action. During the dive
 // nothing stays on screen: recovery is an entry of the pause menu (pauseActions), announced by a short prompt when
 // the vehicle comes back to the surface. After the dive the same column carries the log and a few big numbers.
+// Deck flow (servers that report `flow:"deck"`): only real, observable checks on the aft deck, each with a reaction
+// and a camera move (deck_steps.js column, deck_stage.js scene); routine items come from the crew radio
+// (crew_radio.js). Older servers ignore the flow request and get the legacy ten-item column below unchanged.
 // Order with the launch intro (deploy_intro.js): the intro opens on the aft deck and holds during the checklist;
 // the A-frame launch cinematic plays when the operator lowers the vehicle (phase launch -> water_check), then the
 // water check and dive follow. Without the procedure the intro plays at scenario start exactly as before.
 import {getFidelity} from '../fidelity.js';
 import {PROCEDURE_ITEM} from './fidelity_item.js';
 import {createSurfaceWatch, recoveryReadiness} from './recovery.js';
+import {beginFields, createEventWatch} from './deck_flow.js';
+import {deckSignature, renderDeckChecks, renderDeckLaunch} from './deck_steps.js';
+import {createDeckStage} from './deck_stage.js';
+import {callFor, createCrewRadio, faultText} from './crew_radio.js';
 
 const STRINGS = {
   title: '潛前檢查與回收',
@@ -150,7 +157,8 @@ function createDivePrompt() {
   return {show, hide};
 }
 
-export function installProcedure({send, readOnly = false}) {
+// deck: {getIntro, rov, getRotors} from the viewer, for the deck flow's scene reactions (deck_stage.js).
+export function installProcedure({send, readOnly = false, deck = null}) {
   const query = new URLSearchParams(location.search);
   const fidelity = getFidelity();
   let begunGeneration;
@@ -160,11 +168,15 @@ export function installProcedure({send, readOnly = false}) {
   let lastPhase = null;
   let signature;
   let faultsSeen = 0;
+  let radioProcedure = null;
   // data-focus key of the control the keyboard or pad last stood on; restored after each re-render.
   let focusKey = null;
   const pilotLog = createPilotLog();
   const surfaceWatch = createSurfaceWatch();
   const prompt = createDivePrompt();
+  const crewRadio = createCrewRadio();
+  const calls = createEventWatch();
+  const stage = deck?.rov ? createDeckStage(deck) : null;
   const panel = element('section', 'procedure-panel');
   panel.id = 'procedurePanel';
   panel.hidden = true;
@@ -240,6 +252,18 @@ export function installProcedure({send, readOnly = false}) {
     }
     return group;
   }
+  // Builders handed to the deck-flow column (deck_steps.js).
+  const deckUi = {
+    header,
+    note,
+    primary,
+    link,
+    command,
+    warnings,
+    count: function count(p) {
+      return progress(p.checked.length, p.order.length);
+    },
+  };
   function renderChecks(p) {
     const index = p.checked.length;
     const parts = header(STRINGS.kickers.checks, progress(index, STRINGS.keys.length), STRINGS.checks[index]);
@@ -310,6 +334,8 @@ export function installProcedure({send, readOnly = false}) {
     return parts;
   }
   function renderPhase(p) {
+    if (p.flow === 'deck' && p.phase === 'checks') return renderDeckChecks(p, deckUi);
+    if (p.flow === 'deck' && p.phase === 'launch') return renderDeckLaunch(p, deckUi);
     if (p.phase === 'checks') return renderChecks(p);
     if (p.phase === 'launch') return renderLaunch(p);
     if (p.phase === 'water_check') {
@@ -362,9 +388,11 @@ export function installProcedure({send, readOnly = false}) {
   function watchDive(state, p) {
     const faults = p.events.filter(function fault(event) {
       return event.action === 'fault';
-    }).length;
-    if (faults > faultsSeen && p.phase === 'diving') prompt.show(STRINGS.fault, 'warn');
-    faultsSeen = faults;
+    });
+    if (faults.length > faultsSeen && p.phase === 'diving') {
+      prompt.show(faultText(faults.at(-1)) || STRINGS.fault, 'warn');
+    }
+    faultsSeen = faults.length;
     if (surfaceWatch.update(state) === 'surfaced') {
       prompt.show(state.locked ? STRINGS.surfacedReady : STRINGS.surfacedLock);
     }
@@ -378,15 +406,24 @@ export function installProcedure({send, readOnly = false}) {
       begunGeneration = state.control_generation;
       pilotLog.clear();
       faultsSeen = 0;
-      if (wanted() && !state.procedure?.active) command('begin');
+      if (wanted() && !state.procedure?.active) command('begin', beginFields(query));
     }
     latestState = state;
     const p = state.procedure;
+    stage?.update(p?.active ? p : null);
     if (!p?.active) {
       setVisible(false);
       prompt.hide();
       return;
     }
+    // A new procedure (scenario reload) starts its radio afresh. control_generation is not used for this: an input
+    // failsafe lock on a slow page raises it without restarting anything.
+    if (radioProcedure !== p.started_at) {
+      radioProcedure = p.started_at;
+      calls.clear();
+      crewRadio.clear();
+    }
+    for (const event of calls.fresh(p.events)) crewRadio.say(callFor(event));
     latest = p;
     pilotLog.collect(state.log);
     if (p.phase === 'water_check' && lastPhase === 'launch' && launchIntro) {
@@ -398,7 +435,7 @@ export function installProcedure({send, readOnly = false}) {
     watchDive(state, p);
     setVisible(p.phase !== 'diving');
     const nextSignature = JSON.stringify([p.phase, p.checked, p.tests, p.confirmed, p.diagnostic > 0, p.penalty,
-      p.dry_seconds > 30]);
+      p.dry_seconds > 30, ...(p.flow === 'deck' ? deckSignature(p) : [])]);
     if (signature === nextSignature) return;
     signature = nextSignature;
     render(p);
@@ -465,5 +502,10 @@ export function installProcedure({send, readOnly = false}) {
       launchIntro = release || null;
     });
   }
-  return {update, startIntro, bindInput, pauseActions};
+  /** Deck-flow scene and radio state for the browser checks. */
+  function debug() {
+    return {stage: stage?.debug() || null, radio: crewRadio.debug()};
+  }
+  globalThis.__procedure = debug;
+  return {update, startIntro, bindInput, pauseActions, debug};
 }
