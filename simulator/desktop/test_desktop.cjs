@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { validate } = require('./window_settings.cjs');
+const { validate, readCurrent, listDisplays } = require('./window_settings.cjs');
 const { generate } = require('./steam/generate_vdf.cjs');
 assert.throws(() => validate({ mode: 'fullscreen', display: 1, width: -1, height: 800 }));
 assert.throws(() => validate({ mode: 'anything', display: 1, width: 1280, height: 800 }));
@@ -18,4 +18,23 @@ try {
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
 }
-console.log('Desktop boundaries passed: display validation, VDF rejection and substitution.');
+const fakeDisplays = [
+  { id: 2, bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } },
+  { id: 7, bounds: { x: 1920, y: 0, width: 2560, height: 1440 }, workArea: { x: 1920, y: 0, width: 2560, height: 1400 } },
+];
+const fakeWindow = {
+  getBounds: () => ({ x: 2000, y: 40, width: 1600, height: 900 }),
+  isFullScreen: () => false,
+  isResizable: () => true,
+};
+const current = readCurrent(fakeWindow, fakeDisplays, { mode: 'windowed', display: 7, width: 1600, height: 900 });
+assert.equal(current.display, 7);
+assert.equal(current.mode, 'windowed');
+assert.equal(current.width, 1600);
+assert.equal(current.height, 900);
+const listed = listDisplays({
+  getAllDisplays: () => fakeDisplays.map((item) => ({ ...item, displayFrequency: 60 })),
+});
+assert.equal(listed.length, 2);
+assert.equal(listed[1].id, 7);
+console.log('Desktop boundaries passed: display validation, current window readout, VDF rejection and substitution.');

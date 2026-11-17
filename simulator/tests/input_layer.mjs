@@ -56,7 +56,12 @@ test("haptics ignores unsupported devices and respects strength", async () => {
   createHaptics(() => null, {}).pulse("photo");
   let effect;
   const settings = { strength: 0.5 };
-  const fidelity = { get: () => true };
+  // padHaptics on; motionComfort off — a blanket `() => true` would also scale strength for comfort.
+  const fidelity = {
+    get(id) {
+      return id !== "motionComfort";
+    },
+  };
   const haptics = createHaptics(
     () => ({
       vibrationActuator: {
