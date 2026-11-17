@@ -203,7 +203,21 @@ def apply_transforms(objects):
         obj.select_set(False)
 
 
+def bake_world_transforms(objects):
+    """Clear parents while keeping world geometry, then bake loc/rot/scale into the mesh.
+
+    Sketchfab glTF imports often leave the mesh under a transformed empty. world_bounds() is
+    in world space, but obj.location is parent-relative — centering must run on unparented meshes.
+    """
+    for obj in objects:
+        world = obj.matrix_world.copy()
+        obj.parent = None
+        obj.matrix_world = world
+    apply_transforms(objects)
+
+
 def join_meshes(objects, name):
+    bake_world_transforms(objects)
     bpy.ops.object.select_all(action='DESELECT')
     for obj in objects:
         obj.select_set(True)
@@ -263,6 +277,7 @@ def calibrate_and_scale(objects, length_m, chart_edge):
 
 
 def center_on_origin(objects):
+    bake_world_transforms(objects)
     low, high = world_bounds(objects)
     center = (low + high) * 0.5
     # Sit invertebrates / coral on the ground plane (Z = 0 in Blender before export).
@@ -720,6 +735,8 @@ def process_asset(name, spec, source_root: Path, work: Path, skip_render: bool):
     objects, chart_edge = drop_colour_chart(objects)
     if not objects:
         raise RuntimeError(f'{name}: no meshes after dropping colour chart')
+    # Bake parented Sketchfab nodes into object space before any world-space math.
+    bake_world_transforms(objects)
     calibrate_and_scale(objects, spec['length_m'], chart_edge)
     high = join_meshes(objects, f'{name}_high')
     if spec['kind'] == 'coral':
@@ -791,11 +808,13 @@ def write_readme(report):
         '由 CC0 真實標本掃描減面、烘焙後輸出。重建：',
         '',
         '```bash',
-        'blender -b -P cad/build_reef_life.py -- --source /path/to/reef_sources',
+        'python cad/download_reef_sources.py --out /tmp/reef_sources',
+        'blender -b -P cad/build_reef_life.py -- --source /tmp/reef_sources',
         '```',
         '',
-        '來源與授權見 `simulator/viewer/models/CREDITS.md`。珊瑚為史密森尼乾燥標本，',
-        '已用程序色改成活珊瑚色調（未使用任何照片貼圖）。',
+        '下載腳本會寫入 `ffish/<id>/src/scene.gltf` 與 `smithsonian/<id>_raw.glb`，',
+        '與本建置腳本的 `ASSETS` 路徑一致。來源與授權見 `simulator/viewer/models/CREDITS.md`。',
+        '珊瑚為史密森尼乾燥標本，已用程序色改成活珊瑚色調（未使用任何照片貼圖）。',
         '',
         '| 模型 | 近景三角形 | 近景大小 | 遠景三角形 | 遠景大小 | 授權 |',
         '|---|---:|---:|---:|---:|---|',
