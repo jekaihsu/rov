@@ -4,7 +4,8 @@ import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('feedback.dialog', {
   title: '回報問題',
-  lead: '請用一句話描述問題（只用手把時可留空）。截圖與最近 60 秒狀態會一併附上，只存在本機，不會自動上傳。',
+  lead: '請用一句話描述問題（只用手把時可留空）。'
+    + '截圖與最近 60 秒狀態會一併附上，只存在本機，不會自動上傳。',
   description: '問題描述',
   placeholder: '例如：解鎖後右搖桿無反應',
   category: '分類',
