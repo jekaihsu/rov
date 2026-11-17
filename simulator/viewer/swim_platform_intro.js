@@ -116,8 +116,9 @@ export class SwimPlatformIntro extends DeployIntro {
   _crew(t, dt) {
     if (!this.launchCrew || !this.rov) return;
     const crew = this.launchCrew;
-    crew.root.position.set(-0.78, 0.3, -1.35 - 1.45 * phase(t, 2.4, 4.2));
-    crew.root.position.z -= .17 * phase(t, 1.2, 2.3) * (1 - phase(t, 2.4, 4.2));
+    // Stay within arm reach of rov_slot_0 (~z=-2.2): step aft with the lift, then follow the push.
+    crew.root.position.set(-0.78, 0.28, -1.55 - 1.35 * phase(t, 2.4, 4.2));
+    crew.root.position.z -= .22 * phase(t, 1.2, 2.3) * (1 - phase(t, 2.4, 4.2));
     crew.root.rotation.y = Math.PI;
     crew.root.updateMatrixWorld(true);
     const release = phase(t, 6.4, 7.2);
@@ -129,8 +130,8 @@ export class SwimPlatformIntro extends DeployIntro {
     const crouch = 1 - phase(t, 1.2, 2.3) + phase(t, 3.8, 5.2);
     const stand = phase(t, 6.4, 7.6);
     crew.update(dt, {
-      pelvis: [0, -.52 * crouch * (1 - stand), .12 * crouch * (1 - stand)],
-      bend: .45 + .5 * crouch * (1 - stand),
+      pelvis: [0, -.42 * crouch * (1 - stand), .08 * crouch * (1 - stand)],
+      bend: .4 + .45 * crouch * (1 - stand),
       handL, handR,
     });
   }
