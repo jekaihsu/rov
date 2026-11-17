@@ -109,7 +109,6 @@
   "sticker": "Sticker",
   "next": "Next",
   "sitesTitle": "Dive sites",
-  "sitesCount": "{n} sites",
   "depth": "Seabed",
   "visibility": "Visibility",
   "current": "Current",
@@ -149,5 +148,7 @@
   "introOff": "When off, start directly underwater.",
   "launch": "Deploy",
   "chapter": "Chapter",
-  "campaign": "Story & tutorial"
+  "campaign": "Story & tutorial",
+  "sitesCountOne": "{n} site",
+  "sitesCountMany": "{n} sites"
 }

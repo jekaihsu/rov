@@ -1,0 +1,35 @@
+{
+  "title": "YX 依頼ボード",
+  "status": {
+    "open": "受注可",
+    "locked": "未開放",
+    "done": "完了"
+  },
+  "optional": "サイド",
+  "exam": "ライセンス試験",
+  "pay": "報酬",
+  "current": "潮流",
+  "depth": "海底",
+  "best": "{medal} · {score} 点",
+  "moneyUnit": "クレジット",
+  "summary": "{licence} · {money} クレジット",
+  "open": "作業指示を見る",
+  "otherTab": "その他",
+  "otherTitle": "その他の依頼とセーブ",
+  "expedition": [
+    "海洋探索の依頼",
+    "探索海域で点検・回収・配置の小依頼を自由に受注できます。着水後は右上の任務カードから受けます。"
+  ],
+  "expeditionKicker": "自由受注",
+  "expeditionChips": [
+    "点検",
+    "回収",
+    "配置"
+  ],
+  "expeditionOpen": "行く",
+  "backupHelp": "JSON バックアップを書き出すか、バックアップから復元します（現在のキャリアは上書きされます）。",
+  "exportButton": "セーブを書き出す",
+  "importButton": "セーブを読み込む",
+  "imported": "キャリアセーブを読み込みました。",
+  "exported": "キャリアセーブを書き出しました。"
+}

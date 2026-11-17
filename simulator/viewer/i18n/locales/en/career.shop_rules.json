@@ -1,0 +1,6 @@
+{
+  "owned": "Already owned",
+  "licence": "Requires the “{licence}” licence",
+  "money": "Not enough funds (short {missing} credits)",
+  "unknown": "Item not found."
+}

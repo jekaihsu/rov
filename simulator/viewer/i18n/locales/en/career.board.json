@@ -1,0 +1,35 @@
+{
+  "title": "YX job board",
+  "status": {
+    "open": "Available",
+    "locked": "Locked",
+    "done": "Completed"
+  },
+  "optional": "Side",
+  "exam": "Licence exam",
+  "pay": "Pay",
+  "current": "Current",
+  "depth": "Seabed",
+  "best": "{medal} · {score} pts",
+  "moneyUnit": "credits",
+  "summary": "{licence} · {money} credits",
+  "open": "View work order",
+  "otherTab": "Other",
+  "otherTitle": "Other contracts & saves",
+  "expedition": [
+    "Ocean exploration contracts",
+    "Pick up inspection, recovery and deploy jobs freely in the exploration area; accept them from the top-right mission card after you dive."
+  ],
+  "expeditionKicker": "Open jobs",
+  "expeditionChips": [
+    "Inspect",
+    "Recover",
+    "Deploy"
+  ],
+  "expeditionOpen": "Go",
+  "backupHelp": "Export a JSON backup, or restore from a backup (this replaces your current career).",
+  "exportButton": "Export save",
+  "importButton": "Import save",
+  "imported": "Career save imported.",
+  "exported": "Career save exported."
+}

@@ -5,6 +5,7 @@
 // later). A new save migrates the older story progress (rov.campaign.v1) and best scores (rov.results.v1)
 // without changing those records, so nothing the earlier versions saved is lost.
 
+import { localize } from '../i18n/index.js';
 export const CAREER_KEY = 'rov.career.v1';
 export const CAREER_VERSION = 1;
 export const CAMPAIGN_KEY = 'rov.campaign.v1';
@@ -21,11 +22,11 @@ export const LEGACY_BONUS_CAP = 6000;
 export const LEGACY_CHAPTER_CONTRACTS = { prologue: 'p0_induction' };
 const DESKTOP_KIND = 'career-save';
 
-const STRINGS = {
+const STRINGS = localize('career.save', {
   badImport: '這不是 ROV Solution 的職涯存檔。',
   newerImport: '這份存檔來自較新的版本，請先更新遊戲再匯入。',
   legacyTitle: '舊版劇情紀錄：{chapter}',
-};
+});
 
 function isObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);

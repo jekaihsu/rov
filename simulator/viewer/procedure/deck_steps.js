@@ -2,8 +2,9 @@
 // a time, one orange primary action, a text link only where the step offers a second choice (report a defect,
 // skip). The scene reacts to each step (deck_stage.js); routine items come from the crew radio (crew_radio.js).
 import {currentStation, deckStep, defectPending, nextThruster} from './deck_flow.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('procedure.deck_steps', {
   kicker: '潛前檢查',
   launchKicker: '下水',
   titles: {walkaround: '繞機目視檢查', power: '載具上電', thrusters: '推進器短測', lights: '燈光測試',
@@ -36,7 +37,9 @@ const STRINGS = {
   booting: '開機中…',
   pulse: '短測 T{n}',
   pulsing: 'T{n} 運轉中…',
-  pulsed: '{done} / {total} 顆',
+  pulsed: '{done} / {total} {unit}',
+  thrusterOne: '顆',
+  thrusterMany: '顆',
   lampsOn: '開燈',
   lampsLit: '兩盞都亮，關燈',
   feedOk: '影像正常',
@@ -45,7 +48,7 @@ const STRINGS = {
   waitTenderAction: '等待纜線手',
   lowerNote: '選上游下水點，以吊放索緩放；入水、人員離開後才解鎖。',
   skip: '跳過剩下的檢查（扣分，未發現的異常會帶下水）',
-};
+});
 
 function fill(template, values) {
   return template.replace(/\{(\w+)\}/g, function value(_, key) {
@@ -91,8 +94,9 @@ function thrusters(p, ui) {
   const running = p.diagnostic > 0;
   const index = running ? p.diagnostic_index : nextThruster(p);
   const parts = ui.header(STRINGS.kicker, ui.count(p), STRINGS.titles.thrusters);
+  const thrusterUnit = Number(p.thrusters) === 1 ? STRINGS.thrusterOne : STRINGS.thrusterMany;
   parts.push(ui.note(STRINGS.notes.thrusters),
-    ui.note(fill(STRINGS.pulsed, {done: p.tests.length, total: p.thrusters})));
+    ui.note(fill(STRINGS.pulsed, {done: p.tests.length, total: p.thrusters, unit: thrusterUnit})));
   const label = running ? STRINGS.pulsing : STRINGS.pulse;
   const pulse = ui.primary(fill(label, {n: (index ?? 0) + 1}), 'test', {index: Math.max(0, index)});
   pulse.disabled = running || index < 0;

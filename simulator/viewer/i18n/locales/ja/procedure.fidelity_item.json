@@ -1,0 +1,6 @@
+{
+  "deployProcedure": "着水手順",
+  "deployProcedureHelp": "実作業では潜航前点検とテザーハンド確認のあとゆっくり着水します。簡易着水は水中から開始します。次回のシーン読み込みで有効。?nointro では常に省略します。",
+  "procedureFull": "完全作業手順",
+  "procedureQuick": "簡易着水"
+}

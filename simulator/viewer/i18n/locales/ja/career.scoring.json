@@ -1,0 +1,14 @@
+{
+  "kinds": {
+    "state": "手順",
+    "checkpoint": "到達",
+    "station_keep": "ホバー",
+    "inspect": "目視",
+    "photo": "写真",
+    "measure": "計測",
+    "probe": "探査",
+    "confirm": "確認",
+    "lift": "回収",
+    "surface": "回収"
+  }
+}

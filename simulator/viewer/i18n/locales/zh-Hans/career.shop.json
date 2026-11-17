@@ -1,0 +1,30 @@
+{
+  "title": "YX 装备部",
+  "strip": "{licence} · {money} 元",
+  "tabs": {
+    "equipment": "作业装备",
+    "cosmetic": "外观"
+  },
+  "help": {
+    "equipment": "只卖真实存在的配件：它们让你能接更多种工单，不会让机子变快或变强。",
+    "cosmetic": "机身贴纸与涂装条纹，只影响外观。"
+  },
+  "price": "价格",
+  "moneyUnit": "元",
+  "priceNote": "{price} 元",
+  "fitsStat": "适用",
+  "fitsUnit": "机型",
+  "blockStat": "Block",
+  "blockValue": "+1",
+  "use": "用途",
+  "opens": "开放",
+  "fits": "适用机型",
+  "fleet": "目前船队",
+  "rule": "说明",
+  "owned": "已拥有",
+  "buy": "购买",
+  "confirm": "再按一次确认",
+  "unavailable": "无法购买",
+  "bought": "已购入「{item}」。",
+  "upgraded": "{vehicle} 升级为 Block {block}。"
+}

@@ -5,11 +5,12 @@
 // string into an element. Geometry follows the approved trial (docs/design/key-art/marks.html): thin ink lines,
 // three or four elements per symbol, and one small orange accent.
 
-export const STRINGS = {
+import { localize } from '../i18n/index.js';
+export const STRINGS = localize('brand.marks', {
   markLabel: 'YX',
   fleetLabel: '機型符號',
   chapterLabel: '章節符號',
-};
+});
 
 /** Identity colours. Ink and accent equal the 60/30/10 palette (palette_631.css); paper is the print stock. */
 export const BRAND_COLOURS = Object.freeze({

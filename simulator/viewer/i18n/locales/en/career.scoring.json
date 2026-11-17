@@ -1,0 +1,14 @@
+{
+  "kinds": {
+    "state": "Procedure",
+    "checkpoint": "Checkpoint",
+    "station_keep": "Hover",
+    "inspect": "Visual",
+    "photo": "Photo",
+    "measure": "Measure",
+    "probe": "Probe",
+    "confirm": "Confirm",
+    "lift": "Recover",
+    "surface": "Recover"
+  }
+}

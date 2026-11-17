@@ -65,7 +65,8 @@ const STRINGS = localize('menu.screens', {
   sticker: '貼紙',
   next: '下一步',
   sitesTitle: '潛航海域',
-  sitesCount: '{n} 處',
+  sitesCountOne: '{n} 處',
+  sitesCountMany: '{n} 處',
   depth: '海床',
   visibility: '能見度',
   current: '洋流',
@@ -417,7 +418,8 @@ export function buildSites(ctx) {
   const root = screen('sites', STRINGS.sitesTitle);
   root.classList.add('bp-screen');
   const hero = createHero();
-  const count = STRINGS.sitesCount.replace('{n}', String(ctx.data.sites.length));
+  const n = ctx.data.sites.length;
+  const count = (n === 1 ? STRINGS.sitesCountOne : STRINGS.sitesCountMany).replace('{n}', String(n));
   const { button: choose } = primaryButton('siteChoose', STRINGS.choose);
   hero.actions.append(choose);
   function showSite(card) {

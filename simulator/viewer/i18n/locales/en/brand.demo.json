@@ -1,0 +1,40 @@
+{
+  "title": "YX identity components",
+  "caption": "YX — IDENTITY COMPONENTS",
+  "sections": {
+    "mark": [
+      "01",
+      "Mark",
+      "MARK"
+    ],
+    "fleet": [
+      "02",
+      "Fleet symbols",
+      "FLEET SYMBOLS"
+    ],
+    "chapters": [
+      "03",
+      "Chapter symbols",
+      "CHAPTER SYMBOLS"
+    ],
+    "cards": [
+      "04",
+      "Chapter title cards",
+      "CHAPTER TITLE CARDS"
+    ],
+    "licence": [
+      "05",
+      "Pilot licence",
+      "PILOT LICENCE"
+    ]
+  },
+  "model": "MODEL",
+  "play": "Play full screen",
+  "sampleTitles": {
+    "prologue": "Prologue｜Pool",
+    "harbor": "Chapter 1｜Harbour",
+    "offshore": "Chapter 2｜Offshore"
+  },
+  "sampleHolder": "Lin Trainee",
+  "sampleSerialPrefix": "YX-PL-"
+}

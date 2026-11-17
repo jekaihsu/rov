@@ -3,13 +3,14 @@
 // fits it). Equipment only opens deliverables and work orders; no item changes a physical value. Pure functions.
 import { gradeFor, hasLicence } from './rules.js';
 import { FLEET } from './save.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('career.shop_rules', {
   owned: '已擁有',
   licence: '需要「{licence}」執照',
   money: '資金不足（還差 {missing} 元）',
   unknown: '找不到這個品項。',
-};
+});
 
 /** Block level of a vehicle for a save: 1 plus each owned Block-raising item that fits it. */
 export function blockLevel(save, data, modelId) {

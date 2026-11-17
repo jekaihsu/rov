@@ -1,0 +1,8 @@
+{
+  "needLicence": "Requires the “{licence}” licence",
+  "needContract": "Complete “{title}” first",
+  "needEquipment": "Requires equipment “{item}” (YX equipment store)",
+  "needReputation": "Requires {client} reputation {need} (now {have})",
+  "needHours": "Requires {need} h in real mode (now {have} h)",
+  "unknownItem": "{id}"
+}

@@ -109,7 +109,6 @@
   "sticker": "ステッカー",
   "next": "次へ",
   "sitesTitle": "潜航海域",
-  "sitesCount": "{n} か所",
   "depth": "海底",
   "visibility": "視程",
   "current": "潮流",
@@ -149,5 +148,7 @@
   "introOff": "オフでは水中から開始します。",
   "launch": "着水",
   "chapter": "チャプター",
-  "campaign": "ストーリーとチュートリアル"
+  "campaign": "ストーリーとチュートリアル",
+  "sitesCountOne": "{n} か所",
+  "sitesCountMany": "{n} か所"
 }

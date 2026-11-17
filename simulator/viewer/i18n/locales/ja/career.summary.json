@@ -1,0 +1,9 @@
+{
+  "kicker": "次の依頼",
+  "status": "{licence} · {money} クレジット · リアル {real} h",
+  "hours": "リアル {real} h · アシスト {assisted} h",
+  "next": "次のライセンス：{label}",
+  "top": "取得可能な最高ライセンスです",
+  "resume": "キャリアを続ける",
+  "nothing": "受注できる作業指示はありません"
+}

@@ -26,18 +26,50 @@
     "instruments",
     "unlock"
   ],
+  "kickers": {
+    "checks": "潛前檢查",
+    "launch": "下水",
+    "recovering": "回收",
+    "post": "潛後處理"
+  },
+  "progress": "{done} / {total}",
+  "confirm": "確認",
   "skip": "跳過未完成檢查（可能引發故障並扣分）",
   "tender": "與纜線手確認就緒",
   "lower": "選上游點，以纜線緩放入水",
+  "lowerAction": "緩放入水",
+  "waterTitle": "入水確認",
   "water": "影像、配平與功能正常；人員已離開",
-  "recover": "水面上鎖後收纜回收",
+  "waterAction": "確認，開始作業",
+  "recover": "收纜回收",
+  "recoverReady": "水面上鎖後收纜回收",
+  "recoverDepth": "浮上水面（0.8 m 內）後才能收纜回收。",
+  "recoverLock": "上鎖後才能收纜回收。",
+  "recoverPending": {
+    "depth": "{label} · 先浮上水面",
+    "lock": "{label} · 先上鎖"
+  },
+  "surfacedReady": "已回到水面 · 開啟暫停選單即可收纜回收",
+  "surfacedLock": "已回到水面 · 上鎖後可在暫停選單收纜回收",
+  "recoveringTitle": "收纜中",
   "rinse": "已以淡水沖洗",
   "inspect": "潛後檢查完成",
+  "logTitle": "潛水日誌",
   "save": "儲存日誌",
   "export": "匯出日誌",
   "notes": "潛水註記",
   "test": "短測推進器",
-  "summary": "作業紀錄：秒 / 最大深度 m / 最大纜長 m / 扣分",
+  "testing": "短測中…",
+  "stats": {
+    "elapsed": "作業時間",
+    "depth": "最大深度",
+    "cable": "最大纜長",
+    "penalty": "扣分"
+  },
+  "units": {
+    "depth": "m",
+    "cable": "m"
+  },
   "fault": "未檢項目發生故障，已扣分，必要時中止作業收纜回收。",
   "dry": "離水運轉超過 30 秒，已告警並扣分。",
   "recovering": "收纜中，洋流與模擬浪況會降低回收速度",

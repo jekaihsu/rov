@@ -1,0 +1,45 @@
+{
+  "heading": "ROV Pilot Licence",
+  "headingCaption": "REMOTELY OPERATED VEHICLE · PILOT LICENCE",
+  "issuer": "Issued by YX",
+  "issuerCaption": "ISSUED BY YX",
+  "cardLabel": "YX Pilot Licence",
+  "gradeCaption": "GRADE",
+  "fields": {
+    "holder": "Holder",
+    "serial": "Licence no.",
+    "issued": "Date issued",
+    "hoursReal": "Real-mode hours",
+    "hoursAssisted": "Assisted-mode hours"
+  },
+  "hoursUnit": "h",
+  "empty": "—",
+  "stub": "YX · PILOT LICENCE · RETAIN THIS STUB",
+  "grades": {
+    "trainee": {
+      "title": "Trainee Pilot",
+      "short": "Trainee",
+      "caption": "TRAINEE PILOT"
+    },
+    "grade2": {
+      "title": "Class II Pilot",
+      "short": "Class II",
+      "caption": "PILOT · CLASS II"
+    },
+    "grade1": {
+      "title": "Class I Pilot",
+      "short": "Class I",
+      "caption": "PILOT · CLASS I"
+    },
+    "senior": {
+      "title": "Senior Pilot",
+      "short": "Senior",
+      "caption": "SENIOR PILOT"
+    },
+    "supervisor": {
+      "title": "Supervisor",
+      "short": "Supervisor",
+      "caption": "SUPERVISOR"
+    }
+  }
+}

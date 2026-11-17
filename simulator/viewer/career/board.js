@@ -17,10 +17,12 @@ import {
   tile,
 } from '../menu/big_picture.js';
 import { medalLabel } from '../play/results_model.js';
-import { boardChapters, clientLabel, gradeFor, jobLabel } from './rules.js';
+import { boardChapters, clientLabel, contractView, gradeFor, jobLabel } from './rules.js';
 import { exportCareer, importCareer } from './save.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('career.board', {
   title: 'YX 委託看板',
   status: { open: '可接案', locked: '未開放', done: '已完成' },
   optional: '支線',
@@ -43,7 +45,7 @@ const STRINGS = {
   importButton: '匯入存檔',
   imported: '已匯入職涯存檔。',
   exported: '已匯出職涯存檔。',
-};
+});
 const TITLE_SEPARATOR = ' · ';
 const EXPEDITION_SCENE = 'coral_reef';
 const MAX_CHIPS = 3;
@@ -126,9 +128,10 @@ export function buildBoard(ctx) {
   let activeTab = '';
 
   function contractFor(id) {
-    return career.data.contracts.find(function byId(contract) {
+    const raw = career.data.contracts.find(function byId(contract) {
       return contract.id === id;
     }) || null;
+    return raw ? contractView(raw) : null;
   }
   function statusChips(contract, status) {
     if (status.status === 'locked') {

@@ -1,0 +1,62 @@
+{
+  "speakers": {
+    "tender": "周楷",
+    "deck": "方晴",
+    "supervisor": "林岑"
+  },
+  "roles": {
+    "tender": "纜線手",
+    "deck": "甲板",
+    "supervisor": "督導"
+  },
+  "crew": {
+    "trim": [
+      "deck",
+      "配重和配平看過了，跟上次一樣，水平、微正浮。"
+    ],
+    "instruments": [
+      "deck",
+      "深度歸零了，羅盤跟船艏對過。"
+    ],
+    "communication": [
+      "tender",
+      "通訊正常，遙測跟影像都在跳。"
+    ],
+    "tender": [
+      "tender",
+      "纜理好了，線還夠。隨時可以放。"
+    ]
+  },
+  "found": [
+    "deck",
+    "看到了。先處理掉再下水。"
+  ],
+  "falseReport": [
+    "deck",
+    "我看了一下，這裡沒問題。"
+  ],
+  "fixed": {
+    "line_fouled": [
+      "tender",
+      "繩子剪掉了，護罩裡乾淨。"
+    ],
+    "guard_cracked": [
+      "deck",
+      "護罩換了一個新的，鎖好了。"
+    ],
+    "oring_debris": [
+      "deck",
+      "O 形環擦乾淨、重新上油裝回去了。"
+    ],
+    "connector_unlocked": [
+      "tender",
+      "固定環轉到底，鎖上了。"
+    ]
+  },
+  "faults": {
+    "line_fouled": "T{n} 推力掉了。下水前護罩上那段繩子沒清，被捲進去了。",
+    "guard_cracked": "T{n} 停了。裂掉的護罩碎片卡進螺旋槳。",
+    "oring_debris": "漏水警報。密封面上的沙沒清，馬上上浮回收。",
+    "connector_unlocked": "影像斷斷續續。纜線接頭固定環沒鎖到底。"
+  }
+}
