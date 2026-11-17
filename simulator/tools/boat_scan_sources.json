@@ -1,0 +1,18 @@
+{
+ "acg_DiamondPlate008C/DiamondPlate008C.zip": "1e0e3f7fa2350fdb69969e74f3fb8f851d2770778d1ab9e6f7011b586162e159",
+ "acg_Plastic010/Plastic010.zip": "46a2504dbef278475b85c846713804a36823c7151cb79c90728d5c6eab283a19",
+ "lifebuoy/lifebuoy.bin": "aa45c8d43ee11e12a4ab9f46bfb06d1baa6c687d61776ad9b06ea6b5664c0bc2",
+ "lifebuoy/lifebuoy_1k.gltf": "d9c76a8f2471249f314b3efcffe0d3956ba2d3f0b8ba528cc0f2b861561580f3",
+ "lifebuoy/textures/lifebuoy_arm_1k.jpg": "fe33182e45c2b1049195641a8081ab22e90e520b2c0dafa9cce568a53af7a207",
+ "lifebuoy/textures/lifebuoy_diff_1k.jpg": "f0095beca9e97996692ffdab3d3ace3fae64a3c3adf5c8eff71172add4e4cb2e",
+ "lifebuoy/textures/lifebuoy_nor_gl_1k.jpg": "df02aca2cca3aa87daa0f1d4cd5fa2584d60ecea85672517fa334aea725dbf23",
+ "ocean_buoy/ocean_buoy.bin": "b3c1f9c8170b9c538f8540f324e4b3707b842d37705dda2dfc95d0548b521e80",
+ "ocean_buoy/ocean_buoy_1k.gltf": "7a6e3ba5b2258575464b2af622dbe63b89a74cb9885f8105cfc8fdf30c734d5c",
+ "ocean_buoy/textures/ocean_buoy_arm_1k.jpg": "4d0d02c386250ff163fb661e2ff6f3777c01d28bdf902508ae8a7808041b381c",
+ "ocean_buoy/textures/ocean_buoy_diff_1k.jpg": "379e64ed72deca5805df1d5afbd0fdcdd5f8a8d6aa4f156eed9d3643b071b0c2",
+ "ocean_buoy/textures/ocean_buoy_emission_1k.jpg": "c038be2e4074e2a67eee8d5e4cb2d37f0bdcee5c2a569d8bda2b66e1ab35ce53",
+ "ocean_buoy/textures/ocean_buoy_nor_gl_1k.jpg": "5d02c9df9b5e76b61bf0845839d9ec99f56f994a9095174076c00b560ece4686",
+ "wood_floor_deck/wood_floor_deck_diff_1k.jpg": "1f2c623e87b0ee905f6f4ec8664dd19b4b135207c96e86198ff2919770b47166",
+ "wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg": "2fa427b9196099c0ff72d1a1ab472e2a79ca2a76906a5c46d134f8a86e086d23",
+ "wood_floor_deck/wood_floor_deck_rough_1k.jpg": "5754d2c2a91a288bb257e0fa8c697d97b48472c9fb77c4c7f0ffcc302f3f60a2"
+}

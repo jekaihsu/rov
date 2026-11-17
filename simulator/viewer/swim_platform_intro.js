@@ -1,0 +1,222 @@
+// Optional hand launch presentation. Uses existing vehicle meshes and base intro lifecycle;
+// all trajectories below are cinematic only and never change server tether/vehicle state.
+import * as THREE from 'three';
+import { DeployIntro } from './deploy_intro.js';
+import { loadGLTF } from './glb.js';
+import { Cable } from './cable.js';
+import { Humanoid } from './humanoid.js';
+
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const UP = V(0, 1, 0);
+function phase(t, a, b) {
+  const k = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
+  return k * k * (3 - 2 * k);
+}
+// Cable's transported frame uses the opposite winding to the cylinder normals.
+// Correct it for this presentation without changing the live simulation cable renderer.
+function outwardCable(material, options) {
+  const cable = new Cable(material, options);
+  const index = cable.geometry.index;
+  for (let i = 0; i < index.count; i += 3) {
+    const b = index.array[i + 1];
+    index.array[i + 1] = index.array[i + 2];
+    index.array[i + 2] = b;
+  }
+  index.needsUpdate = true;
+  return cable;
+}
+
+export class SwimPlatformIntro extends DeployIntro {
+  static async loadAssets(base = 'models/') {
+    const [boat, human, ring] = await Promise.all([
+      loadGLTF(base + 'small_boat.glb'),
+      Humanoid.load(base + 'worker.glb'),
+      loadGLTF(base + 'boat/lifebuoy.glb').catch(function missing() { return null; }),
+    ]);
+    const root = boat.scene;
+    if (ring) {
+      const slot = root.getObjectByName('lifebuoy_slot') || root;
+      const prop = ring.scene;
+      prop.name = 'Lifebuoy';
+      slot.add(prop);
+      prop.rotation.set(0.14, -0.1, Math.PI / 2);
+    }
+    return { boat: root, human };
+  }
+
+  constructor(scene, options) {
+    super(scene, { ...options, assets: { ...options.assets, human: null } });
+    this.launchCrew = new Humanoid(options.assets.human, {
+      shirt: 0x344d61, vest: 0xffc21a, helmet: 0xf4f4ef,
+    });
+    this.boat.add(this.launchCrew.root);
+    this.cable.dispose();
+    this.cable.mesh.material.dispose();
+    this.scene.remove(this.cable.mesh);
+    // Match the live tether low-tension colour (#e9c534) so the hand-off is not a colour jump.
+    this.cable = outwardCable(new THREE.MeshStandardMaterial({
+      color: 0xe9c534, roughness: 0.5, metalness: 0 }),
+      { radius: 0.008, segments: 160, radial: 6 });
+    this._add(this.cable.mesh);
+    this.marker = outwardCable(new THREE.MeshStandardMaterial({
+      color: 0xd52128, roughness: 0.6 }),
+      { radius: 0.014, segments: 16, radial: 6 });
+    this.cable.mesh.name = 'FloatingUmbilical';
+    this.marker.mesh.name = 'UmbilicalRedMarker';
+    this._add(this.marker.mesh);
+  }
+
+  play(rov, camera, onDone) {
+    // Duplicate only the existing model, never a substitute vehicle or a reference-photo mesh.
+    if (this.parked) this.boat.remove(this.parked);
+    this.parked = rov.clone(true);
+    this.parked.name = 'ParkedModelR';
+    this.parked.traverse(function show(o) {
+      o.visible = !o.isLight && !(o.material?.transparent || o.material?.isShaderMaterial);
+      // Prefer LOD1 for the parked twin (same policy as the menu boat / fleet peers).
+      if (o.isLOD && o.levels?.length > 1) {
+        for (let i = 0; i < o.levels.length; i++) o.levels[i].object.visible = i === 0 || o.levels[i].distance <= 12;
+        if (o.levels[0].distance === 0 && o.levels.length > 1) {
+          o.levels[0].object.visible = false;
+          o.levels[1].object.visible = true;
+        }
+      }
+    });
+    const slot = this.boat.getObjectByName('rov_slot_1');
+    this.boat.add(this.parked);
+    this.parked.position.copy(this.boat.worldToLocal(slot.getWorldPosition(V(0, 0, 0))));
+    this.parked.position.y += 0.22;
+    this.parked.quaternion.setFromAxisAngle(UP, Math.PI);
+    super.play(rov, camera, onDone);
+    this.parked.position.y = 0.3 + this.half.y;
+  }
+
+  _vehiclePose(t) {
+    const slot = this.boat.getObjectByName('rov_slot_0');
+    const local = this.boat.worldToLocal(slot.getWorldPosition(V(0, 0, 0)));
+    local.y += this.half.y + 0.01 + 0.5 * phase(t, 1.2, 2.3);
+    local.z -= 1.43 * phase(t, 2.4, 4.2);
+    const pos = this.boat.localToWorld(local);
+    const floatY = -this.half.y * 0.55;
+    pos.y = THREE.MathUtils.lerp(pos.y, floatY, phase(t, 4.2, 6.4));
+    if (t >= 6.4) pos.y += Math.sin((t - 6.4) * 2.1) * 0.025;
+    if (t >= 8.8) pos.lerp(this.start, phase(t, 8.8, 11.6));
+    return { pos, quat: this.qStart.clone(), hanging: false, floatY };
+  }
+
+  _phaseEvents(t, dt, pose) {
+    super._phaseEvents(t, dt, pose);
+    this.effects.foam.visible = false;
+  }
+
+  _drawRigging() {
+    this.rig.hideRigging();
+  }
+
+  _crew(t, dt) {
+    if (!this.launchCrew || !this.rov) return;
+    const crew = this.launchCrew;
+    // Stay within arm reach of rov_slot_0 (~z=-2.2): step aft with the lift, then follow the push.
+    crew.root.position.set(-0.78, 0.28, -1.55 - 1.35 * phase(t, 2.4, 4.2));
+    crew.root.position.z -= .22 * phase(t, 1.2, 2.3) * (1 - phase(t, 2.4, 4.2));
+    crew.root.rotation.y = Math.PI;
+    crew.root.updateMatrixWorld(true);
+    const release = phase(t, 6.4, 7.2);
+    const handL = crew.root.worldToLocal(this._local(V(this.half.x * .8, this.half.y * .7, 0)));
+    const handR = crew.root.worldToLocal(this._local(V(-this.half.x * .8, this.half.y * .7, 0)));
+    // Rest at the sides after release — not up behind the helmet.
+    handL.lerp(V(.28, .42, .22), release);
+    handR.lerp(V(-.28, .42, .22), release);
+    const crouch = 1 - phase(t, 1.2, 2.3) + phase(t, 3.8, 5.2);
+    const stand = phase(t, 6.4, 7.6);
+    crew.update(dt, {
+      pelvis: [0, -.42 * crouch * (1 - stand), .08 * crouch * (1 - stand)],
+      bend: .4 + .45 * crouch * (1 - stand),
+      handL, handR,
+    });
+  }
+
+  _drawTether(t) {
+    if (!this.marker || !this.rov) return;
+    const exit = this.boat.userData.exit.getWorldPosition(V(0, 0, 0));
+    const gland = this._local(this.glandPoint);
+    const pts = [exit, this._boatPoint(1.55, 0.34, -2.45)];
+    if (t < 4.2) {
+      pts.push(this._boatPoint(1.55, 0.34, -2.78),
+        this._boatPoint(-0.3, 0.34, -2.78), gland.clone().add(V(0, .2, 0)), gland);
+    } else {
+      const edge = this._boatPoint(1.1, 0.3, -2.88);
+      pts.push(edge);
+      const aft = this._boatPoint(0, 0, -1).sub(this._boatPoint(0, 0, 0)).normalize();
+      for (let i = 1; i < 20; i++) {
+        const u = i / 20;
+        const p = edge.clone().lerp(gland, u);
+        p.x += Math.sin(u * Math.PI * 3 + t * 0.3) * Math.sin(u * Math.PI) * 0.3;
+        p.addScaledVector(aft, Math.sin(u * Math.PI) * phase(t, 4.2, 6.4) * 1.6);
+        const surface = 0.035 + Math.sin(u * 10 + t) * 0.008;
+        const afloat = phase(t, 4.2, 6.4);
+        const edgeBlend = Math.min(1, u / 0.15, (1 - u) / 0.1);
+        p.y = THREE.MathUtils.lerp(p.y, surface, edgeBlend * afloat);
+        pts.push(p);
+      }
+      pts.push(gland);
+    }
+    this.cable.update(pts);
+    this.marker.update([this.cable.curve.getPoint(.55), this.cable.curve.getPoint(.59),
+      this.cable.curve.getPoint(.63)]);
+  }
+
+  _cameraPath(t) {
+    if (!this.camera) return;
+    // While the pre-dive checklist holds the intro, yield to deck_stage walk-around shots.
+    if (this.held) return super._cameraPath(t);
+    if (t >= 8.8) return super._cameraPath(t);
+    const eye = this.boat.getObjectByName('menu_camera').getWorldPosition(V(0, 0, 0));
+    const target = this.boat.getObjectByName('menu_target').getWorldPosition(V(0, 0, 0));
+    const k = phase(t, 1.2, 4.2);
+    eye.lerp(this._boatPoint(-3.6, 2.1, -4.9), k);
+    target.lerp(this.rov.position, k);
+    this.camera.position.copy(eye);
+    this.camera.lookAt(target);
+  }
+
+  _finish() {
+    super._finish();
+    this.marker.mesh.visible = false;
+    this.launchCrew.root.visible = false;
+  }
+
+  dispose() {
+    super.dispose();
+    this.marker.dispose();
+    this.marker.mesh.material.dispose();
+    this.cable.mesh.material.dispose();
+    const geometries = new Set();
+    const materials = new Set();
+    for (const group of [this.launchCrew.root]) {
+      group.traverse(function collect(o) {
+        if (o.geometry) geometries.add(o.geometry);
+        if (o.material) materials.add(o.material);
+      });
+    }
+    for (const geometry of geometries) geometry.dispose();
+    for (const material of materials) material.dispose();
+  }
+}
+
+export function launchIntroClass(mode) {
+  return mode === 'swim-platform' ? SwimPlatformIntro : DeployIntro;
+}
+
+// Opt-in deterministic inspection only; normal play never installs this hook.
+export function installIntroReview(params, getIntro, getModel) {
+  if (!params.has('introReview')) return;
+  window.__seekIntro = function seekIntro(seconds) {
+    const intro = getIntro();
+    if (!intro?.playing || !getModel()) return false;
+    intro.t = Math.max(0, Math.min(seconds, intro.duration - 0.01));
+    intro.hold();
+    intro.update(0);
+    return true;
+  };
+}
