@@ -577,7 +577,7 @@ export function buildBriefing(ctx) {
     }
     if (ctx.choice.multiplayer) sheet.section(STRINGS.room, paragraph(STRINGS.hostNote));
     sheet.section(introLabel.textContent, paragraph(introRow.title));
-    intro.checked = introForLaunch(ctx.choice, getFidelity().get(PROCEDURE_ITEM) === 'full');
+    intro.checked = introForLaunch(ctx.choice);
     ctx.previewScene(ctx.choice.scenario);
   }
   return { element: root, pose: 'briefing', enter };

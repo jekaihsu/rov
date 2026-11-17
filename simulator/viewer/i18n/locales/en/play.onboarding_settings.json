@@ -1,0 +1,8 @@
+{
+  "toggle": [
+    "Beginner hints",
+    "In flight, a card on the left suggests the next basic control; the first time the tether pulls, the DVL loses the bottom or visibility drops, it explains what to do."
+  ],
+  "reset": "Show beginner hints again",
+  "resetDone": "Beginner hints reset; they start again from the first step."
+}

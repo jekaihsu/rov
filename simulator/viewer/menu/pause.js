@@ -8,6 +8,7 @@ import { acceptContract, contractBoard } from '../play/contracts.js';
 import { objectiveSummary } from '../play/mission_text.js';
 import { restartRun } from '../play/restart.js';
 import { mountDisplaySettings } from './display_settings.js';
+import { onboardingSettings } from '../play/onboarding_settings.js';
 import { fitTitle, primaryButton } from './big_picture.js';
 import {
   createSettingsPanel,
@@ -161,6 +162,9 @@ function buildSettings(input) {
               },
             };
           }));
+          const hints = onboardingSettings('pause');
+          mountToggles(pane, [hints.toggle]);
+          pane.append(hints.reset);
         },
       },
     ],
@@ -171,7 +175,8 @@ function buildSettings(input) {
 // extraActions(): optional [{id, label, run, keepOpen, disabled, title}] shown with the objective (the YX work
 // order's confirmations and early hand-in from career/dive.js, recovery during a dive from procedure/index.js), so
 // a pad player reaches them without the mouse. A disabled entry shows its title as the reason.
-export function installPauseMenu({ input, send, state, replay = false, extraActions = null }) {
+// tutorial: optional {tutorialLabel, renderTutorial(container)} (play/onboarding.js), listed as 操作教學.
+export function installPauseMenu({ input, send, state, replay = false, extraActions = null, tutorial = null }) {
   const root = element('section', 'pause-menu');
   root.id = 'pauseMenu';
   root.hidden = true;
@@ -195,6 +200,7 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
   root.append(side, main, footer);
   document.body.append(root);
   let settings = null;
+  let tutorialPane = null;
   let view = 'list';
   let pausedByMenu = false;
   let navigator = null;
@@ -279,6 +285,8 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
       main.append(settings.element);
     }
     view = 'settings';
+    settings.element.hidden = false;
+    if (tutorialPane) tutorialPane.hidden = true;
     main.hidden = false;
     prompts();
     requestAnimationFrame(function focusTabs() {
@@ -340,6 +348,23 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     restartArmed = false;
     restartLabel.textContent = STRINGS.restart;
   });
+  // 操作教學: the basic steps and their controls, readable at any time without the engineering drawer.
+  function showTutorial() {
+    if (!tutorialPane) {
+      tutorialPane = element('section', 'pause-tutorial');
+      tutorialPane.id = 'pauseTutorial';
+      tutorialPane.tabIndex = -1;
+      main.append(tutorialPane);
+    }
+    tutorial.renderTutorial(tutorialPane);
+    view = 'tutorial';
+    if (settings) settings.element.hidden = true;
+    tutorialPane.hidden = false;
+    main.hidden = false;
+    prompts();
+    tutorialPane.focus({ preventScroll: true });
+  }
+  if (tutorial && !replay) entry('pauseTutorial', tutorial.tutorialLabel, showTutorial);
   entry('pauseSettings', STRINGS.settings, showSettings);
   entry('pauseReport', STRINGS.report, function report() {
     openFeedbackReport();
@@ -375,7 +400,7 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
           return view === 'settings' ? main : side;
         },
         back() {
-          if (view === 'settings') showList();
+          if (view !== 'list') showList();
           else hide();
         },
         tab(direction) {

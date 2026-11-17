@@ -3,8 +3,7 @@
 // contract, launch a contract dive, the hangar title with its Block number). A contract dive is an ordinary
 // launch with ?contract=<id>; an exam also carries ?fidelity=real&exam=1 and stashes the stored fidelity
 // settings, which career/boot.js puts back when the player returns to the menu.
-import { getFidelity, STORAGE_KEY as FIDELITY_KEY, fidelityItems } from '../fidelity.js';
-import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
+import { STORAGE_KEY as FIDELITY_KEY } from '../fidelity.js';
 import { vehicleTitle } from '../fleet_names.js';
 import { introForLaunch } from '../menu/preferences.js';
 import { buildBoard } from './board.js';
@@ -22,15 +21,6 @@ function storedFidelity() {
   } catch {
     return '';
   }
-}
-
-// Whether the launch runs the full pre-dive procedure: an exam uses the real preset's value of that item.
-function procedureFull(exam) {
-  if (!exam) return getFidelity().get(PROCEDURE_ITEM) === 'full';
-  const item = fidelityItems().find(function byId(entry) {
-    return entry.id === PROCEDURE_ITEM;
-  });
-  return item?.defaults.real === 'full';
 }
 
 /** ctx: the launch menu context; screens: its screen table. Returns {buildScreens()}. */
@@ -97,7 +87,7 @@ export async function installCareerMenu(ctx, screens) {
     choice.multiplayer = false;
     choice.contract = contract.id;
     choice.exam = exam;
-    choice.intro = introForLaunch(choice, procedureFull(exam));
+    choice.intro = introForLaunch(choice);
     if (exam && save.fidelityStash === null) {
       save.fidelityStash = storedFidelity();
       storeCareer(save, { mirror: false });

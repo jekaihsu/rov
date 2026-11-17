@@ -10,6 +10,7 @@ import { CONTROL_LAYOUTS } from '../control_layout.js';
 import { renderQualityInfo } from '../render_quality.js';
 import { rememberInterface, rememberQuality } from './preferences.js';
 import { mountDisplaySettings } from './display_settings.js';
+import { onboardingSettings } from '../play/onboarding_settings.js';
 import {
   createSettingsPanel,
   element,
@@ -53,8 +54,7 @@ const STRINGS = localize('menu.launch_settings', {
   detecting: '正在偵測目前使用的顯示卡…',
   adaptive: '依畫面效能調整',
   interface: {
-    intro: ['下水動畫', '從水面吊放到入水的開場運鏡；關閉時也略過潛前檢查流程。'],
-    alwaysIntro: ['每次都播放下水動畫', '關閉時只在第一次下潛播放，之後直接從水中開始（簡報可再勾選）。'],
+    intro: ['下水動畫', '每次下潛先播放從水面吊放到入水的開場運鏡，播放中可跳過；關閉時也略過潛前檢查流程。'],
     pip: ['操作員小視窗', '在畫面角落顯示岸上操作員。'],
     sticks: ['畫面搖桿', '只在觸控裝置上顯示。'],
     fog: ['真實能見度', '關閉後水體較清澈，超出真機影像。'],
@@ -179,7 +179,6 @@ export function buildLaunchSettings(ctx) {
   function interfaceTab(pane) {
     const ids = {
       intro: 'menuIntroSetting',
-      alwaysIntro: 'menuAlwaysIntro',
       pip: 'menuPip',
       sticks: 'menuSticks',
       fog: 'menuFog',
@@ -198,6 +197,9 @@ export function buildLaunchSettings(ctx) {
         },
       };
     }));
+    const hints = onboardingSettings('menu');
+    mountToggles(pane, [hints.toggle]);
+    pane.append(hints.reset);
   }
   const panel = createSettingsPanel({
     idPrefix: 'menuSettings',
