@@ -1,0 +1,371 @@
+{
+  "clients": {
+    "yx": {
+      "label": "YX crew"
+    },
+    "harbor": {
+      "label": "Harbour authority"
+    },
+    "shipping": {
+      "label": "Owners & ship managers"
+    },
+    "marine_works": {
+      "label": "Marine works"
+    },
+    "aquaculture": {
+      "label": "Aquaculture operators"
+    }
+  },
+  "jobs": {
+    "training": "In-house training",
+    "checkout": "In-water checkout dive",
+    "familiarization": "Open-water familiarization",
+    "gvi": "General visual inspection (GVI)",
+    "marine_growth": "Marine growth survey (Level II)",
+    "fouling": "Hull fouling rating",
+    "search": "Search and confirm",
+    "cp": "Cathodic protection survey (CP)",
+    "ut": "Ultrasonic thickness (UT)",
+    "net": "Net inspection",
+    "recovery": "Recovery job",
+    "mooring": "Mooring inspection"
+  },
+  "chapters": {
+    "prologue": {
+      "title": "Prologue · Before trainee status",
+      "summary": "Company pool and open water: lock in the basics and earn your trainee pilot licence."
+    },
+    "ch1": {
+      "title": "Chapter 1 · Harbour and vessels",
+      "summary": "Fishing pier, freighter hull, and in-harbour search. The chapter sign-off is the Grade 2 pilot exam."
+    },
+    "ch2": {
+      "title": "Chapter 2 · Fish farm",
+      "summary": "Offshore pen nets: nets, morts, and moorings. Requires a Grade 2 pilot licence."
+    }
+  },
+  "contracts": {
+    "p0_induction": {
+      "title": "New-hire induction: pool ops class",
+      "clientName": "YX Training",
+      "summary": "Supervisor Lin walks you through the company pool: arm, move, depth hold, lights, photos.",
+      "brief": "HR says new hires finish the pool ops class in week one before they get kit. Supervisor Lin will talk you through it on the radio—just follow along. Mistakes don't cost points, and the pool isn't going anywhere.",
+      "radio": {
+        "speaker": "Supervisor Lin",
+        "start": "Pool class. No clock. Hands on the sticks, listen up.",
+        "done": "Good—basics are there. This afternoon, sign off the pool checkout dive."
+      }
+    },
+    "p1_pool_checkout": {
+      "title": "Pool checkout dive",
+      "clientName": "YX Equipment",
+      "summary": "Post-maintenance vehicle needs an in-water check: arm, hover, one photo per three pool walls, return to launch.",
+      "brief": "Equipment just swapped the thruster shaft seals. They need an in-water checkout record before it ships. Follow the checklist: arm thrusters, hover mid-pool 20 seconds and watch for drift, photo the north, east, and south walls with overlay, then return to the launch point for recovery. Photos need to show wall—not a blue blur.",
+      "radio": {
+        "speaker": "Equipment desk · A-Zhe",
+        "start": "Seals are new. Any odd noise, call me—don't force it.",
+        "done": "Record received. Vehicle's fine. So are you.",
+        "partial": "Got a partial record—signing what we have. Finish the rest tomorrow."
+      },
+      "deliverables": {
+        "unlock": "Arm thrusters",
+        "hover": "Hover mid-pool 20 s (drift < 0.6 m)",
+        "photo_north": "North wall photo",
+        "photo_east": "East wall photo",
+        "photo_south": "South wall photo",
+        "depth_hold": "Confirm depth hold",
+        "recover": "Return to launch, ready for recovery"
+      }
+    },
+    "p2_open_water": {
+      "title": "Open-water familiarization (trainee exam)",
+      "clientName": "YX Training",
+      "summary": "Trainee exam: four checkpoints, depth hold, sticks-off drift check, back to launch. Full realism mode.",
+      "brief": "This is the trainee pilot exam dive. Outside isn't a pool: there's a light current, sticks are thrust not speed, and the vehicle keeps drifting after you let go. Hit four checkpoints in order, engage depth hold along the way; between 2 and 3, hover 15 seconds and feel the drift, then return to launch. Exam uses real settings—no station-keep assist, no external view.",
+      "radio": {
+        "speaker": "Supervisor Lin",
+        "start": "I'm the examiner, but I only watch the record. Take your time—current's light.",
+        "done": "Pass. Pick up the trainee card from HR this afternoon—bring a photo.",
+        "partial": "Not enough for a card. Rest up; try again tomorrow."
+      },
+      "deliverables": {
+        "unlock": "Arm thrusters",
+        "cp1": "Checkpoint 1",
+        "depth_hold": "Engage depth hold",
+        "cp2": "Checkpoint 2",
+        "drift": "Hover 15 s, observe drift",
+        "cp3": "Checkpoint 3",
+        "cp4": "Checkpoint 4",
+        "recover": "Return to launch and surface"
+      }
+    },
+    "c1_pier_level1": {
+      "title": "First work order outside the dock",
+      "clientName": "North Quay Fishing Harbour Authority",
+      "summary": "Level I walkthrough: one pile-body photo per six jetty piles; keep the tether clear of piles.",
+      "brief": "Authority wants a Level I walkthrough before typhoon season—coverage only, no measurements. Six piles under the jetty in rows A and B; one pile-body photo per pile at about 6 m depth. If you can see the pile, it counts. Cross-current sets east—plan your exit before you wrap a pile. Don't snag the tether on recovery. Grab a quay-wall overview if you have slack; they'll appreciate it (they won't pay extra).",
+      "radio": {
+        "speaker": "Supervisor Lin",
+        "start": "First outdoor ticket. A-He's on deck watching the line—you watch the piles.",
+        "done": "Authority says the photos are clear. They've taken whole rolls of mud before.",
+        "partial": "Hand these in. I'll tell the authority the rest wait for another day."
+      },
+      "deliverables": {
+        "pile_a1": "Row A pile 1",
+        "pile_a2": "Row A pile 2",
+        "pile_a3": "Row A pile 3",
+        "pile_b1": "Row B pile 1",
+        "pile_b2": "Row B pile 2",
+        "pile_b3": "Row B pile 3",
+        "quay": "Quay wall overview (bonus)",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c1_pier_level2": {
+      "title": "Pier Level II sample: marine growth",
+      "clientName": "North Quay Fishing Harbour Authority",
+      "summary": "Three nominated piles, two elevations each: measure growth thickness with the laser scaler.",
+      "brief": "Authority reviewed last job's photos and wants to know how thick the growth really is. Level II sample: piles A1, A3, B2 at 4 m and 12 m depth. Close to about 1 m, square to the face, steady—put the laser dots on the growth layer and wait for a stable reading. Then back to launch as usual.",
+      "radio": {
+        "speaker": "Supervisor Lin",
+        "start": "Laser dots on the barnacles—not on the fish.",
+        "done": "Numbers look clean. Authority wants them against last year—take it as a compliment.",
+        "partial": "I'll log the missing points; we'll fill them when tide is kinder."
+      },
+      "deliverables": {
+        "a1_upper": "Pile A1 · 4 m depth",
+        "a1_lower": "Pile A1 · 12 m depth",
+        "a3_upper": "Pile A3 · 4 m depth",
+        "a3_lower": "Pile A3 · 12 m depth",
+        "b2_upper": "Pile B2 · 4 m depth",
+        "b2_lower": "Pile B2 · 12 m depth",
+        "b2_photo": "Pile B2 growth close-up (bonus)",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c1_hull_fouling": {
+      "title": "Freighter hull fouling rating",
+      "clientName": "Seagull Shipping — Fleet Ops",
+      "summary": "80 m freighter: one rating photo each of both bilge keels, propeller, and rudder. Confirm LOTO before the prop.",
+      "brief": "Fleet ops need to decide whether to clean the bottom this call. One photo each of port and starboard bilge keels, propeller blades, and rudder for fouling rating. At the prop, confirm main engine stopped and shaft locked out (LOTO) with the ship before you close in—inside three metres without confirmation is a safety fail. Under the hull there's no surface reference; watch your depth and tether.",
+      "radio": {
+        "speaker": "A-He",
+        "start": "Chief says the main's stopped—but you still need him to say the lockout himself.",
+        "done": "Ops says the rating's clear enough; they'll clean next week. You just saved the company money.",
+        "partial": "Send what you've got. Prop area next time."
+      },
+      "deliverables": {
+        "keel_starboard": "Starboard bilge keel",
+        "keel_port": "Port bilge keel",
+        "loto": "Main stopped, shaft locked out (LOTO)",
+        "propeller": "Propeller blades",
+        "rudder": "Rudder",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c1_dropped_object": {
+      "title": "In-harbour dropped object",
+      "clientName": "North Quay dredging crew",
+      "summary": "Visibility under a metre: find the dropped survey unit on sonar, then close for camera confirm.",
+      "brief": "The crew's survey unit went overboard from the workboat—likely within twenty metres northeast of launch. Water's thick; camera won't see a metre. Sit on bottom, sweep with imaging sonar, read bearing, turn, creep onto the return, then close for a clear confirm photo. Don't thrash silt with the thrusters—you'll blind yourself.",
+      "radio": {
+        "speaker": "Works crew · Old Cai",
+        "start": "That unit costs more than my car. Please.",
+        "done": "Found it! Divers hang a line this afternoon. I owe you lunch.",
+        "partial": "At least we know the area. Thanks."
+      },
+      "deliverables": {
+        "contact": "Acquire sonar return and close",
+        "confirm_photo": "Camera confirm: survey unit",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c1_quay_cp": {
+      "title": "Quay sheet-pile CP spot checks",
+      "clientName": "North Quay Fishing Harbour Authority",
+      "summary": "Side job: three wall points—seat the CP probe and read potential; flag under-protected spots.",
+      "brief": "Authority trusts us enough for a small add-on: three cathodic protection potential spot checks on the quay wall. Seat the probe gently, hold steady a few seconds for a reading; slamming in doesn't count and costs score. Anything more positive than −800 mV is under-protected—flag it in the report.",
+      "radio": {
+        "speaker": "Supervisor Lin",
+        "start": "This time you touch it—gently.",
+        "done": "Point three is under-protected; they'll schedule anode change-out. Good find.",
+        "partial": "Hand in these two points."
+      },
+      "deliverables": {
+        "cp_west": "Quay wall south · 6 m depth",
+        "cp_mid": "Quay wall mid · 10 m depth",
+        "cp_east": "Quay wall north · 6 m depth",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c1_hull_ut": {
+      "title": "Hull thickness spot checks",
+      "clientName": "Seagull Shipping — Fleet Ops",
+      "summary": "Side job: four side-shell UT points for class annual survey.",
+      "brief": "Fleet ops need side-shell spot thickness for the class annual. Port and starboard, forward and aft of midships—about 4 m depth. Gauge must seat on steel and hold steady or the reading's junk. Stay off the prop this time; under the hull you still have no surface reference.",
+      "radio": {
+        "speaker": "A-He",
+        "start": "Four points, then we're done. Deck lunch is pork chop today.",
+        "done": "All in tolerance. Surveyor will be happy; owner happier.",
+        "partial": "Surveyor will chase the missing points—hand in what you have."
+      },
+      "deliverables": {
+        "ut_sb_fwd": "Starboard · midships forward",
+        "ut_sb_aft": "Starboard · midships aft",
+        "ut_ps_fwd": "Port · midships forward",
+        "ut_ps_aft": "Port · midships aft",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c1_signoff_exam": {
+      "title": "Chapter end: pre-handover recheck (Grade 2 exam)",
+      "clientName": "North Quay Fishing Harbour Authority",
+      "summary": "Grade 2 exam: revisit three prior anomalies, re-shoot from the original angles so the next shift can find them. Full realism.",
+      "brief": "Grade 2 pilot exam and a real ticket: authority wants to know if three logged anomalies got worse. Crack on pile A2 at 10 m, concrete spall on B3 at 14 m, chip on the south quay wall at 12 m—re-shoot square-on from the original stand-off (about 1–2.5 m); then a 6-second station-keep visual on mid quay wall. Keep the tether off the piles; finish everything before recovery.",
+      "radio": {
+        "speaker": "Supervisor Lin",
+        "start": "Still me examining. Photos the next shift can read—that's the test.",
+        "done": "Pass. Grade 2 card ships to the company; next month you can take fish-farm work.",
+        "partial": "Close. Work the camera angles; retest next week."
+      },
+      "deliverables": {
+        "a2_crack": "Pile A2 · crack at 10 m",
+        "b3_spall": "Pile B3 · spall at 14 m",
+        "quay_chip": "South quay wall · chip at 12 m",
+        "quay_station": "Mid quay wall · 6 s station visual",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c2_net_inspection": {
+      "title": "Net inspection",
+      "clientName": "East Cove offshore pen farm",
+      "summary": "On slack tide, orbit the pen exterior, find two net holes and photograph them. Too close and thrusters suck net.",
+      "brief": "Farm manager says fish are disappearing daily—suspects torn net. On slack tide, orbit outside the pen (east, north, west, south all required). Stop square-on for photos of any holes. Don't hug the net—thrusters will suck mesh in; keep your tether clear of mooring lines.",
+      "radio": {
+        "speaker": "Farm manager · A-Mei",
+        "start": "Fish spook easy. Go slow and they won't scatter.",
+        "done": "Both holes found—we'll patch this afternoon. Thanks.",
+        "partial": "Patch what you found; check the rest next slack tide."
+      },
+      "deliverables": {
+        "ring_south": "South exterior (7 m depth)",
+        "ring_east": "East exterior",
+        "ring_north": "North exterior",
+        "ring_west": "West exterior",
+        "hole_upper": "Hole · ~7 m depth",
+        "hole_lower": "Hole · ~13 m depth",
+        "recover": "Return to launch for recovery"
+      }
+    },
+    "c2_mort_recovery": {
+      "title": "Mort recovery (Model V)",
+      "clientName": "East Cove offshore pen farm",
+      "summary": "Launch Model V from the pen walkway into the net; gripper lifts morts off the bottom. Needs a manipulator—Model V only.",
+      "brief": "A few morts on the net floor will foul water quality if left. Launch straight into the pen from the walkway. Only Model V has a manipulator, so it goes. Descend to the floor, grip morts one by one and lift clear; trim shifts once you clamp—take it slow. Hitting the floor spookes the whole pen.",
+      "radio": {
+        "speaker": "Farm manager · A-Mei",
+        "start": "Ugly job. Still matters.",
+        "done": "Floor looks cleaner. Next time, dinner—live fish.",
+        "partial": "Take these; we'll net the rest."
+      },
+      "deliverables": {
+        "first_fish": "Grip one mort and lift clear of the floor",
+        "second_fish": "Recover a second (bonus)",
+        "recover": "Return to in-pen launch for recovery"
+      }
+    },
+    "c2_mooring_exam": {
+      "title": "Chapter end: post-typhoon ground lines (pen endorsement exam)",
+      "clientName": "East Cove offshore pen farm",
+      "summary": "Follow the two southern ground lines from buoy to anchor; record line condition. Full realism.",
+      "brief": "Typhoon just passed; manager needs to know the mooring still holds. Drop at the southeast and southwest corner buoys, follow each ground line to the anchor, and shoot a condition photo mid-line. Keep your tether clear of the ground lines. This is the pen-ops endorsement exam.",
+      "radio": {
+        "speaker": "Supervisor Lin",
+        "start": "Swell will bounce you up and down—that's normal, not you.",
+        "done": "Endorsement's in. Farms will ask for you by name now.",
+        "partial": "Almost. Retest on the next slack tide."
+      },
+      "deliverables": {
+        "east_buoy": "Below SE corner buoy",
+        "east_line": "SE ground line mid-span",
+        "east_anchor": "SE anchor",
+        "west_buoy": "Below SW corner buoy",
+        "west_line": "SW ground line mid-span",
+        "west_anchor": "SW anchor",
+        "recover": "Return to launch for recovery"
+      }
+    }
+  },
+  "grades": {
+    "none": {
+      "label": "Cadet (unlicensed)",
+      "short": "Cadet",
+      "opens": "In-house training and pool checkout dives"
+    },
+    "trainee": {
+      "label": "Trainee pilot",
+      "short": "Trainee",
+      "opens": "Simple in-harbour jobs: pier Level I, hull, harbour search"
+    },
+    "grade2": {
+      "label": "Grade 2 pilot",
+      "short": "Grade 2",
+      "opens": "Detailed pier and hull work, fish farms"
+    },
+    "grade1": {
+      "label": "Grade 1 pilot",
+      "short": "Grade 1",
+      "opens": "SAR, reservoirs, offshore wind (later chapters)"
+    },
+    "senior": {
+      "label": "Senior pilot",
+      "short": "Senior",
+      "opens": "Subsea cable, night ops, multi-vehicle (later chapters)"
+    },
+    "supervisor": {
+      "label": "Supervisor",
+      "short": "Supervisor",
+      "opens": "Watch and direct operational jobs (later chapters)"
+    }
+  },
+  "endorsements": {
+    "aquaculture": {
+      "label": "Pen-ops endorsement"
+    }
+  },
+  "items": {
+    "laser_scaler": {
+      "label": "Laser scaler",
+      "use": "Two parallel laser dots on the target put a known spacing in the image so you can measure size.",
+      "unlocks": "Growth thickness, defect size, and other measured deliverables (Level II jobs)"
+    },
+    "imaging_sonar": {
+      "label": "Imaging sonar",
+      "use": "When visibility fails, image with sound to find targets and structure, then confirm by camera.",
+      "unlocks": "In-harbour dropped-object and other search jobs"
+    },
+    "cp_probe": {
+      "label": "Cathodic protection (CP) probe",
+      "use": "Seat the probe on steel and read potential vs the reference electrode to judge protection.",
+      "unlocks": "CP survey deliverables on sheet pile and steelwork"
+    },
+    "ut_gauge": {
+      "label": "Ultrasonic thickness gauge (UT)",
+      "use": "Seat the probe on plate to measure remaining wall thickness and find corrosion thinning.",
+      "unlocks": "Hull and steelwork thickness deliverables"
+    },
+    "gripper": {
+      "label": "Work gripper kit",
+      "use": "Work gripper and catch basket for the YX Model V manipulator—standard kit for recovery jobs.",
+      "unlocks": "Mort, dropped-object, and other recovery jobs"
+    },
+    "sticker_yx_logo": {
+      "label": "YX company logo sticker",
+      "use": "YX marks on both sides of the vehicle. Clients on deck know whose bird it is at a glance."
+    },
+    "sticker_yx_stripe": {
+      "label": "YX orange-white livery stripe",
+      "use": "Company fleet orange-white diagonal stripe—easier to spot in murky water."
+    }
+  }
+}
