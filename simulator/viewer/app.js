@@ -48,6 +48,7 @@ import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
 import {installCampaign} from './story/campaign.js';
+import {installColdOpen} from './story/cold_open.js';
 import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
@@ -577,6 +578,7 @@ function onState(m) {
   missionPanel.update(m);
   procedurePanel.update(m);
   campaignPanel.update(m);
+  coldOpen.update(m, W);
   chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -1246,6 +1248,8 @@ const audio = installAudio({
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
+const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow], music,
+  readOnly: !!REPLAY});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
@@ -1311,6 +1315,7 @@ function frame(now) {
   } else guide.visible = false;
   audio.update(renderState.display(S));
   music.update(renderState.display(S));
+  coldOpen.frame(dt);
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);

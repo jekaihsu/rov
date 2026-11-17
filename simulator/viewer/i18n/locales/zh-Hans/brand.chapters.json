@@ -7,6 +7,11 @@
     "sub": "DIVE BRIEF"
   },
   "cards": {
+    "cold_open": {
+      "number": "开场 / 00",
+      "client": "YX · 离岸风场",
+      "sub": "JACKET · TETHER SNAG"
+    },
     "prologue": {
       "number": "序章 / 00",
       "client": "YX · 训练中心",

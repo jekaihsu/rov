@@ -15,6 +15,14 @@ const BACK = bindingRow('back');
 const PAD_BUTTON = Number(String(BACK?.pad || 'b1').slice(1));
 const KEY = BACK?.keys?.[0] || 'Escape';
 const BUTTON_ID = 'skipIntro';
+// Another cutscene that borrows the prompt (story/cold_open.js) names itself here; null restores the label.
+let labelOverride = null;
+let rerender = null;
+
+export function setIntroSkipLabel(text) {
+  labelOverride = text || null;
+  rerender?.();
+}
 
 // True while the cinematic plays and can be skipped (not while it waits on deck for the pre-dive procedure).
 export function introSkippable() {
@@ -36,12 +44,13 @@ export function installIntroSkip({ input, button, skip, active }) {
   let family = '';
   let heldMs = 0;
   function render() {
+    const label = labelOverride || STRINGS.label;
     const parts = [];
     if (family) parts.push(span('skip-cap', glyph(PAD_BUTTON, family)), span('skip-text', STRINGS.hold));
     parts.push(span('skip-cap', glyph(0, 'keyboard', keyLabel(KEY))));
-    if (!family) parts.push(span('skip-text', STRINGS.label));
+    if (!family) parts.push(span('skip-text', label));
     button.replaceChildren(...parts);
-    button.setAttribute('aria-label', STRINGS.label);
+    button.setAttribute('aria-label', label);
     button.dataset.family = family || 'keyboard';
   }
   // How the last skip came in (pad, key or click), for the browser checks.
@@ -85,5 +94,6 @@ export function installIntroSkip({ input, button, skip, active }) {
     skipBy('key');
   });
   render();
+  rerender = render;
   return { refresh: render };
 }

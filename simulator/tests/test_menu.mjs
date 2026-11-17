@@ -29,7 +29,7 @@ test("the exported catalogue matches the backend vehicles and chapters", async (
   const falcon = catalogue.vehicles.find((vehicle) => vehicle.id === "falcon");
   assert.equal(falcon.arm, true);
   assert.equal(vehicleSpecs(falcon).provisional, false);
-  for (const chapter of catalogue.chapters) assert.ok(["story", "incident"].includes(chapter.category));
+  for (const chapter of catalogue.chapters) assert.ok(["prelude", "story", "incident"].includes(chapter.category));
   for (const vehicle of catalogue.vehicles) {
     const bars = Object.values(vehicleSpecs(vehicle).bars);
     for (const value of bars) assert.ok(value >= 0 && value <= 1);

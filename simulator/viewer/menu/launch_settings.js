@@ -11,6 +11,7 @@ import { renderQualityInfo } from '../render_quality.js';
 import { rememberInterface, rememberQuality } from './preferences.js';
 import { mountDisplaySettings } from './display_settings.js';
 import { onboardingSettings } from '../play/onboarding_settings.js';
+import { coldOpenToggle } from '../story/cold_open_menu.js';
 import {
   createSettingsPanel,
   element,
@@ -198,7 +199,7 @@ export function buildLaunchSettings(ctx) {
       };
     }));
     const hints = onboardingSettings('menu');
-    mountToggles(pane, [hints.toggle]);
+    mountToggles(pane, [hints.toggle, coldOpenToggle('menu')]);
     pane.append(hints.reset);
   }
   const panel = createSettingsPanel({

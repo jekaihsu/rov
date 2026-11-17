@@ -7,6 +7,11 @@
     "sub": "DIVE BRIEF"
   },
   "cards": {
+    "cold_open": {
+      "number": "Cold open / 00",
+      "client": "YX · Offshore wind farm",
+      "sub": "JACKET · TETHER SNAG"
+    },
     "prologue": {
       "number": "Prologue / 00",
       "client": "YX · Training Centre",
