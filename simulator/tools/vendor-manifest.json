@@ -7,8 +7,6 @@
     "examples/jsm/geometries/DecalGeometry.js",
     "examples/jsm/libs/meshopt_decoder.module.js",
     "examples/jsm/loaders/GLTFLoader.js",
-    "examples/jsm/objects/Sky.js",
-    "examples/jsm/objects/Water.js",
     "examples/jsm/postprocessing/EffectComposer.js",
     "examples/jsm/postprocessing/MaskPass.js",
     "examples/jsm/postprocessing/OutputPass.js",
