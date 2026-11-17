@@ -1,0 +1,41 @@
+{
+  "triangles": 19156,
+  "images": [
+    [
+      "boat_gelcoat_normal",
+      "image/webp",
+      6638,
+      512,
+      512,
+      1398101.3333333333
+    ],
+    [
+      "boat_gelcoat_base",
+      "image/webp",
+      15704,
+      512,
+      512,
+      1398101.3333333333
+    ],
+    [
+      "boat_gelcoat_orm",
+      "image/webp",
+      24502,
+      512,
+      512,
+      1398101.3333333333
+    ],
+    [
+      "small_boat.teak",
+      "image/webp",
+      23524,
+      512,
+      512,
+      1398101.3333333333
+    ]
+  ],
+  "bytes": 292840,
+  "gpu_bytes": 5592405.333333333,
+  "materials": 9,
+  "meshes": 17
+}

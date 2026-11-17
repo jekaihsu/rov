@@ -24,6 +24,7 @@ import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
 import { SHOWCASE, createStage } from './stage.js';
+import {createBoatStage} from './boat_stage.js';
 import { createBackdrop } from './big_picture.js';
 import { previewKey } from './cards.js';
 import { installDisplayPrefs } from '../prefs/display.js';
@@ -133,7 +134,8 @@ try {
   throw error;
 }
 setLoading(0.35, STRINGS.loading.scene);
-const stage = createStage(menu, { quality: choice.quality });
+const boatMenu = new URLSearchParams(location.search).get('menuStage') === 'boat';
+const stage = (boatMenu ? createBoatStage : createStage)(menu, { quality: choice.quality });
 // The game-rendered site picture that covers the stage while it switches site (big_picture.js).
 const backdrop = createBackdrop(menu, shade);
 // Player-facing YX fleet names come from fleet_names.js; ?assets=generic keeps the name of the art variant
@@ -274,7 +276,7 @@ function back() {
 function previewScene(key) {
   clearTimeout(previewTimer);
   const entry = sceneFor(key);
-  if (!entry || stage.showcase || stage.state.sceneKey !== key) backdrop.show(`menu/previews/${previewKey(key)}.jpg`);
+  if (!boatMenu && (!entry || stage.showcase || stage.state.sceneKey !== key)) backdrop.show(`menu/previews/${previewKey(key)}.jpg`);
   previewTimer = setTimeout(function switchScene() {
     if (!entry) return;
     stage.setScene(entry);

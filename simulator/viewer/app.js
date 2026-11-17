@@ -29,7 +29,7 @@ import {installAudio, installAudioSettings} from './audio/engine.js';
 import {installMusic} from './audio/music.js';
 import {installVoice} from './audio/voice.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { DeployIntro } from './deploy_intro.js';
+import { launchIntroClass, installIntroReview } from './swim_platform_intro.js';
 import { SpoolStation } from './spool_station.js';
 import { placeSceneModel } from './scene_models.js';
 import { Cable } from './cable.js';
@@ -1045,6 +1045,7 @@ function renderTether(dt) {
 }
 
 /* ═════════════════════════ deploy intro + pilot PiP ═════════════════════════ */
+const DeployIntro = launchIntroClass(params.get('launchMode'));
 let introAssetsP = null, intro = null, pip = null;
 const loadIntroAssets = () => (introAssetsP ||= DeployIntro.loadAssets('models/'));
 function introActive() { return !!(intro && intro.playing); }
@@ -1082,6 +1083,7 @@ async function startIntro(held = false) {
 }
 $('skipIntro').onclick = () => intro?.skip();
 let introStarts = 0;
+installIntroReview(params, () => intro, () => activeModel?.model);
 window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) { e.preventDefault(); intro.skip(); } });
 async function ensurePip() {
@@ -1269,7 +1271,6 @@ function frame(now) {
   if (!inIntro) updateCamera(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
-  installUnderwaterPipeline(renderer, { surface });
   applyUnderwaterLighting(scene, S, renderer);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
@@ -1328,3 +1329,10 @@ window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get 
 Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;
+
+const opticsOptions = { surface };
+function ensureOpticsPipeline() {
+  installUnderwaterPipeline(renderer, opticsOptions);
+}
+ensureOpticsPipeline();
+$('quality').addEventListener('change', ensureOpticsPipeline);
