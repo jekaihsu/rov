@@ -1,0 +1,14 @@
+{
+  "kinds": {
+    "state": "程序",
+    "checkpoint": "到点",
+    "station_keep": "悬停",
+    "inspect": "目视",
+    "photo": "照片",
+    "measure": "测量",
+    "probe": "探测",
+    "confirm": "确认",
+    "lift": "回收",
+    "surface": "回收"
+  }
+}

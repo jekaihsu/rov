@@ -1,0 +1,6 @@
+{
+  "owned": "已拥有",
+  "licence": "需要「{licence}」执照",
+  "money": "资金不足（还差 {missing} 元）",
+  "unknown": "找不到这个品项。"
+}
