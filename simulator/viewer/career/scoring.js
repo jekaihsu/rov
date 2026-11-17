@@ -1,6 +1,6 @@
 // Deliverable-based scoring of YX work orders: what each deliverable kind is called, the score of a dive from its
-// checklist and penalties, the medal, and the payout (base × quality − penalties) with the "abort but pass" path:
-// a dive submitted early with enough of the required work still pays a share, and progress is never locked.
+// checklist and penalties, the medal, the payout (base × quality − penalties) with the "abort but pass" path, and
+// reputation deltas (safe abort vs facility damage / false delivery, gold and on-time). Progress is never locked.
 // Pure functions, no DOM; the numbers are game values, not an industry standard.
 import { medalFor } from '../play/results_model.js';
 
@@ -31,6 +31,14 @@ export const PARTIAL_MIN = 0.5;
 export const REPUTATION_MEDAL = { gold: 1.5, silver: 1.2, bronze: 1, none: 0.8 };
 export const REPUTATION_PARTIAL = 2;
 export const REPUTATION_ABORT = -2;
+// Safe abort (no tether break, no client-facility hit) vs damaging facilities / false delivery / broken tether.
+export const REPUTATION_ABORT_UNSAFE = -8;
+export const REPUTATION_FACILITY = -6;
+export const REPUTATION_FALSE_DELIVERY = -5;
+// Gold already multiplies the base; on-time (under the soft budget) adds a flat bonus.
+export const REPUTATION_ON_TIME = 2;
+// Soft "on time" budget when a contract has no time_budget_s: 25 minutes (game-plan §11).
+export const DEFAULT_TIME_BUDGET_S = 1500;
 const ROUND_TO = 10;
 
 function roundMoney(value) {
@@ -106,10 +114,41 @@ export function payout(contract, snapshot, { repeat = false, submitted = false }
   };
 }
 
-/** Reputation change with the contract's client for a settled dive. */
-export function reputationGain(contract, pay) {
+function facilityDamaged(snapshot) {
+  return (snapshot?.penalties || []).some(function hit(entry) {
+    return entry.kind === 'safety' || (entry.kind === 'contact' && (entry.severity === 'hard'
+      || entry.severity === 'severe'));
+  });
+}
+
+/**
+ * Reputation change with the contract's client for a settled dive.
+ * context: {snapshot, duration_s} from the dive; facility damage and false delivery hit harder than a safe abort.
+ */
+export function reputationGain(contract, pay, context = {}) {
+  const snapshot = context.snapshot || null;
+  const facility = facilityDamaged(snapshot);
   if (pay.outcome === 'complete') {
-    return Math.round((contract.reputation ?? 10) * (REPUTATION_MEDAL[pay.medal] ?? 1));
+    let delta = Math.round((contract.reputation ?? 10) * (REPUTATION_MEDAL[pay.medal] ?? 1));
+    if (facility) delta += REPUTATION_FACILITY;
+    const budget = Number(contract.time_budget_s);
+    const limit = Number.isFinite(budget) && budget > 0 ? budget : DEFAULT_TIME_BUDGET_S;
+    const duration = Number(context.duration_s);
+    if (pay.medal === 'gold' && Number.isFinite(duration) && duration > 0 && duration <= limit) {
+      delta += REPUTATION_ON_TIME;
+    }
+    return delta;
   }
-  return pay.outcome === 'partial' ? REPUTATION_PARTIAL : REPUTATION_ABORT;
+  if (pay.outcome === 'partial') {
+    // A thin partial that barely clears the gate counts as shaky delivery when quality is poor.
+    const share = snapshot
+      ? snapshot.requiredDone / Math.max(1, snapshot.requiredTotal)
+      : 1;
+    let delta = REPUTATION_PARTIAL;
+    if (share < 0.75) delta += REPUTATION_FALSE_DELIVERY;
+    if (facility) delta += REPUTATION_FACILITY;
+    return delta;
+  }
+  if (snapshot?.tetherBroken || facility) return REPUTATION_ABORT_UNSAFE;
+  return REPUTATION_ABORT;
 }

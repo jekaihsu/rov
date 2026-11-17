@@ -136,7 +136,9 @@ test('settling a dive pays, logs hours apart, records the medal and lists newly 
   const {summary} = settleDive(save, data, contract, {snapshot: snapshot({done: 7, total: 7, requiredDone: 6,
     requiredTotal: 6}), real_s: 400, assisted_s: 200, duration_s: 600, vehicle: 'x1', block: 1});
   assert.equal(summary.pay.outcome, 'complete');
-  assert.equal(save.money, summary.pay.net);
+  assert.equal(summary.received, summary.pay.net);
+  assert.equal(save.money, summary.received);
+  assert.equal(save.debt, 0);
   assert.equal(save.hours.real_s, 400);
   assert.equal(save.hours.assisted_s, 200);
   assert.equal(save.contracts.p1_pool_checkout.completed, 1);

@@ -1,0 +1,10 @@
+{
+  "thrusterMinor": "Thruster T{n} service",
+  "thrusterMajor": "Thruster T{n} overhaul",
+  "thrusterReplace": "Thruster T{n} replacement",
+  "leak": "Hull leak seal repair",
+  "tetherService": "Tether inspection and dress",
+  "tetherReplace": "Umbilical replacement",
+  "accessory": "Lost tool recovery / refit ({item})",
+  "accessoryGeneric": "work tool"
+}

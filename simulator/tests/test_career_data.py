@@ -34,6 +34,15 @@ class CareerDataTest(unittest.TestCase):
         self.validate("equipment.json", "equipment.schema.json")
         self.validate("licences.json", "licences.schema.json")
 
+    def test_repair_prices_are_game_values_with_required_keys(self):
+        prices = load("repair_prices.json")
+        self.assertIn("遊戲設定值", prices["note"])
+        self.assertGreater(prices["thruster"]["replace"], prices["thruster"]["major"])
+        self.assertGreater(prices["thruster"]["major"], prices["thruster"]["minor"])
+        self.assertGreater(prices["tether"]["replace"], prices["tether"]["service"])
+        self.assertGreater(prices["leak"], 0)
+        self.assertGreater(prices["accessory"]["recover"], 0)
+
     def test_cosmetic_stickers_are_accepted_by_the_server(self):
         from qysim.operations import STICKERS
         for item in load("equipment.json")["items"]:
