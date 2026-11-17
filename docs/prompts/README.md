@@ -57,3 +57,17 @@
 | 隨時 | `N6-x1-footage.md` | X1 實機量測與影片 | 你和同事 |
 
 `N1-fish.md` 已不需要：改用 CC0 魚模型包。
+
+## 2026-11-17 持續開發（可落地的功能 PR）
+
+| 順序 | 檔案 | 內容 | 派給 |
+|---|---|---|---|
+| 1 | `P6-playtest-feedback.md` | 試玩回報工具（同事試玩前最好先有） | Codex／Cursor |
+| 1 | `P1-difficulty.md` | 難度三檔與開新遊戲畫面 | Codex／Cursor |
+| 2 | `P5-prologue.md` | 序章改寫、角色台詞、執照卡 | Codex／Cursor |
+| 2 | `P2-repair-reputation.md` | 維修費與聲譽 | Codex／Cursor |
+| 3 | `P3-chapter1.md` | 第一章工單與工具（雷射尺、評級、LOTO、大事件） | Codex／Cursor，P5 合併後 |
+| 3 | `P4-chapter2.md` | 第二章工單與大事件 | Codex／Cursor，P5 合併後 |
+| 隨時 | `P7-settings.md` | 設定補齊 | Codex／Cursor |
+
+P3、P4、P5 都會動到 `career/contracts.json` 與 `simulator/campaign/`，請依序派，避免衝突。
