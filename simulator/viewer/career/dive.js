@@ -2,20 +2,27 @@
 // (deliverables.js) from the state stream and photo events, counts real and assisted pilot time apart, keeps the
 // dive open in the save (so a closed page still logs its hours), shows the checklist on the in-flight objective
 // card and the pause menu, and settles the dive into the career when the job is done, handed in early or, for a
-// story-chapter contract, when the chapter ends. The results screen then shows the career outcome. An exam
-// (?exam=1) checks the whole time that nothing beyond the real vehicle is on; if something is, the exam is void.
+// story-chapter contract, when the chapter ends. Chapter-1 tools (laser scaler, fouling rating, LOTO unlock gate,
+// radio triggers, same-angle compare assist, C1-4 event) are presentation-layer wiring around the tracker.
 import { getFidelity } from '../fidelity.js';
 import { blockFor } from '../fleet_names.js';
+import { localize } from '../i18n/core.js';
 import { formatTime } from '../play/results_model.js';
+import { installChapterEvent } from './chapter_event.js';
 import { loadCareerData } from './data.js';
 import { createTracker } from './deliverables.js';
 import { PHOTO_VERDICT_ITEM } from './fidelity_item.js';
+import { installFoulingRating } from './fouling_rating.js';
+import { installLaserScaler } from './laser_scaler.js';
+import { createLotoGate } from './loto_gate.js';
+import { installPhotoCompareOverlay } from './photo_compare.js';
+import { createRadioBus } from './radio_bus.js';
 import { contractById, itemLabel } from './rules.js';
 import { loadCareer, storeCareer } from './save.js';
 import { partialAccepted, payout, DELIVERABLE_KIND_LABELS } from './scoring.js';
 import { settleDive } from './settle.js';
 
-const STRINGS = {
+const STRINGS = localize('career.dive', {
   card: 'YX 工單',
   meters: '{d} m',
   submit: '提前交件',
@@ -26,6 +33,7 @@ const STRINGS = {
   examOn: '執照考核中 · 真實模式',
   examVoid: '考核期間開啟了超出真機的設定，本次不計入執照。',
   photoSaved: '照片已存檔，交件後由客戶審閱。',
+  lotoLock: 'LOTO 未確認，推進器保持鎖定。',
   outcome: { complete: '委託完成', partial: '部分交件', aborted: '中止作業' },
   aborted: '未達部分交件門檻，這次沒有報酬；時數已記入日誌。',
   broken: '纜線斷裂，載具回收失敗。',
@@ -33,7 +41,7 @@ const STRINGS = {
   examPassed: '考核通過：{label}',
   examFailed: '考核未通過：{reason}',
   rows: { deliverables: '交付項目', time: '作業時間' },
-};
+});
 const PERSIST_MS = 5000;
 const MAX_STEP_S = 1;
 
@@ -97,6 +105,13 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   let confirmSubmit = false;
   let feedback = '';
   let lastState = null;
+  let lotoGate = null;
+  let radioBus = null;
+  let laser = null;
+  let fouling = null;
+  let compareOverlay = null;
+  let chapterEvent = null;
+  let introStarted = false;
   const node = element('div', 'career-checklist');
   const radio = element('p', 'career-radio');
   const subhead = element('p', 'objective-subhead');
@@ -119,6 +134,14 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   function exam() {
     return !!contract?.exam && examLaunch;
   }
+  function sayRadio(speaker, text) {
+    radio.replaceChildren(element('strong', '', speaker || ''), text || '');
+    radio.hidden = !(speaker || text);
+  }
+  function applyLaserReading(result) {
+    if (!tracker || !result?.id) return;
+    tracker.setMeasureResult(result.id, result);
+  }
   function start() {
     tracker = createTracker(contract, {
       owned: save.owned,
@@ -126,14 +149,45 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
         return itemLabel(data, id);
       },
     });
+    lotoGate = createLotoGate(contract);
+    radioBus = createRadioBus(contract, { say: sayRadio });
+    radioBus.reset();
+    laser?.dispose?.();
+    fouling?.close?.();
+    compareOverlay?.dispose?.();
+    laser = installLaserScaler({
+      getState() {
+        return lastState;
+      },
+      getWorld,
+      getCamMode,
+      owned: save.owned,
+      onGrowthPick(kind, reading) {
+        void kind;
+        applyLaserReading(reading);
+      },
+    });
+    fouling = installFoulingRating({
+      onRated(id, value) {
+        tracker?.rate(id, value);
+      },
+    });
+    compareOverlay = installPhotoCompareOverlay();
+    chapterEvent = installChapterEvent({
+      contractId: contract.id,
+      onChoice(kind) {
+        if (kind === 'continue') radioBus?.signal('continue_extra');
+        else radioBus?.signal('note_only');
+      },
+    });
+    introStarted = false;
     settled = false;
     lastT = null;
     examVoid = false;
     confirmSubmit = false;
     feedback = '';
     dive = null;
-    radio.replaceChildren(element('strong', '', contract.radio?.speaker || ''), contract.radio?.start || '');
-    radio.hidden = !contract.radio?.start;
+    sayRadio(contract.radio?.speaker || '', contract.radio?.start || '');
   }
   function openDive(state) {
     const model = state.model_id || 'x1';
@@ -184,15 +238,44 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     save.activeDive = { ...dive, deliverables: tracker.snapshot().items };
     storeCareer(save, { mirror: false });
   }
+  function syncTools(state, snapshot, dt) {
+    const reading = laser?.reading?.();
+    if (reading?.growth) applyLaserReading(reading);
+    else if (reading?.id && Number.isFinite(reading.thickness_cm)) applyLaserReading(reading);
+    laser?.update(state, snapshot);
+    radioBus?.observe(state, snapshot, dt);
+    chapterEvent?.update(snapshot, state, dt);
+    const pending = (snapshot.items || []).find(function waiting(item) {
+      return item.pendingRating && !item.done;
+    });
+    if (pending) fouling?.prompt(pending.id, pending.label);
+    const compareItem = (snapshot.items || []).find(function next(item) {
+      return item.kind === 'photo' && !item.done && !item.pendingRating;
+    });
+    const def = contract.deliverables?.find(function match(entry) {
+      return entry.id === compareItem?.id;
+    });
+    if (def?.compare) compareOverlay?.update(def, state);
+    else compareOverlay?.update(null, state);
+  }
   function update(state) {
     lastState = state;
     if (!contract || settled || !state || !inScene(state)) return;
-    if (!dive) openDive(state);
+    if (!dive) {
+      openDive(state);
+      if (!introStarted) {
+        introStarted = true;
+        chapterEvent?.startIntro();
+      }
+    }
     const dt = countTime(state);
+    const before = tracker.snapshot();
+    syncTools(state, before, dt);
     tracker.observe(state, dt);
     persist();
     if (contract.runtime === 'chapter') return;
     const snapshot = tracker.snapshot();
+    syncTools(state, snapshot, 0);
     if (snapshot.tetherBroken) settle(true);
     else if (snapshot.complete) settle(false);
   }
@@ -205,6 +288,12 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     const result = tracker.photo(lastState, { view: getCamMode(), visibility: visibility(lastState) });
     const verdict = fidelity.get(PHOTO_VERDICT_ITEM) === true;
     feedback = verdict ? result.message : STRINGS.photoSaved;
+    if (result?.pendingRating && result.accepted) {
+      const item = tracker.snapshot().items.find(function match(entry) {
+        return entry.id === result.accepted;
+      });
+      fouling?.prompt(result.accepted, item?.label || result.accepted);
+    }
     return result;
   }
   function settle(submitted, chapterOutcome = null) {
@@ -222,6 +311,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     save = result.save;
     storeCareer(save);
     const outcome = careerOutcome(result.summary, snapshot, chapterOutcome);
+    chapterEvent?.onSettle(result.summary);
     if (!chapterOutcome) showResult?.(outcome);
     return outcome;
   }
@@ -239,6 +329,9 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     const parts = [];
     if (pay.outcome === 'aborted') parts.push(tracker.snapshot().tetherBroken ? STRINGS.broken : STRINGS.aborted);
     if (pay.outcome === 'partial') parts.push(STRINGS.partial);
+    const comments = contract.settleComments || {};
+    if (pay.outcome === 'complete' && comments[pay.medal]) parts.push(comments[pay.medal]);
+    else if (pay.outcome === 'aborted' && comments.abort) parts.push(comments.abort);
     if (summary.exam.taken && summary.exam.passed) {
       parts.push(STRINGS.examPassed.replace('{label}', summary.exam.granted));
     } else if (summary.exam.taken && summary.exam.reason) {
@@ -339,6 +432,10 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     }
     actions.replaceChildren(...buttons);
   }
+  function blocksUnlock() {
+    if (!lotoGate || !tracker) return false;
+    return lotoGate.blocksUnlock(tracker.snapshot());
+  }
   // Objective card section: {title, count, node} while a contract dive runs, else null.
   function panel(state) {
     if (!contract || !tracker || settled || !contract.deliverables.length) return null;
@@ -346,10 +443,11 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     subhead.textContent = contract.title;
     renderItems(snapshot, state);
     const lines = [];
+    if (blocksUnlock()) lines.push(STRINGS.lotoLock);
     if (snapshot.penalties.length) lines.push(STRINGS.penalties.replace('{n}', String(snapshot.penalties.length)));
     if (exam()) lines.push(examVoid ? STRINGS.examVoid : STRINGS.examOn);
     status.textContent = lines.join(' · ');
-    status.dataset.warn = String(examVoid);
+    status.dataset.warn = String(examVoid || blocksUnlock());
     renderActions(snapshot);
     note.textContent = feedback;
     return { title: STRINGS.card, count: `${snapshot.done}/${snapshot.total}`, node };
@@ -399,6 +497,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     pauseActions,
     decorate,
     retry,
+    blocksUnlock,
     // Browser checks drive the tracker with scripted states (tools/browser_career_smoke.py).
     observe(state) {
       update(state);
@@ -406,6 +505,16 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     photoAt(state) {
       lastState = state;
       return photo();
+    },
+    confirm: confirmItem,
+    rate(id, value) {
+      return tracker?.rate(id, value);
+    },
+    setMeasureResult(id, result) {
+      return tracker?.setMeasureResult(id, result);
+    },
+    skipEvent() {
+      chapterEvent?.skip();
     },
     get exam() {
       return exam();

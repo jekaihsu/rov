@@ -55,7 +55,7 @@
 .career-unlocks li { padding-left: .7em; border-left: var(--bp-frame) solid var(--go); }
 
 /* laser scaler overlay (real capability; onboard presentation) */
-.laser-scaler { position: fixed; inset: 0; pointer-events: none; z-index: var(--z-hud, 40); }
+.laser-scaler { position: fixed; inset: 0; pointer-events: none; z-index: var(--z-hud); }
 .laser-scaler[hidden] { display: none; }
 .laser-scaler-dots { position: absolute; inset: 0; }
 .laser-scaler-dot { position: absolute; top: 46%; width: 10px; height: 10px; margin: -5px 0 0 -5px;
@@ -72,7 +72,7 @@
   color: var(--go, #3dd68c); }
 
 /* fouling rating modal */
-.fouling-rating { position: fixed; inset: 0; z-index: calc(var(--z-hud, 40) + 5); display: grid;
+.fouling-rating { position: fixed; inset: 0; z-index: calc(var(--z-controls) + 5); display: grid;
   place-items: center; background: color-mix(in srgb, #000 45%, transparent); }
 .fouling-rating[hidden] { display: none; }
 .fouling-rating-card { width: min(420px, calc(100vw - 32px)); padding: 20px 22px; display: grid; gap: 10px;
@@ -85,7 +85,7 @@
 .fouling-rating-option:hover, .fouling-rating-close:hover { border-color: var(--text); }
 
 /* same-angle photo assist (exceedsReal; gated by fidelity) */
-.photo-compare { position: fixed; inset: 12% 18%; z-index: calc(var(--z-hud, 40) - 1); pointer-events: none;
+.photo-compare { position: fixed; inset: 12% 18%; z-index: var(--z-subtitle); pointer-events: none;
   border: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); }
 .photo-compare[hidden] { display: none; }
 .photo-compare[data-ok=false] { border-color: var(--warn, #e3a008); }
@@ -94,7 +94,7 @@
   letter-spacing: .1em; color: var(--text-dim); }
 
 /* chapter event (C1-4 signoff) */
-.chapter-event { position: fixed; inset: 0; z-index: calc(var(--z-hud, 40) + 6); display: grid;
+.chapter-event { position: fixed; inset: 0; z-index: calc(var(--z-story) + 6); display: grid;
   align-content: end; justify-items: center; padding: 24px; gap: 12px;
   background: linear-gradient(to top, color-mix(in srgb, #000 70%, transparent), transparent 55%); }
 .chapter-event[hidden] { display: none; }

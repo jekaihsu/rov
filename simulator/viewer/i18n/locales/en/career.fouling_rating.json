@@ -1,0 +1,10 @@
+{
+  "title": "Fouling rating",
+  "prompt": "Select a rating for “{label}”",
+  "fr0": "FR0 Clean",
+  "fr1": "FR1 Light slime",
+  "fr2": "FR2 Scattered hard fouling",
+  "fr3": "FR3 Significant hard fouling",
+  "fr4": "FR4 Heavy / colonial growth",
+  "close": "Close"
+}

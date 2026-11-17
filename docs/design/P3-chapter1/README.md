@@ -1,6 +1,6 @@
 # P3 · 第一章工單與工具
 
-Career 資料對齊故事聖經第一章（港口與船舶／交班窗口）。截圖與煙霧測試證據可放本目錄。
+Career 資料對齊故事聖經第一章（港口與船舶／交班窗口）。截圖 1600×900（`browser_chapter1_smoke`）。
 
 ## 主線工單（C1-1～C1-4）
 
@@ -16,6 +16,18 @@ Career 資料對齊故事聖經第一章（港口與船舶／交班窗口）。�
 ## 場景變體
 
 `scenarios.py` 以 clone pattern 註冊：`harbor_inspection_turbid`、`harbor_inspection_signoff`、`hull_inspection_berth`。幾何與物理同基底場景，只改能見度與簡報。
+
+## 截圖（after）
+
+| 檔名 | 內容 |
+|---|---|
+| `board-ch1.jpg` | 第一章看板（青嶼港務局 Level II） |
+| `contract-level2.jpg` | C1-1 工單明細 |
+| `dive-level2-checklist.jpg` | 低能見度抽樣潛：3×3 量測清單 |
+| `results-level2.jpg` | C1-1 結算 |
+| `contract-hull.jpg` | C1-2 船殼工單 |
+| `dive-hull-loto.jpg` | LOTO 確認後解鎖閘門放開 |
+| `after-laser-shop.jpg` | 裝備部購入雷射比例尺 |
 
 ## 對照腳本
 

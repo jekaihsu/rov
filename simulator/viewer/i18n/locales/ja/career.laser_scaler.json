@@ -1,0 +1,9 @@
+{
+  "title": "レーザースケール",
+  "baseline": "基準距離 {cm} cm",
+  "thickness": "厚さ {cm} cm",
+  "soft": "軟質付着物",
+  "hard": "硬質付着物",
+  "pick": "付着タイプを選択",
+  "needOnboard": "機載ビューに切り替えて計測してください"
+}

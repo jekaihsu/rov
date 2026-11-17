@@ -278,18 +278,16 @@
         "done": "船管要評級表。轉給我。",
         "partial": "有拍到的先交，螺槳那邊下次再來。",
         "triggers": [
-          {"id": "enter_hull", "when": "enter_hull", "speaker": "林岑", "text": "燈可減。懸浮物會反光。"},
-          {"id": "seachest_done", "when": "seachest_done", "speaker": "林岑", "text": "門格有了。評級寫上。"},
-          {"id": "keel_done", "when": "keel_done", "speaker": "周楷", "text": "線還在。別卡邊。"},
-          {"id": "prop_zone", "when": "prop_zone", "speaker": "林岑", "text": "螺槳區。先確認停轉。"},
+          {"id": "enter_hull", "when": "near:seachest_fwd", "speaker": "林岑", "text": "燈可減。懸浮物會反光。"},
+          {"id": "seachest_done", "when": "done:seachest_aft", "speaker": "林岑", "text": "門格有了。評級寫上。"},
+          {"id": "keel_done", "when": "done:flat_starboard", "speaker": "周楷", "text": "線還在。別卡邊。"},
+          {"id": "prop_zone", "when": "near:propeller", "speaker": "林岑", "text": "螺槳區。先確認停轉。"},
           {"id": "all_done", "when": "all", "speaker": "葉理", "text": "船管要評級表。轉給我。"},
           {"id": "collision", "when": "collision", "speaker": "周楷", "text": "碰殼。船殼不當煞車。"},
           {"id": "tether_tight", "when": "tether_tight", "speaker": "周楷", "text": "張力高。可能卡邊。"},
           {"id": "silt", "when": "silt", "speaker": "林岑", "text": "揚沙。退回有輪廓處。"},
           {"id": "loto_fail", "when": "loto_fail", "speaker": "林岑", "text": "停！LOTO 沒齊。上來。"},
-          {"id": "compass_drift", "when": "compass_drift", "speaker": "馬力", "text": "鋼旁羅盤會飄。看輪廓。"},
-          {"id": "end", "when": "end", "speaker": "林岑", "text": "照原路退。報告寫擦痕實況。"},
-          {"id": "onboard", "when": "onboard", "speaker": "馬力", "text": "船底那趟，誰都會喘。"}
+          {"id": "end", "when": "end", "speaker": "林岑", "text": "照原路退。報告寫擦痕實況。"}
         ]
       },
       "settleComments": {
@@ -484,21 +482,17 @@
         "done": "收工。見習結束考核過。",
         "partial": "中止。窗不夠。",
         "triggers": [
-          {"id": "dive_start", "when": "dive_start", "speaker": "方晴", "text": "十九分。甲板好。"},
-          {"id": "near_a1", "when": "near_anomaly_1", "speaker": "林岑", "text": "同角度。對上次那張。"},
-          {"id": "done_a1", "when": "done_anomaly_1", "speaker": "周楷", "text": "一號存了。"},
-          {"id": "time_14", "when": "time_call", "speaker": "方晴", "text": "十四分。"},
-          {"id": "near_a2", "when": "near_anomaly_2", "speaker": "林岑", "text": "二號。裂是否變長。"},
-          {"id": "done_a2", "when": "done_anomaly_2", "speaker": "林岑", "text": "有惡化。記清楚。"},
-          {"id": "extra_crack", "when": "extra_crack", "speaker": "周楷", "text": "旁邊多一條縫。"},
-          {"id": "extra_choice", "when": "extra_choice", "speaker": "林岑", "text": "拍下來。還是只交三點？"},
+          {"id": "near_a1", "when": "near:a2_crack", "speaker": "林岑", "text": "同角度。對上次那張。"},
+          {"id": "done_a1", "when": "done:a2_crack", "speaker": "周楷", "text": "一號存了。"},
+          {"id": "time_14", "when": "window:5", "speaker": "方晴", "text": "十四分。"},
+          {"id": "near_a2", "when": "near:b3_spall", "speaker": "林岑", "text": "二號。裂是否變長。"},
+          {"id": "done_a2", "when": "done:b3_spall", "speaker": "林岑", "text": "有惡化。記清楚。"},
           {"id": "client_rush", "when": "client_rush", "speaker": "葉理", "text": "照片要能對工單。"},
-          {"id": "time_9", "when": "time_low", "speaker": "方晴", "text": "九分。風起來了。"},
+          {"id": "time_9", "when": "window:10", "speaker": "方晴", "text": "九分。風起來了。"},
           {"id": "collision", "when": "collision", "speaker": "周楷", "text": "碰了。別用殼定位。"},
           {"id": "tether_tight", "when": "tether_tight", "speaker": "周楷", "text": "張力！停。"},
           {"id": "silt", "when": "silt", "speaker": "林岑", "text": "揚沙。同角度等清。"},
-          {"id": "end", "when": "end", "speaker": "林岑", "text": "收工。見習結束考核過。"},
-          {"id": "client_thanks", "when": "client_thanks", "speaker": "葉理", "text": "下次例行我早叫你們。"}
+          {"id": "end", "when": "end", "speaker": "林岑", "text": "收工。見習結束考核過。"}
         ]
       },
       "settleComments": {

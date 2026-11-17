@@ -57,19 +57,57 @@ export function createRadioBus(contract, { say } = {}) {
   const triggers = Array.isArray(contract?.radio?.triggers) ? contract.radio.triggers.slice() : [];
   const fired = new Set();
   const nearSeen = new Set();
+  const doneSeen = new Set();
+  const pilesDone = new Set();
   let safetyCount = 0;
   let collisionCount = 0;
   let overloadCount = 0;
   let rushDone = false;
+  let rushHoldReady = false;
+  let elevReady = false;
+  let pileReady = false;
+  let tooClose = false;
   const speak = typeof say === 'function' ? say : defaultSay;
 
   function reset() {
     fired.clear();
     nearSeen.clear();
+    doneSeen.clear();
+    pilesDone.clear();
     safetyCount = 0;
     collisionCount = 0;
     overloadCount = 0;
     rushDone = false;
+    rushHoldReady = false;
+    elevReady = false;
+    pileReady = false;
+    tooClose = false;
+  }
+
+  function pileKey(id) {
+    const match = String(id || '').match(/^([a-z]+\d+)/i);
+    return match ? match[1] : '';
+  }
+
+  function trackProgress(snapshot) {
+    elevReady = false;
+    pileReady = false;
+    for (const item of snapshot?.items || []) {
+      if (!item.done || doneSeen.has(item.id)) continue;
+      doneSeen.add(item.id);
+      if (item.kind === 'measure') elevReady = true;
+      const pile = pileKey(item.id);
+      if (!pile || pilesDone.has(pile)) continue;
+      const peers = (snapshot.items || []).filter(function same(other) {
+        return pileKey(other.id) === pile && other.kind === 'measure';
+      });
+      if (peers.length && peers.every(function finished(other) {
+        return other.done;
+      })) {
+        pilesDone.add(pile);
+        pileReady = true;
+      }
+    }
   }
 
   function fire(trigger) {
@@ -135,10 +173,27 @@ export function createRadioBus(contract, { say } = {}) {
       if (rushDone) return false;
       if ((Number(state?.t) || 0) > RUSH_T) {
         rushDone = true;
+        rushHoldReady = true;
         return true;
       }
       return false;
     }
+    if (key === 'supervisor_hold') {
+      if (!rushHoldReady) return false;
+      rushHoldReady = false;
+      return true;
+    }
+    if (key === 'done_elevation') {
+      if (!elevReady) return false;
+      elevReady = false;
+      return true;
+    }
+    if (key === 'done_pile') {
+      if (!pileReady) return false;
+      pileReady = false;
+      return true;
+    }
+    if (key === 'too_close') return tooClose;
     if (key === 'near') return nearAny(state, snapshot);
     if (key.startsWith('near:')) {
       const id = key.slice(5);
@@ -177,6 +232,20 @@ export function createRadioBus(contract, { say } = {}) {
   function observe(state, snapshot, dt = 0) {
     void dt;
     if (!state || !snapshot) return;
+    trackProgress(snapshot);
+    tooClose = false;
+    const pos = vector(state.pos);
+    if (pos) {
+      for (const item of snapshot.items || []) {
+        if (item.kind !== 'measure' || item.done || !item.point) continue;
+        if (distance(pos, item.point) < 0.5) tooClose = true;
+      }
+    }
+    if ((snapshot.penalties || []).some(function isSafety(entry) {
+      return entry.kind === 'safety';
+    })) {
+      signal('loto_fail');
+    }
     for (const trigger of triggers) {
       if (fired.has(trigger.id)) continue;
       if (matchWhen(trigger.when, state, snapshot)) fire(trigger);

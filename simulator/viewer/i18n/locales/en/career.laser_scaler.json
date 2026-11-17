@@ -1,0 +1,9 @@
+{
+  "title": "Laser scaler",
+  "baseline": "Baseline {cm} cm",
+  "thickness": "Thickness {cm} cm",
+  "soft": "Soft growth",
+  "hard": "Hard growth",
+  "pick": "Select growth type",
+  "needOnboard": "Switch to the onboard view to measure"
+}

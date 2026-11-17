@@ -682,6 +682,8 @@ function rcMessage() {
   Object.assign(m, assistFields(S, rc));
   m.photo = 0; m.record = collectionOpen?0:hold.record.size ? 1 : 0;
   if(collectionOpen){CH.forEach(c=>m[c]=1500);m.rc_lock=1;}
+  // Hull LOTO: presentation gate — keep thrusters locked until the radio confirm is done.
+  if(careerDive.blocksUnlock?.()) m.rc_lock = 1;
   return m;
 }
 function inputTick() {

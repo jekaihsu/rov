@@ -174,7 +174,7 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     return null;
   }
   function workable(item) {
-    if (item.done || missingEquipment(item) || blockedBy(item)) return false;
+    if (item.done || item.pendingRating || missingEquipment(item) || blockedBy(item)) return false;
     return item.def.kind !== 'surface' || othersDone(item);
   }
   function hold(item, ok, dt) {
@@ -184,17 +184,32 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     if (item.progress >= 1) finish(item);
   }
   function finish(item, extra = {}) {
-    item.done = true;
     item.progress = 1;
+    if (item.def.kind === 'photo' && item.def.rating != null && extra.rated == null) {
+      // Photo is filed; the checklist row waits until the pilot picks FR0–FR4.
+      item.done = false;
+      item.pendingRating = true;
+      item.truthRating = item.def.rating;
+      item.reading = '';
+      item.photographed = true;
+      if (extra.compare) {
+        item.compareOk = !!extra.compare.ok;
+        if (!extra.compare.ok) {
+          penalties.push({
+            kind: 'quality',
+            label: STRINGS.angleDrift,
+            points: ANGLE_DRIFT_POINTS,
+          });
+        }
+      }
+      return;
+    }
+    item.done = true;
     if (item.def.kind === 'measure' && measureResults.has(item.def.id)) {
       const result = measureResults.get(item.def.id);
       item.reading = formatMeasureReading(result, item.def);
       item.growthPick = result.growth || '';
       item.thickness_cm = Number(result.thickness_cm);
-    } else if (item.def.kind === 'photo' && item.def.rating != null && extra.rated == null) {
-      item.pendingRating = true;
-      item.truthRating = item.def.rating;
-      item.reading = '';
     } else {
       item.reading = item.def.reading || '';
     }
@@ -227,13 +242,22 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
   function rate(id, value) {
     const item = byId.get(id);
     if (!item || item.def.kind !== 'photo' || item.def.rating == null) return false;
+    if (!item.photographed && !item.pendingRating && !item.done) return false;
     const n = Math.max(0, Math.min(4, Math.round(Number(value))));
     if (!Number.isFinite(n)) return false;
     item.rated = n;
     item.truthRating = item.def.rating;
     item.pendingRating = false;
     item.reading = format(STRINGS.rated, { n });
-    if (!item.done) finish(item, { rated: n });
+    item.done = true;
+    item.progress = 1;
+    if (item.rated !== item.truthRating) {
+      penalties.push({
+        kind: 'quality',
+        label: format(STRINGS.rated, { n: item.truthRating }),
+        points: Math.min(15, Math.abs(item.rated - item.truthRating) * 5),
+      });
+    }
     return true;
   }
   function within(state, item, radius) {
@@ -396,9 +420,7 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     }
     return {
       items: list,
-      done: list.filter(function finished(item) {
-        return item.done;
-      }).length,
+      done: list.filter(delivered).length,
       total: list.length,
       requiredDone: mandatory.filter(delivered).length,
       requiredTotal: mandatory.length,

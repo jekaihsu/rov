@@ -9,6 +9,7 @@
   "examOn": "執照考核中 · 真實模式",
   "examVoid": "考核期間開啟了超出真機的設定，本次不計入執照。",
   "photoSaved": "照片已存檔，交件後由客戶審閱。",
+  "lotoLock": "LOTO 未確認，推進器保持鎖定。",
   "outcome": {
     "complete": "委託完成",
     "partial": "部分交件",

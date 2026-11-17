@@ -1,0 +1,27 @@
+{
+  "card": "YX work order",
+  "meters": "{d} m",
+  "submit": "Hand in early",
+  "submitPartial": "Press again: partial hand-in (~{pay})",
+  "submitAbort": "Press again: abort dive (no pay)",
+  "confirm": "Confirm: {label}",
+  "penalties": "Penalty items {n}",
+  "examOn": "Licence exam · Real mode",
+  "examVoid": "Settings beyond the real vehicle were enabled during the exam; this dive does not count toward the licence.",
+  "photoSaved": "Photo filed; the client reviews it after hand-in.",
+  "lotoLock": "LOTO not confirmed; thrusters remain locked.",
+  "outcome": {
+    "complete": "Contract complete",
+    "partial": "Partial hand-in",
+    "aborted": "Dive aborted"
+  },
+  "aborted": "Below the partial hand-in threshold; no pay this time. Hours are logged.",
+  "broken": "Tether severed; vehicle recovery failed.",
+  "partial": "Partial results accepted; pay is proportional.",
+  "examPassed": "Exam passed: {label}",
+  "examFailed": "Exam failed: {reason}",
+  "rows": {
+    "deliverables": "Deliverables",
+    "time": "Dive time"
+  }
+}

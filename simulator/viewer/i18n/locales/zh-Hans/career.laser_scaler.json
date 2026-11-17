@@ -1,0 +1,9 @@
+{
+  "title": "激光比例尺",
+  "baseline": "基准距 {cm} cm",
+  "thickness": "厚度 {cm} cm",
+  "soft": "软附着",
+  "hard": "硬附着",
+  "pick": "选附着类型",
+  "needOnboard": "请切回机载画面测量"
+}

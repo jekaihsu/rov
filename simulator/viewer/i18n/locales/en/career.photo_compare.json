@@ -1,0 +1,6 @@
+{
+  "assist": "Same-angle assist frame",
+  "assistHelp": "Shows the previous shot as a reference frame on the onboard view. Real vehicles have no such overlay.",
+  "hint": "Align to reference angle",
+  "drift": "Angle drift"
+}
