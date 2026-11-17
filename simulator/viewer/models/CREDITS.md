@@ -129,6 +129,16 @@ trademarks or texture assets. Build-time glTF-Transform 4.5.1 (MIT) supplies mes
 GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮；工具不作為 runtime 依賴提交。
 固定 seed 71；詳見 `docs/design/scenes/aquaculture/README.md`。
 
+## Small swim-platform boat (M3)
+
+- `small_boat.glb`: original procedural geometry and seeded teak texture, dedicated to **CC0-1.0** by this
+  contribution. Rebuild: `cad/build_small_boat.py` (Blender 4.3.2), then the existing `compress()` helper
+  (`@gltf-transform/cli@4.5.1`, MIT; meshopt + WebP). No .blend source is required.
+- Launch crew reuses the existing rigged `worker.glb` and its credits above.
+  Sea, sky and surface structures reuse `fx/daylight.js` and `surface_set.js`; no second horizon is generated.
+  Existing YX Model R vehicles retain their existing credits above.
+- User reference photographs are visual references only: not distributed, embedded, cropped, projected,
+  or used as textures. No photographed vehicle branding is reproduced.
 `aquaculture/net.webp` 自 scene-looks 起改由 `simulator/tools/build_pen_net_texture.py`（Pillow，固定 seed 71）產生：
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
 珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）

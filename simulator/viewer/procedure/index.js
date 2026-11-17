@@ -69,7 +69,7 @@ const STRINGS = {
   dry: '離水運轉超過 30 秒，已告警並扣分。',
   recovering: '收纜中，洋流與模擬浪況會降低回收速度',
   complete: '潛後處理完成',
-  onDeck: '載具在工作船後甲板上，尚未入水；完成檢查、放入水中並確認後才能解鎖。',
+  onDeck: '載具在下水甲板上，尚未入水；完成檢查、放入水中並確認後才能解鎖。',
 };
 // Launch steps: tender ready, lower into the water, water check.
 const LAUNCH_STEPS = 3;
