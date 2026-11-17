@@ -71,3 +71,13 @@
 | 隨時 | `P7-settings.md` | 設定補齊 | Codex／Cursor |
 
 P3、P4、P5 都會動到 `career/contracts.json` 與 `simulator/campaign/`，請依序派，避免衝突。
+
+## 2026-11-17 模型與資料優化
+
+| 順序 | 檔案 | 內容 | 派給 |
+|---|---|---|---|
+| 1 | `Q1-asset-slimming.md` | 素材瘦身、壓縮、LOD、載入速度、預算檢查工具 | Codex／Cursor |
+| 1 | `Q4-x1-fitting-pipeline.md` | X1 實測資料一到就能擬合的管線 | Codex／Cursor |
+| 2 | `Q2-model-o-literature.md` | Model O 依公開文獻校準水動力與推進器 | Codex／Cursor |
+| 2 | `Q3-tether-parameters.md` | 臍帶纜參數依公開規格校準 | Codex／Cursor |
+| 3 | `Q5-vehicle-models.md` | 三台載具模型品質、一致材質、三級 LOD | GPT＋Blender，Q1 合併後 |
