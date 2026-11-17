@@ -21,15 +21,16 @@ I4 在預算內重做外觀，並以**模擬器內** real 模式截圖驗收。
 
 | 層級 | 三角形 | draw calls | GLB | 貼圖 GPU MiB |
 |---|---:|---:|---:|---:|
-| LOD0 | 248,341 | 61 | 5.57 MB | 28.00 |
-| LOD1 | 83,120 | 61 | 3.12 MB | 8.00 |
-| LOD2 | 17,953 | 61 | 0.90 MB | 2.00 |
+| LOD0 | 248,341 | 61 | 5.51 MB | 28.00 |
+| LOD1 | 73,012 | 3 | 2.52 MB | 8.00 |
+| LOD2 | 18,628 | 3 | 0.77 MB | 2.00 |
 
 **超過 2 MB 新資產軟上限的理由**：
 
-- **LOD0**：248k 可視三角形、五張 1K＋一張 512² PBR，以及獨立低頻頂點色，meshopt＋WebP 後 5.57 MB。近距材質與破損輪廓需要保留。
-- **LOD1**：83k 三角形＋512² 圖集＋頂點色為 3.12 MB，較退回時 3.55 MB 縮小；頂點色增加少量幾何資料，但不用額外的大尺度貼圖。LOD2 0.90 MB。
+- **LOD0**：248k 可視三角形、PBR 圖集與頂點色，meshopt＋WebP 後約 5.5 MB。近距材質與破損輪廓需要保留。
+- **LOD1**：船殼板保護簡化後約 73k 三角形、512² 圖集、合併後約 3 次繪製，2.52 MB。LOD2 約 0.77 MB／3 draws。
 - `modelUrl()` 同時解析兩艘沉船；保留 main 的沉礁號距離 LOD、碧海號畫質 LOD，選單兩者使用中階模型。
+- Vendor：`Sky.js`／`Water.js` 依 CREDITS 保留（`KEEP_MODULES`）。
 
 
 碰撞三角形仍為 2,842；距離場與 `korean_castle.json` 路線／格網不變。`build_wreck.py` 使用 `cKDTree(compact_nodes=False)`。
@@ -56,9 +57,11 @@ uv pip install --python /tmp/i4env/bin/python 'bpy==5.0.1' 'numpy<2' pillow scip
 | | 1 m 開燈 | 1 m 關燈 | 3 m 開燈 | 3 m 關燈 |
 |---|---|---|---|---|
 | 修改前（main） | ![1m lit](before-onboard-1m-lit.jpg) | ![1m dark](before-onboard-1m-dark.jpg) | ![3m lit](before-onboard-3m-lit.jpg) | ![3m dark](before-onboard-3m-dark.jpg) |
-| 修改後 | ![1m lit](after-onboard-1m-lit.jpg) | ![1m dark](after-onboard-1m-dark.jpg) | ![3m lit](after-onboard-3m-lit.jpg) | ![3m dark](after-onboard-3m-dark.jpg) |
+| 修改後 high | ![1m lit](after-onboard-1m-lit.jpg) | ![1m dark](after-onboard-1m-dark.jpg) | ![3m lit](after-onboard-3m-lit.jpg) | ![3m dark](after-onboard-3m-dark.jpg) |
+| medium | ![m1](after-medium-onboard-1m-lit.jpg) | ![m1d](after-medium-onboard-1m-dark.jpg) | ![m3](after-medium-onboard-3m-lit.jpg) | ![m3d](after-medium-onboard-3m-dark.jpg) |
+| low | ![l1](after-low-onboard-1m-lit.jpg) | ![l1d](after-low-onboard-1m-dark.jpg) | ![l3](after-low-onboard-3m-lit.jpg) | ![l3d](after-low-onboard-3m-dark.jpg) |
 
-重現：`ROV_WRECK_TAG=after python simulator/tools/run_browser_checks.py browser_korean_castle_shots`；設 `ROV_WRECK_TAG=before` 會自動從 `origin/main` 讀取模型，使用相同查看器與鏡位。臨時截圖在 TemporaryDirectory，文件只留下標籤版本；JSON 保存實測距離與模型 SHA256。
+重現：`ROV_WRECK_TAG=after ROV_WRECK_QUALITY=high|medium|low python simulator/tools/run_browser_checks.py browser_korean_castle_shots`；設 `ROV_WRECK_TAG=before` 會自動從 `origin/main` 讀取模型。臨時截圖在 TemporaryDirectory；JSON 保存實測距離與模型 SHA256。
 
 補充（無水體衰減的 studio 對照，**共用 main 船殼包圍盒、縮放與鏡頭**）：[studio-before](studio-before.jpg)／[studio-after](studio-after.jpg)（`simulator/tools/render_korean_castle_studio.py`）。
 
