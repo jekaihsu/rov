@@ -4,7 +4,7 @@ import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('feedback.dialog', {
   title: '回報問題',
-  lead: '請用一句話描述問題。截圖與最近 60 秒狀態會一併附上，只存在本機，不會自動上傳。',
+  lead: '請用一句話描述問題（只用手把時可留空）。截圖與最近 60 秒狀態會一併附上，只存在本機，不會自動上傳。',
   description: '問題描述',
   placeholder: '例如：解鎖後右搖桿無反應',
   category: '分類',
@@ -22,7 +22,6 @@ const STRINGS = localize('feedback.dialog', {
   savedBrowser: '已下載回報 ZIP',
   failed: '儲存失敗：{reason}',
   openFolder: '開啟回報資料夾',
-  required: '請先寫一句描述。',
 });
 
 const CATEGORIES = ['visual', 'feel', 'crash', 'text', 'other'];
@@ -52,7 +51,6 @@ export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, on
   description.name = 'description';
   description.rows = 3;
   description.maxLength = 280;
-  description.required = true;
   description.placeholder = STRINGS.placeholder;
   const catLabel = element('label', 'feedback-label', STRINGS.category);
   catLabel.htmlFor = 'feedbackCategory';
@@ -130,12 +128,8 @@ export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, on
   form.addEventListener('submit', async function submitForm(event) {
     event.preventDefault();
     if (busy) return;
+    // Optional: a pad-only player cannot type, and the screenshot plus state summary still help.
     const text = description.value.trim();
-    if (!text) {
-      setStatus(STRINGS.required, false);
-      description.focus({ preventScroll: true });
-      return;
-    }
     busy = true;
     submit.disabled = true;
     submit.textContent = STRINGS.saving;

@@ -164,6 +164,8 @@ export function createSummaryBuffer() {
       },
       device: {
         platform: navigator.platform || null,
+        // Browser, Electron and OS versions; carries no account or user name.
+        userAgent: navigator.userAgent || null,
         language: navigator.language || null,
         languages: Array.from(navigator.languages || []).slice(0, 4),
         hardwareConcurrency: navigator.hardwareConcurrency || null,

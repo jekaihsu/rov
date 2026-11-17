@@ -1,12 +1,12 @@
 {
-  "desktopOnly": "仅桌面版可打开回报文件夹",
+  "desktopOnly": "仅桌面版可打开反馈文件夹",
   "errors": {
-    "untrusted": "此页面无法访问回报功能",
-    "invalid_stamp": "回报时间戳无效",
-    "payload_too_large": "回报内容过大或无效",
+    "untrusted": "此页面无法访问反馈功能",
+    "invalid_stamp": "反馈时间戳无效",
+    "payload_too_large": "反馈内容过大或无效",
     "screenshot_too_large": "截图过大",
-    "save_failed": "回报保存失败",
-    "open_failed": "无法打开回报文件夹",
+    "save_failed": "反馈保存失败",
+    "open_failed": "无法打开反馈文件夹",
     "desktop_save_failed": "桌面版保存失败",
     "unknown": "未知错误"
   }
