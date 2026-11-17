@@ -2,7 +2,7 @@
 
 唯一數值來源：`simulator/qysim/vehicles.py:X1_PARAMETERS`。
 實測後只改該表，再執行 `python docs/reference/export_x1_parameters.py`。
-目前沒有 measured；official 是廠商宣稱，reseller 是單一經銷商，estimated 是假設。
+目前沒有 measured。official 是廠商宣稱，reseller 是單一經銷商，published 是公開文獻採為模型預設（不是 X1 實測），estimated 是假設。
 
 | 參數 | 值（SI） | 等級 | 依據 |
 |---|---|---|---|
@@ -33,15 +33,15 @@
 | tether.fine_segments | `8` | estimated | ROV 端保持原長、不合併的分段數；數值求解設定，非物理量；見 tether_solver.py |
 | tether.min_segment_m | `0.5` | estimated | 初始分段最短長度；數值求解設定，非物理量；見 tether_solver.py |
 | tether.contact_sample_m | `0.35` | estimated | 長分段接觸取樣間距，小於最細斜撐直徑（0.4 m）避免穿樁；數值求解設定，非物理量；見 tether_solver.py |
-| tether.diameter | `0.0095` | reseller | real-rov-research.md: 經銷商纜線 350 m × 9.5 mm × 300 kgf |
-| tether.density | `1000.0` | estimated | TP §1 推論：小型 ROV「中性」纜多為淡水中性、海水微浮（Fathom、VideoRay）；X1 浮力等級未公開 |
-| tether.added_mass_normal | `1.0` | estimated | CD §3: Palm & Eskilsson 2020 Table 3 CMn = 1、CMt = 0；MoorDyn Can 1 / Cat 0 |
-| tether.ea | `120000.0` | estimated | TP §2 推論：300 kgf ÷ Kevlar 49 斷裂應變 2.4% ≈ 1.2e5 N；實際含結構伸長可能較軟（Falcon 4.3e4 N） |
+| tether.diameter | `0.0095` | reseller | real-rov-research.md: 經銷商頁 350 m × 9.5 mm × 300 kgf。X1 實纜暫定，非實測 |
+| tether.density | `1000.0` | estimated | tether-parameters.md：公開「中性」多指淡水中性、海水微浮。X1 浮力等級未公開，暫定 |
+| tether.added_mass_normal | `1.0` | published | tether-parameters.md：圓柱位勢流法向 Ca=1、切向 0（Palm & Eskilsson 2020）。非 X1 實測 |
+| tether.ea | `120000.0` | estimated | tether-parameters.md：300 kgf ÷ 芳綸紗斷裂應變 2.4% ≈ 1.2e5 N。含結構伸長會更軟。X1 暫定 |
 | tether.damping_ratio | `1.0` | estimated | CD §2/§6: MoorDyn troubleshooting 建議分段阻尼接近臨界 ζ≈1，BA = ζ(L/N)√(EA·w) |
-| tether.cd_normal | `1.25` | estimated | CD §2/§3: Buckham 2003 Table 3.4 小型 ROV 纜擬合 1.25（文獻範圍 1.2–1.65）；投影面積 d·l |
-| tether.cd_tangent | `0.02` | estimated | CD §3: Driscoll 1999 / Palm & Eskilsson 2020 CDt 0.02，以 d·l 投影面積定義（濕面積 πd·l 下為 0.0064） |
-| tether.max_length | `350.0` | reseller | real-rov-research.md: 經銷商纜線 350 m × 9.5 mm × 300 kgf |
-| tether.breaking_n | `2943.0` | reseller | real-rov-research.md: 經銷商纜線 350 m × 9.5 mm × 300 kgf |
+| tether.cd_normal | `1.25` | published | tether-parameters.md：Buckham 2003 小型纜擬合 1.25（d·l）。光滑圓柱約 1.2；渦振可到 2–3。非 X1 實測 |
+| tether.cd_tangent | `0.02` | published | tether-parameters.md：Driscoll 1999、Palm & Eskilsson 2020，d·l 定義下 0.02（濕面積約 0.0064）。非 X1 實測 |
+| tether.max_length | `350.0` | reseller | real-rov-research.md: 經銷商頁 350 m × 9.5 mm × 300 kgf。X1 實纜暫定，非實測 |
+| tether.breaking_n | `2943.0` | reseller | real-rov-research.md: 經銷商頁 350 m × 9.5 mm × 300 kgf。X1 實纜暫定，非實測 |
 | tether.termination_ratio | `0.3022222222222222` | estimated | TP §2: VideoRay 應力釋放 136 kg ÷ 纜 450 kg；X1 接頭強度未公開 |
 | tether.working_load_ratio | `0.5` | estimated | TP §2: VideoRay「工作負載不得超過斷裂強度一半」；Fathom 為 23% |
 | tether.reel_drum_mass_kg | `5.0` | estimated | SH §1：無公開纜盤慣量；空盤等效線慣量假設，捲上纜線另以 ρA×未放出長度計 |
