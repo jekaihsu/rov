@@ -1,0 +1,78 @@
+{
+  "title": "潜前检查与回收",
+  "provisional": "短测为模拟诊断，每颗 2 秒；禁止抛掷。",
+  "provisionalDetail": "上电顺序、提示音、灯号与回收速度为暂定值，待实测。",
+  "checks": [
+    "外观、密封与穿舱件已检查",
+    "缆线接头与固定环已确认",
+    "配重与配平已确认",
+    "岸上供电与载具上电已确认",
+    "通讯已确认",
+    "相机影像已确认",
+    "灯光已确认",
+    "逐颗推进器短测完成",
+    "深度零点与罗盘已确认",
+    "入水、人员离开后才解锁，已确认"
+  ],
+  "keys": [
+    "seals",
+    "connector",
+    "trim",
+    "power",
+    "communication",
+    "camera",
+    "lights",
+    "thrusters",
+    "instruments",
+    "unlock"
+  ],
+  "kickers": {
+    "checks": "潜前检查",
+    "launch": "下水",
+    "recovering": "回收",
+    "post": "潜后处理"
+  },
+  "progress": "{done} / {total}",
+  "confirm": "确认",
+  "skip": "跳过未完成检查（可能引发故障并扣分）",
+  "tender": "与缆线手确认就绪",
+  "lower": "选上游点，以缆线缓放入水",
+  "lowerAction": "缓放入水",
+  "waterTitle": "入水确认",
+  "water": "影像、配平与功能正常；人员已离开",
+  "waterAction": "确认，开始作业",
+  "recover": "收缆回收",
+  "recoverReady": "水面上锁后收缆回收",
+  "recoverDepth": "浮上水面（0.8 m 内）后才能收缆回收。",
+  "recoverLock": "上锁后才能收缆回收。",
+  "recoverPending": {
+    "depth": "{label} · 先浮上水面",
+    "lock": "{label} · 先上锁"
+  },
+  "surfacedReady": "已回到水面 · 开启暂停菜单即可收缆回收",
+  "surfacedLock": "已回到水面 · 上锁后可在暂停菜单收缆回收",
+  "recoveringTitle": "收缆中",
+  "rinse": "已以淡水冲洗",
+  "inspect": "潜后检查完成",
+  "logTitle": "潜水日志",
+  "save": "储存日志",
+  "export": "导出日志",
+  "notes": "潜水注记",
+  "test": "短测推进器",
+  "testing": "短测中…",
+  "stats": {
+    "elapsed": "作业时间",
+    "depth": "最大深度",
+    "cable": "最大缆长",
+    "penalty": "扣分"
+  },
+  "units": {
+    "depth": "m",
+    "cable": "m"
+  },
+  "fault": "未检项目发生故障，已扣分，必要时中止作业收缆回收。",
+  "dry": "离水运转超过 30 秒，已告警并扣分。",
+  "recovering": "收缆中，洋流与模拟浪况会降低回收速度",
+  "complete": "潜后处理完成",
+  "onDeck": "载具在工作船后甲板上，尚未入水；完成检查、放入水中并确认后才能解锁。"
+}

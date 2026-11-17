@@ -1,0 +1,62 @@
+{
+  "speakers": {
+    "tender": "周楷",
+    "deck": "方晴",
+    "supervisor": "林岑"
+  },
+  "roles": {
+    "tender": "tether hand",
+    "deck": "deck",
+    "supervisor": "supervisor"
+  },
+  "crew": {
+    "trim": [
+      "deck",
+      "Ballast and trim look the same as last time — level, slightly positive."
+    ],
+    "instruments": [
+      "deck",
+      "Depth zeroed. Compass aligned with the bow."
+    ],
+    "communication": [
+      "tender",
+      "Comms good. Telemetry and video are both ticking."
+    ],
+    "tender": [
+      "tender",
+      "Tether's sorted, plenty of line. Ready to lower whenever."
+    ]
+  },
+  "found": [
+    "deck",
+    "Got it. Clear it before we go in."
+  ],
+  "falseReport": [
+    "deck",
+    "I checked — nothing wrong here."
+  ],
+  "fixed": {
+    "line_fouled": [
+      "tender",
+      "Rope's cut. Guard's clear."
+    ],
+    "guard_cracked": [
+      "deck",
+      "New guard fitted and locked down."
+    ],
+    "oring_debris": [
+      "deck",
+      "O-ring cleaned, re-greased and back in."
+    ],
+    "connector_unlocked": [
+      "tender",
+      "Locking collar turned home and locked."
+    ]
+  },
+  "faults": {
+    "line_fouled": "T{n} thrust dropped. That rope on the guard wasn't cleared before launch and got sucked in.",
+    "guard_cracked": "T{n} stopped. Fragments from the cracked guard jammed the propeller.",
+    "oring_debris": "Leak alarm. Sand on the seal face wasn't cleared — surface and recover now.",
+    "connector_unlocked": "Video dropping in and out. Tether connector locking collar wasn't fully locked."
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "kicker": "潜前检查",
+  "launchKicker": "下水",
+  "titles": {
+    "walkaround": "绕机目视检查",
+    "power": "载具上电",
+    "thrusters": "推进器短测",
+    "lights": "灯光测试",
+    "camera": "机载影像"
+  },
+  "notes": {
+    "walkaround": "断电状态下绕载具一圈，逐处看密封、接头与推进器护罩。看到不对就回报。",
+    "power": "开岸电、载具上电。看状态灯，听开机提示音。",
+    "thrusters": "人员离开推进器。每颗短测 2 秒，空气中累计不超过 30 秒。",
+    "lights": "开灯，确认两盏都亮、照到甲板，看完就关；灯在空气中不宜久开。",
+    "camera": "画面已切到机载镜头：确认有影像、对焦清楚、时间在走。"
+  },
+  "stations": [
+    "前方 · 镜头罩与灯",
+    "左舷 · 推进器与护罩",
+    "上方 · 舱体密封",
+    "后方 · 缆线接头",
+    "右舷 · 推进器与护罩"
+  ],
+  "lookFor": [
+    "镜头罩与灯罩有没有裂痕或脏污。",
+    "推进器有没有缠绕物，护罩有没有裂痕。",
+    "端盖密封面、O形环上有没有沙或毛发。",
+    "缆线接头的固定环是否锁到底。",
+    "推进器有没有缠绕物，护罩有没有裂痕。"
+  ],
+  "startWalk": "开始绕机",
+  "next": "下一处",
+  "doneWalk": "绕机完成",
+  "report": "这里有异常",
+  "station": "{n} / {total}",
+  "defects": {
+    "line_fouled": "推进器护罩上挂着一段绳子",
+    "guard_cracked": "推进器护罩裂了",
+    "oring_debris": "密封面上有沙和毛发",
+    "connector_unlocked": "缆线接头固定环没锁到底"
+  },
+  "fixes": {
+    "line_fouled": "剪掉绳子，清干净护罩。",
+    "guard_cracked": "换上备用护罩。",
+    "oring_debris": "拆开端盖，清洁 O形环、重新上油。",
+    "connector_unlocked": "把固定环转到底锁上。"
+  },
+  "foundKicker": "发现异常",
+  "fix": "排除",
+  "fixing": "处理中…",
+  "fixed": "已排除：{what}",
+  "powerOn": "上电",
+  "booting": "开机中…",
+  "pulse": "短测 T{n}",
+  "pulsing": "T{n} 运转中…",
+  "pulsed": "{done} / {total} {unit}",
+  "thrusterOne": "颗",
+  "thrusterMany": "颗",
+  "lampsOn": "开灯",
+  "lampsLit": "两盏都亮，关灯",
+  "feedOk": "影像正常",
+  "lower": "缓放入水",
+  "waitTender": "等缆线手回报缆线就绪。",
+  "waitTenderAction": "等待缆线手",
+  "lowerNote": "选上游下水点，以吊放索缓放；入水、人员离开后才解锁。",
+  "skip": "跳过剩下的检查（扣分，未发现的异常会带下水）"
+}
