@@ -38,6 +38,7 @@ const STRINGS = {
     down: "鍵位速覽",
     arm: "手臂操作模式",
     settings: "手把設定",
+    reportBug: "回報問題",
     pause: "暫停選單",
     cameraGimbal: "鏡頭穩定",
     cameraPitchUp: "鏡頭上仰",
@@ -150,7 +151,10 @@ export const BINDINGS = [
   { action: "right", context: "flight", pad: "b15", keys: ["Digit3"], owner: "hud" },
   { action: "down", context: "flight", pad: "b13", keys: ["Digit4"], owner: "hud" },
   { action: "arm", context: "flight", pad: "b16" },
-  { action: "settings", context: "flight", pad: "b8+b9", gesture: "chord", keys: ["F8"], owner: "settings" },
+  // Settings stayed on View+Menu; its keyboard shortcut moved to F9 so F8 can open the playtest report.
+  { action: "settings", context: "flight", pad: "b8+b9", gesture: "chord", keys: ["F9"], owner: "settings" },
+  // DualSense / DualShock touchpad click (standard index 17). Xbox pads without a touchpad use F8 or the pause menu.
+  { action: "reportBug", context: "flight", pad: "b17", gesture: "hold", keys: ["F8"] },
   { action: "cameraGimbal", context: "flight", keys: ["KeyB"] },
   { action: "cameraPitchUp", context: "flight", keys: ["BracketRight"] },
   { action: "cameraPitchDown", context: "flight", keys: ["BracketLeft"] },

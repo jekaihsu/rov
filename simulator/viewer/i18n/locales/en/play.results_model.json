@@ -15,10 +15,12 @@
     "contract": "Engineering contracts",
     "career": "YX work order"
   },
+  "timesOne": "{n} time",
   "times": "{n} times",
   "noContacts": "No collisions",
   "tetherBroken": "Tether broken",
   "tetherClean": "Tension normal",
+  "overloadOne": "{n} overload",
   "overload": "{n} overloads",
   "contract": "Contract complete",
   "medals": {

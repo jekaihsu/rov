@@ -1,0 +1,89 @@
+{
+  "kicker": "Beginner hint {n}/{total}",
+  "tipKicker": "First time",
+  "dismiss": "Dismiss this hint",
+  "hold": "Hold",
+  "sticks": {
+    "left": "Left stick",
+    "right": "Right stick"
+  },
+  "directions": {
+    "ud": "↑↓",
+    "lr": "←→"
+  },
+  "dpad": "D-pad",
+  "padButtons": [
+    "LB",
+    "RB",
+    "LT",
+    "RT",
+    "View",
+    "Menu",
+    "L3",
+    "R3"
+  ],
+  "steps": {
+    "unlock": [
+      "Unlock the thrusters",
+      "Unlock",
+      "Locked thrusters give no thrust. Check the way ahead is clear, then unlock; lock again whenever you want to stop."
+    ],
+    "move": [
+      "Move and turn",
+      "",
+      "Small inputs, slowly: the sticks command thrust. Let go and the vehicle slows on water drag alone, and the current still carries it."
+    ],
+    "depth": [
+      "Depth hold",
+      "Toggle depth hold",
+      "With depth hold on, letting go of up/down keeps the current depth. Try switching it off and on again."
+    ],
+    "light": [
+      "Lights",
+      "Cycle lights",
+      "It gets darker with depth. The lights show what is ahead; in murky water suspended particles reflect them, so dim them when needed."
+    ],
+    "photo": [
+      "Photo",
+      "Take photo",
+      "Aim at the target and take a picture. Photos go to your collection and are mission evidence."
+    ],
+    "objectives": [
+      "Objectives",
+      "Show objectives",
+      "Peek cards show the objectives briefly without interrupting flight; the other directions show systems, map and controls."
+    ],
+    "pause": [
+      "Pause menu",
+      "Open pause menu",
+      "The pause menu has the current objective, settings and the controls tutorial at any time."
+    ]
+  },
+  "depthOff": "With depth hold off the vehicle slowly rises or sinks. Turn it on and letting go of up/down holds the depth.",
+  "moveAssisted": "Small inputs, slowly: with assist on, the vehicle brakes when you let go; a strong current can still push it.",
+  "moves": {
+    "surge": "Forward / back",
+    "yaw": "Turn right / left",
+    "heave": "Up / down"
+  },
+  "tips": {
+    "tether": [
+      "Tether tension rising",
+      "The tether is pulled tight or caught on something. Stop thrusting and back out slowly along the way you came so it can slacken."
+    ],
+    "dvl": [
+      "DVL bottom lock lost",
+      "Velocity and position assist need the DVL to see the seabed; flight is manual thrust for now."
+    ],
+    "visibility": [
+      "Very low visibility",
+      "Slow down and keep the thrusters from stirring up the seabed; navigate by depth, heading and sonar, and let the silt settle."
+    ]
+  },
+  "tutorial": {
+    "title": "Controls tutorial",
+    "intro": "The basic controls and your current bindings. Finished steps are ticked; beginner hints can be shown again under Settings › Interface.",
+    "done": "Done",
+    "open": "Not yet"
+  }
+}

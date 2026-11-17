@@ -20,8 +20,9 @@ import {beginFields, createEventWatch} from './deck_flow.js';
 import {deckSignature, renderDeckChecks, renderDeckLaunch} from './deck_steps.js';
 import {createDeckStage} from './deck_stage.js';
 import {callFor, createCrewRadio, faultText} from './crew_radio.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('procedure.index', {
   title: '潛前檢查與回收',
   // Engineering detail (hover only): the player path does not read like an unfinished product.
   provisional: '短測為模擬診斷，每顆 2 秒；禁止拋擲。',
@@ -70,7 +71,7 @@ const STRINGS = {
   recovering: '收纜中，洋流與模擬浪況會降低回收速度',
   complete: '潛後處理完成',
   onDeck: '載具在工作船後甲板上，尚未入水；完成檢查、放入水中並確認後才能解鎖。',
-};
+});
 // Launch steps: tender ready, lower into the water, water check.
 const LAUNCH_STEPS = 3;
 // Phases whose column carries the post-dive numbers, and the steps counted in it.

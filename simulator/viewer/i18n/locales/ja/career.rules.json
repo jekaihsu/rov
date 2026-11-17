@@ -1,0 +1,8 @@
+{
+  "needLicence": "「{licence}」ライセンスが必要です",
+  "needContract": "先に「{title}」を完了してください",
+  "needEquipment": "装備「{item}」が必要です（YX 装備部）",
+  "needReputation": "{client}評判 {need} が必要です（現在 {have}）",
+  "needHours": "リアルモード {need} h が必要です（現在 {have} h）",
+  "unknownItem": "{id}"
+}

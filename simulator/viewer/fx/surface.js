@@ -4,9 +4,10 @@
 // Beautify adds faint sun shafts in shallow water. Above water, or in the legacy look, the app's material
 // is restored unchanged.
 import * as THREE from 'three';
-import { WATER_COMMON, shareWaterUniforms, DAYLIGHT_PHASE } from './water_optics.js';
+import { WATER_COMMON, shareWaterUniforms, DAYLIGHT_PHASE, WATER_BACKGROUND_ORDER } from './water_optics.js';
 
 const surfaces = new WeakMap();
+const forward = new THREE.Vector3();
 // cos of the critical angle: asin(1 / 1.333) = 48.6 degrees from the vertical.
 const CRITICAL_COS = Math.cos(Math.asin(1 / 1.333)).toFixed(4);
 
@@ -88,7 +89,8 @@ function install(surface, scene) {
   shafts.userData.observationIgnore = true;
   shafts.frustumCulled = false;
   scene.add(shafts);
-  const data = { original: surface.material, originalIgnore: surface.userData.observationIgnore, material, shafts };
+  const data = { original: surface.material, originalIgnore: surface.userData.observationIgnore,
+    originalOrder: surface.renderOrder, material, shafts };
   surfaces.set(surface, data);
   return data;
 }
@@ -103,7 +105,6 @@ export function updateWaterSurface(surface, camera, scene, low, beauty = false) 
   data.shafts.visible = !low && beauty && below && depth < 15;
   if (data.shafts.visible) {
     // Hang the bands ahead of the camera, facing it about the vertical axis only.
-    const forward = new THREE.Vector3();
     camera.getWorldDirection(forward);
     forward.y = 0;
     if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
@@ -115,6 +116,8 @@ export function updateWaterSurface(surface, camera, scene, low, beauty = false) 
   const optics = !low && below;
   surface.material = optics ? data.material : data.original;
   surface.userData.observationIgnore = optics ? true : data.originalIgnore;
+  // The optics surface writes no depth: draw it after the depth-tested water background, not under it.
+  surface.renderOrder = optics ? WATER_BACKGROUND_ORDER + 1 : data.originalOrder;
 }
 
 export function disposeWaterSurface(surface) {
@@ -122,6 +125,7 @@ export function disposeWaterSurface(surface) {
   if (!data) return;
   surface.material = data.original;
   surface.userData.observationIgnore = data.originalIgnore;
+  surface.renderOrder = data.originalOrder;
   data.material.dispose();
   data.shafts.removeFromParent();
   data.shafts.geometry.dispose();

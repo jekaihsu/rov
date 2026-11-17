@@ -1,43 +1,29 @@
 // Screen pipeline for the optics tiers: scene (linear HDR) -> camera auto-exposure -> optional camera pass
 // (T14b) -> beautify finish -> OutputPass, the only tone-mapping and output-transfer step -> daylight grade
 // (above water only, fx/daylight.js).
+// The exposure gain, a foldable camera pass (the onboard camera look), the beautify vignette and the output step
+// run as one full-screen pass (fx/camera_output.js); the exposure pass itself then only meters. A camera pass that
+// cannot be folded still runs on its own between them, on the exposed image, as before.
 // The renderer's screen render is wrapped once, so normal frames, render_movie.js, recordings and photo
 // captures all take the same path. Offscreen renders and the low / fallback tiers bypass it untouched.
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { updateReflections, disposeReflections } from './reflections.js';
 import { updateWaterSurface, disposeWaterSurface } from './surface.js';
 import { updateSuspension, hideSuspension } from './suspension.js';
 import { updateWaterOptics, createWaterBackground, horizontalWaterColour, hideLegacyBeams } from './water_optics.js';
 import { AutoExposurePass } from './exposure.js';
 import { DAYLIGHT_GRADE } from './daylight.js';
+import { CameraOutputPass, CAMERA_LOOK_FOLD } from './camera_output.js';
 import { beautifyEnabled, BEAUTIFY_ID } from './beautify.js';
 import { getFidelity } from '../fidelity.js';
 import { legacyWaterLook } from '../underwater_lighting.js';
 import { renderQualityState } from '../render_quality.js';
 
 const pipelines = new WeakMap();
-// Beautify only: a gentle vignette on the exposed linear image.
-const finish = {
-  uniforms: { tDiffuse: { value: null }, strength: { value: 0 } },
-  vertexShader: `varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }`,
-  fragmentShader: `uniform sampler2D tDiffuse;
-    uniform float strength;
-    varying vec2 vUv;
-    void main() {
-      vec4 c = texture2D(tDiffuse, vUv);
-      float edge = smoothstep(0.25, 0.8, length(vUv - 0.5));
-      c.rgb *= 1.0 - strength * 0.28 * edge;
-      gl_FragColor = c;
-    }`
-};
+const drawingSize = new THREE.Vector2();
 
 function isLowMode(renderer) {
   return ['performance', 'low'].includes(renderQualityState(renderer)?.mode);
@@ -47,12 +33,11 @@ function buildComposer(state, renderer, scene, camera) {
   state.composer = new EffectComposer(renderer);
   state.renderPass = new RenderPass(scene, camera);
   state.exposurePass = new AutoExposurePass();
-  state.finishPass = new ShaderPass(finish);
+  state.outputPass = new CameraOutputPass();
   state.composer.addPass(state.renderPass);
   state.composer.addPass(state.exposurePass);
   if (state.cameraPass) state.composer.addPass(state.cameraPass);
-  state.composer.addPass(state.finishPass);
-  state.composer.addPass(new OutputPass());
+  state.composer.addPass(state.outputPass);
   // Daylight camera colour rendering, after tone mapping; only enabled while the camera is above water.
   state.gradePass = new ShaderPass(DAYLIGHT_GRADE);
   state.gradePass.enabled = false;
@@ -60,7 +45,7 @@ function buildComposer(state, renderer, scene, camera) {
 }
 
 function resizeComposer(state, renderer) {
-  const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+  const size = renderer.getDrawingBufferSize(drawingSize);
   if (size.x === state.width && size.y === state.height) return;
   state.composer.setPixelRatio(1);
   state.composer.setSize(size.x, size.y);
@@ -99,15 +84,22 @@ function renderOptics(state, original, scene, camera) {
   resizeComposer(state, renderer);
   state.renderPass.scene = scene;
   state.renderPass.camera = camera;
-  state.finishPass.enabled = beauty;
-  state.finishPass.uniforms.strength.value = beauty ? 1 : 0;
+  const look = state.cameraPass;
+  const folded = !!look?.enabled && look.outputFold === CAMERA_LOOK_FOLD;
+  const separate = !!look?.enabled && !folded;
+  state.exposurePass.deferApply = !separate;
+  state.outputPass.configure({ applyExposure: !separate, look: folded ? look.uniforms : null,
+    vignette: beauty ? 1 : 0 });
   const exposure = renderer.toneMappingExposure;
   renderer.toneMappingExposure = 1;
   const restoreBeams = hideLegacyBeams(scene);
   state.busy = true;
+  // A folded camera pass keeps its place in the pass list but is drawn by the output pass this frame.
+  if (folded) look.enabled = false;
   try {
     state.composer.render();
   } finally {
+    if (folded) look.enabled = true;
     state.busy = false;
     restoreBeams();
     renderer.toneMappingExposure = exposure;

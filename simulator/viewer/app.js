@@ -21,6 +21,8 @@ import {thrusterLabel} from './hud/thruster_names.js';
 import {installStartPresentation} from './start_presentation.js';
 import {objectiveFade, objectiveNearFade} from './hud/objective_fade.js';
 import {installPhotoFeedback} from './hud/photo_feedback.js';
+import {installIntroSkip} from './play/intro_skip.js';
+import {installOnboarding} from './play/onboarding.js';
 // X1 ROV training viewer / pilot console.
 // Renders the qysim state stream (PROTOCOL.md §2–4) and sends the pilot's RC channels back.
 // Frames: server NED world / FRD body  →  three.js Y-up: three(x,y,z) = (−east, −down, north).
@@ -44,7 +46,7 @@ import { Fleet } from './fleet.js';
 import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
-import {updateRenderQuality,renderQualityInfo} from './render_quality.js';
+import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
 import {installCampaign} from './story/campaign.js';
 import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
@@ -64,6 +66,7 @@ import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
 import { createLinkInbox } from './input/link_inbox.js';
 import {installPauseMenu, pauseMenuOpen} from './menu/pause.js';
+import {installFeedbackReport, feedbackOpen} from './feedback/index.js';
 import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
 import { installResults, resultsOpen } from './play/results.js';
@@ -74,11 +77,14 @@ import { installObjectiveCard } from './play/objective_card.js';
 import { installCareerDive } from './career/dive.js';
 import './prefs/camera_items.js';
 import { createFrameGate, installDisplayPrefs } from './prefs/display.js';
+import { createWorldLabels } from './hud/world_labels.js';
+import { elementSize } from './hud/canvas.js';
+import { cssVariable } from './hud/css_variables.js';
+import { createShaderWarmup } from './shader_warmup.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
-const css = getComputedStyle(document.documentElement);
-const C = (n) => css.getPropertyValue(n).trim();
+const C = cssVariable;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmtT = (s) => { s = Math.max(0, Math.round(s || 0)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -90,7 +96,7 @@ const Q = (q, out = new THREE.Quaternion()) => out.set(-q[2], -q[3], q[1], q[0])
 
 /* ═════════════════════════ renderer / scene ═════════════════════════ */
 const vp = $('vp');
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: canvasAntialias(), powerPreference:'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -577,6 +583,7 @@ function onState(m) {
   startPresentation?.update(m, W);
   careerDive.update(m);
   objectiveCard.update(m);
+  onboarding.update(m);
   results.update(m);
   achievements.update(m);
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
@@ -653,15 +660,26 @@ function chanMeaning(mode, ch) {
   return { axis: '', name: '—', pos: '', neg: '' };
 }
 
-const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen(),
+const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
   arm: () => { $('armMode').click(); }});
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY,
+const onboarding = installOnboarding({input, readOnly: !!REPLAY});
+installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
   extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
+installFeedbackReport({
+  input,
+  getState: () => S,
+  getWorld: () => W,
+  capture() {
+    renderer.render(scene, camera);
+    return renderer.domElement;
+  },
+  getPerformance: () => window.__viewer?.performance?.(),
+});
 
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){needResync=true;return;}
@@ -703,10 +721,14 @@ function inputTick() {
 rcPump.start(inputTick);
 
 function drawSticks(msg) {
-  const place = (el, x, y) => { const r = el.clientWidth / 2 * .62; el.querySelector('.knob').style.transform = `translate(${x * r}px, ${-y * r}px)`; };
+  const place = (el, x, y) => {
+    const r = elementSize(el).width / 2 * .62;   // cached size: no forced layout per input tick (hud/canvas.js)
+    el.querySelector('.knob').style.transform = `translate(${x * r}px, ${-y * r}px)`;
+  };
   place($('stickL'), out.left_lr, out.left_ud); place($('stickR'), out.right_lr, out.right_ud);
   for (const [id, c] of [['wheelL', 'left_wave'], ['wheelR', 'right_wave']]) {
-    const el = $(id); el.querySelector('.wk').style.transform = `translateX(${out[c] * (el.clientWidth / 2 - 14)}px)`;
+    const el = $(id);
+    el.querySelector('.wk').style.transform = `translateX(${out[c] * (elementSize(el).width / 2 - 14)}px)`;
   }
   // panel mirror
   for (const c of CH) {
@@ -823,20 +845,8 @@ $('camBtn').onclick = () => cameraRig.cycle();
 const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion();
 
 /* ═════════════════════════ labels ═════════════════════════ */
-const labelEls = new Map();
-function drawLabels(list, w, h) {
-  const show = $('optLabels').checked, seen = new Set();
-  if (show) for (const L of list) {
-    _v.copy(L.pos).project(camera);
-    if (_v.z > 1 || _v.z < -1 || Math.abs(_v.x) > 1.05 || Math.abs(_v.y) > 1.05) continue;
-    let el = labelEls.get(L.id);
-    if (!el) { el = document.createElement('div'); $('labels').appendChild(el); labelEls.set(L.id, el); }
-    el.className = 'lbl ' + (L.cls || ''); if (el.textContent !== L.text) el.textContent = L.text;
-    el.style.left = ((_v.x + 1) / 2 * w + 8) + 'px'; el.style.top = ((1 - _v.y) / 2 * h) + 'px'; el.hidden = false;
-    seen.add(L.id);
-  }
-  for (const [id, el] of labelEls) if (!seen.has(id)) el.hidden = true;
-}
+const worldLabels = createWorldLabels({container: $('labels'), camera, enabled: () => $('optLabels').checked});
+const drawLabels = worldLabels.draw;
 
 /* ═════════════════════════ instruments ═════════════════════════ */
 const adi = $('adi');
@@ -1023,8 +1033,9 @@ function updateObjectives(time) {
 }
 
 /* ═════════════════════════ render loop ═════════════════════════ */
+let vpRect = { width: 1, height: 1 };
 function resize() {
-  const r = vp.getBoundingClientRect();
+  const r = vpRect = vp.getBoundingClientRect();
   renderer.setSize(Math.max(1, r.width), Math.max(1, r.height), false);
   camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
 }
@@ -1080,10 +1091,9 @@ async function startIntro(held = false) {
     heldIntro.release();
   };
 }
-$('skipIntro').onclick = () => intro?.skip();
+installIntroSkip({input, button: $('skipIntro'), skip: () => intro?.skip(), active: introActive});
 let introStarts = 0;
 window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
-addEventListener('keydown', (e) => { if (e.code === 'Escape' && introActive()) { e.preventDefault(); intro.skip(); } });
 async function ensurePip() {
   const on = $('optPip').checked && !params.has('nopip');
   $('pip').hidden = !on;
@@ -1237,6 +1247,7 @@ installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
+const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   linkInbox.flush();
@@ -1271,12 +1282,13 @@ function frame(now) {
   const camDepth = clamp(-camera.position.y, 0, 60);
   installUnderwaterPipeline(renderer, { surface });
   applyUnderwaterLighting(scene, S, renderer);
+  shaderWarmup.update(now);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
-  spoolStation.update(dt, !!intro?.onScene);                   // the intro brings its own boat while it plays
+  spoolStation.update(dt, !!intro?.onScene, camera);           // the intro brings its own boat while it plays
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);
@@ -1305,7 +1317,7 @@ function frame(now) {
   vision.update(now);
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);
   // labels
-  const r = vp.getBoundingClientRect();
+  const r = vpRect;
   const L = [];
   if (W?.spool) L.push({ id: 'spool', text: '纜盤 / 投放點', pos: spoolStation.labelPosition(W), cls: 'spool' });
   if (cur) L.push({ id: 'obj', text: `${cur.o.label} · ${cur.m.g.position.distanceTo(rovG.position).toFixed(1)} m`, pos: cur.m.g.position, cls: 'obj' });

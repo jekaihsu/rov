@@ -47,11 +47,7 @@
   "interface": {
     "intro": [
       "Launch cinematic",
-      "Opening sequence from surface deployment to submersion. Disabling also skips pre-dive checks."
-    ],
-    "alwaysIntro": [
-      "Play launch cinematic every time",
-      "When off, plays only on the first dive; later dives start underwater. You can enable it again in the briefing."
+      "Opening sequence from surface deployment to submersion, played at the start of every dive and skippable while it plays. Disabling also skips pre-dive checks."
     ],
     "pip": [
       "Operator inset",

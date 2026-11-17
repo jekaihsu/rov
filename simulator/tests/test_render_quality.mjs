@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const source=await readFile(new URL('../viewer/render_quality.js',import.meta.url),'utf8');
-const {chooseHardwareProfile,detectHardware,configureRenderQuality,updateRenderQuality,renderQualityInfo,assetTextureTier}=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const {chooseHardwareProfile,detectHardware,configureRenderQuality,updateRenderQuality,renderQualityInfo,assetTextureTier,
+  automaticSceneDetail,canvasAntialias}=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 
 assert.equal(chooseHardwareProfile({renderer:'ANGLE (Google, SwiftShader Device (Subzero))'}).tier,'software');
 assert.equal(chooseHardwareProfile({renderer:'Mesa llvmpipe (LLVM 15.0)'}).floor,.5);
@@ -59,4 +60,61 @@ configureRenderQuality(renderer('NVIDIA GeForce RTX 4060'),'high');
 assert.equal(assetTextureTier(),'high');
 configureRenderQuality(renderer('NVIDIA GeForce RTX 4060'),'auto');
 assert.equal(assetTextureTier(),'standard');
+// The minimum-spec class (15 W laptop: Intel UHD 620 or GeForce MX110) starts on the low look and low scene detail;
+// mainstream and unknown GPUs start with the optics.
+for(const name of ['ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)',
+  'ANGLE (NVIDIA, NVIDIA GeForce MX110 Direct3D11 vs_5_0 ps_5_0, D3D11)']){
+  assert.equal(configureRenderQuality(renderer(name),'auto').effectsSuppressed,true,name);
+  assert.equal(automaticSceneDetail(renderer(name)),'low',name);
+  assert.equal(configureRenderQuality(renderer(name),'medium').effectsSuppressed,false,'explicit tiers are kept');
+}
+for(const name of ['NVIDIA GeForce RTX 4060','WebKit WebGL','ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11)',
+  'NVIDIA GeForce MX450','Apple M1']){
+  assert.equal(configureRenderQuality(renderer(name),'auto').effectsSuppressed,false,name);
+  assert.equal(automaticSceneDetail(renderer(name)),'medium',name);
+}
+assert.equal(automaticSceneDetail(renderer('SwiftShader')),'low');
+assert.equal(chooseHardwareProfile({renderer:'ANGLE (Intel, Intel(R) HD Graphics 520 Direct3D11)'}).startsLow,true);
+// A multisampled canvas only for the low tiers, and never on the msaa-is-slow Intel class.
+assert.equal(canvasAntialias('medium',{renderer:'NVIDIA GeForce RTX 4060'}),false);
+assert.equal(canvasAntialias('performance',{renderer:'NVIDIA GeForce RTX 4060'}),true);
+assert.equal(canvasAntialias('performance',{renderer:'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11)'}),false);
+assert.equal(canvasAntialias('auto',{renderer:'NVIDIA GeForce RTX 4060'}),false);
+// Automatic quality lowers the render scale first; the screen effects go only once the scale is at its floor.
+{
+  const gpu=renderer('NVIDIA GeForce RTX 4060'),state=configureRenderQuality(gpu,'auto');
+  const start=gpu.ratio;
+  for(let i=0;i<90+50;i++)updateRenderQuality(gpu,1/30);
+  assert.ok(gpu.ratio<start,'the first slow window lowers the scale');
+  assert.equal(state.effectsSuppressed,false,'effects stay while the scale can still drop');
+  for(let i=0;i<900;i++)updateRenderQuality(gpu,1/30);
+  assert.ok(Math.abs(gpu.ratio-state.floor)<1e-9);
+  assert.equal(state.effectsSuppressed,true,'still slow at the floor: effects are dropped');
+}
+// What automatic quality learned in the game view is where the next page's game view starts (same GPU only).
+{
+  const store=new Map();
+  globalThis.localStorage={getItem:key=>store.get(key)??null,setItem:(key,value)=>store.set(key,String(value))};
+  const first=renderer('AMD Radeon RX 6600');
+  const learned=configureRenderQuality(first,'auto',{learn:true});
+  for(let i=0;i<900;i++)updateRenderQuality(first,1/30);
+  assert.equal(learned.effectsSuppressed,true);
+  const saved=JSON.parse(store.get('rov.quality.learned.v1'));
+  assert.equal(saved.effectsSuppressed,true);
+  assert.ok(Math.abs(saved.ratio-learned.floor)<1e-9);
+  const source=await readFile(new URL('../viewer/render_quality.js',import.meta.url),'utf8');
+  const fresh=await import(`data:text/javascript;base64,${Buffer.from(source+'\n//fresh').toString('base64')}`);
+  const next=fresh.configureRenderQuality(renderer('AMD Radeon RX 6600'),'auto',{learn:true});
+  assert.equal(next.effectsSuppressed,true);
+  assert.ok(Math.abs(next.ratio-next.floor)<1e-9);
+  const again=fresh.configureRenderQuality(renderer('AMD Radeon RX 6600'),'auto',{learn:true});
+  assert.equal(again.effectsSuppressed,false,'only the first game view of a page starts from what was learned');
+  const other=await import(`data:text/javascript;base64,${Buffer.from(source+'\n//other').toString('base64')}`);
+  const otherGpu=other.configureRenderQuality(renderer('NVIDIA GeForce RTX 4060'),'auto',{learn:true});
+  assert.equal(otherGpu.effectsSuppressed,false);
+  const menu=await import(`data:text/javascript;base64,${Buffer.from(source+'\n//menu').toString('base64')}`);
+  assert.equal(menu.configureRenderQuality(renderer('AMD Radeon RX 6600'),'auto').effectsSuppressed,false,
+    'the menu backdrop neither reads nor writes what the game learned');
+  delete globalThis.localStorage;
+}
 console.log('Hardware hints, privacy fallback, viewport budget, measured FPS recovery and recording suspension passed.');

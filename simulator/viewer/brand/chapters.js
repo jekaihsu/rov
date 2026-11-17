@@ -4,7 +4,8 @@
 // pass their own lines to the card (brand/chapter_card.js) and do not need a row here.
 // Client names are fictional roles, never real organisations (AGENTS.md rule 8).
 
-export const STRINGS = {
+import { localize } from '../i18n/index.js';
+export const STRINGS = localize('brand.chapters', {
   // Shown under the card while it can be skipped.
   skip: '按任意鍵繼續',
   cardLabel: '章節標題',
@@ -36,7 +37,7 @@ export const STRINGS = {
     course_a03: {number: '進階課程 / A03', client: 'YX · 訓練中心', sub: 'COURSE · STRONG CURRENT EXIT'},
     course_a04: {number: '進階課程 / A04', client: 'YX · 訓練中心', sub: 'COURSE · FINAL ASSESSMENT'},
   },
-};
+});
 
 // Chapter id → symbol name in brand/marks.js (CHAPTER_SYMBOL_IDS).
 const SYMBOLS = {

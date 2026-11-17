@@ -1,0 +1,30 @@
+{
+  "title": "YX 装備部",
+  "strip": "{licence} · {money} クレジット",
+  "tabs": {
+    "equipment": "作業装備",
+    "cosmetic": "外観"
+  },
+  "help": {
+    "equipment": "実在するアクセサリーのみ販売します。受注できる作業指示が増えますが、機体が速くなったり強くなったりはしません。",
+    "cosmetic": "機体ステッカーと塗装ストライプ。外観のみです。"
+  },
+  "price": "価格",
+  "moneyUnit": "クレジット",
+  "priceNote": "{price} クレジット",
+  "fitsStat": "対応",
+  "fitsUnit": "機種",
+  "blockStat": "Block",
+  "blockValue": "+1",
+  "use": "用途",
+  "opens": "開放",
+  "fits": "対応機種",
+  "fleet": "現在の船団",
+  "rule": "説明",
+  "owned": "所持済み",
+  "buy": "購入",
+  "confirm": "もう一度押して確定",
+  "unavailable": "購入できません",
+  "bought": "「{item}」を購入しました。",
+  "upgraded": "{vehicle} が Block {block} にアップグレードされました。"
+}

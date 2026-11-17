@@ -1,0 +1,5 @@
+{
+  "badImport": "これは ROV Solution のキャリアセーブではありません。",
+  "newerImport": "このセーブは新しいバージョンのものです。読み込む前にゲームを更新してください。",
+  "legacyTitle": "旧版ストーリー記録：{chapter}"
+}

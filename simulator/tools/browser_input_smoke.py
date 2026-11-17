@@ -57,7 +57,7 @@ with sync_playwright() as p:
     page.evaluate('window.fakePads[0].buttons[5]={value:0,pressed:false}')
     print('Remapped b5 -> up -> HUD task card passed', flush=True)
     print('Mapping paths passed', flush=True)
-    page.keyboard.press('F8')
+    page.keyboard.press('F9')
     page.wait_for_timeout(200)
     page.screenshot(path=str(OUT / 'settings.png'))
     page.evaluate("window.fakePads[0].mapping='';window.fakePads[0].id='HOTAS unknown';window.fakePads[0].axes=Array(20).fill(0)")

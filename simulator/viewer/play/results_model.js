@@ -24,10 +24,12 @@ const STRINGS = localize('play.results_model', {
     contract: '工程委託',
     career: 'YX 工單',
   },
+  timesOne: '{n} 次',
   times: '{n} 次',
   noContacts: '無碰撞',
   tetherBroken: '纜線斷裂',
   tetherClean: '張力正常',
+  overloadOne: '過載 {n} 次',
   overload: '過載 {n} 次',
   contract: '委託完成',
   medals: { gold: '金牌', silver: '銀牌', bronze: '銅牌', none: '無獎章' },
@@ -86,8 +88,9 @@ export function formatTime(seconds) {
   return `${String(minutes).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-function count(text, n) {
-  return text.replace('{n}', String(n));
+// one: the singular template (English "1 time"); the other languages use the same text for both.
+function count(text, n, one = text) {
+  return (n === 1 ? one : text).replace('{n}', String(n));
 }
 
 function sumPoints(penalties, prefix) {
@@ -133,13 +136,13 @@ export function scoreRows(score = {}, limit = null) {
     {
       id: 'tether',
       label: STRINGS.rows.tether,
-      detail: tether ? count(STRINGS.overload, countOf(penalties, '纜線')) : STRINGS.tetherClean,
+      detail: tether ? count(STRINGS.overload, countOf(penalties, '纜線'), STRINGS.overloadOne) : STRINGS.tetherClean,
       points: -tether,
     },
     {
       id: 'contacts',
       label: STRINGS.rows.contacts,
-      detail: contactCount ? count(STRINGS.times, contactCount) : STRINGS.noContacts,
+      detail: contactCount ? count(STRINGS.times, contactCount, STRINGS.timesOne) : STRINGS.noContacts,
       points: -contacts,
     },
   ];
@@ -217,7 +220,7 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
   }) || null;
   let tetherDetail = STRINGS.tetherClean;
   if (broken) tetherDetail = STRINGS.tetherBroken;
-  else if (overloads) tetherDetail = count(STRINGS.overload, overloads);
+  else if (overloads) tetherDetail = count(STRINGS.overload, overloads, STRINGS.overloadOne);
   return {
     kind: drill ? 'drill' : 'chapter',
     id: chapterId,
@@ -236,7 +239,7 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
       {
         id: 'contacts',
         label: STRINGS.rows.contacts,
-        detail: collisions ? count(STRINGS.times, collisions) : STRINGS.noContacts,
+        detail: collisions ? count(STRINGS.times, collisions, STRINGS.timesOne) : STRINGS.noContacts,
         points: -contacts,
       },
     ],
@@ -268,7 +271,7 @@ export function contractOutcome(result) {
       {
         id: 'contacts',
         label: STRINGS.rows.contacts,
-        detail: collisions ? count(STRINGS.times, collisions) : STRINGS.noContacts,
+        detail: collisions ? count(STRINGS.times, collisions, STRINGS.timesOne) : STRINGS.noContacts,
         points: -contacts,
       },
     ],

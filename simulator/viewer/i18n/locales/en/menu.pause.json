@@ -8,6 +8,8 @@
   "contracts": "Engineering contracts",
   "accept": "Accept: {label}",
   "settings": "Settings",
+  "report": "Report a problem",
+  "openReports": "Open reports folder",
   "home": "Main menu",
   "solo": [
     "Simulation paused · Centre sticks, then arm",

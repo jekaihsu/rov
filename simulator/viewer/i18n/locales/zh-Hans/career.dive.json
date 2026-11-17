@@ -1,0 +1,27 @@
+{
+  "card": "YX 工单",
+  "meters": "{d} m",
+  "submit": "提前交付",
+  "submitPartial": "再按一次：部分交付（约 {pay} 元）",
+  "submitAbort": "再按一次：中止作业（不支付报酬）",
+  "confirm": "确认：{label}",
+  "penaltiesOne": "扣分项目 {n}",
+  "penaltiesMany": "扣分项目 {n}",
+  "examOn": "执照考核中 · 真实模式",
+  "examVoid": "考核期间开启了超出真机的设定，本次不计入执照。",
+  "photoSaved": "照片已存档，交付后由客户审核。",
+  "outcome": {
+    "complete": "委托完成",
+    "partial": "部分交付",
+    "aborted": "中止作业"
+  },
+  "aborted": "未达部分交付门槛，这次没有报酬；时数已记入日志。",
+  "broken": "缆线断裂，载具回收失败。",
+  "partial": "已交出部分成果，按比例支付。",
+  "examPassed": "考核通过：{label}",
+  "examFailed": "考核未通过：{reason}",
+  "rows": {
+    "deliverables": "交付项目",
+    "time": "作业时间"
+  }
+}

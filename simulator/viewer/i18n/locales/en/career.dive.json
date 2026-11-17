@@ -1,0 +1,27 @@
+{
+  "card": "YX work order",
+  "meters": "{d} m",
+  "submit": "Hand in early",
+  "submitPartial": "Press again: partial hand-in (~{pay} credits)",
+  "submitAbort": "Press again: abort job (no pay)",
+  "confirm": "Confirm: {label}",
+  "penaltiesOne": "{n} penalty",
+  "penaltiesMany": "{n} penalties",
+  "examOn": "Licence exam · real mode",
+  "examVoid": "Settings beyond the real vehicle were enabled during the exam; this attempt does not count toward the licence.",
+  "photoSaved": "Photo saved; the client reviews it after hand-in.",
+  "outcome": {
+    "complete": "Contract complete",
+    "partial": "Partial hand-in",
+    "aborted": "Job aborted"
+  },
+  "aborted": "Below the partial hand-in threshold; no pay this time. Hours are still logged.",
+  "broken": "Tether snapped; vehicle recovery failed.",
+  "partial": "Partial results handed in; paid proportionally.",
+  "examPassed": "Exam passed: {label}",
+  "examFailed": "Exam failed: {reason}",
+  "rows": {
+    "deliverables": "Deliverables",
+    "time": "Dive time"
+  }
+}

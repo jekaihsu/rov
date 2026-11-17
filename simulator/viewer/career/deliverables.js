@@ -5,7 +5,8 @@
 // It only reads what the server already sends; scoring here is a presentation layer and never touches physics.
 // Readings (growth thickness, CP potential, wall thickness) are scenario data shown when the work is done.
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+const STRINGS = localize('career.deliverables', {
   offboard: '照片未列入交付：請用機載鏡頭拍攝。',
   tooFar: '照片未列入交付：離目標太遠。',
   tooClose: '照片未列入交付：離目標太近，拍不到全貌。',
@@ -20,7 +21,7 @@ const STRINGS = {
   needs: '需要裝備：{item}',
   after: '先完成：{label}',
   last: '完成其他必要項目後回收',
-};
+});
 // Score points per event: contacts follow qysim/scenarios.py PENALTY; the rest are game values.
 export const PENALTY_POINTS = { touch: 5, hard: 15, severe: 30, overload: 10, wrap: 10 };
 const FACING_DEG = 35;

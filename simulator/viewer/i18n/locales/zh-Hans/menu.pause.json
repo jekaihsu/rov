@@ -8,6 +8,8 @@
   "contracts": "工程委托",
   "accept": "接取：{label}",
   "settings": "设置",
+  "report": "反馈问题",
+  "openReports": "打开反馈文件夹",
   "home": "返回主菜单",
   "solo": [
     "模拟已暂停 · 继续后先回中再解锁",

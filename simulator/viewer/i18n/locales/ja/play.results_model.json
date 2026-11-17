@@ -15,10 +15,12 @@
     "contract": "水中作業の依頼",
     "career": "YX 作業指示"
   },
+  "timesOne": "{n} 回",
   "times": "{n} 回",
   "noContacts": "衝突なし",
   "tetherBroken": "テザー破断",
   "tetherClean": "張力正常",
+  "overloadOne": "過負荷 {n} 回",
   "overload": "過負荷 {n} 回",
   "contract": "依頼完了",
   "medals": {

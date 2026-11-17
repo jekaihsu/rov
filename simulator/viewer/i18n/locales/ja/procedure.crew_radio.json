@@ -1,0 +1,62 @@
+{
+  "speakers": {
+    "tender": "周楷",
+    "deck": "方晴",
+    "supervisor": "林岑"
+  },
+  "roles": {
+    "tender": "テザーハンド",
+    "deck": "デッキ",
+    "supervisor": "スーパーバイザー"
+  },
+  "crew": {
+    "trim": [
+      "deck",
+      "バラストとトリムは前回どおり、水平でわずかに正浮力。"
+    ],
+    "instruments": [
+      "deck",
+      "深度はゼロ済み。コンパスは船首と合わせた。"
+    ],
+    "communication": [
+      "tender",
+      "通信正常。テレメトリも映像も動いている。"
+    ],
+    "tender": [
+      "tender",
+      "テザー整理済み、余長あり。いつでも下ろせる。"
+    ]
+  },
+  "found": [
+    "deck",
+    "確認した。着水前に処置する。"
+  ],
+  "falseReport": [
+    "deck",
+    "見たけど、ここは問題ない。"
+  ],
+  "fixed": {
+    "line_fouled": [
+      "tender",
+      "ロープは切った。ガードの中はきれい。"
+    ],
+    "guard_cracked": [
+      "deck",
+      "ガードを新品に交換して締めた。"
+    ],
+    "oring_debris": [
+      "deck",
+      "Oリングを拭いて再注油し、戻した。"
+    ],
+    "connector_unlocked": [
+      "tender",
+      "固定リングを最後まで回してロックした。"
+    ]
+  },
+  "faults": {
+    "line_fouled": "T{n} の推力が落ちた。着水前にガード上のロープを残したまま巻き込まれた。",
+    "guard_cracked": "T{n} が止まった。割れたガードの破片がプロペラに噛んだ。",
+    "oring_debris": "浸水警報。シール面の砂を残したまま。すぐに浮上して回収。",
+    "connector_unlocked": "映像が途切れる。テザーコネクタの固定リングが最後まで締まっていなかった。"
+  }
+}

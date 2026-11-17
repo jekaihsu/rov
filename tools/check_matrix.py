@@ -12,6 +12,7 @@ DEFAULT_CHECKS = (
     'browser_smoke',
     'browser_menu_smoke',
     'browser_menu_gamepad_smoke',
+    'browser_feedback_smoke',
     'browser_gamepad_matrix_smoke',
     # Four PlayStation profiles (standard and raw, DualSense and DualShock 4), each from title to dive and back.
     'browser_playstation_smoke',
@@ -35,6 +36,8 @@ DEFAULT_CHECKS = (
     'browser_campaign_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
+    # Fresh profile: launch cinematic and its pad skip, then the new-player hints over two dives.
+    'browser_onboarding_smoke',
     'browser_career_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
@@ -59,6 +62,8 @@ BROWSER_PATHS = {
     # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
     'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
                                 'browser_campaign_smoke'),
+    'simulator/viewer/feedback/': ('browser_feedback_smoke', 'browser_menu_smoke', 'browser_hud_smoke',
+                                   'browser_menu_gamepad_smoke'),
 }
 
 

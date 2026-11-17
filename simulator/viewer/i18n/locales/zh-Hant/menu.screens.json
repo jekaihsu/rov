@@ -109,7 +109,8 @@
   "sticker": "貼紙",
   "next": "下一步",
   "sitesTitle": "潛航海域",
-  "sitesCount": "{n} 處",
+  "sitesCountOne": "{n} 處",
+  "sitesCountMany": "{n} 處",
   "depth": "海床",
   "visibility": "能見度",
   "current": "洋流",
@@ -122,6 +123,7 @@
     "min": "分"
   },
   "objectives": "任務目標",
+  "objectiveCountOne": "目標 {n} 項",
   "objectiveCount": "目標 {n} 項",
   "noObjectives": "自由航行，沒有指定目標。",
   "goalsTitle": "玩法",

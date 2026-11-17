@@ -318,12 +318,17 @@ export function horizontalWaterColour(depth, water, out = new THREE.Color()) {
   return out.setRGB(r, g, b, THREE.LinearSRGBColorSpace);
 }
 
+// Draw order of the water background: after every other opaque mesh (it sits on the far plane and is depth
+// tested), so only pixels that no geometry covers pay for its in-scatter integral. The sea surface seen from
+// below does not write depth and is drawn right after it (fx/surface.js).
+export const WATER_BACKGROUND_ORDER = 1e9;
+
 // Full-screen water colour behind everything: the in-scatter integral for an infinite ray in each pixel's
 // direction. It replaces the flat clear colour, so there is no horizon edge and no black band.
 export function createWaterBackground() {
   const material = new THREE.ShaderMaterial({
     uniforms: shareWaterUniforms({ uInverseViewProjection: { value: new THREE.Matrix4() } }),
-    depthTest: false,
+    depthTest: true,
     depthWrite: false,
     fog: false,
     vertexShader: /* glsl */ `
@@ -350,7 +355,7 @@ export function createWaterBackground() {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
   mesh.name = 'water-background';
   mesh.frustumCulled = false;
-  mesh.renderOrder = -1e9;
+  mesh.renderOrder = WATER_BACKGROUND_ORDER;
   mesh.userData.observationIgnore = true;
   mesh.onBeforeRender = function aimBackground(renderer, scene, camera) {
     material.uniforms.uInverseViewProjection.value

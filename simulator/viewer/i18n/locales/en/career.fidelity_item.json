@@ -1,0 +1,4 @@
+{
+  "photoVerdict": "Instant photo verdict",
+  "photoVerdictHelp": "After each shot, tell you whether the photo counts as a deliverable and why. In real operations you wait for client review."
+}

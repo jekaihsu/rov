@@ -1,7 +1,7 @@
 // Package only the desktop runtime, production dependencies and native Steamworks libraries.
 const path = require('node:path');
 const runtimeFiles = new Set([
-  '/main.cjs', '/preload.cjs', '/collection_store.cjs', '/backend_lifecycle.cjs',
+  '/main.cjs', '/preload.cjs', '/collection_store.cjs', '/backend_lifecycle.cjs', '/gpu_preference.cjs',
   '/steam_service.cjs', '/window_settings.cjs', '/package.json', '/steam', '/steam/achievements.json'
 ]);
 function ignore(file) {

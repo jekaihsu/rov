@@ -1,0 +1,68 @@
+{
+  "kicker": "Pre-dive checks",
+  "launchKicker": "Deploy",
+  "titles": {
+    "walkaround": "Walk-around visual check",
+    "power": "Power on vehicle",
+    "thrusters": "Thruster pulse test",
+    "lights": "Lights check",
+    "camera": "Onboard video"
+  },
+  "notes": {
+    "walkaround": "With power off, walk around the vehicle. Check seals, connectors and thruster guards at each station. Report anything wrong.",
+    "power": "Energise shore power, then power on the vehicle. Watch status lamps and listen for the boot chime.",
+    "thrusters": "Keep clear of thrusters. Pulse each for 2 s; total dry run must stay under 30 s.",
+    "lights": "Turn lights on, confirm both lamps light the deck, then turn them off; do not leave them on long in air.",
+    "camera": "Feed is on the onboard camera: confirm image, sharp focus and a running clock."
+  },
+  "stations": [
+    "Forward · dome and lamps",
+    "Port · thrusters and guards",
+    "Top · enclosure seals",
+    "Aft · tether connector",
+    "Starboard · thrusters and guards"
+  ],
+  "lookFor": [
+    "Cracks or dirt on the camera dome and lamp covers.",
+    "Fouling on thrusters; cracks in guards.",
+    "Sand or hair on the end-cap seal face or O-ring.",
+    "Tether connector locking collar fully seated.",
+    "Fouling on thrusters; cracks in guards."
+  ],
+  "startWalk": "Start walk-around",
+  "next": "Next station",
+  "doneWalk": "Walk-around complete",
+  "report": "Something wrong here",
+  "station": "{n} / {total}",
+  "defects": {
+    "line_fouled": "A length of rope is hung on the thruster guard",
+    "guard_cracked": "Thruster guard is cracked",
+    "oring_debris": "Sand and hair on the seal face",
+    "connector_unlocked": "Tether connector locking collar not fully locked"
+  },
+  "fixes": {
+    "line_fouled": "Cut the rope and clear the guard.",
+    "guard_cracked": "Fit a spare guard.",
+    "oring_debris": "Open the end cap, clean the O-ring and re-grease.",
+    "connector_unlocked": "Turn the locking collar all the way home."
+  },
+  "foundKicker": "Defect found",
+  "fix": "Clear",
+  "fixing": "Working…",
+  "fixed": "Cleared: {what}",
+  "powerOn": "Power on",
+  "booting": "Booting…",
+  "pulse": "Pulse T{n}",
+  "pulsing": "T{n} running…",
+  "pulsed": "{done} / {total} {unit}",
+  "thrusterOne": "thruster",
+  "thrusterMany": "thrusters",
+  "lampsOn": "Lights on",
+  "lampsLit": "Both lit — lights off",
+  "feedOk": "Video OK",
+  "lower": "Lower into water",
+  "waitTender": "Wait for the tether hand to report the tether ready.",
+  "waitTenderAction": "Waiting for tether hand",
+  "lowerNote": "Pick an upstream launch point and lower on the lift line; arm only after the vehicle is in the water and personnel are clear.",
+  "skip": "Skip remaining checks (penalty; undiscovered defects go into the water)"
+}

@@ -1,0 +1,27 @@
+{
+  "card": "YX 作業指示",
+  "meters": "{d} m",
+  "submit": "早期提出",
+  "submitPartial": "もう一度：部分提出（約 {pay} クレジット）",
+  "submitAbort": "もう一度：作業中止（報酬なし）",
+  "confirm": "確認：{label}",
+  "penaltiesOne": "減点 {n} 件",
+  "penaltiesMany": "減点 {n} 件",
+  "examOn": "ライセンス試験中 · リアルモード",
+  "examVoid": "試験中に実機を超える設定がオンになったため、今回はライセンスに計上されません。",
+  "photoSaved": "写真を保存しました。提出後に発注者が確認します。",
+  "outcome": {
+    "complete": "依頼完了",
+    "partial": "部分提出",
+    "aborted": "作業中止"
+  },
+  "aborted": "部分提出の基準に届かず、今回の報酬はありません。時間はログに記録されます。",
+  "broken": "テザーが破断し、機体の回収に失敗しました。",
+  "partial": "一部の成果を提出し、割合に応じて支払われます。",
+  "examPassed": "試験合格：{label}",
+  "examFailed": "試験不合格：{reason}",
+  "rows": {
+    "deliverables": "成果物",
+    "time": "作業時間"
+  }
+}

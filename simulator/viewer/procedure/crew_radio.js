@@ -5,8 +5,9 @@
 // (audio/voice.js: clip if generated, otherwise text with the radio click) and show as a caption on the story layer;
 // the caption waits while campaign dialogue is on screen, so the two never overlap.
 import {installVoice} from '../audio/voice.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('procedure.crew_radio', {
   speakers: {tender: '周楷', deck: '方晴', supervisor: '林岑'},
   roles: {tender: '纜線手', deck: '甲板', supervisor: '督導'},
   crew: {
@@ -29,7 +30,7 @@ const STRINGS = {
     oring_debris: '漏水警報。密封面上的沙沒清，馬上上浮回收。',
     connector_unlocked: '影像斷斷續續。纜線接頭固定環沒鎖到底。',
   },
-};
+});
 const LINE_MS = 5200;                 // how long one call stays on screen
 const GAP_MS = 400;
 const OPEN_ATTRIBUTE = 'data-open';

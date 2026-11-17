@@ -19,7 +19,7 @@ import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
 import {structureMaterial} from './structure_materials.js';
-import {detectHardware} from './render_quality.js';
+import {automaticSceneDetail} from './render_quality.js';
 import {siteRockColor} from './seabed.js';
 import {upgradeArmourRocks} from './scan_materials.js';
 
@@ -38,8 +38,8 @@ const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 
 /**
  * Scene detail tier from the render-quality setting: performance -> low, high -> high, medium -> medium.
- * Automatic quality uses medium, or low when ``renderer`` is drawn in software (no GPU), where shading cost
- * grows with every texture read.
+ * Automatic quality uses medium, or low when ``renderer`` is drawn in software (no GPU) or on an integrated /
+ * entry-level GPU, where shading cost grows with every texture read (render_quality.js automaticSceneDetail).
  */
 export function structureDetail(renderer = null) {
   let mode = 'auto';
@@ -50,7 +50,7 @@ export function structureDetail(renderer = null) {
   }
   if (mode === 'performance') return 'low';
   if (mode === 'high') return 'high';
-  if (mode === 'auto' && renderer && detectHardware(renderer).tier === 'software') return 'low';
+  if (mode === 'auto' && renderer) return automaticSceneDetail(renderer);
   return 'medium';
 }
 

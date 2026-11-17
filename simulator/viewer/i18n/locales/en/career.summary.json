@@ -1,0 +1,9 @@
+{
+  "kicker": "Next contract",
+  "status": "{licence} · {money} credits · real {real} h",
+  "hours": "Real {real} h · assisted {assisted} h",
+  "next": "Next licence: {label}",
+  "top": "You hold the highest available licence",
+  "resume": "Continue career",
+  "nothing": "No work orders available"
+}

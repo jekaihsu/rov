@@ -65,7 +65,8 @@ const STRINGS = localize('menu.screens', {
   sticker: '貼紙',
   next: '下一步',
   sitesTitle: '潛航海域',
-  sitesCount: '{n} 處',
+  sitesCountOne: '{n} 處',
+  sitesCountMany: '{n} 處',
   depth: '海床',
   visibility: '能見度',
   current: '洋流',
@@ -75,6 +76,7 @@ const STRINGS = localize('menu.screens', {
   timeLimit: '時限',
   units2: { kn: 'kn', min: '分' },
   objectives: '任務目標',
+  objectiveCountOne: '目標 {n} 項',
   objectiveCount: '目標 {n} 項',
   noObjectives: '自由航行，沒有指定目標。',
   goalsTitle: '玩法',
@@ -106,6 +108,12 @@ const MODE_PREVIEW = {
 };
 const NAME_SEPARATOR = ' · ';
 const MAX_CHIPS = 3;
+
+// English needs a singular; the other languages use the same text for both.
+function objectiveChip(n) {
+  const template = n === 1 ? STRINGS.objectiveCountOne : STRINGS.objectiveCount;
+  return template.replace('{n}', String(n));
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -417,7 +425,8 @@ export function buildSites(ctx) {
   const root = screen('sites', STRINGS.sitesTitle);
   root.classList.add('bp-screen');
   const hero = createHero();
-  const count = STRINGS.sitesCount.replace('{n}', String(ctx.data.sites.length));
+  const n = ctx.data.sites.length;
+  const count = (n === 1 ? STRINGS.sitesCountOne : STRINGS.sitesCountMany).replace('{n}', String(n));
   const { button: choose } = primaryButton('siteChoose', STRINGS.choose);
   hero.actions.append(choose);
   function showSite(card) {
@@ -554,7 +563,7 @@ export function buildBriefing(ctx) {
     }).filter(Boolean).slice(0, 5);
     const chips = [];
     if (goals) chips.push(...(STRINGS.modes[ctx.choice.mission]?.[3] || []));
-    else if (labels.length && !chapter) chips.push(STRINGS.objectiveCount.replace('{n}', String(labels.length)));
+    else if (labels.length && !chapter) chips.push(objectiveChip(labels.length));
     if (ctx.choice.multiplayer) chips.push([STRINGS.hostChip, 'warn']);
     hero.setChips(chips.slice(0, MAX_CHIPS));
     // 明細: the site or chapter brief, the objectives and the host note.
@@ -568,7 +577,7 @@ export function buildBriefing(ctx) {
     }
     if (ctx.choice.multiplayer) sheet.section(STRINGS.room, paragraph(STRINGS.hostNote));
     sheet.section(introLabel.textContent, paragraph(introRow.title));
-    intro.checked = introForLaunch(ctx.choice, getFidelity().get(PROCEDURE_ITEM) === 'full');
+    intro.checked = introForLaunch(ctx.choice);
     ctx.previewScene(ctx.choice.scenario);
   }
   return { element: root, pose: 'briefing', enter };
