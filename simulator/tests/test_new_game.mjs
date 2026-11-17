@@ -6,6 +6,7 @@ import {
   DIFFICULTY_CHOSEN_KEY, hasDifficultyChosen, rememberDifficultyChosen, difficultyLabel,
 } from '../viewer/menu/new_game.js';
 import '../viewer/start_presentation.js';
+import '../viewer/procedure/fidelity_item.js';
 
 function memoryStorage(initial = {}) {
   const data = new Map(Object.entries(initial));
@@ -42,4 +43,11 @@ test('standard preset arms depth hold and near start without station keeping', f
   assert.equal(fidelity.get('depthHoldStart'), true);
   assert.equal(fidelity.get('nearStart'), true);
   assert.equal(fidelity.get('thirdPerson'), false);
+});
+
+test('all difficulty presets keep the full deck procedure (simple uses crew via beginFields)', function () {
+  for (const name of ['assisted', 'standard', 'real']) {
+    const fidelity = createFidelity({search: `?fidelity=${name}`});
+    assert.equal(fidelity.get('deployProcedure'), 'full', name);
+  }
 });

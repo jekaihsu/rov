@@ -401,9 +401,10 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 /* ── new game / difficulty ───────────────────────────────────────────────── */
 /* Cinematic picker: large vertical titles, thick selection frame, one safety-orange confirm. */
 .menu-screen[data-screen=new_game] {
-  --new-game-ice: #e8f1f5;
+  /* Align with big_picture.css: ice white + safety orange only on the primary control. */
+  --new-game-ice: #eef3f0;
   --new-game-dim: #8fa6b2;
-  --new-game-orange: #ff6a2b;
+  --new-game-orange: #ff7a2f;
   display: grid;
   grid-template-rows: auto 1fr auto;
   align-content: stretch;

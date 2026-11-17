@@ -8,6 +8,8 @@
     "display": "显示",
     "interface": "界面"
   },
+  "difficultyScreen": "难度选择",
+  "difficultyScreenHelp": "重新开启开场的难度画面（简单／标准／真实）。",
   "pad": "输入设备",
   "padAuto": "自动检测手柄＋键盘",
   "padKeyboard": "只使用键盘",

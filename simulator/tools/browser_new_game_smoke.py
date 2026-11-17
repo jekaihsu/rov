@@ -7,6 +7,9 @@ from _menu import open_main, wait_ready, wait_screen
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'new-game-validation'
 OUT.mkdir(parents=True, exist_ok=True)
+# P1 prompt: screenshots under docs/design/<task>/
+DOCS = Path(__file__).resolve().parents[2] / 'docs' / 'design' / 'P1-difficulty'
+DOCS.mkdir(parents=True, exist_ok=True)
 
 PRESETS = {
     'assisted': {
@@ -14,6 +17,7 @@ PRESETS = {
         'videoDelayMs': 0,
         'thirdPerson': True,
         'gimbal': True,
+        'deployProcedure': 'full',
     },
     'standard': {
         'assistLevel': 0,
@@ -22,6 +26,7 @@ PRESETS = {
         'gimbal': False,
         'depthHoldStart': True,
         'nearStart': True,
+        'deployProcedure': 'full',
     },
     'real': {
         'assistLevel': 0,
@@ -30,6 +35,7 @@ PRESETS = {
         'gimbal': False,
         'depthHoldStart': False,
         'nearStart': False,
+        'deployProcedure': 'full',
     },
 }
 
@@ -83,9 +89,14 @@ with sync_playwright() as p:
         page.wait_for_function(
             'name => document.querySelector(`#newGame-${name}`)?.getAttribute("aria-selected") === "true"',
             arg=name, timeout=timeout(10000))
-        page.screenshot(path=str(OUT / f'difficulty-{name}-1600.png'))
+        page.wait_for_timeout(400)
+        shot1600 = OUT / f'difficulty-{name}-1600.png'
+        page.screenshot(path=str(shot1600))
+        (DOCS / f'difficulty-{name}-1600.png').write_bytes(shot1600.read_bytes())
         page.set_viewport_size({'width': 1280, 'height': 720})
-        page.screenshot(path=str(OUT / f'difficulty-{name}-1280.png'))
+        shot1280 = OUT / f'difficulty-{name}-1280.png'
+        page.screenshot(path=str(shot1280))
+        (DOCS / f'difficulty-{name}-1280.png').write_bytes(shot1280.read_bytes())
         page.set_viewport_size({'width': 1600, 'height': 900})
 
     # Confirm standard and verify the store + chosen flag.

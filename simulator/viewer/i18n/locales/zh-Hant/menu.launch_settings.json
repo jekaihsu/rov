@@ -8,6 +8,8 @@
     "display": "顯示",
     "interface": "介面"
   },
+  "difficultyScreen": "難度選擇",
+  "difficultyScreenHelp": "重新開啟開場的難度畫面（簡單／標準／真實）。",
   "pad": "輸入裝置",
   "padAuto": "自動偵測手把＋鍵盤",
   "padKeyboard": "只使用鍵盤",

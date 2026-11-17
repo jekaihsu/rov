@@ -74,11 +74,17 @@ export function rotorRate(state, index, dt, memory) {
 }
 
 /**
- * Extra fields of the procedure begin message. Defects are planted only where the context is training or career
- * (a contract, an exam, the story campaign); ``?predive_defect=<kind|none>`` forces one for authors and tests.
+ * Extra fields of the procedure begin message.
+ * - Simple difficulty (`crew: true`): the deck crew reports every check done (`checks:"crew"`); no defect.
+ * - Standard / real: full hands-on checks. Defects only in career, exam, or story campaign.
+ * - ``?predive_defect=<kind|none>`` forces a defect for authors and tests (ignored when crew does the checks).
  */
-export function beginFields(query, random = Math.random) {
+export function beginFields(query, random = Math.random, {crew = false} = {}) {
   const fields = {flow: 'deck'};
+  if (crew) {
+    fields.checks = 'crew';
+    return fields;
+  }
   const forced = query.get('predive_defect');
   if (forced) {
     fields.defect = forced;

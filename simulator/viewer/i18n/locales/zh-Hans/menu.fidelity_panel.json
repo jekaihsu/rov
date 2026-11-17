@@ -1,0 +1,17 @@
+{
+  "title": "拟真设定",
+  "intro": "真实模式与真机一致；辅助项目超出真机能力，可逐项开关。",
+  "presets": {
+    "real": "真实",
+    "standard": "标准",
+    "assisted": "简单",
+    "custom": "自定义"
+  },
+  "presetGroup": "拟真预设",
+  "difficulty": "难度",
+  "exceeds": "超出真机",
+  "exceedsHint": "此项目启用后超出真机能力",
+  "fromUrl": "网址指定",
+  "prev": "◀",
+  "next": "▶"
+}

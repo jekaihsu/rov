@@ -1,7 +1,9 @@
 // Settings section for the fidelity profile: difficulty stepper, preset selector, plus one row per item.
 // Purely a view over fidelity.js; it holds no state of its own and never sends vehicle controls.
 import {getFidelity, fidelityText, DIFFICULTY_ORDER} from './fidelity.js';
-const STRINGS = {
+import {localize} from './i18n/index.js';
+
+const STRINGS = localize('menu.fidelity_panel', {
   title: '擬真設定',
   intro: '真實模式與真機一致；輔助項目超出真機能力，可逐項開關。',
   presets: {real: '真實', standard: '標準', assisted: '簡單', custom: '自訂'},
@@ -12,7 +14,7 @@ const STRINGS = {
   fromUrl: '網址指定',
   prev: '◀',
   next: '▶',
-};
+});
 let serial = 0;
 
 function element(tag, className, text) {

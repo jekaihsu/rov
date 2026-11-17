@@ -53,6 +53,18 @@ test("defects are requested only in career, exam and campaign contexts", () => {
   });
 });
 
+test("simple difficulty asks the crew to do the checks and never plants defects", () => {
+  const random = () => 0.25;
+  assert.deepEqual(
+    beginFields(new URLSearchParams("contract=c1"), random, {crew: true}),
+    {flow: "deck", checks: "crew"},
+  );
+  assert.deepEqual(
+    beginFields(new URLSearchParams("predive_defect=oring_debris"), random, {crew: true}),
+    {flow: "deck", checks: "crew"},
+  );
+});
+
 test("each crew call is announced once", () => {
   const watch = createEventWatch();
   const events = [

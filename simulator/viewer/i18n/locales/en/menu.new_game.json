@@ -1,0 +1,22 @@
+{
+  "title": "Choose difficulty",
+  "confirm": "Confirm",
+  "hours": "Licence exams and logged real hours only count in Real mode.",
+  "navigate": "Move",
+  "reopen": "Difficulty",
+  "reopenHelp": "Reopen the first-run difficulty screen.",
+  "options": {
+    "assisted": {
+      "label": "Simple",
+      "blurb": "Third-person view and station keeping, no video delay. The crew runs the pre-dive checks for you. Best for learning the feel."
+    },
+    "standard": {
+      "label": "Standard",
+      "blurb": "Onboard camera with video delay; depth hold on, station keeping off. Full pre-dive checks. Between Simple and Real."
+    },
+    "real": {
+      "label": "Real",
+      "blurb": "Matches the real vehicle: onboard, delayed video, no assists beyond the hardware. Full pre-dive checks. The hardcore default."
+    }
+  }
+}

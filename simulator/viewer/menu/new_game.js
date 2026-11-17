@@ -1,29 +1,32 @@
 // Full-screen difficulty picker shown once for a fresh player (and reopenable from settings).
 // Left: 簡單／標準／真實 as large vertical options; right: live stage preview pose for that preset;
-// bottom: one-line difference plus the licence-hours note. Only the confirm control uses safety orange.
+// bottom: two–three lines of difference plus the licence-hours note. Only the confirm control uses safety orange.
+// Layout follows docs/design/big-picture/: full-bleed scene, one heavy title, thick ice selection frame, no cards.
 import {DIFFICULTY_ORDER, getFidelity, fidelityText} from '../fidelity.js';
+import {localize} from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('menu.new_game', {
   title: '選擇難度',
   confirm: '確認',
   hours: '考照與真實時數只計算真實模式。',
+  navigate: '移動',
   reopen: '難度選擇',
   reopenHelp: '重新開啟開場的難度畫面。',
   options: {
     assisted: {
       label: '簡單',
-      blurb: '第三人稱與定點輔助、無影像延遲；適合先熟悉手感。',
+      blurb: '第三人稱與定點輔助、無影像延遲。潛前檢查由船員代做。適合先熟悉手感。',
     },
     standard: {
       label: '標準',
-      blurb: '機載視角與影像延遲，定深輔助開、定點關；介於簡單與真實之間。',
+      blurb: '機載視角與影像延遲；定深輔助開、定點關。完整潛前檢查。介於簡單與真實之間。',
     },
     real: {
       label: '真實',
-      blurb: '與真機一致：機載、有延遲、無超出真機的輔助。硬核擬真預設。',
+      blurb: '與真機一致：機載、有延遲、無超出真機的輔助。完整潛前檢查。硬核擬真預設。',
     },
   },
-};
+});
 
 export const DIFFICULTY_CHOSEN_KEY = 'rov.difficulty.chosen.v1';
 // Same jacket site / vehicle as the title backdrop; poses bias the vehicle into the right half.
@@ -92,7 +95,7 @@ export function buildNewGame(ctx) {
   const foot = element('div', 'new-game-foot');
   const blurb = element('p', 'new-game-blurb');
   const hours = element('p', 'new-game-hours', STRINGS.hours);
-  const confirm = element('button', 'new-game-confirm', STRINGS.confirm);
+  const confirm = element('button', 'new-game-confirm bp-primary', STRINGS.confirm);
   confirm.type = 'button';
   confirm.id = 'newGameConfirm';
   foot.append(blurb, hours, confirm);
@@ -162,7 +165,7 @@ export function buildNewGame(ctx) {
     element: root,
     pose: 'new_game_real',
     enter,
-    prompts: [['navigate', '移動'], ['accept', STRINGS.confirm]],
+    prompts: [['navigate', STRINGS.navigate], ['accept', STRINGS.confirm]],
     select,
     get selected() {
       return selected;
