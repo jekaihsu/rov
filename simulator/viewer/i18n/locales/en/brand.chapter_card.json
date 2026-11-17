@@ -1,0 +1,4 @@
+{
+  "chapterCardInDive": "Show chapter title card while diving",
+  "chapterCardInDiveHelp": "In real operations the view is never covered by a title card. When off, the card only appears before launch. When on, it also appears when you switch chapters underwater."
+}

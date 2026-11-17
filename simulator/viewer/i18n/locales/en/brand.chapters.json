@@ -1,0 +1,136 @@
+{
+  "skip": "Press any key to continue",
+  "cardLabel": "Chapter title",
+  "generic": {
+    "number": "Mission",
+    "client": "YX",
+    "sub": "DIVE BRIEF"
+  },
+  "cards": {
+    "prologue": {
+      "number": "Prologue / 00",
+      "client": "YX · Training Centre",
+      "sub": "CHECKOUT DIVE · TRAINING POOL"
+    },
+    "harbor": {
+      "number": "Chapter 1 / 01",
+      "client": "Port authority",
+      "sub": "PILES · CRACK SURVEY"
+    },
+    "hull": {
+      "number": "Chapter 1 / 02",
+      "client": "Shipowner",
+      "sub": "HULL · IN-WATER SURVEY"
+    },
+    "harbor_signoff": {
+      "number": "Chapter 1 / 03",
+      "client": "Port authority · Handover",
+      "sub": "PILES · RE-INSPECTION"
+    },
+    "offshore": {
+      "number": "Chapter 2 / 04",
+      "client": "Offshore platform owner",
+      "sub": "JACKET · MEMBER INSPECTION"
+    },
+    "reef": {
+      "number": "Chapter 3 / 05",
+      "client": "Marine research institute",
+      "sub": "REEF · PHOTO TRANSECT"
+    },
+    "wreck": {
+      "number": "Chapter 4 / 06",
+      "client": "Underwater cultural heritage survey",
+      "sub": "WRECK · SITE SURVEY"
+    },
+    "finale": {
+      "number": "Finale / 07",
+      "client": "Port authority · Night",
+      "sub": "NIGHT RECOVERY"
+    },
+    "incident_jacket": {
+      "number": "Incident drill / E1",
+      "client": "YX · Incident drill",
+      "sub": "DRILL · TRAPPED IN JACKET"
+    },
+    "incident_wreck": {
+      "number": "Incident drill / E2",
+      "client": "YX · Incident drill",
+      "sub": "DRILL · TETHER SNAG"
+    },
+    "incident_silt": {
+      "number": "Incident drill / E3",
+      "client": "YX · Incident drill",
+      "sub": "DRILL · ZERO VISIBILITY"
+    },
+    "incident_compass": {
+      "number": "Incident drill / E4",
+      "client": "YX · Incident drill",
+      "sub": "DRILL · COMPASS DEVIATION"
+    },
+    "incident_current": {
+      "number": "Incident drill / E5",
+      "client": "YX · Incident drill",
+      "sub": "DRILL · CURRENT OVER LIMIT"
+    },
+    "course_b01": {
+      "number": "Beginner course / B01",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · CONTROLS AND LAUNCH GATE"
+    },
+    "course_b02": {
+      "number": "Beginner course / B02",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · TRACK AND DRIFT"
+    },
+    "course_b03": {
+      "number": "Beginner course / B03",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · HARBOUR SURVEY"
+    },
+    "course_b04": {
+      "number": "Beginner course / B04",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · FULL SORTIE"
+    },
+    "course_i01": {
+      "number": "Intermediate course / I01",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · HULL DATA QUALITY"
+    },
+    "course_i02": {
+      "number": "Intermediate course / I02",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · STATION KEEPING"
+    },
+    "course_i03": {
+      "number": "Intermediate course / I03",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · LOW VISIBILITY EXIT"
+    },
+    "course_i04": {
+      "number": "Intermediate course / I04",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · COMPASS FAILURE"
+    },
+    "course_a01": {
+      "number": "Advanced course / A01",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · ABORT DECISION"
+    },
+    "course_a02": {
+      "number": "Advanced course / A02",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · SNAG RECOVERY"
+    },
+    "course_a03": {
+      "number": "Advanced course / A03",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · STRONG CURRENT EXIT"
+    },
+    "course_a04": {
+      "number": "Advanced course / A04",
+      "client": "YX · Training Centre",
+      "sub": "COURSE · FINAL ASSESSMENT"
+    }
+  }
+}
