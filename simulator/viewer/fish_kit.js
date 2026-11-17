@@ -12,8 +12,11 @@
 //   const asset = await loadKitSpecies(species);                  // {full, distance, card, map, cardMap, ...}
 //   mesh.material = kitMaterial(asset, 'full');                   // shared by 'full' and 'distance'
 import * as THREE from 'three';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import {swimMaterial} from './fish_life.js';
 import {siteProfile} from './seabed.js';
+
+await MeshoptDecoder.ready;
 
 const BASE = 'models/fish/';
 // Typical length (m) the model is drawn at; instance scale varies it by +-15 %. Wild school fish at the size
@@ -85,14 +88,35 @@ export function kitDetail() {
 const COMPONENTS = {SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4};
 const ARRAYS = {5126: Float32Array, 5125: Uint32Array, 5123: Uint16Array, 5121: Uint8Array};
 
+const decodedViews = new WeakMap();
+
+// Lossless EXT_meshopt_compression: the accessor stays the kit's float layout.
+// The bufferView's own byteOffset is the decoded logical range and can overlap
+// the atlas, so the compressed bytes are the extension's range.
+function decodedView(view, binary) {
+  const ext = view.extensions && view.extensions.EXT_meshopt_compression;
+  if (!ext) return null;
+  const cached = decodedViews.get(view);
+  if (cached) return cached;
+  const source = new Uint8Array(binary, ext.byteOffset || 0, ext.byteLength);
+  const target = new Uint8Array(ext.count * ext.byteStride);
+  MeshoptDecoder.decodeGltfBuffer(target, ext.count, ext.byteStride, source, ext.mode, ext.filter || 'NONE');
+  decodedViews.set(view, target);
+  return target;
+}
+
 function readAccessor(document, binary, index) {
   const item = document.accessors[index];
   const view = document.bufferViews[item.bufferView];
   const Type = ARRAYS[item.componentType];
+  if (!Type) throw new Error(`fish accessor component type ${item.componentType} is not a kit float/index`);
   const size = COMPONENTS[item.type];
-  const start = (view.byteOffset || 0) + (item.byteOffset || 0);
+  const decoded = decodedView(view, binary);
+  const start = (decoded ? 0 : (view.byteOffset || 0)) + (item.byteOffset || 0);
   const bytes = item.count * size * Type.BYTES_PER_ELEMENT;
-  return {array: new Type(binary.slice(start, start + bytes)), size};
+  const source = decoded ? decoded : new Uint8Array(binary);
+  const raw = source.buffer.slice(source.byteOffset + start, source.byteOffset + start + bytes);
+  return {array: new Type(raw), size};
 }
 
 /**

@@ -10,6 +10,7 @@
 //   each frame: h.update(dt, { pelvis:[0,-.3,0], bend:.6, handL:v3, handR:v3, head:[yaw,pitch] })
 import * as THREE from 'three';
 import { loadGLTF } from './glb.js';
+import { CREW_LOD_DISTANCES, watchLodQuality } from './model_lod.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const MODEL_HEIGHT = 4.84;          // rest height of the source rig (model units)
@@ -105,18 +106,46 @@ function dressModel(model, tint, wanted) {
 }
 
 export class Humanoid {
-  static async load(url) {
+  static async load(url, lodUrls = []) {
     const g = await loadGLTF(url);
-    return { scene: g.scene, animations: g.animations };
+    const lods = [];
+    for (const lodUrl of lodUrls) {
+      try {
+        lods.push((await loadGLTF(lodUrl)).scene);
+      } catch (error) {
+        console.warn(`crew LOD unavailable (${lodUrl})`, error);
+        break;
+      }
+    }
+    return { scene: g.scene, animations: g.animations, lods };
   }
 
   constructor(lib, { height = 1.75, shirt = null, pants = null, skin = null, helmet = null, vest = null } = {}) {
     this.root = new THREE.Group();
     this.model = SkeletonUtils.clone(lib.scene);
     this.model.scale.setScalar(height / MODEL_HEIGHT);
-    this.root.add(this.model);
     const tint = { Shirt: shirt, Pants: pants, Skin: skin, Vest: vest, Helmet: helmet };
-    const ppe = dressModel(this.model, tint, { vest: vest != null, helmet: helmet != null });
+    const wanted = { vest: vest != null, helmet: helmet != null };
+    const ppe = dressModel(this.model, tint, wanted);
+    if (lib.lods && lib.lods.length) {
+      const lod = new THREE.LOD();
+      lod.name = 'CrewLOD';
+      this.model.name = 'LOD0';
+      lod.addLevel(this.model, 0);
+      lib.lods.forEach(function addCrewLod(scene, index) {
+        const clone = scene.clone(true);
+        clone.scale.setScalar(height / MODEL_HEIGHT);
+        clone.name = 'LOD' + (index + 1);
+        dressModel(clone, tint, wanted);
+        const distance = CREW_LOD_DISTANCES[index] ?? CREW_LOD_DISTANCES[CREW_LOD_DISTANCES.length - 1];
+        lod.addLevel(clone, distance);
+      });
+      watchLodQuality(lod);
+      this.root.add(lod);
+      this.lod = lod;
+    } else {
+      this.root.add(this.model);
+    }
     const b = (this.b = {});
     this.model.traverse((o) => { if (o.isBone) b[o.name] = o; });
     this.mixer = new THREE.AnimationMixer(this.model);

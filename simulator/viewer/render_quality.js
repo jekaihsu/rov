@@ -1,6 +1,7 @@
 // Adjust only pixel workload; physics, controls and canvas CSS size stay fixed.
 const profiles=new WeakMap();
 let lastMode=null;
+const qualityListeners=[];
 const positive=value=>Number.isFinite(Number(value))&&Number(value)>0?Number(value):null;
 const clean=value=>typeof value==='string'?value.replace(/[\u0000-\u001f]/g,' ').trim().slice(0,256):'';
 
@@ -59,6 +60,7 @@ export function configureRenderQuality(renderer,mode='auto'){
   const state={mode,...limits,hardware,ratio,elapsed:0,frames:0,stable:0,warmup:3,effectsSuppressed};
   lastMode=mode;
   profiles.set(renderer,state);renderer.shadowMap.enabled=['medium','high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
+  for (const listener of qualityListeners) listener(lastMode);
   return state;
 }
 export function updateRenderQuality(renderer,seconds,{suspended=false}={}){
@@ -96,6 +98,14 @@ export function renderQualityState(renderer) {
 // Without an explicit mode it uses the last configured mode, else the same URL / stored choice the menus use.
 export function assetTextureTier(mode = lastMode ?? storedQualityMode()) {
   return ['high', 'ultra'].includes(mode) ? 'high' : 'standard';
+}
+
+export function currentQualityMode() {
+  return lastMode ?? storedQualityMode();
+}
+
+export function onQualityMode(listener) {
+  qualityListeners.push(listener);
 }
 
 function storedQualityMode() {
