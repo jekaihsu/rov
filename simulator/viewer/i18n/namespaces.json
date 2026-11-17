@@ -25,5 +25,8 @@
   "play.mission_text",
   "play.objective_card",
   "play.results",
-  "play.results_model"
+  "play.results_model",
+  "career.hole_report",
+  "career.chapter2_radio",
+  "career.dive"
 ]

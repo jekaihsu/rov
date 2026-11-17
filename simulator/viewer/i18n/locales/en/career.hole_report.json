@@ -1,0 +1,9 @@
+{
+  "title": "Hole report",
+  "clock": "Clock bearing",
+  "depth": "Depth (metres)",
+  "submit": "Submit report",
+  "hint": "12 o'clock is north at the pen centre. Report a whole-hour bearing and approximate depth.",
+  "clockUnit": "o'clock",
+  "depthUnit": "m"
+}

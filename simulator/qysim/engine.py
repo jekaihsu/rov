@@ -136,6 +136,12 @@ class Simulator:
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear)
             self.world.configure_silt(sc_mod.silt_seabed_type(sc.biome, sc.seabed_type), sc.bnl_height_m, sc.bnl_mg_l)
             self.world.visibility_m = sc.visibility_m
+            # Optional escape-hole attractor for the torn-pen emergency (presentation; soft school bounds).
+            aqua = sc.summary().get("aquaculture") or {}
+            escape = aqua.get("escape") if isinstance(aqua, dict) else None
+            hole_id = escape.get("hole_id") if isinstance(escape, dict) else None
+            hole = next((h for h in (aqua.get("holes") or []) if h.get("id") == hole_id), None)
+            self.world.escape_hole = None if hole is None else list(hole["pos"])
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
         self._flow_accel = FlowAccelerometer()
