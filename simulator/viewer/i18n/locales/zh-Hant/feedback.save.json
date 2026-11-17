@@ -1,0 +1,13 @@
+{
+  "desktopOnly": "僅桌面版可開啟回報資料夾",
+  "errors": {
+    "untrusted": "此頁面無法存取回報功能",
+    "invalid_stamp": "回報時間戳無效",
+    "payload_too_large": "回報內容過大或無效",
+    "screenshot_too_large": "截圖過大",
+    "save_failed": "回報儲存失敗",
+    "open_failed": "無法開啟回報資料夾",
+    "desktop_save_failed": "桌面版儲存失敗",
+    "unknown": "未知錯誤"
+  }
+}
