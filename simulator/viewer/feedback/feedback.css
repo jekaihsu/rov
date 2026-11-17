@@ -1,0 +1,131 @@
+/* Playtest feedback dialog: sits above the pause menu, one short form, no card clutter. */
+.feedback-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 14, 22, 0.72);
+  color: var(--text, #e8f1f4);
+  font: 15px/1.45 "Noto Sans TC", "Segoe UI", sans-serif;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.feedback-dialog[hidden] {
+  display: none !important;
+}
+
+.feedback-panel {
+  width: min(520px, 100%);
+  padding: 28px 28px 22px;
+  background:
+    linear-gradient(160deg, rgba(18, 42, 56, 0.96), rgba(8, 20, 30, 0.98)),
+    radial-gradient(120% 80% at 10% 0%, rgba(255, 122, 47, 0.12), transparent 55%);
+  border: 1px solid rgba(220, 232, 234, 0.16);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.feedback-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.feedback-lead {
+  margin: 0 0 18px;
+  color: rgba(220, 232, 234, 0.78);
+  font-size: 0.95rem;
+}
+
+.feedback-form {
+  display: grid;
+  gap: 10px;
+}
+
+.feedback-label {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(220, 232, 234, 0.62);
+}
+
+.feedback-description,
+.feedback-category {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(220, 232, 234, 0.22);
+  border-radius: 0;
+  font: inherit;
+}
+
+.feedback-description {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.feedback-description:focus,
+.feedback-category:focus {
+  outline: 1px solid var(--accent, #ff7a2f);
+  outline-offset: 2px;
+}
+
+.feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.feedback-submit,
+.feedback-cancel,
+.feedback-folder {
+  font: inherit;
+  cursor: pointer;
+  padding: 10px 16px;
+  border: 0;
+}
+
+.feedback-submit {
+  background: var(--accent, #ff7a2f);
+  color: #140a04;
+  font-weight: 650;
+}
+
+.feedback-cancel,
+.feedback-folder {
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.feedback-submit:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.feedback-status {
+  min-height: 1.2em;
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+}
+
+.feedback-status[data-state='ok'] {
+  color: #9be7c4;
+}
+
+.feedback-status[data-state='err'] {
+  color: #ffb4a2;
+}
+
+@media (max-width: 520px) {
+  .feedback-panel {
+    padding: 22px 18px 16px;
+  }
+}

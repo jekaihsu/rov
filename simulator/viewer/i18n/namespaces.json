@@ -25,5 +25,7 @@
   "play.mission_text",
   "play.objective_card",
   "play.results",
-  "play.results_model"
+  "play.results_model",
+  "feedback.dialog",
+  "feedback.index"
 ]

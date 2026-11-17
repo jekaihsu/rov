@@ -282,7 +282,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     window.rovDesktop?.rememberInput?.(settings);
   }
   addEventListener("keydown", function openSettings(e) {
-    if (e.code === "F8") document.getElementById("inputSettingsButton").click();
+    if (e.code === "F9") document.getElementById("inputSettingsButton").click();
   });
   const panel = installSettings(settings, save, haptics, setMode, refreshRows);
   refreshRows();

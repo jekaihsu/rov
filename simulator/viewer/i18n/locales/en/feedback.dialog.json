@@ -1,0 +1,22 @@
+{
+  "title": "Report a problem",
+  "lead": "Describe the issue in one sentence. A screenshot and the last 60 seconds of state are attached. Files stay on this device and are never uploaded automatically.",
+  "description": "Description",
+  "placeholder": "Example: Right stick does nothing after arming",
+  "category": "Category",
+  "categories": {
+    "visual": "Visual",
+    "feel": "Feel",
+    "crash": "Crash",
+    "text": "Text",
+    "other": "Other"
+  },
+  "submit": "Save report",
+  "cancel": "Cancel",
+  "saving": "Saving…",
+  "savedDesktop": "Saved to the local reports folder",
+  "savedBrowser": "Report ZIP downloaded",
+  "failed": "Save failed: {reason}",
+  "openFolder": "Open reports folder",
+  "required": "Please enter a short description."
+}

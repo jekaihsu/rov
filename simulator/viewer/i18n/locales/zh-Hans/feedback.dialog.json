@@ -1,0 +1,22 @@
+{
+  "title": "回报问题",
+  "lead": "请用一句话描述问题。截图与最近 60 秒状态会一并附上，只存在本机，不会自动上传。",
+  "description": "问题描述",
+  "placeholder": "例如：解锁后右摇杆无反应",
+  "category": "分类",
+  "categories": {
+    "visual": "画面",
+    "feel": "手感",
+    "crash": "死机",
+    "text": "文字",
+    "other": "其他"
+  },
+  "submit": "保存回报",
+  "cancel": "取消",
+  "saving": "正在保存…",
+  "savedDesktop": "已存到本机回报文件夹",
+  "savedBrowser": "已下载回报 ZIP",
+  "failed": "保存失败：{reason}",
+  "openFolder": "打开回报文件夹",
+  "required": "请先写一句描述。"
+}
