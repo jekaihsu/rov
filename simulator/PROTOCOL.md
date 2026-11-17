@@ -962,6 +962,13 @@ load and release semantics apply. New scenario objective kinds are `pen_lap`,
 `pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
 Net visual motion is bounded to 0.05 m and never changes server collision shapes.
 
+### Chapter-1 site variants (optional catalogue keys)
+
+Same clone pattern as the pen variants: geometry, currents and objectives match the base scene; only
+`visibility_m` / name / brief change. Catalogue keys: `harbor_inspection_turbid` (≈1.5 m, Level II
+sampling), `harbor_inspection_signoff` (≈4 m, afternoon sign-off), `hull_inspection_berth` (≈3 m,
+berth fouling rating). Base keys `harbor_inspection` and `hull_inspection` stay unchanged.
+
 ## L1 多語文字（相容性方案，尚未新增 wire 欄位）
 
 本版只在 viewer 翻譯介面文字；語言不改變控制封包、識別碼、SDK、存檔或既有文字欄位。

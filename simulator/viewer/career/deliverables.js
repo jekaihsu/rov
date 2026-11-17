@@ -1,9 +1,11 @@
 // In-dive deliverable tracker of a YX work order: turns the state stream into the contract's checklist —
 // procedure steps, points reached, station keeping, photos with the target in frame, laser-scaler measurements,
 // contact probes (CP / UT), objects lifted with the arm and manual confirmations (LOTO) — plus the contacts,
-// tether overloads, tether wraps and safety violations the score deducts. Pure (no DOM): the dive module feeds it states and photo events.
-// It only reads what the server already sends; scoring here is a presentation layer and never touches physics.
-// Readings (growth thickness, CP potential, wall thickness) are scenario data shown when the work is done.
+// tether overloads, tether wraps and safety violations the score deducts. Pure (no DOM): the dive module feeds
+// it states and photo events. Optional Chapter-1 fields (truth_cm, growth, rating, compare, gate) are stored on
+// the item for overlays and scoring; LOTO unlock gating lives in loto_gate.js.
+
+import { comparePose } from './photo_compare.js';
 
 const STRINGS = {
   offboard: '照片未列入交付：請用機載鏡頭拍攝。',
@@ -20,9 +22,15 @@ const STRINGS = {
   needs: '需要裝備：{item}',
   after: '先完成：{label}',
   last: '完成其他必要項目後回收',
+  rated: '附著評級 FR {n}',
+  angleDrift: '拍攝角度偏離參考',
+  measureSoft: '軟附著 {cm} cm',
+  measureHard: '硬附著 {cm} cm',
+  measurePlain: '{cm} cm',
 };
 // Score points per event: contacts follow qysim/scenarios.py PENALTY; the rest are game values.
 export const PENALTY_POINTS = { touch: 5, hard: 15, severe: 30, overload: 10, wrap: 10 };
+export const ANGLE_DRIFT_POINTS = 5;
 const FACING_DEG = 35;
 const MEASURE_FACING_DEG = 20;
 const ELEVATION_DEG = 60;
@@ -109,13 +117,33 @@ export function conditionMatches(condition, state) {
   return value < condition.value;
 }
 
+function formatMeasureReading(result, def) {
+  const cm = Number(result?.thickness_cm);
+  const shown = Number.isFinite(cm) ? (Math.round(cm * 10) / 10).toFixed(1) : '';
+  if (!shown) return def.reading || '';
+  if (result.growth === 'soft') return format(STRINGS.measureSoft, { cm: shown });
+  if (result.growth === 'hard') return format(STRINGS.measureHard, { cm: shown });
+  return format(STRINGS.measurePlain, { cm: shown });
+}
+
 /**
  * contract: a contracts.json entry; owned: item ids of the career save; itemLabel(id): player name of an item.
- * Returns {observe(state, dt), photo(state, options), confirm(id), snapshot()}.
+ * Returns {observe, photo, confirm, rate, setMeasureResult, snapshot}.
  */
 export function createTracker(contract, { owned = [], itemLabel = String } = {}) {
   const items = (contract.deliverables || []).map(function track(def) {
-    return { def, done: false, progress: 0, reading: '' };
+    return {
+      def,
+      done: false,
+      progress: 0,
+      reading: '',
+      pendingRating: false,
+      rated: null,
+      truthRating: def.rating == null ? null : def.rating,
+      growthPick: '',
+      compareOk: null,
+      thickness_cm: null,
+    };
   });
   const byId = new Map(items.map(function entry(item) {
     return [item.def.id, item];
@@ -125,6 +153,7 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
   const seenEvents = new Set();
   const violated = new Set();
   const wrapped = new Set();
+  const measureResults = new Map();
   let primed = false;
   let warned = false;
   let broken = false;
@@ -145,7 +174,7 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     return null;
   }
   function workable(item) {
-    if (item.done || missingEquipment(item) || blockedBy(item)) return false;
+    if (item.done || item.pendingRating || missingEquipment(item) || blockedBy(item)) return false;
     return item.def.kind !== 'surface' || othersDone(item);
   }
   function hold(item, ok, dt) {
@@ -154,10 +183,82 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
     else item.progress = Math.max(0, item.progress - dt / seconds * 0.5);
     if (item.progress >= 1) finish(item);
   }
-  function finish(item) {
+  function finish(item, extra = {}) {
+    item.progress = 1;
+    if (item.def.kind === 'photo' && item.def.rating != null && extra.rated == null) {
+      // Photo is filed; the checklist row waits until the pilot picks FR0–FR4.
+      item.done = false;
+      item.pendingRating = true;
+      item.truthRating = item.def.rating;
+      item.reading = '';
+      item.photographed = true;
+      if (extra.compare) {
+        item.compareOk = !!extra.compare.ok;
+        if (!extra.compare.ok) {
+          penalties.push({
+            kind: 'quality',
+            label: STRINGS.angleDrift,
+            points: ANGLE_DRIFT_POINTS,
+          });
+        }
+      }
+      return;
+    }
+    item.done = true;
+    if (item.def.kind === 'measure' && measureResults.has(item.def.id)) {
+      const result = measureResults.get(item.def.id);
+      item.reading = formatMeasureReading(result, item.def);
+      item.growthPick = result.growth || '';
+      item.thickness_cm = Number(result.thickness_cm);
+    } else {
+      item.reading = item.def.reading || '';
+    }
+    if (extra.compare) {
+      item.compareOk = !!extra.compare.ok;
+      if (!extra.compare.ok) {
+        penalties.push({
+          kind: 'quality',
+          label: STRINGS.angleDrift,
+          points: ANGLE_DRIFT_POINTS,
+        });
+      }
+    }
+  }
+  function setMeasureResult(id, result) {
+    const item = byId.get(id);
+    if (!item || item.def.kind !== 'measure') return false;
+    measureResults.set(id, {
+      thickness_cm: Number(result?.thickness_cm),
+      growth: result?.growth === 'soft' || result?.growth === 'hard' ? result.growth : '',
+    });
+    if (item.done) {
+      const stored = measureResults.get(id);
+      item.reading = formatMeasureReading(stored, item.def);
+      item.growthPick = stored.growth || '';
+      item.thickness_cm = Number(stored.thickness_cm);
+    }
+    return true;
+  }
+  function rate(id, value) {
+    const item = byId.get(id);
+    if (!item || item.def.kind !== 'photo' || item.def.rating == null) return false;
+    if (!item.photographed && !item.pendingRating && !item.done) return false;
+    const n = Math.max(0, Math.min(4, Math.round(Number(value))));
+    if (!Number.isFinite(n)) return false;
+    item.rated = n;
+    item.truthRating = item.def.rating;
+    item.pendingRating = false;
+    item.reading = format(STRINGS.rated, { n });
     item.done = true;
     item.progress = 1;
-    item.reading = item.def.reading || '';
+    if (item.rated !== item.truthRating) {
+      penalties.push({
+        kind: 'quality',
+        label: format(STRINGS.rated, { n: item.truthRating }),
+        points: Math.min(15, Math.abs(item.rated - item.truthRating) * 5),
+      });
+    }
+    return true;
   }
   function within(state, item, radius) {
     const pos = vector(state.pos);
@@ -254,9 +355,17 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
       return a.result.yaw - b.result.yaw;
     })[0];
     if (hit) {
-      finish(hit.item);
+      const extra = {};
+      if (hit.item.def.compare) extra.compare = comparePose(hit.item.def, state);
+      finish(hit.item, extra);
       const message = format(STRINGS.accepted, { label: hit.item.def.label });
-      return { accepted: hit.item.def.id, reason: '', message };
+      return {
+        accepted: hit.item.def.id,
+        reason: '',
+        message,
+        pendingRating: !!hit.item.pendingRating,
+        compareOk: hit.item.compareOk,
+      };
     }
     // Report the reason for the nearest waiting target.
     const pos = vector(state.pos);
@@ -293,27 +402,32 @@ export function createTracker(contract, { owned = [], itemLabel = String } = {})
         reading: item.reading,
         note: note(item),
         confirmable: item.def.kind === 'confirm' && workable(item),
+        rating: item.rated,
+        truthRating: item.truthRating,
+        pendingRating: !!item.pendingRating,
+        growthPick: item.growthPick || '',
+        compareOk: item.compareOk,
+        truth_cm: item.def.truth_cm == null ? null : item.def.truth_cm,
+        growth: item.def.growth || '',
+        gate: item.def.gate || '',
       };
     });
     const mandatory = list.filter(function isRequired(item) {
       return item.required;
     });
+    function delivered(item) {
+      return item.done && !item.pendingRating;
+    }
     return {
       items: list,
-      done: list.filter(function finished(item) {
-        return item.done;
-      }).length,
+      done: list.filter(delivered).length,
       total: list.length,
-      requiredDone: mandatory.filter(function finished(item) {
-        return item.done;
-      }).length,
+      requiredDone: mandatory.filter(delivered).length,
       requiredTotal: mandatory.length,
-      complete: mandatory.every(function finished(item) {
-        return item.done;
-      }),
+      complete: mandatory.every(delivered),
       penalties: penalties.slice(),
       tetherBroken: broken,
     };
   }
-  return { observe, photo, confirm, snapshot };
+  return { observe, photo, confirm, rate, setMeasureResult, snapshot };
 }

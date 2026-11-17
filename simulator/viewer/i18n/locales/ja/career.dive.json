@@ -1,0 +1,27 @@
+{
+  "card": "YX 作業指示",
+  "meters": "{d} m",
+  "submit": "早期提出",
+  "submitPartial": "再押し：部分提出（約 {pay}）",
+  "submitAbort": "再押し：潜航中止（報酬なし）",
+  "confirm": "確認：{label}",
+  "penalties": "減点項目 {n}",
+  "examOn": "免許試験中 · リアルモード",
+  "examVoid": "試験中に実機を超える設定が有効になったため、今回は免許に計上されません。",
+  "photoSaved": "写真を保存しました。提出後に顧客が確認します。",
+  "lotoLock": "LOTO 未確認のため、スラスターはロックされたままです。",
+  "outcome": {
+    "complete": "委託完了",
+    "partial": "部分提出",
+    "aborted": "潜航中止"
+  },
+  "aborted": "部分提出の基準に達していないため報酬はありません。時間は日誌に記録済みです。",
+  "broken": "テザー破断により機体回収に失敗しました。",
+  "partial": "一部成果を提出し、比例で支払います。",
+  "examPassed": "試験合格：{label}",
+  "examFailed": "試験不合格：{reason}",
+  "rows": {
+    "deliverables": "成果物",
+    "time": "作業時間"
+  }
+}

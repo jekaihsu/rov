@@ -1,0 +1,9 @@
+{
+  "title": "雷射比例尺",
+  "baseline": "基準距 {cm} cm",
+  "thickness": "厚度 {cm} cm",
+  "soft": "軟附著",
+  "hard": "硬附著",
+  "pick": "選附著類型",
+  "needOnboard": "請切回機載畫面量測"
+}

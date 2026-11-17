@@ -53,3 +53,58 @@
 .career-licence .career-bar { margin: .4em 0; }
 .career-unlocks ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .3em; }
 .career-unlocks li { padding-left: .7em; border-left: var(--bp-frame) solid var(--go); }
+
+/* laser scaler overlay (real capability; onboard presentation) */
+.laser-scaler { position: fixed; inset: 0; pointer-events: none; z-index: var(--z-hud); }
+.laser-scaler[hidden] { display: none; }
+.laser-scaler-dots { position: absolute; inset: 0; }
+.laser-scaler-dot { position: absolute; top: 46%; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+  border-radius: 50%; background: #f04438; box-shadow: 0 0 8px #f04438; }
+.laser-scaler-panel { position: absolute; left: 16px; bottom: 88px; min-width: 180px; padding: 10px 12px;
+  background: color-mix(in srgb, var(--bg, #0b1218) 78%, transparent); color: var(--text, #e8f1f5);
+  pointer-events: auto; }
+.laser-scaler-title { margin: 0 0 4px; font-size: 11px; letter-spacing: .12em; color: var(--text-dim); }
+.laser-scaler-baseline, .laser-scaler-thickness, .laser-scaler-pick { margin: 0 0 4px; font-size: 13px; }
+.laser-scaler-actions { display: flex; gap: 8px; margin-top: 6px; }
+.laser-scaler-soft, .laser-scaler-hard { pointer-events: auto; padding: 4px 10px; font: inherit;
+  color: var(--text); background: transparent; border: 1px solid var(--text-dim); cursor: pointer; }
+.laser-scaler-soft[data-on=true], .laser-scaler-hard[data-on=true] { border-color: var(--go, #3dd68c);
+  color: var(--go, #3dd68c); }
+
+/* fouling rating modal */
+.fouling-rating { position: fixed; inset: 0; z-index: calc(var(--z-controls) + 5); display: grid;
+  place-items: center; background: color-mix(in srgb, #000 45%, transparent); }
+.fouling-rating[hidden] { display: none; }
+.fouling-rating-card { width: min(420px, calc(100vw - 32px)); padding: 20px 22px; display: grid; gap: 10px;
+  background: var(--bg, #0b1218); color: var(--text, #e8f1f5); border: 1px solid var(--text-dim); }
+.fouling-rating-title { margin: 0; font-size: 16px; }
+.fouling-rating-lead { margin: 0; color: var(--text-dim); font-size: 13px; }
+.fouling-rating-options { display: grid; gap: 6px; }
+.fouling-rating-option, .fouling-rating-close { font: inherit; text-align: left; padding: 8px 10px;
+  color: var(--text); background: transparent; border: 1px solid var(--text-dim); cursor: pointer; }
+.fouling-rating-option:hover, .fouling-rating-close:hover { border-color: var(--text); }
+
+/* same-angle photo assist (exceedsReal; gated by fidelity) */
+.photo-compare { position: fixed; inset: 12% 18%; z-index: var(--z-subtitle); pointer-events: none;
+  border: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); }
+.photo-compare[hidden] { display: none; }
+.photo-compare[data-ok=false] { border-color: var(--warn, #e3a008); }
+.photo-compare-frame { position: absolute; inset: 8%; border: 1px solid color-mix(in srgb, var(--text) 35%, transparent); }
+.photo-compare-label { position: absolute; left: 8px; top: 4px; margin: 0; font-size: 11px;
+  letter-spacing: .1em; color: var(--text-dim); }
+
+/* chapter event (C1-4 signoff) */
+.chapter-event { position: fixed; inset: 0; z-index: calc(var(--z-story) + 6); display: grid;
+  align-content: end; justify-items: center; padding: 24px; gap: 12px;
+  background: linear-gradient(to top, color-mix(in srgb, #000 70%, transparent), transparent 55%); }
+.chapter-event[hidden] { display: none; }
+.chapter-event-caption { margin: 0; max-width: 52rem; text-align: center; color: var(--text, #e8f1f5);
+  font-size: 16px; line-height: 1.5; }
+.chapter-event-speaker { display: block; margin-bottom: 4px; font-size: 11px; letter-spacing: .14em;
+  color: var(--text-dim); font-weight: 400; }
+.chapter-event-skip, .chapter-event-continue, .chapter-event-note { font: inherit; padding: 6px 14px;
+  color: var(--text); background: transparent; border: 1px solid var(--text-dim); cursor: pointer; }
+.chapter-event-choice { display: grid; gap: 10px; justify-items: center; }
+.chapter-event-choice[hidden] { display: none; }
+.chapter-event-choice-lead { margin: 0; color: var(--text-dim); }
+.chapter-event-choice-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }

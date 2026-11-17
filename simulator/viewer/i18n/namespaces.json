@@ -1,4 +1,10 @@
 [
+  "career.chapter_event",
+  "career.dive",
+  "career.fouling_rating",
+  "career.laser_scaler",
+  "career.photo_compare",
+  "career.radio_bus",
   "hud.assist_pill",
   "hud.flight_hud",
   "hud.osd",
