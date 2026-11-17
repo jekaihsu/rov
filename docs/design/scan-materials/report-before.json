@@ -1,0 +1,776 @@
+{
+  "sand-dark": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      3.0,
+      23.3
+    ],
+    "target_ned": [
+      9.0,
+      4.0,
+      25.0
+    ],
+    "lamp_level": 0,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 257.5633518774519,
+      "target": 257.61973048850683,
+      "meteredLuminance": 0.0002408367272075787,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 63822,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 42,
+      "triangles": 28854,
+      "minMs": 1560,
+      "medianMs": 1917
+    },
+    "tier": "medium"
+  },
+  "sand-lamps": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      3.0,
+      23.3
+    ],
+    "target_ned": [
+      9.0,
+      4.0,
+      25.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 53.007440023085145,
+      "target": 52.91334556944022,
+      "meteredLuminance": 0.0027496825831385546,
+      "whiteBalance": [
+        1.0001687276828808,
+        1,
+        1.0004814270806883
+      ]
+    },
+    "bytes": 67394,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 44,
+      "triangles": 28858,
+      "minMs": 2841,
+      "medianMs": 3030
+    },
+    "tier": "medium"
+  },
+  "sandwide-dark": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      0.0,
+      17.0
+    ],
+    "target_ned": [
+      30.0,
+      8.0,
+      25.0
+    ],
+    "lamp_level": 0,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 170.41506148944814,
+      "target": 170.39913522790198,
+      "meteredLuminance": 0.00045487756914290643,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 43710,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 42,
+      "triangles": 28854,
+      "minMs": 1186,
+      "medianMs": 1470
+    },
+    "tier": "medium"
+  },
+  "sandwide-lamps": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      0.0,
+      17.0
+    ],
+    "target_ned": [
+      30.0,
+      8.0,
+      25.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 87.94081807111027,
+      "target": 87.86281453612274,
+      "meteredLuminance": 0.001260236377303806,
+      "whiteBalance": [
+        1.0018045298078844,
+        1,
+        1.003059931414314
+      ]
+    },
+    "bytes": 47938,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 44,
+      "triangles": 28858,
+      "minMs": 2995,
+      "medianMs": 3033
+    },
+    "tier": "medium"
+  },
+  "mud-dark": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      -8.0,
+      16.3
+    ],
+    "target_ned": [
+      3.0,
+      -7.0,
+      18.0
+    ],
+    "lamp_level": 0,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 8.358659006466878e-05,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 44958,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 54,
+      "triangles": 38442,
+      "minMs": 1435,
+      "medianMs": 1593,
+      "texture": {
+        "imageMB": 9.6,
+        "imageTextures": 15,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "mud-lamps": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      -8.0,
+      16.3
+    ],
+    "target_ned": [
+      3.0,
+      -7.0,
+      18.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 55.12787439438812,
+      "target": 54.93390280464924,
+      "meteredLuminance": 0.002595634771254175,
+      "whiteBalance": [
+        0.9343485838699223,
+        1,
+        1.147291606015834
+      ]
+    },
+    "bytes": 52054,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 56,
+      "triangles": 38446,
+      "minMs": 2623,
+      "medianMs": 2742,
+      "texture": {
+        "imageMB": 9.6,
+        "imageTextures": 16,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "reef-dark": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      6.95,
+      -7.21,
+      13.03
+    ],
+    "target_ned": [
+      8.61,
+      -6.88,
+      13.78
+    ],
+    "lamp_level": 0,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 14.847678924260041,
+      "target": 14.858869420744073,
+      "meteredLuminance": 0.019402881397978498,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 106302,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 61,
+      "triangles": 101507,
+      "minMs": 1440,
+      "medianMs": 1556
+    },
+    "tier": "medium"
+  },
+  "reef-lamps": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      6.95,
+      -7.21,
+      13.03
+    ],
+    "target_ned": [
+      8.61,
+      -6.88,
+      13.78
+    ],
+    "lamp_level": 2,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 6.159364543731092,
+      "target": 6.158783776617277,
+      "meteredLuminance": 0.07521660432061779,
+      "whiteBalance": [
+        1.121206362242822,
+        1,
+        1.1258823698128781
+      ]
+    },
+    "bytes": 99569,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 62,
+      "triangles": 101511,
+      "minMs": 3761,
+      "medianMs": 5335
+    },
+    "tier": "medium"
+  },
+  "jacket1m-dark": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      12.82,
+      -5.23,
+      10.0
+    ],
+    "target_ned": [
+      14.77,
+      -5.23,
+      10.2
+    ],
+    "lamp_level": 0,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 76.80985194383493,
+      "target": 76.86162162575101,
+      "meteredLuminance": 0.0015482091626387957,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 56293,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 51,
+      "triangles": 34550,
+      "minMs": 1428,
+      "medianMs": 1760
+    },
+    "tier": "medium"
+  },
+  "jacket1m-lamps": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      12.82,
+      -5.23,
+      10.0
+    ],
+    "target_ned": [
+      14.77,
+      -5.23,
+      10.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 13.404498412034833,
+      "target": 13.418826809414345,
+      "meteredLuminance": 0.022697385593539086,
+      "whiteBalance": [
+        1.072841601935791,
+        1,
+        1.3605797008919582
+      ]
+    },
+    "bytes": 61044,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 53,
+      "triangles": 34554,
+      "minMs": 5047,
+      "medianMs": 5559
+    },
+    "tier": "medium"
+  },
+  "jacket3m-dark": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      10.82,
+      -5.23,
+      9.6
+    ],
+    "target_ned": [
+      14.77,
+      -5.23,
+      10.2
+    ],
+    "lamp_level": 0,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 79.57188475176167,
+      "target": 79.57359219749341,
+      "meteredLuminance": 0.0014677817538676589,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 54055,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 52,
+      "triangles": 34598,
+      "minMs": 1414,
+      "medianMs": 1730
+    },
+    "tier": "medium"
+  },
+  "jacket3m-lamps": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      10.82,
+      -5.23,
+      9.6
+    ],
+    "target_ned": [
+      14.77,
+      -5.23,
+      10.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 50.19985050580882,
+      "target": 50.13766442281122,
+      "meteredLuminance": 0.002987336507226201,
+      "whiteBalance": [
+        1.0001380541623852,
+        1,
+        1.0001879186487035
+      ]
+    },
+    "bytes": 57130,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 54,
+      "triangles": 34602,
+      "minMs": 2703,
+      "medianMs": 3016
+    },
+    "tier": "medium"
+  },
+  "pile1m-dark": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      19.0,
+      -10.0,
+      8.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      8.2
+    ],
+    "lamp_level": 0,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 77.4437723160664,
+      "target": 77.44392002848052,
+      "meteredLuminance": 0.0015303368877239705,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 51398,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 53,
+      "triangles": 56470,
+      "minMs": 1946,
+      "medianMs": 2042
+    },
+    "tier": "medium"
+  },
+  "pile1m-lamps": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      19.0,
+      -10.0,
+      8.0
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      8.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 15.138768898518434,
+      "target": 15.139512445714304,
+      "meteredLuminance": 0.018852308972567018,
+      "whiteBalance": [
+        1.0033620403650614,
+        1,
+        1.3509763226201323
+      ]
+    },
+    "bytes": 57928,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 56,
+      "triangles": 56474,
+      "minMs": 4559,
+      "medianMs": 5380
+    },
+    "tier": "medium"
+  },
+  "pile3m-dark": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      17.0,
+      -10.0,
+      7.6
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      8.2
+    ],
+    "lamp_level": 0,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 71.84382371289503,
+      "target": 71.91456662845711,
+      "meteredLuminance": 0.0017150626247598162,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 80375,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 55,
+      "triangles": 56478,
+      "minMs": 2334,
+      "medianMs": 2568
+    },
+    "tier": "medium"
+  },
+  "pile3m-lamps": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      17.0,
+      -10.0,
+      7.6
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      8.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 47.98516062496561,
+      "target": 48.04259222489326,
+      "meteredLuminance": 0.0031900952429070577,
+      "whiteBalance": [
+        1.0000384722349551,
+        1,
+        1.0001275830471539
+      ]
+    },
+    "bytes": 74940,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 57,
+      "triangles": 56482,
+      "minMs": 5494,
+      "medianMs": 5533
+    },
+    "tier": "medium"
+  },
+  "scour-dark": {
+    "scenario": "monopile_current",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      -3.0,
+      25.6
+    ],
+    "target_ned": [
+      10.5,
+      -1.0,
+      27.6
+    ],
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 4.532474234448985e-05,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 54545,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 45,
+      "triangles": 38526,
+      "minMs": 2125,
+      "medianMs": 2323
+    },
+    "tier": "medium"
+  },
+  "scour-lamps": {
+    "scenario": "monopile_current",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      -3.0,
+      25.6
+    ],
+    "target_ned": [
+      10.5,
+      -1.0,
+      27.6
+    ],
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 96.54187061657802,
+      "target": 96.3585503692677,
+      "meteredLuminance": 0.001093408695007858,
+      "whiteBalance": [
+        1.015548867022199,
+        1,
+        1.0423689741856808
+      ]
+    },
+    "bytes": 76711,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 47,
+      "triangles": 38530,
+      "minMs": 4910,
+      "medianMs": 6495
+    },
+    "tier": "medium"
+  },
+  "tpsplash-dark": {
+    "scenario": "monopile_current",
+    "seed": 42,
+    "eye_ned": [
+      9.6,
+      0.0,
+      1.6
+    ],
+    "target_ned": [
+      15.0,
+      0.0,
+      2.4
+    ],
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 15.918713928271513,
+      "target": 15.919761470272144,
+      "meteredLuminance": 0.017449708241492997,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 47540,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 56,
+      "triangles": 73960,
+      "minMs": 1537,
+      "medianMs": 1961
+    },
+    "tier": "medium"
+  },
+  "tpsplash-lamps": {
+    "scenario": "monopile_current",
+    "seed": 42,
+    "eye_ned": [
+      9.6,
+      0.0,
+      1.6
+    ],
+    "target_ned": [
+      15.0,
+      0.0,
+      2.4
+    ],
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 10.112612500435713,
+      "target": 10.11726204389211,
+      "meteredLuminance": 0.035048591235186444,
+      "whiteBalance": [
+        1.000015506961241,
+        1,
+        1.0001309842403008
+      ]
+    },
+    "bytes": 57872,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 58,
+      "triangles": 73964,
+      "minMs": 4841,
+      "medianMs": 5824
+    },
+    "tier": "medium"
+  },
+  "jacket-surface": {
+    "jpeg_bytes": 148590,
+    "perf": {
+      "calls": 160,
+      "triangles": 236553,
+      "minMs": 1424,
+      "medianMs": 1687
+    },
+    "tier": "medium",
+    "errors": []
+  },
+  "jacket-deck-under": {
+    "jpeg_bytes": 107920,
+    "perf": {
+      "calls": 137,
+      "triangles": 204042,
+      "minMs": 1083,
+      "medianMs": 1514
+    },
+    "tier": "medium",
+    "errors": []
+  },
+  "monopile-surface": {
+    "jpeg_bytes": 138500,
+    "perf": {
+      "calls": 171,
+      "triangles": 245141,
+      "minMs": 2378,
+      "medianMs": 2607
+    },
+    "tier": "medium",
+    "errors": []
+  },
+  "monopile-platform-under": {
+    "jpeg_bytes": 47057,
+    "perf": {
+      "calls": 131,
+      "triangles": 196456,
+      "minMs": 1566,
+      "medianMs": 1692
+    },
+    "tier": "medium",
+    "errors": []
+  }
+}

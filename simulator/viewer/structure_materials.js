@@ -7,7 +7,12 @@
 //   below 20 m                  sparse soft growth and anemones (light speckle on bare surface)
 // Coverage per band is a material parameter (anodes stay cleaner than the legs, a recently cleaned hull is light).
 // Growth is sampled tri-planar in world space at two scales, so large surfaces do not show a repeating tile.
+// On the medium and high tiers painted steel, concrete and rusty plate also carry CC0 scanned colour and normal
+// maps (scan_materials.js, models/CREDITS.md) on the metre UVs of the tubes: painted steel reads a coating texture
+// whose alpha is the rust propensity, so the paint breaks down to rust where the threshold (older steel, splash
+// zone) lets it; the fouling bands are applied on top.
 import * as THREE from 'three';
+import {SCAN_MEAN, SCAN_TILE, scanTexture} from './scan_materials.js';
 
 const TEXTURE_SIZE = 256;
 let shared = null;
@@ -135,13 +140,24 @@ export function structureTextures() {
 }
 
 // growth coverage per band: [0-8 m, 8-20 m, >20 m]; splash = coating breakdown above the waterline
+// scan: scanned texture set (medium and high); rustAt: coating propensity above which the paint has rusted through
+// (lower = older coat); repeat: texture repeats per UV unit (tubes have metre UVs, quay faces 5 x 3 m panels)
 const PRESETS = {
-  steel: {color: 0x8a8070, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.9, .65, .4], splash: .6},
-  brace: {color: 0x857b6b, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.85, .6, .35], splash: .6},
-  transition: {color: 0xd2a91c, roughness: .55, metalness: .2, coat: 0xd2a91c, cover: [.7, .5, .3], splash: .25},
+  steel: {color: 0x8a8070, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.9, .65, .4], splash: .6,
+    scan: 'coating', rustAt: .55},
+  // monopile below the transition piece: dark grey epoxy coating (the yellow belongs to the transition piece)
+  monopileSteel: {color: 0x6a6a64, roughness: .8, metalness: .25, coat: 0x55585a, cover: [.9, .65, .4], splash: .6,
+    scan: 'coating', rustAt: .6},
+  brace: {color: 0x857b6b, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.85, .6, .35], splash: .6,
+    scan: 'coating', rustAt: .5},
+  transition: {color: 0xd2a91c, roughness: .55, metalness: .2, coat: 0xd2a91c, cover: [.7, .5, .3], splash: .25,
+    scan: 'coating', rustAt: .88},
   anode: {color: 0xb4b4ac, roughness: .9, metalness: .1, coat: 0xb4b4ac, cover: [.2, .12, .08], splash: 0},
   concrete: {color: 0xffffff, roughness: .95, metalness: 0, coat: 0x9a968a, cover: [.75, .55, .35], splash: .1,
-    map: 'concrete'},
+    map: 'concrete', scan: 'concrete', scanColor: 0xf4f2ec, repeat: [5 / SCAN_TILE.concrete, 3 / SCAN_TILE.concrete]},
+  // harbour piles: wet concrete on metre UVs
+  pileConcrete: {color: 0x8f8b80, roughness: .9, metalness: 0, coat: 0x9a968a, cover: [.85, .6, .4], splash: .15,
+    scan: 'concrete', scanColor: 0xd8d4ca},
   rubber: {color: 0xffffff, roughness: .85, metalness: 0, coat: 0x1d1e1f, cover: [.35, .25, .15], splash: 0,
     map: 'rubber'},
   hull: {color: 0x7b2f25, roughness: .7, metalness: .15, coat: 0x23272c, cover: [.45, .3, .2], splash: .15,
@@ -150,11 +166,37 @@ const PRESETS = {
     map: 'plating'},
   bronze: {color: 0xa8854a, roughness: .45, metalness: .8, coat: 0xa8854a, cover: [.15, .1, .1], splash: 0},
   steelPlate: {color: 0x6c6a64, roughness: .75, metalness: .35, coat: 0x6c6a64, cover: [.7, .5, .35], splash: .3,
-    map: 'plating'},
+    map: 'plating', scan: 'rust', scanColor: 0xe6ddd2},
   tiles: {color: 0xffffff, roughness: .3, metalness: 0, coat: 0xffffff, cover: [0, 0, 0], splash: 0, map: 'tiles'},
   rock: {color: 0x77736a, roughness: 1, metalness: 0, coat: 0x77736a, cover: [.6, .45, .3], splash: 0},
   ladder: {color: 0x8a8580, roughness: .6, metalness: .5, coat: 0xb8b2a6, cover: [.6, .4, .3], splash: .4},
+  // galvanised perforated walkway above the water: alpha-tested, both sides, light passes through the holes
+  grating: {color: 0xd8dadb, roughness: .55, metalness: .45, coat: 0xd8dadb, cover: [0, 0, 0], splash: .2,
+    scan: 'grating', scanColor: 0xd8dadb, alphaTest: .5},
 };
+
+// Painted steel: paint (coat colour times the scanned paint luminance) or the scan's rust where the coating's rust
+// propensity exceeds uRustAt; the splash zone breaks down sooner. Other scan sets are plain colour maps.
+const SCAN_MAP = `
+  #ifdef SCAN_COAT
+  {
+    vec4 coatTexel = texture2D(map, vMapUv);
+    float coatBreak = uRustAt - (1.0 - vFoulBand.z) * uSplash * 0.3;
+    float coatRust = smoothstep(coatBreak, coatBreak + 0.12, coatTexel.a);
+    // RGB holds rust colour wherever the coat can break down (alpha > 0): paint shading only where it is paint
+    float coatShade = mix(coatTexel.g * ${(1 / SCAN_MEAN).toFixed(4)}, 1.0, smoothstep(0.02, 0.08, coatTexel.a));
+    vec3 coatPaint = uCoat * coatShade;
+    diffuseColor.rgb = mix(coatPaint, coatTexel.rgb, coatRust);
+  }
+  #else
+  #include <map_fragment>
+  #endif`;
+
+// Scanned roughness rides in the normal map's alpha.
+const SCAN_ROUGHNESS = `#include <roughnessmap_fragment>
+  #ifdef SCAN_ROUGH
+  roughnessFactor = mix(roughnessFactor, texture2D(normalMap, vNormalMapUv).a, 0.7);
+  #endif`;
 
 function foulingShader(params, textures) {
   const uniforms = {
@@ -164,6 +206,7 @@ function foulingShader(params, textures) {
     uCoat: {value: new THREE.Color(params.coat)},
     uBoot: {value: new THREE.Color(params.boot ?? params.coat)},
     uHasBoot: {value: params.boot ? 1 : 0},
+    uRustAt: {value: params.rustAt ?? 1},
   };
   return function onBeforeCompile(shader) {
     Object.assign(shader.uniforms, uniforms);
@@ -197,6 +240,9 @@ function foulingShader(params, textures) {
         vec3 growth = vec3(0.12, 0.13, 0.1) * band0 + vec3(0.52, 0.5, 0.44) * (1.0 - band0 - band2)
           + vec3(0.68, 0.64, 0.6) * band2;
         float above = (1.0 - uHasBoot) * (1.0 - wet);
+        #ifdef SCAN_COAT
+        above = 0.0;   // the scanned coating already shows the paint above the water
+        #endif
         vFoulTint = vec4(mix(growth, uCoat, above), max(cover * 0.75, above));
       }
       #include <project_vertex>`);
@@ -210,6 +256,7 @@ function foulingShader(params, textures) {
       uniform vec3 uCoat;
       uniform vec3 uBoot;
       uniform float uHasBoot;
+      uniform float uRustAt;
       float foulHash(float n) {
         return fract(sin(n) * 43758.5453);
       }
@@ -230,7 +277,8 @@ function foulingShader(params, textures) {
         vec2 uv = n.y > max(n.x, n.z) ? p.xz : (n.x > n.z ? p.zy : p.xy);
         return texture2D(uFouling, uv).rgb;
       }
-      ` + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      ` + shader.fragmentShader.replace('#include <roughnessmap_fragment>', SCAN_ROUGHNESS)
+      .replace('#include <map_fragment>', `${SCAN_MAP}
       #if FOUL_QUALITY < 2
       {
         // Medium: no texture read, but a cheap two-octave value noise breaks the per-vertex tint into patches
@@ -264,11 +312,29 @@ function foulingShader(params, textures) {
         diffuseColor.rgb = mix(diffuseColor.rgb, rust, splash * clamp(fine.b * 2.0 + coarse.r * 0.5, 0.0, 1.0));
         diffuseColor.rgb = mix(diffuseColor.rgb, uBoot, vFoulPaint.x);
         diffuseColor.rgb = mix(diffuseColor.rgb, uCoat, vFoulPaint.y);
+        #ifndef SCAN_COAT
         float coatAbove = (1.0 - uHasBoot) * (1.0 - wet);
         diffuseColor.rgb = mix(diffuseColor.rgb, uCoat * (0.8 + 0.3 * coarse.r), coatAbove * (1.0 - splash * fine.b));
+        #endif
       }
       #endif`);
   };
+}
+
+/** Scanned colour and normal (roughness in alpha) maps; painted steel reads its colour through SCAN_COAT. */
+function addScanMaps(material, params, normals = true, detail = 'medium') {
+  const repeat = params.repeat ?? 1 / SCAN_TILE[params.scan];
+  material.map = scanTexture(`${params.scan}_c`, {repeat, mask: !!params.alphaTest}, function assignMap(texture) {
+    material.map = texture;
+  });
+  material.color.setHex(params.scanColor ?? 0xffffff);   // raw scan colour, tinted
+  if (!normals) return;
+  const size = detail === 'high' ? 0 : 512;      // medium: half-resolution relief
+  material.normalMap = scanTexture(`${params.scan}_n`, {repeat, size}, function assignNormal(texture) {
+    material.normalMap = texture;
+  });
+  material.defines.SCAN_ROUGH = 1;
+  if (params.scan === 'coating') material.defines.SCAN_COAT = 1;
 }
 
 /**
@@ -283,8 +349,8 @@ export function structureMaterial(kind, detail = 'medium') {
   const textures = structureTextures();
   const material = new THREE.MeshStandardMaterial({
     color: params.color, roughness: params.roughness, metalness: params.metalness,
-    // texture maps (panel joints, plating seams) only on high; pool tiles always
-    map: params.map && (detail === 'high' || kind === 'tiles') ? textures[params.map] : null,
+    // canvas maps (panel joints, plating seams) only on high; pool tiles always; scan sets replace them
+    map: params.map && !params.scan && (detail === 'high' || kind === 'tiles') ? textures[params.map] : null,
   });
   if (detail === 'low') {
     // low tier: no fouling shader, the base colour is pre-mixed toward the mid-depth growth tone
@@ -292,7 +358,16 @@ export function structureMaterial(kind, detail = 'medium') {
   } else {
     material.onBeforeCompile = foulingShader(params, textures);
     material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};
-    material.customProgramCacheKey = () => `structure-fouling-v5-${material.defines.FOUL_QUALITY}`;
+    if (params.scan) addScanMaps(material, params, true, detail);
+    material.customProgramCacheKey = function foulingProgramKey() {
+      return `structure-fouling-v6-${material.defines.FOUL_QUALITY}-${params.scan ? params.scan : '-'}`;
+    };
+  }
+  if (params.alphaTest) {
+    material.alphaTest = params.alphaTest;
+    material.side = THREE.DoubleSide;
+    // the holes are the point of a grating: its colour and alpha map is read on every tier
+    if (detail === 'low') addScanMaps(material, params, false);
   }
   material.userData.structureKind = kind;
   return material;
