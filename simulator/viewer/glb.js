@@ -8,7 +8,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const isGlb = (buf) => buf.byteLength > 12 && new TextDecoder().decode(new Uint8Array(buf, 0, 4)) === 'glTF';
 
-async function fetchGlb(url) {
+export async function fetchGlb(url) {
   try {
     const r = await fetch(url);
     if (r.ok) { const buf = await r.arrayBuffer(); if (isGlb(buf)) return buf; }

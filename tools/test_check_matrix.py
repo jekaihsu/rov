@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from check_matrix import DEFAULT_CHECKS, browser_checks, changed_paths, unit_checks
+from check_matrix import DEFAULT_CHECKS, SCRIPT_TIMEOUTS, browser_checks, changed_paths, unit_checks
 
 
 class SelectionTests(unittest.TestCase):
@@ -26,6 +26,12 @@ class SelectionTests(unittest.TestCase):
     def test_backend_with_viewer_uses_whole_tier(self):
         paths = ['simulator/qysim/server.py', 'simulator/viewer/hud/osd.js']
         self.assertEqual(browser_checks('full', paths), list(DEFAULT_CHECKS))
+
+    def test_input_changes_run_the_playstation_walk(self):
+        selected = browser_checks('full', ['simulator/viewer/input/devices.js'])
+        self.assertIn('browser_playstation_smoke', selected)
+        self.assertGreater(SCRIPT_TIMEOUTS['browser_playstation_smoke'], 900)
+        self.assertTrue(set(SCRIPT_TIMEOUTS) <= set(DEFAULT_CHECKS))
 
     def test_docs_and_empty_diff(self):
         for paths in ([], ['docs/ci/timings.md']):

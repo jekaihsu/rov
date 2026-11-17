@@ -1066,6 +1066,7 @@ async function startIntro(held = false) {
   if (!wasPaused && !held) send({ type: 'pause', value: true });
   intro.play(rovG, camera, () => {
     endIntroUI();
+    intro?.dispose();                           // the spool station holds station from here on (deploy_intro.js)
     target.init = false;                        // snap back to the simulated pose
     if (!wasPaused) send({ type: 'pause', value: false });
   });
@@ -1275,7 +1276,7 @@ function frame(now) {
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
-  spoolStation.update(dt, !!intro);                            // the intro brings its own boat
+  spoolStation.update(dt, !!intro?.onScene);                   // the intro brings its own boat while it plays
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);

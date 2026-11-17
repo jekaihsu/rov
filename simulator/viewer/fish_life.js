@@ -128,7 +128,11 @@ const FLANK_EXPONENT = 2.6;          // superellipse cross-section: compressed b
 const SHEEN_METALNESS = 0.5;
 const SHEEN_ROUGHNESS = 0.38;
 const BODY_ROUGHNESS = 0.55;
-const PROGRAM_KEY = 'fish-swim-v1';
+// Photographed skin is rounder and more detailed than the procedural flanks, so far more of it faces a lamp near
+// the camera: a rougher skin keeps the lamp's reflection a sheen instead of a white coat, and only the silver
+// flank (SHEEN_*) gives the sharp flash.
+const PHOTO_ROUGHNESS = 0.85;
+const PROGRAM_KEY = 'fish-swim-v2';
 
 function profileAt(profile, s) {
   for (let i = 1; i < profile.length; i++) {
@@ -327,16 +331,22 @@ export function fishGeometry(name, detailName = 'medium') {
 const SWIM_VERTEX_PARS = /* glsl */ `
   attribute vec3 aSwim;
   attribute float aSheen;
+  #ifdef FISH_CARD
+    attribute float aCard;
+  #endif
   varying float vFishSheen;
   uniform vec4 uFishBody;
+  uniform vec3 uFishEnv;
   // Lateral offset of the body at this vertex and its slope along the body (travelling wave plus turn bend).
+  // s runs from the snout (0) to the tail tip (1); the amplitude envelope is uFishEnv.x + .y s + .z s^2 body
+  // lengths, scaled per fish by aSwim.y; the wave number is uFishBody.w (2 pi / wavelength in body lengths).
   vec2 fishSwim(vec3 p) {
     float s = clamp((uFishBody.x - p.z) / uFishBody.y, 0.0, 1.0);
-    float envelope = uFishBody.z * aSwim.y * (0.18 + 0.82 * s * s);
+    float envelope = aSwim.y * (uFishEnv.x + uFishEnv.y * s + uFishEnv.z * s * s);
     float travel = aSwim.x - uFishBody.w * s;
     float bend = aSwim.z * (s - 0.3) * (s - 0.3);
     float lateral = uFishBody.y * (envelope * sin(travel) + bend);
-    float dEnvelope = uFishBody.z * aSwim.y * 1.64 * s;
+    float dEnvelope = aSwim.y * (uFishEnv.y + 2.0 * uFishEnv.z * s);
     float dLateral = uFishBody.y * (dEnvelope * sin(travel) - envelope * uFishBody.w * cos(travel) +
       2.0 * aSwim.z * (s - 0.3));
     return vec2(lateral, -dLateral / uFishBody.y);
@@ -347,26 +357,57 @@ const SWIM_NORMAL = /* glsl */ `
   vec2 fishWave = fishSwim(position);
   objectNormal = normalize(vec3(objectNormal.x, objectNormal.y, objectNormal.z - fishWave.y * objectNormal.x));
 `;
+// Far cards (fish_kit.js cardGeometry): a side card in the mid plane and a top card in the horizontal plane. Each
+// folds away where it would be seen edge on, so neither shows as a line across the other: the top card narrows to
+// nothing unless the camera is well above or below the fish, the side card flattens when it looks straight down.
+const CARD_FOLD = /* glsl */ `
+  #ifdef FISH_CARD
+    vec4 cardOrigin = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+    vec3 cardUp = normalize((modelMatrix * instanceMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+    float cardAbove = abs(dot(normalize(cameraPosition - cardOrigin.xyz), cardUp));
+    if (aCard > 0.5) transformed.x *= smoothstep(0.35, 0.7, cardAbove);
+    else transformed.y *= 1.0 - smoothstep(0.85, 0.97, cardAbove);
+  #endif
+`;
 const SWIM_POSITION = /* glsl */ `
   #include <begin_vertex>
+  ${CARD_FOLD}
   transformed.x += fishSwim(position).x;
   vFishSheen = aSheen;
 `;
+// Photo-textured fish (fish_kit.js): the texture is a photograph of a fish, so silver scales are near white in
+// it. In water a silver flank is a dark diffuse surface with a mirror on top (see the albedo notes above): grey,
+// unsaturated texels on the flank (aSheen) lose most of their diffuse albedo and become the metallic reflector,
+// which only flashes where a lamp is close and faces the flank. uFishPhoto: (overall albedo, silver albedo).
+const PHOTO_FRAGMENT = /* glsl */ `
+  #include <map_fragment>
+  float fishSilver = vFishSheen;
+  #ifdef FISH_PHOTO
+    float fishLuma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    float fishChroma = (max(diffuseColor.r, max(diffuseColor.g, diffuseColor.b)) -
+      min(diffuseColor.r, min(diffuseColor.g, diffuseColor.b))) / max(fishLuma, 0.02);
+    fishSilver = vFishSheen * smoothstep(0.08, 0.45, fishLuma) * (1.0 - smoothstep(0.15, 0.75, fishChroma));
+    diffuseColor.rgb *= uFishPhoto.x * mix(1.0, uFishPhoto.y, fishSilver);
+  #endif
+`;
 const SHEEN_FRAGMENT = /* glsl */ `
   #include <metalnessmap_fragment>
-  metalnessFactor = mix(metalnessFactor, ${SHEEN_METALNESS.toFixed(3)}, vFishSheen);
+  metalnessFactor = mix(metalnessFactor, ${SHEEN_METALNESS.toFixed(3)}, fishSilver);
 `;
 const SHEEN_ROUGH = /* glsl */ `
   #include <roughnessmap_fragment>
-  roughnessFactor = mix(roughnessFactor, ${SHEEN_ROUGHNESS.toFixed(3)}, vFishSheen);
+  roughnessFactor = mix(roughnessFactor, ${SHEEN_ROUGHNESS.toFixed(3)}, fishSilver);
 `;
 
 function compileFish(shader) {
   shader.uniforms.uFishBody = this.userData.fishBody;
+  shader.uniforms.uFishEnv = this.userData.fishEnv;
+  shader.uniforms.uFishPhoto = this.userData.fishPhoto;
   shader.vertexShader = SWIM_VERTEX_PARS + shader.vertexShader
     .replace('#include <beginnormal_vertex>', SWIM_NORMAL)
     .replace('#include <begin_vertex>', SWIM_POSITION);
-  shader.fragmentShader = 'varying float vFishSheen;\n' + shader.fragmentShader
+  shader.fragmentShader = 'varying float vFishSheen;\nuniform vec2 uFishPhoto;\n' + shader.fragmentShader
+    .replace('#include <map_fragment>', PHOTO_FRAGMENT)
     .replace('#include <metalnessmap_fragment>', SHEEN_FRAGMENT)
     .replace('#include <roughnessmap_fragment>', SHEEN_ROUGH);
 }
@@ -375,33 +416,65 @@ function fishProgramKey() {
   return PROGRAM_KEY;
 }
 
-/** Material for one species: vertex colours, flank sheen and the swimming wave. `tint` multiplies the colours. */
-export function fishMaterial(name, tint = 0xffffff) {
-  const species = SPECIES[name];
-  const material = new THREE.MeshStandardMaterial({color: tint, vertexColors: true, roughness: BODY_ROUGHNESS,
-    metalness: 0.04, side: THREE.FrontSide});
-  const wave = (Math.PI * 2) / species.waveLength;
-  material.userData.fishBody = {value: new THREE.Vector4(species.length / 2, species.length, species.wave, wave)};
+/**
+ * Swimming fish material. `body` is {snout, length, wave} (snout z of the unscaled body in metres, body length
+ * in metres, wave number 2 pi / wavelength in body lengths), `envelope` the tail-wave amplitude [c0, c1, c2] in
+ * body lengths. With `map` the material draws a photo-textured body (alpha cut, both sides); `photo` is
+ * [overall albedo, silver albedo] for it. `card` folds the crossed far cards (needs the `aCard` attribute).
+ */
+export function swimMaterial({body, envelope, map = null, photo = [1, 1], tint = 0xffffff, card = false}) {
+  const material = new THREE.MeshStandardMaterial({color: tint, vertexColors: !map,
+    roughness: map ? PHOTO_ROUGHNESS : BODY_ROUGHNESS,
+    metalness: 0.04, side: map ? THREE.DoubleSide : THREE.FrontSide, map, alphaTest: map ? 0.5 : 0});
+  material.userData.fishBody = {value: new THREE.Vector4(body.snout, body.length, 1, body.wave)};
+  material.userData.fishEnv = {value: new THREE.Vector3(...envelope)};
+  material.userData.fishPhoto = {value: new THREE.Vector2(...photo)};
+  if (map) material.defines = {...material.defines, FISH_PHOTO: ''};
+  if (card) material.defines = {...material.defines, FISH_CARD: ''};
   material.onBeforeCompile = compileFish;
   material.customProgramCacheKey = fishProgramKey;
   return material;
 }
 
-/** Instanced mesh with its own per-fish swim attribute (phase, amplitude, bend) over a shared body. */
-export function createFishMesh(body, material, count) {
+/** Material for one procedural species: vertex colours, flank sheen and the swimming wave. `tint` multiplies. */
+export function fishMaterial(name, tint = 0xffffff) {
+  const species = SPECIES[name];
+  // Envelope 0.18 at the snout growing with s^2 to the full amplitude at the tail, as before.
+  const body = {snout: species.length / 2, length: species.length, wave: (Math.PI * 2) / species.waveLength};
+  return swimMaterial({body, envelope: [0.18 * species.wave, 0, 0.82 * species.wave], tint});
+}
+
+function instancedBody(body, swim) {
   const geometry = new THREE.BufferGeometry();
   for (const [key, attribute] of Object.entries(body.attributes)) geometry.setAttribute(key, attribute);
   geometry.setIndex(body.index);
-  geometry.boundingBox = null;
+  geometry.setAttribute('aSwim', swim);
+  geometry.userData.fishSpecies = body.userData.fishSpecies;
+  return geometry;
+}
+
+/** Instanced mesh with its own per-fish swim attribute (phase, amplitude, bend) over a shared body. */
+export function createFishMesh(body, material, count) {
   const swim = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
   swim.setUsage(THREE.DynamicDrawUsage);
   for (let i = 0; i < count; i++) swim.setXYZ(i, i * 2.39996, 1, 0);
-  geometry.setAttribute('aSwim', swim);
-  geometry.userData.fishSpecies = body.userData.fishSpecies;
-  const mesh = new THREE.InstancedMesh(geometry, material, count);
+  const mesh = new THREE.InstancedMesh(instancedBody(body, swim), material, count);
   mesh.frustumCulled = false;
   mesh.userData.fish = true;
   return mesh;
+}
+
+/**
+ * Give an instanced fish mesh another body and material (a loaded model in place of the procedural stand-in);
+ * instances, per-fish swim values and colours stay. The old per-mesh geometry wrapper and material are disposed;
+ * the shared body attributes are not.
+ */
+export function replaceFishBody(mesh, body, material) {
+  const previous = mesh.geometry;
+  mesh.geometry = instancedBody(body, previous.attributes.aSwim);
+  previous.dispose();
+  if (mesh.material !== material) mesh.material.dispose();
+  mesh.material = material;
 }
 
 // School motion
@@ -420,11 +493,11 @@ const HEADING_RATE = 2.2;            // how fast a fish's heading follows its sw
 /**
  * Per-fish motion state for a school. `fish` is the list the caller places ({offset, phase, scale}); the state
  * adds a slow wander, an avoid displacement and a startle level, and keeps heading and tail-beat phase.
+ * `species` is a SPECIES name or any object with the body `length` in metres (fish_kit.js species).
  */
-export function createSchoolMotion(fish, speciesName, random = Math.random) {
-  const species = SPECIES[speciesName];
+export function createSchoolMotion(fish, species, random = Math.random) {
   return {
-    species,
+    species: typeof species === 'string' ? SPECIES[species] : species,
     fish: fish.map(function initialState(item) {
       return {
         item,
@@ -497,7 +570,7 @@ const instanceColour = new THREE.Color();
 function writeInstance(mesh, index, item) {
   mesh.setMatrixAt(index, matrix);
   mesh.geometry.attributes.aSwim.setXYZ(index, swimValue[0], swimValue[1], swimValue[2]);
-  if (item.colour && mesh.instanceColor) mesh.setColorAt(index, instanceColour.setHex(item.colour));
+  if (item.colour !== undefined && mesh.instanceColor) mesh.setColorAt(index, instanceColour.set(item.colour));
 }
 
 function finishMesh(mesh, count) {
@@ -519,41 +592,14 @@ export function meshSink(mesh) {
   };
 }
 
-/**
- * Near / far level of detail for big schools: fish within `split` metres of the eye go to `near` (full body, at
- * most near.instanceMatrix.count of them), the rest to `far` (cheap body). Both meshes are drawn every frame.
- */
-export function lodSink(near, far, eye, split) {
-  let nearCount = 0;
-  let farCount = 0;
-  const nearLimit = near.instanceMatrix.count;
-  return {
-    put(i, distance, item) {
-      if (distance < split && nearCount < nearLimit) {
-        writeInstance(near, nearCount, item);
-        nearCount++;
-      } else {
-        writeInstance(far, farCount, item);
-        farCount++;
-      }
-    },
-    end() {
-      finishMesh(near, nearCount);
-      finishMesh(far, farCount);
-      nearCount = 0;
-      farCount = 0;
-    },
-    eye,
-  };
-}
-
 const swimValue = [0, 1, 0];
 
 /**
  * Move one school's instances. `placeFish(item, t, position, euler)` gives the fish's slot (school layout,
  * server centre) and base heading; `base` is the school's speed through the water (m/s). `vehicle` is
- * {position, velocity, lamps} in three space or null. `target` is an instanced mesh or a sink (meshSink,
- * lodSink); it receives the instance matrices, swim attributes and per-fish colours.
+ * {position, velocity, lamps} in three space or null. `target` is an instanced mesh or a sink (meshSink, or
+ * any {put(i, distance, item, matrix, swim), end(count), eye?}); it receives the instance matrices, swim values
+ * [phase, amplitude, bend] and per-fish colours.
  */
 export function updateSchoolMotion(motion, target, dt, t, placeFish, base, vehicle) {
   const sink = target.isInstancedMesh ? meshSink(target) : target;
@@ -596,7 +642,7 @@ export function updateSchoolMotion(motion, target, dt, t, placeFish, base, vehic
     const roll = THREE.MathUtils.clamp(-state.turn * 0.35, -0.4, 0.4) + state.tilt * 0.5;
     rotation.setFromEuler(motionEuler.set(state.pitch, state.heading, roll));
     matrix.compose(placed, rotation, scaleVector.setScalar(item.scale));
-    sink.put(i, sink.eye ? placed.distanceTo(sink.eye) : 0, item);
+    sink.put(i, sink.eye ? placed.distanceTo(sink.eye) : 0, item, matrix, swimValue);
   });
   sink.end(motion.fish.length);
 }

@@ -1,0 +1,734 @@
+{
+  "sand-lamps-performance": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      3.0,
+      23.3
+    ],
+    "target_ned": [
+      9.0,
+      4.0,
+      25.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": null,
+    "bytes": 52348,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 37,
+      "triangles": 26804,
+      "minMs": 230,
+      "medianMs": 237,
+      "texture": {
+        "imageMB": 9.1,
+        "imageTextures": 15,
+        "targetsMB": 0
+      }
+    },
+    "tier": "performance"
+  },
+  "mud-lamps-performance": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      -8.0,
+      16.3
+    ],
+    "target_ned": [
+      3.0,
+      -7.0,
+      18.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": null,
+    "bytes": 43023,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 49,
+      "triangles": 36104,
+      "minMs": 318,
+      "medianMs": 319,
+      "texture": {
+        "imageMB": 9.1,
+        "imageTextures": 15,
+        "targetsMB": 0
+      }
+    },
+    "tier": "performance"
+  },
+  "reef-lamps-performance": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      6.95,
+      -7.21,
+      13.03
+    ],
+    "target_ned": [
+      8.61,
+      -6.88,
+      13.78
+    ],
+    "lamp_level": 2,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": null,
+    "bytes": 68643,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 50,
+      "triangles": 46078,
+      "minMs": 312,
+      "medianMs": 347,
+      "texture": {
+        "imageMB": 9.4,
+        "imageTextures": 16,
+        "targetsMB": 0
+      }
+    },
+    "tier": "performance"
+  },
+  "jacket3m-lamps-performance": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      10.82,
+      -5.23,
+      9.6
+    ],
+    "target_ned": [
+      14.77,
+      -5.23,
+      10.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": null,
+    "bytes": 52745,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 46,
+      "triangles": 31140,
+      "minMs": 286,
+      "medianMs": 300,
+      "texture": {
+        "imageMB": 9.1,
+        "imageTextures": 15,
+        "targetsMB": 0
+      }
+    },
+    "tier": "performance"
+  },
+  "pile3m-lamps-performance": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      17.0,
+      -10.0,
+      7.6
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      8.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": null,
+    "bytes": 67139,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 51,
+      "triangles": 39524,
+      "minMs": 393,
+      "medianMs": 434,
+      "texture": {
+        "imageMB": 13.6,
+        "imageTextures": 16,
+        "targetsMB": 0
+      }
+    },
+    "tier": "performance"
+  },
+  "scour-lamps-performance": {
+    "scenario": "monopile_current",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      -3.0,
+      25.6
+    ],
+    "target_ned": [
+      10.5,
+      -1.0,
+      27.6
+    ],
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "water_type": "shelf",
+    "exposure": null,
+    "bytes": 55045,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 40,
+      "triangles": 36264,
+      "minMs": 245,
+      "medianMs": 245,
+      "texture": {
+        "imageMB": 9.1,
+        "imageTextures": 15,
+        "targetsMB": 0
+      }
+    },
+    "tier": "performance"
+  },
+  "monopile-surface-performance": {
+    "jpeg_bytes": 95078,
+    "perf": {
+      "calls": 78,
+      "triangles": 105197,
+      "minMs": 468,
+      "medianMs": 538,
+      "texture": {
+        "imageMB": 45.3,
+        "imageTextures": 29,
+        "targetsMB": 0
+      }
+    },
+    "tier": "performance",
+    "errors": []
+  },
+  "sand-lamps-medium": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      3.0,
+      23.3
+    ],
+    "target_ned": [
+      9.0,
+      4.0,
+      25.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 53.01542781466471,
+      "target": 52.911705576649055,
+      "meteredLuminance": 0.002749813701347522,
+      "whiteBalance": [
+        1.0001678973563861,
+        1,
+        1.0004810581577004
+      ]
+    },
+    "bytes": 67162,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 44,
+      "triangles": 28858,
+      "minMs": 2191,
+      "medianMs": 2199,
+      "texture": {
+        "imageMB": 9.6,
+        "imageTextures": 16,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "mud-lamps-medium": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      -8.0,
+      16.3
+    ],
+    "target_ned": [
+      3.0,
+      -7.0,
+      18.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 55.168818480204834,
+      "target": 54.99279344844862,
+      "meteredLuminance": 0.0025913608195556517,
+      "whiteBalance": [
+        0.9351771256143975,
+        1,
+        1.1442509515001928
+      ]
+    },
+    "bytes": 51960,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 56,
+      "triangles": 38446,
+      "minMs": 2474,
+      "medianMs": 2576,
+      "texture": {
+        "imageMB": 9.6,
+        "imageTextures": 16,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "reef-lamps-medium": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      6.95,
+      -7.21,
+      13.03
+    ],
+    "target_ned": [
+      8.61,
+      -6.88,
+      13.78
+    ],
+    "lamp_level": 2,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 6.161473680731833,
+      "target": 6.160518163954925,
+      "meteredLuminance": 0.07518402705119136,
+      "whiteBalance": [
+        1.1212306214710832,
+        1,
+        1.1259110252161235
+      ]
+    },
+    "bytes": 99409,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 62,
+      "triangles": 101511,
+      "minMs": 2225,
+      "medianMs": 2726,
+      "texture": {
+        "imageMB": 14.3,
+        "imageTextures": 18,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "jacket3m-lamps-medium": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      10.82,
+      -5.23,
+      9.6
+    ],
+    "target_ned": [
+      14.77,
+      -5.23,
+      10.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 50.24642986708576,
+      "target": 50.23321801465745,
+      "meteredLuminance": 0.002978600193162673,
+      "whiteBalance": [
+        1.0001368682656842,
+        1,
+        1.0001860113655476
+      ]
+    },
+    "bytes": 56895,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 54,
+      "triangles": 34602,
+      "minMs": 2065,
+      "medianMs": 2224,
+      "texture": {
+        "imageMB": 9.6,
+        "imageTextures": 16,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "pile3m-lamps-medium": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      17.0,
+      -10.0,
+      7.6
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      8.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 47.63081152035761,
+      "target": 47.58766664927131,
+      "meteredLuminance": 0.0032371335884474385,
+      "whiteBalance": [
+        1.0000522296428664,
+        1,
+        1.0001677826971567
+      ]
+    },
+    "bytes": 73946,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 57,
+      "triangles": 56482,
+      "minMs": 2856,
+      "medianMs": 2937,
+      "texture": {
+        "imageMB": 14,
+        "imageTextures": 17,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "scour-lamps-medium": {
+    "scenario": "monopile_current",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      -3.0,
+      25.6
+    ],
+    "target_ned": [
+      10.5,
+      -1.0,
+      27.6
+    ],
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 96.49860764695788,
+      "target": 96.30030675521598,
+      "meteredLuminance": 0.0010944258547236525,
+      "whiteBalance": [
+        1.0158905951038144,
+        1,
+        1.0431679074072813
+      ]
+    },
+    "bytes": 76771,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 47,
+      "triangles": 38530,
+      "minMs": 3556,
+      "medianMs": 3734,
+      "texture": {
+        "imageMB": 9.6,
+        "imageTextures": 16,
+        "targetsMB": 23
+      }
+    },
+    "tier": "medium"
+  },
+  "monopile-surface-medium": {
+    "jpeg_bytes": 138464,
+    "perf": {
+      "calls": 172,
+      "triangles": 246101,
+      "minMs": 828,
+      "medianMs": 894,
+      "texture": {
+        "imageMB": 46.5,
+        "imageTextures": 32,
+        "targetsMB": 26
+      }
+    },
+    "tier": "medium",
+    "errors": []
+  },
+  "sand-lamps-high": {
+    "scenario": "open_water",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      3.0,
+      23.3
+    ],
+    "target_ned": [
+      9.0,
+      4.0,
+      25.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 12.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 53.01906822018206,
+      "target": 52.93171696186885,
+      "meteredLuminance": 0.0027482131758187604,
+      "whiteBalance": [
+        1.0001676466430387,
+        1,
+        1.000480479877742
+      ]
+    },
+    "bytes": 73975,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 44,
+      "triangles": 30906,
+      "minMs": 1216,
+      "medianMs": 1359,
+      "texture": {
+        "imageMB": 10,
+        "imageTextures": 18,
+        "targetsMB": 23.7
+      }
+    },
+    "tier": "high"
+  },
+  "mud-lamps-high": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      0.0,
+      -8.0,
+      16.3
+    ],
+    "target_ned": [
+      3.0,
+      -7.0,
+      18.0
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 55.028441520951496,
+      "target": 54.83542118401727,
+      "meteredLuminance": 0.002602810927650455,
+      "whiteBalance": [
+        0.9343540068469754,
+        1,
+        1.1517457652742726
+      ]
+    },
+    "bytes": 54726,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 66,
+      "triangles": 61826,
+      "minMs": 3232,
+      "medianMs": 3372,
+      "texture": {
+        "imageMB": 11.8,
+        "imageTextures": 22,
+        "targetsMB": 23.7
+      }
+    },
+    "tier": "high"
+  },
+  "reef-lamps-high": {
+    "scenario": "coral_reef",
+    "seed": 42,
+    "eye_ned": [
+      6.95,
+      -7.21,
+      13.03
+    ],
+    "target_ned": [
+      8.61,
+      -6.88,
+      13.78
+    ],
+    "lamp_level": 2,
+    "visibility_m": 18,
+    "water_type": "oceanic",
+    "exposure": {
+      "exposure": 6.1905779163842745,
+      "target": 6.188118736303346,
+      "meteredLuminance": 0.07466874654004854,
+      "whiteBalance": [
+        1.1249915138349702,
+        1,
+        1.1262685156858339
+      ]
+    },
+    "bytes": 102150,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 61,
+      "triangles": 141295,
+      "minMs": 2381,
+      "medianMs": 2853,
+      "texture": {
+        "imageMB": 14.5,
+        "imageTextures": 19,
+        "targetsMB": 23.7
+      }
+    },
+    "tier": "high"
+  },
+  "jacket3m-lamps-high": {
+    "scenario": "jacket_inspection",
+    "seed": 42,
+    "eye_ned": [
+      10.82,
+      -5.23,
+      9.6
+    ],
+    "target_ned": [
+      14.77,
+      -5.23,
+      10.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 8.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 49.7631011869929,
+      "target": 49.735346121949455,
+      "meteredLuminance": 0.003024594688508524,
+      "whiteBalance": [
+        1.0001296054267752,
+        1,
+        1.0001733308042438
+      ]
+    },
+    "bytes": 64248,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 75,
+      "triangles": 50824,
+      "minMs": 3188,
+      "medianMs": 3873,
+      "texture": {
+        "imageMB": 10.9,
+        "imageTextures": 20,
+        "targetsMB": 23.7
+      }
+    },
+    "tier": "high"
+  },
+  "pile3m-lamps-high": {
+    "scenario": "harbor_inspection",
+    "seed": 42,
+    "eye_ned": [
+      17.0,
+      -10.0,
+      7.6
+    ],
+    "target_ned": [
+      21.0,
+      -10.0,
+      8.2
+    ],
+    "lamp_level": 2,
+    "visibility_m": 7,
+    "water_type": "harbour",
+    "exposure": {
+      "exposure": 47.703750570568914,
+      "target": 47.62964185946779,
+      "meteredLuminance": 0.0032327450648817215,
+      "whiteBalance": [
+        1.0000560638217408,
+        1,
+        1.0001764102514301
+      ]
+    },
+    "bytes": 77661,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 67,
+      "triangles": 79862,
+      "minMs": 2183,
+      "medianMs": 2246,
+      "texture": {
+        "imageMB": 15.8,
+        "imageTextures": 22,
+        "targetsMB": 23.7
+      }
+    },
+    "tier": "high"
+  },
+  "scour-lamps-high": {
+    "scenario": "monopile_current",
+    "seed": 42,
+    "eye_ned": [
+      6.0,
+      -3.0,
+      25.6
+    ],
+    "target_ned": [
+      10.5,
+      -1.0,
+      27.6
+    ],
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "water_type": "shelf",
+    "exposure": {
+      "exposure": 97.50741224426727,
+      "target": 97.38334916665566,
+      "meteredLuminance": 0.0010757565451581085,
+      "whiteBalance": [
+        1.0177622835031102,
+        1,
+        1.0517740534081097
+      ]
+    },
+    "bytes": 92109,
+    "jpeg_quality": 82,
+    "perf": {
+      "calls": 51,
+      "triangles": 66344,
+      "minMs": 3007,
+      "medianMs": 3345,
+      "texture": {
+        "imageMB": 10.9,
+        "imageTextures": 20,
+        "targetsMB": 23.7
+      }
+    },
+    "tier": "high"
+  },
+  "monopile-surface-high": {
+    "jpeg_bytes": 140295,
+    "perf": {
+      "calls": 180,
+      "triangles": 275001,
+      "minMs": 1744,
+      "medianMs": 2407,
+      "texture": {
+        "imageMB": 95.1,
+        "imageTextures": 34,
+        "targetsMB": 26.7
+      }
+    },
+    "tier": "high",
+    "errors": []
+  }
+}

@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / 'tools'
 LOGS = ROOT / 'output' / 'browser-checks'
 sys.path.insert(0, str(ROOT.parent / 'tools'))
-from check_matrix import DEFAULT_CHECKS, browser_checks, changed_paths
+from check_matrix import DEFAULT_CHECKS, SCRIPT_TIMEOUTS, browser_checks, changed_paths
 # Named-only: browser_gpu_bench (Steam GPU/software frame-time harness).
 
 
@@ -161,7 +161,7 @@ def main():
     results = []
     for name in names:
         print(f'Running {name} ...', flush=True)
-        status, seconds, detail = run_script(name, args.timeout)
+        status, seconds, detail = run_script(name, max(args.timeout, SCRIPT_TIMEOUTS.get(name, 0)))
         print(f'  {status} in {seconds:.0f} s', flush=True)
         results.append((name, status, seconds, detail))
     if args.report:
