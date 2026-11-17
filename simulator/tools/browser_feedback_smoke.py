@@ -40,31 +40,37 @@ with sync_playwright() as p:
       const box = dialog?.getBoundingClientRect();
       return {
         clicked: !!button,
-        hiddenAttr: dialog?.hasAttribute('hidden') ?? null,
-        hiddenProp: dialog?.hidden ?? null,
+        tag: dialog?.tagName || null,
+        open: dialog?.open ?? null,
+        modal: dialog?.matches?.(':modal') ?? null,
         display: style?.display || null,
         visibility: style?.visibility || null,
-        opacity: style?.opacity || null,
         width: box?.width || 0,
         height: box?.height || 0,
-        parent: dialog?.parentElement?.tagName || null,
       };
     }''')
     (OUT / 'open-debug.json').write_text(json.dumps(opened, indent=2), encoding='utf8')
-    assert opened['hiddenProp'] is False, opened
+    assert opened['tag'] == 'DIALOG', opened
+    assert opened['open'] is True and opened['modal'] is True, opened
     assert opened['display'] != 'none', opened
     assert opened['width'] > 0 and opened['height'] > 0, opened
-    page.wait_for_function('document.getElementById("feedbackDialog")?.hidden === false')
+    page.wait_for_function('document.getElementById("feedbackDialog")?.open === true')
+    # Native modal dialog owns menu navigation while open.
+    nav = page.evaluate('''() => {
+      const dialog = document.getElementById('feedbackDialog');
+      return dialog === document.querySelector('dialog[open]:modal');
+    }''')
+    assert nav is True, nav
     page.locator('#feedbackDescription').wait_for(state='attached')
     page.screenshot(path=str(OUT / 'feedback-dialog.png'), animations='disabled')
     page.locator('#feedbackCancel').evaluate('el => el.click()')
-    page.wait_for_function('document.getElementById("feedbackDialog")?.hidden === true')
+    page.wait_for_function('document.getElementById("feedbackDialog")?.open !== true')
     page.keyboard.press('Escape')
     page.wait_for_selector('#pauseMenu', state='hidden')
 
     # F8 opens the same dialog in flight.
     page.keyboard.press('F8')
-    page.wait_for_function('document.getElementById("feedbackDialog")?.hidden === false',
+    page.wait_for_function('document.getElementById("feedbackDialog")?.open === true',
                            timeout=timeout(30000))
     page.fill('#feedbackDescription', 'smoke: right stick felt sticky once')
     page.select_option('#feedbackCategory', 'feel')
@@ -74,7 +80,7 @@ with sync_playwright() as p:
     download = download_info.value
     target = OUT / (download.suggested_filename or 'rov-report.zip')
     download.save_as(target)
-    page.wait_for_function('document.getElementById("feedbackDialog")?.hidden === true',
+    page.wait_for_function('document.getElementById("feedbackDialog")?.open !== true',
                            timeout=timeout(10000))
 
     assert target.exists() and target.stat().st_size > 32, target
@@ -87,11 +93,9 @@ with sync_playwright() as p:
     assert 'sticky' in report['description'], report
     assert report['privacy'].startswith('local-only'), report
     assert 'fidelity' in report and 'device' in report and 'fps' in report, report.keys()
-    # No obvious email/token leakage in the serialized report.
     blob = json.dumps(report)
     assert '@' not in blob or '[redacted-email]' in blob
 
-    # Binding table still collision-free after the new row.
     collisions = page.evaluate('''async () => {
       const mod = await import('/input/bindings.js');
       return mod.findCollisions();
@@ -110,6 +114,7 @@ with sync_playwright() as p:
     (OUT / 'results.json').write_text(json.dumps({
         'pause_entry': True,
         'f8_opens': True,
+        'modal_dialog': True,
         'zip_saved': True,
         'report_category': report['category'],
         'zip_bytes': target.stat().st_size,

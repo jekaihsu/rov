@@ -154,34 +154,35 @@ app.whenReady().then(async()=>{
       event.senderFrame.url.startsWith(origin + '/');
   }
   ipcMain.handle('rov:report-save', (event, payload) => {
-    if (!reportTrusted(event)) return { ok: false, error: '此頁面無法寫入回報' };
+    // error codes are translated in viewer/feedback/save.js — keep them language-neutral here.
+    if (!reportTrusted(event)) return { ok: false, code: 'untrusted' };
     const stamp = String(payload?.stamp || '').replace(/[^0-9A-Za-zT_-]/g, '').slice(0, 40);
-    if (!stamp) return { ok: false, error: '回報時間戳無效' };
+    if (!stamp) return { ok: false, code: 'invalid_stamp' };
     const json = typeof payload?.json === 'string' ? payload.json : '';
-    if (!json || json.length > 2_000_000) return { ok: false, error: '回報內容過大或無效' };
+    if (!json || json.length > 2_000_000) return { ok: false, code: 'payload_too_large' };
     try {
       const folder = path.join(reportsRoot, stamp);
       fs.mkdirSync(folder, { recursive: true });
       fs.writeFileSync(path.join(folder, 'report.json'), json, 'utf8');
       const pngBase64 = typeof payload?.pngBase64 === 'string' ? payload.pngBase64 : '';
       if (pngBase64) {
-        if (pngBase64.length > 12_000_000) return { ok: false, error: '截圖過大' };
+        if (pngBase64.length > 12_000_000) return { ok: false, code: 'screenshot_too_large' };
         fs.writeFileSync(path.join(folder, 'screenshot.png'), Buffer.from(pngBase64, 'base64'));
       }
       return { ok: true, path: folder };
-    } catch (error) {
-      return { ok: false, error: error.message || '回報儲存失敗' };
+    } catch {
+      return { ok: false, code: 'save_failed' };
     }
   });
   ipcMain.handle('rov:report-open', async (event) => {
-    if (!reportTrusted(event)) return { ok: false, error: '此頁面無法開啟回報資料夾' };
+    if (!reportTrusted(event)) return { ok: false, code: 'untrusted' };
     try {
       fs.mkdirSync(reportsRoot, { recursive: true });
       const error = await shell.openPath(reportsRoot);
-      if (error) return { ok: false, error };
+      if (error) return { ok: false, code: 'open_failed' };
       return { ok: true, path: reportsRoot };
-    } catch (error) {
-      return { ok: false, error: error.message || '無法開啟回報資料夾' };
+    } catch {
+      return { ok: false, code: 'open_failed' };
     }
   });
   await window.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent('<html lang="zh-Hant"><meta charset="utf-8"><body style="margin:0;background:#081722;color:#dce8ea;font:18px system-ui;display:grid;place-content:center;height:100vh"><h1>ROV Simulator</h1><p>正在準備模擬環境，首次啟動可能需要一點時間。</p></body></html>'));

@@ -28,6 +28,25 @@ test('summary module redacts emails and tokens in scrubbed output', async () => 
   assert.match(source, /redacted-token/);
   assert.match(source, /no personal identifiers/);
   assert.match(source, /WINDOW_MS = 60_000/);
+  assert.match(source, /seenLogKeys/);
+});
+
+test('save module maps IPC error codes through localize', async () => {
+  const source = await readFile(new URL('../viewer/feedback/save.js', import.meta.url), 'utf8');
+  assert.match(source, /feedback\.save/);
+  assert.match(source, /localizedError/);
+  assert.match(source, /invalid_stamp/);
+  assert.match(source, /STRINGS\.errors\[code\]/);
+  const desktop = await readFile(new URL('../desktop/main.cjs', import.meta.url), 'utf8');
+  assert.match(desktop, /code: 'untrusted'/);
+  assert.match(desktop, /code: 'invalid_stamp'/);
+  assert.doesNotMatch(desktop, /回報時間戳無效/);
+});
+
+test('feedback dialog uses a native modal dialog element', async () => {
+  const source = await readFile(new URL('../viewer/feedback/dialog.js', import.meta.url), 'utf8');
+  assert.match(source, /createElement\('dialog'|element\('dialog'/);
+  assert.match(source, /showModal/);
 });
 
 test('bindings expose F8 reportBug and move settings keyboard to F9', async () => {

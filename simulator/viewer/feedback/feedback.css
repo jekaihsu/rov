@@ -1,10 +1,14 @@
-/* Playtest feedback dialog: sits above the pause menu, one short form, no card clutter. */
+/* Playtest feedback dialog: native modal <dialog>, sits above the pause menu. */
 .feedback-dialog {
   position: fixed;
   inset: 0;
   z-index: 80;
-  display: grid;
-  place-items: center;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: 0;
   padding: 24px;
   background: rgba(4, 14, 22, 0.72);
   color: var(--text, #e8f1f4);
@@ -13,8 +17,13 @@
   visibility: visible;
 }
 
-.feedback-dialog[hidden] {
-  display: none !important;
+.feedback-dialog[open] {
+  display: grid;
+  place-items: center;
+}
+
+.feedback-dialog::backdrop {
+  background: transparent;
 }
 
 .feedback-panel {

@@ -13,9 +13,12 @@ function nowMs() {
   return performance.now();
 }
 
-function trimWindow(list, stamp) {
+function trimWindow(list, stamp, onDrop = null) {
   const floor = stamp - WINDOW_MS;
-  while (list.length && list[0].at < floor) list.shift();
+  while (list.length && list[0].at < floor) {
+    const dropped = list.shift();
+    onDrop?.(dropped);
+  }
 }
 
 function scrubText(value) {
@@ -43,8 +46,8 @@ export function createSummaryBuffer() {
   const fpsSamples = [];
   const serverLog = [];
   const consoleErrors = [];
+  const seenLogKeys = new Set();
   let gamepadId = '';
-  let lastLogKey = '';
   const originalError = console.error.bind(console);
 
   function rememberError(message, source = 'console') {
@@ -102,17 +105,21 @@ export function createSummaryBuffer() {
     const lines = Array.isArray(state?.log) ? state.log : [];
     for (const line of lines.slice(-20)) {
       const key = `${line.t ?? ''}|${line.stamp ?? ''}|${line.text ?? ''}`;
-      if (key === lastLogKey) continue;
-      lastLogKey = key;
+      if (seenLogKeys.has(key)) continue;
+      seenLogKeys.add(key);
       serverLog.push({
+        key,
         at: stamp,
         t: line.t ?? null,
         stamp: line.stamp ?? null,
         text: scrubText(line.text),
       });
     }
-    trimWindow(serverLog, stamp);
-    while (serverLog.length > MAX_LOG) serverLog.shift();
+    function dropLog(entry) {
+      if (entry?.key) seenLogKeys.delete(entry.key);
+    }
+    trimWindow(serverLog, stamp, dropLog);
+    while (serverLog.length > MAX_LOG) dropLog(serverLog.shift());
 
     return { quality };
   }
@@ -166,7 +173,9 @@ export function createSummaryBuffer() {
         desktop: !!globalThis.window?.rovDesktop,
       },
       fps: fpsStats,
-      serverLog: serverLog.slice(-MAX_LOG),
+      serverLog: serverLog.slice(-MAX_LOG).map(function publicLog(entry) {
+        return { at: entry.at, t: entry.t, stamp: entry.stamp, text: entry.text };
+      }),
       consoleErrors: consoleErrors.slice(-MAX_ERRORS),
       samples: samples.slice(-MAX_SAMPLES),
     };

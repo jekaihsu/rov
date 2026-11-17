@@ -1,4 +1,5 @@
 // Modal form: one-line description plus a category, then save the attached screenshot and summary.
+// Uses a native modal <dialog> so menu/navigator.js::topDialog() owns pad/keyboard focus while open.
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('feedback.dialog', {
@@ -34,11 +35,8 @@ function element(tag, className, text) {
 }
 
 export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, onClose = null }) {
-  const root = element('section', 'feedback-dialog');
+  const root = element('dialog', 'feedback-dialog');
   root.id = 'feedbackDialog';
-  root.hidden = true;
-  root.setAttribute('role', 'dialog');
-  root.setAttribute('aria-modal', 'true');
   root.setAttribute('aria-labelledby', 'feedbackTitle');
   const panel = element('div', 'feedback-panel');
   const title = element('h2', 'feedback-title', STRINGS.title);
@@ -46,6 +44,7 @@ export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, on
   const lead = element('p', 'feedback-lead', STRINGS.lead);
   const form = element('form', 'feedback-form');
   form.id = 'feedbackForm';
+  form.method = 'dialog';
   const descLabel = element('label', 'feedback-label', STRINGS.description);
   descLabel.htmlFor = 'feedbackDescription';
   const description = element('textarea', 'feedback-description');
@@ -73,6 +72,7 @@ export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, on
   const cancel = element('button', 'feedback-cancel', STRINGS.cancel);
   cancel.type = 'button';
   cancel.id = 'feedbackCancel';
+  cancel.value = 'cancel';
   const submit = element('button', 'feedback-submit', STRINGS.submit);
   submit.type = 'submit';
   submit.id = 'feedbackSubmit';
@@ -87,8 +87,8 @@ export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, on
   root.append(panel);
   document.body.append(root);
 
-  let open = false;
   let busy = false;
+  let closing = false;
 
   function setStatus(text, ok = true) {
     status.textContent = text || '';
@@ -96,39 +96,35 @@ export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, on
   }
 
   function show() {
-    if (open) return;
-    open = true;
+    if (root.open) return;
     busy = false;
     form.reset();
     category.value = 'other';
     setStatus('');
     submit.disabled = false;
     submit.textContent = STRINGS.submit;
-    root.hidden = false;
+    root.showModal();
     description.focus({ preventScroll: true });
   }
 
   function hide() {
-    if (!open) return;
-    open = false;
-    root.hidden = true;
-    setStatus('');
-    onClose?.();
+    if (!root.open || closing) return;
+    closing = true;
+    root.close();
+    closing = false;
   }
 
+  root.addEventListener('close', function onNativeClose() {
+    busy = false;
+    setStatus('');
+    onClose?.();
+  });
   cancel.addEventListener('click', hide);
   openFolder.addEventListener('click', async function openReports() {
     try {
       await onOpenFolder?.();
     } catch (error) {
       setStatus(STRINGS.failed.replace('{reason}', error?.message || ''), false);
-    }
-  });
-  root.addEventListener('keydown', function onKey(event) {
-    if (event.code === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      hide();
     }
   });
   form.addEventListener('submit', async function submitForm(event) {
@@ -164,7 +160,7 @@ export function createFeedbackDialog({ onSubmit, canOpenFolder, onOpenFolder, on
     show,
     hide,
     get open() {
-      return open;
+      return root.open;
     },
   };
 }

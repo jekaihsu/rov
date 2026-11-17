@@ -27,5 +27,6 @@
   "play.results",
   "play.results_model",
   "feedback.dialog",
-  "feedback.index"
+  "feedback.index",
+  "feedback.save"
 ]
