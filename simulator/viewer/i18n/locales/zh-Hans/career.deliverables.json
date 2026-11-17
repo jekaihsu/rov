@@ -9,7 +9,7 @@
   "saved": "照片已存档。",
   "contact": "碰撞 {name}",
   "overload": "缆线张力过载",
-  "wrap": "缆线绕上 {name}",
+  "wrap": "缆线缠绕 {name}",
   "needs": "需要装备：{item}",
   "after": "先完成：{label}",
   "last": "完成其他必要项目后回收"

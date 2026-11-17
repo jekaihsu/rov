@@ -121,6 +121,7 @@
     "min": "min"
   },
   "objectives": "Objectives",
+  "objectiveCountOne": "{n} objective",
   "objectiveCount": "{n} objectives",
   "noObjectives": "Free cruising with no assigned objectives.",
   "goalsTitle": "Mode",

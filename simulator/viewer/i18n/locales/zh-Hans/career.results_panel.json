@@ -2,8 +2,8 @@
   "pay": "报酬",
   "base": "基本报酬",
   "repeat": "（重接 {rate}%）",
-  "quality": "品质加成 ×{x}",
-  "partialShare": "部分交件 ×{x}",
+  "quality": "质量加成 ×{x}",
+  "partialShare": "部分交付 ×{x}",
   "net": "实领",
   "moneyUnit": "元",
   "balance": "账户余额 {money} 元",
@@ -14,7 +14,7 @@
   "progress": "{current} → {next}",
   "progressHours": "真实 {have} / {need} h",
   "moreUnlocks": "+{n}",
-  "licenceTop": "已是目前最高可取得的执照",
+  "licenceTop": "已是当前可取得的最高执照",
   "nextLicence": "下一张：{label}",
   "hoursNeed": "真实时数 {have} / {need} h",
   "examNext": "考核：{title}",
@@ -22,6 +22,6 @@
   "unlocks": "新开放",
   "unlockContract": "工单：{title}",
   "unlockItem": "装备部：{label}",
-  "deliverables": "交付纪录",
+  "deliverables": "交付记录",
   "minutes": "{m} 分"
 }

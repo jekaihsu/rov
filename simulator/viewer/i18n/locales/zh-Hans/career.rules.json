@@ -2,7 +2,7 @@
   "needLicence": "需要「{licence}」执照",
   "needContract": "先完成「{title}」",
   "needEquipment": "需要装备「{item}」（YX 装备部）",
-  "needReputation": "需要{client}声誉 {need}（目前 {have}）",
-  "needHours": "需要真实模式时数 {need} h（目前 {have} h）",
+  "needReputation": "需要{client}声誉 {need}（当前 {have}）",
+  "needHours": "需要真实模式时数 {need} h（当前 {have} h）",
   "unknownItem": "{id}"
 }

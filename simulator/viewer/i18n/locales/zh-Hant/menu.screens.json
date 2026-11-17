@@ -123,6 +123,7 @@
     "min": "分"
   },
   "objectives": "任務目標",
+  "objectiveCountOne": "目標 {n} 項",
   "objectiveCount": "目標 {n} 項",
   "noObjectives": "自由航行，沒有指定目標。",
   "goalsTitle": "玩法",

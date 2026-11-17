@@ -76,6 +76,7 @@ const STRINGS = localize('menu.screens', {
   timeLimit: '時限',
   units2: { kn: 'kn', min: '分' },
   objectives: '任務目標',
+  objectiveCountOne: '目標 {n} 項',
   objectiveCount: '目標 {n} 項',
   noObjectives: '自由航行，沒有指定目標。',
   goalsTitle: '玩法',
@@ -107,6 +108,12 @@ const MODE_PREVIEW = {
 };
 const NAME_SEPARATOR = ' · ';
 const MAX_CHIPS = 3;
+
+// English needs a singular; the other languages use the same text for both.
+function objectiveChip(n) {
+  const template = n === 1 ? STRINGS.objectiveCountOne : STRINGS.objectiveCount;
+  return template.replace('{n}', String(n));
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -556,7 +563,7 @@ export function buildBriefing(ctx) {
     }).filter(Boolean).slice(0, 5);
     const chips = [];
     if (goals) chips.push(...(STRINGS.modes[ctx.choice.mission]?.[3] || []));
-    else if (labels.length && !chapter) chips.push(STRINGS.objectiveCount.replace('{n}', String(labels.length)));
+    else if (labels.length && !chapter) chips.push(objectiveChip(labels.length));
     if (ctx.choice.multiplayer) chips.push([STRINGS.hostChip, 'warn']);
     hero.setChips(chips.slice(0, MAX_CHIPS));
     // 明細: the site or chapter brief, the objectives and the host note.

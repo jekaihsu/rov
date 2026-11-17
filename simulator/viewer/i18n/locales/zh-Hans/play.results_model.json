@@ -15,10 +15,12 @@
     "contract": "工程委托",
     "career": "YX 工单"
   },
+  "timesOne": "{n} 次",
   "times": "{n} 次",
   "noContacts": "无碰撞",
   "tetherBroken": "缆线断裂",
   "tetherClean": "张力正常",
+  "overloadOne": "过载 {n} 次",
   "overload": "过载 {n} 次",
   "contract": "委托完成",
   "medals": {

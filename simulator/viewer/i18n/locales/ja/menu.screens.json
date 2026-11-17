@@ -121,6 +121,7 @@
     "min": "分"
   },
   "objectives": "任務目標",
+  "objectiveCountOne": "目標 {n} 件",
   "objectiveCount": "目標 {n} 件",
   "noObjectives": "指定目標なしの自由航行です。",
   "goalsTitle": "モード",

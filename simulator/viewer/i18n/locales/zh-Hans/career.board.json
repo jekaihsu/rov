@@ -1,7 +1,7 @@
 {
   "title": "YX 委托看板",
   "status": {
-    "open": "可接案",
+    "open": "可接单",
     "locked": "未开放",
     "done": "已完成"
   },
@@ -20,14 +20,14 @@
     "海洋探索委托",
     "在探索海域自由接巡检、回收与部署的小委托；下水后在右上任务卡接案。"
   ],
-  "expeditionKicker": "自由接案",
+  "expeditionKicker": "自由接单",
   "expeditionChips": [
     "巡检",
     "回收",
     "部署"
   ],
   "expeditionOpen": "前往",
-  "backupHelp": "导出成 JSON 备份，或从备份还原（会取代目前的生涯）。",
+  "backupHelp": "导出为 JSON 备份，或从备份恢复（会覆盖当前的生涯进度）。",
   "exportButton": "导出存档",
   "importButton": "导入存档",
   "imported": "已导入生涯存档。",

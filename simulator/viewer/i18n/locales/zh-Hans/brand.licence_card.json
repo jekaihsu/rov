@@ -1,14 +1,14 @@
 {
   "heading": "ROV 操作员执照",
   "headingCaption": "REMOTELY OPERATED VEHICLE · PILOT LICENCE",
-  "issuer": "YX 发照",
+  "issuer": "YX 颁发",
   "issuerCaption": "ISSUED BY YX",
   "cardLabel": "YX 操作员执照",
   "gradeCaption": "GRADE",
   "fields": {
-    "holder": "持照人",
+    "holder": "持证人",
     "serial": "证号",
-    "issued": "发照日期",
+    "issued": "发证日期",
     "hoursReal": "真实模式时数",
     "hoursAssisted": "辅助模式时数"
   },
