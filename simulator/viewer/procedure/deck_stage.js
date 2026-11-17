@@ -14,11 +14,12 @@
 import * as THREE from 'three';
 import {installAudio} from '../audio/engine.js';
 import {deckShot} from './deck_flow.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('procedure.deck_stage', {
   feed: 'CAM 1',
   live: 'LIVE',
-};
+});
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const CAMERA_RESPONSE = 2.4;          // 1/s: how fast the deck camera settles on a new shot
 const LED_GREEN = 0x3cff6e;

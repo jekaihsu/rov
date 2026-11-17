@@ -10,19 +10,21 @@ import { formatTime } from '../play/results_model.js';
 import { loadCareerData } from './data.js';
 import { createTracker } from './deliverables.js';
 import { PHOTO_VERDICT_ITEM } from './fidelity_item.js';
-import { contractById, itemLabel } from './rules.js';
+import { contractById, contractView, itemLabel } from './rules.js';
 import { loadCareer, storeCareer } from './save.js';
 import { partialAccepted, payout, DELIVERABLE_KIND_LABELS } from './scoring.js';
 import { settleDive } from './settle.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('career.dive', {
   card: 'YX 工單',
   meters: '{d} m',
   submit: '提前交件',
   submitPartial: '再按一次：部分交件（約 {pay} 元）',
   submitAbort: '再按一次：中止作業（不支付報酬）',
   confirm: '確認：{label}',
-  penalties: '扣分項目 {n}',
+  penaltiesOne: '扣分項目 {n}',
+  penaltiesMany: '扣分項目 {n}',
   examOn: '執照考核中 · 真實模式',
   examVoid: '考核期間開啟了超出真機的設定，本次不計入執照。',
   photoSaved: '照片已存檔，交件後由客戶審閱。',
@@ -33,7 +35,7 @@ const STRINGS = {
   examPassed: '考核通過：{label}',
   examFailed: '考核未通過：{reason}',
   rows: { deliverables: '交付項目', time: '作業時間' },
-};
+});
 const PERSIST_MS = 5000;
 const MAX_STEP_S = 1;
 
@@ -110,7 +112,8 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   loadCareerData().then(function ready(loaded) {
     data = loaded;
     save = loadCareer();
-    contract = contractById(data, contractId);
+    const raw = contractById(data, contractId);
+    contract = raw ? contractView(raw) : null;
     if (contract) start();
   }).catch(function noCareer(error) {
     console.error(error);
@@ -346,7 +349,10 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     subhead.textContent = contract.title;
     renderItems(snapshot, state);
     const lines = [];
-    if (snapshot.penalties.length) lines.push(STRINGS.penalties.replace('{n}', String(snapshot.penalties.length)));
+    if (snapshot.penalties.length) {
+      const template = snapshot.penalties.length === 1 ? STRINGS.penaltiesOne : STRINGS.penaltiesMany;
+      lines.push(template.replace('{n}', String(snapshot.penalties.length)));
+    }
     if (exam()) lines.push(examVoid ? STRINGS.examVoid : STRINGS.examOn);
     status.textContent = lines.join(' · ');
     status.dataset.warn = String(examVoid);

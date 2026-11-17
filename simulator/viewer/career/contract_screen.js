@@ -18,10 +18,14 @@ import {
 import { MEDALS, medalLabel } from '../play/results_model.js';
 import { vehicleName } from '../fleet_names.js';
 import { moneyText } from './board.js';
-import { clientLabel, contractStatus, gradeFor, hasLicence, itemLabel, jobLabel } from './rules.js';
+import {
+  clientLabel, contractStatus, contractView, gradeFor, hasLicence, itemLabel, jobLabel,
+} from './rules.js';
 import { DELIVERABLE_KIND_LABELS } from './scoring.js';
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('career.contract_screen', {
   kicker: '{client} · {job}',
   client: '業主',
   pay: '報酬',
@@ -54,7 +58,7 @@ const STRINGS = {
   back: '返回看板',
   provisional: '場景籌備中，座標為暫定。',
   summary: '{licence} · {money} 元',
-};
+});
 const MAX_CHIPS = 3;
 
 function fixed(value, digits = 0) {
@@ -245,7 +249,7 @@ export function buildContractScreen(ctx) {
       return contract?.scenario || '';
     },
     show(next) {
-      contract = next;
+      contract = next ? contractView(next) : null;
       confirming = false;
       model = ctx.choice.model;
     },

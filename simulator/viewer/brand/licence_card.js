@@ -4,8 +4,9 @@
 // numbers) so node tests and other views can share the same formatting.
 // YX is the fictional issuer of the game (docs/design/game-plan.md §9); no real organisation is named.
 import {svgNode, yxMark} from './marks.js';
+import { localize } from '../i18n/index.js';
 
-export const STRINGS = {
+export const STRINGS = localize('brand.licence_card', {
   heading: 'ROV 操作員執照',
   headingCaption: 'REMOTELY OPERATED VEHICLE · PILOT LICENCE',
   issuer: 'YX 發照',
@@ -29,7 +30,7 @@ export const STRINGS = {
     senior: {title: '資深駕駛員', short: '資深', caption: 'SENIOR PILOT'},
     supervisor: {title: '主管', short: '主管', caption: 'SUPERVISOR'},
   },
-};
+});
 
 /** Grade ids from lowest to highest. */
 export const LICENCE_GRADES = Object.freeze(Object.keys(STRINGS.grades));

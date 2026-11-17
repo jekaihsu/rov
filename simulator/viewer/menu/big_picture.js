@@ -4,10 +4,11 @@
 // status, a details sheet opened on demand (明細), and the game-rendered backdrop image that covers the 3D stage
 // while it switches to another site. DOM builders only; screens keep their own state and strings.
 
-const STRINGS = {
+import { localize } from '../i18n/index.js';
+const STRINGS = localize('menu.big_picture', {
   details: '明細',
   close: '關閉',
-};
+});
 // Title length (in full-width character units) above which the title drops to a smaller size tier.
 const TITLE_MEDIUM = 6;
 const TITLE_SMALL = 12;

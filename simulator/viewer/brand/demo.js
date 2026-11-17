@@ -8,7 +8,9 @@ import {
   BRAND_COLOURS, CHAPTER_SYMBOL_IDS, FLEET_SYMBOL_IDS, chapterSymbol, fleetLetter, fleetSymbol, svgNode, yxMark,
 } from './marks.js';
 
-export const STRINGS = {
+export import { localize } from '../i18n/index.js';
+
+const STRINGS = localize('brand.demo', {
   title: 'YX 識別元件',
   caption: 'YX — IDENTITY COMPONENTS',
   sections: {
@@ -23,7 +25,7 @@ export const STRINGS = {
   sampleTitles: {prologue: '序章｜水池', harbor: '第一章｜港灣', offshore: '第二章｜離岸'},
   sampleHolder: '林見習',
   sampleSerialPrefix: 'YX-PL-',
-};
+});
 
 const SAMPLE_CARDS = ['prologue', 'harbor', 'offshore'];
 const SAMPLE_HOURS = {

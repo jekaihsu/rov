@@ -12,8 +12,9 @@
 //                                 appears while the page is still starting up (before the dive); a chapter
 //                                 started mid-dive shows it only when the fidelity item below is on.
 import {registerFidelityItem, getFidelity} from '../fidelity.js';
-import {STRINGS, chapterCardData, plateFor} from './chapters.js';
+import {STRINGS as CHAPTER_STRINGS, chapterCardData, plateFor} from './chapters.js';
 import {chapterSymbol, svgNode, yxMark} from './marks.js';
+import { localize } from '../i18n/index.js';
 
 export const CARD_DURATION_MS = 3500;
 export const CARD_FADE_MS = 400;
@@ -22,6 +23,12 @@ export const BOOT_WINDOW_MS = 20000;
 export const IN_DIVE_ITEM = 'chapterCardInDive';
 const SYMBOL_SIZE = 420;
 
+const STRINGS = localize('brand.chapter_card', {
+  chapterCardInDive: '潛航中顯示章節標題卡',
+  chapterCardInDiveHelp: '真實作業中畫面不會被標題卡蓋住；關閉時標題卡只在下水前出現。'
+    + '開啟後，潛航中切換章節也會顯示。',
+});
+
 registerFidelityItem({
   id: IN_DIVE_ITEM,
   labelKey: IN_DIVE_ITEM,
@@ -29,11 +36,7 @@ registerFidelityItem({
   type: 'toggle',
   defaults: {real: false, assisted: true},
   exceedsReal: true,
-}, {
-  chapterCardInDive: '潛航中顯示章節標題卡',
-  chapterCardInDiveHelp: '真實作業中畫面不會被標題卡蓋住；關閉時標題卡只在下水前出現。'
-    + '開啟後，潛航中切換章節也會顯示。',
-});
+}, STRINGS);
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -82,7 +85,7 @@ function photoHalf(data) {
  */
 export function titleCard(data) {
   const card = element('section', 'brand-card');
-  card.setAttribute('aria-label', `${STRINGS.cardLabel}：${data.title}`);
+  card.setAttribute('aria-label', `${CHAPTER_STRINGS.cardLabel}：${data.title}`);
   card.dataset.symbol = data.symbol || 'generic';
   const paper = element('div', 'brand-card-paper brand-paper');
   const head = element('div', 'brand-card-head');
@@ -126,7 +129,7 @@ if (typeof document !== 'undefined') document.addEventListener('rov-input-device
 export function showTitleCard(data, {duration = CARD_DURATION_MS, parent = document.body} = {}) {
   const overlay = element('div', 'brand-card-overlay');
   overlay.dataset.card = data.id || data.symbol || '';
-  overlay.append(titleCard(data), element('p', 'brand-card-skip brand-caption', STRINGS.skip));
+  overlay.append(titleCard(data), element('p', 'brand-card-skip brand-caption', CHAPTER_STRINGS.skip));
   let leaving = false;
   let finish;
   const done = new Promise(function whenGone(resolve) {

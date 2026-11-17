@@ -109,7 +109,6 @@
   "sticker": "贴纸",
   "next": "下一步",
   "sitesTitle": "潜航海域",
-  "sitesCount": "{n} 处",
   "depth": "海床",
   "visibility": "能见度",
   "current": "洋流",
@@ -149,5 +148,7 @@
   "introOff": "关闭时直接从水中开始。",
   "launch": "下水",
   "chapter": "章节",
-  "campaign": "剧情与教学"
+  "campaign": "剧情与教学",
+  "sitesCountOne": "{n} 处",
+  "sitesCountMany": "{n} 处"
 }

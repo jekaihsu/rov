@@ -2,15 +2,24 @@
 // why one is locked, licence grades and progress, and the recommended next contract. Pure functions, no DOM, so
 // node --test can load them. Licences only open job types; nothing here changes how a vehicle flies.
 import { logDive, realHours } from './save.js';
+import { localize } from '../i18n/index.js';
+import {
+  localizedChapter,
+  localizedClientLabel,
+  localizedContract,
+  localizedGrade,
+  localizedItem,
+  localizedJobLabel,
+} from './localize_data.js';
 
-const STRINGS = {
+const STRINGS = localize('career.rules', {
   needLicence: '需要「{licence}」執照',
   needContract: '先完成「{title}」',
   needEquipment: '需要裝備「{item}」（YX 裝備部）',
   needReputation: '需要{client}聲譽 {need}（目前 {have}）',
   needHours: '需要真實模式時數 {need} h（目前 {have} h）',
   unknownItem: '{id}',
-};
+});
 
 function format(template, values) {
   return template.replace(/\{(\w+)\}/g, function fill(match, key) {
@@ -26,7 +35,8 @@ export function gradeIndex(data, id) {
 }
 
 export function gradeFor(data, id) {
-  return data.grades[gradeIndex(data, id)] || { id: 'none', label: id, short: id, realHours: 0 };
+  const grade = data.grades[gradeIndex(data, id)] || { id: 'none', label: id, short: id, realHours: 0 };
+  return localizedGrade(grade);
 }
 
 export function hasLicence(save, data, id) {
@@ -39,6 +49,11 @@ export function contractById(data, id) {
   }) || null;
 }
 
+/** Display view of a contract (translated copy; ids unchanged). */
+export function contractView(contract) {
+  return localizedContract(contract);
+}
+
 export function itemById(data, id) {
   return data.items.find(function byId(item) {
     return item.id === id;
@@ -46,15 +61,24 @@ export function itemById(data, id) {
 }
 
 export function itemLabel(data, id) {
-  return itemById(data, id)?.label || format(STRINGS.unknownItem, { id });
+  const item = itemById(data, id);
+  return localizedItem(item)?.label || format(STRINGS.unknownItem, { id });
 }
 
 export function clientLabel(data, id) {
-  return data.clients[id]?.label || id;
+  return localizedClientLabel(data, id);
 }
 
 export function jobLabel(data, id) {
-  return data.jobs[id] || id;
+  return localizedJobLabel(data, id);
+}
+
+export function chapterView(chapter) {
+  return localizedChapter(chapter);
+}
+
+export function itemView(item) {
+  return localizedItem(item);
 }
 
 /** Real-mode hours a licence grade asks for before its exam. */
@@ -88,7 +112,8 @@ export function contractStatus(contract, save, data, sceneKeys = null) {
   }
   for (const id of contract.requires || []) {
     if ((save.contracts[id]?.completed || 0) > 0) continue;
-    const title = contractById(data, id)?.title || id;
+    const required = contractById(data, id);
+    const title = required ? contractView(required).title : id;
     reasons.push({ kind: 'contract', text: format(STRINGS.needContract, { title }) });
   }
   for (const id of contract.equipment || []) {
@@ -121,11 +146,14 @@ export function boardChapters(data, save, sceneKeys = null) {
     const contracts = data.contracts.filter(function inChapter(contract) {
       return contract.chapter === chapter.id;
     }).map(function withStatus(contract) {
-      return { contract, status: contractStatus(contract, save, data, sceneKeys) };
+      return {
+        contract: contractView(contract),
+        status: contractStatus(contract, save, data, sceneKeys),
+      };
     }).filter(function visible(entry) {
       return entry.status.visible;
     });
-    return { chapter, contracts };
+    return { chapter: chapterView(chapter), contracts };
   }).filter(function nonEmpty(entry) {
     return entry.contracts.length > 0;
   });
