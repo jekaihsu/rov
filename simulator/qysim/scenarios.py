@@ -539,10 +539,27 @@ PEN_VARIANT_STRINGS = {
 # Slack-water current of the pen site variants (assumed, like every scenario current; not a vehicle limit).
 PEN_SLACK_CURRENT = (.3, 90, .2, 95, .1, 100)
 
+# Chapter-1 site variants: same geometry and physics as the base scene; visibility (and brief) only.
+HARBOR_VARIANT_STRINGS = {
+    "turbid_name": "港灣協作巡檢（低能見度抽樣）",
+    "turbid_brief": "同一碼頭與港樁，能見度約 1.5 m。Level II 海生物厚度抽樣用。",
+    "signoff_name": "港灣協作巡檢（交班前複查）",
+    "signoff_brief": "同一碼頭與港樁，午後風起、能見度約 4 m。交班前異常複查用。",
+}
+HULL_VARIANT_STRINGS = {
+    "berth_name": "船殼底部檢查（靠泊附著評級）",
+    "berth_brief": "同一貨輪船底，靠泊場址能見度約 3 m。niche 附著評級與平底航線用。",
+}
+
 
 def is_pen_site(key: str) -> bool:
     """The aquaculture pen and its variants share one site (layout, dead fish, hole photos)."""
     return str(key).startswith("aquaculture_pen")
+
+
+def is_harbor_site(key: str) -> bool:
+    """Harbor inspection and its visibility variants share one quay / pile layout."""
+    return str(key).startswith("harbor_inspection")
 
 
 def aquaculture_pen_slack() -> Scenario:
@@ -567,6 +584,33 @@ def aquaculture_pen_inside() -> Scenario:
     return sc
 
 
+def harbor_inspection_turbid() -> Scenario:
+    """Same harbor site at ~1.5 m visibility for Level II marine-growth sampling."""
+    sc = harbor_inspection()
+    sc.key = "harbor_inspection_turbid"
+    sc.name, sc.brief = HARBOR_VARIANT_STRINGS["turbid_name"], HARBOR_VARIANT_STRINGS["turbid_brief"]
+    sc.visibility_m = 1.5
+    return sc
+
+
+def harbor_inspection_signoff() -> Scenario:
+    """Same harbor site at ~4 m visibility for the chapter-1 afternoon sign-off recheck."""
+    sc = harbor_inspection()
+    sc.key = "harbor_inspection_signoff"
+    sc.name, sc.brief = HARBOR_VARIANT_STRINGS["signoff_name"], HARBOR_VARIANT_STRINGS["signoff_brief"]
+    sc.visibility_m = 4.0
+    return sc
+
+
+def hull_inspection_berth() -> Scenario:
+    """Same hull site at ~3 m visibility for berth fouling-rating work orders."""
+    sc = hull_inspection()
+    sc.key = "hull_inspection_berth"
+    sc.name, sc.brief = HULL_VARIANT_STRINGS["berth_name"], HULL_VARIANT_STRINGS["berth_brief"]
+    sc.visibility_m = 3.0
+    return sc
+
+
 LIBRARY = {
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
@@ -581,11 +625,14 @@ LIBRARY = {
     "monopile_current": monopile_current,
     "tether_untangle": tether_untangle,
     "hull_inspection": hull_inspection,
+    "hull_inspection_berth": hull_inspection_berth,
     "wreck_survey": wreck_survey,
     "korean_castle": korean_castle,
     "coral_reef": coral_reef,
     "seagrass_meadow": seagrass_meadow,
     "harbor_inspection": harbor_inspection,
+    "harbor_inspection_turbid": harbor_inspection_turbid,
+    "harbor_inspection_signoff": harbor_inspection_signoff,
     "aquaculture_pen": aquaculture_pen,
     "aquaculture_pen_slack": aquaculture_pen_slack,
     "aquaculture_pen_inside": aquaculture_pen_inside,

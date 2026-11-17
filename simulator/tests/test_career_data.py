@@ -97,5 +97,25 @@ class PenVariantTest(unittest.TestCase):
         self.assertEqual(kinds, {"dead_fish"})
 
 
+class Chapter1SiteVariantTest(unittest.TestCase):
+    """Harbor / hull visibility variants for chapter-1 work orders: same site, visibility only."""
+
+    def test_harbor_and_hull_variants_keep_geometry(self):
+        harbor = scenarios.build("harbor_inspection", 0)
+        for key, visibility in (("harbor_inspection_turbid", 1.5), ("harbor_inspection_signoff", 4.0)):
+            variant = scenarios.build(key, 0)
+            self.assertEqual(len(variant.obstacles), len(harbor.obstacles), key)
+            self.assertEqual(variant.seabed_depth, harbor.seabed_depth, key)
+            self.assertEqual(variant.visibility_m, visibility, key)
+            self.assertTrue(scenarios.is_harbor_site(key), key)
+        hull = scenarios.build("hull_inspection", 0)
+        berth = scenarios.build("hull_inspection_berth", 0)
+        self.assertEqual(len(berth.obstacles), len(hull.obstacles))
+        self.assertEqual(berth.seabed_depth, hull.seabed_depth)
+        self.assertEqual(berth.visibility_m, 3.0)
+        self.assertIn("harbor_inspection_turbid", scenarios.LIBRARY)
+        self.assertIn("hull_inspection_berth", scenarios.LIBRARY)
+
+
 if __name__ == "__main__":
     unittest.main()
