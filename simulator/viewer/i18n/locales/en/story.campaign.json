@@ -1,0 +1,28 @@
+{
+  "menuOption": "YX Marine Services · Story & training",
+  "menuBrief": "Start in the training pool, then unlock harbour and hull inspections. Replay chapters from the mission panel.",
+  "sticker": "Apply first-dive sticker",
+  "vehicle": "Deploy unlocked work vehicle YX Model V",
+  "resume": "Resume from checkpoint",
+  "saveFailed": "Could not save progress. Export the trainee report.",
+  "title": "YX Marine Services",
+  "chapters": "Chapters / courses",
+  "next": "Continue",
+  "skip": "Skip tutorial",
+  "history": "Radio log",
+  "pending": "Coming soon",
+  "locked": "Finish the previous mission first",
+  "course": "Company course (skip story)",
+  "export": "Export trainee report",
+  "complete": "Mission complete. Return to the chapter menu for the next dive.",
+  "retry": "Hold on. Let's try that step again.",
+  "replay": "Replay prologue",
+  "channels": {
+    "left_ud": "Left stick up/down",
+    "left_lr": "Left stick left/right",
+    "right_ud": "Right stick up/down",
+    "right_lr": "Right stick left/right",
+    "left_wave": "Left dial",
+    "right_wave": "Right dial"
+  }
+}

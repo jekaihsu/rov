@@ -10,7 +10,7 @@ export const STRINGS = {
   cardLabel: '章節標題',
   generic: {number: '任務', client: 'YX', sub: 'DIVE BRIEF'},
   cards: {
-    prologue: {number: '序章 / 00', client: 'YX · 訓練中心', sub: 'CHECKOUT DIVE · TRAINING POOL'},
+    prologue: {number: '序章 / 00', client: 'YX 海事服務 · 訓練', sub: 'CHECKOUT DIVE · TRAINING POOL'},
     harbor: {number: '第一章 / 01', client: '港務單位', sub: 'PILES · CRACK SURVEY'},
     hull: {number: '第一章 / 02', client: '船東', sub: 'HULL · IN-WATER SURVEY'},
     harbor_signoff: {number: '第一章 / 03', client: '港務單位 · 交班', sub: 'PILES · RE-INSPECTION'},

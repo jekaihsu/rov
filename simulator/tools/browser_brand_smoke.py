@@ -78,7 +78,7 @@ def start_prologue(page, base):
     page.goto(f'{base}/?play=1&nointro&mission=campaign&chapter=prologue&quality=performance'
               f'&room=brand{time.time_ns()}&ws={ws_base(8792)}')
     facts = page.wait_for_function(CARD_FACTS, timeout=timeout(120000)).json_value()
-    assert facts == {'chapter': 'prologue', 'title': '水池', 'number': '序章 / 00', 'symbols': 2,
+    assert facts == {'chapter': 'prologue', 'title': '見習之前', 'number': '序章 / 00', 'symbols': 2,
                      'inGame': True, 'covers': True}, facts
 
 

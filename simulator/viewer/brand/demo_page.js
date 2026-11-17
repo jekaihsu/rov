@@ -8,7 +8,7 @@ import {LICENCE_GRADES, licenceCard} from './licence_card.js';
 
 export const STRINGS = {
   titles: {
-    prologue: '序章｜水池',
+    prologue: '序章｜見習之前',
     harbor: '第一章｜港灣',
     hull: '第一章｜船殼',
     offshore: '第二章｜離岸',
