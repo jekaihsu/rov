@@ -17,7 +17,9 @@ import {
   stat,
 } from '../menu/big_picture.js';
 import { createFlightLog } from './flight_log.js';
+import { awardLicenceFromSummary } from '../brand/licence_award.js';
 import { DELIVERABLES_TITLE, careerHeadline, deliverableLines, renderCareerPanel } from '../career/results_panel.js';
+import { loadCareer } from '../career/save.js';
 import {
   createOutcomeWatcher,
   formatTime,
@@ -313,6 +315,9 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     navigator?.setActive(true);
     navigator?.start();
     prompts();
+    if (outcome.career?.exam?.passed) {
+      awardLicenceFromSummary(outcome.career, loadCareer());
+    }
     requestAnimationFrame(function focusActions() {
       if (navigator) navigator.focusFirst(actions);
       else actions.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
