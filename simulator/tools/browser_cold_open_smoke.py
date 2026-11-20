@@ -41,7 +41,7 @@ const fakePad = {
 };
 Object.defineProperty(navigator, 'getGamepads', {value: () => [fakePad, null, null, null], configurable: true});
 """
-BEAT = 'window.__coldOpen?.debug?.().beat || ""'
+BEAT = '(window.__coldOpen?.debug?.().beat || "")'
 STATE = '''() => {
   const s = window.__viewer?.S || {};
   const d = window.__coldOpen?.debug?.() || {};
@@ -271,13 +271,16 @@ def opening(run):
     # One look for the whole beat (it lasts five seconds, and a busy host can take that long between two looks).
     page.wait_for_function(f'''{BEAT} === "black" && !!document.querySelector(".cold-open-radio.speaking")
       && getComputedStyle(document.querySelector(".cold-open-black")).opacity === "1"''', timeout=timeout(180000))
-    run.shot('01-black')
     # The scripted beats hold the beautified picture on (owner-approved cutscene exception) without touching the
     # player's fidelity settings; `before` is what those settings must still be once the player has control.
     before = page.evaluate(LOOK)
     assert before['cinematic'] and before['beautify'], before
     assert before['stored'] is None, ('a fresh profile has no stored fidelity', before)
-    run.wait_beat('establish')
+    # The first frame is completely black. Keep the input/director running during capture without
+    # scheduling the expensive underwater draw underneath the opaque overlay.
+    with without_render(page):
+        run.shot('01-black')
+        run.wait_beat('establish')
     page.wait_for_function('document.querySelector(".cold-open-super.visible") && '
                            'Number(getComputedStyle(document.querySelector(".cold-open-black")).opacity) < 0.05',
                            timeout=timeout(60000))
@@ -493,13 +496,12 @@ def once_only(run):
 
 
 def replay(run):
-    """重玩開場 from the story list: the cold open again, skippable with Esc, back to the story list."""
+    """重玩開場 from the story list: the cold open again, skippable with Esc, back to the main menu."""
     page = run.page
-    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=coldreplay{time.time_ns()}&quality=performance'
-              '&menu=training&tab=story')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=coldreplay{time.time_ns()}&quality=performance&menu=main')
     wait_ready(page)
-    page.wait_for_function('window.__menu.screen === "training"', timeout=timeout(30000))
-    page.click('#coldOpenReplay')
+    page.click('#entry-story')
+    page.click('#journalReplay')
     page.wait_for_url('**coldOpen=replay**', timeout=timeout(60000))
     page.wait_for_function('window.__coldOpen && window.__viewer?.S', timeout=timeout(120000))
     run.wait_beat(['black', 'establish'], 120000)

@@ -20,7 +20,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-from _browser import http_base, launch, timeout, ws_base
+from _browser import http_base, launch, timeout, without_render, ws_base
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'playstation-pad'
 CROSS, CIRCLE, SQUARE, TRIANGLE, L1, R1, L2, R2, SHARE, OPTIONS, L3, R3 = range(12)
@@ -482,7 +482,10 @@ def run_profile(playwright, name):
     title_to_briefing(page, results)
     page.wait_for_function('window.__viewer?.S?.vehicle_id', timeout=timeout(120000))
     seconds['menu'] = round(time.monotonic() - started)
-    walk_checklist(page, results)
+    # The deck procedure checks echoed server state and actual controller focus on each step.
+    # Keep input and the cinematic clock running while the DOM checklist covers the dive.
+    with without_render(page):
+        walk_checklist(page, results)
     results['dive_frames'] = page.evaluate(FRAME_STATS)
     seconds['checklist'] = round(time.monotonic() - started)
     fly(page, results)

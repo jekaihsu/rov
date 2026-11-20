@@ -14,6 +14,7 @@ out.mkdir(parents=True, exist_ok=True)
 with sync_playwright() as p:
     browser = launch(p, headless=True, args=['--enable-unsafe-swiftshader'])
     page = browser.new_page(viewport={'width': 1920, 'height': 1080})
+    page.set_default_timeout(timeout(30000))
     sockets = []
     errors = []
     page.on('websocket', lambda ws: sockets.append(ws.url))
