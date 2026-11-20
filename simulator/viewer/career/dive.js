@@ -18,7 +18,6 @@ import { contractById, contractView, itemLabel } from './rules.js';
 import { loadCareer, storeCareer } from './save.js';
 import { partialAccepted, payout, DELIVERABLE_KIND_LABELS } from './scoring.js';
 import { settleDive } from './settle.js';
-import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('career.dive', {
   card: 'YX 工單',
@@ -158,7 +157,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     dive = null;
     doneIds = new Set();
     careerRadio.bind(contract.radio || null);
-    careerRadio.play('start');
+    if (contract.runtime !== 'chapter') careerRadio.play('start');
     openChapterCard();
   }
   function openDive(state) {
@@ -419,7 +418,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   function retry() {
     if (!contract) return;
     if (contract.runtime === 'chapter') {
-      send({ type: 'operation', action: 'campaign_start', chapter: contract.campaignChapter });
+      send({ type: 'operation', action: 'campaign_start', beats: true, chapter: contract.campaignChapter });
     } else {
       send({ type: 'reset' });
     }

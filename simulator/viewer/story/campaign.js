@@ -128,7 +128,7 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
     refreshGlyphs();
   });
   function command(action, extra = {}) {
-    send({type: 'operation', action, ...extra});
+    send({type: 'operation', action, ...(action === 'campaign_start' ? {beats: true} : {}), ...extra});
   }
   function advance() {
     if (revealed < line.length) {
@@ -235,7 +235,7 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
     next.disabled = !host;
     // The prelude (the cold open) draws its own radio subtitles (story/cold_open.js).
     const prelude = campaign.chapters.find(entry => entry.id === campaign.chapter)?.category === 'prelude';
-    root.hidden = prelude || !['active', 'completed'].includes(campaign.status);
+    root.hidden = campaign.directed || prelude || !['active', 'completed'].includes(campaign.status);
     const node = campaign.node;
     const key = JSON.stringify([campaign.chapter, campaign.index, campaign.status]);
     if (key === signature) return;

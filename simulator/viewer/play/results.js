@@ -174,7 +174,9 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   }
   function retry() {
     if (outcome.kind === 'career') career?.retry();
-    else if (outcome.kind === 'chapter' || outcome.kind === 'drill') command('campaign_start', { chapter: outcome.id });
+    else if (outcome.kind === 'chapter' || outcome.kind === 'drill') {
+      command('campaign_start', {beats: true, chapter: outcome.id});
+    }
     else {
       send({ type: 'reset' });
       if (outcome.kind === 'coop') command('mission_mode', { mode: 'inspection_coop' });
@@ -182,7 +184,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     hide();
   }
   function nextChapter() {
-    command('campaign_start', { chapter: outcome.next.id });
+    command('campaign_start', { beats: true, chapter: outcome.next.id });
     hide();
   }
   async function debrief() {

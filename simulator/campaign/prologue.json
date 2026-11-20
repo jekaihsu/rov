@@ -269,5 +269,233 @@
       "end_senior.text": "回來。泡麵偏鹹，將就。",
       "end_senior.speaker": "馬力"
     }
-  }
+  },
+  "beats": [
+    {
+      "id": "black",
+      "limit": 5,
+      "radio": "black",
+      "speaker": "lin",
+      "hud": [],
+      "cinematic": true,
+      "black": true,
+      "cue": "cinematic",
+      "next": "establish"
+    },
+    {
+      "id": "establish",
+      "limit": 7,
+      "radio": "establish",
+      "speaker": "tender",
+      "hud": [],
+      "cinematic": true,
+      "location": true,
+      "cue": "cinematic",
+      "next": "unlock"
+    },
+    {
+      "id": "unlock",
+      "limit": 50,
+      "radio": "unlock",
+      "speaker": "ma",
+      "hud": [],
+      "hint": "lock",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "locked",
+        "op": "eq",
+        "value": false
+      },
+      "next": "approach"
+    },
+    {
+      "id": "approach",
+      "limit": 85,
+      "radio": "approach",
+      "speaker": "ma",
+      "hud": [
+        "heading"
+      ],
+      "hint": "surge",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "pos.0",
+        "op": "gt",
+        "value": 2.5
+      },
+      "next": "descend"
+    },
+    {
+      "id": "descend",
+      "limit": 65,
+      "radio": "descend",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "heave",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "pos.2",
+        "op": "gt",
+        "value": 3.8
+      },
+      "next": "coast"
+    },
+    {
+      "id": "coast",
+      "limit": 45,
+      "radio": "coast",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "timeout": "trim",
+      "hint": "neutral",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "drift",
+        "op": "gt",
+        "value": 0.18
+      },
+      "next": "hold"
+    },
+    {
+      "id": "hold",
+      "limit": 50,
+      "radio": "hold",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "depth",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "keep_depth",
+        "op": "eq",
+        "value": true
+      },
+      "next": "trim"
+    },
+    {
+      "id": "trim",
+      "limit": 4,
+      "radio": "trim",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "next": "A"
+    },
+    {
+      "id": "A",
+      "limit": 150,
+      "radio": "A",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading",
+        "photo"
+      ],
+      "target": [
+        11.75,
+        0,
+        4
+      ],
+      "hint": "photo",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "framedPhoto",
+        "op": "eq",
+        "value": true
+      },
+      "next": "B"
+    },
+    {
+      "id": "B",
+      "limit": 150,
+      "radio": "B",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading",
+        "photo"
+      ],
+      "target": [
+        0,
+        11.75,
+        4
+      ],
+      "hint": "photo",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "framedPhoto",
+        "op": "eq",
+        "value": true
+      },
+      "next": "C"
+    },
+    {
+      "id": "C",
+      "limit": 150,
+      "radio": "C",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading",
+        "photo"
+      ],
+      "target": [
+        -11.75,
+        0,
+        4
+      ],
+      "hint": "photo",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "framedPhoto",
+        "op": "eq",
+        "value": true
+      },
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "limit": 6,
+      "radio": "report",
+      "speaker": "lin",
+      "hud": [],
+      "next": "licence"
+    },
+    {
+      "id": "licence",
+      "limit": 8,
+      "radio": "licence",
+      "speaker": "lin",
+      "hud": [],
+      "card": "licence",
+      "next": "harbor"
+    },
+    {
+      "id": "harbor",
+      "limit": 5,
+      "radio": "harbor",
+      "speaker": "lin",
+      "hud": [],
+      "card": "harbor",
+      "next": "done"
+    }
+  ]
 }
