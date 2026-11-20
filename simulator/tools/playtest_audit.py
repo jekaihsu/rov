@@ -136,10 +136,10 @@ class Audit:
         self.runs = {}
         self.active = None
         self.session = page.context.new_cdp_session(page)
-        page.expose_function('auditWorkerPacket', self.packet)
         page.add_init_script(path=Path(__file__).with_name('playtest_probe.js'))
         page.on('pageerror', lambda err: self.error(str(err)))
         page.on('console', self.console)
+        # Chromium reports both direct and worker sockets here, once per wire frame.
         page.on('websocket', lambda ws: ws.on('framereceived', self.packet))
 
     def console(self, message):

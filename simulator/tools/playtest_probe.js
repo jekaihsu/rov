@@ -1,17 +1,5 @@
 // Page-local measurements. Drained by the pilot between inputs, without disabling WebGL.
 (() => {
-  // The RC socket runs in a worker. Observe the same error packets it forwards to the input layer.
-  window.Worker = class AuditWorker extends window.Worker {
-    constructor(...args) {
-      super(...args);
-      this.addEventListener('message', function received(event) {
-        const packet = event.data;
-        if (packet?.event === 'message' && packet.data?.includes('invalid_command')) {
-          window.auditWorkerPacket?.(packet.data);
-        }
-      });
-    }
-  };
   const frames = [];
   function beat() {
     const state = window.__viewer?.S;
