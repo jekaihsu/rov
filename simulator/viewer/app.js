@@ -20,6 +20,7 @@ import {installTetherReel} from './tether_reel.js';
 import {thrusterLabel} from './hud/thruster_names.js';
 import {installStartPresentation} from './start_presentation.js';
 import {objectiveFade, objectiveNearFade} from './hud/objective_fade.js';
+import {installFlightFeedback} from './story/flight_feedback.js';
 import {installPhotoFeedback} from './hud/photo_feedback.js';
 import {installIntroSkip} from './play/intro_skip.js';
 import {installOnboarding} from './play/onboarding.js';
@@ -1243,13 +1244,15 @@ window.__movieDone = false;
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 const audio = installAudio({
-  getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
+  getWorld: () => W, getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
+const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio: procedurePanel.radio,
+  onboard: () => camMode === 'onboard'});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
@@ -1313,8 +1316,11 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
+  const displayed = renderState.display(S);
   audio.update(renderState.display(S));
   music.update(renderState.display(S));
+  if (displayed) flightFeedback.update(displayed, W,
+    !!(rep || introActive() || pauseMenuOpen() || collectionOpen || resultsOpen()));
   coldOpen.frame(dt);
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing

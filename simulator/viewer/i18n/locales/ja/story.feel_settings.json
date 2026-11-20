@@ -1,0 +1,12 @@
+{
+  "motorSound": "スラスター音",
+  "waterSound": "水深環境音",
+  "contactSound": "水中衝突音",
+  "strainSound": "テザーのきしみ",
+  "switchSound": "コンソール操作音",
+  "contactVideo": "衝突時の映像の乱れ",
+  "photoFlash": "撮影フラッシュ",
+  "loadReadout": "荷重時の張力表示",
+  "crewCalls": "乗員の状況報告",
+  "idleCalls": "待機中の交信"
+}

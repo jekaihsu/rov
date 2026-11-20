@@ -1,0 +1,12 @@
+{
+  "motorSound": "推进器声",
+  "waterSound": "深度环境声",
+  "contactSound": "水下撞击声",
+  "strainSound": "缆线拉扯声",
+  "switchSound": "控制台机械声",
+  "contactVideo": "碰撞影像干扰",
+  "photoFlash": "拍照闪光",
+  "loadReadout": "受力时显示张力",
+  "crewCalls": "船员即时通报",
+  "idleCalls": "任务空档通话"
+}

@@ -115,3 +115,34 @@ test('a photo plays the topside App shutter, never an underwater cue', () => {
   assert.deepEqual(resolveCue('photos', {}), {kind: 'shutter', layer: 'topside'});
   assert.equal(eventLayer('photos'), 'topside');
 });
+
+test('each mount pans in FRD; each contact material has a separate envelope', async () => {
+  const {motorPan, impactEnvelope} = await import('../viewer/audio/mapping.js');
+  assert.ok(motorPan({pos: [0, -0.2, 0]}) < 0);
+  assert.ok(motorPan({pos: [0, 0.2, 0]}) > 0);
+  assert.equal(motorPan(), 0);
+  const kinds = ['jacket_leg', 'quay', 'pen_net', 'seabed'];
+  const obstacles = kinds.map(kind => ({name: kind, kind}));
+  const envelopes = kinds.map(obstacle => impactEnvelope({obstacle, speed: 0.5}, obstacles));
+  assert.deepEqual(envelopes.map(hit => hit.material), ['steel', 'concrete', 'net', 'sand']);
+  assert.equal(new Set(envelopes.map(hit => hit.cutoff)).size, 4);
+  assert.ok(impactEnvelope({obstacle: 'seabed', speed: 1}).gain > envelopes[3].gain);
+});
+
+test('the underwater master opens the real-preset mix and preserves per-channel mutes', async () => {
+  const {bindUnderwaterMix} = await import('../viewer/story/feel_settings.js');
+  const store = createFidelity();
+  const unbind = bindUnderwaterMix(store);
+  assert.equal(store.get('contactSound'), false);
+  store.set(UNDERWATER_AUDIO_ID, true);
+  assert.equal(store.get('contactSound'), true);
+  store.set('contactSound', false);
+  store.set(UNDERWATER_AUDIO_ID, false);
+  store.set(UNDERWATER_AUDIO_ID, true);
+  assert.equal(store.get('contactSound'), false);
+  store.setPreset('real');
+  store.set('strainSound', true);
+  assert.equal(store.get(UNDERWATER_AUDIO_ID), true);
+  assert.equal(store.get('motorSound'), false);
+  unbind();
+});

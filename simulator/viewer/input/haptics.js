@@ -7,6 +7,7 @@ import {padHapticsEnabled} from './haptics_fidelity.js';
 const PATTERNS = {
   unlock: [100, 0.3, 0.1],
   lock: [60, 0.12, 0.05],
+  failsafe: [300, 0.58, 0.16],
   photo: [45, 0.1, 0.3],
   touch: [80, 0.2, 0.2],
   hard: [250, 0.8, 0.7],
@@ -22,6 +23,7 @@ export function createHaptics(getPad, settings, fidelity) {
     if (!actuator?.playEffect) return;
     const [duration, strong, weak] = PATTERNS[name] || PATTERNS.touch;
     const strength = settings.strength ?? 1;
+    if (strength <= 0) return;
     const effect = actuator.effects?.includes('trigger-rumble') ? 'trigger-rumble' : 'dual-rumble';
     try {
       Promise.resolve(

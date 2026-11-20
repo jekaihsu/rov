@@ -60,5 +60,7 @@
   "procedure.fidelity_item",
   "procedure.index",
   "story.cold_open",
-  "story.cold_open_menu"
+  "story.cold_open_menu",
+  "story.feel_settings",
+  "story.flight_feedback"
 ]
