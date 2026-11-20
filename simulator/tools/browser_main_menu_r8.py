@@ -1,36 +1,50 @@
 """Walk the first-level menu in both desktop editions and check the corresponding player surfaces."""
+import json
+
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
 from _menu import open_main, wait_screen
+from browser_playstation_smoke import CIRCLE, CROSS, DOWN, FAKE_PAD, L1, PROFILES, R1, press, press_until, wait_focus
+
+
+def choose_entry(page, entry):
+    wait_focus(page, 'entry-resume')
+    press_until(page, DOWN, 'entry-' + entry)
+    press(page, CROSS)
 
 
 def walk(browser, edition):
     page = browser.new_page(viewport={'width': 1366, 'height': 768})
     page.add_init_script(f"window.rovDesktop = {{edition: '{edition}', rememberModel() {{}}}}")
+    page.add_init_script(FAKE_PAD + '\nwindow.__setPs(' + json.dumps(PROFILES['dualsense_standard']) + ');')
     page.goto(f'{http_base()}/?ws={ws_base()}&quality=performance&menu=main')
     open_main(page)
     assert page.locator('.field-actions button').evaluate_all('els => els.map(el => el.id)') == [
         'entry-resume', 'entry-story', 'entry-training', 'entry-settings', 'entry-exit']
     retail = edition == 'steam'
-    page.click('#entry-resume')
+    choose_entry(page, 'resume')
     wait_screen(page, 'contract')
-    page.keyboard.press('Escape')
-    page.click('#entry-story')
+    press(page, CIRCLE)
+    choose_entry(page, 'story')
     page.wait_for_selector('#journalReplay')
+    press(page, R1)
+    wait_focus(page, 'journal-tab-ch1')
+    press(page, L1)
+    wait_focus(page, 'journal-tab-prologue')
     assert page.locator('.field-order[aria-disabled=true]').count()
-    page.keyboard.press('Escape')
-    page.click('#entry-training')
+    press(page, CIRCLE)
+    choose_entry(page, 'training')
     assert page.locator('#training-tab-internal').count() == int(not retail)
     assert page.locator('#training-tab-story').count() == int(not retail)
     for selector in ['#entry-dive', '#entry-multiplayer', '#shop-tab-cosmetic', '[data-sticker]']:
         assert bool(page.locator(selector).count()) != retail, selector
-    page.keyboard.press('Escape')
-    page.click('#entry-settings')
+    press(page, CIRCLE)
+    choose_entry(page, 'settings')
     assert bool(page.locator('[data-fidelity-item="aiOverlay"]').count()) != retail
-    page.keyboard.press('Escape')
+    press(page, CIRCLE)
     page.evaluate('window.close = () => {window.exitRequested = true}')
-    page.click('#entry-exit')
+    choose_entry(page, 'exit')
     assert page.evaluate('window.exitRequested')
     page.goto(f'{http_base()}/instructor/instructor.html')
     if retail:
@@ -57,7 +71,7 @@ def walk(browser, edition):
         frames = page.evaluate('window.__menu.renderer.info.render.frame')
         page.wait_for_timeout(500)
         assert page.evaluate('window.__menu.renderer.info.render.frame') == frames
-        page.click('#entry-story')
+        choose_entry(page, 'story')
         page.click('#journal-tab-ch2')
         assert page.locator('[data-order="c2_net_inspection"]').get_attribute('data-medal') == 'gold'
     page.close()
