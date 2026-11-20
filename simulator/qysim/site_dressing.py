@@ -27,14 +27,14 @@ APPURTENANCE_KINDS = frozenset({
     "pen_net", "pen_rope", "pen_frame", "pen_sinker", "pen_buoy", "pen_anchor",
     "anode", "anode_strap", "mudmat", "transition_piece", "boat_landing", "j_tube", "cable_protection",
     "scour_rock", "fender", "ladder", "bollard", "toe_rock", "tyre", "debris_block", "debris_pipe",
-    "bilge_keel", "shaft", "propeller", "rudder", "deck", "mooring_chain", "hawser",
+    "bilge_keel", "shaft", "propeller", "rudder", "deck", "mooring_chain", "hawser", "tyre_tread",
 })
 # Fittings that sit inside the near-bed log layer (whose roughness length already stands for them) or are too
 # small to shed a wake of their own; the structure flow skips them.
 NO_WAKE_KINDS = frozenset({
     "pen_net", "pen_rope", "pen_frame", "pen_sinker", "pen_buoy", "pen_anchor",
     "scour_rock", "toe_rock", "cable_protection", "debris_pipe", "tyre", "debris_block", "mudmat",
-    "anode_strap", "propeller", "bollard", "deck", "mooring_chain", "hawser",
+    "anode_strap", "propeller", "bollard", "deck", "mooring_chain", "hawser", "tyre_tread",
 })
 # Holding force ranges (N) for snaggable seabed fittings. Provisional training settings like SnagFeature's
 # default (150-400 N): no published small-ROV snag strength data exists. Rock armour holds harder (assumed).
@@ -205,6 +205,12 @@ def dress_quay(wall: Wall, seabed: float, keep_clear=()) -> list:
     obs += snaggable([Cylinder(f"{wall.name} toe rock", _tuple(face(-half + 1.0, 0.6, seabed + 0.45)),
                                _tuple(face(half - 1.0, 0.6, seabed + 0.45)), 1.05, "toe_rock")], SNAG_HOLD_ROCK)
     return obs
+
+
+def discarded_tyre(north: float, east: float, seabed: float) -> list:
+    """A hollow tyre: the cable can pass through the bore or catch on a tread segment."""
+    tread = _ring("Harbor tyre tread", north, east, .325, seabed - .10, .125, "tyre_tread")
+    return snaggable(tread, SNAG_HOLD_DEBRIS)
 
 
 def quay_debris(wall: Wall, seabed: float) -> list:

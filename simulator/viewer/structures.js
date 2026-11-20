@@ -15,7 +15,7 @@
 //   'attached'  thin dressing on a collider's surface (within SCENE_TOLERANCE outside it)
 //   'above'     above the waterline, out of the vehicle's reach
 import * as THREE from 'three';
-import {chainSegment, harborStructures, harborTyre} from './harbor.js';
+import {chainSegment, harborStructures} from './harbor.js';
 import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
@@ -901,7 +901,6 @@ function buildOne(set, ob, consumed) {
   }
   if (ob.type === 'box') {
     if (ob.kind === 'ladder') ladder(set, ob);
-    else if (ob.kind === 'tyre' && world.scenario?.key === 'harbor_inspection') harborTyre(set, ob);
     else if (ob.kind === 'tyre') tyre(set, ob);
     else if (ob.kind === 'rudder') rudder(set, ob);
     else if (ob.kind === 'wreck') plainBox(set, ob, 'wreck');

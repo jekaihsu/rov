@@ -70,6 +70,11 @@ function pileRow(set, piles, seeded) {
 
 export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
   if (!obstacles.some(ob => ob.kind === 'quay')) return;
+  const tread = obstacles.filter(ob => ob.kind === 'tyre_tread');
+  if (tread.length) {
+    harborTyre(set, tread);
+    for (const ob of tread) consumed.add(ob.name);
+  }
   const piles = obstacles.filter(ob => ob.kind === 'pile');
   const rows = new Map();
   for (const ob of piles) {
@@ -168,10 +173,14 @@ export function chainSegment(set, ob) {
   }
 }
 
-/** A discarded commercial tyre resting on its side in the mud, within its server box. */
-export function harborTyre(set, ob) {
-  const [radius, , halfHeight] = ob.half;
-  const [north, east, depth] = ob.center;
+/** A discarded commercial tyre resting on its side in the mud, on its ring of snaggable contact segments. */
+function harborTyre(set, tread) {
+  const centre = new THREE.Vector3();
+  for (const ob of tread) centre.add(new THREE.Vector3(...ob.p0));
+  centre.divideScalar(tread.length);
+  const [north, east, depth] = centre.toArray();
+  const halfHeight = tread[0].radius;
+  const radius = centre.distanceTo(new THREE.Vector3(...tread[0].p0)) + halfHeight;
   // Section from the inner bead, over the sidewall to the shoulder and across the tread.
   const section = [[.51, -.85], [.51, .68], [.57, .95], [.78, 1], [.94, .76], [.99, .53],
     [.99, .22], [.965, .15], [.99, .09], [.99, -.11], [.965, -.17], [.99, -.24],
@@ -179,5 +188,5 @@ export function harborTyre(set, ob) {
   const profile = section.reverse().map(([r, h]) => new THREE.Vector2(radius * r, halfHeight * h));
   const tyre = new THREE.LatheGeometry(profile, 28);
   tyre.translate(-east, -depth, north);
-  set.add(tyre, 'rubber', [ob.name], 'solid', [ob]);
+  set.addBatched('tyre-tread', tyre, 'rubber', tread.map(ob => ob.name), 'solid', tread);
 }

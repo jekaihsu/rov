@@ -406,7 +406,7 @@ def harbor_obstacles(sea: float) -> list:
         for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
             obs.append(Cylinder(f"Mooring chain {label}{i}", a, b, .09, "mooring_chain"))
     obs += dressing.dress_quay(quay, sea, keep_clear=(0.0,))
-    obs += dressing.quay_debris(quay, sea)
+    obs += dressing.discarded_tyre(38.8, 6.5, sea)
     # Parted hawser trailing from the mooring block; the cut end lies on the mud.
     tail = [(24, -6, sea - .7), (24.8, -6.2, sea - .18), (25.6, -6, sea - .035), (26.2, -6.4, sea)]
     for i, (a, b) in enumerate(zip(tail, tail[1:])):

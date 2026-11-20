@@ -26,3 +26,11 @@ class HarborBentsTest(unittest.TestCase):
         contacts = build(self.world, nodes, candidates, False, .005, .1, .05)
         hits = {self.world.obstacles[i].name for i in contacts.obstacle[contacts.dist0 < 0]}
         self.assertEqual(hits, {"Harbor pile A2 inner"})
+
+    def test_tyre_has_a_clear_bore_and_snaggable_tread(self):
+        tyre = [ob for ob in self.world.obstacles if ob.kind == "tyre_tread"]
+        self.assertTrue(tyre)
+        hole = np.array([38.8, 6.5, 17.9])
+        self.assertGreater(min(ob.sdf(hole)[0] for ob in tyre), .14)
+        self.assertLess(tyre[0].sdf(np.array(tyre[0].p0))[0], 0)
+        self.assertTrue(all(ob.snag_hold for ob in tyre))
