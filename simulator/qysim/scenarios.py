@@ -386,14 +386,31 @@ def seagrass_meadow() -> Scenario:
 def harbor_obstacles(sea: float) -> list:
     """Quay wall with its fittings, two rows of jetty piles under a deck, and debris off the quay toe."""
     quay = Wall("Quay", (42, 0, 0), 180, 70, -2, "quay")
-    obs = [quay,
-           Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
-           Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)]
-    for row, y in (("A", -10), ("B", 10)):
-        for k, x in ((2, 27), (3, 33)):
-            obs.append(Cylinder(f"Harbor pile {row}{k}", (x, y, -2), (x, y, sea), .65))
-        obs.append(Box(f"Jetty deck {row}", (30.5, y, -2.4), (11.5, 2.2, .4), 0, "deck"))
+    obs = [quay]
+    for label, east in (("A", -10), ("B", 10)):
+        for bay, north in enumerate(range(21, 42, 5)):
+            # The inspected outer pile retains its name and face point.
+            for offset in (0, 4):
+                name = f"Harbor pile {label}" + (str(bay + 1) if bay else "")
+                if offset:
+                    name += " inner"
+                y = east + offset
+                obs.append(Cylinder(name, (north, y, -1.45), (north, y, sea), .6))
+            obs.append(Box(f"Cap {label}{bay}", (north, east + 2, -1.55), (.58, 2.85, .45), 0, "deck"))
+        for offset in (0, 4):
+            obs.append(Box(f"Stringer {label}{offset}", (30.5, east + offset, -2.15),
+                           (11.5, .32, .28), 0, "deck"))
+        obs.append(Box(f"Jetty deck {label}", (30.5, east + 2, -2.6), (11.5, 3.1, .22), 0, "deck"))
+        # A fixed hanging chain loop secured to the two outer bents; each chord is a cable contact surface.
+        nodes = [(21 + i, east - .15, -1.4 + .43 * i * (5 - i)) for i in range(6)]
+        for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
+            obs.append(Cylinder(f"Mooring chain {label}{i}", a, b, .09, "mooring_chain"))
     obs += dressing.dress_quay(quay, sea, keep_clear=(0.0,))
+    obs += dressing.quay_debris(quay, sea)
+    # Parted hawser trailing from the mooring block; the cut end lies on the mud.
+    tail = [(24, -6, sea - .7), (24.8, -6.2, sea - .18), (25.6, -6, sea - .035), (26.2, -6.4, sea)]
+    for i, (a, b) in enumerate(zip(tail, tail[1:])):
+        obs.append(Cylinder(f"Hawser tail {i}", a, b, .035, "hawser"))
     # snaggable debris off the quay (mooring block, rope, rubble), placed on main with the tether snag model
     obs += [SnagFeature("Harbor mooring block", (24, -6, sea), .5, .6, item="debris"),
             SnagFeature("Harbor rope tangle", (30, 4, sea), .25, .3, item="rope"),

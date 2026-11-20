@@ -133,3 +133,9 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
 珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）
 皆為本專案原創程式幾何，CC0-1.0，沒有外部模型、照片或貼圖。養殖魚與死魚載入後改用上方 Fish Kit 的嘉鱲（`fish/madai*`）。
+
+## R5 青嶼港
+
+樁、排架、鏈環、附著群、斷纜與岸上設施使用原創程式幾何。樁身和岸壁重用上表 Poly Haven
+`concrete`，鏈與岸吊重用 `rust_coarse_01`，海床重用 ambientCG `Ground054`。港區地表另沿用 Poly Haven
+`shell_floor_01`、`aerial_beach_01` 與高畫質的 `coast_sand_01`。以上掃描均為 CC0 1.0。
