@@ -81,3 +81,20 @@ P3、P4、P5 都會動到 `career/contracts.json` 與 `simulator/campaign/`，�
 | 2 | `Q2-model-o-literature.md` | Model O 依公開文獻校準水動力與推進器 | Codex／Cursor |
 | 2 | `Q3-tether-parameters.md` | 臍帶纜參數依公開規格校準 | Codex／Cursor |
 | 3 | `Q5-vehicle-models.md` | 三台載具模型品質、一致材質、三級 LOD | GPT＋Blender，Q1 合併後 |
+
+## 2026-11-20 新增：R 系列（把開場之後的遊戲拉到開場水準，全部給 Codex）
+
+每份都先讀 `R0-common.md`（共同規則與「開場標準」八條）。對 Codex 說：「完整讀 docs/prompts/R0-common.md 與
+docs/prompts/<檔名>，照做，完成後開 draft PR。」
+
+| 順序 | 檔案 | 內容 | 相依 |
+|---|---|---|---|
+| 1 | `R4-story-world.md` | 劇情、角色弧線、伏筆、世界設定、逐關劇本（只寫文件與台詞） | 無，最先跑 |
+| 1 | `R1-prologue-director.md` | 共用劇情導演＋序章重做（取代 #101） | 無 |
+| 1 | `R5-harbor-scene.md` | 港口碼頭場景重建 | 無 |
+| 1 | `R6-hull-pen-scenes.md` | 貨輪船殼與養殖網箱場景重建 | 無 |
+| 1 | `R7-game-feel.md` | 聲音、震動、畫面回饋、船員即時反應 | 無 |
+| 1 | `R8-main-menu.md` | 主選單重新設計、Steam 版隱藏內部功能 | 無 |
+| 1 | `R9-playtest-audit.md` | 自動試玩稽核工具，找無聊、卡關、太卡 | 無；R1–R3 合併後再跑一次 |
+| 2 | `R2-chapter1.md` | 第一章港口四關（取代 #113） | R1 合併後 |
+| 2 | `R3-chapter2.md` | 第二章養殖場三關（取代 #108） | R1 合併後 |
