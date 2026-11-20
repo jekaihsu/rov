@@ -216,7 +216,9 @@ def menu(browser, size):
     reachable(page, label + ' title', ['#titleStart'])
     page.click('#titleStart')
     wait_screen(page, 'main')
-    reachable(page, label + ' main', ['#entry-resume', '#entry-settings'])
+    centred(page, '#entry-resume')
+    first_level = ['#entry-resume', '#entry-story', '#entry-training', '#entry-settings', '#entry-exit']
+    reachable(page, label + ' main', first_level)
     open_internal(page)
     for selector in ['#entry-dive', '#internal-settings', '#menuCollection']:
         centred(page, selector)
