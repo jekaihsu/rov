@@ -20,6 +20,8 @@ import {
 // Registers the 下水流程 fidelity item so the launch menu's fidelity panel lists it.
 import '../procedure/fidelity_item.js';
 import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTitle } from './screens.js';
+import { assignment, backdropChapter, buildFrontPage, buildStory } from './front_page.js';
+import { steamEdition } from './edition.js';
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
@@ -65,7 +67,7 @@ const ROUTES = {
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
-const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'shop']);
+const SHOWCASE_SCREENS = new Set(['title', 'internal', 'settings', 'multiplayer', 'training', 'shop']);
 const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
@@ -235,6 +237,7 @@ const navigator = createMenuNavigator({
 });
 
 function show(name) {
+  if (!screens[name]) return;
   const previous = screens[current];
   previous?.leave?.();
   if (previous) delete previous.element.dataset.active;
@@ -255,7 +258,13 @@ function show(name) {
 }
 // A screen with sceneKey() names the site behind it (the focused contract's); the others keep the chosen site.
 function showBackdrop(name) {
-  if (SHOWCASE_SCREENS.has(name)) {
+  if (name === 'main' || name === 'story') {
+    clearTimeout(previewTimer);
+    backdrop.hide();
+    const chapter = backdropChapter(ctx.career, assignment(ctx.career));
+    const key = chapter === 'ch2' ? 'aquaculture_pen' : 'harbor_inspection';
+    stage.setScene(sceneFor(key), { journal: chapter });
+  } else if (SHOWCASE_SCREENS.has(name)) {
     clearTimeout(previewTimer);
     backdrop.hide();
     stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
@@ -263,6 +272,7 @@ function showBackdrop(name) {
   else if (stage.showcase) stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
 }
 function go(name) {
+  if (!screens[name]) return;
   if (current && current !== name) history.push(current);
   show(name);
 }
@@ -326,6 +336,7 @@ function launch({ replay = false } = {}) {
   if (!replay) rememberChoice(choice);
   setStatus(STRINGS.launching);
   menu.classList.add('departing');
+  installAudio().cue('complete');
   stage.setPose('launch');
   music.setScreen(null);
   setTimeout(function leaveMenu() {
@@ -334,6 +345,7 @@ function launch({ replay = false } = {}) {
 }
 
 const ctx = {
+  steamEdition,
   choice,
   data,
   stage,
@@ -425,15 +437,21 @@ const ctx = {
 
 const careerMenu = await installCareerMenu(ctx, screens);
 screens.title = buildTitle(ctx);
-screens.main = buildMain(ctx);
-screens.modes = buildModes(ctx);
+screens.main = buildFrontPage(ctx);
+if (!steamEdition) screens.internal = buildMain(ctx);
+if (!steamEdition) screens.modes = buildModes(ctx);
 screens.hangar = buildHangar(ctx);
 screens.sites = buildSites(ctx);
 screens.briefing = buildBriefing(ctx);
 screens.training = buildTraining(ctx);
-screens.multiplayer = buildMultiplayer(ctx);
+if (!steamEdition) screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
 Object.assign(screens, careerMenu.buildScreens());
+screens.story = buildStory(ctx);
+if (steamEdition) {
+  delete screens.board;
+  choice.sticker = 'none';
+}
 for (const screen of Object.values(screens)) stack.append(screen.element);
 installBrandMenu({ menu, getModel: () => choice.model });
 
@@ -459,6 +477,10 @@ navigator.start();
 function openRequestedScreen() {
   const query = new URLSearchParams(location.search);
   const requested = query.get('menu');
+  if (requested === 'main' || (steamEdition && requested === 'board')) {
+    go('main');
+    return;
+  }
   if (requested === 'shop') {
     go('main');
     ctx.openShop();
@@ -471,7 +493,8 @@ function openRequestedScreen() {
   }
   if (requested !== 'training') return;
   go('main');
-  ctx.openTraining(query.get('tab') || 'story');
+  if (steamEdition && (query.get('tab') || 'story') === 'story') go('story');
+  else ctx.openTraining(query.get('tab') || 'story');
 }
 
 window.__menu = {

@@ -1,0 +1,14 @@
+{
+  "resume": "Continue",
+  "story": "Story",
+  "training": "Training",
+  "settings": "Settings",
+  "exit": "Exit",
+  "internal": "Internal tools",
+  "locked": "Complete the previous assignment",
+  "locations": [
+    "Dawn · Inner harbour",
+    "Daylight · Port",
+    "Overcast · Offshore fish farm"
+  ]
+}

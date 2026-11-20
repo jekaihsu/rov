@@ -391,3 +391,42 @@ body:is(.pause-open, .results-open) > :not(.app, .pause-menu, .results-screen, .
   .bp-backdrop, .bp-tile, .bp-link, .bp-primary { transition: none; }
   .bp-backdrop img { animation: none; }
 }
+
+/* Field journal. Typography sits directly on the live harbour shot. */
+.field-home { display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  padding-left: 2vw; color: #eef3f0; }
+.field-location { margin: 0; color: #ffa063; letter-spacing: .16em; font-size: clamp(14px, 1.2vw, 22px); }
+.field-title { margin: .18em 0 .12em; max-width: 65vw; font-size: clamp(40px, 5.6vw, 104px);
+  font-weight: 850; line-height: 1.04; text-wrap: balance; }
+.field-progress { margin: 0 0 3vh; font-size: clamp(15px, 1.35vw, 24px); }
+.field-actions { display: grid; gap: .4vh; min-width: clamp(180px, 17vw, 300px); }
+.field-action { padding: .45vh 1vw; font-size: clamp(20px, 2.6vh, 34px); font-weight: 700; }
+.field-action:first-child { background: #ff7a2f; color: #101819; margin-bottom: .8vh; }
+.launch-menu .field-action:is(:focus, :hover), .launch-menu .field-order:is(:focus, :hover) {
+  outline: 3px solid #eef3f0; outline-offset: 2px; box-shadow: none; }
+.field-story .menu-settings { width: 100%; max-width: none; }
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(430px,100%),1fr)); gap: 16px; }
+.field-order { position: relative; width: 100%; aspect-ratio: 2.25; container-type: size; }
+.field-order[aria-disabled=true] .brand-card-photo img { filter: grayscale(1) brightness(.22); }
+.field-order .brand-card-title { color: #101d22; font-size: clamp(16px, 6cqh, 28px); }
+.field-order .brand-card-head { flex-wrap: wrap; }
+.field-order .brand-card-mark { display: none; }
+.field-order .brand-card-foot { padding-right: 0; }
+.launch-menu.departing::after { content: ''; position: fixed; inset: 0; z-index: var(--z-menu);
+  background: #030709; animation: journal-black .55s both; }
+@keyframes journal-black { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .launch-menu.departing::after { animation-duration: 0s; }
+}
+
+.field-story > .bp-link { margin-top: 1vh; }
+.field-order[data-medal=gold] .brand-card-sub { color: #865e12; }
+.field-order[data-medal=silver] .brand-card-sub { color: #4d606c; }
+.field-order[data-medal=bronze] .brand-card-sub { color: #864c32; }
+@media (prefers-reduced-motion: no-preference) {
+  html.in-game body::after { content: ''; position: fixed; inset: 0; pointer-events: none;
+    background: #030709; z-index: var(--z-menu); animation: journal-arrive .65s ease-out forwards; }
+  @keyframes journal-arrive { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
+}
+
+html[data-edition=steam] :is(#engineering, #flightDrawer, #hRemote) { display: none; }

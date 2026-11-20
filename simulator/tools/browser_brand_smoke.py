@@ -9,7 +9,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, wait_ready, wait_screen
+from _menu import open_internal, wait_ready, wait_screen
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'brand-validation'
 MODELS = {'x1': 'R', 'bluerov2_heavy': 'O', 'falcon': 'V'}
@@ -48,7 +48,7 @@ def check_menu(page, base):
       .filter(button => getComputedStyle(button).backgroundColor === accent).map(button => button.id)''', ACCENT)
     assert filled == ['titleStart'], filled
     page.screenshot(path=str(OUT / 'title.png'))
-    open_main(page)
+    open_internal(page)
     assert page.locator('.menu-brand svg.yx-mark-compact').is_visible(), 'header shows the compact mark'
     page.click('#entry-dive')
     wait_screen(page, 'modes')

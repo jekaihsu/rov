@@ -43,6 +43,15 @@ def open_main(page):
     wait_screen(page, 'main')
 
 
+def open_internal(page):
+    """Reach the internal console from the training screen."""
+    open_main(page)
+    soft_click(page, '#entry-training')
+    soft_click(page, '#training-tab-internal')
+    soft_click(page, '#openInternal')
+    wait_screen(page, 'internal')
+
+
 def set_intro(page, enabled):
     page.locator('#menuIntro').evaluate(
         '(el, value) => { el.checked = value; el.dispatchEvent(new Event("change", {bubbles: true})); }', enabled)
@@ -50,7 +59,7 @@ def set_intro(page, enabled):
 
 def to_briefing(page, mode='free_explore', site='coral_reef', model=None, sticker=None):
     """Main menu → 開始潛航 → mode → hangar → site → briefing. scenario_training picks the site from the list."""
-    open_main(page)
+    open_internal(page)
     soft_click(page, '#entry-dive')
     wait_screen(page, 'modes')
     soft_click(page, f'[data-mode="{mode}"]')

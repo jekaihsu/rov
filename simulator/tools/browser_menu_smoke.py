@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import launch, http_base, timeout, ws_base
-from _menu import open_main, open_settings_tab, set_intro, to_briefing, wait_ready, wait_screen
+from _menu import open_internal, open_settings_tab, set_intro, to_briefing, wait_ready, wait_screen
 
 out = Path(__file__).resolve().parents[1] / 'output' / 'menu-validation'
 out.mkdir(parents=True, exist_ok=True)
@@ -62,7 +62,7 @@ with sync_playwright() as p:
     page.click('#returnMenu')
     wait_ready(page)
     assert 'play=' not in page.url
-    open_main(page)
+    open_internal(page)
     assert page.locator('#quickStart').is_enabled(), 'a launched dive enables 快速開始'
     assert not errors, errors
     (out / 'results.json').write_text(json.dumps({

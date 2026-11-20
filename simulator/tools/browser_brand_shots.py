@@ -13,7 +13,7 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout
-from _menu import open_main, wait_ready, wait_screen
+from _menu import open_internal, wait_ready, wait_screen
 
 OUT = Path(__file__).resolve().parents[2] / 'docs' / 'design' / 'key-art' / 'in-game'
 VIEWPORT = {'width': 1600, 'height': 900}
@@ -61,7 +61,7 @@ def main():
         wait_ready(page, 180000)
         page.wait_for_timeout(2500)
         save(page, 'title.jpg')
-        open_main(page)
+        open_internal(page)
         page.click('#entry-dive')
         wait_screen(page, 'modes')
         page.click('[data-mode="free_explore"]')

@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, wait_screen
+from _menu import open_internal, wait_screen
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'career-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -48,7 +48,7 @@ def shot(page, name):
 
 
 def to_board(page):
-    open_main(page)
+    open_internal(page)
     page.click('#entry-contracts')
     wait_screen(page, 'board')
 
@@ -66,7 +66,7 @@ def run():
         page.goto(base)
         page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
         assert page.evaluate('window.__menu.career.money') == 0, 'fresh save'
-        open_main(page)
+        open_internal(page)
         page.wait_for_selector('#careerSummary', timeout=timeout(10000))
         assert '學員' in page.locator('#careerSummary').inner_text()
         assert '水池檢查潛' in page.locator('#careerNext').inner_text(), 'the recommended work order is named'
@@ -114,7 +114,7 @@ def run():
         assert career['money'] == pay['net'], career
         assert career['logbook'][-1]['outcome'] == 'complete'
 
-        open_main(page)
+        open_internal(page)
         page.click('#entry-shop')
         wait_screen(page, 'shop')
         page.click('[data-item="laser_scaler"]')
@@ -122,7 +122,7 @@ def run():
         page.wait_for_function('window.__menu.career.owned.includes("laser_scaler")', timeout=timeout(5000))
         page.wait_for_timeout(500)
         shot(page, 'shop')
-        open_main(page)
+        open_internal(page)
         page.click('#entry-dive')
         wait_screen(page, 'modes')
         page.click('[data-mode="free_explore"]')

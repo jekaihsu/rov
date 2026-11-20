@@ -459,6 +459,11 @@ def ending(run):
     }''', timeout=timeout(120000)).json_value()
     page.wait_for_timeout(600)
     run.shot('08-title-card')
+    page.wait_for_url('**menu=main**', timeout=timeout(90000))
+    wait_ready(page)
+    page.click('#entry-story')
+    page.click('[data-order="p0_induction"]')
+    page.click('#contractAccept')
     page.wait_for_url('**contract=p0_induction**', timeout=timeout(90000))
     page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(120000))
     page.wait_for_timeout(2500)
@@ -493,9 +498,9 @@ def replay(run):
     page.keyboard.press('Escape')
     page.wait_for_selector('.brand-card-overlay', timeout=timeout(60000))
     assert page.evaluate('window.__coldOpen.report.skipped') == 'key'
-    page.wait_for_url('**menu=training**', timeout=timeout(90000))
+    page.wait_for_url('**menu=main**', timeout=timeout(90000))
     wait_ready(page)
-    page.wait_for_function('window.__menu.screen === "training"', timeout=timeout(30000))
+    page.wait_for_function('window.__menu.screen === "main"', timeout=timeout(30000))
 
 
 def contact_sheet(frames, path):

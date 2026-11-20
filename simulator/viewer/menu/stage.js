@@ -13,7 +13,7 @@ import { createFrameGate } from '../prefs/display.js';
 // the screen centre by that many metres (the menus sit on the left), lift raises the look point.
 const POSES = {
   title: { eye: [-3.6, 1.1, 4.6], shift: 1.4, lift: 0.35, orbit: 0.03 },
-  main: { eye: [-2.2, 0.7, 2.8], shift: 1.0, lift: 0.15, orbit: 0 },
+  main: { eye: [-2.2, 0.7, 2.8], shift: 1.0, lift: 0.15, orbit: 0.019 },
   modes: { eye: [-2.3, 0.45, 3.0], shift: 0.9, lift: -0.3, orbit: 0 },
   hangar: { eye: [0.9, 0.35, 1.5], shift: 0.42, lift: 0, orbit: 0 },
   // Overview of the site itself: eye direction scaled by the site's extent, looking at its structures.
@@ -114,6 +114,17 @@ export function createStage(host, { quality = 'auto' } = {}) {
   let spinVelocity = 0;
   let sticker = 'none';
   let showcase = false;
+  let journal = '';
+  let still = false;
+  const keyLight = scene.children.find(child => child.isDirectionalLight);
+  const umbilical = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, .1, 0), new THREE.Vector3(-.4, .35, -.8),
+    new THREE.Vector3(-1.4, 1.2, -3), new THREE.Vector3(-2.5, 8, -7),
+  ]);
+  const tether = new THREE.Mesh(new THREE.TubeGeometry(umbilical, 24, .014, 5, false),
+    new THREE.MeshStandardMaterial({color: 0xc99443, roughness: .8}));
+  scene.add(tether);
+  tether.visible = false;
   // The fog set by setSea (SEA or SHOWCASE.fog); site cards widen it per frame and other poses restore it.
   let sea = SEA;
   // Large vehicles push the hangar camera back so they are never cropped (1 = the size the poses were set for).
@@ -122,6 +133,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
   const state = { modelReady: false, sceneReady: false, modelId: '', sceneKey: '' };
 
   function resize() {
+    still = false;
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
@@ -150,8 +162,10 @@ export function createStage(host, { quality = 'auto' } = {}) {
     model.updateArm({ joints: [0, -15, 30, -15], grip: 0.7 });
     applyVehicleSticker(model, sticker);
     state.modelReady = true;
+    still = false;
   }
   function setSticker(preset) {
+    still = false;
     sticker = preset;
     if (model) applyVehicleSticker(model, preset);
   }
@@ -212,13 +226,18 @@ export function createStage(host, { quality = 'auto' } = {}) {
     scene.fog.far = far;
   }
   // entry: a scene_previews.json entry; showcase: frame it as the title backdrop (SHOWCASE) instead.
-  function setScene(entry, { showcase: hero = false } = {}) {
+  function setScene(entry, { showcase: hero = false, journal: chapter = '' } = {}) {
     if (!entry) return;
-    if (state.sceneKey === entry.key && hero === showcase) return;
+    if (state.sceneKey === entry.key && hero === showcase && journal === chapter) return;
+    journal = chapter;
+    tether.visible = !!journal;
+    still = false;
+    keyLight.color.set(journal === 'prologue' ? 0xffbf89 : journal === 'ch2' ? 0xb4cad4 : 0xffffff);
     showcase = hero;
     lamps.visible = hero;
     setPose(poseName);
-    setSea(hero ? SHOWCASE.fog : SEA);
+    const seas = {prologue: ['#465753', 3, 28], ch1: ['#284a4b', 4, 34], ch2: ['#15383f', 2, 22]};
+    setSea(seas[journal] || (hero ? SHOWCASE.fog : SEA));
     if (state.sceneKey === entry.key) {
       placeAnchor(entry.world);
       snapped = false;
@@ -255,6 +274,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     return hero ? 'high' : 'medium';
   }
   function setPose(name) {
+    still = false;
     poseName = name;
     pose = (showcase && SHOWCASE.poses[name]) || POSES[name] || POSES.main;
   }
@@ -286,7 +306,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
   }
   const skipFrame = createFrameGate();
   function frame(now) {
-    if (skipFrame(now)) {
+    if (still || skipFrame(now)) {
       requestAnimationFrame(frame);
       return;
     }
@@ -305,7 +325,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
       model.root.rotation.y = facing + (pose === POSES.hangar ? 0 : Math.sin(elapsed * 0.18) * 0.18);
     }
     poseTargets();
-    if (!snapped || reduced) {
+    const holdShot = journal && poseName === 'main' && backdropDetail(false) === 'low';
+    if (!snapped || reduced || holdShot) {
       eye.copy(targetEye);
       look.copy(targetLook);
       snapped = true;
@@ -326,7 +347,9 @@ export function createStage(host, { quality = 'auto' } = {}) {
       scene.fog.far = sea[2];
     }
     environment?.update(dt, camera, new THREE.Vector3(0.1, 0, 0));
+    tether.position.copy(anchor);
     renderer.render(scene, camera);
+    still = holdShot && state.modelReady;
     requestAnimationFrame(frame);
   }
   resize();
@@ -343,6 +366,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     setPose,
     rotate,
     configureQuality(mode) {
+      still = false;
       qualityMode = mode;
       configureRenderQuality(renderer, mode);
     },

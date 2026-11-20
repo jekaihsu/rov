@@ -7,6 +7,7 @@ import { createSettingsPanel } from './settings.js';
 import { readout } from './screens.js';
 import { replayCard } from '../story/cold_open_menu.js';
 
+import { internalLabel } from './front_page.js';
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('menu.training', {
@@ -73,7 +74,7 @@ export function buildTraining(ctx) {
   const panel = createSettingsPanel({
     idPrefix: 'training',
     tabs: [
-      {
+      ...(!ctx.steamEdition ? [{
         id: 'story',
         label: STRINGS.tabs.story,
         mount: list(STRINGS.storyHelp, function storyRows() {
@@ -81,7 +82,7 @@ export function buildTraining(ctx) {
           if (ctx.replayColdOpen) rows.push(replayCard(rows.length, ctx.replayColdOpen));
           return rows;
         }),
-      },
+      }] : []),
       {
         id: 'drills',
         label: STRINGS.tabs.drills,
@@ -98,6 +99,14 @@ export function buildTraining(ctx) {
           });
         }),
       },
+      ...(!ctx.steamEdition ? [{
+        id: 'internal', label: internalLabel(), mount(pane) {
+          const open = element('button', 'bp-primary', internalLabel());
+          open.id = 'openInternal';
+          open.onclick = function openTools() { ctx.go('internal'); };
+          pane.append(open);
+        },
+      }] : []),
     ],
   });
   root.append(panel.element);

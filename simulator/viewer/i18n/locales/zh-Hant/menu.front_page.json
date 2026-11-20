@@ -1,0 +1,14 @@
+{
+  "resume": "繼續",
+  "story": "劇情",
+  "training": "訓練",
+  "settings": "設定",
+  "exit": "離開",
+  "internal": "內部工具",
+  "locked": "完成前一關",
+  "locations": [
+    "清晨 · 港內",
+    "日間 · 港口",
+    "陰天 · 養殖場外海"
+  ]
+}
