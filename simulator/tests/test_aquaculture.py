@@ -29,6 +29,15 @@ class AquacultureTests(unittest.TestCase):
         self.assertTrue(net.snag_hold)
         self.assertGreater(self.world.sdf(np.array(self.sc.start_pos))[0], .4)
 
+    def test_stanchion_spacers_bridge_the_float_pipes(self):
+        saddles = [ob for ob in self.sc.obstacles if ob.name.startswith('pen-saddle-')]
+        self.assertEqual(len(saddles), 24)
+        for saddle in saddles:
+            for radius in (18., 18.4, 18.8):
+                a = math.radians(saddle.as_dict()['yaw_deg'])
+                contact = np.array([24 + radius * math.cos(a), radius * math.sin(a), -.12])
+                self.assertLess(saddle.sdf(contact)[0], 0)
+
     def test_photo_facing(self):
         hole = np.array(layout()[1]['holes'][0]['pos'])
         self.sim.vehicle.s.pos = hole - [2, 0, 0]

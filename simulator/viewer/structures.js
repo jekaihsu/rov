@@ -15,6 +15,7 @@
 //   'attached'  thin dressing on a collider's surface (within SCENE_TOLERANCE outside it)
 //   'above'     above the waterline, out of the vehicle's reach
 import * as THREE from 'three';
+import {addInspectionFittings, bladeGeometry} from './hull_details.js';
 import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
@@ -623,40 +624,6 @@ function rudder(set, ob) {
   set.add(g, 'steelPlate', [ob.name], 'solid', [ob]);
 }
 
-/** Flat blade between its two edge capsules (names "... blade <k>a" / "<k>b"). */
-function bladeGeometry(edgeA, edgeB) {
-  const hub = P(edgeA.p0).add(P(edgeB.p0)).multiplyScalar(0.5);
-  const tip = P(edgeA.p1).add(P(edgeB.p1)).multiplyScalar(0.5);
-  const chord = P(edgeB.p0).sub(P(edgeA.p0));
-  const maxHalf = chord.length() / 2 + edgeA.radius - 0.04;
-  chord.normalize();
-  const radial = tip.clone().sub(hub);
-  const reach = radial.length() + edgeA.radius - 0.05;
-  radial.normalize();
-  const normal = new THREE.Vector3().crossVectors(radial, chord).normalize().multiplyScalar(0.025);
-  const rows = [];
-  const n = 10;
-  for (let i = 0; i <= n; i++) {
-    const s = 0.3 + (reach - 0.3) * i / n;
-    const halfChord = maxHalf * (0.55 + 0.45 * Math.sin(Math.PI * (0.25 + 0.6 * i / n))) * (i === n ? 0.35 : 1);
-    const c = hub.clone().addScaledVector(radial, s);
-    rows.push([c.clone().addScaledVector(chord, -halfChord), c.clone().addScaledVector(chord, halfChord)]);
-  }
-  const positions = [];
-  for (const sign of [-1, 1]) {
-    for (let i = 0; i < n; i++) {
-      const [a0, a1] = rows[i].map((p) => p.clone().addScaledVector(normal, sign));
-      const [b0, b1] = rows[i + 1].map((p) => p.clone().addScaledVector(normal, sign));
-      positions.push(...a0.toArray(), ...a1.toArray(), ...b1.toArray(), ...a0.toArray(), ...b1.toArray(),
-        ...b0.toArray());
-    }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  g.computeVertexNormals();
-  return g;
-}
-
 function propeller(set, obs) {
   const hub = obs.find((o) => o.name.endsWith('hub'));
   if (!hub) return;
@@ -786,7 +753,7 @@ export function shipHullGeometry(ob, detail = DETAIL.medium) {
       const order = n[0] * out[0] + n[1] * out[1] + n[2] * out[2] >= 0 ? [pa, pb, pc] : [pa, pc, pb];
       for (const q of order) {
         positions.push(...toWorld(q[0], q[1], q[2]).toArray());
-        uvs.push(q[0] / 10, q[2] / 2.5);
+        uvs.push(q[0], a[1] === b[1] && b[1] === c[1] ? q[2] : q[1]);
       }
     };
     const quad = (p00, p01, p10, p11, s00, s01, s10, s11) => {
@@ -819,6 +786,7 @@ function shipHull(set, ob) {
   // zinc anodes welded flush on the hull near the stern, 0.06 m proud
   const hp = shipHullParams(ob);
   const {toWorld} = shipLocalFrame(ob);
+  addInspectionFittings(set, ob, hp, toWorld, boxAt, merged);
   const zincs = [];
   for (const side of [-1, 1]) {
     for (let k = 0; k < 4; k++) {

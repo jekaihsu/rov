@@ -35,6 +35,9 @@ def layout():
             obstacles.append(Cylinder(f"{kind}-{radius}-{i}", point(a, radius, depth),
                                       point(b, radius, depth), thickness, kind))
         if i % 2 == 0:
+            # Rigid spacers tie the two flotation pipes together at each rail stanchion.
+            obstacles.append(Box(f"pen-saddle-{i}", point(a, 18.4, -.12),
+                                 (.59, .12, .07), math.degrees(a), "pen_frame"))
             obstacles.append(Cylinder(f"pen-post-{i}", point(a, 18.8, 0),
                                       point(a, 18.8, -1), .055, "pen_frame"))
         damaged = next((j for panel, j in HOLES if panel == i), None)
