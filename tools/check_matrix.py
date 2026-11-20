@@ -1,6 +1,7 @@
 """Shared local/CI test tiers and conservative path selection."""
 from pathlib import Path
 import subprocess
+import os
 
 ROOT = Path(__file__).resolve().parents[1]
 # Standard automated checks. Performance and visual review scripts are not pass/fail checks
@@ -79,22 +80,26 @@ def changed_paths(base='origin/main'):
 
 def browser_checks(tier, paths=None):
     names = list(TIERS[tier]['browser'])
+    audit_files = ('simulator/tools/playtest_', 'simulator/tests/test_playtest_audit',
+                   'simulator/viewer/story/', 'simulator/viewer/career/', 'simulator/campaign/')
+    audit = ['playtest_audit'] if tier == 'full' and not os.environ.get('CI') and (
+        paths is None or any(p.startswith(audit_files) for p in paths)) else []
     if paths is None:
-        return names
+        return names + audit
     viewer = [p for p in paths if p.startswith('simulator/viewer/')]
     if not viewer:
-        return []
+        return audit
     shared = ('simulator/qysim/', 'simulator/sdk_mock/', 'simulator/requirements')
     if any(path.startswith(shared) for path in paths):
-        return names
+        return names + audit
     selected = set()
     for path in viewer:
         matches = [checks for prefix, checks in BROWSER_PATHS.items() if path.startswith(prefix)]
         if not matches:
-            return names
+            return names + audit
         for checks in matches:
             selected.update(checks)
-    return [name for name in names if name in selected]
+    return [name for name in names if name in selected] + audit
 
 
 def inert_for_python(path):
