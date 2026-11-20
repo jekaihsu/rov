@@ -51,6 +51,10 @@ const NET_FRAGMENT_MAP = `
   // Hung netting is never a ruled grid: bars wander by a few centimetres over half a metre.
   vec2 penWander = vec2(penNoise(penField * 2.6 + 3.0), penNoise(penField * 2.6 + 19.0)) - 0.5;
   vec2 penPoint = vec2(penAcross, penAlong + penSag) + 0.07 * penWander + 0.012 * vec2(penFine, penPatch);
+  // Cut ends lose their lateral tension: unravel and hang in small tufts along a damaged lip.
+  float penFray = penIsFloor ? 0.0 : 1.0 - smoothstep(0.03, 0.26, penUv.y);
+  penPoint.x += penFray * (0.035 * sin(penAcross * 17.0) + 0.05 * (penFine - 0.5));
+  penPoint.y += penFray * 0.04 * sin(penAcross * 11.0);
   vec2 penTexel = penPoint / PEN_TILE * 256.0;
   float penLod = 0.5 * log2(max(dot(dFdx(penTexel), dFdx(penTexel)), dot(dFdy(penTexel), dFdy(penTexel))) + 1e-8);
   vec4 penTex = texture2D(map, penPoint / PEN_TILE);
@@ -68,19 +72,20 @@ const NET_FRAGMENT_MAP = `
   float penBand = abs(fract((penAlong + 0.6 * penSag) / 4.0 + 0.5) - 0.5) * 4.0;
   float penRopeDistance = penIsFloor ? penJoint : min(penJoint, penBand);
   float penRope = clamp((0.016 - penRopeDistance) / max(fwidth(penRopeDistance), 1e-4) + 0.5, 0.0, 1.0);
-  vec3 penAlgae = mix(vec3(0.15, 0.135, 0.085), vec3(0.12, 0.19, 0.075), smoothstep(7.0, 1.0, penDepth));
+  vec3 penAlgae = mix(vec3(0.15, 0.135, 0.085), vec3(0.12, 0.19, 0.075), (1.0 - smoothstep(1.0, 7.0, penDepth)));
   vec3 penTwine = mix(vec3(0.03, 0.035, 0.033), penAlgae, penFoul);
   penTwine *= (0.55 + 0.6 * penTex.r) * (0.6 + 0.8 * penPatch);
   vec3 penRopeColor = mix(vec3(0.2, 0.21, 0.18), penAlgae * 1.3, 0.75 * penFoul);
   diffuseColor.rgb *= mix(penTwine, penRopeColor, penRope);
-  diffuseColor.a *= max(penAlpha, penRope);
+  float penLoose = smoothstep(0.2, 0.75, penFine + 0.2 * sin(90.0 * penAcross));
+  diffuseColor.a *= max(penAlpha * mix(1.0, penLoose, penFray), penRope);
 #endif
 `;
 
 export function penMaterial(kind) {
   const colors = {pen_net: 0xffffff, pen_frame: 0x182b30, pen_sinker: 0x47463c,
     pen_rope: 0x78705a, pen_buoy: 0xc79532, pen_anchor: 0x595950};
-  const material = new THREE.MeshStandardMaterial({color: colors[kind], roughness: .88});
+  const material = new THREE.MeshStandardMaterial({color: colors[kind], roughness: kind === 'pen_frame' ? .36 : .88});
   material.userData.structureKind = kind;
   if (kind === 'pen_net') dressNetMaterial(material);
   return material;
@@ -111,24 +116,46 @@ function dressNetMaterial(material) {
   material.customProgramCacheKey = () => 'pen-net-v2';
 }
 
+// Rotationally moulded mooring float with rounded shoulders and a rope eye below the waterline.
+function buoyGeometry(radius, length) {
+  const half = length * .5 + radius;
+  const profile = [[.03, -.83], [.26, -.76], [.65, -.56], [.94, -.30], [1, .16],
+    [.96, .40], [.74, .68], [.42, .82], [.15, .86], [0, .86]];
+  const body = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(radius * r, half * y)), 20);
+  const eye = new THREE.TorusGeometry(radius * .16, radius * .052, 6, 12);
+  eye.translate(0, -half * .87, 0);
+  const geometry = mergeGeometries([body, eye]);
+  body.dispose();
+  eye.dispose();
+  return geometry;
+}
+
 export function buildPenPart(set, ob) {
   let geometry;
+  const torn = ob.kind === 'pen_net' && ob.name.startsWith('pen-net-') && ob.half[2] < 7.99;
   if (ob.type === 'box') {
     if (ob.kind === 'pen_net' && ob.half[2] < .1) {
       geometry = new THREE.PlaneGeometry(ob.half[0] * 2, ob.half[1] * 2, 4, 2);
       geometry.rotateX(-Math.PI / 2);
       geometry.rotateY(Math.PI / 2);
     } else if (ob.kind === 'pen_net') {
-      geometry = new THREE.PlaneGeometry(ob.half[0] * 2, ob.half[2] * 2, 4, Math.ceil(ob.half[2] * 2));
+      geometry = new THREE.PlaneGeometry(ob.half[0] * 2, ob.half[2] * 2, torn ? 24 : 4, Math.ceil(ob.half[2] * 2));
       geometry.rotateY(Math.PI / 2);
     } else {
       geometry = new THREE.BoxGeometry(ob.half[1] * 2, ob.half[2] * 2, ob.half[0] * 2);
     }
     const uv = geometry.attributes.uv;
     const pos = geometry.attributes.position;
+    const upper = ob.name.endsWith('-0');
+    const lip = upper ? -ob.half[2] : ob.half[2];
     for (let i = 0; i < uv.count; i++) {
-      // metres: across the wall panel (or along the floor strip), and down the panel (or across the strip)
-      uv.setXY(i, pos.getZ(i), ob.half[2] < .1 ? pos.getX(i) : pos.getY(i));
+      const y = pos.getY(i);
+      const edgeDistance = torn ? Math.abs(y - lip) : NET_FLOOR_DEPTH_M;
+      uv.setXY(i, pos.getZ(i), ob.half[2] < .1 ? pos.getX(i) : edgeDistance);
+      if (torn && edgeDistance < .001) {
+        const inset = .09 * Math.abs(Math.sin(pos.getZ(i) * 13 + lip));
+        pos.setY(i, y + (upper ? inset : -inset));
+      }
     }
     geometry.rotateY(-ob.yaw_deg * Math.PI / 180);
     geometry.translate(...P(ob.center).toArray());
@@ -153,7 +180,17 @@ export function buildPenPart(set, ob) {
       set.addBatched(ob.kind, geometry, ob.kind, [ob.name], 'solid', [ob]);
       return;
     }
-    geometry = new THREE.CapsuleGeometry(ob.radius, a.distanceTo(b), 2, 8);
+    if (ob.kind === 'pen_buoy') {
+      geometry = buoyGeometry(ob.radius, a.distanceTo(b));
+      if (b.y < a.y) geometry.rotateX(Math.PI);
+    } else if (ob.kind === 'pen_frame') {
+      // Fusion bead around each pipe end. A narrow overlapping sleeve closes the mitred joint.
+      const length = a.distanceTo(b);
+      const profile = [[0, 1.025], [.04, 1.045], [.07, 1], [length - .07, 1], [length, 1.025]];
+      geometry = new THREE.LatheGeometry(profile.map(([s, r]) => new THREE.Vector2(r * ob.radius, s - length / 2)), 16);
+    } else {
+      geometry = new THREE.CapsuleGeometry(ob.radius, a.distanceTo(b), 2, 8);
+    }
     geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, b.clone().sub(a).normalize()));
     geometry.translate(...a.add(b).multiplyScalar(.5).toArray());
   }
@@ -167,14 +204,18 @@ export function updatePenNet(set, flow, time) {
   for (const mesh of set.group.children) {
     if (mesh.material?.userData.structureKind !== 'pen_net') continue;
     const position = mesh.geometry.attributes.position;
+    const uv = mesh.geometry.attributes.uv;
     const rest = mesh.userData.penRest ||= position.array.slice();
     for (let i = 0; i < position.count; i++) {
       const x = rest[i * 3];
       const y = rest[i * 3 + 1];
       const z = rest[i * 3 + 2];
+      const across = Math.min(1, Math.abs(uv.getX(i)) / NET_PANEL_HALF_M);
+      const belly = 1 - across * across;
+      if (belly === 0 || y >= 0 || y <= -16) continue;
       flow.sample(z, -x, -y, now, velocity);
-      const amplitude = .035 * Math.sin(Math.PI * Math.max(0, Math.min(16, -y)) / 16);
-      const wave = amplitude * Math.sin(time * .7 + z * .3 + x * .2);
+      const amplitude = .035 * belly * Math.sin(-Math.PI * y / 16);
+      const wave = amplitude * (.78 + .22 * Math.sin(time * .7 + z * .3 + x * .2));
       position.setXYZ(i, x - wave * Math.tanh(velocity[1]), y, z + wave * Math.tanh(velocity[0]));
     }
     position.needsUpdate = true;

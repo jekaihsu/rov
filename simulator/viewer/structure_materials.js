@@ -161,7 +161,9 @@ const PRESETS = {
   rubber: {color: 0xffffff, roughness: .85, metalness: 0, coat: 0x1d1e1f, cover: [.35, .25, .15], splash: 0,
     map: 'rubber'},
   hull: {color: 0x7b2f25, roughness: .7, metalness: .15, coat: 0x23272c, cover: [.45, .3, .2], splash: .15,
-    map: 'plating', boot: 0x1b1c1e},
+    scan: 'coating', rustAt: .72, boot: 0x1b1c1e},
+  intakeShadow: {color: 0x121814, roughness: 1, metalness: 0, coat: 0x121814, cover: [0, 0, 0], splash: 0},
+  draftPaint: {color: 0xd7d5bb, roughness: .84, metalness: 0, coat: 0xd7d5bb, cover: [.1, .08, .05], splash: 0},
   wreck: {color: 0x5e4a36, roughness: .95, metalness: .1, coat: 0x5e4a36, cover: [.95, .85, .7], splash: 0,
     map: 'plating'},
   bronze: {color: 0xa8854a, roughness: .45, metalness: .8, coat: 0xa8854a, cover: [.15, .1, .1], splash: 0},
@@ -186,6 +188,17 @@ const SCAN_MAP = `
     // RGB holds rust colour wherever the coat can break down (alpha > 0): paint shading only where it is paint
     float coatShade = mix(coatTexel.g * ${(1 / SCAN_MEAN).toFixed(4)}, 1.0, smoothstep(0.02, 0.08, coatTexel.a));
     vec3 coatPaint = uCoat * coatShade;
+    #ifdef HULL_PLATE
+    vec2 metres = vMapUv * ${SCAN_TILE.coating.toFixed(2)};
+    float strake = floor(metres.y / 1.8);
+    vec2 grid = vec2(metres.x + mod(strake, 3.0) * 2.7, metres.y) / vec2(8.2, 1.8);
+    vec2 seam = abs(fract(grid + .5) - .5) * vec2(8.2, 1.8);
+    float d = min(seam.x, seam.y);
+    float weld = 1.0 - smoothstep(.007, .016 + fwidth(d), d);
+    coatPaint = vec3(.27, .075, .046) * coatShade * (.96 + .08 * foulHash(strake));
+    coatPaint *= 1.0 - .42 * weld;
+    coatRust *= smoothstep(.32, .70, foulNoise(vFoulPos * .66));
+    #endif
     diffuseColor.rgb = mix(coatPaint, coatTexel.rgb, coatRust);
   }
   #else
@@ -358,6 +371,7 @@ export function structureMaterial(kind, detail = 'medium') {
   } else {
     material.onBeforeCompile = foulingShader(params, textures);
     material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};
+    if (kind === 'hull') material.defines.HULL_PLATE = 1;
     if (params.scan) addScanMaps(material, params, true, detail);
     material.customProgramCacheKey = function foulingProgramKey() {
       return `structure-fouling-v6-${material.defines.FOUL_QUALITY}-${params.scan ? params.scan : '-'}`;
