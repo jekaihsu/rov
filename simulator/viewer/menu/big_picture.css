@@ -419,7 +419,12 @@ body:is(.pause-open, .results-open) > :not(.app, .pause-menu, .results-screen, .
   .launch-menu.departing::after { animation-duration: 0s; }
 }
 
-.field-story > .bp-link { margin-top: 1vh; }
+.field-story > .bp-link { position: absolute; top: 0; right: 0; }
+.field-grid:has(#journalReplay) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.field-order { max-height: 24vh; }
+@media (max-width: 650px) {
+  .field-grid:has(#journalReplay) { grid-template-columns: 1fr; }
+}
 .field-order[data-medal=gold] .brand-card-sub { color: #865e12; }
 .field-order[data-medal=silver] .brand-card-sub { color: #4d606c; }
 .field-order[data-medal=bronze] .brand-card-sub { color: #864c32; }
