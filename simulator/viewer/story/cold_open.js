@@ -247,6 +247,7 @@ export function installColdOpen({
       broken: !!tether.broken,
       tension: tether.tension_rov || 0,
       pos: s?.pos,
+      heading: s?.euler?.[2],
       speed: Math.hypot(vel[0] || 0, vel[1] || 0, vel[2] || 0),
     };
   }
@@ -276,10 +277,8 @@ export function installColdOpen({
     const keys = controls();
     if (id === 'move') return [[axisCaps('surge', family, keys), STRINGS.hints.move]];
     if (id === 'photo') return [[actionCaps('photo', family, keys), STRINGS.hints.photo]];
-    if (id === 'turn') {
-      return [[axisCaps('yaw', family, keys), STRINGS.hints.turn],
-        [axisCaps('surge', family, keys), STRINGS.hints.forward]];
-    }
+    if (id === 'turn') return [[axisCaps('yaw', family, keys), STRINGS.hints.turn]];
+    if (id === 'forward') return [[axisCaps('surge', family, keys), STRINGS.hints.forward]];
     if (id === 'reverse') return [[axisCaps('surge', family, keys), STRINGS.hints.reverse]];
     if (id === 'release') return [['', STRINGS.hints.release]];
     if (id === 'unlock') return [[actionCaps('lock', family, keys), STRINGS.hints.unlock]];

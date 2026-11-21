@@ -95,9 +95,15 @@ class Procedure:
     def action(self, msg):
         action = msg.get('action')
         sim = self.sim
-        if action == 'begin' and not self.active:
+        if action == 'begin':
             if msg.get('flow') not in (None, 'deck'):
                 raise ValueError('未知的檢查流程')
+            # A second begin after a control_generation bump is common while the deck panel is still
+            # opening; treat an already-running checks phase as a no-op so the client can recover.
+            if self.active:
+                if self.phase != 'checks' or (msg.get('flow') == 'deck') != (self.flow == 'deck'):
+                    raise ValueError('目前階段無法執行此操作')
+                return {'type': 'procedure_result', 'procedure': self.state()}
             # Validated before anything moves, so a refused begin leaves the vehicle where it was.
             defect = self._plant(msg) if msg.get('flow') == 'deck' else None
             self.active = True
