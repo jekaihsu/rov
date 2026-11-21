@@ -313,6 +313,7 @@ def run(minutes: float):
 
         while time.monotonic() < deadline:
             cycles += 1
+            cycle = cycles
             scene = SCENES[cycle % len(SCENES)]
             try:
                 alive = page.evaluate('!!(window.__viewer?.S || window.__menu?.ready)')
