@@ -46,7 +46,7 @@ import { Fleet } from './fleet.js';
 import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
-import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
+import {updateRenderQuality, renderQualityInfo, canvasAntialias, detectHardware, renderQualityState} from './render_quality.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
 import {installChapterCards} from './brand/chapter_card.js';
@@ -82,6 +82,8 @@ import { createWorldLabels } from './hud/world_labels.js';
 import { elementSize } from './hud/canvas.js';
 import { cssVariable } from './hud/css_variables.js';
 import { createShaderWarmup } from './shader_warmup.js';
+import { createWorkQueue } from './work_queue.js';
+import { cableTubeHz, cableTubeOptions } from './cable_quality.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -241,15 +243,21 @@ let objMarkers = [];
 let structureSet = null;                // structures.js: detailed meshes drawn inside the collision shapes
 
 const spoolStation = new SpoolStation(scene, () => loadIntroAssets());
+const worldQueue = createWorkQueue({budgetMs: 8});
+let worldBuildGen = 0;
 let env = null;
 function buildWorld() {
+  const gen = ++worldBuildGen;
+  worldQueue.clear();
   surfacePaint.update(null);
   for(const ring of wrapG.children){ring.geometry.dispose();ring.material.dispose();}wrapG.clear();
   fleet.reset(W);
   worldG.clear(); obstacleMeshes.clear();
   if (env) env.dispose();
   const detail = structureDetail(renderer);
-  env = params.has('noenv') ? null : new Environment(scene, W, {detail});
+  // Seabed + footprints first (deferHeavy); habitat / fish / surface finish on later frames so a scenario
+  // switch does not stall >0.2 s on the main thread (S2).
+  env = params.has('noenv') ? null : new Environment(scene, W, {detail, deferHeavy: true});
   seabed.userData.plane.visible = !env;                         // the environment brings its own sand
   seabed.userData.plane.userData.paintable=true;
   seabed.position.y = -W.seabed_depth;
@@ -263,6 +271,13 @@ function buildWorld() {
   buildThrBars();
   matchThrusters();
   fillCurrentSliders();
+  if (env) {
+    worldQueue.push(() => {
+      if (gen !== worldBuildGen) return;
+      env.finishHeavy();
+      seabed.userData.plane.visible = false;
+    });
+  }
 }
 
 function buildObjectives(list) {
@@ -314,8 +329,11 @@ brokenLine.frustumCulled = false; brokenLine.visible = false; scene.add(brokenLi
 const tubeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .55, metalness: 0 });
 const GLAND_LOCAL = new THREE.Vector3(0, .06, -.38);   // tether.py GLAND_BODY (FRD -0.38, 0, -0.06) in model space
 let tetherTarget = [], tetherDisp = [], tetherInfo = null;
-const cable = new Cable(tubeMat, { radius: .0065, segments: 240, radial: 8, colors: true });
+let cableQualityMode = 'auto';
+try { cableQualityMode = localStorage.getItem('rov.quality') || 'auto'; } catch { /* private */ }
+const cable = new Cable(tubeMat, cableTubeOptions(cableQualityMode, detectHardware(renderer)));
 scene.add(cable.mesh);
+let cableTubeAt = 0;
 const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff4757 }), 256);
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);
@@ -1054,6 +1072,12 @@ function renderTether(dt) {
   for (let i = 0; i < n; i++) { lp[i * 3] = tetherDisp[i].x; lp[i * 3 + 1] = tetherDisp[i].y; lp[i * 3 + 2] = tetherDisp[i].z; }
   tetherLine.geometry.attributes.position.needsUpdate = true;
   if (t.broken) { cable.hide(); return; }
+  // Thick tube rebuild is the expensive part; the thin polyline above stays every frame for snag readability.
+  const quality = renderQualityState(renderer);
+  const hz = cableTubeHz(quality?.mode || cableQualityMode, quality?.hardware || detectHardware(renderer));
+  const wall = performance.now();
+  if (wall - cableTubeAt < 1000 / hz) return;
+  cableTubeAt = wall;
   cable.update(tetherDisp, (s, out) => cableTensionColor(t, s, tetherDisp, out));
 }
 
@@ -1251,10 +1275,17 @@ installVoice({engine: audio, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
-const shaderWarmup = createShaderWarmup({renderer, scene, camera});
+const shaderWarmup = createShaderWarmup({
+  renderer, scene, camera,
+  getLamps: () => leds,
+  getFishRoots: () => env?.fishSchools?.schools?.map((school) => school.mesh) || env?.schools?.map((sc) => sc.mesh) || [],
+});
+const _topMarkLift = new THREE.Vector3(0, .6, 0);
+const _curArrowLift = new THREE.Vector3(0, .55, 0);
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   linkInbox.flush();
+  worldQueue.update(now);
   if (!CAPTURE && skipFrame(now)) {
     requestAnimationFrame(frame);
     return;
@@ -1286,7 +1317,9 @@ function frame(now) {
   const camDepth = clamp(-camera.position.y, 0, 60);
   installUnderwaterPipeline(renderer, { surface });
   applyUnderwaterLighting(scene, S, renderer);
-  shaderWarmup.update(now);
+  const idleCover = !!(coldOpen?.active && document.body.dataset.coldBeat === 'black')
+    || !!document.querySelector('.brand-card-overlay');
+  shaderWarmup.update(now, {idleCover});
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
@@ -1300,11 +1333,11 @@ function frame(now) {
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
-    topMark.position.copy(rovG.position).add(new THREE.Vector3(0, .6, 0));
+    topMark.position.copy(rovG.position).add(_topMarkLift);
     topMark.rotation.set(-Math.PI / 2, 0, Math.atan2(-_f.x, -_f.z), 'XYZ');
     topMark.scale.setScalar(cameraRig.topH / 22);
   }
-  curArrow.position.copy(rovG.position).add(new THREE.Vector3(0, .55, 0));
+  curArrow.position.copy(rovG.position).add(_curArrowLift);
   // objectives + guide line
   const cur = updateObjectives(now / 1000);
   const gp = guide.geometry.attributes.position.array;

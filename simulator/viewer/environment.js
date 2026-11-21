@@ -87,6 +87,7 @@ export class Environment {
     this.t = 0;
     this.world = world;
     this.detail = options.detail || 'medium';
+    this._heavyDone = false;
     // Stable server identities, separate from draw buckets / instance ordering.
     // Read only at photo capture; no raycasts or observation work in update().
     this.observationTargets = [];
@@ -99,6 +100,16 @@ export class Environment {
     this.spool = P(world.spool || [0, 0, 0]).setY(0);
     this._footprints(world);
     this._terrain();
+    // deferHeavy: seabed + footprints first so the first dive frame can paint; habitat / surface / fish finish on
+    // later frames (work_queue in app.js), typically under a black screen or title card.
+    if (!options.deferHeavy) this.finishHeavy();
+  }
+
+  finishHeavy() {
+    if (this._heavyDone) return;
+    this._heavyDone = true;
+    const world = this.world;
+    const R = this.R;
     if (world.habitat) {
       this._habitat(world.habitat);
       this._sharedFish();
@@ -109,7 +120,7 @@ export class Environment {
       this._kelp(R);
       this._fish(R, world);
     }
-    this._structureLife(world, options.detail || 'medium');
+    this._structureLife(world, this.detail);
     this._surface(R);
   }
 
@@ -426,19 +437,39 @@ export class Environment {
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
     updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
     const under = camera.position.y < 0;
-    this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
-    for (const { rotor, w } of this.rotors) rotor.rotation.z -= dt * w;
-    for (const b of this.buoys) { b.b.position.y = Math.sin(t * 1.1 + b.ph) * 0.25; b.b.rotation.z = Math.sin(t * 0.9 + b.ph) * 0.08; b.lamp.visible = (t + b.ph) % 4 < 0.6; }
-    for (const v of this.vessels) {
+    if (this.surf) this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
+    for (const { rotor, w } of this.rotors || []) rotor.rotation.z -= dt * w;
+    for (const b of this.buoys || []) {
+      b.b.position.y = Math.sin(t * 1.1 + b.ph) * 0.25;
+      b.b.rotation.z = Math.sin(t * 0.9 + b.ph) * 0.08;
+      b.lamp.visible = (t + b.ph) % 4 < 0.6;
+    }
+    if (!this._vesselForward) this._vesselForward = new THREE.Vector3();
+    for (const v of this.vessels || []) {
       v.v.position.y = Math.sin(t * 0.6 + v.ph) * 0.3;
-      if (v.speed) { const f = new THREE.Vector3(0, 0, 1).applyQuaternion(v.v.quaternion); v.v.position.addScaledVector(f, v.speed * dt); }
+      if (v.speed) {
+        this._vesselForward.set(0, 0, 1).applyQuaternion(v.v.quaternion);
+        v.v.position.addScaledVector(this._vesselForward, v.speed * dt);
+      }
     }
     // fish: each circles its school centre with its own radius, height and speed; tails wag
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
+    if (!this._fishScratch) {
+      this._fishScratch = {
+        m4: new THREE.Matrix4(), q: new THREE.Quaternion(), s: new THREE.Vector3(),
+        p: new THREE.Vector3(), e: new THREE.Euler(),
+      };
+    }
+    const {m4, q, s, p, e} = this._fishScratch;
     this.fishSchools?.update(dt, t, camera, state);
     for (const sc of this.schools || []) {
       if (sc.c.distanceTo(camera.position) > 60) continue;         // out of sight: skip the work
-      sc.fish.forEach((f, i) => {
+      // Decorative schools beyond the near band update at 12 Hz (same idea as fish_schools far cards).
+      sc._farAcc = (sc._farAcc || 0) + dt;
+      const near = sc.c.distanceTo(camera.position) < 18;
+      if (!near && sc._farAcc < 1 / 12) continue;
+      sc._farAcc = 0;
+      for (let i = 0; i < sc.fish.length; i++) {
+        const f = sc.fish[i];
         f.a += dt * f.w * sc.dir;
         const r = f.r + Math.sin(t * 0.3 + f.ph) * 1.2;
         p.set(sc.c.x + Math.cos(f.a) * r, sc.c.y + f.y + Math.sin(t * 0.5 + f.ph) * 0.6, sc.c.z + Math.sin(f.a) * r);
@@ -446,7 +477,7 @@ export class Environment {
         q.setFromEuler(e.set(0, heading, Math.sin(t * 9 + f.ph) * 0.12));
         s.setScalar(f.s);
         m4.compose(p, q, s); sc.mesh.setMatrixAt(i, m4);
-      });
+      }
       sc.mesh.instanceMatrix.needsUpdate = true;
     }
   }

@@ -31,6 +31,15 @@ export function chooseHardwareProfile(hints={}){
   // integrated GPUs keep the optics and adapt by measured frame rate.
   const lowIntel = /intel/i.test(name) && /\bu?hd\b/i.test(name) && !/\biris\b|\barc\b/i.test(name);
   const startsLow = tier !== 'software' && (lowIntel || /\bmx\s*1\d{2}\b/i.test(name));
+  // Minimum-spec class: start closer to the floor so the first dive is already ≥30 fps instead of discovering
+  // the floor after several slow windows (S2 / UHD 620).
+  if (startsLow) {
+    initialRatio = Math.min(initialRatio, .75);
+    floor = Math.min(floor, .5);
+    ceiling = Math.min(ceiling, .85);
+    pixelBudget = Math.min(pixelBudget, 1280 * 720);
+    reason += ' 最低規格以低解析度起步，目標穩定 30 fps。';
+  }
   return {tier,entryLevel,label,reason,renderer,vendor,logicalCores,memoryGB,initialRatio,floor,ceiling,pixelBudget,
     startsLow};
 }
@@ -56,16 +65,24 @@ function bounds(renderer,hardware){
   return {ceiling,floor:Math.min(ceiling,hardware.floor)};
 }
 // Automatic quality ladder, judged on the measured frame rate in 1.5 s windows (after a 3 s warm-up):
-// 1. below SLOW_FPS the render scale drops by SCALE_STEP per window down to the floor (dynamic resolution);
-// 2. only when it is already at the floor and still below SLOW_FPS for SUPPRESS_WINDOWS windows are the
+// 1. below slowFps the render scale drops by SCALE_STEP per window down to the floor (dynamic resolution);
+// 2. only when it is already at the floor and still below slowFps for SUPPRESS_WINDOWS windows are the
 //    underwater screen effects dropped (the legacy look, which recompiles every material once);
-// 3. above FAST_FPS for 8 s the scale climbs back by RAISE_STEP up to the ceiling (effects stay off this session).
+// 3. above fastFps for raiseHold seconds the scale climbs back by RAISE_STEP up to the ceiling (effects stay off).
 // Resolution goes first because it costs the least to look at and is undone smoothly.
-const SLOW_FPS = 50;
-const FAST_FPS = 58;
+// Mainstream GPUs still aim near 60 fps. The minimum-spec class (Intel HD/UHD, MX1xx, software GL) aims for a
+// stable ≥30 fps so the ladder does not keep cutting a playable 35 fps dive (docs/design/performance/s2-baseline.md).
 const SCALE_STEP = .1;
 const RAISE_STEP = .05;
 const SUPPRESS_WINDOWS = 2;
+
+function ladderFor(hardware) {
+  if (hardware.startsLow || hardware.tier === 'software') {
+    // Longer raise hold than mainstream so a brief spike never climbs back into stutter territory.
+    return {slowFps: 28, fastFps: 36, raiseHold: 10, floor: Math.min(hardware.floor ?? .6, .5)};
+  }
+  return {slowFps: 50, fastFps: 58, raiseHold: 8, floor: null};
+}
 // What automatic quality learned on this GPU in an earlier dive: the next dive starts there instead of starting
 // high, stuttering for several seconds and stepping down again (first launch still starts from the hints above).
 const LEARNED_KEY = 'rov.quality.learned.v1';
@@ -83,7 +100,13 @@ function readLearned(hardware) {
 
 function writeLearned(state) {
   if (!state.learn) return;
-  const value = {renderer: state.hardware.renderer, ratio: state.ratio, effectsSuppressed: state.effectsSuppressed};
+  const value = {
+    renderer: state.hardware.renderer,
+    ratio: state.ratio,
+    effectsSuppressed: state.effectsSuppressed,
+    // Recorded so a later page can start at the same low-end ladder without rediscovering it.
+    slowFps: state.slowFps,
+  };
   try {
     globalThis.localStorage?.setItem(LEARNED_KEY, JSON.stringify(value));
   } catch {
@@ -98,7 +121,9 @@ export function configureRenderQuality(renderer,mode='auto',{learn=false}={}){
   if (!mode && ['low', 'ultra'].includes(requested)) mode = requested;
   if(!['auto','performance','low','medium','high','ultra'].includes(mode))mode='auto';
   const hardware=detectHardware(renderer),dpr=positive(globalThis.devicePixelRatio)||1;
+  const ladder = ladderFor(hardware);
   const limits=mode==='auto'?bounds(renderer,hardware):{ceiling:Math.min(dpr,['high','ultra'].includes(mode)?2:1),floor:Math.min(dpr,.6)};
+  if (mode === 'auto' && ladder.floor !== null) limits.floor = Math.min(limits.floor, ladder.floor);
   let ratio = limits.ceiling;
   if (mode === 'auto') ratio = Math.min(limits.ceiling, hardware.initialRatio);
   else if (['performance', 'low'].includes(mode)) ratio = Math.min(dpr, .75);
@@ -112,14 +137,14 @@ export function configureRenderQuality(renderer,mode='auto',{learn=false}={}){
     effectsSuppressed = effectsSuppressed || learned.effectsSuppressed === true;
   }
   const state = {mode, ...limits, hardware, ratio, elapsed: 0, frames: 0, stable: 0, warmup: 3, effectsSuppressed,
-    slowAtFloor: 0, learn};
+    slowAtFloor: 0, learn, slowFps: ladder.slowFps, fastFps: ladder.fastFps, raiseHold: ladder.raiseHold};
   lastMode=mode;
   profiles.set(renderer,state);renderer.shadowMap.enabled=['medium','high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
   return state;
 }
 
 function nextRatio(s, fps) {
-  if (fps < SLOW_FPS) {
+  if (fps < s.slowFps) {
     s.stable = 0;
     if (s.ratio > s.floor + .001) {
       s.slowAtFloor = 0;
@@ -134,12 +159,13 @@ function nextRatio(s, fps) {
     return s.ratio;
   }
   s.slowAtFloor = 0;
-  if (fps <= FAST_FPS) {
+  // Between slow and fast: hold. Raising needs a long stretch above fastFps so a brief spike never climbs.
+  if (fps <= s.fastFps) {
     s.stable = 0;
     return s.ratio;
   }
   s.stable += s.elapsed;
-  if (s.stable < 8) return s.ratio;
+  if (s.stable < s.raiseHold) return s.ratio;
   s.stable = 0;
   return s.ratio + RAISE_STEP;
 }

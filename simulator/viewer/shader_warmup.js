@@ -8,13 +8,20 @@
 // KHR_parallel_shader_compile the driver compiles in the background), with the same render target the frame will use
 // so the programs match (linear HDR target in the optics tiers, the canvas otherwise). compileAsync is not used: its
 // readiness poll throws for materials that have no program yet.
+//
+// S2: during a black screen or title card (`idleCover`) the warm-up also briefly raises lamp intensity and unhides
+// fish / beam proxies so the first lights-on, first school and first photo do not compile mid-dive. Without the
+// parallel-compile extension it still warms while the cover hides the hitch.
 // Call update() once per frame after the underwater lighting has patched the materials (app.js frame loop).
 const CHECK_MS = 1000;
+const IDLE_FORCE_MS = 400;
 
-export function createShaderWarmup({ renderer, scene, camera }) {
+export function createShaderWarmup({renderer, scene, camera, getLamps = null, getFishRoots = null}) {
   let nextCheck = 0;
   let signature = -1;
   let warmed = 0;
+  let lastIdleWarm = 0;
+  let lampBoosted = false;
 
   function objectCount() {
     let count = 0;
@@ -31,6 +38,33 @@ export function createShaderWarmup({ renderer, scene, camera }) {
     return pipeline.composer.renderTarget1;
   }
 
+  function revealFish(visible) {
+    const roots = getFishRoots?.() || [];
+    for (const root of roots) {
+      if (!root) continue;
+      root.userData._warmupWasVisible = root.userData._warmupWasVisible ?? root.visible;
+      root.visible = visible ? true : root.userData._warmupWasVisible;
+    }
+  }
+
+  function boostLamps(on) {
+    const lamps = getLamps?.();
+    if (!lamps?.length) return;
+    if (on && !lampBoosted) {
+      for (const lamp of lamps) {
+        lamp.userData._warmupIntensity = lamp.intensity;
+        lamp.intensity = Math.max(lamp.intensity, 1.2);
+        lamp.visible = true;
+      }
+      lampBoosted = true;
+    } else if (!on && lampBoosted) {
+      for (const lamp of lamps) {
+        if (lamp.userData._warmupIntensity != null) lamp.intensity = lamp.userData._warmupIntensity;
+      }
+      lampBoosted = false;
+    }
+  }
+
   function warm() {
     const previous = renderer.getRenderTarget();
     renderer.setRenderTarget(sceneTarget());
@@ -42,11 +76,24 @@ export function createShaderWarmup({ renderer, scene, camera }) {
     }
   }
 
-  // Without the extension a compile blocks just as it would on first sight, and would also block for materials that
-  // are never shown: warm only where the driver compiles in the background (Chrome on D3D11 / Metal / most GL).
+  // Without the extension a compile blocks just as it would on first sight. During an idle cover (black / title
+  // card) that hitch is acceptable; otherwise only warm where the driver compiles in the background.
   const parallel = !!renderer.extensions?.has?.('KHR_parallel_shader_compile');
 
-  function update(now = performance.now()) {
+  function update(now = performance.now(), {idleCover = false} = {}) {
+    if (idleCover) {
+      if (now - lastIdleWarm >= IDLE_FORCE_MS) {
+        lastIdleWarm = now;
+        revealFish(true);
+        boostLamps(true);
+        warm();
+        revealFish(false);
+        boostLamps(false);
+        signature = objectCount();
+        nextCheck = now + CHECK_MS;
+      }
+      return;
+    }
     if (!parallel || now < nextCheck) return;
     nextCheck = now + CHECK_MS;
     const count = objectCount();
