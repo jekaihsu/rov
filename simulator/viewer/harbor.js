@@ -1,74 +1,171 @@
-// Harbor pile bents and shoreside silhouettes. All submerged dimensions come from world obstacles.
+// Harbor construction and attached marine colonies, dimensioned from the collision obstacles.
 import * as THREE from 'three';
 
-function pileRow(set, piles, seeded) {
-  const first = piles[0];
-  const height = first.p1[2] - first.p0[2];
-  const sides = set.detailName === 'high' ? 24 : 12;
-  const shape = new THREE.CylinderGeometry(first.radius, first.radius, height, sides, 9);
-  const uv = shape.attributes.uv;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * Math.PI * 2 * first.radius, uv.getY(i) * height);
-  // Vertex colours mark the tidal and subtidal communities even on the lowest quality tier.
-  // Rotation per shaft changes which flank of each irregular band faces the inspection lane.
-  const position = shape.attributes.position;
+// Narrow hinge, swollen umbo, paired valves and a pale growth margin along the shell lip.
+function musselValve() {
+  const profile = [[0, -1], [.44, -.68], [.76, -.19], [1, .43], [.88, .78], [.48, .96], [0, 1]];
+  const shape = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 8);
+  const pos = shape.attributes.position;
   const colors = [];
-  const color = new THREE.Color();
-  for (let i = 0; i < position.count; i++) {
-    const phi = Math.atan2(position.getX(i), position.getZ(i));
-    const depth = first.p0[2] + height / 2 - position.getY(i);
-    const boundary = depth + .4 * Math.sin(3 * phi) + .2 * Math.cos(phi + depth);
-    color.setHex(0xf1ebe0);
-    if (boundary > -.4 && boundary < 1.7) color.setHex(0x708247);
-    if (boundary >= 1.7 && boundary < 6.3) color.setHex(0x706f65);
-    if (boundary >= 6.3 && boundary < 10) color.setHex(0xb4a991);
-    colors.push(color.r, color.g, color.b);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const seam = Math.max(0, 1 - Math.abs(x) * 3.8);
+    pos.setXYZ(i, x + .19 * y * y, y, z * (.84 - seam * .42));
+    const lip = y > .75 ? .32 : 0;
+    const light = .58 + Math.abs(x) * .34 + lip - seam * .20;
+    colors.push(light * (1 + lip * .4), light, light * (1.14 - lip));
   }
   shape.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  const material = set.makeMaterial('pileConcrete');
-  material.vertexColors = true;
-  const mesh = new THREE.InstancedMesh(shape, material, piles.length);
-  mesh.userData = {paintable: true, role: 'solid', colliders: piles.map(ob => ob.name)};
-  const shells = [];
-  for (const [index, ob] of piles.entries()) {
-    const [north, east, top] = ob.p0;
-    const rng = seeded(ob.name);
-    const matrix = new THREE.Matrix4().makeRotationY(rng() * 2 * Math.PI);
-    matrix.setPosition(-east, -top - height / 2, north);
-    mesh.setMatrixAt(index, matrix);
-    mesh.setColorAt(index, new THREE.Color().setScalar(.72 + rng() * .28));
-    set.anchor(ob, mesh);
-    // Broad patches of weed and mussels near the tide line, chalky barnacles farther down.
-    for (let patch = 0; patch < 9; patch++) {
-      const depth = rng() ** 1.6 * (height + top - .5);
-      const azimuth = rng() * 2 * Math.PI;
-      for (let j = 0; j < 7; j++) {
-        const phi = azimuth + (rng() - .5) * 1.4;
-        const y = -Math.max(.03, depth + rng() - .5);
-        const color = y > -2 ? 0x59602a : y > -8 ? 0x30332e : 0x938776;
-        const scale = y > -2 ? [.045, .23, .024] : [.045, .075, .034];
-        const item = new THREE.Object3D();
-        item.position.set(-east + ob.radius * Math.sin(phi), y, north + ob.radius * Math.cos(phi));
-        item.rotation.set(0, phi, rng() - .5, 'YXZ');
-        item.scale.set(...scale).multiplyScalar(.6 + .4 * rng());
-        item.updateMatrix();
-        shells.push({matrix: item.matrix, color});
-      }
-    }
-  }
-  set.group.add(mesh);
-  // Only render millimetre/centimetre-scale relief in inspection range; the depth bands remain at distance.
-  const relief = new THREE.InstancedMesh(new THREE.OctahedronGeometry(1), set.makeMaterial('rock'), shells.length);
-  relief.userData = {role: 'attached', colliders: mesh.userData.colliders};
-  shells.forEach(({matrix, color}, i) => {
-    relief.setMatrixAt(i, matrix);
-    relief.setColorAt(i, new THREE.Color(color));
-  });
-  relief.computeBoundingSphere();
-  set.group.add(relief);
-  return relief;
+  shape.computeVertexNormals();
+  return shape;
 }
 
+// A folded, tapering ribbon bends away from its holdfast and curls back toward the pile.
+function weedBlade() {
+  const vertices = [];
+  const indices = [];
+  for (let i = 0; i <= 5; i++) {
+    const t = i / 5;
+    const w = Math.sin(Math.PI * t) * .9 + .025;
+    const bend = Math.sin(t * 4.3) * .65;
+    vertices.push(bend - w, .5 - t, t, bend, .5 - t, t + w * .6, bend + w, .5 - t, t);
+    if (i === 0) continue;
+    const k = i * 3;
+    indices.push(k - 3, k, k - 2, k, k + 1, k - 2, k - 2, k + 1, k - 1, k + 1, k + 2, k - 1);
+  }
+  const shape = new THREE.BufferGeometry();
+  shape.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  shape.setIndex(indices);
+  shape.computeVertexNormals();
+  return shape;
+}
+
+function colony(set, ob, seeded) {
+  const rng = seeded(ob.name + '-colony');
+  const beds = [[], [], []];
+  const height = ob.p1[2] - ob.p0[2];
+  const middle = (ob.p0[2] + ob.p1[2]) / 2;
+  const item = new THREE.Object3D();
+  for (let patch = 0; patch < 24; patch++) {
+    const randomDepth = Math.max(.1, ob.p0[2]) + rng() * (ob.p1[2] - Math.max(.1, ob.p0[2]));
+    const fixed = ob.name === 'Harbor pile A' && patch < 6;
+    const depth = fixed ? [1.25, 1.55, 5.8, 6.1, 6.3, 6.55][patch] : randomDepth;
+    const bearing = fixed ? 2.65 + (rng() - .5) * .6 : rng() * Math.PI * 2;
+    for (let j = 0; j < 5; j++) {
+      const phi = bearing + (rng() - .5) * 1.5;
+      const zone = depth < 2.4 ? 0 : depth < 8.4 ? 1 : 2;
+      let tint;
+      if (zone === 0) {
+        item.scale.set(.064, .34 + rng() * .23, .032);
+        tint = rng() < .5 ? 0x748132 : 0x464f1f;
+      } else if (zone === 1) {
+        item.scale.set(.054, .105, .047);
+        tint = rng() < .4 ? 0x615575 : 0x343d4d;
+      } else {
+        item.scale.setScalar(.045 + rng() * .04);
+        tint = rng() < .6 ? 0xd9c39c : 0xb19680;
+      }
+      item.position.set(ob.radius * Math.sin(phi), middle - depth + (rng() - .5) * .42, ob.radius * Math.cos(phi));
+      item.rotation.set(0, phi, rng() - .5, 'YXZ');
+      item.updateMatrix();
+      beds[zone].push([item.matrix.clone(), new THREE.Color(tint)]);
+    }
+  }
+  const profile = [[1, 0], [.7, .65], [.53, 1], [.28, .93], [.26, .35]];
+  const shapes = [weedBlade(), musselValve(),
+    new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 7).rotateX(Math.PI / 2)];
+  const close = new THREE.Group();
+  for (const [i, bed] of beds.entries()) {
+    const material = new THREE.MeshStandardMaterial({roughness: i === 1 ? .48 : .85,
+      vertexColors: i === 1, side: i === 0 ? THREE.DoubleSide : THREE.FrontSide});
+    const relief = new THREE.InstancedMesh(shapes[i], material, bed.length);
+    bed.forEach(([matrix, tint], j) => {
+      relief.setMatrixAt(j, matrix);
+      relief.setColorAt(j, tint);
+    });
+    relief.userData = {role: 'attached', colliders: [ob.name]};
+    close.add(relief);
+  }
+  const lod = new THREE.LOD();
+  lod.position.set(-ob.p0[1], -middle, ob.p0[0]);
+  lod.addLevel(close, 0);
+  lod.addLevel(new THREE.Group(), 6);
+  const eye = new THREE.Vector3();
+  // LOD's default distance to the shaft midpoint keeps entire distant bents active near the bed.
+  // Use the closest point on the vertical shaft so a camera beside either end still sees relief.
+  lod.update = function inspectionRange(camera) {
+    camera.getWorldPosition(eye);
+    this.worldToLocal(eye);
+    eye.y -= THREE.MathUtils.clamp(eye.y, -height / 2, height / 2);
+    close.visible = eye.lengthSq() < (6 + ob.radius) ** 2;
+    this.levels[1].object.visible = !close.visible;
+  };
+  set.group.add(lod);
+}
+
+// The shared unwrap spans depths -2 to 18 m. Geometry UVs select each shaft's actual interval.
+function pileSkin(set) {
+  if (typeof document === 'undefined') return set.makeMaterial('pileConcrete');
+  const loader = new THREE.TextureLoader();
+  const load = suffix => loader.load(new URL('./models/scan/harbor_growth_' + suffix + '.webp', import.meta.url).href);
+  const map = load('c');
+  map.colorSpace = THREE.SRGBColorSpace;
+  const normalMap = load('n');
+  const material = new THREE.MeshStandardMaterial({map, normalMap, roughness: .84});
+  material.userData.structureKind = 'pileConcrete';
+  material.addEventListener('dispose', function releaseSkin() {
+    map.dispose();
+    normalMap.dispose();
+  });
+  return material;
+}
+
+function pileRow(set, piles, seeded, material) {
+  const geometry = new THREE.CylinderGeometry(1, 1, 1, set.detailName === 'high' ? 24 : 12, 1);
+  const uv = geometry.attributes.uv;
+  const top = piles[0].p0[2];
+  const bottom = piles[0].p1[2];
+  for (let i = 0; i < uv.count; i++) {
+    const depth = bottom + (top - bottom) * uv.getY(i);
+    uv.setY(i, (18 - depth) / 20);
+  }
+  const mesh = new THREE.InstancedMesh(geometry, material, piles.length);
+  mesh.userData = {paintable: true, role: 'solid', colliders: piles.map(ob => ob.name)};
+  const item = new THREE.Object3D();
+  for (const [i, ob] of piles.entries()) {
+    const height = ob.p1[2] - ob.p0[2];
+    item.position.set(-ob.p0[1], -ob.p0[2] - height / 2, ob.p0[0]);
+    item.scale.set(ob.radius, height, ob.radius);
+    item.rotation.y = seeded(ob.name)() * Math.PI * 2;
+    item.updateMatrix();
+    mesh.setMatrixAt(i, item.matrix);
+    set.anchor(ob, mesh);
+    if (ob.p0[2] > 0) {
+      // The cut-off dolphins end underwater. Their capsule crown is exposed to the hull and tether.
+      const crown = new THREE.SphereGeometry(ob.radius, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2);
+      crown.translate(-ob.p0[1], -ob.p0[2], ob.p0[0]);
+      set.addBatched('pile-crowns', crown, 'pileConcrete', [ob.name], 'solid', [ob]);
+    }
+    colony(set, ob, seeded);
+  }
+  set.group.add(mesh);
+}
 export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
+  if (set.world.scenario?.key !== 'harbor_inspection') return;
+  const makeMaterial = set.makeMaterial;
+  set.makeMaterial = function harborMaterial(kind) {
+    if (kind === 'fenderMarker' || kind === 'quayRunoff') {
+      const color = kind === 'fenderMarker' ? 0xc6a34c : 0x924a27;
+      const paint = new THREE.MeshStandardMaterial({color, roughness: .93});
+      paint.userData.structureKind = kind;
+      return paint;
+    }
+    const material = makeMaterial(kind);
+    if (kind === 'rubber' && !material.map) material.color.setHex(0x353732);
+    return material;
+  };
   if (!obstacles.some(ob => ob.kind === 'quay')) return;
   const tread = obstacles.filter(ob => ob.kind === 'tyre_tread');
   if (tread.length) {
@@ -78,17 +175,14 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
   const piles = obstacles.filter(ob => ob.kind === 'pile');
   const rows = new Map();
   for (const ob of piles) {
-    const key = ob.p0[1];
+    const key = [ob.p0[2], ob.p1[2]].join();
     if (!rows.has(key)) rows.set(key, []);
     rows.get(key).push(ob);
     consumed.add(ob.name);
   }
-  for (const row of rows.values()) {
-    const relief = pileRow(set, row, seeded);
-    const center = relief.boundingSphere.center;
-    relief.onBeforeRender = function selectDetail(renderer, scene, camera) {
-      relief.count = camera.position.distanceTo(center) < 27 ? relief.instanceMatrix.count : 0;
-    };
+  if (rows.size) {
+    const skin = pileSkin(set);
+    for (const row of rows.values()) pileRow(set, row, seeded, skin);
   }
   const solids = [];
   const metal = [];
@@ -104,6 +198,44 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
     shape.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize()));
     const c = start.lerp(end, .5);
     metal.push(shape.translate(c.x, c.y, c.z));
+  }
+  const face = [];
+  for (const fender of obstacles.filter(ob => ob.kind === 'fender')) {
+    const [north, east] = fender.p0;
+    // Narrow ochre wear indicators sit proud of the black rubber on its seaward arc.
+    for (const y of [-.52, -.72]) {
+      const stripe = new THREE.CylinderGeometry(fender.radius + .018, fender.radius + .018,
+        .085, 12, 1, true, Math.PI * .72, Math.PI * .56);
+      stripe.translate(-east, y, north);
+      set.addBatched('rub-face', stripe, 'fenderMarker', [fender.name], 'attached', []);
+    }
+    for (const y of [-1.25, .7]) {
+      const band = new THREE.CylinderGeometry(fender.radius + .012, fender.radius + .012, .09, 16, 1, true);
+      band.translate(-east, y, north);
+      set.addBatched('fender-straps', band, 'steelPlate', [fender.name], 'attached', []);
+    }
+  }
+  const stain = [];
+  const joint = [];
+  for (let y = -17; y <= 2; y += 2.5) {
+    block(joint, 0, y, 41.985, 70, .045, .026);
+    for (let x = -33 + (Math.round(y * 2) % 2) * 1.6; x < 35; x += 4) {
+      block(joint, x, y + 1.25, 41.983, .041, 2.5, .032);
+    }
+  }
+  for (let x = -28.8; x <= 31.2; x += 5) {
+    const rim = new THREE.TorusGeometry(.25, .047, 5, 16);
+    face.push(rim.translate(x, -.38, 41.955));
+    const bore = new THREE.CircleGeometry(.24, 16);
+    bore.rotateY(Math.PI);
+    joint.push(bore.translate(x, -.38, 41.958));
+    for (let i = 0; i < 5; i++) {
+      const len = .35 + .77 * Math.abs(Math.sin(x + i));
+      block(stain, x + (i - 2) * .064, -.57 - len / 2, 41.975, .065, len, .024);
+    }
+  }
+  for (const [parts, kind] of [[face, 'steelPlate'], [joint, 'rubber'], [stain, 'quayRunoff']]) {
+    for (const part of parts) set.addBatched('quay-' + kind, part, kind, ['Quay'], 'attached', []);
   }
   // Quayside wheel stops, portal crane legs, trolley rails and the machinery house.
   block(solids, 0, 1.92, 68.4, 70, .22, 13);
@@ -130,6 +262,11 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
       girder([x - 3, 15, z], [x + 3, 15, z], .55, .6);
       girder([x - 3.4, 7.2, z], [x + 3, 15, z], .25, .28);
     }
+    for (let z = 34; z < 59; z += 2) {
+      girder([x - 2.85, 16, z], [x + 2.85, 16, z + 2], .12, .14);
+    }
+    block(roof, x + 2.6, 14.8, 45, 1.7, 1.8, 2.3);
+    block(metal, x + 2.6, 14.95, 43.82, 1.45, .76, .07);
     // Trolley and twin hoist falls, with an empty spreader parked off the quay.
     const outreach = x < 0 ? 38 : 43;
     block(roof, x, 15.8, outreach, 5.9, .62, 1.7);
@@ -148,7 +285,14 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
       panel.rotateZ(-sign * .13);
       roof.push(panel.translate(x + sign * 4, 8.94, 67));
     }
+    for (let dx = -7; dx <= 7; dx += .7) block(metal, x + dx, 6.8, 60.96, .07, 2.6, .12);
+    block(roof, x, 5.92, 60.1, 14, .16, 2.1);
     for (const dx of [-4, 4]) block(metal, x + dx, 4, 60.96, 3.2, 3.8, .15);
+  }
+  const skyline = seeded('inland-skyline');
+  for (let x = -100; x <= 100; x += 4) {
+    const h = 5 + skyline() ** 2 * 21;
+    block(solids, x, h / 2, 86 + skyline() * 9, 3 + skyline() * 4, h, 5);
   }
   for (const [parts, material] of [[solids, 'concrete'], [metal, 'steelPlate'], [roof, 'ladder']]) {
     for (const part of parts) set.addBatched('yard-' + material, part, material, [], 'above', []);

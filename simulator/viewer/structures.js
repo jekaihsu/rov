@@ -954,10 +954,6 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   const baseMaterial = makeMaterial || ((kind) => structureMaterial(kind, detail));
   const paint = (kind) => {
     const material = kind.startsWith('pen_') ? penMaterial(kind) : baseMaterial(kind);
-    // The high tier has a charcoal rubber map. Supply the same base tone on tiers without it.
-    if (kind === 'rubber' && world.scenario?.key === 'harbor_inspection' && !material.map) {
-      material.color.setHex(0x353732);
-    }
     // Rock armour and snag rocks share the site's seabed sand/mud tint.
     if (kind === 'rock' && material.color?.setHex) material.color.setHex(rockHex);
     return material;
@@ -965,7 +961,7 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   const set = new StructureSet(world, detail, paint);
   const consumed = new Set();
   const obstacles = (world.obstacles || []).filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model' && !ob.embedded);
-  if (world.scenario?.key === 'harbor_inspection') harborStructures(set, obstacles, consumed, seeded, boxAt);
+  harborStructures(set, obstacles, consumed, seeded, boxAt);
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'scour_rock'), 'scour_rock');
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'toe_rock'), 'toe_rock');
   for (const ob of obstacles) {

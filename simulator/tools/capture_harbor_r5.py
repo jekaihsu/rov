@@ -1,5 +1,6 @@
 """Photograph the running harbor site from twelve fixed NED poses."""
 import argparse
+import json
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -25,16 +26,60 @@ VIEWS = {
 }
 
 
+# Reference inbound run at 0.71 m/s, from launch to the first inspection bent.
+ROUTE = {}
+for seconds in range(0, 31, 5):
+    t = seconds / 30
+    eye = (18 * t, -10 * t, 3 + 5 * t)
+    target = (21, -10, 8)
+    ROUTE[f"route-{seconds:02d}s"] = (eye, target)
+
+
+def capture_route(browser, folder, only):
+    """Scrub one 30-second inbound replay; all seven samples share the same world and camera."""
+    timeline = None
+    frames = []
+    for i, (name, (eye, target)) in enumerate(ROUTE.items()):
+        replay, _ = build_replay(name, "harbor_inspection", "pile", 2, (eye, *look_pose(eye, target)))
+        timeline = timeline or replay
+        state = replay["clips"][0]["frames"][0]
+        state["t"] = i * 5
+        frames.append(state)
+    timeline["clips"][0]["frames"] = frames
+    page = browser.new_page(viewport={"width": 1600, "height": 900}, device_scale_factor=1)
+    page.route("**/__harbor_route.json", lambda route: route.fulfill(
+        body=json.dumps(timeline), content_type="application/json"))
+    page.goto(f"{http_base()}/?replay=__harbor_route.json&nointro&capture&quality=medium&cam=onboard")
+    page.wait_for_function("window.__replay?.()?.dur === 30 && window.__viewer?.S", timeout=180000)
+    page.wait_for_load_state("networkidle")
+    page.add_style_tag(content="#replayBar,#rpSub{display:none!important}")
+    page.evaluate("window.__viewer.rep.playing = false")
+    for i, name in enumerate(ROUTE):
+        if only and name not in only:
+            continue
+        page.evaluate("""t => {
+          window.__viewer.rep.t = t;
+          for (let i = 0; i < 8; i++) window.__advance(1 / 30);
+        }""", i * 5)
+        page.screenshot(path=str(folder / f"{name}.jpg"), type="jpeg", quality=82, timeout=240000)
+    page.close()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", choices=["before", "after"])
     parser.add_argument("--layer", choices=["both", "wet", "dry"], default="both")
-    parser.add_argument("--only", nargs="+", choices=VIEWS)
+    parser.add_argument("--only", nargs="+", choices=[*VIEWS, *ROUTE])
+    parser.add_argument("--route", action="store_true")
     args = parser.parse_args()
     folder = ROOT / args.stage
     folder.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:
         browser = launch(playwright)
+        if args.route:
+            capture_route(browser, folder, args.only)
+            browser.close()
+            return
         for name, pose in VIEWS.items():
             if args.only and name not in args.only:
                 continue
