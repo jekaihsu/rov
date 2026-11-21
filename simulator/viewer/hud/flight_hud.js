@@ -10,6 +10,7 @@ import { installOsd, updateOsd } from './osd.js';
 import { resolveHudStyle } from './hud_style.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
+import { installSteamDevPanel } from '../play/steam_dev_panel.js';
 import { BINDINGS, actionKey, bindingRow, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
 import { keyboardLayout } from '../input/keyboard_layout.js';
 import { assistPill, dvlReason } from './assist_pill.js';
@@ -142,6 +143,7 @@ function initialize() {
   close.onclick = drawer;
   panel.append(close);
   installFidelityPanel(panel);
+  installSteamDevPanel(panel);
   panel.append(document.querySelector('.topbar'), ...document.querySelectorAll('.rack'));
   panel.querySelectorAll('.mission-tools > div[hidden]').forEach(function revealSettings(el) {
     el.hidden = false;

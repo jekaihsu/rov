@@ -1,0 +1,10 @@
+{
+  "title": "Steam mock backend",
+  "empty": "No local mock data yet.",
+  "refresh": "Refresh",
+  "backend": "Backend: {backend}",
+  "path": "File: {path}",
+  "earned": "Unlocked",
+  "presence": "Rich Presence",
+  "none": "(none)"
+}

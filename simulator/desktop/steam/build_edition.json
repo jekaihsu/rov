@@ -1,0 +1,4 @@
+{
+  "edition": "internal",
+  "note": "forge.config.cjs overwrites this when ROV_BUILD_EDITION=steam before packaging."
+}

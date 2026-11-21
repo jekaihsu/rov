@@ -1,0 +1,27 @@
+{
+  "menu": "Main menu",
+  "diving": "Diving",
+  "chapterFallback": "On a job",
+  "levelFallback": "Free flight",
+  "chapters": {
+    "prologue": "Prologue · Before the trainee ticket",
+    "ch1": "Chapter 1 · Harbours and ships",
+    "ch2": "Chapter 2 · Fish farms"
+  },
+  "levels": {
+    "p0_induction": "Pool induction",
+    "p1_pool_checkout": "Pool checkout dive",
+    "p2_open_water": "Open-water familiarisation",
+    "c1_pier_level1": "Pier Level I inspection",
+    "c1_pier_level2": "Pier marine-growth survey",
+    "c1_hull_fouling": "Hull fouling rating",
+    "c1_dropped_object": "Harbour dropped object",
+    "c1_quay_cp": "Quay CP survey",
+    "c1_hull_ut": "Hull thickness survey",
+    "c1_signoff_exam": "Handover re-check",
+    "free_explore": "Free exploration",
+    "expedition": "Expedition contracts",
+    "inspection_coop": "Co-op inspection",
+    "scenario_training": "Scenario training"
+  }
+}
