@@ -33,7 +33,9 @@ OBSERVE = """async ([muted, baseline]) => {
     .observe(document.querySelector('#crewRadio p'), {childList:true});
   setInterval(() => {
     evidence.gain = Math.max(evidence.gain, audio.strain?.level.gain.value || 0);
-    if (viewer.S.tether?.warn) evidence.pulls++;
+    const tether = viewer.S.tether;
+    const load = Math.max(tether?.tension_rov || 0, tether?.tension_spool || 0);
+    if (tether?.warn || load > 40) evidence.pulls++;
   }, 50);
   viewer.setCam('onboard');
   window.approach = true;
@@ -85,10 +87,8 @@ def drive(browser, muted, baseline=False, shots=None):
             page.screenshot(path=str(shots / 'pile-contact.jpg'), quality=82)
             page.evaluate('window.__skipRender = true')
         page.evaluate("""window.approach = false;
-          window.__viewer.touch.right_ud = -1;
-          window.__viewer.touch.right_wave = 1;
           document.querySelector('[data-reel="haul_in"]').click();""")
-        page.wait_for_function('evidence.pulls > 0', timeout=timeout(90000))
+        page.wait_for_function('evidence.pulls > 0', timeout=timeout(75000))
         page.evaluate('clearInterval(steer); window.__viewer.touch.right_wave = 0; window.__viewer.touch.right_ud = 0')
         page.wait_for_timeout(8500)
         result = page.evaluate('({...evidence, pulses})')

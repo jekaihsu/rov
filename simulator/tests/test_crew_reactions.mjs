@@ -48,15 +48,18 @@ test('disabled feedback produces no call or stale backlog', () => {
   assert.equal(tick(tick(null, 0), 60, {}, {idle: false}).line, null);
 });
 
-test('line pull follows the host working-load warn flag only', () => {
-  let model = tick(null, 0, {tether: {tension_spool: 200, warn: false}});
-  assert.equal(tick(model, 1, {tether: {tension_spool: 400, warn: false}}).line, null);
-  model = tick(model, 2, {tether: {tension_spool: 500, warn: true}});
+test('line pull prefers host warn and keeps the cold-open presentation band', () => {
+  function load(model, t, force, warn = false) {
+    return tick(model, t, {tether: {tension_spool: force, warn}});
+  }
+  let model = load(null, 0, 0);
+  assert.equal(load(model, 1, 40).line, null);
+  model = load(model, 2, 41);
   assert.equal(model.line, 'tension');
-  assert.equal(tick(model, 3, {tether: {tension_spool: 500, warn: true}}).signals.tension, true);
-  model = tick(model, 4, {tether: {tension_spool: 100, warn: false}});
+  assert.equal(load(model, 33, 26).signals.tension, true);
+  model = load(model, 34, 25);
   assert.equal(model.signals.tension, false);
-  assert.equal(tick(model, 35, {tether: {tension_spool: 100, warn: true}}).line, 'tension');
+  assert.equal(load(model, 35, 10, true).line, 'tension');
 });
 
 test('pending hazards survive radio busy and the shared cooldown', () => {
