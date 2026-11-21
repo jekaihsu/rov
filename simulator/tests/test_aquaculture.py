@@ -22,6 +22,8 @@ class AquacultureTests(unittest.TestCase):
         obstacles, data = layout()
         self.assertEqual(len(data['holes']), 2)
         self.assertEqual(len(data['dead_fish']), 4)
+        edges = [ob.as_dict()["torn_edge"] for ob in obstacles if "torn_edge" in ob.as_dict()]
+        self.assertCountEqual(edges, ["top", "bottom"] * len(data["holes"]))
         for hole in data['holes']:
             self.assertGreater(self.world.sdf(np.array(hole['pos']))[0], .8)
         net = next(ob for ob in obstacles if ob.kind == 'pen_net')

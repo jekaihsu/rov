@@ -120,7 +120,8 @@ class Box:
 
     def as_dict(self):
         return {"type": "box", "name": self.name, "center": list(self.center), "half": list(self.half),
-                "yaw_deg": self.yaw_deg, "kind": self.kind}
+                "yaw_deg": self.yaw_deg, "kind": self.kind,
+                **({"torn_edge": self.torn_edge} if getattr(self, "torn_edge", None) else {})}
 
 
 @dataclass
@@ -998,5 +999,6 @@ class World:
                 "biome": self.biome, "terrain": self.terrain.as_dict() if self.terrain is not None else None,
                 "habitat": {"entities": self.habitat_entities,
                             "fish_schools": [{"id": s["id"], "pos": s["pos"].round(4).tolist(),
-                                              "count": s["count"], "phase": s["phase"], "variant": s["variant"]}
+                                              "count": s["count"], "phase": s["phase"], "variant": s["variant"],
+                                              **({"wild": True} if s.get("wild") else {})}
                                              for s in self.fish_schools]}}

@@ -20,5 +20,15 @@ test('alpha net batches across panels and flow displacement is bounded', () => {
   const moved = mesh.geometry.attributes.position.array;
   assert.ok(moved.some((v, i) => v !== original[i]));
   assert.ok(moved.every((v, i) => Math.abs(v - original[i]) <= .036));
+  const strong = moved.reduce((peak, v, i) => Math.max(peak, Math.abs(v - original[i])), 0);
+  const steady = speed => ({ready: true, sample(n, e, d, t, out) { out.splice(0, 3, speed, speed, 0); }});
+  updatePenNet(set, steady(.2), 1);
+  const weak = moved.reduce((peak, v, i) => Math.max(peak, Math.abs(v - original[i])), 0);
+  assert.ok(weak > 0 && weak < strong);
+  updatePenNet(set, steady(0), 1);
+  assert.deepEqual(moved, original);
+  updatePenNet(set, flow, 1);
+  updatePenNet(set, null, 1);
+  assert.deepEqual(moved, original);
   set.dispose();
 });

@@ -222,7 +222,7 @@ def tether_untangle() -> Scenario:
 
 def hull_inspection() -> Scenario:
     sea = 20.0
-    hull = dressing.ship_hull("Hull 貨輪船殼", (50.0, 0.0), 0.0, 80.0, 18.0, 8.0)
+    hull = dressing.ship_hull("Hull 貨輪船殼", (50.0, 0.0), 0.0, 80.0, 18.0, 8.0, inspection_screw=True)
     pts = [(18, 0, 9.5), (45, 0, 9.5), (70, -6, 9.5), (70, 6, 9.5), (50, 12, 5)]
     return Scenario(
         "hull_inspection", "船殼底部檢查", "80 m 貨輪吃水 8 m。從船底下穿過沿龍骨檢查，再繞到右舷。纜線可能卡在船底邊緣。",

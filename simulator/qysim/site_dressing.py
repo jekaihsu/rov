@@ -226,7 +226,8 @@ def quay_debris(wall: Wall, seabed: float) -> list:
     return snaggable(obs, SNAG_HOLD_DEBRIS)
 
 
-def ship_hull(name: str, center_xy, yaw_deg: float, length: float, beam: float, draft: float) -> list:
+def ship_hull(name: str, center_xy, yaw_deg: float, length: float, beam: float, draft: float,
+              inspection_screw=False) -> list:
     """A ShipHull plus its bilge keels, shaft, hub, four blades and rudder, in that order."""
     hull = ShipHull(name, (center_xy[0], center_xy[1], 0.0), yaw_deg, length, beam, draft)
     hp = ship_hull_params(length, beam, draft)
@@ -244,24 +245,48 @@ def ship_hull(name: str, center_xy, yaw_deg: float, length: float, beam: float, 
     obs.append(Cylinder(f"{name} shaft", _tuple(W((-L / 2 + hp["aperture"] + 1.0, 0, zp))),
                         _tuple(W((xp + 0.2, 0, zp))), 0.25, "shaft"))
     obs.append(Cylinder(f"{name} propeller hub", _tuple(W((xp + 0.35, 0, zp))), _tuple(W((xp - 0.45, 0, zp))),
-                        prop["hub"], "propeller"))
-    # each blade: two thin capsules side by side along the pitched chord, enclosing the flat blade
-    r_edge = prop["blade"]
-    for k in range(4):
-        ang = math.radians(45 + 90 * k)
-        radial = np.array([0.0, math.cos(ang), math.sin(ang)])
-        chord = np.array([math.sin(prop["pitch"]), -math.sin(ang) * math.cos(prop["pitch"]),
-                          math.cos(ang) * math.cos(prop["pitch"])])
-        hub = np.array([xp, 0.0, zp])
-        tip = hub + radial * (radius - r_edge)
-        for edge, sign in (("a", -1), ("b", 1)):
-            offset = chord * sign * r_edge
-            obs.append(Cylinder(f"{name} propeller blade {k + 1}{edge}", _tuple(W(hub + offset)),
-                                _tuple(W(tip + offset)), r_edge, "propeller"))
+                        (.42 if inspection_screw else prop["hub"]), "propeller"))
+    if inspection_screw:
+        obs.extend(inspection_blades(name, W, xp, zp, radius))
+    else:
+        # each blade: two thin capsules side by side along the pitched chord, enclosing the flat blade
+        r_edge = prop["blade"]
+        for k in range(4):
+            ang = math.radians(45 + 90 * k)
+            radial = np.array([0.0, math.cos(ang), math.sin(ang)])
+            chord = np.array([math.sin(prop["pitch"]), -math.sin(ang) * math.cos(prop["pitch"]),
+                              math.cos(ang) * math.cos(prop["pitch"])])
+            hub = np.array([xp, 0.0, zp])
+            tip = hub + radial * (radius - r_edge)
+            for edge, sign in (("a", -1), ("b", 1)):
+                offset = chord * sign * r_edge
+                obs.append(Cylinder(f"{name} propeller blade {k + 1}{edge}", _tuple(W(hub + offset)),
+                                    _tuple(W(tip + offset)), r_edge, "propeller"))
     rud = rudder_layout(hp)
     obs.append(Box(f"{name} rudder", _tuple(W((rud["x"], 0, rud["z"]))), (rud["half_chord"], rud["half_thick"],
                                                                            rud["half_height"]), yaw_deg, "rudder"))
     return obs
+
+
+def inspection_blades(name, transform, xp, zp, radius):
+    """Chord capsules double as the render stations of each cambered MP687-derived blade."""
+    widths = [30.54, 35.75, 40.14, 43.50, 45.54, 45.72, 43.09, 35.18, 15.22]
+    sections = []
+    for blade in range(4):
+        for station in range(17):
+            t = station / 16
+            fraction = .18 + .82 * t
+            angle = math.radians(45 + 90 * blade) + .35 * t ** 2
+            radial = np.array([0., math.cos(angle), math.sin(angle)])
+            tangent = np.array([0., -math.sin(angle), math.cos(angle)])
+            twist = math.atan(.75 / (math.pi * fraction))
+            chord = tangent * math.cos(twist) + np.array([-math.sin(twist), 0., 0.])
+            center = np.array([xp - radius * t * math.tan(math.radians(5)), 0., zp]) + radial * radius * fraction
+            half_width = radius * np.interp(fraction, np.linspace(.2, 1., 9), widths) / 203 * 1.25
+            label = f"{name} propeller blade {blade + 1} section {station:02d}"
+            sections.append(Cylinder(label, _tuple(transform(center - chord * half_width)),
+                                     _tuple(transform(center + chord * half_width)), .075, "propeller"))
+    return sections
 
 
 def propeller_layout(hp: dict) -> dict:

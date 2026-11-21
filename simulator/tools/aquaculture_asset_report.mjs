@@ -4,22 +4,31 @@ import {execFileSync} from 'node:child_process';
 import {readFileSync, statSync, writeFileSync} from 'node:fs';
 register('./three_resolve_hooks.mjs', import.meta.url);
 const {buildStructures} = await import('../viewer/structures.js');
-const {fishGeometry} = await import('../viewer/fish_life.js');
-const {salmonGeometry} = await import('../viewer/pen_life.js');
+const {FARMED_SPECIES, KIT_SPECIES, cardGeometry, kitGeometry, parseFishGlb} = await import('../viewer/fish_kit.js');
 const {FISH_LOD, PEN_CROWD} = await import('../viewer/fish_schools.js');
 const obstacles = JSON.parse(execFileSync('python', ['-c',
   'import json; from qysim.aquaculture import layout; print(json.dumps([o.as_dict() for o in layout()[0]]))'],
 {cwd: new URL('..', import.meta.url), encoding: 'utf8'}));
+function kitModel(name) {
+  const bytes = readFileSync(new URL(`../viewer/models/fish/${name}`, import.meta.url));
+  return parseFishGlb(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+}
 const triangles = (geometry) => geometry.index.count / 3;
-const result = {species: 'salmon', tiers: {}, files: {}};
+const length = KIT_SPECIES[FARMED_SPECIES].length;
+const farmed = kitModel(`${FARMED_SPECIES}.glb`);
+const perFish = {full: triangles(kitGeometry(farmed, length)),
+  distance: triangles(kitGeometry(kitModel(`${FARMED_SPECIES}_lo.glb`), length)),
+  card: triangles(cardGeometry(farmed, length))};
+const result = {species: FARMED_SPECIES, trianglesPerFish: perFish, tiers: {}, files: {}};
 for (const detail of ['low', 'medium', 'high']) {
-  const perFish = {full: triangles(fishGeometry('salmon', detail)), distance: triangles(fishGeometry('salmon', 'low')),
-    card: triangles(fishGeometry('salmon', 'silhouette'))};
+  // Pen fish are the farmed species of fish_kit.js in a dense band per school (fish_schools.js). Worst case: the
+  // scene-wide full and distance counts of FISH_LOD all in use, every other fish a card. Plus the four morts
+  // (pen_life.js: the full model, the distance model on low).
   const lod = FISH_LOD[detail];
   const drawn = Math.ceil(48 * PEN_CROWD[detail]) * 8;
   const full = Math.min(lod.full, drawn);
   const distance = Math.min(lod.distance, drawn - full);
-  const morts = 4 * triangles(salmonGeometry());
+  const morts = 4 * (detail === 'low' ? perFish.distance : perFish.full);
   const fishTriangles = full * perFish.full + distance * perFish.distance + (drawn - full - distance) * perFish.card +
     morts;
   const perSchool = drawn / 8;

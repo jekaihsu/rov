@@ -15,7 +15,7 @@
 //   'attached'  thin dressing on a collider's surface (within SCENE_TOLERANCE outside it)
 //   'above'     above the waterline, out of the vehicle's reach
 import * as THREE from 'three';
-import {addInspectionFittings, bladeGeometry} from './hull_details.js';
+import {addInspectionFittings, bladeGeometry, sectionBlade} from './hull_details.js';
 import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
@@ -624,12 +624,34 @@ function rudder(set, ob) {
   set.add(g, 'steelPlate', [ob.name], 'solid', [ob]);
 }
 
+function inspectionBoss(hub) {
+  const start = P(hub.p0);
+  const axis = P(hub.p1).sub(start);
+  const radius = hub.radius;
+  const profile = [[0, .76], [.18, 1], [.72, .97], [1, .75], [1.3, .36], [1.44, .02]];
+  const boss = new THREE.LatheGeometry(profile.map(([s, r]) => new THREE.Vector2(r * radius, s * axis.length())), 32);
+  boss.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis.normalize()));
+  boss.translate(...start.toArray());
+  return boss;
+}
+
 function propeller(set, obs) {
   const hub = obs.find((o) => o.name.endsWith('hub'));
   if (!hub) return;
   const edges = obs.filter((o) => o.name.includes('blade'));
-  const parts = [tube(P(hub.p0), P(hub.p1), hub.radius - 0.02, 16),
-    ...exposedCaps(set.world, hub, hub.radius - 0.02, 16)];
+  const sections = edges.filter(ob => ob.name.includes(' section '));
+  const parts = sections.length ? [inspectionBoss(hub)] : [tube(P(hub.p0), P(hub.p1), hub.radius - .02, 16),
+    ...exposedCaps(set.world, hub, hub.radius - .02, 16)];
+  const blades = new Map();
+  for (const section of sections) {
+    const key = section.name.split(' section ')[0];
+    if (!blades.has(key)) blades.set(key, []);
+    blades.get(key).push(section);
+  }
+  for (const blade of blades.values()) {
+    blade.sort((a, b) => a.name.localeCompare(b.name));
+    parts.push(sectionBlade(blade));
+  }
   for (const a of edges.filter((o) => o.name.endsWith('a'))) {
     const b = edges.find((o) => o.name === a.name.slice(0, -1) + 'b');
     if (b) parts.push(bladeGeometry(a, b));

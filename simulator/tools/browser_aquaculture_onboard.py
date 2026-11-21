@@ -46,6 +46,18 @@ def main():
             report[name] = capture(page, http_base(8092), 'quality=medium&fidelity=real&cam=onboard',
                                    name, replay(name, eye, target), OUT, 8)
             report[name].update(eye_ned=eye, target_ned=target, lamp_level=2, fidelity='real')
+            models = page.evaluate("""() => {
+                const mort = [], farm = [];
+                window.__viewer.scene.traverse(mesh => {
+                    if (mesh.userData.mort) mort.push(mesh.userData.mortSpecies);
+                    if (mesh.userData.fishLevel && mesh.name.startsWith('fish-pen-school-')) {
+                        farm.push(Boolean(mesh.material.map?.image));
+                    }
+                });
+                return {mort, farm};
+            }""")
+            assert models["mort"] == ["madai"] * 4, models
+            assert models["farm"] and all(models["farm"]), models
             assert not errors, errors
             page.close()
         browser.close()

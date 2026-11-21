@@ -43,6 +43,38 @@ export function bladeGeometry(a, b) {
   return geometry;
 }
 
+// The authoritative chord endpoints carry section width, pitch, rake and skew in world metres.
+export function sectionBlade(sections) {
+  const centers = sections.map(ob => POINT(ob.p0).lerp(POINT(ob.p1), .5));
+  const positions = [];
+  const indices = [];
+  const samples = 16;
+  for (let row = 0; row < sections.length; row++) {
+    const ob = sections[row];
+    const chord = POINT(ob.p1).sub(POINT(ob.p0)).multiplyScalar(.5);
+    const span = centers[Math.min(row + 1, sections.length - 1)].clone().sub(centers[Math.max(0, row - 1)]);
+    const normal = span.cross(chord).normalize();
+    for (let i = 0; i < samples; i++) {
+      const angle = i * 2 * Math.PI / samples;
+      const u = Math.cos(angle);
+      const camber = .04 * (1 - u * u) + .032 * Math.sin(angle) * (1 - .5 * row / (sections.length - 1));
+      const point = centers[row].clone().addScaledVector(chord, u).addScaledVector(normal, camber);
+      positions.push(...point.toArray());
+      if (row + 1 === sections.length) continue;
+      const j = row * samples + i;
+      const next = row * samples + (i + 1) % samples;
+      indices.push(j, next, next + samples, j, next + samples, j + samples);
+    }
+  }
+  const end = (sections.length - 1) * samples;
+  for (let i = 1; i < samples - 1; i++) indices.push(end, end + i, end + i + 1);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 // Each numeral's lower edge denotes height above keel. Short bars mark the intervening 2 dm steps.
 const DIGITS = ['abcdef', 'bc', 'abdeg', 'abcdg', 'bcfg', 'acdfg', 'acdefg', 'abc', 'abcdefg', 'abcdfg'];
 const STROKES = {a: [0, .09], b: [.026, .07], c: [.026, .025], d: [0, .005],

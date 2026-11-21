@@ -50,6 +50,8 @@ def layout():
             panel = Box(f"pen-net-{i}-{j}", center,
                         (RADIUS * math.sin(step / 2), .025, (bottom - top) / 2),
                         math.degrees(mid) + 90, "pen_net")
+            if damaged is not None:
+                panel.torn_edge = "bottom" if j == 0 else "top"
             panel.snag_hold = (100., 220.)
             obstacles.append(panel)
     # Thin strips form a closed polygonal floor; no individual net strand geometry.

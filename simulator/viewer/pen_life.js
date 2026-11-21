@@ -1,5 +1,9 @@
-// Pen school placement and the salmonid lying on its side at the work object's contact surface.
+// Farmed fish for the net pen: the loose circling school layout used instead of the generic tight ball, and the
+// mortality lying on the bottom net: the farmed species of fish_kit.js on its side (an original low-poly salmonid
+// with countershaded vertex colours until the model has loaded, or where it cannot be).
+// Viewer only: school centres, counts and the work objects' positions stay the server's.
 import * as THREE from 'three';
+import {FARMED_SPECIES, kitDetail, loadKitSpecies} from './fish_kit.js';
 
 // Half height / half width of the body along its length (nose +Z), base length 0.30 m like the generic fish.
 const RINGS = [
@@ -14,6 +18,14 @@ const LIVE = {back: [0.13, 0.17, 0.17], upper: [0.42, 0.47, 0.47], lower: [0.72,
 const DEAD = {back: [0.3, 0.33, 0.31], upper: [0.47, 0.48, 0.44], lower: [0.6, 0.59, 0.54],
   belly: [0.7, 0.68, 0.62], fin: [0.36, 0.36, 0.32]};
 const PEN_CENTRE = new THREE.Vector3(0, 0, 24);
+const MORT_SCALE = 2.2;
+const MORT_HALF_WIDTH = 0.016 * MORT_SCALE;
+// A 0.8 kg mort (the server's mass) is a red sea bream of about 0.35 m. A dead fish lies on its side, bent a little
+// along its back (the curve is horizontal once it lies on its side), and has lost its colour: pale and grey.
+const MORT_LENGTH = 0.35;
+const MORT_BEND = 0.4;
+const MORT_TINT = 0xc8c4bc;
+
 function ringColour(palette, index) {
   if (index === 0) return palette.back;
   if (index === 3) return palette.belly;
@@ -127,17 +139,49 @@ function layMort(geometry, object, bend) {
   return geometry;
 }
 
-export function dressMort(mesh, object) {
+function dressKitMort(mesh, object, asset) {
+  // The full model on medium and high, the distance model on low (render tier of the scene, fish_kit.js).
+  const source = kitDetail() === 'low' ? asset.distance : asset.full;
+  const geometry = source.clone();
+  const scale = MORT_LENGTH / asset.length;
+  geometry.scale(scale, scale, scale);
   mesh.geometry.dispose();
-  const geometry = salmonGeometry(DEAD);
-  geometry.scale(1.25, 1.25, 1.25);
-  mesh.geometry = layMort(geometry, object, .4);
-  mesh.material.color.setHex(0xc8c4bc);
-  mesh.material.vertexColors = true;
-  mesh.material.metalness = .1;
+  mesh.geometry = layMort(geometry, object, MORT_BEND);
+  const map = asset.map.clone();
+  mesh.material.map = map;
+  mesh.material.addEventListener('dispose', function releaseMap() {
+    map.dispose();
+  });
+  mesh.material.vertexColors = false;
+  mesh.material.color.set(MORT_TINT);
+  mesh.material.alphaTest = .5;
+  mesh.material.side = THREE.DoubleSide;
+  mesh.material.metalness = .05;
   mesh.material.roughness = .65;
   mesh.material.needsUpdate = true;
+  mesh.userData.mortSpecies = asset.id;
+}
+
+/**
+ * Turn a work-object mesh into a dead fish lying on its side at the bottom of its collision sphere: the procedural
+ * salmonid at once, the farmed species' model once it has loaded. Resolves true once the model is in place.
+ */
+export function dressMort(mesh, object) {
+  mesh.geometry.dispose();
+  const geometry = salmonGeometry(DEAD, 1.1);
+  geometry.scale(MORT_SCALE, MORT_SCALE, MORT_SCALE);
+  geometry.rotateZ(Math.PI / 2);
+  geometry.rotateY(hashAngle(object.id || ''));
+  geometry.translate(0, MORT_HALF_WIDTH - (object.radius || .15), 0);
+  mesh.geometry = geometry;
+  mesh.material.color.set(0xffffff);
+  mesh.material.vertexColors = true;
+  mesh.material.metalness = .1;
+  mesh.material.roughness = .6;
+  mesh.material.needsUpdate = true;
   mesh.userData.mort = true;
-  mesh.userData.mortSpecies = 'salmon';
-  return Promise.resolve(true);
+  return loadKitSpecies(FARMED_SPECIES).then(function swapMort(asset) {
+    dressKitMort(mesh, object, asset);
+    return true;
+  }, () => false);
 }

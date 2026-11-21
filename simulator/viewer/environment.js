@@ -11,6 +11,7 @@
 //   const env = new Environment(scene, world /* the simulator's world message */, {detail: 'low'|'medium'|'high'});
 //   each frame: env.update(dt, camera, currentVec3 /* three-space water velocity */, state, flowField)
 //   env.dispose()
+import {FIND_COLORS, attachedKelp, findGeometry} from './inspection_finds.js';
 import * as THREE from 'three';
 import { KELP_FLOW_GLSL, createKelpFlowUniforms, updateKelpFlow } from './kelp_flow.js';
 import {marineGeometry, upgradeMarineMesh} from './marine_registry.js';
@@ -90,6 +91,8 @@ export class Environment {
     // Stable server identities, separate from draw buckets / instance ordering.
     // Read only at photo capture; no raycasts or observation work in update().
     this.observationTargets = [];
+    this.inspectionBatches = [];
+    this.inspectionRange = 2 * (world.scenario?.visibility_m || 12) + 1.6;
     this.uniforms = { uTime: { value: 0 }, uFlow: { value: new THREE.Vector3() }, ...createKelpFlowUniforms() };
     const key = `${world.scenario?.key || 'x'}:${world.scenario?.seed ?? ''}`;
     const R = rng(key);
@@ -273,7 +276,15 @@ export class Environment {
     const matrix = new THREE.Matrix4(), rotation = new THREE.Quaternion();
     for (const entities of buckets.values()) {
       const {kind,variant} = entities[0]; let geo, mat;
-      if (kind === 'coral') {
+      const onNet = kind === 'kelp' && this.world.biome === 'aquaculture';
+      if (onNet) {
+        geo = attachedKelp();
+        mat = kelpMaterial(this.uniforms);
+        mat.color.setHex(0xa3833f);
+      } else if (Object.hasOwn(FIND_COLORS, kind)) {
+        geo = findGeometry(kind);
+        mat = M(FIND_COLORS[kind]);
+      } else if (kind === 'coral') {
         geo = reefCoralGeometry(reefCoralStyle(entities[0]), this.detail);
         mat = reefCoralMaterial(reefCoralStyle(entities[0]));
       } else if (kind === 'seastar') {
@@ -286,8 +297,8 @@ export class Environment {
         mat.color.set(kind==='seagrass'?0x53683d:0x5e643a);
       }
       const mesh = new THREE.InstancedMesh(geo,mat,entities.length);
-      if(kind!=='rock')upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
-      else upgradeRockMesh(mesh, (rocks) => habitatRockGeometry(rocks, variant, this.detail), this.detail)
+      if(!onNet && kind!=='rock' && !Object.hasOwn(FIND_COLORS, kind))upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
+      else if (kind === 'rock') upgradeRockMesh(mesh, (rocks) => habitatRockGeometry(rocks, variant, this.detail), this.detail)
         .catch(() => false);
       mesh.userData.observationEntities = entities.map(e=>({entity_id:e.id,category:e.kind}));
       if(kind==='kelp'||kind==='seagrass') mesh.userData.observationBend = this.uniforms;
@@ -299,12 +310,15 @@ export class Environment {
         if(kind==='seagrass') scale.y*=.55;
         matrix.compose(p,rotation,scale);mesh.setMatrixAt(i,matrix);
         if (kind === 'coral') mesh.setColorAt(i, reefCoralTint(item));
-        if(['coral','seastar','kelp','seagrass'].includes(kind))
+        if(Object.hasOwn(FIND_COLORS, kind) || ['coral','seastar','kelp','seagrass'].includes(kind))
           this.observationTargets.push({entity_id:item.id,category:kind,mesh,instanceIds:[i]});
       }
       mesh.instanceMatrix.needsUpdate=true;
       mesh.receiveShadow=true;mesh.castShadow=kind==='rock'||kind==='coral';
       // Animated vertex displacement extends outside the unbent grass bounds.
+      if (onNet || Object.hasOwn(FIND_COLORS, kind)) {
+        this.inspectionBatches.push({mesh, anchors: entities.map(item => P(item.pos))});
+      }
       if(kind==='kelp'||kind==='seagrass')mesh.frustumCulled=false;
       else mesh.computeBoundingSphere();
       this.group.add(mesh);
@@ -426,6 +440,9 @@ export class Environment {
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
     updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
     const under = camera.position.y < 0;
+    for (const {mesh, anchors} of this.inspectionBatches) {
+      mesh.visible = !under || anchors.some(anchor => anchor.distanceTo(camera.position) < this.inspectionRange);
+    }
     this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
     for (const { rotor, w } of this.rotors) rotor.rotation.z -= dt * w;
     for (const b of this.buoys) { b.b.position.y = Math.sin(t * 1.1 + b.ph) * 0.25; b.b.rotation.z = Math.sin(t * 0.9 + b.ph) * 0.08; b.lamp.visible = (t + b.ph) % 4 < 0.6; }

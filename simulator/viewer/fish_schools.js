@@ -8,7 +8,7 @@
 // Each school is a group of three instanced meshes: the kit's full model, its distance model and the far cards.
 // Every frame the nearest fish of the whole scene get the full model and the next ones the distance model, up to
 // the counts of FISH_LOD for the render tier; the rest are cards. Until a species has loaded (and in Node tests)
-// the three meshes draw the procedural bodies of fish_life.js. Pens keep the original salmon on every tier,
+// the three meshes draw the procedural bodies of fish_life.js. Pens use a salmon stand-in,
 // with a simplified three-ring body for distant fish.
 //
 //   const schools = createSharedSchools(group, world, detail, seededRandom);
@@ -16,7 +16,7 @@
 //   each frame: schools.update(dt, t, camera, state);   // schools.vehicle: the vehicle the fish react to
 import * as THREE from 'three';
 import {
-  SPECIES, createFishMesh, createSchoolMotion, fishGeometry, fishMaterial, replaceFishBody, updateSchoolMotion,
+  createFishMesh, createSchoolMotion, fishGeometry, fishMaterial, replaceFishBody, updateSchoolMotion,
 } from './fish_life.js';
 import {KIT_SPECIES, fishSite, kitMaterial, loadKitSpecies, schoolKitSpecies, setKitDetail} from './fish_kit.js';
 import {penTurn, placePenFish} from './pen_life.js';
@@ -99,9 +99,9 @@ function levelMesh(body, material, capacity, school, level) {
 
 function buildSchool(school, context, random) {
   const {world, detail, lod, bodies} = context;
-  const farm = fishSite(world) === 'pen';
-  const species = farm ? 'salmon' : schoolKitSpecies(world, school.id);
-  const length = (farm ? SPECIES : KIT_SPECIES)[species].length;
+  const farm = fishSite(world) === 'pen' && !school.wild;
+  const species = school.wild ? 'aji' : schoolKitSpecies(world, school.id);
+  const length = KIT_SPECIES[species].length;
   const count = farm ? Math.ceil(school.count * (PEN_CROWD[detail] || 1)) : school.count;
   const spread = Math.max(1, length / SCHOOL_BOX_LENGTH);
   const offsets = farm ? null : schoolOffsets(count, random, spread);
@@ -285,6 +285,11 @@ export function createSharedSchools(group, world, detail, worldSeed) {
   const farm = stand === 'salmon';
   const bodies = {species: stand, full: near, distance: farm ? fishGeometry(stand, 'low') : near,
     card: fishGeometry(stand, farm ? 'silhouette' : 'low')};
+  if (farm) {
+    for (const geometry of new Set([bodies.full, bodies.distance, bodies.card])) {
+      geometry.scale(.58 / .30, .58 / .30, .58 / .30);
+    }
+  }
   const context = {world, detail, lod, bodies};
   const schools = (world.habitat?.fish_schools || []).map(function makeSchool(school) {
     const built = buildSchool(school, context, seeded(`${school.id}:${worldSeed}`));
@@ -296,7 +301,7 @@ export function createSharedSchools(group, world, detail, worldSeed) {
   const entries = schools.flatMap((school) => school.fish.map((_, index) => ({school, index})));
   const visibleEntries = [];
   const track = vehicleTracker();
-  const modelSpecies = new Set(schools.filter(school => !school.farm).map(school => school.species));
+  const modelSpecies = new Set(schools.map(school => school.species));
   const ready = Promise.all(Array.from(modelSpecies, species => upgradeSpecies(schools, species)))
     .then(results => results.every(Boolean));
   return {

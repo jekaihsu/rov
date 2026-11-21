@@ -998,3 +998,6 @@ Net visual motion is bounded to 0.05 m and never changes server collision shapes
 不採取改寫全房間文字的方案：同一房間可有不同語言玩家。若未來需要伺服器本地化，
 只能以選填、每連線的語言偏好協商，保留既有預設與 fallback，不可改共享狀態的語言。
 本 PR 尚未實作此選填欄位，因此不需要伺服器升級或能力探測。
+
+網箱側網障礙物的選填欄位 `torn_edge` 標出破洞邊緣，值為 `top` 或 `bottom`。省略時按完整網片繪製。
+網箱外的野生魚群在 `world.habitat.fish_schools[]` 附上選填的 `wild: true`。網箱內的魚群沿用原有資料格式。

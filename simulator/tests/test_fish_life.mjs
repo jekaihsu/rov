@@ -129,7 +129,7 @@ test('pen fish are the farmed species and keep the pen layout', () => {
   const drawn = schools.createSharedSchools(group, world, 'low', 71);
   const school = drawn.schools[0];
   assert.equal(school.fish.length, 12, 'low tier draws a quarter of the pen school, as before');
-  assert.equal(school.species, 'salmon');
+  assert.equal(school.species, 'madai');
   assert.equal(school.meshes.full, undefined, 'no full model on the low tier');
   assert.equal(school.meshes.card.geometry.userData.fishSpecies, 'salmon', 'salmon silhouette at distance');
   const server = {id: 'pen-school-0', pos: [34, 0, 6], vel: [0, 0.3, 0]};

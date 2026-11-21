@@ -135,4 +135,4 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 皆為本專案原創程式幾何，CC0-1.0，沒有外部模型、照片或貼圖。養殖魚與死魚載入後改用上方 Fish Kit 的嘉鱲（`fish/madai*`）。
 
 R6 船殼格柵、水尺、螺槳截面、HDPE 熔接環與破網邊緣為原創程式幾何（CC0-1.0）。
-塗層沿用本檔所列 coating／rust 掃描材質。此版箱網內的活魚與死魚均使用原創鮭形幾何。
+塗層沿用本檔所列 coating／rust 掃描材質。網箱養殖群與死魚載入本檔所列 CC0 魚模組的 madai，網外魚群載入 aji。藤壺、格柵小魚、塗層刮痕、卸扣及沉積飼料為原創程式幾何（CC0-1.0）。

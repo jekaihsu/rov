@@ -24,7 +24,7 @@ import * as THREE from 'three';
 // mirror-like the flank is (guanine scales), `spots` a dark speckle on the upper flank.
 export const SPECIES = Object.freeze({
   salmon: {
-    length: 0.58,
+    length: 0.30,
     profile: [[0, 0, 0, 0], [0.03, 0.035, 0.022, 0], [0.1, 0.075, 0.045, -0.004], [0.2, 0.1, 0.058, -0.008],
       [0.33, 0.112, 0.062, -0.01], [0.48, 0.103, 0.055, -0.008], [0.62, 0.08, 0.04, -0.004],
       [0.74, 0.052, 0.024, 0], [0.82, 0.036, 0.014, 0]],

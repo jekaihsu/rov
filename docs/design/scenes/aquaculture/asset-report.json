@@ -1,27 +1,32 @@
 {
-  "species": "salmon",
+  "species": "madai",
+  "trianglesPerFish": {
+    "full": 5160,
+    "distance": 722,
+    "card": 16
+  },
   "tiers": {
     "low": {
-      "structureTriangles": 74288,
-      "fishTriangles": 3672,
+      "structureTriangles": 65712,
+      "fishTriangles": 7954,
       "fishDrawn": 96,
-      "totalTriangles": 77960,
+      "totalTriangles": 73666,
       "structureDrawCalls": 6,
       "fishDrawCalls": 20
     },
     "medium": {
-      "structureTriangles": 74288,
-      "fishTriangles": 26788,
+      "structureTriangles": 65712,
+      "fishTriangles": 65808,
       "fishDrawn": 768,
-      "totalTriangles": 101076,
+      "totalTriangles": 131520,
       "structureDrawCalls": 6,
       "fishDrawCalls": 28
     },
     "high": {
       "structureTriangles": 74288,
-      "fishTriangles": 35058,
+      "fishTriangles": 101256,
       "fishDrawn": 960,
-      "totalTriangles": 109346,
+      "totalTriangles": 175544,
       "structureDrawCalls": 6,
       "fishDrawCalls": 28
     }
