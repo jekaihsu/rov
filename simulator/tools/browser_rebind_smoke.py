@@ -28,11 +28,25 @@ def release_pad(page):
 
 
 def pad_press(page, button, condition):
-    page.evaluate('i => Object.assign(testPad.buttons[i], {pressed: true, value: 1})', button)
-    try:
-        page.wait_for_function(condition, polling=20)
-    finally:
-        page.evaluate('i => Object.assign(testPad.buttons[i], {pressed: false, value: 0})', button)
+    # Respond within the page: a slow WebGL/CDP round trip can otherwise hold a D-pad press into auto-repeat.
+    page.evaluate(f"""button => new Promise((resolve, reject) => {{
+      const input = testPad.buttons[button];
+      function observe() {{
+        if (!({condition})) return;
+        Object.assign(input, {{pressed: false, value: 0}});
+        observer.disconnect();
+        clearTimeout(timer);
+        resolve();
+      }}
+      const observer = new MutationObserver(observe);
+      observer.observe(document.querySelector('#inputSettings'), {{subtree: true, childList: true, attributes: true}});
+      const timer = setTimeout(() => {{
+        observer.disconnect();
+        Object.assign(input, {{pressed: false, value: 0}});
+        reject(new Error('Pad navigation stopped at ' + document.activeElement.outerHTML.slice(0, 150)));
+      }}, {timeout(15000)});
+      Object.assign(input, {{pressed: true, value: 1}});
+    }})""", button)
     release_pad(page)
 
 
@@ -73,6 +87,11 @@ def run():
         page.wait_for_function('window.__viewer?.S?.vehicle_id')
         check_pad_editor(page)
         page.keyboard.press('F9')
+        assert page.locator('#inputSettings').evaluate('(node) => node.open'), page.evaluate("""() => ({
+          focus: document.activeElement.outerHTML.slice(0, 140),
+          dialogs: [...document.querySelectorAll('dialog[open]')].map(d => d.id),
+          paused: !document.querySelector('#pauseMenu').hidden, phase: window.__viewer.S.procedure?.phase
+        })""")
         group = page.locator('#keyboardBindings')
         group.locator('summary').click()
         forward = group.locator('[data-key-action=right_ud][data-key-index="0"]')
