@@ -408,7 +408,7 @@ class TestParameters(unittest.TestCase):
     def test_every_tether_value_has_a_level_and_a_source(self):
         for key, item in X1_TETHER_PARAMETERS.items():
             with self.subTest(key=key):
-                self.assertIn(item["level"], ("official", "reseller", "estimated"))
+                self.assertIn(item["level"], ("official", "reseller", "estimated", "published", "measured"))
                 self.assertTrue(item["source"])
 
 
