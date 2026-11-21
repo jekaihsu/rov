@@ -54,6 +54,10 @@ const DRAWER_KEYS = bindingRow('engineering').keys;
 let hudStyle = '';
 // Minimap redraw rate (the peek card map and the corner map): vehicle and peers move slowly on its scale.
 const MAP_HZ = 15;
+// Attitude / compass / depth canvases: 20 Hz is enough to read; clearing and stroking them every rAF cost
+// ~0.5–0.7 ms per instrument on software GL and shows up as the top JS cost on UHD 620 dives.
+const INSTRUMENT_HZ = 20;
+let instrumentsDrawn = 0;
 let mapDrawn = -Infinity;
 function storage(key, fallback) {
   try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
@@ -282,10 +286,13 @@ function readings(s, w, dt, sensed) {
 }
 function updateLine(r, s, w) {
   setText($('flightHeading'), `${headingLabel(r.heading)}°`);
-  drawHeadingTape($('tape'), r.heading);
   setText($('flightDepthValue'), lengthIn(r.depth).toFixed(1));
   setText($('flightAltitude'), r.alt == null ? '—' : lengthIn(r.alt).toFixed(1));
   $('flightAltitude').parentElement.classList.toggle('warn', r.altWarn);
+  const now = performance.now();
+  if (now - instrumentsDrawn < 1000 / INSTRUMENT_HZ) return;
+  instrumentsDrawn = now;
+  drawHeadingTape($('tape'), r.heading);
   drawDepthLadder($('flightLadder'), {
     depth: r.depth, seabed: w?.seabed_depth ?? null, hold: s.keep_depth ? s.depth_hold : null, warn: r.altWarn,
   });

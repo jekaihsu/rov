@@ -66,7 +66,23 @@ export class Cable {
     const at = this.geometry.attributes;
     at.position.needsUpdate = true; at.normal.needsUpdate = true;
     if (at.color) at.color.needsUpdate = true;
-    this.geometry.computeBoundingSphere();
+    // frustumCulled is false; a full computeBoundingSphere walk every frame is wasted CPU on long cables.
+    this._refreshBounds(P);
+  }
+
+  _refreshBounds(points) {
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+      if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+    }
+    const sphere = this.geometry.boundingSphere || (this.geometry.boundingSphere = new THREE.Sphere());
+    sphere.center.set((minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5);
+    const dx = maxX - minX, dy = maxY - minY, dz = maxZ - minZ;
+    sphere.radius = 0.5 * Math.sqrt(dx * dx + dy * dy + dz * dz) + this.radius;
   }
 
   hide() { this.mesh.visible = false; }
