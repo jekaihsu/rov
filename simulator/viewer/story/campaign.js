@@ -200,7 +200,16 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
         // Incident drills are launched from the list only; a server without categories is all story.
         const chapter = picked || campaign.chapters.find(entry => !entry.placeholder
           && (entry.category || 'story') === 'story' && !completed.includes(entry.id) && (!entry.requires || completed.includes(entry.requires)));
-        if (chapter) command('campaign_start', {chapter: chapter.id, resume: save?.checkpoint?.chapter === chapter.id});
+        if (chapter) {
+          const training = launch.get('training') === '1'
+            || chapter.category === 'course'
+            || String(chapter.id || '').startsWith('course_');
+          command('campaign_start', {
+            chapter: chapter.id,
+            resume: save?.checkpoint?.chapter === chapter.id,
+            course: training,
+          });
+        }
       }
     }
     const save = JSON.stringify({completed: campaign.completed, rewards: campaign.rewards,

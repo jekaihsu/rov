@@ -165,9 +165,29 @@ target.addEventListener('change', function selection() {
   refreshReport();
 });
 const injection = el('form', '', faults, 'injection');
-const kind = select('kind', ['thruster', 'battery', 'current', 'visibility', 'freeze', 'video_delay', 'video_freeze',
+const kind = select('kind', ['thruster', 'battery', 'current', 'visibility', 'freeze', 'tether_snag',
+  'video_delay', 'video_freeze',
   'link_degrade', 'comms_loss', 'power_trip', 'leak', 'overheat',
   'compass', 'depth_sensor', 'dvl', 'altimeter'], injection);
+el('h3', S.drills, faults);
+const drills = el('div', '', faults, 'training-drills');
+const DRILL_PRESETS = [
+  {key: 'drillCurrent', kind: 'current', strength: 0.6, duration: 90, ramp_s: 60, rotate_deg: 0},
+  {key: 'drillVisibility', kind: 'visibility', strength: 0.5, duration: 45},
+  {key: 'drillCompass', kind: 'compass', strength: 0.4, duration: 45},
+  {key: 'drillSnag', kind: 'tether_snag', strength: 0.5, duration: 120},
+];
+for (const preset of DRILL_PRESETS) {
+  button(preset.key, function fireDrill() {
+    const payload = {kind: preset.kind, strength: preset.strength, duration: preset.duration};
+    if (preset.kind === 'current') {
+      payload.ramp_s = preset.ramp_s;
+      payload.rotate_deg = preset.rotate_deg;
+    }
+    if (preset.kind === 'thruster') payload.index = 0;
+    command('inject', payload);
+  }, drills);
+}
 const inputs = el('div', '', injection, 'fields');
 const strength = field('strength', '.5', inputs, 'number', 0, 1, .05);
 const duration = field('duration', '30', inputs, 'number', .1, 3600);
@@ -183,6 +203,7 @@ function syncInjectionFields() {
     input.required = current;
     input.closest('label')?.toggleAttribute('hidden', !current);
   }
+  duration.disabled = false;
 }
 kind.addEventListener('change', syncInjectionFields);
 syncInjectionFields();
