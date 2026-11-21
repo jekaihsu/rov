@@ -82,6 +82,7 @@ import { createWorldLabels } from './hud/world_labels.js';
 import { elementSize } from './hud/canvas.js';
 import { cssVariable } from './hud/css_variables.js';
 import { createShaderWarmup } from './shader_warmup.js';
+import { installTrailerRecording } from './trailer/recording.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -842,6 +843,9 @@ let camMode = cameraRig.mode;
 const cameraLook = installCameraLook({renderer, getMode: () => camMode, fidelity: getFidelity()});
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
+const trailer = installTrailerRecording({
+  params, camera, rovG, setCam, getFidelity, document, storage: localStorage,
+});
 const updateCamera = dt => cameraRig.update(dt);
 $('camBtn').onclick = () => cameraRig.cycle();
 const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion();
@@ -1282,6 +1286,7 @@ function frame(now) {
     });
   }
   if (!inIntro) updateCamera(dt);
+  if (trailer.enabled) trailer.frame(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   installUnderwaterPipeline(renderer, { surface });
@@ -1341,7 +1346,7 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, touch, toggleLock, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, touch, toggleLock, takePhoto:options=>photoClient.takePhoto(options), send, trailer };
 Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;
