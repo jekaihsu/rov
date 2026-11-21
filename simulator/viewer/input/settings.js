@@ -6,6 +6,7 @@ import {
 } from "./bindings.js";
 import { keyboardLayout, rowsFor } from "./keyboard_layout.js";
 import { getFidelity } from "../fidelity.js";
+import { getDisplayPrefs } from "../prefs/display.js";
 import {
   CALIBRATION_STEPS, captureCalibrationStep, buildCustomMapping, isNeutral
 } from "./calibrate.js";
@@ -180,8 +181,20 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
   }
   renderBindings();
   mountKeyboard();
-  // Mute lives on padHaptics (擬真設定); this dialog only keeps strength and a test pulse.
-  slider(STRINGS.strength, settings, "strength", 0, 1, 0.05, 1);
+  // Mute lives on padHaptics (擬真設定); strength is shared with the display tab (prefs/display.js).
+  settings.strength ??= getDisplayPrefs().get("hapticStrength") ?? 1;
+  const strengthRow = element("label", STRINGS.strength);
+  const strengthInput = element("input", "", strengthRow);
+  strengthInput.type = "range";
+  strengthInput.min = 0;
+  strengthInput.max = 1;
+  strengthInput.step = 0.05;
+  strengthInput.value = settings.strength;
+  strengthInput.oninput = function changeStrength() {
+    settings.strength = +strengthInput.value;
+    getDisplayPrefs().set("hapticStrength", settings.strength);
+    save();
+  };
   element("button", STRINGS.test).onclick = function test() {
     haptics.pulse("hard");
   };
