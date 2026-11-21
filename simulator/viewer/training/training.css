@@ -1,0 +1,27 @@
+/* Internal training mode course map and in-flight banner. */
+.training-map { display: flex; flex-direction: column; gap: 18px; }
+.training-map-tools { display: flex; flex-wrap: wrap; gap: 10px; }
+.training-group-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #dfbc61;
+}
+.training-lesson { align-items: stretch; }
+.training-goal,
+.training-criteria,
+.training-record {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #9aacb7;
+}
+.training-record { color: #dfbc61; }
+.training-drills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.training-drills button { width: 100%; }

@@ -1,0 +1,296 @@
+{
+  "courses": [
+    {
+      "id": "course_a01",
+      "title": "A01｜進階｜導管架中止決策",
+      "scenario": "incident_jacket",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 90,
+      "level": "進階",
+      "simulator_minutes": 60,
+      "goal": "評估強流、人手不足與纜線路徑，選擇開放出口",
+      "criteria": "經西側出口回投放點；及早中止並說明人手與信標風險",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "人手不足與信標詢問風險用口頭通報",
+      "source_chapters": [
+        "incident_jacket"
+      ]
+    },
+    {
+      "id": "course_a02",
+      "title": "A02｜進階｜沉船勾纏脫困",
+      "scenario": "incident_wreck",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 100,
+      "level": "進階",
+      "simulator_minutes": 60,
+      "goal": "先評估卡點，再反向解纏；不能解時提出救援交接",
+      "criteria": "完成解纏與回收；沒有盲目硬拉，交接最後可信位置",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "沿用預纏繞；模型有繞構件與雜物勾掛，不模擬細線打結",
+      "source_chapters": [
+        "incident_wreck"
+      ]
+    },
+    {
+      "id": "course_a03",
+      "title": "A03｜進階｜強流撤離",
+      "scenario": "incident_current",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 110,
+      "level": "進階",
+      "simulator_minutes": 60,
+      "goal": "判斷站位失守，放棄作業目標並協同回收",
+      "criteria": "依序完成撤離點與回收；中止理由、纜線與環境通報完整",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "沿用固定強流；另次可注入漸強洋流",
+      "source_chapters": [
+        "incident_current"
+      ]
+    },
+    {
+      "id": "course_a04",
+      "title": "A04｜進階｜綜合考核與事故交班",
+      "scenario": "incident_current",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 120,
+      "level": "進階",
+      "simulator_minutes": 60,
+      "goal": "獨立完成撤離並口試失聯、供電、漏水與救援交接",
+      "criteria": "完成撤離或記錄合理中止；口試有通報、隔離與升級程序；證據齊備",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "先標準航次；另次加入單推進器衰減，再另次注入失聯、供電跳脫或漏水擇一",
+      "source_chapters": [
+        "incident_current"
+      ]
+    },
+    {
+      "id": "course_b01",
+      "title": "B01｜初級｜控制與下水閘門",
+      "scenario": "tutorial_pool",
+      "mode": "free_explore",
+      "category": "course",
+      "order": 10,
+      "level": "初級",
+      "simulator_minutes": 60,
+      "goal": "六向小幅操控、定深、燈光、拍照；口述下水閘門",
+      "criteria": "完成互動節點；逐軸方向正確，解鎖前確認人員清場",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "無故障；先示範再獨立操作",
+      "source_chapters": [
+        "prologue"
+      ]
+    },
+    {
+      "id": "course_b02",
+      "title": "B02｜初級｜航線與鬆桿漂移",
+      "scenario": "open_water",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 20,
+      "level": "初級",
+      "simulator_minutes": 60,
+      "goal": "完成檢查點，辨認慣性、洋流及纜線拉力",
+      "criteria": "完成場景並回投放區；能解釋鬆桿漂移及定深不等於定點",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "不額外注入；比較不同輸入幅度",
+      "source_chapters": [
+        "prologue"
+      ]
+    },
+    {
+      "id": "course_b03",
+      "title": "B03｜初級｜港灣巡檢與纜線協作",
+      "scenario": "harbor_inspection",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 30,
+      "level": "初級",
+      "simulator_minutes": 60,
+      "goal": "面向目標巡檢、記錄影像，與纜線手確認路線",
+      "criteria": "完成場景巡檢與回航；影像可定位、纜線轉向有覆誦",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "僅口頭報纜線偏緊，學員提出檢查與協調",
+      "source_chapters": [
+        "harbor"
+      ]
+    },
+    {
+      "id": "course_b04",
+      "title": "B04｜初級｜完整航次與回收",
+      "scenario": "open_water",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 40,
+      "level": "初級",
+      "simulator_minutes": 60,
+      "goal": "獨立完成簡報、下潛、轉場、回航、上鎖、交班",
+      "criteria": "完成場景；教官確認回收閘門、日誌與閉環通訊",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "不額外注入；初級綜合考核",
+      "source_chapters": [
+        "harbor_signoff"
+      ]
+    },
+    {
+      "id": "course_i01",
+      "title": "I01｜中級｜船殼檢查與資料品質",
+      "scenario": "hull_inspection",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 50,
+      "level": "中級",
+      "simulator_minutes": 60,
+      "goal": "規劃避開船體與纜線危險的航線，保持視角與工作距離",
+      "criteria": "完成場景；影像有位置紀錄、未以接觸船殼煞車",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "先不注入，再重飛時降低能見度",
+      "source_chapters": [
+        "hull"
+      ]
+    },
+    {
+      "id": "course_i02",
+      "title": "I02｜中級｜抗流懸停與模式降級",
+      "scenario": "monopile_current",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 60,
+      "level": "中級",
+      "simulator_minutes": 60,
+      "goal": "判斷推力裕度，交叉檢查定深、定向與站位",
+      "criteria": "完成站位目標或正確中止並記錄未完成；能說明降級選擇",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "另次練習注入單推進器衰減；再另次注入 DVL 失鎖",
+      "source_chapters": [
+        "offshore"
+      ]
+    },
+    {
+      "id": "course_i03",
+      "title": "I03｜中級｜低能見度撤離",
+      "scenario": "incident_silt",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 70,
+      "level": "中級",
+      "simulator_minutes": 60,
+      "goal": "降低擾底，調燈，交叉核對深度與纜路後撤離",
+      "criteria": "依序通過撤離點及回投放點；無可信路線時停止盲航並通報",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "沿用低能見度情境，不重複疊加故障",
+      "source_chapters": [
+        "incident_silt"
+      ]
+    },
+    {
+      "id": "course_i04",
+      "title": "I04｜中級｜羅盤失準處置",
+      "scenario": "incident_compass",
+      "mode": "scenario_training",
+      "category": "course",
+      "order": 80,
+      "level": "中級",
+      "simulator_minutes": 60,
+      "goal": "辨認不可信航向，退出定向並後退離開鋼構",
+      "criteria": "依序完成撤離回收；教官確認未追逐錯誤航向",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "情境鋼塊只造成小幅磁偏差；需要明顯失準時另次注入羅盤故障",
+      "source_chapters": [
+        "incident_compass"
+      ]
+    }
+  ],
+  "incidents": [
+    {
+      "id": "incident_compass",
+      "title": "事故訓練｜鋼結構旁羅盤失準",
+      "scenario": "incident_compass",
+      "mode": "scenario_training",
+      "category": "incident",
+      "order": 40,
+      "level": "事故",
+      "simulator_minutes": 45,
+      "goal": "辨認不可信航向，退出定向並後退離開鋼構",
+      "criteria": "依序完成撤離回收；未追逐錯誤航向；門檻暫定，待資深操作員基準航次校準。",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "",
+      "source_chapters": [
+        "incident_compass"
+      ]
+    },
+    {
+      "id": "incident_current",
+      "title": "事故訓練｜流速超過能力",
+      "scenario": "incident_current",
+      "mode": "scenario_training",
+      "category": "incident",
+      "order": 50,
+      "level": "事故",
+      "simulator_minutes": 45,
+      "goal": "判斷站位失守，放棄作業目標並協同回收",
+      "criteria": "依序完成撤離點與回收；中止理由通報完整；門檻暫定，待資深操作員基準航次校準。",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "",
+      "source_chapters": [
+        "incident_current"
+      ]
+    },
+    {
+      "id": "incident_jacket",
+      "title": "事故訓練｜導管架內受困",
+      "scenario": "incident_jacket",
+      "mode": "scenario_training",
+      "category": "incident",
+      "order": 10,
+      "level": "事故",
+      "simulator_minutes": 45,
+      "goal": "評估強流與纜線路徑，選擇開放出口並中止",
+      "criteria": "經開放出口回投放點；及早中止；不硬拉纜線；門檻暫定，待資深操作員基準航次校準。",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "",
+      "source_chapters": [
+        "incident_jacket"
+      ]
+    },
+    {
+      "id": "incident_silt",
+      "title": "事故訓練｜零能見度迷航",
+      "scenario": "incident_silt",
+      "mode": "scenario_training",
+      "category": "incident",
+      "order": 30,
+      "level": "事故",
+      "simulator_minutes": 45,
+      "goal": "低能見度下交叉核對深度與纜路後撤離",
+      "criteria": "依序通過撤離點及回投放點；停止盲航；門檻暫定，待資深操作員基準航次校準。",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "",
+      "source_chapters": [
+        "incident_silt"
+      ]
+    },
+    {
+      "id": "incident_wreck",
+      "title": "事故訓練｜沉船勾纏",
+      "scenario": "incident_wreck",
+      "mode": "scenario_training",
+      "category": "incident",
+      "order": 20,
+      "level": "事故",
+      "simulator_minutes": 45,
+      "goal": "評估卡點後反向解纏，必要時交接救援",
+      "criteria": "完成解纏與回收；沒有盲目硬拉；門檻暫定，待資深操作員基準航次校準。",
+      "pass_status": "暫定，待資深操作員基準航次校準",
+      "injection": "",
+      "source_chapters": [
+        "incident_wreck"
+      ]
+    }
+  ],
+  "version": 1
+}

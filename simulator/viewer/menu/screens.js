@@ -19,6 +19,7 @@ import {
   tile,
 } from './big_picture.js';
 
+import { isInternalEdition } from '../training/edition.js';
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('menu.screens', {
@@ -34,6 +35,7 @@ const STRINGS = localize('menu.screens', {
     story: ['劇情與教學', '加入 YX 工作隊：從水池練習開始，接下港灣與船殼巡檢。'],
     contracts: ['YX 委託看板', 'YX 派發的工單：碼頭、船殼、港內搜尋；交出成果領報酬、累積時數、考執照。'],
     shop: ['YX 裝備部', '用報酬添購真實配件（雷射比例尺、聲納、探針…）與機身外觀；配件讓你接更多種工單。'],
+    teamTraining: ['訓練模式', '內部課程地圖、學員紀錄與事故演練；不進入 Steam 主線。'],
     training: ['訓練情境', '事故演練與依難度排列的場景訓練。'],
     multiplayer: ['多人', '建立或加入房間，最多三人共用同一片海域。'],
     collection: ['圖鑑與收藏', '照片、生物圖鑑與工程紀錄。'],
@@ -194,6 +196,9 @@ export function buildMain(ctx) {
     shop: function shop() {
       ctx.openShop();
     },
+    teamTraining: function teamTraining() {
+      ctx.openTraining('courses');
+    },
     training: function training() {
       ctx.openTraining('drills');
     },
@@ -207,8 +212,10 @@ export function buildMain(ctx) {
       ctx.go('settings');
     },
   };
-  const ids = { collection: 'menuCollection' };
+  const ids = { collection: 'menuCollection', teamTraining: 'entry-team-training' };
+  const internal = isInternalEdition();
   Object.entries(STRINGS.entries).forEach(function addEntry([key, [label, help]], index) {
+    if (key === 'teamTraining' && !internal) return;
     const button = element('button', 'menu-entry');
     button.type = 'button';
     button.id = ids[key] || `entry-${key}`;

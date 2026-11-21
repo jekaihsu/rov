@@ -34,6 +34,7 @@ DEFAULT_CHECKS = (
     'browser_expedition_smoke',
     'browser_paint_smoke',
     'browser_campaign_smoke',
+    'browser_training_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
     # Fresh profile: launch cinematic and its pad skip, then the new-player hints over two dives.
@@ -49,7 +50,11 @@ DEFAULT_CHECKS = (
 )
 
 # Per-script time limits above run_browser_checks' --timeout default, for checks that walk several full dives.
-SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 3600, 'browser_cold_open_smoke': 5400}
+SCRIPT_TIMEOUTS = {
+    'browser_playstation_smoke': 3600,
+    'browser_cold_open_smoke': 5400,
+    'browser_training_smoke': 3600,
+}
 
 TIERS = {
     'quick': {
@@ -64,6 +69,7 @@ BROWSER_PATHS = {
     # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
     'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
                                 'browser_campaign_smoke'),
+    'simulator/viewer/training/': ('browser_training_smoke', 'browser_menu_smoke', 'browser_campaign_smoke'),
     'simulator/viewer/feedback/': ('browser_feedback_smoke', 'browser_menu_smoke', 'browser_hud_smoke',
                                    'browser_menu_gamepad_smoke'),
 }
