@@ -25,6 +25,7 @@ STRINGS = {
     'heading': 'heading (deg)',
     'interval': 'Local 95% Student-t; motion intervals conditional on thrust calibration, mass, tau and bias.',
     'physical': 'Nonphysical fit or active parameter bound; review experiment and model.',
+    'rest': 'Position track must start at rest with command 0.',
 }
 
 
@@ -82,15 +83,20 @@ def thrust(u, curves):
     return a*u + b*u*abs(u)
 
 
-def trajectory(time, command, initial, parameters, curves, motor_tau, bias):
+def rollout(time, command, initial, parameters, curves, motor_tau, bias, initial_position=None):
     """Euler integration at <= 0.01 s, matching physics.py motor lag and drag ordering.
 
-    command[i] is held until time[i+1]; every run starts with settled zero thrust.
+    command[i] is held until time[i+1]. Thrust starts at zero. When initial_position is
+    set, position advances with the updated velocity, the same order as physics.py.
     """
     mass, linear, quadratic = parameters
     velocity = initial
     force = 0.0
     output = [velocity]
+    tracking = initial_position is not None
+    if tracking:
+        position = initial_position
+        positions = [position]
     for start, end, u in zip(time[:-1], time[1:], command[:-1]):
         count = max(1, int(np.ceil((end-start) / .010000001)))
         dt = (end-start) / count
@@ -98,8 +104,22 @@ def trajectory(time, command, initial, parameters, curves, motor_tau, bias):
         for _ in range(count):
             force += (target-force)*min(1.0, dt/motor_tau)
             velocity += dt*(force + bias - linear*velocity - quadratic*velocity*abs(velocity))/mass
+            if tracking:
+                position += velocity * dt
         output.append(velocity)
-    return np.array(output)
+        if tracking:
+            positions.append(position)
+    if not tracking:
+        return np.array(output)
+    return np.array(output), np.array(positions)
+
+
+def trajectory(time, command, initial, parameters, curves, motor_tau, bias):
+    """Euler integration at <= 0.01 s, matching physics.py motor lag and drag ordering.
+
+    command[i] is held until time[i+1]; every run starts with settled zero thrust.
+    """
+    return rollout(time, command, initial, parameters, curves, motor_tau, bias)
 
 
 def fit_axis(rows, calibration, dry_mass, motor_tau, bias=0.0):
@@ -126,6 +146,42 @@ def fit_axis(rows, calibration, dry_mass, motor_tau, bias=0.0):
         'ci95': {'added_mass': [x-dry_mass for x in ci[0]], 'linear_drag': ci[1], 'quadratic_drag': ci[2]},
         'velocity_rmse_m_s': float(np.sqrt(np.mean(fit.fun**2))),
     }, velocity + fit.fun, fit.fun
+
+
+def fit_track(rows, calibration, dry_mass, motor_tau, bias=0.0):
+    """Least squares on marked positions. Same ODE, bounds and thrust curve as fit_axis.
+
+    The first sample is the initial position and is not a residual. Speed starts at rest.
+    """
+    time, position, command = numeric(rows, ('time_s', 'position_m', 'command'))
+    time_check(time)
+    if dry_mass <= 0 or motor_tau <= 0 or not np.isfinite([dry_mass, motor_tau, bias]).all():
+        raise ValueError(STRINGS['physical'])
+    if np.any(abs(command) > 1) or not np.any(command == 0) or not np.any(command != 0):
+        raise ValueError(STRINGS['rank'])
+    if command[0] != 0:
+        raise ValueError(STRINGS['rest'])
+    curves = fit_thrust(calibration)
+
+    def residual(parameters):
+        _, predicted = rollout(
+            time, command, 0.0, parameters, curves, motor_tau, bias, position[0])
+        return predicted[1:] - position[1:]
+
+    fit = least_squares(residual, [dry_mass*1.5, 10, 100],
+                        bounds=([dry_mass, 0, 0], [np.inf]*3), x_scale='jac')
+    if not fit.success or np.any(fit.active_mask):
+        raise ValueError(STRINGS['physical'])
+    ci = interval(fit.jac, fit.fun, fit.x)
+    mass, linear, quadratic = fit.x
+    _, predicted = rollout(
+        time, command, 0.0, [mass, linear, quadratic], curves, motor_tau, bias, position[0])
+    return {
+        'added_mass': float(mass-dry_mass), 'linear_drag': float(linear),
+        'quadratic_drag': float(quadratic), 'thrust_curve': curves,
+        'ci95': {'added_mass': [x-dry_mass for x in ci[0]], 'linear_drag': ci[1], 'quadratic_drag': ci[2]},
+        'position_rmse_m': float(np.sqrt(np.mean((predicted-position)**2))),
+    }, predicted, predicted - position
 
 
 def tether(rows):
