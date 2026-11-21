@@ -88,23 +88,49 @@ class Scene:
 
     @staticmethod
     def _capsule(a, b, r):
-        ab = b - a
-        inv = 1.0 / max(float(ab @ ab), 1e-12)
+        ax, ay, az = a
+        sx, sy, sz = b - a
+        length_sq = sx * sx + sy * sy + sz * sz
+        # Vertical moorings and floats only need a one-dimensional segment clamp.
+        if sx == 0 and sy == 0 and length_sq >= 1e-12:
+            low, high = sorted((az, b[2]))
+
+            def vertical(P):
+                x = P[:, 0] - ax
+                y = P[:, 1] - ay
+                z = np.maximum(np.maximum(low - P[:, 2], P[:, 2] - high), 0.0)
+                return np.sqrt(x * x + y * y + z * z) - r
+
+            return vertical
+
+        inv = 1.0 / max(length_sq, 1e-12)
 
         def f(P):
-            t = np.clip(((P - a) @ ab) * inv, 0.0, 1.0)
-            d = P - (a + t[:, None] * ab)
-            return np.sqrt(np.einsum("ij,ij->i", d, d)) - r
+            # Work on coordinate columns to avoid allocating multiple (ray count, 3) arrays per step.
+            x = P[:, 0] - ax
+            y = P[:, 1] - ay
+            z = P[:, 2] - az
+            t = np.clip((x * sx + y * sy + z * sz) * inv, 0.0, 1.0)
+            x -= t * sx
+            y -= t * sy
+            z -= t * sz
+            return np.sqrt(x * x + y * y + z * z) - r
         return f
 
     @staticmethod
     def _box(c, h, yaw_deg):
-        R = yaw_matrix(yaw_deg)
+        angle = math.radians(yaw_deg)
+        cosine, sine = math.cos(angle), math.sin(angle)
 
         def f(P):
-            q = np.abs((P - c) @ R) - h
-            out = np.maximum(q, 0.0)
-            return np.sqrt(np.einsum("ij,ij->i", out, out)) + np.minimum(q.max(axis=1), 0.0)
+            x = P[:, 0] - c[0]
+            y = P[:, 1] - c[1]
+            dx = np.abs(x * cosine + y * sine) - h[0]
+            dy = np.abs(y * cosine - x * sine) - h[1]
+            dz = np.abs(P[:, 2] - c[2]) - h[2]
+            inside = np.minimum(np.maximum(np.maximum(dx, dy), dz), 0.0)
+            ox, oy, oz = np.maximum(dx, 0.0), np.maximum(dy, 0.0), np.maximum(dz, 0.0)
+            return np.sqrt(ox * ox + oy * oy + oz * oz) + inside
         return f
 
     @staticmethod
