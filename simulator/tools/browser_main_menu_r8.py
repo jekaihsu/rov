@@ -62,12 +62,20 @@ def walk(browser, edition):
         wait_screen(page, 'main', timeout=90000)
         page.evaluate('''() => {
           const save = window.__menu.career;
-          save.contracts.c2_net_inspection = {completed: 1, medal: 'gold', best: 95};
+          // Finish prologue + chapter 1 and the first farm job so continue is another aquaculture pen dive.
+          save.licence = 'grade2';
+          save.owned = Array.from(new Set([...(save.owned || []), 'gripper', 'imaging_sonar', 'laser_scaler']));
+          for (const id of ['p0_induction', 'p1_pool_checkout', 'p2_open_water',
+                            'c1_pier_level1', 'c1_pier_level2', 'c1_hull_fouling', 'c1_dropped_object',
+                            'c2_net_inspection']) {
+            save.contracts[id] = {completed: 1, medal: id === 'c2_net_inspection' ? 'gold' : 'silver', best: 90};
+          }
           localStorage.setItem('rov.career.v1', JSON.stringify(save));
         }''')
         page.reload()
         wait_screen(page, 'main', timeout=90000)
         assert page.evaluate('window.__menu.scene') == 'aquaculture_pen'
+        assert '死魚' in page.locator('.field-title').inner_text()
         frames = page.evaluate('window.__menu.renderer.info.render.frame')
         page.wait_for_timeout(500)
         assert page.evaluate('window.__menu.renderer.info.render.frame') == frames
