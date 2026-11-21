@@ -1,8 +1,8 @@
 // The 顯示 settings tab shared by the launch menu and the pause menu: language, display mode and resolution
 // (desktop shell only; a browser offers its own full screen), brightness, interface and text scale, frame-rate
-// cap, colour-blind warning colours, units, external camera field of view and motion comfort. Display values
-// live in prefs/display.js, camera values in the fidelity store (prefs/camera_items.js); every control writes
-// through immediately and nothing here touches the simulation.
+// cap, colour-blind warning colours, units, external camera field of view, motion comfort and pad vibration
+// strength. Display values live in prefs/display.js, camera values in the fidelity store (prefs/camera_items.js);
+// every control writes through immediately and nothing here touches the simulation.
 import { getFidelity } from '../fidelity.js';
 import { EXTERNAL_FOV_ITEM, MOTION_COMFORT_ITEM } from '../prefs/camera_items.js';
 import { COLOR_BLIND_MODES, FPS_CAPS, LANGUAGES, LIMITS, getDisplayPrefs } from '../prefs/display.js';
@@ -13,6 +13,7 @@ import { getLanguage, localize } from '../i18n/index.js';
 const STRINGS = localize('menu.display_settings', {
   language: '語言',
   languageHelp: '語言切換後，尚未更新的畫面會在返回主選單後生效。',
+  monitor: '顯示器',
   window: '顯示模式',
   modes: { windowed: '視窗', borderless: '無邊框視窗', fullscreen: '全螢幕' },
   resolution: '解析度',
@@ -37,7 +38,12 @@ const STRINGS = localize('menu.display_settings', {
   unitsHelp: '套用於遊戲 HUD 與選單；機載 OSD 照真機維持公制。',
   fov: '外部視角視野（FOV）',
   fovHelp: '追蹤、環繞、俯視視角；機載鏡頭維持真實鏡頭。',
-  comfort: ['動態舒適', '關閉追蹤視角隨速度拉遠與視野放大，並減少介面動畫。'],
+  comfort: [
+    '動態舒適',
+    '關閉追蹤視角的速度拉遠與視野放大、關閉外部鏡頭跟隨晃動，並降低手把震動與介面動畫。',
+  ],
+  haptic: '震動強度',
+  hapticHelp: '手把震動回饋強度。動態舒適開啟時會再額外降低。',
 });
 // Resolutions offered in windowed mode, filtered to what fits the chosen display.
 const RESOLUTIONS = [[1280, 720], [1280, 800], [1600, 900], [1920, 1080], [2560, 1440], [3840, 2160]];
@@ -77,31 +83,86 @@ function percent(value) {
   return `${Math.round(value * 100)}%`;
 }
 
-async function mountDesktopDisplay(pane, desktop, status) {
-  let displays = [];
-  try {
-    displays = await desktop.display();
-  } catch {
-    displays = [];
-  }
-  const primary = displays[0];
-  if (!primary) return;
-  const mode = select(Object.entries(STRINGS.modes), 'windowed', function noop() {});
-  field(pane, { id: 'displayMode', label: STRINGS.window, control: mode });
-  const sizes = RESOLUTIONS.filter(function fits([width, height]) {
-    return width <= primary.bounds.width && height <= primary.bounds.height;
+function resolutionOptions(display) {
+  const width = display?.bounds?.width || display?.workArea?.width || 3840;
+  const height = display?.bounds?.height || display?.workArea?.height || 2160;
+  const sizes = RESOLUTIONS.filter(function fits([w, h]) {
+    return w <= width && h <= height;
   });
-  const resolution = select(sizes.map(function option([width, height]) {
-    return [`${width}x${height}`, `${width} × ${height}`];
-  }), `${sizes.at(-1)?.[0]}x${sizes.at(-1)?.[1]}`, function noop() {});
+  if (!sizes.length) sizes.push([Math.min(1280, width), Math.min(720, height)]);
+  return sizes;
+}
+
+function pickResolution(sizes, current) {
+  const key = `${current?.width}x${current?.height}`;
+  if (sizes.some(function match([w, h]) {
+    return `${w}x${h}` === key;
+  })) return key;
+  const last = sizes.at(-1);
+  return `${last[0]}x${last[1]}`;
+}
+
+function monitorLabel(display, index) {
+  const w = display.bounds?.width || display.workArea?.width || '?';
+  const h = display.bounds?.height || display.workArea?.height || '?';
+  return `${STRINGS.monitor} ${index + 1} · ${w} × ${h}`;
+}
+
+async function mountDesktopDisplay(pane, desktop, status) {
+  let info = { displays: [], current: null };
+  try {
+    const raw = await desktop.display();
+    // Older shells returned a bare array; keep that shape working.
+    if (Array.isArray(raw)) info = { displays: raw, current: null };
+    else info = { displays: raw?.displays || [], current: raw?.current || null };
+  } catch {
+    info = { displays: [], current: null };
+  }
+  if (!info.displays.length) return;
+  const current = info.current || {
+    mode: 'windowed',
+    display: info.displays[0].id,
+    width: info.displays.at(-1)?.bounds?.width || 1920,
+    height: info.displays.at(-1)?.bounds?.height || 1080,
+  };
+  const monitor = select(info.displays.map(function option(display, index) {
+    return [display.id, monitorLabel(display, index)];
+  }), current.display, function onMonitor() {
+    fillResolutions();
+  });
+  field(pane, { id: 'displayMonitor', label: STRINGS.monitor, control: monitor });
+  const mode = select(Object.entries(STRINGS.modes), current.mode, function noop() {});
+  field(pane, { id: 'displayMode', label: STRINGS.window, control: mode });
+  const resolution = select([], '', function noop() {});
   field(pane, { id: 'displayResolution', label: STRINGS.resolution, control: resolution });
+  function fillResolutions() {
+    const selected = info.displays.find(function byId(entry) {
+      return String(entry.id) === String(monitor.value);
+    }) || info.displays[0];
+    const sizes = resolutionOptions(selected);
+    const keep = resolution.value || pickResolution(sizes, current);
+    resolution.replaceChildren();
+    for (const [width, height] of sizes) {
+      resolution.append(new Option(`${width} × ${height}`, `${width}x${height}`));
+    }
+    resolution.value = sizes.some(function match([w, h]) {
+      return `${w}x${h}` === keep;
+    }) ? keep : pickResolution(sizes, current);
+  }
+  fillResolutions();
   const apply = element('button', 'menu-next', STRINGS.apply);
   apply.type = 'button';
   apply.id = 'displayApply';
   apply.addEventListener('click', async function applyDisplay() {
     const [width, height] = resolution.value.split('x').map(Number);
     try {
-      await desktop.display({ mode: mode.value, display: primary.id, width, height });
+      const saved = await desktop.display({
+        mode: mode.value,
+        display: Number(monitor.value),
+        width,
+        height,
+      });
+      info.current = saved;
       status.textContent = STRINGS.applied;
     } catch (error) {
       status.textContent = STRINGS.failed.replace('{reason}', error?.message || '');
@@ -190,11 +251,39 @@ export function mountDisplaySettings(pane) {
       fidelity.set(MOTION_COMFORT_ITEM, value);
     },
   }]);
+  const haptic = range({
+    min: LIMITS.hapticStrength[0],
+    max: LIMITS.hapticStrength[1],
+    step: 0.05,
+    value: prefs.get('hapticStrength'),
+    format: percent,
+    onInput(value) {
+      prefs.set('hapticStrength', value);
+      // Keep the advanced controller dialog's strength field in the same place it already persists.
+      try {
+        const stored = JSON.parse(localStorage.getItem('rov.input.v1') || '{}');
+        stored.strength = value;
+        localStorage.setItem('rov.input.v1', JSON.stringify(stored));
+        window.rovDesktop?.rememberInput?.(stored);
+      } catch {
+        // Private windows may refuse storage; the display preference still applies this session.
+      }
+    },
+  });
+  field(pane, {
+    id: 'displayHaptic',
+    label: STRINGS.haptic,
+    help: STRINGS.hapticHelp,
+    control: haptic.wrap,
+  });
   // Changes made elsewhere (the fidelity panel lists the camera items too) show here as well.
   fidelity.subscribe(function syncCamera() {
     fov.show(fidelity.get(EXTERNAL_FOV_ITEM) ?? 55);
     const comfort = document.getElementById('displayComfort');
     if (comfort) comfort.checked = !!fidelity.get(MOTION_COMFORT_ITEM);
+  });
+  prefs.subscribe(function syncPrefs(values, id) {
+    if (id === 'hapticStrength') haptic.show(values.hapticStrength);
   });
   return pane;
 }
