@@ -72,6 +72,7 @@ import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
 import { installResults, resultsOpen } from './play/results.js';
 import { installAchievements } from './play/achievements.js';
+import { installSteamPresence } from './play/steam_presence.js';
 import { installConnectionNotice } from './play/connection_notice.js';
 import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
 import { installObjectiveCard } from './play/objective_card.js';
@@ -489,6 +490,10 @@ const results = installResults({send, getState: () => S, getWorld: () => W, getS
   readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open),
   career: careerDive});
 const achievements = installAchievements({readOnly: !!REPLAY});
+const steamPresence = installSteamPresence({
+  getState: () => S,
+  getCareerContract: () => careerDive?.contract || null,
+});
 $('offUrl').textContent = WS_URL;
 const connectionNotice = installConnectionNotice({element: $('offline')});
 
@@ -588,6 +593,7 @@ function onState(m) {
   onboarding.update(m);
   results.update(m);
   achievements.update(m);
+  steamPresence.update();
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
   if(m.model_id&&m.model_id!==activeModelId){const def=W?.vehicle_catalogue?.find(d=>d.id===m.model_id);if(def)loadModel(def);}
   if (needResync && !m.remote_control && m.rc) {

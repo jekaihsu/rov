@@ -276,8 +276,18 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
       }).length,
       rewards: chapterOutcome?.rewards || [],
       next: null,
-      chapter: contract.runtime === 'chapter' ? contract.campaignChapter : null,
+      chapter: contract.chapter || (contract.runtime === 'chapter' ? contract.campaignChapter : null),
       career: summary,
+      // Steam achievement inputs (S4): visibility, exam flags, tether discipline, medal map.
+      visibility_m: visibility(lastState),
+      measured: snapshot.items.some(function item(entry) {
+        return entry.kind === 'measure' && entry.done;
+      }),
+      examPassed: !!summary.exam?.passed,
+      examValid: !!dive.examValid,
+      tetherDiscipline: lastState?.tether_ops?.discipline_score,
+      tetherBroken: !!snapshot.tetherBroken,
+      contracts: save.contracts,
     };
   }
   function submit() {

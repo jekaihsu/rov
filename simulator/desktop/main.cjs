@@ -64,6 +64,8 @@ app.whenReady().then(async()=>{
     if (!trusted(event)) throw Error('Untrusted sender');
     if (method === 'status') return steam.status();
     if (method === 'event') return steam.report(payload?.event, payload?.value);
+    if (method === 'presence') return steam.setPresence(payload || {});
+    if (method === 'mock') return steam.readMock();
     throw Error('Unknown Steam method');
   });
   const windowFile = path.join(data, 'window.json');

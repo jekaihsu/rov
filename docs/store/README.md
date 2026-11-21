@@ -7,7 +7,8 @@
 - [三語商店文案](copy.md)：五個名稱候選、商標檢索建議、賣點、短／完整描述、功能條列。
 - [定位、定價與系統需求](positioning-and-requirements.md)：競品、標籤、效能推估與實測門檻。
 - [截圖與預告片](capture-plan.md)：八張截圖、80 秒分鏡、拍攝依賴。
-- [成就本地化](achievements.md)：15 組 event／api 對照，繁中、簡中與英文名稱及描述。
+- [成就本地化（舊草案）](achievements.md)：早期 15 組文案；**現行規格以 [steam/achievements.md](steam/achievements.md) 為準**（S4，22 項技能成就）。
+- [Steam Auto-Cloud](steam/cloud.md)：同步路徑、檔名樣式、配額與 S3 TODO。
 - [美術外包需求](art-brief.md)：當前 Steam 尺寸、構圖、交付檔與禁止元素。
 
 ## 編輯與發布條件
