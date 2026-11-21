@@ -1,6 +1,6 @@
 """Check camera actions through the live T02 layer, including context and thrust ownership."""
 from playwright.sync_api import sync_playwright
-from _browser import launch, http_base, ws_base
+from _browser import launch, http_base, timeout, ws_base
 
 with sync_playwright() as playwright:
     browser = launch(playwright, headless=True, args=['--enable-unsafe-swiftshader'])
@@ -10,7 +10,7 @@ with sync_playwright() as playwright:
     page.add_init_script("""window.fakePads=[];
       Object.defineProperty(navigator,'getGamepads',{value:()=>window.fakePads});""")
     page.goto(f'{http_base(8092)}/?play=1&nointro&ws={ws_base(8792)}&room=camera-actions&thirdPerson=1')
-    page.wait_for_function('window.__viewer?.S?.vehicle_id')
+    page.wait_for_function('window.__viewer?.S?.vehicle_id', timeout=timeout(30000))
     # Isolate action routing from software GPU stalls; this is not a latency benchmark.
     page.evaluate('window.__skipRender=true')
     page.wait_for_timeout(1000)
@@ -44,12 +44,18 @@ with sync_playwright() as playwright:
     profile = page.evaluate('window.__viewer.rc.profile')
     page.evaluate("document.body.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyG',bubbles:true}))")
     assert page.evaluate('window.__viewer.rc.profile') == profile
+    # The report action already owns b17. A conflict must leave both assignments intact.
+    gimbal = page.locator('[data-binding="cameraGimbal"]')
+    before = gimbal.input_value()
+    gimbal.evaluate("""node => { node.value = 'b17'; node.dispatchEvent(new Event('change')); }""")
+    assert gimbal.input_value() == before
+    assert page.locator('[data-binding="reportBug"]').input_value() == 'b17'
     page.evaluate("""() => {
       const binding=document.querySelector('[data-binding="cameraGimbal"]');
-      binding.value='b17';
+      binding.value='b18';
       binding.dispatchEvent(new Event('change'));
     }""")
-    assert page.evaluate("JSON.parse(localStorage.getItem('rov.input.v1')).bindings.cameraGimbal") == 'b17'
+    assert page.evaluate("JSON.parse(localStorage.getItem('rov.input.v1')).bindings.cameraGimbal") == 'b18'
     page.evaluate("""() => {
       const binding=document.querySelector('[data-binding="cameraGimbal"]');
       binding.value='';

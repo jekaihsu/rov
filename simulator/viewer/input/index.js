@@ -122,23 +122,22 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     (el.tagName === "SELECT" ||
       el.tagName === "TEXTAREA" ||
       (el.tagName === "INPUT" && !["range", "checkbox"].includes(el.type)));
+  function resolveKey(code) {
+    if (blocked() || document.getElementById("inputSettings")?.open) return null;
+    return keyRow(code, activeContexts(), rows);
+  }
   addEventListener("keydown", (e) => {
-    if (blocked() || document.getElementById("inputSettings")?.open) return;
     if (isText(e.target)) return;
     const modifierKey = /^(Control|Meta|Alt)(Left|Right)$/.test(e.code);
     if (!modifierKey && (e.ctrlKey || e.metaKey || e.altKey)) return;
-    document.dispatchEvent(new CustomEvent("rov-input-device", { detail: "" }));
-
     // The table decides which action owns this key in the contexts that are active right now.
-    const row = keyRow(e.code, activeContexts(), rows);
+    const row = resolveKey(e.code);
     if (!row) return;
+    document.dispatchEvent(new CustomEvent("rov-input-device", { detail: "" }));
+    if (row.owner === "hud") return;
     e.preventDefault();
     if (e.repeat) return;
     keys.set(e.code, row.action);
-    if (row.owner === "hud") {
-      document.dispatchEvent(new CustomEvent("rov-hud-key", {detail: {action: row.action, pressed: true}}));
-      return;
-    }
     if (row.owner === "settings") {
       document.getElementById("inputSettingsButton").click();
       return;
@@ -152,9 +151,6 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   addEventListener("keyup", (e) => {
     const action = keys.get(e.code);
     keys.delete(e.code);
-    if (bindingRow(action)?.owner === "hud") {
-      document.dispatchEvent(new CustomEvent("rov-hud-key", {detail: {action, pressed: false}}));
-    }
     const row = bindingRow(action);
     hold[action]?.delete("kb");
     if (row && !row.owner && !row.modifier && !isText(e.target)) e.preventDefault();
@@ -435,6 +431,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       pulse: haptics.pulse,
       bindings: settings.bindings,
       keyRows: rows,
+      resolveKey,
       operationMode,
     };
   }

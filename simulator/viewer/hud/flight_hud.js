@@ -10,8 +10,8 @@ import { installOsd, updateOsd } from './osd.js';
 import { resolveHudStyle } from './hud_style.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
-import { BINDINGS, actionKey, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
-import { keyboardLayout } from '../input/keyboard_layout.js';
+import { BINDINGS, actionKey, keyRow, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
+import { currentKeyRows, keyboardLayout } from '../input/keyboard_layout.js';
 import { assistPill, dvlReason } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
 import { pilotReadings } from './sensor_view.js';
@@ -48,8 +48,6 @@ let engineeringHeld = false;
 let north = true;
 let density = 1;
 const values = {};
-// Presentation keys are declared in the binding table; the HUD only listens for them.
-
 let hudStyle = '';
 // Minimap redraw rate (the peek card map and the corner map): vehicle and peers move slowly on its scale.
 const MAP_HZ = 15;
@@ -129,7 +127,12 @@ function toolIcon(button, icon, label) {
   button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24">'
     + `<use href="/hud/icons.svg#${icon}"></use></svg>`;
 }
-function initialize() {
+const flightContext = new Set(['flight']);
+function standaloneKey(code) {
+  return keyRow(code, flightContext, currentKeyRows());
+}
+
+function initialize(resolveKey = standaloneKey) {
   ready = true;
   const panel = document.createElement('section');
   panel.id = 'engineering';
@@ -179,16 +182,28 @@ function initialize() {
     getFidelity().set('hudDensity', (density + 1) % 3);
   };
   $('flightHide').onclick = function hideHUD() { document.body.classList.toggle('hud-hidden'); };
-  document.addEventListener('rov-hud-key', function hudKey(event) {
-    const {action, pressed} = event.detail;
-    if (action === 'engineering' && pressed) drawer();
-    const index = ['up', 'left', 'right', 'down'].indexOf(action);
+  const cardActions = ['up', 'left', 'right', 'down'];
+  const heldCards = new Map();
+  document.addEventListener('keydown', function hudKeyDown(event) {
+    if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.target.closest?.('input,select,textarea,[contenteditable=true]')) return;
+    const row = resolveKey(event.code);
+    if (row?.owner !== 'hud') return;
+    event.preventDefault();
+    if (row.action === 'engineering') drawer();
+    const index = cardActions.indexOf(row.action);
     if (index >= 0) {
-      if (pressed) down(index);
-      else up(index);
+      heldCards.set(event.code, index);
+      down(index);
     }
   });
+  document.addEventListener('keyup', function hudKeyUp(event) {
+    if (!heldCards.has(event.code)) return;
+    up(heldCards.get(event.code));
+    heldCards.delete(event.code);
+  });
   window.addEventListener('blur', function blur() {
+    heldCards.clear();
     held = false;
     active = -1;
   });
@@ -299,7 +314,7 @@ function updateReadout(r, s) {
   updateSystemStatus(s);
 }
 export function updateFlightHUD(s, w, dt, input = {}) {
-  if (!ready) initialize();
+  if (!ready) initialize(input.resolveKey);
   if (!s?.pos) return;
   applyStyle();
   toolIcon($('camBtn'), 'camera', $('camBtn').dataset.label || STRINGS.view);
