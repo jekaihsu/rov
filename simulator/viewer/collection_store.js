@@ -75,13 +75,21 @@ function imageToBlob(image){
 export function downloadCollectionFile(filename,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
 function photoFallback(input,error){
   if(!(input.blob instanceof Blob))return;
+  // One toast at a time: stacked fallbacks keep PNG blobs and beforeunload guards forever.
+  for(const prior of document.querySelectorAll('.collection-save-fallback')){
+    prior.dispatchEvent(new Event('rov-fallback-dismiss'));
+    prior.remove();
+  }
   const toast=document.createElement('section');toast.className='collection-save-fallback';toast.setAttribute('role','alert');
   Object.assign(toast.style,{position:'fixed',bottom:'18px',right:'18px',maxWidth:'380px',padding:'18px',background:'#172932',border:'1px solid #edcb64',color:'#eff5ed',zIndex:'var(--z-toast)',font:'14px/1.6 system-ui',boxShadow:'0 8px 30px #0008'});
   const text=document.createElement('p');text.textContent=`照片尚未存入收藏：${error.message}。請先下載原圖備份。`;toast.append(text);
   const button=document.createElement('button');button.textContent='下載原圖與拍攝資料';toast.append(button);
   const guard=e=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',guard);
-  button.onclick=()=>{const name=input.id||uid();downloadCollectionFile(`${name}.${input.blob.type==='image/jpeg'?'jpg':'png'}`,input.blob);downloadCollectionFile(`${name}.json`,new Blob([JSON.stringify({metadata:input.metadata,observation:input.observation??null},null,2)],{type:'application/json'}));window.removeEventListener('beforeunload',guard);toast.remove();};
+  const dismiss=()=>{window.removeEventListener('beforeunload',guard);toast.remove();};
+  toast.addEventListener('rov-fallback-dismiss',dismiss);
+  button.onclick=()=>{const name=input.id||uid();downloadCollectionFile(`${name}.${input.blob.type==='image/jpeg'?'jpg':'png'}`,input.blob);downloadCollectionFile(`${name}.json`,new Blob([JSON.stringify({metadata:input.metadata,observation:input.observation??null},null,2)],{type:'application/json'}));dismiss();};
   document.body.append(toast);
+  setTimeout(dismiss,60000);
 }
 export async function savePhoto(input){
   try{return await serial(async()=>{const image=await photo(input);let saved;

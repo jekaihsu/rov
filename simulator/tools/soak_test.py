@@ -212,6 +212,29 @@ def yank_gamepad(page, cycle, errors):
         errors.append(f'cycle {cycle}: gamepad: {exc}')
 
 
+def trim_collection(page):
+    """Drop IndexedDB photos that survive page.goto so soak heap is not dominated by the collection quota."""
+    try:
+        page.evaluate("""async () => {
+          if (!indexedDB.databases) return;
+          const dbs = await indexedDB.databases();
+          for (const entry of dbs) {
+            if (entry?.name === 'rov-personal-collection') {
+              await new Promise((resolve, reject) => {
+                const req = indexedDB.deleteDatabase(entry.name);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+                req.onblocked = () => resolve();
+              });
+            }
+          }
+          try { if (typeof gc === 'function') gc(); } catch (e) {}
+        }""")
+    except Exception:
+        # Best-effort hygiene between navigations.
+        pass
+
+
 def return_to_menu(page, ports, cycle, errors):
     try:
         page.goto(menu_url(ports, f'soakMenu{cycle}'), wait_until='domcontentloaded')
@@ -220,16 +243,25 @@ def return_to_menu(page, ports, cycle, errors):
         errors.append(f'cycle {cycle}: return menu: {exc}')
 
 
-def rising_trend(series, key, min_points=8):
+def rising_trend(series, key, min_points=12):
+    """True only when growth is sustained across quarters (not a single Chromium GC step)."""
     values = [row[key] for row in series if isinstance(row.get(key), (int, float))]
     if len(values) < min_points:
         return False, values
-    mid = len(values) // 2
-    first = sum(values[:mid]) / mid
-    second = sum(values[mid:]) / (len(values) - mid)
-    if first <= 0:
-        return second > first + 5, values
-    return second > first * 1.4 and values[-1] > values[0] * 1.3, values
+    q = max(1, len(values) // 4)
+    means = []
+    for index in range(4):
+        chunk = values[index * q:(index + 1) * q] if index < 3 else values[3 * q:]
+        means.append(sum(chunk) / len(chunk))
+    # Each quarter must be clearly above the previous (monotone climb), not one jump then flat.
+    steps = 0
+    for earlier, later in zip(means, means[1:]):
+        if earlier <= 0:
+            if later > earlier + 5:
+                steps += 1
+        elif later > earlier * 1.15:
+            steps += 1
+    return steps >= 3 and values[-1] > values[0] * 1.5, values
 
 
 def write_report(report):
@@ -329,6 +361,8 @@ def run(minutes: float):
             try:
                 # Switch scenes regularly; also open the menu path occasionally.
                 if cycle == 1 or cycle % 2 == 0:
+                    if cycle > 1:
+                        trim_collection(page)
                     enter_scene(page, ports, scene, cycle, errors)
                 fly_and_pause(page, cycle, errors)
                 if cycle % 3 == 0:

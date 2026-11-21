@@ -443,7 +443,7 @@ let launchControl=params.get('control')||storedControlLayout();
 let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
-let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
+let ws = null, wsOpen = false, retry = 0, retryAt = 0, retryTimer = null, needResync = true, lastT = -1;
 const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, fidelity: getFidelity(),
   link: createLinkPresenter()});
 const videoLinkOverlay = installVideoLinkOverlay(vp);
@@ -512,6 +512,12 @@ const linkInbox = createLinkInbox({
 });
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
+  if (retryTimer != null) { clearTimeout(retryTimer); retryTimer = null; }
+  // Drop any previous link before opening another (reconnect storms after a server restart).
+  if (ws) {
+    try { ws.onclose = null; ws.close(); } catch { }
+    ws = null;
+  }
   setConn('wait', '連線中…');
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
@@ -534,9 +540,10 @@ function connect() {
   ws.onerror = () => { };
 }
 function scheduleRetry() {
+  if (retryTimer != null) clearTimeout(retryTimer);
   const d = Math.min(5000, 800 * 2 ** retry++);
   retryAt = performance.now() + d;
-  setTimeout(connect, d);
+  retryTimer = setTimeout(connect, d);
 }
 setInterval(() => {
   const r = retryAt - performance.now();
