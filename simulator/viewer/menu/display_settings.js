@@ -3,6 +3,9 @@
 // cap, colour-blind warning colours, units, external camera field of view, motion comfort and pad vibration
 // strength. Display values live in prefs/display.js, camera values in the fidelity store (prefs/camera_items.js);
 // every control writes through immediately and nothing here touches the simulation.
+import { mountPreferenceRows } from '../fidelity_panel.js';
+import '../prefs/accessibility.js';
+import { inputPreferences, saveInputPreferences } from '../input/preferences.js';
 import { getFidelity } from '../fidelity.js';
 import { EXTERNAL_FOV_ITEM, MOTION_COMFORT_ITEM } from '../prefs/camera_items.js';
 import { COLOR_BLIND_MODES, FPS_CAPS, LANGUAGES, LIMITS, getDisplayPrefs } from '../prefs/display.js';
@@ -251,6 +254,7 @@ export function mountDisplaySettings(pane) {
       fidelity.set(MOTION_COMFORT_ITEM, value);
     },
   }]);
+  mountPreferenceRows(pane, ['reduceFlashes', 'subtitleSize', 'subtitleOpacity', 'speakerColor', 'radioDuration']);
   const haptic = range({
     min: LIMITS.hapticStrength[0],
     max: LIMITS.hapticStrength[1],
@@ -259,15 +263,8 @@ export function mountDisplaySettings(pane) {
     format: percent,
     onInput(value) {
       prefs.set('hapticStrength', value);
-      // Keep the advanced controller dialog's strength field in the same place it already persists.
-      try {
-        const stored = JSON.parse(localStorage.getItem('rov.input.v1') || '{}');
-        stored.strength = value;
-        localStorage.setItem('rov.input.v1', JSON.stringify(stored));
-        window.rovDesktop?.rememberInput?.(stored);
-      } catch {
-        // Private windows may refuse storage; the display preference still applies this session.
-      }
+      inputPreferences.strength = value;
+      saveInputPreferences();
     },
   });
   field(pane, {

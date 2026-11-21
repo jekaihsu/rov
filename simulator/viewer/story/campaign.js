@@ -1,6 +1,6 @@
 // Radio subtitles, shared chapter selection and local campaign progress preferences.
-import {glyph, deviceFamily} from '../input/glyphs.js';
-import {BINDINGS, actionKey, axisChannel, pilotAxisKeys} from '../input/bindings.js';
+import {actionGlyph, deviceFamily} from '../input/glyphs.js';
+import {BINDINGS, axisChannel, pilotAxisKeys} from '../input/bindings.js';
 import {listCollection, saveResult} from '../collection_store.js';
 import {vehicleName} from '../fleet_names.js';
 import {installVoice} from '../audio/voice.js';
@@ -24,8 +24,8 @@ const KEY = 'rov.campaign.v1';
 const CHANNELS = STRINGS.channels;
 // The move_ steps of the prologue test these pilot axes, in the order of their condition paths.
 const MOVE_AXES = ['surge', 'sway', 'heave'];
-// Story steps that wait for one control: [face button index, action whose key is shown].
-const STEP_ACTIONS = {unlock: [3, 'lock'], depth: [2, 'depth'], photo: [0, 'photo']};
+// Story steps that wait for a bound input action.
+const STEP_ACTIONS = {unlock: 'lock', depth: 'depth', photo: 'photo'};
 
 export function installCampaign({send, readOnly = false, voice = null} = {}) {
   const radioVoice = voice || installVoice();
@@ -46,7 +46,7 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
   function keyRows() {
     return boundInput?.keyRows?.() || BINDINGS;
   }
-  next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
+  next.innerHTML = actionGlyph('dialogueAccept', keyRows(), family) + STRINGS.next;
   const cap = document.createElement('span');
   root.append(avatar, speaker, text, cap, hint, next);
   document.body.append(root);
@@ -118,10 +118,11 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
   let restoreSent = false;
   let savedSignature = '';
   function refreshGlyphs() {
-    next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
+    next.innerHTML = actionGlyph('dialogueAccept', keyRows(), family) + STRINGS.next;
     const step = STEP_ACTIONS[current?.node?.id];
-    cap.innerHTML = step ? glyph(step[0], family, actionKey(step[1], keyRows())) : '';
+    cap.innerHTML = step ? actionGlyph(step, keyRows(), family) : '';
   }
+  document.addEventListener('rov-key-rows', refreshGlyphs);
   document.addEventListener('rov-input-device', function storyDevice(event) {
     family = deviceFamily(event.detail === 'touch' ? '' : event.detail);
     refreshGlyphs();

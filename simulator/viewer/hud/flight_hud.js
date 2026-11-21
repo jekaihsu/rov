@@ -10,7 +10,7 @@ import { installOsd, updateOsd } from './osd.js';
 import { resolveHudStyle } from './hud_style.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
-import { BINDINGS, actionKey, bindingRow, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
+import { BINDINGS, actionKey, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
 import { keyboardLayout } from '../input/keyboard_layout.js';
 import { assistPill, dvlReason } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
@@ -49,8 +49,7 @@ let north = true;
 let density = 1;
 const values = {};
 // Presentation keys are declared in the binding table; the HUD only listens for them.
-const CARD_KEYS = ['up', 'left', 'right', 'down'].map(action => bindingRow(action).keys[0]);
-const DRAWER_KEYS = bindingRow('engineering').keys;
+
 let hudStyle = '';
 // Minimap redraw rate (the peek card map and the corner map): vehicle and peers move slowly on its scale.
 const MAP_HZ = 15;
@@ -180,18 +179,14 @@ function initialize() {
     getFidelity().set('hudDensity', (density + 1) % 3);
   };
   $('flightHide').onclick = function hideHUD() { document.body.classList.toggle('hud-hidden'); };
-  document.addEventListener('keydown', function keyDown(event) {
-    if (event.target.closest('input,select,textarea,[contenteditable=true]')) return;
-    if (DRAWER_KEYS.includes(event.code)) {
-      event.preventDefault();
-      if (!event.repeat) drawer();
+  document.addEventListener('rov-hud-key', function hudKey(event) {
+    const {action, pressed} = event.detail;
+    if (action === 'engineering' && pressed) drawer();
+    const index = ['up', 'left', 'right', 'down'].indexOf(action);
+    if (index >= 0) {
+      if (pressed) down(index);
+      else up(index);
     }
-    const index = CARD_KEYS.indexOf(event.code);
-    if (index >= 0 && !event.repeat) down(index);
-  });
-  document.addEventListener('keyup', function keyUp(event) {
-    const index = CARD_KEYS.indexOf(event.code);
-    if (index >= 0) up(index);
   });
   window.addEventListener('blur', function blur() {
     held = false;
