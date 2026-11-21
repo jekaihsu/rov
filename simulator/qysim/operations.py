@@ -128,7 +128,9 @@ class VehicleOperations:
                 return {"ok": True, "action": action, "mission": sim.world.mission_run.state(sim)}
             elif action in ("expedition_start", "expedition_cancel", "observation_photo", "expedition_mark"):
                 from .expedition import ensure_expedition
-                if sim.world.mission_run.mode != "expedition":
+                field_photo = action == "observation_photo" and any(
+                    item["id"] == msg.get("entity_id") for item in sim.world.discoveries)
+                if sim.world.mission_run.mode != "expedition" and not field_photo:
                     raise ValueError("請先進入海洋探索與工程模式")
                 return ensure_expedition(sim).command(sim, action, msg)
             elif action == "mission_photo":

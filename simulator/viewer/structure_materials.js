@@ -12,6 +12,7 @@
 // whose alpha is the rust propensity, so the paint breaks down to rust where the threshold (older steel, splash
 // zone) lets it; the fouling bands are applied on top.
 import * as THREE from 'three';
+import {drawBlockPrint, drawHullPlating, drawKeelFrames, drawRudderPlate, drawSeaChest} from './hull_finish.js';
 import {SCAN_MEAN, SCAN_TILE, scanTexture} from './scan_materials.js';
 
 const TEXTURE_SIZE = 256;
@@ -82,6 +83,30 @@ function drawConcretePanel(g, n) {
     g.fillStyle = grad;
     g.fillRect(x, 0, 3 + hash2(i, 4) * 6, n * (0.3 + hash2(i, 5) * 0.6));
   }
+  // Old form ties leave a recessed centre and a rust run. Shell calices spread along the cold joint.
+  for (const x of [n * .23, n * .72]) {
+    const y = n * .34;
+    const stain = g.createLinearGradient(x, y, x, y + 52);
+    stain.addColorStop(0, '#705037');
+    stain.addColorStop(1, 'rgba(112,80,55,0)');
+    g.fillStyle = stain;
+    g.fillRect(x - 2, y, 4, 52);
+    g.fillStyle = '#514d43';
+    g.beginPath();
+    g.arc(x, y, 3, 0, Math.PI * 2);
+    g.fill();
+  }
+  for (let i = 0; i < 700; i++) {
+    const x = hash2(i, 31) * n;
+    const y = 15 + 20 * Math.sin(x / n * Math.PI * 2) + hash2(i, 32) ** 2 * 42;
+    const r = .5 + 1.7 * hash2(i, 33);
+    g.fillStyle = '#c0b39a';
+    g.beginPath();
+    g.ellipse(x, y, r, r * .72, -.4, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#585449';
+    g.fillRect(x, y, r * .7, r * .6);
+  }
   g.fillStyle = '#3c3a35';
   g.fillRect(0, 0, n, 3);
   g.fillRect(0, 0, 3, n);
@@ -125,6 +150,133 @@ function drawRubber(g, n) {
   }
 }
 
+// Sacrificial aluminium-alloy castings develop chalky oxide, scalloped pits and a thin mould parting line.
+// The shallow impression identifies the alloy on both broad faces without insulating paint on the anode.
+function drawSurveyCasting(g, n) {
+  g.fillStyle = '#b0aca0';
+  g.fillRect(0, 0, n, n);
+  for (let i = 0; i < 230; i++) {
+    const x = n * hash2(i, 110);
+    const y = n * hash2(i, 111);
+    const r = 1.5 + 9 * hash2(i, 113) ** 2;
+    g.fillStyle = i % 3 ? '#929084' : '#77786e';
+    g.beginPath();
+    g.ellipse(x, y, r, .45 * r, 0, 0, 2 * Math.PI);
+    g.fill();
+    g.fillStyle = '#ceccbd';
+    g.fillRect(x - .6 * r, y + .28 * r, 1.2 * r, 1);
+  }
+  for (const x of [n * .25, n * .75]) {
+    g.save();
+    g.translate(x, n * .51);
+    g.rotate(-Math.PI / 2);
+    g.scale(.48, 1);
+    g.font = 'bold 23px sans-serif';
+    g.textAlign = 'center';
+    g.fillStyle = '#dbd7c9';
+    g.fillText('Al-Zn-In', 1.5, 1.5);
+    g.fillStyle = '#5d6059';
+    g.fillText('Al-Zn-In', 0, 0);
+    g.restore();
+  }
+  for (const x of [1, n / 2]) {
+    g.fillStyle = '#807e73';
+    g.fillRect(x, 0, 2, n);
+    g.fillStyle = '#c5c1b2';
+    g.fillRect(x + 2, 0, 1, n);
+  }
+}
+
+// Original cast-in identification tiles. Only the small working-face sector of each jetty pile uses the atlas.
+function pileIdAtlas(g, n) {
+  const w = n / 3;
+  const h = n / 2;
+  g.fillStyle = '#343833';
+  g.fillRect(0, 0, n, n);
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 3; col++) {
+      const x = col * w;
+      const y = row * h;
+      g.fillStyle = '#ada687';
+      g.fillRect(x + 3, y + 4, w - 6, 2);
+      g.fillRect(x + 3, y + h - 8, w - 6, 2);
+      g.font = 'bold 44px sans-serif';
+      g.textAlign = 'center';
+      g.fillText((row ? 'B' : 'A') + (col + 1), x + w / 2, y + h * .61);
+      for (let k = 0; k < 8; k++) g.fillRect(x + 4, y + 13 + k * 13, k % 2 ? 4 : 9, 2);
+    }
+  }
+  for (let i = 0; i < 2800; i++) {
+    g.fillStyle = i % 4 ? 'rgba(55,53,43,.48)' : 'rgba(170,157,119,.45)';
+    g.fillRect(hash2(i, 21) * n, hash2(i, 22) * n, 1 + 3 * hash2(i, 23), 1.5);
+  }
+}
+
+function drawMonopileGauge(g, n) {
+  g.fillStyle = '#494a40';
+  g.fillRect(0, 0, n, n);
+  g.fillStyle = '#c2b697';
+  g.fillRect(8, 0, 4, n);
+  for (let tenth = 108; tenth <= 132; tenth++) {
+    const y = (tenth - 108) * n / 24;
+    const metres = tenth % 10 === 0;
+    g.fillRect(10, y - 1, metres ? 72 : tenth % 5 === 0 ? 41 : 19, metres ? 4 : 2);
+    if (metres) {
+      g.font = 'bold 36px sans-serif';
+      g.fillText(String(tenth / 10) + ' m', 91, y + 9);
+    }
+  }
+  g.font = 'bold 29px sans-serif';
+  g.fillText('M1', 176, n * .37);
+  for (let i = 0; i < 2700; i++) {
+    g.fillStyle = i % 4 ? 'rgba(77,73,53,.45)' : 'rgba(170,158,126,.34)';
+    g.fillRect(hash2(i, 117) * n, hash2(i, 118) * n, 1 + 3 * hash2(i, 119), 1.5);
+  }
+}
+
+// Reflective tape on the deep recovery string catches the work lights during the ascent.
+function recoveryFloatSurface(g, size) {
+  g.fillStyle = '#a88b44';
+  g.fillRect(0, 0, size, size);
+  for (const band of [.32, .6]) {
+    g.fillStyle = '#dcd9bc';
+    g.fillRect(0, band * size, size, .095 * size);
+  }
+  g.fillStyle = '#776449';
+  g.fillRect(0, size * .49, size, 3);
+  for (let i = 0; i < 2300; i++) {
+    g.fillStyle = i % 3 ? 'rgba(85,73,47,.23)' : 'rgba(224,218,174,.27)';
+    g.fillRect(hash2(i, 49) * size, hash2(i, 31) * size, 1 + 2 * hash2(i, 65), 2);
+  }
+}
+
+// Pitting and crevice corrosion break up the coating along the welded salvage posts.
+function wornPostSurface(g, size) {
+  const seamColor = [55, 49, 37];
+  const rustColor = [95, 55, 27];
+  const coatingColor = [130, 124, 98];
+  const image = g.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size * Math.PI * 2;
+      const v = y / size * Math.PI * 2;
+      const grain = hash2(x, y);
+      const tide = Math.sin(u * 3 + Math.cos(v * 2)) + .65 * Math.cos(v * 3 + Math.sin(u * 4));
+      const scar = tide + .5 * Math.sin(9 * u + Math.cos(8 * v)) + .6 * grain;
+      const rust = scar > .58;
+      const seam = y < 3 + grain * 2;
+      const base = seam ? seamColor : rust ? rustColor : coatingColor;
+      const shade = .48 + .47 * grain + .13 * Math.cos(u * 13 + v);
+      const i = (y * size + x) * 4;
+      image.data[i] = base[0] * shade;
+      image.data[i + 1] = base[1] * shade;
+      image.data[i + 2] = base[2] * shade;
+      image.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(image, 0, 0);
+}
+
 /** Shared canvas textures; built once per page. */
 export function structureTextures() {
   if (shared) return shared;
@@ -143,6 +295,10 @@ export function structureTextures() {
 // scan: scanned texture set (medium and high); rustAt: coating propensity above which the paint has rusted through
 // (lower = older coat); repeat: texture repeats per UV unit (tubes have metre UVs, quay faces 5 x 3 m panels)
 const PRESETS = {
+  agedEnamel: {color: 0xe2deba, roughness: .70, metalness: .04, coat: 0xe2deba, cover: [.1, .1, .08], splash: 0},
+  valveGrip: {color: 0x272721, roughness: .85, metalness: .06, coat: 0x272721, cover: [.09, .1, .12], splash: 0},
+  surveyFloat: {color: 0xb38546, roughness: .82, metalness: 0, coat: 0xaa7940, cover: [.2, .3, .15], splash: 0},
+  surveyCord: {color: 0x837d69, roughness: .98, metalness: 0, coat: 0x837d69, cover: [.4, .4, .3], splash: 0},
   steel: {color: 0x8a8070, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.9, .65, .4], splash: .6,
     scan: 'coating', rustAt: .55},
   // monopile below the transition piece: dark grey epoxy coating (the yellow belongs to the transition piece)
@@ -160,7 +316,8 @@ const PRESETS = {
     scan: 'concrete', scanColor: 0xd8d4ca},
   rubber: {color: 0xffffff, roughness: .85, metalness: 0, coat: 0x1d1e1f, cover: [.35, .25, .15], splash: 0,
     map: 'rubber'},
-  hull: {color: 0x7b2f25, roughness: .7, metalness: .15, coat: 0x23272c, cover: [.45, .3, .2], splash: .15,
+  rudderPlate: {color: 0xffffff, roughness: .76, metalness: .14, coat: 0x6c493e, cover: [.45, .3, .2], splash: .1},
+  hull: {color: 0xb06b5d, roughness: .8, metalness: .05, coat: 0x23272c, cover: [.45, .3, .2], splash: .15,
     map: 'plating', boot: 0x1b1c1e},
   wreck: {color: 0x5e4a36, roughness: .95, metalness: .1, coat: 0x5e4a36, cover: [.95, .85, .7], splash: 0,
     map: 'plating'},
@@ -347,14 +504,71 @@ function addScanMaps(material, params, normals = true, detail = 'medium') {
 export function structureMaterial(kind, detail = 'medium') {
   const params = PRESETS[kind] || PRESETS.steel;
   const textures = structureTextures();
+  if (kind === 'castAnode') {
+    textures.castAnode ??= canvasTexture(drawSurveyCasting);
+    const material = new THREE.MeshStandardMaterial({map: textures.castAnode, roughness: .94, metalness: .08});
+    material.userData.structureKind = kind;
+    return material;
+  }
+  if (kind === 'recoveryFloat') {
+    textures.recoveryFloat ??= canvasTexture(recoveryFloatSurface, false);
+    const material = new THREE.MeshStandardMaterial({map: textures.recoveryFloat, roughness: .81});
+    material.userData.structureKind = kind;
+    return material;
+  }
+  if (kind === 'seaChest') {
+    textures.seaChest ??= canvasTexture(drawSeaChest, false);
+    const material = new THREE.MeshStandardMaterial({map: textures.seaChest, roughness: .86, metalness: .12});
+    material.userData.structureKind = kind;
+    return material;
+  }
+  if (kind === 'keelFrames') {
+    textures.keelFrames ??= canvasTexture(drawKeelFrames, false);
+    const material = new THREE.MeshStandardMaterial({map: textures.keelFrames, alphaTest: .42, roughness: .89});
+    material.userData.structureKind = kind;
+    return material;
+  }
+  if (kind === 'blockPrint') {
+    textures.blockPrint ??= canvasTexture(drawBlockPrint, false);
+    const material = new THREE.MeshStandardMaterial({map: textures.blockPrint, alphaTest: .46, roughness: .92});
+    material.userData.structureKind = kind;
+    return material;
+  }
+  if (kind === 'wornPost') {
+    textures.wornPost ??= canvasTexture(wornPostSurface);
+    textures.wornPost.repeat.set(.53, .49);
+    const material = new THREE.MeshStandardMaterial({map: textures.wornPost, roughness: .96});
+    material.userData.structureKind = kind;
+    return material;
+  }
+  if (kind === 'pileId') {
+    textures.pileId ??= canvasTexture(pileIdAtlas, false);
+    return new THREE.MeshStandardMaterial({map: textures.pileId, roughness: .94});
+  }
+  if (kind === 'monopileGauge') {
+    textures.monopileGauge ??= canvasTexture(drawMonopileGauge, false);
+    return new THREE.MeshStandardMaterial({map: textures.monopileGauge, roughness: .91});
+  }
   const material = new THREE.MeshStandardMaterial({
     color: params.color, roughness: params.roughness, metalness: params.metalness,
-    // canvas maps (panel joints, plating seams) only on high; pool tiles always; scan sets replace them
+    // Optional dressing maps on high and pool tiles on every tier. Inspection-face exceptions follow below.
     map: params.map && !params.scan && (detail === 'high' || kind === 'tiles') ? textures[params.map] : null,
   });
+  if (kind === 'rudderPlate') {
+    textures.rudderPlate ??= canvasTexture(drawRudderPlate, false);
+    material.map = textures.rudderPlate;
+  }
+  if (kind === 'hull') {
+    textures.hullPlating ??= canvasTexture(drawHullPlating);
+    material.map = textures.hullPlating;
+  }
   if (detail === 'low') {
     // low tier: no fouling shader, the base colour is pre-mixed toward the mid-depth growth tone
     material.color.lerp(new THREE.Color(0x3b3d35), params.cover[1] * 0.6);
+    if (kind === 'concrete' || kind === 'pileConcrete') {
+      material.map = textures.concrete;
+      material.color.setHex(0xe1ded0);
+    }
   } else {
     material.onBeforeCompile = foulingShader(params, textures);
     material.defines = {FOUL_QUALITY: detail === 'high' ? 2 : 1};

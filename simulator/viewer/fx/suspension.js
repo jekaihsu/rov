@@ -4,6 +4,7 @@
 // puffs are rendered by the separate silt module (feat/silt), not here.
 // Particle size, density and drift are visualization assumptions; the research report has no numbers.
 import * as THREE from 'three';
+import {legacyWaterLook} from '../underwater_lighting.js';
 import { WATER_COMMON, shareWaterUniforms, waterUniforms } from './water_optics.js';
 
 const systems = new WeakMap();
@@ -121,4 +122,22 @@ export function updateSuspension(scene, camera, quality) {
   system.uniforms.uTime.value = performance.now() / 1000;
   const height = camera.isPerspectiveCamera ? 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) : 1;
   system.uniforms.uPixel.value = height / 900;
+}
+
+// The single-pass tiers already draw flow-following specks. Thin the same buffer in clear water;
+// daylight loses contrast with depth, while a powered hull lamp reveals nearby suspended grains.
+export function updateFlowSpecks(points, renderer, camera, vehiclePosition, optics, lampLevel) {
+  const capacity = points.geometry.attributes.position.count;
+  const depth = -camera.position.y;
+  if (!legacyWaterLook(renderer) || depth <= 0) {
+    points.geometry.setDrawRange(0, capacity);
+    points.material.opacity = 0.8;
+    return;
+  }
+  const clarity = Math.max(0.3, optics?.visibility ?? 12);
+  const sediment = Math.min(1, 5 / clarity);
+  const daylight = Math.exp(-depth / 13);
+  const beam = lampLevel * Math.exp(-camera.position.distanceTo(vehiclePosition) / 4);
+  points.geometry.setDrawRange(0, Math.round(capacity * (0.22 + 0.78 * sediment)));
+  points.material.opacity = 0.035 + 0.42 * daylight + 0.32 * beam;
 }

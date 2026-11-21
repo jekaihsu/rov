@@ -1,0 +1,25 @@
+{
+  "names": {
+    "coral": "サンゴ",
+    "seastar": "ヒトデ",
+    "seagrass": "海草",
+    "kelp": "海藻",
+    "fish_school": "魚群",
+    "mussels": "ムール貝の群落",
+    "barnacles": "フジツボの群落",
+    "limpet": "カサガイ",
+    "anemones": "イソギンチャクの群落",
+    "brittle_star": "クモヒトデ",
+    "shell_hash": "貝殻の堆積",
+    "crab_molt": "カニの脱皮殻",
+    "rope_offcut": "切れたロープ",
+    "shackle": "シャックル",
+    "bottle_glass": "瓶ガラスの破片",
+    "ceramic_shard": "陶器の破片",
+    "net_patch": "網の断片",
+    "rust_flake": "剥がれた錆片"
+  },
+  "finds": "海域別の発見記録",
+  "station": "{site} · 地点 {point} · {depth} m",
+  "moreFinds": "さらに表示"
+}

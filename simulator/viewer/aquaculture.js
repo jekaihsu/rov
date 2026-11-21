@@ -77,12 +77,45 @@ const NET_FRAGMENT_MAP = `
 #endif
 `;
 
+// Original printed HDPE tags with the numbers of the marked net panels. One
+// material and one draw cover every tag, including the reverse faces.
+const TAG_PANELS = [9, 26, 30, 33, 37];
+function panelTagMap() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 128;
+  const g = canvas.getContext('2d');
+  const width = canvas.width / TAG_PANELS.length;
+  for (const [i, number] of TAG_PANELS.entries()) {
+    const x = i * width;
+    g.fillStyle = '#d2cbb0';
+    g.fillRect(x, 0, width, 128);
+    g.fillStyle = '#323831';
+    g.fillRect(x + 7, 106, width - 14, 4);
+    for (const edge of [.08, .92]) {
+      g.beginPath();
+      g.arc(x + edge * width, 12, 5, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.font = 'bold 85px sans-serif';
+    g.textAlign = 'center';
+    g.fillText(String(number), x + width * .5, 94);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 export function penMaterial(kind) {
   const colors = {pen_net: 0xffffff, pen_frame: 0x182b30, pen_sinker: 0x47463c,
-    pen_rope: 0x78705a, pen_buoy: 0xc79532, pen_anchor: 0x595950};
+    pen_tag: 0xffffff, pen_rope: 0x78705a, pen_buoy: 0xc79532, pen_anchor: 0x595950};
   const material = new THREE.MeshStandardMaterial({color: colors[kind], roughness: .88});
   material.userData.structureKind = kind;
   if (kind === 'pen_net') dressNetMaterial(material);
+  if (kind === 'pen_tag' && typeof document !== 'undefined') {
+    material.map = panelTagMap();
+    material.addEventListener('dispose', () => material.map.dispose());
+  }
   return material;
 }
 
@@ -128,7 +161,12 @@ export function buildPenPart(set, ob) {
     const pos = geometry.attributes.position;
     for (let i = 0; i < uv.count; i++) {
       // metres: across the wall panel (or along the floor strip), and down the panel (or across the strip)
-      uv.setXY(i, pos.getZ(i), ob.half[2] < .1 ? pos.getX(i) : pos.getY(i));
+      if (ob.kind === 'pen_tag') {
+        const tag = TAG_PANELS.indexOf(Number(ob.name.split(' ').at(-1)));
+        uv.setX(i, (tag + .01 + .98 * uv.getX(i)) / TAG_PANELS.length);
+      } else {
+        uv.setXY(i, pos.getZ(i), ob.half[2] < .1 ? pos.getX(i) : pos.getY(i));
+      }
     }
     geometry.rotateY(-ob.yaw_deg * Math.PI / 180);
     geometry.translate(...P(ob.center).toArray());

@@ -213,3 +213,48 @@ test('reef species carry their own colour patterns and are not mirrors', () => {
   assert.ok(surgeon[0] + surgeon[1] + surgeon[2] < 0.6, 'surgeonfish are dark');
   assert.ok(life.SPECIES.butterfly.sheen < 0.2 && life.SPECIES.salmon.sheen === 1);
 });
+
+test('quiet forward lamp draws fish in, stationary thrusters flush them and an unlit hull releases them', () => {
+  const eye = new THREE.Vector3();
+  const vehicle = {position: eye, forward: new THREE.Vector3(0, 0, 1), lamps: true, thrust: 0};
+  const motion = life.createSchoolMotion([{phase: 0, scale: 1}], 'saithe', () => 0.5);
+  function fixedSlot(item, t, position, rotation) {
+    position.set(0, 0, 2.6);
+    rotation.set(0, 0, 0);
+  }
+  const sink = {put() {}, end() {}};
+  function advance() {
+    for (let i = 0; i < 120; i++) life.updateSchoolMotion(motion, sink, 1 / 30, 0, fixedSlot, 0.2, vehicle);
+    return motion.fish[0].avoid.z;
+  }
+  assert.ok(advance() < -0.4);
+  vehicle.forward.negate();
+  assert.ok(Math.abs(advance()) < 0.14);
+  vehicle.lamps = false;
+  vehicle.thrust = 0.9;
+  assert.ok(advance() > 0.5);
+  assert.ok(motion.fish[0].startle > 0.8);
+  vehicle.thrust = 0;
+  assert.ok(Math.abs(advance()) < 0.14);
+});
+
+
+test('farm stock react only to a powered lamp, and a flush stays inside the panels', () => {
+  const world = {scenario: {key: 'aquaculture_pen'}, biome: 'aquaculture',
+    habitat: {fish_schools: [{id: 'pen-school-0', pos: [38, 0, 8], count: 48, variant: 0}]}};
+  const drawn = schools.createSharedSchools(new THREE.Group(), world, 'low', 71);
+  const camera = {position: new THREE.Vector3(0, -8, 34)};
+  const state = {pos: [35, 0, 8], rc: {right_switch: 2}, euler: [0, 0, 0], thrust: [1, -1],
+    power: {lights_on: false}};
+  drawn.update(1 / 30, 0, camera, state);
+  assert.equal(drawn.vehicle.lamps, false);
+  assert.equal(drawn.vehicle.thrust, 1);
+  assert.deepEqual(drawn.vehicle.forward.toArray().map(Math.abs), [0, 0, 1]);
+  state.power.lights_on = true;
+  for (let i = 1; i <= 90; i++) drawn.update(1 / 30, i / 30, camera, state);
+  assert.equal(drawn.vehicle.lamps, true);
+  assert.ok(drawn.schools[0].motion.fish.some((f) => f.startle > 0));
+  for (const fish of drawn.schools[0].motion.fish) {
+    assert.ok(Math.hypot(fish.position.x, fish.position.z - 24) <= 17.501);
+  }
+});

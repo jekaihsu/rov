@@ -290,6 +290,10 @@ class Expedition:
         ob=getattr(sim.world,'work_objects',{}).get(entity_id)
         if ob and expedition and expedition.active and ob.get('task_id')==expedition.active['id']:
             return 'engineering',np.asarray(ob['pos'],float),float(ob['radius'])
+        for marker in sim.world.discoveries:
+            if marker["id"] == entity_id:
+                target = np.asarray(marker["pos"]) + .03 * np.asarray(marker["normal"])
+                return marker["kind"], target, .15
         for entity in sim.world.habitat_entities:
             if entity['id']==entity_id and entity['kind'] in BIOLOGY:
                 pos=np.asarray(entity['pos'],float).copy()
@@ -352,6 +356,9 @@ class Expedition:
                     category=category,label=BIOLOGY.get(category,'工程紀錄'),scene=sim.scenario.key,depth=round(float(target[2]),2),
                     created_at=datetime.now(timezone.utc).isoformat(),sim_time=round(sim.t,2),
                     photographer=str(sim.vehicle_id),point=target.round(4).tolist())
+                if entity_id.startswith("detail-"):
+                    entry["world_seed"] = sim.world.world_seed
+                    entry["label"] = category
                 entry['photographer_player_id']=self._identity(sim)
                 if category != 'engineering':
                     self.discoveries.append(entry);self.discoveries=self.discoveries[-200:]
@@ -389,6 +396,8 @@ class Expedition:
             raise ValueError('目標離 ROV 太遠，請先靠近再標記')
         marker=dict(id=f'mark-{entity_id}',entity_id=entity_id,label=BIOLOGY.get(category,'工程目標'),point=point.tolist(),
                     marked_by=str(sim.vehicle_id),created_at=round(sim.t,2))
+        if entity_id.startswith("detail-"):
+            marker["label"] = category
         self.markers=[m for m in self.markers if m['entity_id']!=entity_id][-49:]+[marker]
         return dict(ok=True,action='expedition_mark',marker=marker)
 

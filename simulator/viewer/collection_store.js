@@ -1,4 +1,5 @@
-export const COLLECTION_CATEGORIES={coral:'珊瑚',seastar:'海星',seagrass:'海草',kelp:'海藻',fish_school:'魚群'};
+import {COLLECTION_CATEGORIES} from './collection_categories.js';
+export {COLLECTION_CATEGORIES};
 export const COLLECTION_LIMITS={image:12*1024*1024,total:80*1024*1024,index:4*1024*1024,archive:128*1024*1024,photos:500,results:2000};
 const categories=Object.keys(COLLECTION_CATEGORIES),empty=()=>({version:1,photos:[],guides:[],results:[]});
 const uid=()=>globalThis.crypto?.randomUUID?.()||`local-${Date.now()}-${Math.random().toString(36).slice(2)}`;

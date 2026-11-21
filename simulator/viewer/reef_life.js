@@ -498,7 +498,7 @@ export function installReefDressing(group, world, detail = 'medium') {
   const reef = {schools: reefFish(group, corals, counts.fish, random, detail), last: null};
   moveReefFish(reef, 0);
   return {
-    // `vehicle` ({position, velocity, lamps} in three space) is optional: without it fish do not react.
+    // The optional vehicle sample has the same hull, lamp and thrust fields as updateSchoolMotion.
     update(timeSeconds, vehicle = null) {
       moveReefFish(reef, timeSeconds, vehicle);
     },

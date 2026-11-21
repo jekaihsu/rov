@@ -41,12 +41,13 @@ class SeabedTerrain:
                 "size": [41, 41], "depths": self.depths.round(4).tolist()}
 
 
-def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None):
+def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None, site=None):
     """Generate once on the server; no cross-language PRNG agreement is needed.
 
     ``placed``: optional scenario-placed fish schools, a list of ``{"home": (n, e, d), "count": int}``. A site
     that sets them (a jacket that works as an artificial reef) gets those schools instead of the random ones."""
     from .world import Cylinder
+    from .site_habitat import bank_patch
     rng = np.random.default_rng(np.random.SeedSequence([seed, 8271]))
     entities = []
     schools = []
@@ -65,9 +66,12 @@ def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None):
               "seagrass": 260 if grass else 35 if reef else 0}
     exclusion = [np.asarray(p, float) for p in keep_clear]
     for kind, count in counts.items():
-        for _ in range(count):
+        for index in range(count):
             for attempt in range(40):
-                xy = rng.uniform([-12, -35], [62, 35])
+                if site == "open_water" and kind in ("kelp", "rock") and index < count * .8:
+                    xy = bank_patch(index, rng)
+                else:
+                    xy = rng.uniform([-12, -35], [62, 35])
                 if any(np.linalg.norm(xy - p[:2]) < 4.0 for p in exclusion):
                     continue
                 z = float(world.terrain.sample_many(np.array([[*xy, 0]]))[0][0])
@@ -91,7 +95,7 @@ def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None):
                 world.obstacles.append(Cylinder(eid, tuple(pos - [0, 0, r]),
                                                 tuple(pos - [0, 0, max(r, scale-r)]), r, "habitat"))
     if placed:
-        return entities, placed_schools(placed, rng)
+        return entities, placed_schools(placed, rng, world)
     for k in range(4):
         for _ in range(100):
             pos = np.array([rng.uniform(6, 48), rng.uniform(-20, 20), rng.uniform(3, max(4, world.seabed_depth - 4))])
@@ -105,15 +109,25 @@ def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None):
     return entities, schools
 
 
-def placed_schools(specs, rng) -> list:
+def placed_schools(specs, rng, world) -> list:
     """Schools at scenario-given homes, each starting on its orbit (see step_schools) at a seeded phase."""
     out = []
     for k, spec in enumerate(specs):
         home = np.asarray(spec["home"], float)
         phase = float(rng.uniform(0, 2 * math.pi))
-        pos = home + np.array([math.cos(phase) * 5, math.sin(phase) * 5, 0.0])
+        radius = float(spec.get("radius", 5))
+        pos = home + np.array([math.cos(phase) * radius, math.sin(phase) * radius, 0.0])
+        if "radius" in spec:
+            # Leave body-length clearance around authored refuges, also for generated structures.
+            for _ in range(5):
+                distance, normal, _ = world.sdf(pos)
+                if distance >= 2.8:
+                    break
+                correction = normal * (2.85 - distance)
+                pos += correction
+                home = home + correction
         out.append({"id": f"school-{k}", "pos": pos, "home": home.copy(), "vel": np.array([.3, 0, 0]),
-                    "count": int(spec.get("count", 32)), "phase": phase, "variant": k % 3})
+                    "count": int(spec.get("count", 32)), "phase": phase, "variant": k % 3, "radius": radius})
     return out
 
 
@@ -121,7 +135,7 @@ def step_schools(world, dt, vehicles):
     for school in world.fish_schools:
         p, phase = school["pos"], school["phase"]
         angle = world.time * .06 + phase
-        radius = 10 if school.get("pen") else 5
+        radius = school.get("radius", 10 if school.get("pen") else 5)
         target = school["home"] + np.array([math.cos(angle) * radius, math.sin(angle) * radius, math.sin(angle*.7)*.6])
         desired = (target - p) * .25
         desired += world.current_at(p, world.time) * .35

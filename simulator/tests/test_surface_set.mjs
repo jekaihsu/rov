@@ -45,6 +45,17 @@ test('harbours, fish farms, reefs, lakes and the pool get no farm; the pool gets
   assert.equal(open.farm.mode, 'distant');
 });
 
+test('harbour work sites share the city shore, aligned inland behind the real quay face', function () {
+  const harbour = world('harbor_inspection', 'harbor', 'harbour');
+  harbour.obstacles.push({kind: 'quay', type: 'wall', point: [42, 0, 0], normal_deg: 180});
+  assert.equal(surfacePlan(harbour).coast.toward, Math.PI / 2);
+  for (const key of ['sonar_search', 'hull_inspection']) {
+    const site = world(key, 'temperate', 'shelf');
+    assert.equal(surfacePlan(site).kind, 'harbour');
+    assert.ok(buildSurfaceSet(site, new THREE.Vector3(), seeded(3)).group.getObjectByName('surface-coast').geometry);
+  }
+});
+
 test('a farm is dozens of turbines in a staggered grid, five to seven rotor diameters apart', function () {
   for (const type of Object.keys(TURBINE_TYPES)) {
     const plan = {type, mode: 'inside', anchor: {x: 0, z: 0}, windAngle: 0.7};

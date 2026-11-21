@@ -95,6 +95,26 @@ export function penFishOffset(random) {
   return new THREE.Vector3((random() - .5) * 5, (random() - .5) * 2.6, (random() - .5) * 13);
 }
 
+// Leave half a metre for the body and the chord of the net panels. A flush at the outside of
+// a circling band must still leave the farm stock inside, including when the ROV holds position.
+export function penBoundary(layout) {
+  const radius = (layout?.radius ?? 18) - 0.5;
+  const x = -(layout?.center?.[1] ?? 0);
+  const z = layout?.center?.[0] ?? PEN_CENTRE.z;
+  const floor = -(layout?.net_depth ?? 16) + 0.5;
+  return function keepInsidePen(position) {
+    const dx = position.x - x;
+    const dz = position.z - z;
+    const rangeSquared = dx * dx + dz * dz;
+    if (rangeSquared > radius * radius) {
+      const ratio = radius / Math.sqrt(rangeSquared);
+      position.x = x + dx * ratio;
+      position.z = z + dz * ratio;
+    }
+    position.y = THREE.MathUtils.clamp(position.y, floor, -0.5);
+  };
+}
+
 const radial = new THREE.Vector3();
 
 /**

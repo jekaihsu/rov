@@ -19,6 +19,7 @@ import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
 import {structureMaterial} from './structure_materials.js';
+import {dressOutcrop, outcropGeometry} from './reef_outcrop.js';
 import {automaticSceneDetail} from './render_quality.js';
 import {siteRockColor} from './seabed.js';
 import {upgradeArmourRocks} from './scan_materials.js';
@@ -26,6 +27,7 @@ import {upgradeArmourRocks} from './scan_materials.js';
 export const SCENE_TOLERANCE = 0.1;           // m a visual surface may stand proud of its collision shape
 // fittings drawn as one merged mesh per material (labels keep per-obstacle anchors; a snag lights the group)
 const BATCH_KINDS = new Set(['anode', 'anode_strap', 'mudmat', 'boat_landing', 'j_tube', 'cable_protection',
+  'reef_outcrop', 'survey_float', 'survey_line', 'survey_weight', 'instrument_case', 'valve_bonnet', 'valve_guard',
   'fender', 'bollard', 'ladder', 'tyre', 'debris_block', 'debris_pipe', 'shaft', 'deck', 'mast', 'snag']);
 const UP = new THREE.Vector3(0, 1, 0);
 const DETAIL = {
@@ -67,7 +69,7 @@ function seeded(text) {
 }
 
 // ── geometry helpers (all return geometry already placed in three world space) ──────────────────────────
-function prepared(geometry) {
+function prepared(geometry, vertexColours = false) {
   const g = geometry.index ? geometry.toNonIndexed() : geometry;
   if (g !== geometry) geometry.dispose();
   if (!g.attributes.uv) {
@@ -75,13 +77,13 @@ function prepared(geometry) {
   }
   if (!g.attributes.normal) g.computeVertexNormals();
   for (const name of Object.keys(g.attributes)) {
-    if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+    if (!['position', 'normal', 'uv'].includes(name) && !(vertexColours && name === 'color')) g.deleteAttribute(name);
   }
   return g;
 }
 
-function merged(list) {
-  const parts = list.filter(Boolean).map(prepared);
+function merged(list, vertexColours = false) {
+  const parts = list.filter(Boolean).map((g) => prepared(g, vertexColours));
   const out = mergeGeometries(parts, false);
   for (const g of parts) g.dispose();
   return out;
@@ -204,7 +206,8 @@ class StructureSet {
 
   flushBatches() {
     for (const entry of (this.batches || new Map()).values()) {
-      const mesh = this.addMesh(merged(entry.parts), entry.kind, entry.names, entry.role, []);
+      const coloured = entry.kind === 'reefFace';
+      const mesh = this.addMesh(merged(entry.parts, coloured), entry.kind, entry.names, entry.role, []);
       for (const ob of entry.obs) this.anchor(ob, mesh);
     }
     this.batches = null;
@@ -266,12 +269,40 @@ function braceNodes(world, leg) {
   return nodes;
 }
 
+// The pier's station marks face the approach side. They lie 4 mm above the concrete at survey depth.
+function pileStationMark(set, ob) {
+  const match = /^Harbor pile ([AB])([23]?)$/.exec(ob.name);
+  if (!match) return;
+  const col = Number(match[2] || 1) - 1;
+  const row = match[1] === 'A' ? 1 : 0;
+  const radius = ob.radius + .004;
+  const span = .94 / radius;
+  const panel = new THREE.CylinderGeometry(radius, radius, .83, 8, 1, true, Math.PI - span / 2, span);
+  const uv = panel.attributes.uv;
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(i, (col + .015 + .97 * uv.getX(i)) / 3, (row + .015 + .97 * uv.getY(i)) / 2);
+  }
+  panel.translate(-ob.p0[1], -8, ob.p0[0]);
+  set.addBatched('jetty-station-marks', panel, 'pileId', [ob.name], 'attached', []);
+}
+
+function monopileSurveyMark(set, ob) {
+  // Curved enamel scale welded onto the S face. The helmsman sees the graduations from the offshore hold.
+  const radius = ob.radius + .006;
+  const arc = 1.28 / radius;
+  const sign = new THREE.CylinderGeometry(radius, radius, 2.4, 12, 1, true, Math.PI - arc / 2, arc);
+  sign.translate(-ob.p0[1], -12, ob.p0[0]);
+  set.add(sign, 'monopileGauge', [ob.name], 'attached');
+}
+
 function steelTube(set, ob, kind = 'steel') {
   const a = P(ob.p0);
   const b = P(ob.p1);
   const radial = set.detail.radial;
   const parts = [tube(a, b, ob.radius, radial, false), ...exposedCaps(set.world, ob, ob.radius, radial)];
   set.add(merged(parts), kind, [ob.name], 'solid', [ob]);
+  if (kind === 'pileConcrete') pileStationMark(set, ob);
+  if (ob.kind === 'monopile' && ob.name === 'Monopile M1') monopileSurveyMark(set, ob);
   if (ob.kind === 'jacket_leg' && set.detailName !== 'low') {
     // weld-node cans: thicker wall sections where the braces join, 0.04 m proud of the leg
     const cans = braceNodes(set.world, ob).map((t) => {
@@ -342,7 +373,21 @@ function anodeBar(set, ob, straps) {
     r * 0.6);
   const parts = [body, taperA, taperB];
   for (const strap of straps) parts.push(tube(P(strap.p0), P(strap.p1), strap.radius - 0.005, 6, false));
-  set.addBatched('anode', merged(parts), 'anode', [ob.name, ...straps.map((s) => s.name)], 'solid', [ob, ...straps]);
+  const surveyCast = set.world.scenario?.key === 'jacket_inspection';
+  if (surveyCast) {
+    // The cast identifiers occur once down a bar. The small end castings and welded core sample plain metal.
+    const shaftLength = a.distanceTo(b) + .1;
+    for (const part of parts) {
+      const uv = part.attributes.uv;
+      for (let i = 0; i < uv.count; i++) {
+        const u = uv.getX(i) / (2 * Math.PI * r);
+        const v = uv.getY(i) / shaftLength;
+        uv.setXY(i, u, part === body ? v : .02 + .04 * v);
+      }
+    }
+  }
+  const finish = surveyCast ? 'castAnode' : 'anode';
+  set.addBatched('anode', merged(parts), finish, [ob.name, ...straps.map((s) => s.name)], 'solid', [ob, ...straps]);
 }
 
 // ── monopile fittings ───────────────────────────────────────────────────────────────────────────────────
@@ -615,12 +660,17 @@ function rudder(set, ob) {
     shape.lineTo(hx - 0.01 - (2 * hx - 0.02) * t, -rudderThickness(t, half));
   }
   const g = new THREE.ExtrudeGeometry(shape, {depth: 2 * hz - 0.02, bevelEnabled: false});
+  // One maintenance marking per side, in rudder-local metres before posing the collision-derived surface.
+  const {position, uv} = g.attributes;
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(i, .5 + position.getX(i) / (2 * hx), position.getZ(i) / (2 * hz - .02));
+  }
   g.translate(0, 0, -(hz - 0.01));
   g.rotateX(-Math.PI / 2);         // extrusion along +y (up); shape x = forward, shape y = across
   g.rotateY(-Math.PI / 2);         // shape x -> three +z (forward at yaw 0)
   g.rotateY(yaw);
   g.translate(centre.x, centre.y, centre.z);
-  set.add(g, 'steelPlate', [ob.name], 'solid', [ob]);
+  set.add(g, 'rudderPlate', [ob.name], 'solid', [ob]);
 }
 
 /** Flat blade between its two edge capsules (names "... blade <k>a" / "<k>b"). */
@@ -766,7 +816,8 @@ export function shipHullGeometry(ob, detail = DETAIL.medium) {
       // shared absolute rows, clamped at the keel: neighbouring stations never form skewed quads
       columns.push(rows.map((row) => {
         const z = Math.min(zb, row);
-        return {x, z, hb: Math.max(0, halfBreadth(x, z, hp).hb)};
+        const hb = Math.max(0, halfBreadth(x, z, hp).hb);
+        return {x, z, hb, girth: hb + zb - z};
       }));
     }
     const positions = [];
@@ -774,10 +825,13 @@ export function shipHullGeometry(ob, detail = DETAIL.medium) {
     const zMid = (hp.top + hp.draft) / 2;
     // one triangle in hull-local coordinates (x forward, y starboard, z down; right-handed like the world),
     // wound so its normal points away from the hull's centre line: the hull can then be drawn front faces only
+    // Approximate developed girth measures across the bottom and then up either side.
+    // Pure depth UVs collapse to a line on the flat keel just above the inspection route.
+    const sample = ([point, side]) => [point.x, side * point.hb, point.z, side * point.girth];
     const triangle = (a, b, c) => {
-      const pa = [a[0].x, a[1] * a[0].hb, a[0].z];
-      const pb = [b[0].x, b[1] * b[0].hb, b[0].z];
-      const pc = [c[0].x, c[1] * c[0].hb, c[0].z];
+      const pa = sample(a);
+      const pb = sample(b);
+      const pc = sample(c);
       const u = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]];
       const v = [pc[0] - pa[0], pc[1] - pa[1], pc[2] - pa[2]];
       const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
@@ -786,7 +840,7 @@ export function shipHullGeometry(ob, detail = DETAIL.medium) {
       const order = n[0] * out[0] + n[1] * out[1] + n[2] * out[2] >= 0 ? [pa, pb, pc] : [pa, pc, pb];
       for (const q of order) {
         positions.push(...toWorld(q[0], q[1], q[2]).toArray());
-        uvs.push(q[0] / 10, q[2] / 2.5);
+        uvs.push(q[0] / 7.5, q[3] / 4.4);
       }
     };
     const quad = (p00, p01, p10, p11, s00, s01, s10, s11) => {
@@ -819,6 +873,62 @@ function shipHull(set, ob) {
   // zinc anodes welded flush on the hull near the stern, 0.06 m proud
   const hp = shipHullParams(ob);
   const {toWorld} = shipLocalFrame(ob);
+  const intakes = [];
+  for (const side of [-1, 1]) {
+    // Flush gratings at the machinery space, inside the flat part of this hull's actual bottom.
+    const x = -.22 * hp.length;
+    const width = Math.min(.85, halfBreadth(x, hp.draft, hp).hb * .23);
+    if (width <= .1) continue;
+    const grille = new THREE.PlaneGeometry(width, 1.55);
+    grille.rotateX(Math.PI / 2);
+    grille.rotateY(-ob.yaw_deg * Math.PI / 180);
+    grille.translate(...toWorld(x, side * width * 2.1, hp.draft + .004).toArray());
+    intakes.push(grille);
+  }
+  if (intakes.length) set.add(merged(intakes), 'seaChest', [ob.name], 'attached');
+  // Underwater inspection in lieu of dry-docking uses frame marks to locate damage along the keel.
+  // At 0.6 m frame spacing, the survey markings fall every 6 m. Skip the curved ends of the bottom.
+  const marks = [];
+  for (let i = 0; i < 16; i++) {
+    const x = -hp.length / 2 + (i + 1) * 6;
+    const hb = halfBreadth(x, hp.draft, hp).hb;
+    if (hb < 3 || x < aftEnd(hp.draft, hp) || x + 1 > hp.length / 2 - hp.bow * .3) continue;
+    for (const side of [-1, 1]) {
+      const stamp = new THREE.PlaneGeometry(1.05, 1.2);
+      const uv = stamp.attributes.uv;
+      for (let k = 0; k < uv.count; k++) {
+        uv.setXY(k, (i % 4 + uv.getX(k)) / 4, (3 - Math.floor(i / 4) + uv.getY(k)) / 4);
+      }
+      stamp.rotateX(Math.PI / 2);
+      stamp.rotateY(Math.PI - ob.yaw_deg * Math.PI / 180);
+      stamp.translate(...toWorld(x, side * 1.65, hp.draft + .006).toArray());
+      marks.push(stamp);
+    }
+  }
+  if (marks.length) set.add(merged(marks), 'keelFrames', [ob.name], 'attached');
+  const prints = [];
+  const cartridges = [];
+  const yaw = -ob.yaw_deg * Math.PI / 180;
+  for (let x = -hp.length / 2 + hp.aperture; x < hp.length / 2 - hp.rake; x += 3) {
+    if (halfBreadth(x, hp.draft, hp).hb < 3) continue;
+    const pad = new THREE.PlaneGeometry(1.45, 1.25);
+    pad.rotateX(Math.PI / 2);
+    pad.rotateY(yaw);
+    pad.translate(...toWorld(x, 0, hp.draft + .003).toArray());
+    prints.push(pad);
+    // Cast anodes sit clear of the keel-block bearing strip on alternating sides. The mounting core
+    // and the shallow tapered body stand at most 0.085 m proud of the real collision surface.
+    if (prints.length % 4 !== 0) continue;
+    const side = prints.length % 8 ? -1 : 1;
+    const centre = toWorld(x + 1.2, side * 1.12, hp.draft + .008);
+    const body = new THREE.SphereGeometry(1, 10, 5);
+    body.scale(.18, .077, .52);
+    body.rotateY(yaw);
+    body.translate(...centre.toArray());
+    cartridges.push(body, boxAt(centre, new THREE.Vector3(.13, .03, 1.34), yaw));
+  }
+  if (prints.length) set.add(merged(prints), 'blockPrint', [ob.name], 'attached');
+  if (cartridges.length) set.add(merged(cartridges), 'castAnode', [ob.name], 'attached');
   const zincs = [];
   for (const side of [-1, 1]) {
     for (let k = 0; k < 4; k++) {
@@ -878,6 +988,46 @@ function snagItem(set, ob) {
   set.add(geometry, kind, [ob.name], 'solid', [ob]);
 }
 
+/** Recessed service panel on the south face of the search target. The lip and
+ * fasteners use the existing allowance for surface dressing (at most 6.3 cm). */
+function serviceHatch(set, ob) {
+  plainBox(set, ob, 'agedEnamel', 0);
+  const [n, e, d] = ob.center;
+  const face = n - ob.half[0];
+  const slats = [];
+  for (const offset of [-.34, .34]) {
+    for (let i = -3; i <= 3; i++) {
+      const middle = P([face - .012, e + offset, d + i * .065]);
+      slats.push(boxAt(middle, new THREE.Vector3(.26, .024, .018), 0));
+    }
+  }
+  // Three-spoke dog and concentric sealing flange between the side vents.
+  // The lens can resolve this hand-sized closure right up to the front panel.
+  const hub = P([face - .046, e + .034, d - .065]);
+  const wheel = new THREE.TorusGeometry(.117, .016, 6, 24);
+  wheel.translate(hub.x, hub.y, hub.z);
+  const lip = new THREE.TorusGeometry(.155, .008, 5, 30);
+  lip.translate(hub.x, hub.y, hub.z + .033);
+  const fasteners = [wheel, lip];
+  const spindle = hub.clone();
+  spindle.z -= .015;
+  fasteners.push(tube(spindle, new THREE.Vector3(hub.x, hub.y, hub.z + .05), .029, 6));
+  for (let i = 0; i < 3; i++) {
+    const angle = .4 + i * 2 * Math.PI / 3;
+    const end = hub.clone().add(new THREE.Vector3(Math.cos(angle) * .117, Math.sin(angle) * .117, 0));
+    fasteners.push(tube(hub, end, .012, 6));
+  }
+  for (const east of [-.49, .49]) {
+    for (const depth of [-.37, .37]) {
+      const b = P([face, e + east, d + depth]);
+      const a = P([face - .026, e + east, d + depth]);
+      fasteners.push(tube(a, b, .056, 6));
+    }
+  }
+  set.add(merged(slats), 'valveGrip', [ob.name], 'attached', [ob]);
+  set.add(merged(fasteners), 'valveGrip', [ob.name], 'attached', [ob]);
+}
+
 function buildOne(set, ob, consumed) {
   if (consumed.has(ob.name)) return;
   const world = set.world;
@@ -899,7 +1049,9 @@ function buildOne(set, ob, consumed) {
     return;
   }
   if (ob.type === 'box') {
-    if (ob.kind === 'ladder') ladder(set, ob);
+    if (ob.kind === 'service_hatch') serviceHatch(set, ob);
+    else if (ob.kind === 'survey_weight') plainBox(set, ob, 'surveyCord');
+    else if (ob.kind === 'ladder') ladder(set, ob);
     else if (ob.kind === 'tyre') tyre(set, ob);
     else if (ob.kind === 'rudder') rudder(set, ob);
     else if (ob.kind === 'wreck') plainBox(set, ob, 'wreck');
@@ -909,7 +1061,30 @@ function buildOne(set, ob, consumed) {
   }
   if (ob.type !== 'cylinder') return;
   const kind = ob.kind;
-  if (kind === 'anode') {
+  if (kind === 'reef_outcrop') {
+    const geometry = outcropGeometry(P(ob.p0), P(ob.p1), ob.radius, set.detail.radial);
+    set.add(geometry, 'reefFace', [ob.name], 'solid', [ob]);
+  } else if (kind === 'survey_line') simpleTube(set, ob, 'surveyCord', 0);
+  else if (kind === 'valve_guard') simpleTube(set, ob, 'agedEnamel', 0);
+  else if (kind === 'instrument_case') simpleTube(set, ob, 'ladder', 0);
+  else if (kind === 'survey_float' || kind === 'valve_bonnet') {
+    const a = P(ob.p0);
+    const b = P(ob.p1);
+    const geometry = new THREE.CapsuleGeometry(ob.radius, a.distanceTo(b), 3, set.detail.radial);
+    const c = a.lerp(b, .5);
+    geometry.translate(c.x, c.y, c.z);
+    let finish = 'surveyFloat';
+    if (world.scenario?.key === 'incident_wreck') finish = 'recoveryFloat';
+    if (kind === 'valve_bonnet') finish = 'agedEnamel';
+    set.add(geometry, finish, [ob.name], 'solid', [ob]);
+    if (ob.name.endsWith('float 1')) {
+      // Moulded equatorial flanges on the head float; the service riser
+      // attaches to the underside. Batch bands with the same rope material.
+      const collar = tube(c.clone().addScaledVector(UP, -.032), c.clone().addScaledVector(UP, .032),
+        ob.radius + .008, set.detail.radial, true);
+      set.add(collar, 'surveyCord', [ob.name], 'solid', [ob]);
+    }
+  } else if (kind === 'anode') {
     const straps = (world.obstacles || []).filter((o) => o.kind === 'anode_strap' && o.name.startsWith(ob.name));
     for (const s of straps) consumed.add(s.name);
     anodeBar(set, ob, straps);
@@ -937,6 +1112,8 @@ function buildOne(set, ob, consumed) {
   } else if (kind === 'brace') steelTube(set, ob, 'brace');
   else if (kind === 'pile' && (world.obstacles || []).some((o) => o.kind === 'quay')) {
     steelTube(set, ob, 'pileConcrete');                        // harbour piles are concrete
+  } else if (ob.name === 'Training snag' || ob.name === 'Pile P1') {
+    steelTube(set, ob, 'wornPost');
   } else steelTube(set, ob, kind === 'monopile' ? 'monopileSteel' : 'steel');
 }
 
@@ -948,6 +1125,7 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   const rockHex = siteRockColor(world);
   const baseMaterial = makeMaterial || ((kind) => structureMaterial(kind, detail));
   const paint = (kind) => {
+    if (kind === 'reefFace') return dressOutcrop(baseMaterial('rock'), detail);
     const material = kind.startsWith('pen_') ? penMaterial(kind) : baseMaterial(kind);
     // Rock armour and snag rocks share the site's seabed sand/mud tint.
     if (kind === 'rock' && material.color?.setHex) material.color.setHex(rockHex);

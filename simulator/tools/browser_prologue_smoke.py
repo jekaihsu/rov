@@ -28,13 +28,13 @@ def flight_keys(page):
       const {axisChannel} = await import('/input/bindings.js');
       const rows = currentKeyRows();
       const pairs = {};
-      for (const axis of ['surge','yaw','heave']) {
+      for (const axis of ['surge','sway','yaw','heave']) {
         const d = axisChannel(axis,currentOperationMode());
         const own = rows.find(r => r.action === axis && r.keys.length === 2);
         const pair = [...(own || rows.find(r => r.action === d.channel)).keys];
         pairs[axis] = !own && d.sign < 0 ? pair.reverse() : pair;
       }
-      for (const id of ['lock','depth','photo']) pairs[id] = rows.find(r => r.action === id).keys[0];
+      for (const id of ['lock','depth','light','photo']) pairs[id] = rows.find(r => r.action === id).keys[0];
       return pairs;
     }""")
 
