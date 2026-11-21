@@ -1,0 +1,25 @@
+{
+  "names": {
+    "coral": "珊瑚",
+    "seastar": "海星",
+    "seagrass": "海草",
+    "kelp": "海藻",
+    "fish_school": "鱼群",
+    "mussels": "成簇贻贝",
+    "barnacles": "藤壶群",
+    "limpet": "笠螺",
+    "anemones": "海葵群",
+    "brittle_star": "蛇尾",
+    "shell_hash": "碎贝壳层",
+    "crab_molt": "蟹的蜕壳",
+    "rope_offcut": "断绳",
+    "shackle": "卸扣",
+    "bottle_glass": "玻璃瓶碎片",
+    "ceramic_shard": "陶片",
+    "net_patch": "网片",
+    "rust_flake": "剥落的锈片"
+  },
+  "finds": "海域发现记录",
+  "station": "{site} · 样点 {point} · {depth} m",
+  "moreFinds": "更多海域发现"
+}

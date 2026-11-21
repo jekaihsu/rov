@@ -20,6 +20,7 @@ import {buildSiteTopside} from './site_topside.js';
 import {buildWindFarm, horizonMaterial, horizonMesh, TURBINE_TYPES} from './wind_farm.js';
 
 const HARBOUR_KINDS = new Set(['quay', 'bollard', 'fender', 'toe_rock']);
+const HARBOUR_MISSIONS = new Set(['hull_inspection', 'sonar_search']);
 const JACKET_KINDS = new Set(['jacket_leg']);
 const MONOPILE_KINDS = new Set(['monopile', 'transition_piece']);
 const NO_FARM_BIOMES = new Set(['harbor', 'harbour', 'aquaculture', 'reef', 'seagrass']);
@@ -61,7 +62,7 @@ export function surfacePlan(world, centre = new THREE.Vector3()) {
     return {kind: 'lake', farm: null, coast: {arc: 300, distance: [900, 1600], height: [30, 120]}, vessels: [],
       buoys: false};
   }
-  if (NO_FARM_BIOMES.has(scenario.biome) || anyOf(kinds, HARBOUR_KINDS)) {
+  if (HARBOUR_MISSIONS.has(key) || NO_FARM_BIOMES.has(scenario.biome) || anyOf(kinds, HARBOUR_KINDS)) {
     if (scenario.biome === 'aquaculture') {
       return {kind: 'fish-farm', farm: null, coast: {arc: 120, distance: [3800, 5200], height: [60, 260]},
         vessels: ['workboat', 'fishing', 'fishing'], buoys: true};
@@ -71,8 +72,9 @@ export function surfacePlan(world, centre = new THREE.Vector3()) {
         vessels: ['fishing', 'fishing'], buoys: true};
     }
     // Land behind the quay: the harbour's hills, washed out by the overcast haze.
-    const quay = anchorOf(world, HARBOUR_KINDS, centre);
-    const toward = quay.x || quay.z ? Math.atan2(quay.z, quay.x) : null;
+    const quay = world.obstacles?.find(ob => ob.kind === 'quay' && Number.isFinite(ob.normal_deg));
+    // The face normal points seaward in NED. Its opposite in three space points inland.
+    const toward = quay ? THREE.MathUtils.degToRad(quay.normal_deg - 90) : null;
     return {kind: 'harbour', farm: null,
       coast: {arc: 170, distance: [800, 1300], height: [30, 90], toward},
       vessels: ['coaster', 'workboat', 'fishing'], buoys: true};
@@ -145,6 +147,29 @@ function ridgeGeometry(start, span, distance, height, seed, hex, steps) {
   return g;
 }
 
+// A quay apron and low sawtooth of sheds, loading sheds and silos seen across the harbour.
+function portFrontage(parts, facing, random) {
+  const distance = 680;
+  const waterfront = [block(380, 3, 140, 0, 0.7, 65, '#626660')];
+  for (let i = -4; i <= 4; i++) {
+    const x = i * 38;
+    const height = 7 + random() * 6;
+    const setback = 16 + random() * 26;
+    waterfront.push(block(28, height, 40, x, 2 + height / 2, setback, '#78817f'));
+    waterfront.push(block(30, 1, 42, x, height + 2, setback, '#5c6467'));
+    const storeys = 14 + random() * 19;
+    waterfront.push(block(18, storeys, 17, x + 7, 2 + storeys / 2, 93, '#8c9290'));
+  }
+  for (let i = 0; i < 3; i++) {
+    waterfront.push(post(4.6, 2, 25, -132 + i * 11, 69, '#a2a7a0'));
+  }
+  for (const shape of waterfront) {
+    shape.translate(0, 0, distance);
+    shape.rotateY(Math.PI / 2 - facing);
+    parts.push(shape);
+  }
+}
+
 function buildCoast(group, centre, plan, random, detail) {
   const coast = plan.coast;
   const pieces = coast.pieces || 1;
@@ -163,6 +188,7 @@ function buildCoast(group, centre, plan, random, detail) {
         '#66735f', steps));
     }
   }
+  if (plan.kind === 'harbour') portFrontage(parts, facing, random);
   const mesh = horizonMesh(new THREE.Mesh(mergeGeometries(parts, false), horizonMaterial()));
   for (const part of parts) part.dispose();
   mesh.name = 'surface-coast';

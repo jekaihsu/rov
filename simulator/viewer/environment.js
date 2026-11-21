@@ -19,6 +19,7 @@ import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyl
 import {seabedMaterial, siteProfile} from './seabed.js';
 import {HABITAT_ROCKS, habitatRockGeometry, rockLod, upgradeRockMesh} from './scan_materials.js';
 import {buildSurfaceSet} from './surface_set.js';
+import {installDiscoveryDetails} from './discovery_details.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.05, ...o });
@@ -109,6 +110,7 @@ export class Environment {
       this._kelp(R);
       this._fish(R, world);
     }
+    this.discoveries = installDiscoveryDetails(this.group, world, this.observationTargets);
     this._structureLife(world, options.detail || 'medium');
     this._surface(R);
   }
@@ -421,6 +423,7 @@ export class Environment {
   update(dt, camera, flow = null, state = null, flowField = null) {
     this.t = Number.isFinite(state?.t) ? state.t : this.t + dt;
     const t = this.t;
+    this.discoveries?.update(camera);
     this.reef?.update(t, this.fishSchools?.vehicle);
     this.uniforms.uTime.value = t;
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
@@ -452,6 +455,7 @@ export class Environment {
   }
 
   dispose() {
+    this.discoveries?.dispose();
     this.scene.remove(this.group);
     const geometries=new Set(),materials=new Set(),textures=new Set();
     this.group.traverse((o)=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material]))materials.add(m);});

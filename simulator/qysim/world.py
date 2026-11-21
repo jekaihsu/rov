@@ -680,21 +680,30 @@ class World:
         self.biome = "temperate"
         self.terrain = None
         self.habitat_entities = []
+        self.discovery_scenario = None
         self.fish_schools = []
         self.time = 0.0
         self._ecology_accumulator = 0.0
         from .silt import SiltField
         self.silt_field = SiltField(self)
 
-    def configure_habitat(self, biome: str, seed: int, keep_clear=(), schools=None) -> None:
+    def configure_habitat(self, biome: str, seed: int, keep_clear=(), schools=None, site=None) -> None:
         from .ecology import SeabedTerrain, create_habitat
+        self.__dict__.pop("discoveries", None)
         self.world_seed, self.biome = int(seed), biome
         self.obstacles = [o for o in self.obstacles if o.kind != "habitat"]
         relief = 1.4 if biome == "reef" else .5 if biome == "seagrass" else 0.0
         self.terrain = SeabedTerrain(self.seabed_depth, self.world_seed, relief)
+        from .site_habitat import shape_bed
+        shape_bed(self.terrain, site, self.obstacles, keep_clear)
         self.habitat_entities, self.fish_schools = create_habitat(self, biome, self.world_seed, keep_clear,
-                                                                      schools)
+                                                                      schools, site)
         self._obstacle_bounds = None
+
+    @functools.cached_property
+    def discoveries(self) -> list[dict]:
+        from .site_discoveries import place_discoveries
+        return place_discoveries(self.discovery_scenario, self) if self.discovery_scenario else []
 
     def seabed_at(self, position: np.ndarray) -> float:
         if self.terrain is None:
@@ -996,7 +1005,7 @@ class World:
         return {"seabed_depth": self.seabed_depth, "obstacles": [o.as_dict() for o in self.obstacles],
                 "current": self.current.as_dict(), "world_seed": self.world_seed, "generation_version": 1,
                 "biome": self.biome, "terrain": self.terrain.as_dict() if self.terrain is not None else None,
-                "habitat": {"entities": self.habitat_entities,
+                "habitat": {"entities": self.habitat_entities, "discoveries": self.discoveries,
                             "fish_schools": [{"id": s["id"], "pos": s["pos"].round(4).tolist(),
                                               "count": s["count"], "phase": s["phase"], "variant": s["variant"]}
                                              for s in self.fish_schools]}}
