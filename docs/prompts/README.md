@@ -98,3 +98,16 @@ docs/prompts/<檔名>，照做，完成後開 draft PR。」
 | 1 | `R9-playtest-audit.md` | 自動試玩稽核工具，找無聊、卡關、太卡 | 無；R1–R3 合併後再跑一次 |
 | 2 | `R2-chapter1.md` | 第一章港口四關（取代 #113） | R1 合併後 |
 | 2 | `R3-chapter2.md` | 第二章養殖場三關（取代 #108） | R1 合併後 |
+
+## 2026-11-21 新增：S 系列（上架前補齊，全部給 Codex，可與 R 系列同時跑）
+
+| 檔案 | 內容 | 相依 |
+|---|---|---|
+| `S1-small-fixes.md` | 已知小問題一次清掉（Esc、圖層、手把提示、重複清單、日文換行、剩餘 i18n） | R8 未合併時不改 menu/ |
+| `S2-low-end-performance.md` | UHD 620 筆電穩定 30 fps、無卡頓 | 無 |
+| `S3-stability-saves.md` | 存檔版本與遷移、30 分鐘長時間測試、記憶體洩漏 | 無 |
+| `S4-steam-integration.md` | 成就、雲端存檔、Rich Presence（假後端，等 App ID） | 無 |
+| `S5-trailer-capture.md` | 預告片逐幀錄製工具與分鏡 | 無 |
+| `S6-team-training.md` | 內部訓練模式、學員紀錄與成績單、教官觸發事故 | 第 2 步等 R1 合併 |
+| `S7-legal-credits.md` | 第三方授權清單、製作名單、EULA／隱私權／AI 揭露草稿 | 無 |
+| `S8-accessibility-input.md` | 按鍵重設、搖桿曲線、字幕、色弱、動態舒適（取代 #107） | 無 |
