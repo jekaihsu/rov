@@ -2,14 +2,24 @@
   "model": "gpt-4o-mini-tts",
   "characters": {
     "supervisor": {
-      "names": ["林督導", "林岑"],
+      "names": ["林岑", "林督導"],
       "voice": "onyx",
-      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a calm ROV operations supervisor on a workboat radio. Measured, professional, brief. Warm but not jokey. Slight radio-mic distance, steady pace."
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a calm ROV operations supervisor on a small workboat radio. Measured, professional, brief. Warm but not jokey. Slight radio-mic distance, steady pace. Age sense 42-48."
     },
     "tender": {
-      "names": ["阿禾", "甲板 · 纜線手"],
+      "names": ["周楷", "阿禾", "甲板 · 纜線手"],
       "voice": "echo",
-      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a talkative deck cable tender on radio. Friendly workplace chatter, a bit wordy, practical. Not slapstick. Clear and a touch faster than the supervisor."
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a talkative deck cable tender on radio. Friendly workplace chatter, practical. Not slapstick. Clear and a touch faster than the supervisor. Age sense 26-32."
+    },
+    "deck": {
+      "names": ["方晴"],
+      "voice": "nova",
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a practical deck hand on a small boat radio. Clear checklist tone, slightly cool. Age sense 30-36."
+    },
+    "senior": {
+      "names": ["馬力", "马力"],
+      "voice": "fable",
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a lazy-confident senior ROV pilot on radio. Slow, dropping endings; brief metaphors. Age sense 34-40."
     },
     "instructor": {
       "names": ["訓練督導"],
@@ -17,13 +27,18 @@
       "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a careful training instructor on radio. Formal drill tone, precise, no fluff. Calm under pressure."
     },
     "client": {
-      "names": ["船主", "客戶代表", "委託方"],
+      "names": ["葉理", "叶理", "船主", "客戶代表", "委託方", "岸台－葉"],
       "voice": "sage",
-      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a cautious client representative on radio. Polite, slightly anxious about cost and schedule, concise."
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a polite anxious harbour client on radio. Concise, schedule-focused. Age sense 33-40."
+    },
+    "farm": {
+      "names": ["翁慈", "網台－翁"],
+      "voice": "ash",
+      "instructions": "Speak Mandarin Chinese (Traditional Taiwan) as a dry urgent aquaculture farm manager on radio. Numbers and clock bearings. Age sense 40-48."
     }
   },
   "fallback": {
     "voice": "alloy",
-    "instructions": "Speak Mandarin Chinese (Traditional Taiwan) clearly over a workboat radio. Neutral, brief, professional."
+    "instructions": "Speak Mandarin Chinese (Traditional Taiwan) clearly over a small workboat radio. Neutral, brief, professional."
   }
 }
