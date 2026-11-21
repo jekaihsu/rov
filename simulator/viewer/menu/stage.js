@@ -8,8 +8,7 @@ import { placeSceneModelLow } from '../scene_models.js';
 import { applyVehicleSticker } from '../vehicle_stickers.js';
 import { automaticSceneDetail, configureRenderQuality, updateRenderQuality } from '../render_quality.js';
 import { createFrameGate } from '../prefs/display.js';
-import { applyPose, makePerson, POSES as CREW_POSES } from '../figures.js';
-
+import { Humanoid } from '../humanoid.js';
 // Camera per screen: eye offset from the vehicle (metres, three.js axes); shift moves the vehicle right of
 // the screen centre by that many metres (the menus sit on the left), lift raises the look point.
 const POSES = {
@@ -64,7 +63,7 @@ function disposeTree(group) {
   group.clear();
 }
 
-/** Drop loose seabed rocks from the journal shot so piles and the vehicle stay the subject. */
+/** Drop habitat clutter and loose rocks from the journal shot so piles / walls and the vehicle stay the subject. */
 function journalWorld(world) {
   const obstacles = (world.obstacles || []).filter(function keep(obstacle) {
     if (obstacle.kind === 'habitat') return false;
@@ -72,10 +71,11 @@ function journalWorld(world) {
     if (obstacle.kind === 'toe_rock' || obstacle.kind === 'scour_rock') return false;
     return true;
   });
+  // Kelp and seagrass read as flat green slabs under soft lighting; keep fish only.
   const habitat = world.habitat ? {
     ...world.habitat,
     entities: (world.habitat.entities || []).filter(function living(entity) {
-      return entity.kind !== 'rock';
+      return !['rock', 'kelp', 'seagrass', 'seastar'].includes(entity.kind);
     }),
   } : world.habitat;
   return {...world, obstacles, habitat};
@@ -162,6 +162,13 @@ export function createStage(host, { quality = 'auto' } = {}) {
   let still = false;
   let disposed = false;
   let raf = 0;
+  let crewLib = null;
+  let crewTicket = 0;
+  Humanoid.load('models/worker.glb').then(function ready(lib) {
+    if (!disposed) crewLib = lib;
+  }).catch(function ignored() {
+    crewLib = null;
+  });
   const umbilical = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, .1, 0), new THREE.Vector3(-.4, .35, -.8),
     new THREE.Vector3(-1.4, 1.2, -3), new THREE.Vector3(-2.5, 8, -7),
@@ -298,9 +305,25 @@ export function createStage(host, { quality = 'auto' } = {}) {
     scene.fog.near = near;
     scene.fog.far = far;
   }
+  function placeCrew(position, yaw) {
+    if (!crewLib) return;
+    const crew = new Humanoid(crewLib, {
+      shirt: 0x2b3f55, pants: 0x2a2f36, vest: 0xff6a13, helmet: 0xf4f4ef,
+    });
+    crew.root.position.copy(position);
+    crew.root.rotation.y = yaw;
+    crew.play('Idle', {at: 0.4});
+    crew.root.traverse(function shade(object) {
+      if (object.isMesh) object.castShadow = true;
+    });
+    dressing.add(crew.root);
+    dressing.userData.crew = crew;
+  }
   function dressJournal(world) {
     disposeTree(dressing);
+    dressing.userData.crew = null;
     if (!journal) return;
+    const ticket = ++crewTicket;
     const piles = (world.obstacles || []).filter(function pile(obstacle) {
       return obstacle.type === 'cylinder' && (!obstacle.kind || obstacle.kind === 'pile');
     });
@@ -309,37 +332,37 @@ export function createStage(host, { quality = 'auto' } = {}) {
       const second = piles[1]
         ? P(piles[1].p0).lerp(P(piles[1].p1), 0.4)
         : first.clone().add(new THREE.Vector3(2, 0, 1));
-      const cable = workCable(first.clone().add(new THREE.Vector3(0.1, 0.2, 0)), second);
-      dressing.add(cable);
+      dressing.add(workCable(first.clone().add(new THREE.Vector3(0.1, 0.2, 0)), second));
+      // A second working line from the vehicle toward the nearest pile, so the shot reads as a live job.
+      dressing.add(workCable(anchor.clone().add(new THREE.Vector3(0.05, 0.12, 0)), first));
       const deck = (world.obstacles || []).find(function jetty(obstacle) {
         return obstacle.kind === 'deck';
       });
       if (deck?.center) {
-        const crew = makePerson({suit: 0x243746, vest: 0xff6a13, helmet: 0xf4f4ef});
-        applyPose(crew.j, CREW_POSES.stand);
-        crew.root.position.copy(P(deck.center));
-        crew.root.position.y += 0.05;
-        crew.root.rotation.y = Math.PI * 0.65;
-        crew.root.traverse(function shade(object) {
-          if (object.isMesh) {
-            object.castShadow = true;
-            object.receiveShadow = true;
-          }
-        });
-        dressing.add(crew.root);
+        const spot = P(deck.center);
+        spot.y += 0.02;
+        placeCrew(spot, Math.PI * 0.7);
       }
     } else {
-      // Indoor pool: a tender on the pool deck at the waterline, plus a spare umbilical loop in frame.
-      const crew = makePerson({suit: 0x2a3a48, vest: 0xff7a2f, helmet: 0xf2f2f0});
-      applyPose(crew.j, CREW_POSES.stand);
-      crew.root.position.set(anchor.x + 1.2, 0.02, anchor.z - 4.5);
-      crew.root.rotation.y = Math.PI;
-      dressing.add(crew.root);
-      const loop = workCable(
-        anchor.clone().add(new THREE.Vector3(-0.3, 0.05, 0.2)),
-        anchor.clone().add(new THREE.Vector3(1.6, 0.4, -1.8)),
-      );
-      dressing.add(loop);
+      // Indoor pool / open water: spare umbilical loops in frame with the live tether.
+      dressing.add(workCable(
+        anchor.clone().add(new THREE.Vector3(-0.25, 0.08, 0.15)),
+        anchor.clone().add(new THREE.Vector3(1.8, 0.55, -1.4)),
+      ));
+      dressing.add(workCable(
+        anchor.clone().add(new THREE.Vector3(0.35, -0.05, -0.2)),
+        anchor.clone().add(new THREE.Vector3(-1.2, 0.35, -2.2)),
+      ));
+      // Deck tender at the pool rim (waterline), looking toward the vehicle.
+      placeCrew(new THREE.Vector3(anchor.x + 0.8, 0.02, anchor.z - 3.8), Math.PI);
+    }
+    // Humanoid loads asynchronously; refresh dressing once when the library arrives.
+    if (!crewLib) {
+      Humanoid.load('models/worker.glb').then(function ready(lib) {
+        if (disposed || ticket !== crewTicket) return;
+        crewLib = lib;
+        dressJournal(world);
+      }).catch(function ignored() {});
     }
   }
   // entry: a scene_previews.json entry; showcase: frame it as the title backdrop (SHOWCASE) instead.
@@ -472,6 +495,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
       scene.fog.far = sea[2];
     }
     environment?.update(dt, camera, new THREE.Vector3(0.1, 0, 0));
+    dressing.userData.crew?.update?.(dt);
     tether.position.copy(anchor);
     renderer.render(scene, camera);
     still = holdShot && state.modelReady;

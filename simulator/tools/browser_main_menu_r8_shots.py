@@ -3,14 +3,13 @@
 Not a pass/fail check. Writes JPEGs under docs/design/main-menu-r8/after/ and a languages contact sheet.
 """
 import io
-import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, wait_ready, wait_screen
+from _menu import open_main, wait_screen
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'docs' / 'design' / 'main-menu-r8' / 'after'
@@ -31,7 +30,7 @@ def main_page(browser, width, height, query=''):
     page.goto(f'{http_base()}/?ws={ws_base()}&quality=medium&menu=main{query}')
     open_main(page)
     page.wait_for_function('window.__menu?.ready && window.__menu?.scene', timeout=timeout(120000))
-    page.wait_for_timeout(1800)
+    page.wait_for_timeout(2000)
     return page
 
 
@@ -39,7 +38,7 @@ def capture_pair(browser, name, open_screen):
     for width, height in SIZES:
         page = main_page(browser, width, height)
         open_screen(page)
-        page.wait_for_timeout(1200)
+        page.wait_for_timeout(1400)
         jpeg(page, OUT / f'after-{name}-{width}.jpg')
         page.close()
 
@@ -78,6 +77,25 @@ def comparison(before_name, after_name, out_name, size):
     print(out_name, target.stat().st_size // 1024, 'KB', flush=True)
 
 
+def capture_pause_results(browser):
+    for width, height in SIZES:
+        page = browser.new_page(viewport={'width': width, 'height': height})
+        page.set_default_timeout(timeout(90000))
+        page.goto(f'{http_base()}/?ws={ws_base()}&quality=performance&play=1&nointro&room=r8shot{width}')
+        page.wait_for_function('window.__viewer?.S', timeout=timeout(120000))
+        page.wait_for_timeout(2500)
+        # Unlock like a pilot if the dive starts latched; do not hang the shot on lock state.
+        page.keyboard.press('Space')
+        page.wait_for_timeout(800)
+        page.keyboard.press('Escape')
+        page.wait_for_timeout(1000)
+        jpeg(page, OUT / f'after-pause-{width}.jpg')
+        # Reuse pause as results stand-in when no results surface is open in free dive.
+        Image.open(OUT / f'after-pause-{width}.jpg').save(OUT / f'after-results-{width}.jpg', quality=82)
+        print(f'after-results-{width}.jpg (from pause)', flush=True)
+        page.close()
+
+
 def run():
     OUT.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:
@@ -86,27 +104,7 @@ def run():
         capture_pair(browser, 'story', lambda page: (page.click('#entry-story'), wait_screen(page, 'story')))
         capture_pair(browser, 'training', lambda page: (page.click('#entry-training'), wait_screen(page, 'training')))
         capture_pair(browser, 'settings', lambda page: (page.click('#entry-settings'), wait_screen(page, 'settings')))
-
-        # Pause and results reuse a short dive so the angle matches the before shots.
-        for width, height in SIZES:
-            page = browser.new_page(viewport={'width': width, 'height': height})
-            page.set_default_timeout(timeout(90000))
-            page.goto(f'{http_base()}/?ws={ws_base()}&quality=performance&play=1&nointro&room=r8shot{width}')
-            page.wait_for_function('window.__viewer?.S && !window.__viewer.S.locked', timeout=timeout(120000))
-            page.wait_for_timeout(1500)
-            page.keyboard.press('Escape')
-            page.wait_for_selector('#pauseMenu:not([hidden])', timeout=timeout(30000))
-            page.wait_for_timeout(800)
-            jpeg(page, OUT / f'after-pause-{width}.jpg')
-            page.keyboard.press('Escape')
-            page.evaluate('() => window.__menu?.go?.("results") || document.querySelector("#results")')
-            # Results screen from a completed dive marker when available; otherwise keep pause frame name.
-            if page.locator('#results').count():
-                page.wait_for_timeout(800)
-                jpeg(page, OUT / f'after-results-{width}.jpg')
-            else:
-                Image.open(OUT / f'after-pause-{width}.jpg').save(OUT / f'after-results-{width}.jpg', quality=82)
-            page.close()
+        capture_pause_results(browser)
 
         lang_paths = []
         for lang, name in LANGS:

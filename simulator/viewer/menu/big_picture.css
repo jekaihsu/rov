@@ -400,26 +400,26 @@ body:is(.pause-open, .results-open) > :not(.app, .pause-menu, .results-screen, .
 .field-title { margin: .18em 0 .12em; max-width: 65vw; font-size: clamp(40px, 5.6vw, 104px);
   font-weight: 850; line-height: 1.04; text-wrap: balance; }
 .field-progress { margin: 0 0 3.4vh; font-size: clamp(16px, 1.45vw, 26px); }
-.field-actions { display: grid; gap: .7vh; min-width: clamp(240px, 22vw, 380px); }
-.field-action { padding: .85vh 1.2vw; font-size: clamp(26px, 3.4vh, 44px); font-weight: 750;
+.field-actions { display: grid; gap: .95vh; min-width: clamp(300px, 28vw, 460px); }
+.field-action { padding: 1.15vh 1.45vw; font-size: clamp(34px, 4.8vh, 58px); font-weight: 800;
   letter-spacing: .02em; text-align: left; }
-.field-action:first-child { background: #ff7a2f; color: #101819; margin-bottom: 1vh; }
+.field-action:first-child { background: #ff7a2f; color: #101819; margin-bottom: 1.1vh; }
 .launch-menu .field-action:is(:focus, :hover), .launch-menu .field-order:is(:focus, :hover) {
-  outline: 4px solid #eef3f0; outline-offset: 3px; box-shadow: none; background: rgba(255, 122, 47, .22); }
+  outline: 4px solid #eef3f0; outline-offset: 4px; box-shadow: none; background: rgba(255, 122, 47, .28); }
 .launch-menu .field-action:first-child:is(:focus, :hover) { background: #ff8d4d; color: #101819; }
 .field-story .menu-settings { width: 100%; max-width: none; }
 .field-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(430px,100%),1fr)); gap: 16px; }
 .field-order { position: relative; width: 100%; aspect-ratio: 2.25; container-type: size; }
-.field-order.is-locked .brand-card-photo { background: #071018; }
-.field-order.is-locked .brand-card-photo img { filter: grayscale(1) brightness(0) contrast(1.15);
-  opacity: .55; mix-blend-mode: luminosity; }
-.field-order.is-locked .brand-card-drawing { filter: brightness(0); opacity: .92; }
+.field-order.is-locked .brand-card-photo { background: linear-gradient(145deg, #14232c, #0a1218); }
+.field-order.is-locked .brand-card-photo img { opacity: 0; }
+.field-order.is-locked .brand-card-drawing {
+  filter: brightness(0) invert(.42); opacity: 1; mix-blend-mode: screen; }
+.field-order.is-locked .brand-card-drawing svg { opacity: 1; }
 .field-order.is-locked .brand-card-paper { background: #d7dde0; }
 .field-order.is-locked .brand-card-title,
-.field-order.is-locked .brand-card-sub,
 .field-order.is-locked .brand-card-number,
 .field-order.is-locked .brand-card-client { color: #4a5560; }
-.field-order.is-locked .brand-card-sub { color: #c45a1a; font-weight: 700; letter-spacing: .04em; }
+.field-order.is-locked .brand-card-sub { color: #c45a1a; font-weight: 750; letter-spacing: .05em; }
 .field-order .brand-card-title { color: #101d22; font-size: clamp(16px, 6cqh, 28px); }
 .field-order .brand-card-head { flex-wrap: wrap; }
 .field-order .brand-card-mark { display: none; }
