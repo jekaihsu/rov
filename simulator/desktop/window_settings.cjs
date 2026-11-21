@@ -27,7 +27,7 @@ function snapshot(data) {
   // Preserve each launch's input before Auto-Cloud or the next launch replaces files.
   const target = require('node:path').join(data, 'local-backups', String(Date.now()));
   fs.mkdirSync(target, { recursive: true });
-  for (const name of ['preferences.json', 'collection', 'window.json']) {
+  for (const name of ['preferences.json', 'collection', 'window.json', 'saves']) {
     const source = require('node:path').join(data, name);
     if (fs.existsSync(source)) fs.cpSync(source, require('node:path').join(target, name), { recursive: true });
   }

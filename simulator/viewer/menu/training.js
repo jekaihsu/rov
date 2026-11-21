@@ -28,7 +28,8 @@ function element(tag, className, text) {
 export function completedChapters() {
   try {
     const save = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
-    return Array.isArray(save?.completed) ? save.completed : [];
+    if (!save || typeof save !== 'object') return [];
+    return Array.isArray(save.completed) ? save.completed : [];
   } catch {
     return [];
   }

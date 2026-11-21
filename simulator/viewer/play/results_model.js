@@ -4,8 +4,8 @@
 // No DOM here, so node --test can load it. Medals and the chapter/contract scores are a presentation layer only:
 // scenario scores stay the server's, and nothing here is a training standard.
 import { vehicleName, vehicleRole } from '../fleet_names.js';
-
 import { localize } from '../i18n/index.js';
+import { resultsStore } from '../saves/registry.js';
 
 const STRINGS = localize('play.results_model', {
   rows: {
@@ -372,12 +372,9 @@ export function createOutcomeWatcher() {
 }
 
 function readAll(storage) {
-  try {
-    const value = JSON.parse(storage?.getItem(RESULTS_KEY) || '{}');
-    return value && typeof value === 'object' ? value : {};
-  } catch {
-    return {};
-  }
+  const loaded = resultsStore.load(storage);
+  const { version: _version, ...records } = loaded.value;
+  return records;
 }
 
 // The best record for one key: {best, medal, at} or null.
@@ -397,11 +394,7 @@ export function recordResult(outcome, storage = globalThis.localStorage, now = D
   } else if (previous && outcome.success && MEDAL_RANK[outcome.medal] > MEDAL_RANK[previous.medal]) {
     all[outcome.recordKey] = { ...previous, medal: outcome.medal };
   }
-  try {
-    storage?.setItem(RESULTS_KEY, JSON.stringify(all));
-  } catch {
-    // Private windows may refuse storage; the screen still shows this run.
-  }
+  resultsStore.save(all, storage);
   return {
     best: all[outcome.recordKey]?.best ?? null,
     previous: previous?.best ?? null,

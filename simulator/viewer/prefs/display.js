@@ -4,6 +4,7 @@
 // on <html> (play/play.css, menu.css, hud styles read them). Camera field of view and motion comfort are
 // fidelity items instead (prefs/camera_items.js) because the camera rig reads the fidelity store.
 // The instrument OSD keeps metric units: it mirrors the real vehicle's overlay.
+import { displayStore } from '../saves/registry.js';
 
 const STRINGS = {
   languages: { 'zh-Hant': '繁體中文', en: 'English', 'zh-Hans': '简体中文', ja: '日本語' },
@@ -56,12 +57,19 @@ export function createDisplayPrefs({ storage = globalThis.localStorage } = {}) {
   // The language is stored only once the player picks one; until then the Steam or browser language
   // decides (i18n/index.js). Saving the default with another preference would pin Traditional Chinese.
   let languageChosen = false;
+  let raw = null;
   try {
-    const stored = JSON.parse(storage?.getItem(DISPLAY_KEY) || '{}');
-    values = normaliseDisplay(stored);
-    languageChosen = values.language === stored?.language;
+    raw = JSON.parse(storage?.getItem(DISPLAY_KEY) || 'null');
   } catch {
+    raw = null;
+  }
+  const loaded = displayStore.load(storage);
+  if (loaded.recovered || loaded.reason === 'empty' || !raw || typeof raw !== 'object') {
     values = normaliseDisplay();
+  } else {
+    values = normaliseDisplay(raw);
+    languageChosen = Object.prototype.hasOwnProperty.call(raw, 'language')
+      && values.language === raw.language;
   }
   const listeners = new Set();
   function set(id, value) {
@@ -69,8 +77,14 @@ export function createDisplayPrefs({ storage = globalThis.localStorage } = {}) {
     if (id === 'language') languageChosen = true;
     const saved = { ...values };
     if (!languageChosen) delete saved.language;
+    // Persist through the versioned store, but keep the "no language until chosen" omission by
+    // writing the trimmed object with an explicit version tag.
     try {
-      storage?.setItem(DISPLAY_KEY, JSON.stringify(saved));
+      storage?.setItem(DISPLAY_KEY, JSON.stringify({ ...saved, version: displayStore.version }));
+      globalThis.window?.rovDesktop?.saves?.write?.(
+        DISPLAY_KEY,
+        JSON.stringify({ ...saved, version: displayStore.version }),
+      );
     } catch {
       // Storage may be unavailable; the choice still applies to this page.
     }

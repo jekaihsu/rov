@@ -72,18 +72,46 @@ const LEARNED_KEY = 'rov.quality.learned.v1';
 let learnedApplied = false;
 
 function readLearned(hardware) {
+  // Inline parse so this file stays free of relative imports (data-URL unit tests).
   try {
-    const value = JSON.parse(globalThis.localStorage?.getItem(LEARNED_KEY) || 'null');
-    if (!value || value.renderer !== hardware.renderer || !Number.isFinite(value.ratio)) return null;
-    return value;
+    const raw = globalThis.localStorage?.getItem(LEARNED_KEY);
+    if (!raw) return null;
+    if (raw.length > 8192) {
+      try {
+        globalThis.localStorage?.setItem(LEARNED_KEY + '.corrupt', raw.slice(0, 8192));
+      } catch {
+        /* ignore */
+      }
+      return null;
+    }
+    const value = JSON.parse(raw);
+    if (!value || typeof value !== 'object' || value.renderer !== hardware.renderer) return null;
+    if (!Number.isFinite(value.ratio)) return null;
+    return {
+      renderer: value.renderer,
+      ratio: value.ratio,
+      effectsSuppressed: !!value.effectsSuppressed,
+      version: 1,
+    };
   } catch {
+    try {
+      const raw = globalThis.localStorage?.getItem(LEARNED_KEY);
+      if (raw) globalThis.localStorage?.setItem(LEARNED_KEY + '.corrupt', raw.slice(0, 8192));
+    } catch {
+      /* ignore */
+    }
     return null;
   }
 }
 
 function writeLearned(state) {
   if (!state.learn) return;
-  const value = {renderer: state.hardware.renderer, ratio: state.ratio, effectsSuppressed: state.effectsSuppressed};
+  const value = {
+    version: 1,
+    renderer: state.hardware.renderer,
+    ratio: state.ratio,
+    effectsSuppressed: state.effectsSuppressed,
+  };
   try {
     globalThis.localStorage?.setItem(LEARNED_KEY, JSON.stringify(value));
   } catch {
