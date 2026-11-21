@@ -9,7 +9,7 @@ import { localize } from '../i18n/index.js';
 
 export const STRINGS = localize('brand.demo_page', {
   titles: {
-    prologue: '序章｜水池',
+    prologue: '序章｜見習之前',
     harbor: '第一章｜港灣',
     hull: '第一章｜船殼',
     offshore: '第二章｜離岸',

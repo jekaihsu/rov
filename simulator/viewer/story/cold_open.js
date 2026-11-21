@@ -15,9 +15,10 @@
 //   const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide], music});
 //   coldOpen.update(state, world);   // every server state
 //   coldOpen.frame(dt);              // every frame, after the camera rig and before the render
+import {createBeatStage, element, establishingShot, presentStage} from './beat_stage.js';
 import { TIMING, createColdOpenDirector } from './cold_open_model.js';
 import { CHAPTER, FLAG, followUpUrl, markColdOpenSeen } from './cold_open_flow.js';
-import { CINEMATIC_MUSIC, createCinematicLook, isScriptedBeat } from './cold_open_presentation.js';
+import { CINEMATIC_MUSIC, createCinematicLook, isScriptedBeat } from './cutscene_look.js';
 import { beautifyEnabled } from '../fx/beautify.js';
 import { getFidelity } from '../fidelity.js';
 import { actionCaps, axisCaps } from '../play/onboarding.js';
@@ -89,18 +90,8 @@ const CARD_MS = 4800;
 // vehicle drifts with the slack-water current through the opening, so a page drawing a frame a second must not
 // stretch those fifteen seconds into minutes. A page that stalls for longer still does not skip beats.
 const CLOCK_STEP_MAX_S = 1.0;
-const ESTABLISH_ARC = Object.freeze({from: 1.3, to: 2.85, radiusFrom: 5.5, radiusTo: 2.4, liftFrom: -0.2,
-  liftTo: 0.75});
-const CINE_FOV = 46;
 const TENSION_HOLD_S = 3;
 const CUT_SETTLE_S = 0.6;
-
-function element(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text != null) node.textContent = text;
-  return node;
-}
 
 function isCjk(language) {
   return /^(zh|ja)/.test(language || '');
@@ -147,34 +138,8 @@ export function installColdOpen({
   }};
   if (!mode) return inert;
   const voice = installVoice();
-  const body = document.body;
-  body.classList.add('cold-open', 'cold-open-cinematic');
-  const style = document.createElement('link');
-  style.rel = 'stylesheet';
-  style.href = new URL('./cold_open.css', import.meta.url).href;
-  document.head.append(style);
-  const root = element('div', 'cold-open-layer');
-  root.id = 'coldOpen';
-  const black = element('div', 'cold-open-black');
-  const bars = element('div', 'cold-open-bars');
-  bars.append(element('i'), element('i'));
-  const superCard = element('div', 'cold-open-super');
-  superCard.append(element('strong', '', STRINGS.location[0]), element('span', '', STRINGS.location[1]));
-  const radio = element('div', 'cold-open-radio');
-  radio.setAttribute('role', 'status');
-  radio.setAttribute('aria-live', 'polite');
-  const speaker = element('small', 'cold-open-speaker');
-  const words = element('p', 'cold-open-words');
-  radio.append(speaker, words);
-  const hint = element('div', 'cold-open-hint');
-  hint.id = 'coldOpenHint';
-  const stamp = element('div', 'cold-open-stamp', STRINGS.stamp);
-  const tension = element('div', 'cold-open-tension');
-  tension.id = 'coldOpenTension';
-  root.append(black, bars, superCard, radio, hint, stamp, tension);
-  body.append(root);
-  black.style.opacity = '1';
-
+  const stage = createBeatStage('coldOpen', STRINGS.location, STRINGS.stamp);
+  const {body, black, radio, speaker, words, hint, stamp, tension} = stage;
   let world = null;
   let state = null;
   let director = null;
@@ -405,14 +370,15 @@ export function installColdOpen({
     }
     const dip = cutDip();
     black.style.transition = dip > 0 ? 'none' : '';
-    black.style.opacity = String(Math.max(next.black, dip));
-    root.classList.toggle('letterbox', next.letterbox);
-    // The HUD stays hidden a moment past the cut, until the camera rig has settled on the onboard view.
-    body.classList.toggle('cold-open-cinematic', next.cinematic || cineMode || now() - cutAt < CUT_SETTLE_S);
-    superCard.classList.toggle('visible', next.beat === 'establish' && now() > TIMING.black + 1.2);
+    presentStage(stage, {
+      black: Math.max(next.black, dip),
+      letterbox: next.letterbox,
+      cinematic: next.cinematic || cineMode || now() - cutAt < CUT_SETTLE_S,
+      location: next.beat === 'establish' && now() > TIMING.black + 1.2,
+      reveal: next.reveal,
+    });
     stamp.classList.toggle('visible', next.beat === 'payoff');
     tension.classList.toggle('visible', next.reveal.includes('tether') && !next.ended);
-    body.dataset.coldReveal = next.reveal.join(' ');
     renderHint(next.ended ? null : relockHint(next) || next.hint);
     // Scripted beats only: the beautified picture and the cutscene music. From the handover on, and after an end
     // or a skip, the picture and the music are the player's own fidelity settings again.
@@ -473,24 +439,7 @@ export function installColdOpen({
   function shot() {
     if (!camera || !rovG || view?.beat !== 'establish') return;
     const time = Math.max(0, now() - TIMING.black);
-    const k = easeInOut(time / TIMING.establish);
-    const forward = camera.position.clone().set(0, 0, 1).applyQuaternion(rovG.quaternion);
-    forward.y = 0;
-    forward.normalize();
-    const right = forward.clone().set(-forward.z, 0, forward.x);
-    const angle = ESTABLISH_ARC.from + (ESTABLISH_ARC.to - ESTABLISH_ARC.from) * k;
-    const radius = ESTABLISH_ARC.radiusFrom + (ESTABLISH_ARC.radiusTo - ESTABLISH_ARC.radiusFrom) * k;
-    const lift = ESTABLISH_ARC.liftFrom + (ESTABLISH_ARC.liftTo - ESTABLISH_ARC.liftFrom) * k;
-    const offset = forward.clone().multiplyScalar(Math.cos(angle) * radius)
-      .add(right.clone().multiplyScalar(Math.sin(angle) * radius));
-    camera.position.copy(rovG.position).add(offset);
-    camera.position.y += lift;
-    const look = rovG.position.clone().add(forward.clone().multiplyScalar(1.9 + 3.6 * k));
-    look.y += 0.2 * (1 - k);
-    camera.up.set(0, 1, 0);
-    camera.lookAt(look);
-    camera.fov = CINE_FOV;
-    camera.updateProjectionMatrix();
+    establishingShot(camera, rovG, easeInOut(time / TIMING.establish));
   }
   function frame(dt = 0) {
     for (const object of hidden) {
