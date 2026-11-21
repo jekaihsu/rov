@@ -94,9 +94,14 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
   }
   element("h2", STRINGS.title);
   const close = element("button", STRINGS.close);
-  close.onclick = function closeSettings() {
+  function releaseEditorFocus() {
+    if (!root.open && root.contains(document.activeElement)) document.activeElement.blur();
+  }
+  function closeSettings() {
     root.close();
-  };
+    releaseEditorFocus();
+  }
+  close.onclick = closeSettings;
   button.onclick = function openSettings() {
     if (root.open) return;
     waitRelease = true;
@@ -230,6 +235,7 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     showCollisions();
   }
   root.addEventListener("close", function resetCapture() {
+    releaseEditorFocus();
     capturePad = null;
   });
   renderBindings();
@@ -397,7 +403,7 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       document.activeElement?.click();
       waitRelease = true;
     }
-    else if (b[NAV.back] > 0.5) root.close();
+    else if (b[NAV.back] > 0.5) closeSettings();
     else if (document.activeElement?.type === "range" && (b[NAV.left] > 0.5 || b[NAV.right] > 0.5)) {
       const input = document.activeElement;
       input.value = +input.value + (b[NAV.right] > 0.5 ? 1 : -1) * +input.step;
