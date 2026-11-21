@@ -1,7 +1,7 @@
 {
   "clients": {
     "yx": {
-      "label": "YX crew"
+      "label": "YX Marine Services"
     },
     "harbor": {
       "label": "Harbour authority"
@@ -33,7 +33,7 @@
   "chapters": {
     "prologue": {
       "title": "Prologue · Before trainee status",
-      "summary": "Company pool and open water: lock in the basics and earn your trainee pilot licence."
+      "summary": "Qualify in the Qingyu harbour pool and sheltered water offshore."
     },
     "ch1": {
       "title": "Chapter 1 · Harbour and vessels",
@@ -47,25 +47,25 @@
   "contracts": {
     "p0_induction": {
       "title": "New-hire induction: pool ops class",
-      "clientName": "YX Training",
-      "summary": "Supervisor Lin walks you through the company pool: arm, move, depth hold, lights, photos.",
-      "brief": "HR says new hires finish the pool ops class in week one before they get kit. Supervisor Lin will talk you through it on the radio—just follow along. Mistakes don't cost points, and the pool isn't going anywhere.",
+      "clientName": "YX Marine Services · Training",
+      "summary": "Ma Li flies alongside. Observe depth drift at the north wall, then photograph three plates.",
+      "brief": "Qingyu training pool. Fresh water, no current. Zhou tends the tether while Ma coaches. Bring Lin one photo from each of the north, east and south walls.",
       "radio": {
-        "speaker": "Supervisor Lin",
-        "start": "Pool class. No clock. Hands on the sticks, listen up.",
-        "done": "Good—basics are there. This afternoon, sign off the pool checkout dive."
+        "speaker": "Lin Cen",
+        "start": "Control calling R-1. First watch together. Check in.",
+        "done": "Secure the deck. Procedure complete."
       }
     },
     "p1_pool_checkout": {
       "title": "Pool checkout dive",
-      "clientName": "YX Equipment",
-      "summary": "Post-maintenance vehicle needs an in-water check: arm, hover, one photo per three pool walls, return to launch.",
-      "brief": "Equipment just swapped the thruster shaft seals. They need an in-water checkout record before it ships. Follow the checklist: arm thrusters, hover mid-pool 20 seconds and watch for drift, photo the north, east, and south walls with overlay, then return to the launch point for recovery. Photos need to show wall—not a blue blur.",
+      "clientName": "YX Marine Services · Training",
+      "summary": "Arm, hover, photograph three pool walls and return to launch. About 15–20 min.",
+      "brief": "YX-TR-001, Model R. Complete the pre-dive check, arm in water, hover for 20 seconds, photograph three walls and return to launch. Keep thrusters locked on deck.",
       "radio": {
-        "speaker": "Equipment desk · A-Zhe",
-        "start": "Seals are new. Any odd noise, call me—don't force it.",
-        "done": "Record received. Vehicle's fine. So are you.",
-        "partial": "Got a partial record—signing what we have. Finish the rest tomorrow."
+        "speaker": "Lin Cen",
+        "start": "In water. Arm when the platform is clear.",
+        "done": "Photos received. Prepare recovery.",
+        "partial": "Everyone back safe. Repeat the run."
       },
       "deliverables": {
         "unlock": "Arm thrusters",
@@ -79,14 +79,14 @@
     },
     "p2_open_water": {
       "title": "Open-water familiarization (trainee exam)",
-      "clientName": "YX Training",
-      "summary": "Trainee exam: four checkpoints, depth hold, sticks-off drift check, back to launch. Full realism mode.",
-      "brief": "This is the trainee pilot exam dive. Outside isn't a pool: there's a light current, sticks are thrust not speed, and the vehicle keeps drifting after you let go. Hit four checkpoints in order, engage depth hold along the way; between 2 and 3, hover 15 seconds and feel the drift, then return to launch. Exam uses real settings—no station-keep assist, no external view.",
+      "clientName": "YX Marine Services · Training",
+      "summary": "Four buoys, depth hold, and a drift check with sticks released. Real mode, 15–20 min.",
+      "brief": "YX-TR-002. In sheltered water outside Qingyu harbour, visit four checkpoints, hold depth, release the sticks to observe drift, then steady up and return. Mild current. Real mode is required for the trainee licence exam.",
       "radio": {
-        "speaker": "Supervisor Lin",
-        "start": "I'm the examiner, but I only watch the record. Take your time—current's light.",
-        "done": "Pass. Pick up the trainee card from HR this afternoon—bring a photo.",
-        "partial": "Not enough for a card. Rest up; try again tomorrow."
+        "speaker": "Lin Cen",
+        "start": "R-1, four buoy checkpoints, in order.",
+        "done": "Familiarization complete. Back to the boat.",
+        "partial": "Right call coming back. Repeat the familiarization dive."
       },
       "deliverables": {
         "unlock": "Arm thrusters",

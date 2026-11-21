@@ -75,10 +75,14 @@ def check_menu(page, base):
 
 
 def start_prologue(page, base):
+    # A node-format save still opens with the chapter card. New games have the directed pool shot.
+    page.add_init_script('''localStorage.setItem("rov.campaign.v1", JSON.stringify({
+      completed: [], checkpoint: {chapter:"prologue", index:0}
+    }))''')
     page.goto(f'{base}/?play=1&nointro&mission=campaign&chapter=prologue&quality=performance'
               f'&room=brand{time.time_ns()}&ws={ws_base(8792)}')
     facts = page.wait_for_function(CARD_FACTS, timeout=timeout(120000)).json_value()
-    assert facts == {'chapter': 'prologue', 'title': '水池', 'number': '序章 / 00', 'symbols': 2,
+    assert facts == {'chapter': 'prologue', 'title': '見習之前', 'number': '序章 / 00', 'symbols': 2,
                      'inGame': True, 'covers': True}, facts
 
 

@@ -1,0 +1,28 @@
+{
+  "menuOption": "YX 海事服务 · 剧情与新手教学",
+  "menuBrief": "从水池练习开始，解锁港湾与船壳巡检。章节与课程可在任务面板重玩。",
+  "sticker": "装上首次下潜贴纸",
+  "vehicle": "部署解锁的作业载具 YX Model V",
+  "resume": "从存档点继续",
+  "saveFailed": "进度保存失败，请导出学员成绩备份。",
+  "title": "YX 海事服务",
+  "chapters": "章节 / 训练课程",
+  "next": "继续",
+  "skip": "跳过教学",
+  "history": "无线电记录",
+  "pending": "筹备中",
+  "locked": "先完成前一任务",
+  "course": "公司课程（略过故事）",
+  "export": "导出学员成绩",
+  "complete": "任务完成。回到章节选单，准备下一次下潜。",
+  "retry": "先停一下，别急。我们照刚才那一步再试一次。",
+  "replay": "重玩序章",
+  "channels": {
+    "left_ud": "左杆上下",
+    "left_lr": "左杆左右",
+    "right_ud": "右杆上下",
+    "right_lr": "右杆左右",
+    "left_wave": "左滚轮",
+    "right_wave": "右滚轮"
+  }
+}

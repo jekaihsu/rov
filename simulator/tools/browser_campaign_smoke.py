@@ -34,6 +34,9 @@ def run():
         page.goto(f'{http_base(8092)}/?nointro&mission=campaign&control=UAV_CHN'
                   f'&room=campaign{time.time_ns()}&quality=performance&model=bluerov2_heavy&ws={ws_base(8792)}')
         page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
+        page.evaluate('''localStorage.setItem("rov.campaign.v1", JSON.stringify({
+          completed: [], checkpoint: {chapter:"prologue", index:0}
+        }))''')
         open_main(page)
         page.click('#entry-training')
         page.click('#training-tab-story')
