@@ -1,8 +1,8 @@
 // Player display preferences that do not change what the simulator does: language, brightness, interface and
-// text scale, colour-blind warning colours, units on the game HUD and menus, and a frame-rate cap. One store
-// (localStorage rov.display.v1) shared by the launch menu and the game; applied as attributes and CSS variables
-// on <html> (play/play.css, menu.css, hud styles read them). Camera field of view and motion comfort are
-// fidelity items instead (prefs/camera_items.js) because the camera rig reads the fidelity store.
+// text scale, colour-blind warning colours, units on the game HUD and menus, a frame-rate cap, and pad vibration
+// strength. One store (localStorage rov.display.v1) shared by the launch menu and the game; applied as attributes
+// and CSS variables on <html> (play/play.css, menu.css, hud styles read them). Camera field of view and motion
+// comfort are fidelity items instead (prefs/camera_items.js) because the camera rig reads the fidelity store.
 // The instrument OSD keeps metric units: it mirrors the real vehicle's overlay.
 
 const STRINGS = {
@@ -24,11 +24,15 @@ export const DISPLAY_DEFAULTS = Object.freeze({
   colorBlind: 'off',
   units: 'metric',
   fpsCap: 0,
+  hapticStrength: 1,
 });
 export const LIMITS = {
   brightness: [0.7, 1.4],
   uiScale: [0.85, 1.3],
+  hapticStrength: [0, 1],
 };
+// Motion comfort multiplies the stored strength so a comfort session stays gentle without clearing the slider.
+export const COMFORT_HAPTIC_SCALE = 0.25;
 export const COLOR_BLIND_MODES = ['off', 'deuteranopia', 'protanopia', 'tritanopia'];
 export const FPS_CAPS = [0, 30, 60, 120];
 const FEET = 3.28084;
@@ -48,6 +52,9 @@ export function normaliseDisplay(input = {}) {
   if (COLOR_BLIND_MODES.includes(input.colorBlind)) value.colorBlind = input.colorBlind;
   if (['metric', 'imperial'].includes(input.units)) value.units = input.units;
   if (FPS_CAPS.includes(input.fpsCap)) value.fpsCap = input.fpsCap;
+  if (Number.isFinite(input.hapticStrength)) {
+    value.hapticStrength = clamp(input.hapticStrength, LIMITS.hapticStrength);
+  }
   return value;
 }
 
@@ -140,9 +147,23 @@ function apply(values, root, changed) {
   document.dispatchEvent(new CustomEvent('rov-display-change', { detail: { ...values, changed } }));
 }
 
+// One-time copy of the advanced controller dialog's strength into display prefs when the player never set it.
+function migrateHapticStrength(prefs, storage = globalThis.localStorage) {
+  try {
+    const raw = JSON.parse(storage?.getItem(DISPLAY_KEY) || '{}');
+    if (Number.isFinite(raw.hapticStrength)) return;
+    const input = JSON.parse(storage?.getItem('rov.input.v1') || '{}');
+    if (!Number.isFinite(input.strength)) return;
+    prefs.set('hapticStrength', input.strength);
+  } catch {
+    // Missing or private storage: keep the default strength.
+  }
+}
+
 // Applies the stored preferences to the page now and whenever they change.
 export function installDisplayPrefs(root = document.documentElement) {
   const prefs = getDisplayPrefs();
+  migrateHapticStrength(prefs);
   apply(prefs.values, root);
   prefs.subscribe(function changed(values, id) {
     apply(values, root, id);

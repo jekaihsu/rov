@@ -204,3 +204,11 @@ body .hud, .flight { z-index: var(--z-hud); }
 
 /* The controller diagnostic page is not part of the replay showcase build; replays need no controller. */
 body.replaying #controllerCheck { display: none; }
+
+/* Keep the alarm visible beside its instrument even when several alarms overlap. */
+#flightDepth small.warn::before, .readout span.warn::before, #flightOsd .warn::before { content: "⚠ "; }
+html.reduce-flashes #flightShutter.fire, html.motion-comfort #flightShutter.fire { animation: none; }
+html:is(.reduce-flashes, .motion-comfort) .flash { visibility: hidden; }
+body :is(.story-radio, .cold-open-radio, .tether-radio, #crewRadio) { background: rgb(8 18 26 / var(--subtitle-opacity, .72)); }
+body :is(.story-radio, .cold-open-radio, .tether-radio, #crewRadio) p { font-size: var(--subtitle-size, 17px); }
+body :is(.story-radio strong, .cold-open-speaker, .tether-radio strong, #crewRadio strong) { color: var(--speaker-color, #4fd1e0); }

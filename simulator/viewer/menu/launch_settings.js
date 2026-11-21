@@ -1,14 +1,15 @@
 // The launch menu's settings screen: 擬真設定, 控制, 音訊, 畫質, 顯示 and 介面 tabs over the existing panels.
 // Controller tuning reuses the input layer's own settings dialog (input/settings.js) with the same storage.
-import { BINDINGS_VERSION, migrateBindings } from '../input/bindings.js';
+import { inputPreferences as settings, saveInputPreferences as save } from '../input/preferences.js';
 import { createHaptics } from '../input/haptics.js';
 import { migratePadHapticsFromInput } from '../input/haptics_fidelity.js';
-import { rowsFor } from '../input/keyboard_layout.js';
+import { publishKeyRows, rowsFor } from '../input/keyboard_layout.js';
 import { installSettings } from '../input/settings.js';
 import { getFidelity } from '../fidelity.js';
 import { CONTROL_LAYOUTS } from '../control_layout.js';
 import { renderQualityInfo } from '../render_quality.js';
 import { rememberInterface, rememberQuality } from './preferences.js';
+import { mountPreferenceRows } from '../fidelity_panel.js';
 import { mountDisplaySettings } from './display_settings.js';
 import { onboardingSettings } from '../play/onboarding_settings.js';
 import { coldOpenToggle } from '../story/cold_open_menu.js';
@@ -63,40 +64,21 @@ const STRINGS = localize('menu.launch_settings', {
   },
 });
 
-async function readInputSettings() {
-  let settings = {};
-  try {
-    settings = JSON.parse(localStorage.getItem('rov.input.v1') || '{}');
-  } catch {
-    settings = {};
-  }
-  const desktop = await window.rovDesktop?.readInput?.();
-  if (desktop && Object.keys(desktop).length) settings = desktop;
-  settings.custom ||= {};
-  settings.bindings = migrateBindings(settings.bindings, settings.bindingsVersion);
-  settings.bindingsVersion = BINDINGS_VERSION;
-  settings.channels ||= {};
-  return settings;
-}
-
 // The input layer's controller dialog; its button is moved into the controls tab.
 async function mountControllerDialog(container, onLayout) {
-  const settings = await readInputSettings();
   const fidelity = getFidelity();
   let pad = null;
-  function save() {
-    try {
-      localStorage.setItem('rov.input.v1', JSON.stringify(settings));
-    } catch {
-      // Storage may be unavailable; the desktop shell keeps its own copy below.
-    }
-    window.rovDesktop?.rememberInput?.(settings);
-  }
   if (migratePadHapticsFromInput(settings, fidelity)) save();
   const haptics = createHaptics(function currentPad() {
     return pad;
   }, settings, fidelity);
-  const panel = installSettings(settings, save, haptics, onLayout);
+  function refreshHints() {
+    const rows = rowsFor(settings);
+    publishKeyRows(rows);
+    container.parentElement.querySelector(".menu-hints")?.remove();
+    mountKeyHints(container.parentElement, settings.bindings, {rows});
+  }
+  const panel = installSettings(settings, save, haptics, onLayout, refreshHints);
   const button = document.getElementById('inputSettingsButton');
   button.textContent = STRINGS.controllerSettings;
   button.className = 'menu-next menu-wide';
@@ -140,6 +122,8 @@ export function buildLaunchSettings(ctx) {
       ctx.choice.control = layout.value;
     });
     field(pane, { id: 'menuControl', label: STRINGS.control, control: layout });
+    mountPreferenceRows(pane, ['leftDeadzone', 'leftResponse', 'leftInvert',
+      'rightDeadzone', 'rightResponse', 'rightInvert']);
     const dialogSlot = element('div', 'menu-field');
     pane.append(dialogSlot);
     mountControllerDialog(dialogSlot, function setLayout(mode) {
