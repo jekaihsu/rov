@@ -348,13 +348,14 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     );
     ctx.fillStyle = "#5fd38a";
     ctx.fill();
-    if (!pad || !frame.snapshot.known || performance.now() - lastNavigation < 220) return;
+    if (!pad || !frame.snapshot.known) return;
     const b = frame.snapshot.buttons;
     const focused = document.activeElement;
     if (waitRelease) {
       if (b.some(value => value > 0.5) || frame.snapshot.axes.some(value => Math.abs(value) > 0.6)) return;
       waitRelease = false;
     }
+    if (!capturePad && performance.now() - lastNavigation < 220) return;
     if (capturePad && focused === capturePad) {
       const buttonIndex = b.findIndex(value => value > 0.5);
       const axisIndex = frame.snapshot.axes.findIndex((value) => Math.abs(value) > 0.75);

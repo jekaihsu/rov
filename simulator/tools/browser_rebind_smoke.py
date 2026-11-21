@@ -15,13 +15,25 @@ Object.defineProperty(navigator, 'getGamepads', {value: () => [window.testPad]})
 """
 
 
+def release_pad(page):
+    """Wait until the editor sampled neutral, including when software rendering delays a frame."""
+    page.wait_for_function("""() => {
+      const dialog = document.querySelector('#inputSettings');
+      if (!dialog.open) return true;
+      const raw = dialog.querySelector('pre').textContent;
+      if (!raw) return false;
+      const sample = JSON.parse(raw);
+      return sample.buttons?.every(v => !v) && sample.axes?.every(v => !v);
+    }""", polling=20)
+
+
 def pad_press(page, button, condition):
     page.evaluate('i => Object.assign(testPad.buttons[i], {pressed: true, value: 1})', button)
     try:
         page.wait_for_function(condition, polling=20)
     finally:
         page.evaluate('i => Object.assign(testPad.buttons[i], {pressed: false, value: 0})', button)
-    page.wait_for_timeout(300)
+    release_pad(page)
 
 
 def check_pad_editor(page):
@@ -29,7 +41,7 @@ def check_pad_editor(page):
     page.evaluate('for (const i of [8,9]) Object.assign(testPad.buttons[i], {pressed: true, value: 1})')
     page.wait_for_selector('#inputSettings[open]')
     page.evaluate('for (const i of [8,9]) Object.assign(testPad.buttons[i], {pressed: false, value: 0})')
-    page.wait_for_timeout(300)
+    release_pad(page)
     for selector in ['#inputSettings h2 + button + button', '#keyboardBindings summary', '#padBindings summary']:
         pad_press(page, 13, f'document.activeElement.matches("{selector}")')
     pad_press(page, 0, 'document.querySelector("#padBindings").open')
@@ -39,12 +51,12 @@ def check_pad_editor(page):
     page.wait_for_function('document.querySelector("#padBindings [role=status]").textContent.includes("assigned")')
     assert page.locator('[data-binding=left_lr]').input_value() == 'a0'
     page.evaluate('testPad.axes[2] = 0')
-    page.wait_for_timeout(300)
+    release_pad(page)
     pad_press(page, 0, 'document.querySelector("#padBindings [role=status]").textContent.includes("Press")')
     page.evaluate('testPad.axes[4] = 1')
     page.wait_for_function('document.querySelector("[data-binding=left_lr]").value === "a4"')
     page.evaluate('testPad.axes[4] = 0')
-    page.wait_for_timeout(300)
+    release_pad(page)
     pad_press(page, 1, '!document.querySelector("#inputSettings").open')
     print('PASS: navigated, rejected a conflict, saved another axis and exited using only the pad.')
 
