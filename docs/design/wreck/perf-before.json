@@ -1,0 +1,54 @@
+{
+  "tag": "before",
+  "sites": {
+    "korean_castle": {
+      "performance_third": {
+        "calls": 76,
+        "triangles": 307147,
+        "ms": 360.5,
+        "minMs": 323.1,
+        "medianMs": 331.9
+      },
+      "performance_onboard": {
+        "calls": 76,
+        "triangles": 308535,
+        "ms": 450.09,
+        "minMs": 410.5,
+        "medianMs": 421.3
+      },
+      "performance_errors": [],
+      "third_jpeg_bytes": 18995,
+      "medium_third": {
+        "calls": 1,
+        "triangles": 1,
+        "ms": 286.99,
+        "minMs": 260.6,
+        "medianMs": 268.1
+      },
+      "onboard_jpeg_bytes": 9849,
+      "medium_onboard": {
+        "calls": 1,
+        "triangles": 1,
+        "ms": 396.75,
+        "minMs": 364.9,
+        "medianMs": 368.6
+      },
+      "medium_errors": [],
+      "high_third": {
+        "calls": 1,
+        "triangles": 1,
+        "ms": 454.6,
+        "minMs": 414.6,
+        "medianMs": 419.4
+      },
+      "high_onboard": {
+        "calls": 1,
+        "triangles": 1,
+        "ms": 700.3,
+        "minMs": 640.3,
+        "medianMs": 652.5
+      },
+      "high_errors": []
+    }
+  }
+}

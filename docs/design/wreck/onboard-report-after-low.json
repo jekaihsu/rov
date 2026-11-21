@@ -1,0 +1,166 @@
+{
+  "after-low-onboard-1m-dark": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      17.34,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 0.275,
+    "quality": "low",
+    "exposure": null,
+    "bytes": 41719,
+    "model_sha256": "248414022fbcb3fbd8ec51328056e78402edb81cb7b13ef72f6e54f667c4ef02",
+    "rendered_eye_ned": [
+      17.72767410860934,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 1.0000000000009996,
+    "stand_off_m": 1.0,
+    "eye_local": [
+      50.0,
+      -10.272325891390665,
+      5.0
+    ],
+    "camera_eye_ned": [
+      17.72767410860934,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 1.0000000000009996,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 0
+  },
+  "after-low-onboard-1m-lit": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      17.34,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 0.291,
+    "quality": "low",
+    "exposure": null,
+    "bytes": 55379,
+    "model_sha256": "248414022fbcb3fbd8ec51328056e78402edb81cb7b13ef72f6e54f667c4ef02",
+    "rendered_eye_ned": [
+      17.72767410860934,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 1.0000000000009996,
+    "stand_off_m": 1.0,
+    "eye_local": [
+      50.0,
+      -10.272325891390665,
+      5.0
+    ],
+    "camera_eye_ned": [
+      17.72767410860934,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 1.0000000000009996,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 2
+  },
+  "after-low-onboard-3m-dark": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      15.24,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 0.279,
+    "quality": "low",
+    "exposure": null,
+    "bytes": 44894,
+    "model_sha256": "248414022fbcb3fbd8ec51328056e78402edb81cb7b13ef72f6e54f667c4ef02",
+    "rendered_eye_ned": [
+      15.6324288212104,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 3.0000000000013154,
+    "stand_off_m": 3.0,
+    "eye_local": [
+      50.0,
+      -12.367571178789603,
+      5.0
+    ],
+    "camera_eye_ned": [
+      15.6324288212104,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 3.0000000000013154,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 0
+  },
+  "after-low-onboard-3m-lit": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      15.24,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 0.273,
+    "quality": "low",
+    "exposure": null,
+    "bytes": 52531,
+    "model_sha256": "248414022fbcb3fbd8ec51328056e78402edb81cb7b13ef72f6e54f667c4ef02",
+    "rendered_eye_ned": [
+      15.6324288212104,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 3.0000000000013154,
+    "stand_off_m": 3.0,
+    "eye_local": [
+      50.0,
+      -12.367571178789603,
+      5.0
+    ],
+    "camera_eye_ned": [
+      15.6324288212104,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 3.0000000000013154,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 2
+  }
+}

@@ -1,0 +1,206 @@
+{
+  "after-onboard-1m-dark": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      17.34,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 2.35,
+    "quality": "high",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 1.5013558090710035e-05,
+      "brightLuminance": 1.8976725810995936e-05,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 44233,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
+    "rendered_eye_ned": [
+      17.72767410860934,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 1.0000000000009996,
+    "stand_off_m": 1.0,
+    "eye_local": [
+      50.0,
+      -10.272325891390665,
+      5.0
+    ],
+    "camera_eye_ned": [
+      17.72767410860934,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 1.0000000000009996,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 0
+  },
+  "after-onboard-1m-lit": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      17.34,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 3.365,
+    "quality": "high",
+    "exposure": {
+      "exposure": 84.03564343601222,
+      "target": 84.60146343840118,
+      "meteredLuminance": 0.001335748164227046,
+      "brightLuminance": 0.005117031380143707,
+      "whiteBalance": [
+        1.0201432137734732,
+        1,
+        1.2591879216643767
+      ]
+    },
+    "bytes": 96174,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
+    "rendered_eye_ned": [
+      17.72767410860934,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 1.0000000000009996,
+    "stand_off_m": 1.0,
+    "eye_local": [
+      50.0,
+      -10.272325891390665,
+      5.0
+    ],
+    "camera_eye_ned": [
+      17.72767410860934,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 1.0000000000009996,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 2
+  },
+  "after-onboard-3m-dark": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      15.24,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 0,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 2.188,
+    "quality": "high",
+    "exposure": {
+      "exposure": 400.00002710407375,
+      "target": 400.00002710407375,
+      "meteredLuminance": 2.469149502971077e-05,
+      "brightLuminance": 3.0678990459837485e-05,
+      "whiteBalance": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bytes": 43139,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
+    "rendered_eye_ned": [
+      15.6324288212104,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 3.0000000000013154,
+    "stand_off_m": 3.0,
+    "eye_local": [
+      50.0,
+      -12.367571178789603,
+      5.0
+    ],
+    "camera_eye_ned": [
+      15.6324288212104,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 3.0000000000013154,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 0
+  },
+  "after-onboard-3m-lit": {
+    "scenario": "korean_castle",
+    "eye_ned": [
+      15.24,
+      -20.0,
+      27.03
+    ],
+    "heading_deg": 0.0,
+    "pitch_deg": -0.0,
+    "lamp_level": 2,
+    "visibility_m": 10.0,
+    "seconds_per_frame": 3.072,
+    "quality": "high",
+    "exposure": {
+      "exposure": 352.56477879501455,
+      "target": 353.5184433412941,
+      "meteredLuminance": 0.00014800874293850548,
+      "brightLuminance": 0.00022051513632451704,
+      "whiteBalance": [
+        1.0149611180925384,
+        1,
+        1.0362446941236303
+      ]
+    },
+    "bytes": 64779,
+    "model_sha256": "31389609b9c4e2e6d6e6e534b29da24bd36150dc9b87e1db5fb1a0d7afc638b7",
+    "rendered_eye_ned": [
+      15.6324288212104,
+      -20,
+      27
+    ],
+    "rendered_distance_m": 3.0000000000013154,
+    "stand_off_m": 3.0,
+    "eye_local": [
+      50.0,
+      -12.367571178789603,
+      5.0
+    ],
+    "camera_eye_ned": [
+      15.6324288212104,
+      -20.0,
+      27.0
+    ],
+    "measured_distance_m": 3.0000000000013154,
+    "hull_target_local": [
+      50.0,
+      -7.7,
+      5.0
+    ],
+    "lamps": 2
+  }
+}

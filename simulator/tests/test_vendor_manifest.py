@@ -29,6 +29,9 @@ class TestVendorManifest(unittest.TestCase):
         self.write('examples/jsm/postprocessing/EffectComposer.js', "export { x } from '../dep.js';")
         self.write('examples/jsm/dep.js', "export { x } from 'three';")
         self.write('examples/jsm/libs/decoder.wasm', 'binary fixture')
+        # KEEP_MODULES (CREDITS): Sky/Water stay vendored even when unused by the ES graph.
+        self.write('examples/jsm/objects/Sky.js', 'export class Sky {}')
+        self.write('examples/jsm/objects/Water.js', 'export class Water {}')
         (self.viewer / 'app.js').write_text("import 'three/addons/postprocessing/EffectComposer.js';")
         for name, value in [('VIEWER', self.viewer), ('NPM_THREE', self.npm), ('MANIFEST', self.manifest)]:
             context = patch.object(vendor, name, value)
@@ -44,6 +47,8 @@ class TestVendorManifest(unittest.TestCase):
         data = vendor.manifest()
         self.assertIn('examples/jsm/dep.js', data['modules'])
         self.assertIn('build/three.module.js', data['modules'])
+        self.assertIn('examples/jsm/objects/Sky.js', data['modules'])
+        self.assertIn('examples/jsm/objects/Water.js', data['modules'])
         self.assertEqual(data['runtime'], ['examples/jsm/libs/decoder.wasm'])
         unused = self.viewer / 'vendor/three/unused.js'
         unused.write_text('unused')

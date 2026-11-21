@@ -1,6 +1,6 @@
 /** Place distance-field scene assets; authored LODs share one collision field and coordinate frame.
- * Wreck LODs switch by camera distance (THREE.LOD), not by the quality setting. Menu backgrounds
- * load only the farthest (lowest) mesh so the launch stage stays cheap. */
+ * Chenjiao uses distance LODs; Korean Castle uses the selected quality tier.
+ * Menu backgrounds load the middle tier so the wreck silhouette stays legible. */
 import * as THREE from 'three';
 import {loadGLTF} from './glb.js';
 
@@ -9,6 +9,12 @@ const cache = new Map();
 // Distances in metres from the camera: high detail first, then mid, then far.
 const WRECK_LOD_DISTANCES = [0, 40, 100];
 const WRECK_BASE = 'models/wreck_chenjiao.glb';
+const LOD_MODELS = new Set([WRECK_BASE, 'models/korean_castle.glb']);
+
+function modelUrl(ob, detail = 'high') {
+  if (!LOD_MODELS.has(ob.model)) return ob.model;
+  return wreckLodUrls(ob.model)[{high: 0, medium: 1, low: 2}[detail] ?? 0];
+}
 
 function wreckLodUrls(base = WRECK_BASE) {
   if (!base.endsWith('.glb')) return [base];
@@ -25,6 +31,15 @@ function loadCached(url) {
     }));
   }
   return cache.get(url);
+}
+
+/** Prefer the quality/distance LOD; if that asset is missing (old showcase bundle), use the base GLB. */
+function loadWreckDetail(ob, detail) {
+  const url = modelUrl(ob, detail);
+  return loadCached(url).then((gltf) => {
+    if (gltf || url === ob.model) return gltf;
+    return loadCached(ob.model);
+  });
 }
 
 function markMeshes(root) {
@@ -51,11 +66,7 @@ function holderFor(ob, worldGroup, mapPosition) {
  * `stillCurrent` (optional) aborts a stale async load when the menu has already switched scenes. */
 export function placeSceneModelLow(ob, worldGroup, mapPosition, stillCurrent = null) {
   const holder = holderFor(ob, worldGroup, mapPosition);
-  let url = ob.model;
-  if (ob.model === WRECK_BASE) {
-    url = wreckLodUrls(ob.model)[1] || wreckLodUrls(ob.model).at(-1);
-  }
-  loadCached(url).then((gltf) => {
+  loadWreckDetail(ob, 'medium').then((gltf) => {
     if (stillCurrent && !stillCurrent()) {
       holder.removeFromParent();
       return;
@@ -69,10 +80,10 @@ export function placeSceneModelLow(ob, worldGroup, mapPosition, stillCurrent = n
 }
 
 export function placeSceneModel(ob, worldGroup, mapPosition, _detail = 'medium') {
-  // `_detail` kept for call-site compatibility; wreck LODs switch by camera distance, not quality.
+  // Preserve Chenjiao's distance LODs and Korean Castle's quality-tier selection.
   const holder = holderFor(ob, worldGroup, mapPosition);
   if (ob.model !== WRECK_BASE) {
-    loadCached(ob.model).then((gltf) => {
+    loadWreckDetail(ob, _detail).then((gltf) => {
       if (!gltf || holder.parent !== worldGroup) return;
       const model = gltf.scene.clone(true);
       markMeshes(model);
@@ -83,10 +94,10 @@ export function placeSceneModel(ob, worldGroup, mapPosition, _detail = 'medium')
   const lod = new THREE.LOD();
   lod.name = 'WreckChenjiaoLOD';
   holder.add(lod);
-  const urls = wreckLodUrls(ob.model);
-  Promise.all(urls.map(loadCached)).then((gltfs) => {
+  const details = ['high', 'medium', 'low'];
+  Promise.all(details.map((detail) => loadWreckDetail(ob, detail))).then((gltfs) => {
     if (holder.parent !== worldGroup) return;
-    for (let index = 0; index < urls.length; index++) {
+    for (let index = 0; index < details.length; index++) {
       const gltf = gltfs[index];
       if (!gltf) continue;
       const model = gltf.scene.clone(true);
@@ -97,4 +108,4 @@ export function placeSceneModel(ob, worldGroup, mapPosition, _detail = 'medium')
   return holder;
 }
 
-export {WRECK_LOD_DISTANCES, wreckLodUrls};
+export {WRECK_LOD_DISTANCES, wreckLodUrls, modelUrl};

@@ -41,7 +41,16 @@ def pages() -> list[Path]:
     return found
 
 
-MODELS = ["rov.glb", "workboat.glb", "worker.glb", "korean_castle.glb", "waternormals.jpg", "CREDITS.md"]
+MODELS = [
+    "rov.glb",
+    "workboat.glb",
+    "worker.glb",
+    "korean_castle.glb",
+    "korean_castle_lod1.glb",
+    "korean_castle_lod2.glb",
+    "waternormals.jpg",
+    "CREDITS.md",
+]
 MODELS += ["bluerov2_heavy.glb", "falcon.glb"]
 
 
