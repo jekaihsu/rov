@@ -47,16 +47,26 @@ MOORINGS = {
 
 def training_stations(bed):
     """The four corners of the open-water box have separate marker lines outside the flight lane."""
+    recovery_head = (-3.6, -2.7, .12)
     stations = [
         ("North drop", (13, 1.5), (13.2, 1, 2.7), (5., 9.)),
         ("East drop", (8.6, 14), (10.3, 13.4, 5.7), (7.9, 10.7)),
         ("Deep drop", (-3.8, 8), (-3.1, 9.4, 8.6), (11.4, 13.6)),
-        ("Recovery drop", (-3, -3), (-3.6, -2.7, .12), (2.8, 6.1, 9.)),
+        ("Recovery drop", (-3, -3), recovery_head, (2.8, 6.1, 9.)),
     ]
     obstacles = []
     for label, foot, head, depths in stations:
         floor = bed - float(channel_relief(foot[1]))
         obstacles.extend(sounding_mooring(label, (*foot, floor), head, depths))
+    # A short pickup pendant trails the recovery buoy toward the deployment side.
+    # Its upper fender marks the surface and the lower stopper sits above the free handhold.
+    pickup = (4.55, 1.95, .16)
+    obstacles.extend([
+        Cylinder("Recovery pickup painter", recovery_head, pickup, .031, "survey_line"),
+        Cylinder("Recovery pickup fender", pickup, (4.55, 1.95, .71), .30, "survey_float"),
+        Cylinder("Recovery hand line", (4.55, 1.95, .66), (4.65, 2.06, 2.63), .039, "survey_line"),
+        Cylinder("Recovery stopper float", (4.61, 2.02, 1.87), (4.61, 2.02, 2.08), .19, "survey_float"),
+    ])
     return obstacles
 
 
