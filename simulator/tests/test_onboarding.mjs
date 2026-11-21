@@ -133,6 +133,15 @@ test("first-time tips fire on their event once per profile", () => {
   assert.equal(pendingTip(loadProgress(storage), state({ tether: { warn: true } })), null, "seen tips stay quiet");
 });
 
+test("a DVL slope below a locked first-dive pilot leaves the unlock instruction visible", () => {
+  const progress = loadProgress(memoryStorage());
+  const onSlope = state({sensors: {dvl: {status: "lost", reason: "slope"}}, rc: {assist: 2}});
+  assert.equal(pendingTip(progress, onSlope, "unlock"), null);
+  assert.equal(pendingTip(progress, {...onSlope, tether: {warn: true}}, "unlock"), "tether");
+  assert.equal(pendingTip(progress, {...onSlope, turbidity: {visibility_m: 0.8}}, "unlock"), "visibility");
+  assert.equal(pendingTip(progress, {...onSlope, locked: false}, "move"), "dvl");
+});
+
 test("progress survives a reload, and the reset starts over with the hints switched back on", () => {
   const storage = memoryStorage();
   const progress = loadProgress(storage);
