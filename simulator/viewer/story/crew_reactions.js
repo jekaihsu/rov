@@ -1,5 +1,8 @@
 // Advance flight radio on telemetry edges. Callers may supply a presentation clock in seconds.
+// Pending keeps rising hazards across radio busy and the shared 8 s cooldown so edges are not dropped.
 import {linePull} from '../tether/feel.js';
+
+const HAZARDS = ['impact', 'snag', 'tension', 'battery', 'near'];
 
 export function reactionSignals(state, previous) {
   const work = state.expedition?.active?.steps;
@@ -22,6 +25,10 @@ export function reactionSignals(state, previous) {
   };
 }
 
+function keepPending(pending, signals, spoken) {
+  return pending.filter(key => key !== spoken && signals[key]);
+}
+
 export function advanceReactions(previous, state, options = {}) {
   const {enabled = true, idle = true, mission = '', busy = false, now = state.t} = options;
   if ((!enabled && !idle) || !mission || state.paused || state.score?.finished || state.score?.failed) return null;
@@ -29,18 +36,33 @@ export function advanceReactions(previous, state, options = {}) {
   const signals = reactionSignals(state, previous?.signals);
   const initial = !previous || state.t < previous.simTime || mission !== previous.mission;
   if (initial) {
-    return {simTime: state.t, mission, signals, activity: time, idleCount: 0, last: {}, next: time, line: null};
+    return {
+      simTime: state.t, mission, signals, activity: time, idleCount: 0, last: {}, next: time,
+      pending: [], line: null
+    };
   }
-  const rising = ['impact', 'snag', 'tension', 'battery', 'near'].filter(function changed(key) {
+  const rising = HAZARDS.filter(function changed(key) {
     return signals[key] && signals[key] !== previous.signals[key];
   });
-  const activity = busy || rising.length || signals.progress !== previous.signals.progress ? time : previous.activity;
+  const pending = [...new Set([...(previous.pending || []), ...rising])];
+  const activity = busy || rising.length || signals.progress !== previous.signals.progress
+    ? time : previous.activity;
   let line = null;
   if (!busy && time >= previous.next) {
-    if (enabled) line = rising.find(key => time - (previous.last[key] ?? -Infinity) >= 30) || null;
+    if (enabled) {
+      line = pending.find(key => time - (previous.last[key] ?? -Infinity) >= 30) || null;
+    }
     if (!line && idle && time - activity >= 45) line = 'idle';
   }
-  return {simTime: state.t, mission, signals, line, activity: line ? time : activity,
+  return {
+    simTime: state.t,
+    mission,
+    signals,
+    line,
+    activity: line ? time : activity,
     idleCount: previous.idleCount + (line === 'idle' ? 1 : 0),
-    next: line ? time + 8 : previous.next, last: line ? {...previous.last, [line]: time} : previous.last};
+    next: line ? time + 8 : previous.next,
+    last: line ? {...previous.last, [line]: time} : previous.last,
+    pending: keepPending(pending, signals, line)
+  };
 }

@@ -13,7 +13,9 @@ const STRINGS = localize('story.feel_settings', {
   "photoFlash": "拍照閃光",
   "loadReadout": "受力時顯示張力",
   "crewCalls": "船員即時通報",
-  "idleCalls": "任務空檔通話"
+  "idleCalls": "任務空檔通話",
+  "osVoice": "作業系統語音合成",
+  "osVoiceHelp": "缺配音片段時用本機語音朗讀無線電字幕。預設關閉。"
 });
 
 const underwater = new Set(['motorSound', 'waterSound', 'contactSound', 'strainSound']);
@@ -23,9 +25,27 @@ function underwaterOverride(params) {
 }
 
 for (const id of Object.keys(STRINGS)) {
+  if (id.endsWith('Help')) continue;
+  if (id === 'osVoice') {
+    registerFidelityItem({
+      id,
+      type: 'toggle',
+      descriptionKey: 'osVoiceHelp',
+      defaults: {real: false, assisted: false},
+      exceedsReal: true,
+      presetNeutral: false
+    }, STRINGS);
+    continue;
+  }
   const exceedsReal = underwater.has(id);
-  registerFidelityItem({id, type: 'toggle', defaults: {real: !exceedsReal, assisted: true},
-    urlValue: exceedsReal ? underwaterOverride : undefined, exceedsReal, presetNeutral: !exceedsReal}, STRINGS);
+  registerFidelityItem({
+    id,
+    type: 'toggle',
+    defaults: {real: !exceedsReal, assisted: true},
+    urlValue: exceedsReal ? underwaterOverride : undefined,
+    exceedsReal,
+    presetNeutral: !exceedsReal
+  }, STRINGS);
 }
 
 // Preserve the existing master switch and saved master-only mixes. Turning up one channel opens the bus.

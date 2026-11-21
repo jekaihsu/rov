@@ -1,8 +1,8 @@
-// Presentation threshold from the cold open. The host's independent working-load warning always takes priority.
+// Presentation helpers for tether load. Host `tether.warn` (rated working load) is authoritative.
 export function lineLoad(tether) {
   return Math.max(tether?.tension_rov || 0, tether?.tension_spool || 0);
 }
 
-export function linePull(tether, alreadyHigh = false) {
-  return !!tether && !tether.broken && (tether.warn || lineLoad(tether) > (alreadyHigh ? 25 : 40));
+export function linePull(tether, _alreadyHigh = false) {
+  return !!tether && !tether.broken && !!tether.warn;
 }

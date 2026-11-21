@@ -33,7 +33,7 @@ OBSERVE = """async ([muted, baseline]) => {
     .observe(document.querySelector('#crewRadio p'), {childList:true});
   setInterval(() => {
     evidence.gain = Math.max(evidence.gain, audio.strain?.level.gain.value || 0);
-    if (Math.max(viewer.S.tether.tension_rov, viewer.S.tether.tension_spool) > 40) evidence.pulls++;
+    if (viewer.S.tether?.warn) evidence.pulls++;
   }, 50);
   viewer.setCam('onboard');
   window.approach = true;
@@ -77,16 +77,20 @@ def drive(browser, muted, baseline=False, shots=None):
     try:
         page.wait_for_function('window.__viewer.S.events?.length', timeout=timeout(45000))
         print('pile contact', muted, page.evaluate('window.__viewer.S.events.at(-1)'), flush=True)
+        if not muted and not baseline:
+            page.wait_for_function('evidence.lines.length > 0', timeout=timeout(12000))
         if shots and not muted:
             shots.mkdir(parents=True, exist_ok=True)
             page.evaluate('window.__skipRender = false')
             page.screenshot(path=str(shots / 'pile-contact.jpg'), quality=82)
             page.evaluate('window.__skipRender = true')
         page.evaluate("""window.approach = false;
+          window.__viewer.touch.right_ud = -1;
+          window.__viewer.touch.right_wave = 1;
           document.querySelector('[data-reel="haul_in"]').click();""")
-        page.wait_for_function('evidence.pulls > 0', timeout=timeout(75000))
+        page.wait_for_function('evidence.pulls > 0', timeout=timeout(90000))
         page.evaluate('clearInterval(steer); window.__viewer.touch.right_wave = 0; window.__viewer.touch.right_ud = 0')
-        page.wait_for_timeout(1200)
+        page.wait_for_timeout(8500)
         result = page.evaluate('({...evidence, pulses})')
         assert not errors, errors
         if baseline:
@@ -108,7 +112,8 @@ def drive(browser, muted, baseline=False, shots=None):
         print('muted', muted, result, flush=True)
     finally:
         print(page.evaluate("""() => { const s = window.__viewer.S;
-          return {pos:s.pos, t:s.t, hits:s.events.length, load:s.tether.tension_max}; }"""), flush=True)
+          return {pos:s.pos, t:s.t, hits:s.events.length, load:s.tether.tension_max,
+            warn: !!s.tether.warn, lines: evidence.lines}; }"""), flush=True)
         page.close()
 
 

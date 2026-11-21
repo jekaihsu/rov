@@ -95,6 +95,7 @@ test('clip URLs stay under the language directory', () => {
 
 test('flight fallback selects a local matching voice and honours mixer mute and stop', async t => {
   const {installVoice} = await import('../viewer/audio/voice.js');
+  const {getFidelity} = await import('../viewer/fidelity.js');
   _resetVoiceForTests();
   const local = {lang: 'zh-TW', localService: true};
   const spoken = [];
@@ -118,7 +119,12 @@ test('flight fallback selects a local matching voice and honours mixer mute and 
   const settings = {master: 0.5, voice: 0.8, mute: false};
   const voice = installVoice({engine: {settings, ctx: {state: 'running'}, isPaused: () => false}});
   const call = {speaker: '林岑', text: '向潮－指揮，機身碰到了。先穩住。', language: 'zh-TW', localRate: 0.92};
+  const fidelity = getFidelity();
   try {
+    assert.equal(fidelity.get('osVoice'), false);
+    assert.equal((await voice.playLine(call)).played, false);
+    assert.equal(spoken.length, 0);
+    fidelity.set('osVoice', true);
     assert.ok((await voice.playLine(call)).local);
     assert.equal(spoken[0].voice, local);
     assert.equal(spoken[0].volume, 0.4);
@@ -128,6 +134,7 @@ test('flight fallback selects a local matching voice and honours mixer mute and 
     assert.equal((await voice.playLine(call)).played, false);
     assert.equal(spoken.length, 1);
   } finally {
+    fidelity.set('osVoice', false);
     voice.stop();
     _resetVoiceForTests();
   }

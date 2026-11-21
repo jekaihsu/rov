@@ -3,7 +3,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
   motorParameters, depthCutoff, detectEvents, resolveCue, eventLayer,
-  reelParameters, topsideAmbience, layerGains
+  reelParameters, topsideAmbience, layerGains, takeContactHit
 } from '../viewer/audio/mapping.js';
 import {createFidelity} from '../viewer/fidelity.js';
 import {UNDERWATER_AUDIO_ID, underwaterAudioEnabled} from '../viewer/audio/fidelity.js';
@@ -114,6 +114,19 @@ test('underwaterAudio fidelity is off in real and on in assisted', () => {
 test('a photo plays the topside App shutter, never an underwater cue', () => {
   assert.deepEqual(resolveCue('photos', {}), {kind: 'shutter', layer: 'topside'});
   assert.equal(eventLayer('photos'), 'topside');
+});
+
+test('contact hits pair by severity, not FIFO against non-contact underwater edges', () => {
+  const hits = [
+    {t: 1, severity: 'touch', obstacle: 'net'},
+    {t: 2, severity: 'hard', obstacle: 'pile', id: 'a'}
+  ];
+  assert.equal(takeContactHit(hits, 'warn'), null);
+  assert.equal(takeContactHit(hits, 'life'), null);
+  assert.deepEqual(takeContactHit(hits, 'hard'), {t: 2, severity: 'hard', obstacle: 'pile', id: 'a'});
+  assert.deepEqual(hits, [{t: 1, severity: 'touch', obstacle: 'net'}]);
+  assert.deepEqual(takeContactHit(hits, 'touch'), {t: 1, severity: 'touch', obstacle: 'net'});
+  assert.equal(takeContactHit(hits, 'touch'), null);
 });
 
 test('each mount pans in FRD; each contact material has a separate envelope', async () => {

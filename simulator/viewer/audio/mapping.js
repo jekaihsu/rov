@@ -165,6 +165,14 @@ export function freshContacts(previous, state) {
     !known.has(eventKey(event)));
 }
 
+// Pair a detected edge with its contact by severity (and optional id), never by FIFO order alone.
+export function takeContactHit(hits, event) {
+  if (!hits?.length || !['touch', 'hard', 'severe'].includes(event)) return null;
+  const index = hits.findIndex(hit => hit.severity === event);
+  if (index < 0) return null;
+  return hits.splice(index, 1)[0];
+}
+
 const IMPACT_TIMBRE = {
   sand: [380, 0.08], net: [900, 0.11], concrete: [680, 0.16], steel: [2400, 0.28]
 };

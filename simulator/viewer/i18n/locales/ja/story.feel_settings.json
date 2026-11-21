@@ -8,5 +8,7 @@
   "photoFlash": "撮影フラッシュ",
   "loadReadout": "荷重時の張力表示",
   "crewCalls": "乗員の状況報告",
-  "idleCalls": "待機中の交信"
+  "idleCalls": "待機中の交信",
+  "osVoice": "OS音声合成",
+  "osVoiceHelp": "配声クリップが無いとき、字幕を端末の音声合成で読む。既定はオフ。"
 }

@@ -13,11 +13,14 @@ test('rising hazards, shared cooldown, same hazard cooldown and held edges', () 
   assert.equal(model.line, 'tension');
   model = tick(model, 2, {...high, battery: 20});
   assert.equal(model.line, null);
-  model = tick(model, 9, high);
+  assert.deepEqual(model.pending, ['battery']);
+  model = tick(model, 9, {...high, battery: 20});
+  assert.equal(model.line, 'battery');
+  model = tick(model, 12, {battery: 20, tether: {warn: false}});
+  assert.equal(model.signals.tension, false);
+  model = tick(model, 13, {battery: 20, tether: {warn: false}});
   assert.equal(model.line, null);
-  model = tick(tick(model, 12), 13, high);
-  assert.equal(model.line, null);
-  assert.equal(tick(tick(model, 31), 32, high).line, 'tension');
+  assert.equal(tick(tick(model, 31, {battery: 20}), 32, {...high, battery: 20}).line, 'tension');
 });
 test('target and battery thresholds; snag and collision', () => {
   const start = tick(null, 0, {battery: 21});
@@ -45,18 +48,30 @@ test('disabled feedback produces no call or stale backlog', () => {
   assert.equal(tick(tick(null, 0), 60, {}, {idle: false}).line, null);
 });
 
-test('line pull uses both cable ends, a release band and the host alarm', () => {
-  function load(model, t, force) {
-    return tick(model, t, {tether: {tension_spool: force}});
-  }
-  let model = load(null, 0, 0);
-  assert.equal(load(model, 1, 40).line, null);
-  model = load(model, 2, 41);
+test('line pull follows the host working-load warn flag only', () => {
+  let model = tick(null, 0, {tether: {tension_spool: 200, warn: false}});
+  assert.equal(tick(model, 1, {tether: {tension_spool: 400, warn: false}}).line, null);
+  model = tick(model, 2, {tether: {tension_spool: 500, warn: true}});
   assert.equal(model.line, 'tension');
-  assert.equal(load(model, 33, 26).signals.tension, true);
-  model = load(model, 34, 25);
+  assert.equal(tick(model, 3, {tether: {tension_spool: 500, warn: true}}).signals.tension, true);
+  model = tick(model, 4, {tether: {tension_spool: 100, warn: false}});
   assert.equal(model.signals.tension, false);
-  assert.equal(load(model, 35, 41).line, 'tension');
+  assert.equal(tick(model, 35, {tether: {tension_spool: 100, warn: true}}).line, 'tension');
+});
+
+test('pending hazards survive radio busy and the shared cooldown', () => {
+  let model = tick(null, 0);
+  model = tick(model, 1, {events: [{t: 1, obstacle: 'Pile'}]});
+  assert.equal(model.line, 'impact');
+  model = tick(model, 2, {events: [{t: 1, obstacle: 'Pile'}], tether: {warn: true}}, {busy: true});
+  assert.equal(model.line, null);
+  assert.deepEqual(model.pending, ['tension']);
+  model = tick(model, 5, {events: [{t: 1, obstacle: 'Pile'}], tether: {warn: true}});
+  assert.equal(model.line, null);
+  assert.deepEqual(model.pending, ['tension']);
+  model = tick(model, 9, {events: [{t: 1, obstacle: 'Pile'}], tether: {warn: true}});
+  assert.equal(model.line, 'tension');
+  assert.deepEqual(model.pending, []);
 });
 
 test('presentation seconds govern quiet time on a slow host', () => {

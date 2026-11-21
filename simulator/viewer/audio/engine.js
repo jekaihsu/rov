@@ -1,7 +1,8 @@
 // Synthesized topside and underwater buses with gesture-safe browser lifecycle.
 // Topside (reel, deck, App cues) is always available; underwater thrusters and impacts follow fidelity.
 import {
-  clamp, motorPan, freshContacts, impactEnvelope, motorParameters, depthCutoff, detectEvents, resolveCue, reelParameters, topsideAmbience
+  clamp, motorPan, freshContacts, impactEnvelope, motorParameters, depthCutoff,
+  detectEvents, resolveCue, reelParameters, topsideAmbience, takeContactHit
 } from './mapping.js';
 import {lineLoad} from '../tether/feel.js';
 import {getFidelity} from '../fidelity.js';
@@ -323,7 +324,7 @@ class AudioEngine {
     }
     for (const event of events) {
       const resolved = resolveCue(event, state);
-      const hit = resolved.layer === 'underwater' ? hits.shift() : null;
+      const hit = takeContactHit(hits, event);
       const mechanical = event === 'light' || (event === 'locked' && !state.locked);
       this.cue(mechanical ? 'switch' : resolved.kind, resolved.layer, hit);
     }

@@ -1322,8 +1322,8 @@ function frame(now) {
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
   const displayed = renderState.display(S);
-  audio.update(renderState.display(S));
-  music.update(renderState.display(S));
+  audio.update(displayed);
+  music.update(displayed);
   if (displayed) flightFeedback.update(displayed, W,
     !!(rep || introActive() || pauseMenuOpen() || collectionOpen || resultsOpen()));
   coldOpen.frame(dt);
