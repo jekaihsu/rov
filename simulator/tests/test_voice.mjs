@@ -24,14 +24,14 @@ function pythonLineId(language, speaker, text) {
 }
 
 test('voice_hash matches Node crypto SHA-256', () => {
-  const sample = 'zh-TW\0林督導\0很好。慢慢來，先往前，再退回來。';
+  const sample = 'zh-TW\0林岑\0很好。慢慢來，先往前。';
   assert.equal(createHash(sample), nodeHash('sha256').update(sample, 'utf8').digest('hex'));
 });
 
 test('line ids are stable across JS and the extract tool algorithm', () => {
   const language = 'zh-TW';
-  const speaker = '林督導';
-  const text = '船老了，人可不能馬虎。我是林岑。今天先在池裡認識你的搭檔。';
+  const speaker = '林岑';
+  const text = '今天池裡認識搭檔。先檢查。';
   assert.equal(lineId(language, speaker, text), pythonLineId(language, speaker, text));
   assert.equal(lineId(language, speaker, text), lineId(language, speaker, text));
   assert.notEqual(lineId(language, speaker, text), lineId(language, speaker, text + '。'));
@@ -58,8 +58,11 @@ test('extract_lines writes a manifest with prologue zh-TW dialogue hashes', () =
       assert.ok(row.text);
     }
     const speakers = new Set(manifest.lines.map(row => row.speaker));
-    assert.ok(speakers.has('林督導'));
-    assert.ok(speakers.has('阿禾'));
+    assert.ok(speakers.has('林岑'));
+    assert.ok(speakers.has('周楷'));
+    assert.ok(speakers.has('方晴'));
+    assert.ok(speakers.has('馬力'));
+    assert.equal(speakers.has('阿禾'), false);
   } finally {
     rmSync(dir, {recursive: true, force: true});
   }
@@ -75,12 +78,12 @@ test('shipped voice_manifest lists stable ids when present', () => {
 
 test('resolveClip falls back when the id is absent from the index', () => {
   _resetVoiceForTests();
-  const missing = resolveClip({ 'zh-TW': [] }, 'zh-TW', '林督導', '沒有這句。');
+  const missing = resolveClip({ 'zh-TW': [] }, 'zh-TW', '林岑', '沒有這句。');
   assert.equal(missing.missing, true);
   assert.equal(missing.url, null);
   assert.ok(missing.id);
-  const id = lineId('zh-TW', '林督導', '有這句。');
-  const found = resolveClip({ 'zh-TW': [id] }, 'zh-TW', '林督導', '有這句。');
+  const id = lineId('zh-TW', '林岑', '有這句。');
+  const found = resolveClip({ 'zh-TW': [id] }, 'zh-TW', '林岑', '有這句。');
   assert.equal(found.missing, false);
   assert.equal(found.url, clipUrl('zh-TW', id));
 });

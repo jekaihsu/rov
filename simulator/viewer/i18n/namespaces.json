@@ -3,6 +3,7 @@
   "brand.chapters",
   "brand.demo",
   "brand.demo_page",
+  "brand.licence_award",
   "brand.licence_card",
   "brand.marks",
   "brand.menu_brand",
@@ -12,6 +13,7 @@
   "career.deliverables",
   "career.dive",
   "career.fidelity_item",
+  "career.radio",
   "career.results_panel",
   "career.rules",
   "career.save",
@@ -59,8 +61,10 @@
   "procedure.deck_steps",
   "procedure.fidelity_item",
   "procedure.index",
+  "story.campaign",
   "story.cold_open",
   "story.cold_open_menu",
   "story.feel_settings",
-  "story.flight_feedback"
+  "story.flight_feedback",
+  "story.prologue_copy"
 ]

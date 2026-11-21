@@ -1,12 +1,40 @@
 {
   "id": "prologue",
-  "title": "序章｜水池",
+  "title": "序章｜見習之前",
   "scenario": "tutorial_pool",
   "mode": "free_explore",
   "category": "story",
   "order": 10,
   "requires": null,
   "nodes": [
+    {
+      "id": "callsign",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "callsign.text",
+      "speaker_key": "callsign.speaker"
+    },
+    {
+      "id": "welcome",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "welcome.text",
+      "speaker_key": "welcome.speaker"
+    },
+    {
+      "id": "deck_ready",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "deck_ready.text",
+      "speaker_key": "deck_ready.speaker"
+    },
+    {
+      "id": "tender_ready",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "tender_ready.text",
+      "speaker_key": "tender_ready.speaker"
+    },
     {
       "id": "predive_brief",
       "type": "dialogue",
@@ -15,11 +43,11 @@
       "speaker_key": "predive.speaker"
     },
     {
-      "id": "welcome",
+      "id": "enter_water",
       "type": "dialogue",
       "voice": null,
-      "text_key": "welcome.text",
-      "speaker_key": "welcome.speaker"
+      "text_key": "enter_water.text",
+      "speaker_key": "enter_water.speaker"
     },
     {
       "id": "unlock",
@@ -120,6 +148,13 @@
       "hint_key": "depth.hint"
     },
     {
+      "id": "depth_ok",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "depth_ok.text",
+      "speaker_key": "depth_ok.speaker"
+    },
+    {
       "id": "light_line",
       "type": "dialogue",
       "voice": null,
@@ -154,11 +189,32 @@
       "hint_key": "photo.hint"
     },
     {
+      "id": "photo_ack",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "photo_ack.text",
+      "speaker_key": "photo_ack.speaker"
+    },
+    {
       "id": "end",
       "type": "dialogue",
       "voice": null,
       "text_key": "end.text",
       "speaker_key": "end.speaker"
+    },
+    {
+      "id": "end_tender",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "end_tender.text",
+      "speaker_key": "end_tender.speaker"
+    },
+    {
+      "id": "end_senior",
+      "type": "dialogue",
+      "voice": null,
+      "text_key": "end_senior.text",
+      "speaker_key": "end_senior.speaker"
     },
     {
       "id": "save",
@@ -172,30 +228,274 @@
   ],
   "strings": {
     "zh-TW": {
-      "welcome.text": "船老了，人可不能馬虎。我是林岑。今天先在池裡認識你的搭檔。",
-      "welcome.speaker": "林督導",
+      "callsign.text": "向潮－指揮呼叫 R-1。",
+      "callsign.speaker": "林岑",
+      "welcome.text": "今天池裡認識搭檔。先檢查。",
+      "welcome.speaker": "林岑",
+      "deck_ready.text": "甲板淨空。尾板就緒。",
+      "deck_ready.speaker": "方晴",
+      "tender_ready.text": "纜手就位。線我看著。",
+      "tender_ready.speaker": "周楷",
+      "predive.text": "下水前先確認密封、接頭與配平。入水且人員離開尾板再解鎖。",
+      "predive.speaker": "林岑",
+      "enter_water.text": "入水。人離甲板再解鎖。",
+      "enter_water.speaker": "林岑",
       "unlock.hint": "按解鎖鍵解除馬達鎖定（鍵盤或手把）",
-      "move.text": "很好。慢慢來，先往前，再退回來。",
-      "move.speaker": "林督導",
+      "move.text": "很好。慢慢來，先往前。",
+      "move.speaker": "林岑",
       "move_前.hint": "向前移動，直到機體真的動起來",
       "move_後.hint": "向後移動，直到機體真的動起來",
       "move_右.hint": "向右移動，直到機體真的動起來",
       "move_左.hint": "向左移動，直到機體真的動起來",
       "move_下.hint": "向下移動，直到機體真的動起來",
       "move_上.hint": "向上移動，直到機體真的動起來",
-      "depth_line.text": "停一下。把定深打開，讓手鬆一口氣。",
-      "depth_line.speaker": "林督導",
+      "depth_line.text": "停一下。把定深打開。",
+      "depth_line.speaker": "林岑",
       "depth.hint": "按定深鍵開啟定深",
-      "light_line.text": "水裡看不清，別急著往前。先開燈。",
-      "light_line.speaker": "林督導",
+      "depth_ok.text": "手可以鬆一點了。",
+      "depth_ok.speaker": "林岑",
+      "light_line.text": "水裡看不清就先開燈。",
+      "light_line.speaker": "林岑",
       "light.hint": "按燈光鍵開燈",
-      "photo_line.text": "阿禾，把這張留著。這是新人的第一張水下照。",
-      "photo_line.speaker": "林督導",
+      "photo_line.text": "周楷，把這張留著。",
+      "photo_line.speaker": "林岑",
       "photo.hint": "按拍照鍵拍照",
-      "end.text": "收工。明天去港裡，船主等著我們查樁和船殼。",
-      "end.speaker": "阿禾",
-      "predive.text": "下水前先確認密封、接頭與配平。完整作業流程可在主選單開啟；入水且人員離開才解鎖，回收先上鎖。",
-      "predive.speaker": "林督導"
+      "photo_ack.text": "收到。新人第一張。",
+      "photo_ack.speaker": "周楷",
+      "end.text": "收工。程序過了。",
+      "end.speaker": "林岑",
+      "end_tender.text": "線收好。明天港外見。",
+      "end_tender.speaker": "周楷",
+      "end_senior.text": "回來。泡麵偏鹹，將就。",
+      "end_senior.speaker": "馬力"
     }
-  }
+  },
+  "beats": [
+    {
+      "id": "black",
+      "limit": 5,
+      "radio": "black",
+      "speaker": "lin",
+      "hud": [],
+      "cinematic": true,
+      "black": true,
+      "cue": "cinematic",
+      "next": "establish"
+    },
+    {
+      "id": "establish",
+      "limit": 7,
+      "radio": "establish",
+      "speaker": "tender",
+      "hud": [],
+      "cinematic": true,
+      "location": true,
+      "cue": "cinematic",
+      "next": "unlock"
+    },
+    {
+      "id": "unlock",
+      "limit": 50,
+      "radio": "unlock",
+      "speaker": "ma",
+      "hud": [],
+      "hint": "lock",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "locked",
+        "op": "eq",
+        "value": false
+      },
+      "next": "approach"
+    },
+    {
+      "id": "approach",
+      "limit": 85,
+      "radio": "approach",
+      "speaker": "ma",
+      "hud": [
+        "heading"
+      ],
+      "hint": "surge",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "pos.0",
+        "op": "gt",
+        "value": 2.5
+      },
+      "next": "descend"
+    },
+    {
+      "id": "descend",
+      "limit": 65,
+      "radio": "descend",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "heave",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "pos.2",
+        "op": "gt",
+        "value": 3.8
+      },
+      "next": "coast"
+    },
+    {
+      "id": "coast",
+      "limit": 45,
+      "radio": "coast",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "timeout": "trim",
+      "hint": "neutral",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "drift",
+        "op": "gt",
+        "value": 0.18
+      },
+      "next": "hold"
+    },
+    {
+      "id": "hold",
+      "limit": 50,
+      "radio": "hold",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "depth",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "keep_depth",
+        "op": "eq",
+        "value": true
+      },
+      "next": "trim"
+    },
+    {
+      "id": "trim",
+      "limit": 4,
+      "radio": "trim",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "next": "A"
+    },
+    {
+      "id": "A",
+      "limit": 150,
+      "radio": "A",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading",
+        "photo"
+      ],
+      "target": [
+        11.75,
+        0,
+        4
+      ],
+      "hint": "photo",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "framedPhoto",
+        "op": "eq",
+        "value": true
+      },
+      "next": "B"
+    },
+    {
+      "id": "B",
+      "limit": 150,
+      "radio": "B",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading",
+        "photo"
+      ],
+      "target": [
+        0,
+        11.75,
+        4
+      ],
+      "hint": "photo",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "framedPhoto",
+        "op": "eq",
+        "value": true
+      },
+      "next": "C"
+    },
+    {
+      "id": "C",
+      "limit": 150,
+      "radio": "C",
+      "speaker": "ma",
+      "hud": [
+        "depth",
+        "heading",
+        "photo"
+      ],
+      "target": [
+        -11.75,
+        0,
+        4
+      ],
+      "hint": "photo",
+      "idle": 18,
+      "reminder": "again",
+      "condition": {
+        "path": "framedPhoto",
+        "op": "eq",
+        "value": true
+      },
+      "next": "report"
+    },
+    {
+      "id": "report",
+      "limit": 6,
+      "radio": "report",
+      "speaker": "lin",
+      "hud": [],
+      "next": "licence"
+    },
+    {
+      "id": "licence",
+      "limit": 8,
+      "radio": "licence",
+      "speaker": "lin",
+      "hud": [],
+      "card": "licence",
+      "next": "harbor"
+    },
+    {
+      "id": "harbor",
+      "limit": 5,
+      "radio": "harbor",
+      "speaker": "lin",
+      "hud": [],
+      "card": "harbor",
+      "next": "done"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "count": 101,
+  "count": 109,
   "lines": [
     {
       "id": "080476cad43afac04312",
@@ -623,74 +623,154 @@
       "text": "這趟沒有必要為一張照片鑽進去。保住退路，才有下一趟。"
     },
     {
-      "id": "9e8e3cecc5ae0a950ef1",
+      "id": "d30b61f8f7124184dd2d",
+      "chapter": "prologue",
+      "node": "callsign",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林岑",
+      "language": "zh-TW",
+      "text": "向潮－指揮呼叫 R-1。"
+    },
+    {
+      "id": "46efb6d4b0c0170fb0a0",
+      "chapter": "prologue",
+      "node": "deck_ready",
+      "source": "campaign/prologue.json",
+      "character": "deck",
+      "speaker": "方晴",
+      "language": "zh-TW",
+      "text": "甲板淨空。尾板就緒。"
+    },
+    {
+      "id": "42c1d82e94942c39f5d3",
       "chapter": "prologue",
       "node": "depth_line",
       "source": "campaign/prologue.json",
       "character": "supervisor",
-      "speaker": "林督導",
+      "speaker": "林岑",
       "language": "zh-TW",
-      "text": "停一下。把定深打開，讓手鬆一口氣。"
+      "text": "停一下。把定深打開。"
     },
     {
-      "id": "d44b66a78e234628457e",
+      "id": "1d4ac102492770c29e3a",
+      "chapter": "prologue",
+      "node": "depth_ok",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林岑",
+      "language": "zh-TW",
+      "text": "手可以鬆一點了。"
+    },
+    {
+      "id": "452ab00be94a7e605296",
       "chapter": "prologue",
       "node": "end",
       "source": "campaign/prologue.json",
-      "character": "tender",
-      "speaker": "阿禾",
+      "character": "supervisor",
+      "speaker": "林岑",
       "language": "zh-TW",
-      "text": "收工。明天去港裡，船主等著我們查樁和船殼。"
+      "text": "收工。程序過了。"
     },
     {
-      "id": "c285976738436325c938",
+      "id": "d2e7e05289f27925451f",
+      "chapter": "prologue",
+      "node": "end_senior",
+      "source": "campaign/prologue.json",
+      "character": "senior",
+      "speaker": "馬力",
+      "language": "zh-TW",
+      "text": "回來。泡麵偏鹹，將就。"
+    },
+    {
+      "id": "e29f3924fe40d8f7f243",
+      "chapter": "prologue",
+      "node": "end_tender",
+      "source": "campaign/prologue.json",
+      "character": "tender",
+      "speaker": "周楷",
+      "language": "zh-TW",
+      "text": "線收好。明天港外見。"
+    },
+    {
+      "id": "b4602ed0baedd75d06a4",
+      "chapter": "prologue",
+      "node": "enter_water",
+      "source": "campaign/prologue.json",
+      "character": "supervisor",
+      "speaker": "林岑",
+      "language": "zh-TW",
+      "text": "入水。人離甲板再解鎖。"
+    },
+    {
+      "id": "03d34141d723a25174c7",
       "chapter": "prologue",
       "node": "light_line",
       "source": "campaign/prologue.json",
       "character": "supervisor",
-      "speaker": "林督導",
+      "speaker": "林岑",
       "language": "zh-TW",
-      "text": "水裡看不清，別急著往前。先開燈。"
+      "text": "水裡看不清就先開燈。"
     },
     {
-      "id": "326c2996dd361095b85b",
+      "id": "2478fb4bb7f6d7b660bb",
       "chapter": "prologue",
       "node": "move",
       "source": "campaign/prologue.json",
       "character": "supervisor",
-      "speaker": "林督導",
+      "speaker": "林岑",
       "language": "zh-TW",
-      "text": "很好。慢慢來，先往前，再退回來。"
+      "text": "很好。慢慢來，先往前。"
     },
     {
-      "id": "c93dfcbcef6efc74b722",
+      "id": "563bcf1a747e49f55e28",
+      "chapter": "prologue",
+      "node": "photo_ack",
+      "source": "campaign/prologue.json",
+      "character": "tender",
+      "speaker": "周楷",
+      "language": "zh-TW",
+      "text": "收到。新人第一張。"
+    },
+    {
+      "id": "0df679563afed6e8b176",
       "chapter": "prologue",
       "node": "photo_line",
       "source": "campaign/prologue.json",
       "character": "supervisor",
-      "speaker": "林督導",
+      "speaker": "林岑",
       "language": "zh-TW",
-      "text": "阿禾，把這張留著。這是新人的第一張水下照。"
+      "text": "周楷，把這張留著。"
     },
     {
-      "id": "eb9a26ce05ac6856c10e",
+      "id": "6c71ccac97c3efb93716",
       "chapter": "prologue",
       "node": "predive_brief",
       "source": "campaign/prologue.json",
       "character": "supervisor",
-      "speaker": "林督導",
+      "speaker": "林岑",
       "language": "zh-TW",
-      "text": "下水前先確認密封、接頭與配平。完整作業流程可在主選單開啟；入水且人員離開才解鎖，回收先上鎖。"
+      "text": "下水前先確認密封、接頭與配平。入水且人員離開尾板再解鎖。"
     },
     {
-      "id": "136002151815d99bdb71",
+      "id": "a3b9e9a9899187b66150",
+      "chapter": "prologue",
+      "node": "tender_ready",
+      "source": "campaign/prologue.json",
+      "character": "tender",
+      "speaker": "周楷",
+      "language": "zh-TW",
+      "text": "纜手就位。線我看著。"
+    },
+    {
+      "id": "44b00a7ec77ef06ae240",
       "chapter": "prologue",
       "node": "welcome",
       "source": "campaign/prologue.json",
       "character": "supervisor",
-      "speaker": "林督導",
+      "speaker": "林岑",
       "language": "zh-TW",
-      "text": "船老了，人可不能馬虎。我是林岑。今天先在池裡認識你的搭檔。"
+      "text": "今天池裡認識搭檔。先檢查。"
     },
     {
       "id": "c59c93f8bb49fb848a2e",

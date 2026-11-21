@@ -14,7 +14,7 @@ ROOM_PROBE = (
     "from qysim.engine import Simulator\n"
     "from qysim.room import Room\n"
     "room = Room(Simulator('open_water', 42))\n"
-    "assert room.campaign.scripts['prologue']['title'] == '\\u5e8f\\u7ae0\\uff5c\\u6c34\\u6c60'\n"
+    "assert room.campaign.scripts['prologue']['title'] == '\\u5e8f\\u7ae0\\uff5c\\u898b\\u7fd2\\u4e4b\\u524d'\n"
     "print('room-ok')\n"
 )
 # A text read whose encoding is left to the platform default.
