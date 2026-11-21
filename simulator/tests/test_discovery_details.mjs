@@ -1,11 +1,29 @@
 // A photo must resolve the subject actually drawn at the host surface, even after the near batch is repacked.
 import {register} from 'node:module';
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {getLanguage, registerTranslations, setLanguage} from '../viewer/i18n/core.js';
 register('../tools/three_resolve_hooks.mjs', import.meta.url);
 const THREE = await import('three');
 const {installDiscoveryDetails} = await import('../viewer/discovery_details.js');
 const {inspectObservation} = await import('../viewer/observation_camera.js');
+const {classLabel} = await import('../viewer/vision/overlay.js');
+
+test('assisted vision uses the field guide name for local finds and preserves other detector classes', () => {
+  const path = new URL('../viewer/i18n/locales/en/collection_categories.json', import.meta.url);
+  registerTranslations('en', 'collection_categories', JSON.parse(readFileSync(path, 'utf8')));
+  const previous = getLanguage();
+  try {
+    setLanguage('en');
+    assert.equal(classLabel('mussels'), 'Mussel bed');
+    assert.equal(classLabel('engineering'), '作業目標');
+    assert.equal(classLabel('cable'), '纜線');
+    assert.equal(classLabel('uncatalogued'), '未知目標');
+  } finally {
+    setLanguage(previous);
+  }
+});
 
 function marker(id, kind, north) {
   return {id, kind, pos: [north, 0, 8], normal: [0, 0, -1], yaw: 31};
