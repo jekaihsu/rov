@@ -38,7 +38,8 @@ def run():
           completed: [], checkpoint: {chapter:"prologue", index:0}
         }))''')
         open_main(page)
-        page.click('#entry-story')
+        page.click('#entry-training')
+        page.click('#training-tab-story')
         page.click('[data-chapter="prologue"]')
         page.click('#hangarNext')
         wait_screen(page, 'briefing')

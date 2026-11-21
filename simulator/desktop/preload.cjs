@@ -1,6 +1,7 @@
 // Isolated desktop bridge; no raw IPC or native modules are exposed.
 const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('rovDesktop',Object.freeze({
+  edition: process.argv.includes('--rov-edition=steam') ? 'steam' : 'internal',
   steamStatus(){return ipcRenderer.invoke('rov:steam','status');},
   steamEvent(event,value=1){return ipcRenderer.invoke('rov:steam','event',{event,value});},
   display(value){return ipcRenderer.invoke('rov:display',value);},

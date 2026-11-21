@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CHECKS = (
     'browser_smoke',
     'browser_menu_smoke',
+    'browser_main_menu_r8',
     'browser_menu_gamepad_smoke',
     'browser_feedback_smoke',
     'browser_gamepad_matrix_smoke',

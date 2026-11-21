@@ -210,14 +210,15 @@ test('the cold-open URL carries the follow-up launch and comes back to it', () =
   const back = new URL(followUpUrl(url.href));
   assert.equal(back.searchParams.get('contract'), 'p0_induction');
   assert.equal(back.searchParams.get('chapter'), 'prologue');
+  assert.equal(back.searchParams.get('play'), '1');
   assert.equal(back.searchParams.get(FLAG), null);
   assert.equal(back.searchParams.get('room'), 'training');
   const replay = coldOpenUrl(launch, {replay: true});
   assert.equal(replay.searchParams.get(FLAG), 'replay');
   const menu = new URL(followUpUrl(replay.href));
-  assert.equal(menu.searchParams.get('menu'), 'training');
-  assert.equal(menu.searchParams.get('tab'), 'story');
+  assert.equal(menu.searchParams.get('menu'), 'main');
   assert.equal(menu.searchParams.get('play'), null, 'a replay returns to the launch menu');
+  assert.equal(menu.searchParams.get('ws'), 'ws://127.0.0.1:8765');
   assert.ok(!new URL(followUpUrl('http://x/?play=1')).search.includes(NEXT));
 });
 

@@ -53,7 +53,8 @@ app.whenReady().then(async()=>{
   }
   const lifecycle = installBackendLifecycle(app, backend, backendFailed);
   const workArea=screen.getPrimaryDisplay().workAreaSize;
-  const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,preload:path.join(__dirname,'preload.cjs')}});
+  const edition = process.env.ROV_BUILD_EDITION === 'steam' ? 'steam' : 'internal';
+  const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{additionalArguments:[`--rov-edition=${edition}`],nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,preload:path.join(__dirname,'preload.cjs')}});
   lifecycle.watchWindow(window);
   const origin = `http://127.0.0.1:${http}`;
   function trusted(event) {

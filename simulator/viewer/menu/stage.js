@@ -8,12 +8,12 @@ import { placeSceneModelLow } from '../scene_models.js';
 import { applyVehicleSticker } from '../vehicle_stickers.js';
 import { automaticSceneDetail, configureRenderQuality, updateRenderQuality } from '../render_quality.js';
 import { createFrameGate } from '../prefs/display.js';
-
+import { Humanoid } from '../humanoid.js';
 // Camera per screen: eye offset from the vehicle (metres, three.js axes); shift moves the vehicle right of
 // the screen centre by that many metres (the menus sit on the left), lift raises the look point.
 const POSES = {
   title: { eye: [-3.6, 1.1, 4.6], shift: 1.4, lift: 0.35, orbit: 0.03 },
-  main: { eye: [-2.2, 0.7, 2.8], shift: 1.0, lift: 0.15, orbit: 0 },
+  main: { eye: [-2.2, 0.7, 2.8], shift: 1.0, lift: 0.15, orbit: 0.019 },
   modes: { eye: [-2.3, 0.45, 3.0], shift: 0.9, lift: -0.3, orbit: 0 },
   hangar: { eye: [0.9, 0.35, 1.5], shift: 0.42, lift: 0, orbit: 0 },
   // Overview of the site itself: eye direction scaled by the site's extent, looking at its structures.
@@ -63,6 +63,37 @@ function disposeTree(group) {
   group.clear();
 }
 
+/** Drop habitat clutter and loose rocks from the journal shot so piles / walls and the vehicle stay the subject. */
+function journalWorld(world) {
+  const obstacles = (world.obstacles || []).filter(function keep(obstacle) {
+    if (obstacle.kind === 'habitat') return false;
+    if (obstacle.type === 'snag' && obstacle.item === 'rock') return false;
+    if (obstacle.kind === 'toe_rock' || obstacle.kind === 'scour_rock') return false;
+    return true;
+  });
+  // Kelp and seagrass read as flat green slabs under soft lighting; keep fish only.
+  const habitat = world.habitat ? {
+    ...world.habitat,
+    entities: (world.habitat.entities || []).filter(function living(entity) {
+      return !['rock', 'kelp', 'seagrass', 'seastar'].includes(entity.kind);
+    }),
+  } : world.habitat;
+  return {...world, obstacles, habitat};
+}
+
+function workCable(from, to) {
+  const curve = new THREE.CatmullRomCurve3([
+    from.clone(),
+    from.clone().lerp(to, 0.35).add(new THREE.Vector3(0.2, 0.35, -0.4)),
+    from.clone().lerp(to, 0.7).add(new THREE.Vector3(-0.15, 0.15, -0.2)),
+    to.clone(),
+  ]);
+  return new THREE.Mesh(
+    new THREE.TubeGeometry(curve, 20, 0.018, 6, false),
+    new THREE.MeshStandardMaterial({color: 0xb8893d, roughness: 0.85, metalness: 0.05}),
+  );
+}
+
 export function createStage(host, { quality = 'auto' } = {}) {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const scene = new THREE.Scene();
@@ -79,14 +110,25 @@ export function createStage(host, { quality = 'auto' } = {}) {
   }
   lamps.visible = false;
   scene.add(new THREE.HemisphereLight(0xc9eeff, 0x29362b, 2));
-  for (const [position, power, color] of [[[3, 7, 6], 3, 0xffffff], [[-4, 2, -1], 2, 0x64c4dc]]) {
-    const light = new THREE.DirectionalLight(color, power);
-    light.position.set(...position);
-    scene.add(light);
-  }
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3);
+  keyLight.position.set(3, 7, 6);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(1024, 1024);
+  keyLight.shadow.camera.near = 1;
+  keyLight.shadow.camera.far = 60;
+  keyLight.shadow.camera.left = -18;
+  keyLight.shadow.camera.right = 18;
+  keyLight.shadow.camera.top = 18;
+  keyLight.shadow.camera.bottom = -18;
+  scene.add(keyLight);
+  const fill = new THREE.DirectionalLight(0x64c4dc, 2);
+  fill.position.set(-4, 2, -1);
+  scene.add(fill);
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.className = 'menu-canvas';
   host.prepend(renderer.domElement);
   configureRenderQuality(renderer, quality);
@@ -94,6 +136,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
   const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.02, 5000);
   const structures = new THREE.Group();
   scene.add(structures);
+  const dressing = new THREE.Group();
+  scene.add(dressing);
   const anchor = new THREE.Vector3(0, -12, 0);
   const siteFocus = new THREE.Vector3(0, -12, 0);
   let siteExtent = 10;
@@ -114,6 +158,25 @@ export function createStage(host, { quality = 'auto' } = {}) {
   let spinVelocity = 0;
   let sticker = 'none';
   let showcase = false;
+  let journal = '';
+  let still = false;
+  let disposed = false;
+  let raf = 0;
+  let crewLib = null;
+  let crewTicket = 0;
+  Humanoid.load('models/worker.glb').then(function ready(lib) {
+    if (!disposed) crewLib = lib;
+  }).catch(function ignored() {
+    crewLib = null;
+  });
+  const umbilical = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, .1, 0), new THREE.Vector3(-.4, .35, -.8),
+    new THREE.Vector3(-1.4, 1.2, -3), new THREE.Vector3(-2.5, 8, -7),
+  ]);
+  const tether = new THREE.Mesh(new THREE.TubeGeometry(umbilical, 24, .014, 5, false),
+    new THREE.MeshStandardMaterial({color: 0xc99443, roughness: .8}));
+  scene.add(tether);
+  tether.visible = false;
   // The fog set by setSea (SEA or SHOWCASE.fog); site cards widen it per frame and other poses restore it.
   let sea = SEA;
   // Large vehicles push the hangar camera back so they are never cropped (1 = the size the poses were set for).
@@ -122,17 +185,20 @@ export function createStage(host, { quality = 'auto' } = {}) {
   const state = { modelReady: false, sceneReady: false, modelId: '', sceneKey: '' };
 
   function resize() {
+    if (disposed) return;
+    still = false;
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
   }
   async function setModel(id) {
+    if (disposed) return;
     if (state.modelId === id && model) return;
     state.modelId = id;
     state.modelReady = false;
     const ticket = ++modelTicket;
     const next = await createVehicleModel(id);
-    if (ticket !== modelTicket) {
+    if (ticket !== modelTicket || disposed) {
       next.dispose();
       return;
     }
@@ -145,13 +211,18 @@ export function createStage(host, { quality = 'auto' } = {}) {
     model = next;
     scene.add(model.root);
     model.root.add(lamps);
+    model.root.traverse(function shade(object) {
+      if (object.isMesh) object.castShadow = true;
+    });
     modelScale = fitScale(model.root);
     model.root.position.copy(anchor);
     model.updateArm({ joints: [0, -15, 30, -15], grip: 0.7 });
     applyVehicleSticker(model, sticker);
     state.modelReady = true;
+    still = false;
   }
   function setSticker(preset) {
+    still = false;
     sticker = preset;
     if (model) applyVehicleSticker(model, preset);
   }
@@ -192,6 +263,29 @@ export function createStage(host, { quality = 'auto' } = {}) {
       anchor.copy(P(SHOWCASE.anchor));
       return;
     }
+    seabed = -world.seabed_depth;
+    if (journal) {
+      // Frame the working piles / walls, not a stray habitat patch that pulls the shot onto a rock.
+      const piles = (world.obstacles || []).filter(function pile(obstacle) {
+        return obstacle.type === 'cylinder' && (!obstacle.kind || obstacle.kind === 'pile');
+      });
+      if (piles[0]) {
+        const pile = piles[0];
+        const mid = P(pile.p0).lerp(P(pile.p1), 0.55);
+        const out = new THREE.Vector3(mid.x, 0, mid.z).normalize();
+        if (!Number.isFinite(out.x)) out.set(0, 0, -1);
+        anchor.copy(mid).addScaledVector(out, -(pile.radius || 0.65) - 2.2);
+        anchor.y = Math.max(seabed + 1.6, Math.min(-2.5, mid.y));
+        return;
+      }
+      const wall = (world.obstacles || []).find(function pool(obstacle) {
+        return obstacle.kind === 'pool_wall' || obstacle.type === 'wall';
+      });
+      if (wall?.p0) {
+        anchor.copy(P(world.start_pos || [0, 0, 3]));
+        return;
+      }
+    }
     anchor.copy(P(world.start_pos || [0, 0, 0]));
     anchor.y = -world.seabed_depth + 1.4;
     const living = (world.habitat?.entities || []).filter(function showcase(entity) {
@@ -211,37 +305,111 @@ export function createStage(host, { quality = 'auto' } = {}) {
     scene.fog.near = near;
     scene.fog.far = far;
   }
+  function placeCrew(position, yaw) {
+    if (!crewLib) return;
+    const crew = new Humanoid(crewLib, {
+      shirt: 0x2b3f55, pants: 0x2a2f36, vest: 0xff6a13, helmet: 0xf4f4ef,
+    });
+    crew.root.position.copy(position);
+    crew.root.rotation.y = yaw;
+    crew.play('Idle', {at: 0.4});
+    crew.root.traverse(function shade(object) {
+      if (object.isMesh) object.castShadow = true;
+    });
+    dressing.add(crew.root);
+    dressing.userData.crew = crew;
+  }
+  function dressJournal(world) {
+    disposeTree(dressing);
+    dressing.userData.crew = null;
+    if (!journal) return;
+    const ticket = ++crewTicket;
+    const piles = (world.obstacles || []).filter(function pile(obstacle) {
+      return obstacle.type === 'cylinder' && (!obstacle.kind || obstacle.kind === 'pile');
+    });
+    if (piles.length) {
+      const first = P(piles[0].p0).lerp(P(piles[0].p1), 0.35);
+      const second = piles[1]
+        ? P(piles[1].p0).lerp(P(piles[1].p1), 0.4)
+        : first.clone().add(new THREE.Vector3(2, 0, 1));
+      dressing.add(workCable(first.clone().add(new THREE.Vector3(0.1, 0.2, 0)), second));
+      // A second working line from the vehicle toward the nearest pile, so the shot reads as a live job.
+      dressing.add(workCable(anchor.clone().add(new THREE.Vector3(0.05, 0.12, 0)), first));
+      const deck = (world.obstacles || []).find(function jetty(obstacle) {
+        return obstacle.kind === 'deck';
+      });
+      if (deck?.center) {
+        const spot = P(deck.center);
+        spot.y += 0.02;
+        placeCrew(spot, Math.PI * 0.7);
+      }
+    } else {
+      // Indoor pool / open water: spare umbilical loops in frame with the live tether.
+      dressing.add(workCable(
+        anchor.clone().add(new THREE.Vector3(-0.25, 0.08, 0.15)),
+        anchor.clone().add(new THREE.Vector3(1.8, 0.55, -1.4)),
+      ));
+      dressing.add(workCable(
+        anchor.clone().add(new THREE.Vector3(0.35, -0.05, -0.2)),
+        anchor.clone().add(new THREE.Vector3(-1.2, 0.35, -2.2)),
+      ));
+      // Deck tender at the pool rim (waterline), looking toward the vehicle.
+      placeCrew(new THREE.Vector3(anchor.x + 0.8, 0.02, anchor.z - 3.8), Math.PI);
+    }
+    // Humanoid loads asynchronously; refresh dressing once when the library arrives.
+    if (!crewLib) {
+      Humanoid.load('models/worker.glb').then(function ready(lib) {
+        if (disposed || ticket !== crewTicket) return;
+        crewLib = lib;
+        dressJournal(world);
+      }).catch(function ignored() {});
+    }
+  }
   // entry: a scene_previews.json entry; showcase: frame it as the title backdrop (SHOWCASE) instead.
-  function setScene(entry, { showcase: hero = false } = {}) {
-    if (!entry) return;
-    if (state.sceneKey === entry.key && hero === showcase) return;
+  function setScene(entry, { showcase: hero = false, journal: chapter = '' } = {}) {
+    if (!entry || disposed) return;
+    if (state.sceneKey === entry.key && hero === showcase && journal === chapter) return;
+    journal = chapter;
+    tether.visible = !!journal;
+    still = false;
+    keyLight.color.set(journal === 'prologue' ? 0xffbf89 : journal === 'ch2' ? 0xb4cad4 : 0xffffff);
     showcase = hero;
     lamps.visible = hero;
     setPose(poseName);
-    setSea(hero ? SHOWCASE.fog : SEA);
+    const seas = {prologue: ['#3d5a62', 4, 26], ch1: ['#284a4b', 4, 34], ch2: ['#15383f', 2, 22]};
+    setSea(seas[journal] || (hero ? SHOWCASE.fog : SEA));
     if (state.sceneKey === entry.key) {
       placeAnchor(entry.world);
+      dressJournal(journal ? journalWorld(entry.world) : entry.world);
       snapped = false;
       return;
     }
     state.sceneKey = entry.key;
     const ticket = ++sceneTicket;
-    const world = entry.world;
+    const source = journal ? journalWorld(entry.world) : entry.world;
     environment?.dispose();
-    environment = new Environment(scene, world, { detail: backdropDetail(hero) });
+    environment = new Environment(scene, source, { detail: backdropDetail(hero) });
     disposeTree(structures);
-    // the same dressed structures as the dive (low tier), so the site cards and the background match the game
-    structures.add(buildStructures(world, { detail: 'low' }).group);
-    for (const obstacle of world.obstacles || []) {
+    // Journal shots use medium structures so piles read as round concrete with fouling, not flat green plates.
+    const structureDetail = journal ? 'medium' : 'low';
+    const built = buildStructures(source, { detail: structureDetail });
+    built.group.traverse(function shade(object) {
+      if (!object.isMesh) return;
+      object.castShadow = true;
+      object.receiveShadow = true;
+    });
+    structures.add(built.group);
+    for (const obstacle of source.obstacles || []) {
       if (obstacle.type === 'model') {
         // Menu background loads one reduced authored LOD (scene_models.js placeSceneModelLow), never the full mesh.
         placeSceneModelLow(obstacle, structures, P, function current() {
-          return ticket === sceneTicket;
+          return ticket === sceneTicket && !disposed;
         });
       }
     }
-    placeAnchor(world);
-    placeSiteFocus(world);
+    placeAnchor(source);
+    placeSiteFocus(source);
+    dressJournal(source);
     snapped = false;
     state.sceneReady = true;
   }
@@ -255,6 +423,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     return hero ? 'high' : 'medium';
   }
   function setPose(name) {
+    still = false;
     poseName = name;
     pose = (showcase && SHOWCASE.poses[name]) || POSES[name] || POSES.main;
   }
@@ -286,10 +455,9 @@ export function createStage(host, { quality = 'auto' } = {}) {
   }
   const skipFrame = createFrameGate();
   function frame(now) {
-    if (skipFrame(now)) {
-      requestAnimationFrame(frame);
-      return;
-    }
+    if (disposed) return;
+    raf = requestAnimationFrame(frame);
+    if (still || skipFrame(now)) return;
     const seconds = (now - last) / 1000;
     const dt = Math.min(0.05, seconds);
     last = now;
@@ -305,7 +473,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
       model.root.rotation.y = facing + (pose === POSES.hangar ? 0 : Math.sin(elapsed * 0.18) * 0.18);
     }
     poseTargets();
-    if (!snapped || reduced) {
+    const holdShot = journal && poseName === 'main' && backdropDetail(false) === 'low';
+    if (!snapped || reduced || holdShot) {
       eye.copy(targetEye);
       look.copy(targetLook);
       snapped = true;
@@ -326,12 +495,32 @@ export function createStage(host, { quality = 'auto' } = {}) {
       scene.fog.far = sea[2];
     }
     environment?.update(dt, camera, new THREE.Vector3(0.1, 0, 0));
+    dressing.userData.crew?.update?.(dt);
+    tether.position.copy(anchor);
     renderer.render(scene, camera);
-    requestAnimationFrame(frame);
+    still = holdShot && state.modelReady;
+  }
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    cancelAnimationFrame(raf);
+    removeEventListener('resize', resize);
+    environment?.dispose();
+    environment = null;
+    model?.root.removeFromParent();
+    model?.dispose();
+    model = null;
+    disposeTree(structures);
+    disposeTree(dressing);
+    tether.geometry.dispose();
+    tether.material.dispose();
+    scene.remove(tether);
+    renderer.dispose();
+    renderer.domElement.remove();
   }
   resize();
   addEventListener('resize', resize);
-  requestAnimationFrame(frame);
+  raf = requestAnimationFrame(frame);
   return {
     renderer,
     scene,
@@ -342,7 +531,9 @@ export function createStage(host, { quality = 'auto' } = {}) {
     setSticker,
     setPose,
     rotate,
+    dispose,
     configureQuality(mode) {
+      still = false;
       qualityMode = mode;
       configureRenderQuality(renderer, mode);
     },

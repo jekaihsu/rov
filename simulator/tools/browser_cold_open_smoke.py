@@ -41,7 +41,7 @@ const fakePad = {
 };
 Object.defineProperty(navigator, 'getGamepads', {value: () => [fakePad, null, null, null], configurable: true});
 """
-BEAT = 'window.__coldOpen?.debug?.().beat || ""'
+BEAT = '(window.__coldOpen?.debug?.().beat || "")'
 STATE = '''() => {
   const s = window.__viewer?.S || {};
   const d = window.__coldOpen?.debug?.() || {};
@@ -478,13 +478,12 @@ def once_only(run):
 
 
 def replay(run):
-    """重玩開場 from the story list: the cold open again, skippable with Esc, back to the story list."""
+    """重玩開場 from the story list: the cold open again, skippable with Esc, back to the main menu."""
     page = run.page
-    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=coldreplay{time.time_ns()}&quality=performance'
-              '&menu=training&tab=story')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=coldreplay{time.time_ns()}&quality=performance&menu=main')
     wait_ready(page)
-    page.wait_for_function('window.__menu.screen === "training"', timeout=timeout(30000))
-    page.click('#coldOpenReplay')
+    page.click('#entry-story')
+    page.click('#journalReplay')
     page.wait_for_url('**coldOpen=replay**', timeout=timeout(60000))
     page.wait_for_function('window.__coldOpen && window.__viewer?.S', timeout=timeout(120000))
     run.wait_beat(['black', 'establish'], 120000)
@@ -493,9 +492,9 @@ def replay(run):
     page.keyboard.press('Escape')
     page.wait_for_selector('.brand-card-overlay', timeout=timeout(60000))
     assert page.evaluate('window.__coldOpen.report.skipped') == 'key'
-    page.wait_for_url('**menu=training**', timeout=timeout(90000))
+    page.wait_for_url('**menu=main**', timeout=timeout(90000))
     wait_ready(page)
-    page.wait_for_function('window.__menu.screen === "training"', timeout=timeout(30000))
+    page.wait_for_function('window.__menu.screen === "main"', timeout=timeout(30000))
 
 
 def contact_sheet(frames, path):

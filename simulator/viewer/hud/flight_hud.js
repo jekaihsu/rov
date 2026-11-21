@@ -62,6 +62,7 @@ function save(key, value) {
   try { localStorage.setItem(key, value); } catch { /* Private browsing. */ }
 }
 function drawer() {
+  if (window.rovDesktop?.edition === 'steam') return;
   $('engineering').hidden = !$('engineering').hidden;
   save('rov.hud.drawer', String(!$('engineering').hidden));
 }
@@ -135,7 +136,7 @@ function initialize() {
   const panel = document.createElement('section');
   panel.id = 'engineering';
   panel.setAttribute('aria-label', STRINGS.engineering);
-  panel.hidden = storage('rov.hud.drawer', 'false') !== 'true';
+  panel.hidden = window.rovDesktop?.edition === 'steam' || storage('rov.hud.drawer', 'false') !== 'true';
   document.body.append(panel);
   const close = document.createElement('button');
   close.textContent = STRINGS.close;
@@ -166,6 +167,7 @@ function initialize() {
   $('flightTools').append($('camBtn'));
   toolIcon($('flightDrawer'), 'engineering', STRINGS.engineering);
   toolIcon($('flightHide'), 'hud', STRINGS.hide);
+  $('flightDrawer').hidden = window.rovDesktop?.edition === 'steam';
   $('flightDrawer').onclick = drawer;
   $('flightMapMode').onclick = function toggleNorth() {
     north = !north;

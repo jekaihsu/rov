@@ -105,7 +105,7 @@ export function installBrandMenu({menu, getModel, search = location.search}) {
   decorateHeader(menu);
   decorateHangar(menu);
   decorateBriefing(menu, getModel);
-  if (new URLSearchParams(search).has('brandDemo')) {
+  if (window.rovDesktop?.edition !== 'steam' && new URLSearchParams(search).has('brandDemo')) {
     openDemo().catch(function demoFailed(error) {
       console.error(error);
     });

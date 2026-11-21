@@ -2,7 +2,7 @@
 import { CHANNELS, PRESETS, curve, radial, bindingValue } from "./actions.js";
 import {
   actionLabel, bindingRow, defaultPadBindings, findCollisions, hintItems, inputIds, keyCollisions, keyLabel,
-  keyRebindable, layoutLabel,
+  keyRebindable, layoutLabel, visibleAction,
 } from "./bindings.js";
 import { keyboardLayout, rowsFor } from "./keyboard_layout.js";
 import { getFidelity } from "../fidelity.js";
@@ -158,6 +158,7 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     for (const [name, action] of featureActions) settings.bindings[name] ??= action.binding ?? "";
     rows.replaceChildren();
     for (const [name, binding] of Object.entries(settings.bindings)) {
+      if (!visibleAction(name)) continue;
       const row = element("label", featureActions.get(name)?.label || actionLabel(name), rows);
       const input = element("input", "", row);
       input.dataset.binding = name;
@@ -332,7 +333,7 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       help.textContent = STRINGS.keyboardHelp.replace("{layout}", layoutLabel(layout));
       list.replaceChildren();
       for (const row of rows) {
-        if (!keyRebindable(row) || !row.keys.length) continue;
+        if (!visibleAction(row.action) || !keyRebindable(row) || !row.keys.length) continue;
         const line = element("div", "", list);
         element("span", `${names[row.action] || actionLabel(row.action)} `, line);
         const parts = (names[row.action] || "").split("／");

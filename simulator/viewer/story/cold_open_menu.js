@@ -57,6 +57,10 @@ export function coldOpenToggle(idPrefix) {
 }
 
 /** The 重玩開場 card for the story list; onChoose replays the cold open. */
+export function replayTitle() {
+  return STRINGS.replay[0];
+}
+
 export function replayCard(index, onChoose) {
   const [title, outline] = STRINGS.replay;
   const card = chapterCard({id: 'cold_open', title, outline, scenario: PREVIEW_SCENE}, {
