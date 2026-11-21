@@ -101,7 +101,7 @@ function thermalSet(state) {
 }
 
 // Rising edges only. Rewound or first snapshots stay silent so replay seeks do not spam.
-export function detectEvents(previous, state) {
+export function detectEvents(previous, state, contacts = freshContacts(previous, state)) {
   if (!previous || state.t < previous.t || state.vehicle_id !== previous.vehicle_id) return [];
   const events = [];
   for (const key of ['locked', 'keep_depth', 'photos']) {
@@ -141,10 +141,7 @@ export function detectEvents(previous, state) {
     }
   }
 
-  const known = new Set((previous.events || []).map(eventKey));
-  for (const event of state.events || []) {
-    if (!known.has(eventKey(event))) events.push(event.severity);
-  }
+  for (const event of contacts) events.push(event.severity);
   return events;
 }
 
@@ -154,4 +151,47 @@ export function layerGains(underwaterEnabled) {
     topside: 1,
     underwater: underwaterEnabled ? 1 : 0
   };
+}
+
+// FRD y is positive to starboard. Unknown/centreline mounts stay centred.
+export function motorPan(mount) {
+  return clamp((mount?.pos?.[1] || 0) * 3, -0.85, 0.85);
+}
+
+export function freshContacts(previous, state) {
+  if (!previous || previous.vehicle_id !== state.vehicle_id || state.t < previous.t) return [];
+  const known = new Set((previous.events || []).map(eventKey));
+  return (state.events || []).filter(event => (!event.vehicle_id || event.vehicle_id === state.vehicle_id) &&
+    !known.has(eventKey(event)));
+}
+
+// Pair a detected edge with its contact by severity (and optional id), never by FIFO order alone.
+export function takeContactHit(hits, event) {
+  if (!hits?.length || !['touch', 'hard', 'severe'].includes(event)) return null;
+  const index = hits.findIndex(hit => hit.severity === event);
+  if (index < 0) return null;
+  return hits.splice(index, 1)[0];
+}
+
+const IMPACT_TIMBRE = {
+  sand: [380, 0.08], net: [900, 0.11], concrete: [680, 0.16], steel: [2400, 0.28]
+};
+
+function contactMaterial(name, obstacles) {
+  if (name === 'seabed') return 'sand';
+  const obstacle = obstacles.find(item => item.name === name);
+  const kind = obstacle?.kind || '';
+  if (/net|rope/.test(kind) || obstacle?.item === 'rope') return 'net';
+  const harbourPile = kind === 'pile' && obstacles.some(item => item.kind === 'quay');
+  if (harbourPile || obstacle?.type === 'wall' || /quay|deck|mudmat|concrete|block|anchor/.test(kind)) {
+    return 'concrete';
+  }
+  return 'steel';
+}
+
+export function impactEnvelope(hit, obstacles = []) {
+  const material = contactMaterial(hit.obstacle, obstacles);
+  const [cutoff, decay] = IMPACT_TIMBRE[material];
+  const energy = clamp(hit.speed, 0, 2);
+  return {material, cutoff: cutoff * (1 + energy / 2), decay, gain: 0.05 + 0.16 * energy};
 }

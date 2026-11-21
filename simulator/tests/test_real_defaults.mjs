@@ -96,5 +96,7 @@ test("without a video delay, and in replay, the read-outs are the live state", (
 test("the HUD and the audio engine are fed the display state", async () => {
   const app = await readFile(new URL("../viewer/app.js", import.meta.url), "utf8");
   assert.match(app, /updateFlightHUD\(renderState\.display\(S\), W, dt, input\.hudState\(\)\);/);
-  assert.match(app, /audio\.update\(renderState\.display\(S\)\);/);
+  assert.match(app, /const displayed = renderState\.display\(S\);/);
+  assert.match(app, /audio\.update\(displayed\);/);
+  assert.match(app, /music\.update\(displayed\);/);
 });

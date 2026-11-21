@@ -92,3 +92,50 @@ test('clip URLs stay under the language directory', () => {
   assert.match(clipUrl('zh-TW', 'abc'), /voice\/zh-TW\/abc\.opus$/);
   assert.match(clipUrl('en', 'xyz'), /voice\/en\/xyz\.opus$/);
 });
+
+test('flight fallback selects a local matching voice and honours mixer mute and stop', async t => {
+  const {installVoice} = await import('../viewer/audio/voice.js');
+  const {getFidelity} = await import('../viewer/fidelity.js');
+  _resetVoiceForTests();
+  const local = {lang: 'zh-TW', localService: true};
+  const spoken = [];
+  let cancelled = 0;
+  const synth = {
+    getVoices: () => [{lang: 'zh-TW', localService: false}, local],
+    speak: line => spoken.push(line),
+    cancel: () => { cancelled++; }
+  };
+  const globals = {document: {hidden: false}, speechSynthesis: synth,
+    SpeechSynthesisUtterance: class { constructor(text) { this.text = text; } }};
+  for (const [name, value] of Object.entries(globals)) {
+    const original = Object.getOwnPropertyDescriptor(globalThis, name);
+    Object.defineProperty(globalThis, name, {value, configurable: true});
+    t.after(() => {
+      if (original) Object.defineProperty(globalThis, name, original);
+      else delete globalThis[name];
+    });
+  }
+  t.mock.method(globalThis, 'fetch', async () => ({ok: true, json: async () => ({})}));
+  const settings = {master: 0.5, voice: 0.8, mute: false};
+  const voice = installVoice({engine: {settings, ctx: {state: 'running'}, isPaused: () => false}});
+  const call = {speaker: '林岑', text: '向潮－指揮，機身碰到了。先穩住。', language: 'zh-TW', localRate: 0.92};
+  const fidelity = getFidelity();
+  try {
+    assert.equal(fidelity.get('osVoice'), false);
+    assert.equal((await voice.playLine(call)).played, false);
+    assert.equal(spoken.length, 0);
+    fidelity.set('osVoice', true);
+    assert.ok((await voice.playLine(call)).local);
+    assert.equal(spoken[0].voice, local);
+    assert.equal(spoken[0].volume, 0.4);
+    voice.stop();
+    assert.equal(cancelled, 1);
+    settings.mute = true;
+    assert.equal((await voice.playLine(call)).played, false);
+    assert.equal(spoken.length, 1);
+  } finally {
+    fidelity.set('osVoice', false);
+    voice.stop();
+    _resetVoiceForTests();
+  }
+});
