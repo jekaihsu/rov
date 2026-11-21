@@ -48,6 +48,7 @@ import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
+import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
 import {installChapterCards} from './brand/chapter_card.js';
@@ -580,6 +581,7 @@ function onState(m) {
   procedurePanel.update(m);
   campaignPanel.update(m);
   coldOpen.update(m, W);
+  if (!REPLAY) prologue.update(m);
   chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -643,7 +645,8 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen() || feedbackOpen(),
+const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
+    || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
@@ -1030,6 +1033,7 @@ function endIntroUI() {
 }
 // held: open on the aft deck and wait; the returned function starts the launch (deployment procedure).
 async function startIntro(held = false) {
+  if (params.get('chapter') === 'prologue') return null;
   if (!W || !$('optIntro').checked || params.has('nointro')) return null;
   if (MOVIE && movie.introDone) return;
   const assets = await loadIntroAssets();
@@ -1211,6 +1215,7 @@ const audio = installAudio({
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
+const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
@@ -1279,6 +1284,7 @@ function frame(now) {
   audio.update(renderState.display(S));
   music.update(renderState.display(S));
   coldOpen.frame(dt);
+  prologue.frame();
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);

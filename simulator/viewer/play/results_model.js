@@ -208,7 +208,9 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
   const contacts = Math.min(scoring.contactCap, collisions * scoring.contactPoints);
   const broken = !!result.tether_broken;
   const tether = broken ? scoring.brokenPoints : Math.min(scoring.overloadCap, overloads * scoring.overloadPoints);
-  const value = Math.max(0, 100 - contacts - tether);
+  const photoRun = result.photos_required > 0;
+  const objectives = photoRun ? Math.round(100 * result.photos_accepted / result.photos_required) : 100;
+  const value = Math.max(0, objectives - contacts - tether);
   const rewards = (campaign.rewards || []).filter(function earned(id) {
     return !(start.rewards || []).includes(id);
   }).map(rewardLabel);
@@ -233,7 +235,8 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
     elapsed: result.elapsed || 0,
     limit: null,
     rows: [
-      { id: 'objectives', label: STRINGS.rows.objectives, detail: '✓', points: 100 },
+      { id: 'objectives', label: STRINGS.rows.objectives,
+        detail: photoRun ? `${result.photos_accepted}/${result.photos_required}` : '✓', points: objectives },
       { id: 'time', label: STRINGS.rows.time, detail: formatTime(result.elapsed), points: null },
       { id: 'tether', label: STRINGS.rows.tether, detail: tetherDetail, points: -tether },
       {
