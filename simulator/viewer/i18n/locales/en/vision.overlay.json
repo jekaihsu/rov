@@ -1,0 +1,19 @@
+{
+  "toggle": "AI vision",
+  "available": "Markable targets are in view",
+  "mark": "Mark detected targets",
+  "confirm": "Confirm detections on the onboard view before taking a photo.",
+  "oracle": "Oracle · simulated ground truth",
+  "classes": {
+    "coral": "Coral",
+    "seastar": "Sea star",
+    "seagrass": "Seagrass",
+    "kelp": "Kelp",
+    "fish_school": "Fish school",
+    "engineering": "Work target",
+    "cable": "Tether",
+    "unknown": "Unknown target"
+  },
+  "aiOverlay": "AI overlay",
+  "aiOverlayHelp": "Label recognition results on the onboard view (simulated ground truth by default, not a live model)."
+}

@@ -670,7 +670,7 @@ const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || 
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 const onboarding = installOnboarding({input, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
+const pauseMenu = installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
   extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
 installFeedbackReport({
   input,
@@ -1093,7 +1093,13 @@ async function startIntro(held = false) {
     heldIntro.release();
   };
 }
-installIntroSkip({input, button: $('skipIntro'), skip: () => intro?.skip(), active: introActive});
+installIntroSkip({
+  input, button: $('skipIntro'), skip: () => intro?.skip(), active: introActive,
+  onMenuBack: {
+    enabled: () => !!procedurePanel.canNavigate?.(),
+    run: () => pauseMenu.show(),
+  },
+});
 let introStarts = 0;
 window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 async function ensurePip() {

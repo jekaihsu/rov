@@ -38,11 +38,15 @@ function span(className, html) {
 }
 
 // input: the object installInput returned. button: the #skipIntro element. skip(): skip the cinematic.
-// active(): whether a cinematic is running at all (held on deck included); Esc is consumed then, as before.
-export function installIntroSkip({ input, button, skip, active }) {
+// active(): whether a cinematic is running at all (held on deck included). Esc only skips while the prompt is
+// visible; onMenuBack opens the pause menu (or another caller) when the deck checklist owns the menu context.
+export function installIntroSkip({ input, button, skip, active, onMenuBack = null }) {
   if (!button) return { refresh() {} };
   let family = '';
   let heldMs = 0;
+  function menuBackEnabled() {
+    return !!onMenuBack?.enabled?.();
+  }
   function render() {
     const label = labelOverride || STRINGS.label;
     const parts = [];
@@ -63,17 +67,29 @@ export function installIntroSkip({ input, button, skip, active }) {
     button.classList.toggle('holding', value > 0);
   }
   // Called every pad frame while the prompt is up (continuous action); a key press arrives with dt 0 instead and is
-  // handled by the keydown listener below.
+  // handled by the keydown listener below. When the skip prompt is hidden, a key/tap back opens the menu hook.
   function hold(value, dt) {
-    if (!dt) return;
-    heldMs = value > 0.5 ? heldMs + dt * 1000 : 0;
-    setProgress(Math.min(1, heldMs / HOLD_MS));
-    if (heldMs < HOLD_MS) return;
-    heldMs = 0;
-    setProgress(0);
-    skipBy('pad');
+    if (introSkippable()) {
+      if (!dt) return;
+      heldMs = value > 0.5 ? heldMs + dt * 1000 : 0;
+      setProgress(Math.min(1, heldMs / HOLD_MS));
+      if (heldMs < HOLD_MS) return;
+      heldMs = 0;
+      setProgress(0);
+      skipBy('pad');
+      return;
+    }
+    if (!dt && menuBackEnabled()) onMenuBack.run();
   }
-  input?.registerActions?.({ back: { continuous: true, enabled: introSkippable, run: hold } });
+  input?.registerActions?.({
+    back: {
+      continuous: true,
+      enabled() {
+        return introSkippable() || menuBackEnabled();
+      },
+      run: hold,
+    },
+  });
   new MutationObserver(function visibility() {
     heldMs = 0;
     setProgress(0);
@@ -89,10 +105,12 @@ export function installIntroSkip({ input, button, skip, active }) {
     skipBy('click');
   });
   addEventListener('keydown', function escape(event) {
-    if (event.code !== KEY || !active()) return;
+    if (event.code !== KEY || !introSkippable()) return;
     event.preventDefault();
     skipBy('key');
   });
+  // active() is kept for callers that still need to know the cinematic is up (held deck included).
+  void active;
   render();
   rerender = render;
   return { refresh: render };

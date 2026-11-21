@@ -128,19 +128,26 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
         item.setAttribute('aria-label', `${item.textContent}：${done ? '已完成' : '未完成'}`);
       }
     }
-    const lockKey = actionKey('lock', currentKeyRows()) || 'Space';
-    const depthKey = actionKey('depth', currentKeyRows()) || 'H';
-    const driveKey = usb ? CHANNELS[surgeChannel] : pilotAxisKeys('surge', currentKeyRows(), mode).join(' / ');
+    const rows = currentKeyRows();
+    const lockKey = actionKey('lock', rows) || 'Space';
+    const depthKey = actionKey('depth', rows) || 'H';
+    const lightKey = actionKey('light', rows) || 'L';
+    const cameraKey = actionKey('camera', rows) || 'V';
+    const driveKey = usb ? CHANNELS[surgeChannel] : pilotAxisKeys('surge', rows, mode).join(' / ');
     let hint;
-    if (readOnly) hint = '正在回放錄製狀態。可用 V 查看不同視角；駕駛練習在即時潛航中進行。';
-    else if (usb && !state.controller.connected) hint = 'USB 遙控器尚未連線。請先恢復連線，或返回主選單更換輸入裝置。';
-    else if (state.paused) hint = '潛航已暫停。由房主恢復後再繼續操作。';
+    if (readOnly) {
+      hint = `正在回放錄製狀態。可用 ${cameraKey} 查看不同視角；駕駛練習在即時潛航中進行。`;
+    } else if (usb && !state.controller.connected) {
+      hint = 'USB 遙控器尚未連線。請先恢復連線，或返回主選單更換輸入裝置。';
+    } else if (state.paused) hint = '潛航已暫停。由房主恢復後再繼續操作。';
     else if (state.input_latched) hint = `控制中斷後已自動鎖定。等狀態同步，再用 ${lockKey} 明確解除鎖定。`;
     else if (state.locked) hint = `先確認前方淨空，再按 ${lockKey} 解除馬達鎖定；停止操作時可再次鎖定。`;
     else if (state.remote_control) hint = '目前由自動航線或 SDK 控制。先停止巡航，再練習手動駕駛。';
     else if (!progress.move) hint = `使用 ${driveKey} 緩慢前後移動一小段，再回中。洋流仍會使機器漂移。`;
     else if (!progress.depth) hint = `按 ${depthKey} 啟用定深並回中升降桿。定深維持深度，水平方向仍可能漂移。`;
-    else if (!progress.light) hint = '按 L 開啟照明，再用 V 切到機載視角觀察前方。';
+    else if (!progress.light) {
+      hint = `按 ${lightKey} 開啟照明，再用 ${cameraKey} 切到機載視角觀察前方。`;
+    }
     else if (state.tether?.snagged_on?.length) hint = '纜線已接觸障礙；停止加速，觀察纜線路徑再退回。';
     else if ((state.current_kn || 0) > .6) hint = '目前洋流較強。使用小幅持續修正，避免反覆大幅推桿。';
     else hint = `${getWorld?.()?.scenario?.name || '本次潛航'}：基礎操作已完成。可收起提示，依任務指引繼續探索。`;

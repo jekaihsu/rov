@@ -23,7 +23,6 @@ N4 已接入：`brand.*`、`career.*`（含 `career.copy` 對應 contracts／lic
 - `input.bindings`
 - `input.calibrate`
 - `input.haptics_fidelity`
-- `input.hints`
 - `input.settings`
 - `instructor.strings`
 - `pilot_station`
@@ -39,6 +38,7 @@ N4 已接入：`brand.*`、`career.*`（含 `career.copy` 對應 contracts／lic
 - `tether.operations`
 - `tether.snag_focus`
 - `tether_reel`
-- `vision.overlay`
+
+S1 已接入：`vision.overlay`、`input.hints`。
 
 另見 PROTOCOL.md 的伺服器／劇情／匯出快照盤點。

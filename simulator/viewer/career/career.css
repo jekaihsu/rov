@@ -53,3 +53,13 @@
 .career-licence .career-bar { margin: .4em 0; }
 .career-unlocks ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .3em; }
 .career-unlocks li { padding-left: .7em; border-left: var(--bp-frame) solid var(--go); }
+
+/* Billboard / big-picture titles: keep CJK words intact (menu/big_picture.css uses overflow-wrap: anywhere).
+   Kept here so R8 menu/ edits stay untouched while PR #120 is open. */
+:lang(ja) .bp-title,
+:lang(zh-Hant) .bp-title,
+:lang(zh-Hans) .bp-title {
+  word-break: keep-all;
+  overflow-wrap: normal;
+  line-break: strict;
+}

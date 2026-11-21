@@ -1,9 +1,7 @@
-// In-flight objective card: makes the first-dive checklist and expedition contracts reachable without opening
-// the engineering drawer (both stay in the drawer too). For a player's first dives it mirrors the pilot guide's
-// four steps (pilot_guide.js owns the checks; this card only reads its list), and in the expedition sea it shows
-// the active contract's steps or the contracts on offer with an accept button. Collapsible; never shown during a
-// chapter (the story radio teaches the same steps) or a replay. During a YX work order (career/dive.js) the card
-// shows the order's deliverable checklist instead.
+// In-flight objective card: expedition contracts (and YX work-order checklists) without opening the engineering
+// drawer. The first-dive practice list lives only in play/onboarding.js (and the drawer pilot guide); this card
+// no longer mirrors it, so the player never sees two checklists at once. Collapsible; never shown during a
+// chapter or a replay. During a YX work order (career/dive.js) the card shows the order's deliverable checklist.
 import { acceptContract, cancelContract, contractBoard } from './contracts.js';
 import { recordLine } from '../menu/cards.js';
 import { recordFor } from './results_model.js';
@@ -11,9 +9,6 @@ import { recordFor } from './results_model.js';
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('play.objective_card', {
-  guide: '首次潛航練習',
-  guideDone: '基本操作完成，開始探索吧！',
-  hideGuide: '不再顯示練習',
   contracts: '工程委託',
   accept: '接取',
   cancel: '取消委託',
@@ -23,9 +18,6 @@ const STRINGS = localize('play.objective_card', {
   meters: '{d} m',
 });
 export const CARD_KEY = 'rov.objectiveCard.v1';
-// The checklist is offered on the first few dives and until the player hides it.
-export const GUIDE_DIVES = 3;
-const DONE_LINGER_MS = 4000;
 const UPDATE_MS = 200;
 
 function element(tag, className, text) {
@@ -38,9 +30,9 @@ function element(tag, className, text) {
 function readSave() {
   try {
     const save = JSON.parse(localStorage.getItem(CARD_KEY) || '{}');
-    return { dives: Number(save.dives) || 0, guideHidden: !!save.guideHidden, collapsed: !!save.collapsed };
+    return { collapsed: !!save.collapsed };
   } catch {
-    return { dives: 0, guideHidden: false, collapsed: false };
+    return { collapsed: false };
   }
 }
 
@@ -52,20 +44,9 @@ function writeSave(save) {
   }
 }
 
-// Steps of the pilot guide as rendered by pilot_guide.js: [{id, label, done}].
-function guideSteps() {
-  return [...document.querySelectorAll('#pilotGuide li[data-step]')].map(function step(item) {
-    return { id: item.dataset.step, label: item.textContent, done: item.dataset.complete === 'true' };
-  });
-}
-
 // career: optional career/dive.js runtime; its panel(state) returns {title, count, node} during a work order.
 export function installObjectiveCard({ send, getSession, readOnly = false, career = null }) {
   const save = readSave();
-  if (!readOnly) {
-    save.dives += 1;
-    writeSave(save);
-  }
   const root = element('section', 'objective-card');
   root.id = 'objectiveCard';
   root.hidden = true;
@@ -76,21 +57,14 @@ export function installObjectiveCard({ send, getSession, readOnly = false, caree
   const count = element('span', 'objective-count');
   head.append(title, count);
   const body = element('div', 'objective-body');
-  const guide = element('div', 'objective-guide');
-  const guideHead = element('p', 'objective-subhead');
-  const guideList = element('ol', 'objective-steps');
-  const hideGuide = element('button', 'objective-link', STRINGS.hideGuide);
-  hideGuide.type = 'button';
-  guide.append(guideHead, guideList, hideGuide);
   const board = element('div', 'objective-contracts');
   const careerSlot = element('div', 'objective-career');
   const feedback = element('p', 'objective-feedback');
   feedback.setAttribute('role', 'status');
-  body.append(careerSlot, guide, board, feedback);
+  body.append(careerSlot, board, feedback);
   root.append(head, body);
   document.body.append(root);
   let collapsed = save.collapsed;
-  let guideDoneAt = 0;
   let boardSignature = '';
   let last = 0;
 
@@ -105,31 +79,11 @@ export function installObjectiveCard({ send, getSession, readOnly = false, caree
   head.addEventListener('click', function toggle() {
     setCollapsed(!collapsed);
   });
-  hideGuide.addEventListener('click', function hide() {
-    save.guideHidden = true;
-    writeSave(save);
-    guide.hidden = true;
-  });
   setCollapsed(collapsed);
 
   function host() {
     const session = getSession();
     return !session || !!session.is_host;
-  }
-  function renderGuide(steps) {
-    const done = steps.filter(function complete(step) {
-      return step.done;
-    }).length;
-    guideList.replaceChildren(...steps.map(function item(step) {
-      const line = element('li', '', step.label);
-      line.dataset.complete = String(step.done);
-      return line;
-    }));
-    if (done === steps.length && steps.length) {
-      guideDoneAt ||= performance.now();
-      guideList.replaceChildren(element('li', 'objective-done', STRINGS.guideDone));
-    }
-    return `${done}/${steps.length}`;
   }
   function renderBoard(data) {
     const signature = JSON.stringify(data);
@@ -189,7 +143,6 @@ export function installObjectiveCard({ send, getSession, readOnly = false, caree
     careerSlot.hidden = !work;
     if (work) {
       if (careerSlot.firstChild !== work.node) careerSlot.replaceChildren(work.node);
-      guide.hidden = true;
       board.hidden = true;
       root.hidden = false;
       title.textContent = work.title;
@@ -198,20 +151,13 @@ export function installObjectiveCard({ send, getSession, readOnly = false, caree
     }
     const inChapter = ['active', 'completed'].includes(state.campaign?.status);
     const data = inChapter ? null : contractBoard(state, host());
-    const steps = guideSteps();
-    const lingering = !guideDoneAt || now - guideDoneAt < DONE_LINGER_MS;
-    const showGuide = !inChapter && !save.guideHidden && save.dives <= GUIDE_DIVES && steps.length > 0 && lingering;
-    guide.hidden = !showGuide;
     board.hidden = !data;
-    root.hidden = !showGuide && !data;
+    root.hidden = !data;
     if (root.hidden) return;
-    const progress = showGuide ? renderGuide(steps) : '';
     if (data) renderBoard(data);
-    title.textContent = data ? STRINGS.contracts : STRINGS.guide;
-    guideHead.textContent = `${STRINGS.guide} ${progress}`;
-    guideHead.hidden = !data;
+    title.textContent = STRINGS.contracts;
     if (data?.active) count.textContent = STRINGS.active;
-    else count.textContent = data ? '' : progress;
+    else count.textContent = '';
   }
   return {
     update,
