@@ -7,8 +7,8 @@
 import { acceptContract, cancelContract, contractBoard } from './contracts.js';
 import { recordLine } from '../menu/cards.js';
 import { recordFor } from './results_model.js';
-
 import { localize } from '../i18n/index.js';
+import { objectiveCardStore } from '../saves/registry.js';
 
 const STRINGS = localize('play.objective_card', {
   guide: '首次潛航練習',
@@ -22,6 +22,7 @@ const STRINGS = localize('play.objective_card', {
   expand: '展開',
   meters: '{d} m',
 });
+
 export const CARD_KEY = 'rov.objectiveCard.v1';
 // The checklist is offered on the first few dives and until the player hides it.
 export const GUIDE_DIVES = 3;
@@ -36,20 +37,16 @@ function element(tag, className, text) {
 }
 
 function readSave() {
-  try {
-    const save = JSON.parse(localStorage.getItem(CARD_KEY) || '{}');
-    return { dives: Number(save.dives) || 0, guideHidden: !!save.guideHidden, collapsed: !!save.collapsed };
-  } catch {
-    return { dives: 0, guideHidden: false, collapsed: false };
-  }
+  const { value } = objectiveCardStore.load();
+  return {
+    dives: Number(value.dives) || 0,
+    guideHidden: !!value.guideHidden,
+    collapsed: !!value.collapsed,
+  };
 }
 
 function writeSave(save) {
-  try {
-    localStorage.setItem(CARD_KEY, JSON.stringify(save));
-  } catch {
-    // Storage may be unavailable; the card simply shows again next time.
-  }
+  objectiveCardStore.save(save);
 }
 
 // Steps of the pilot guide as rendered by pilot_guide.js: [{id, label, done}].

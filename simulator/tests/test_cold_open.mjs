@@ -191,7 +191,7 @@ test('only a new game or a first prologue plays it, once, unless turned off', ()
   assert.ok(!playsBefore(prologue) && !isNewGame({}));
   setColdOpenEnabled(true);
   markColdOpenSeen();
-  assert.deepEqual(JSON.parse(localStorage.getItem(STORAGE_KEY)), {seen: true, enabled: true});
+  assert.deepEqual(JSON.parse(localStorage.getItem(STORAGE_KEY)), {seen: true, enabled: true, version: 1});
   assert.ok(!playsBefore(prologue) && !isNewGame({}));
   delete globalThis.localStorage;
 });

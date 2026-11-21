@@ -2,6 +2,8 @@
 // Every feature that exceeds real-vehicle capability registers an item here and defaults to off in `real`.
 // The module owns presets, per-item values, persistence, URL overrides and change notification.
 // It never touches physics or protocol; consumers read values and react to changes.
+import { fidelityStore } from './saves/registry.js';
+
 const STRINGS = {
   title: '擬真設定',
   presetReal: '真實',
@@ -106,13 +108,9 @@ export function fidelityText(key) {
   return STRINGS[key] ?? key;
 }
 function readStored(storage) {
-  try {
-    const data = JSON.parse(storage?.getItem(STORAGE_KEY) || 'null');
-    if (!data || typeof data !== 'object') return {};
-    return data;
-  } catch {
-    return {};
-  }
+  const loaded = fidelityStore.load(storage);
+  if (loaded.reason === 'empty' || loaded.recovered) return {};
+  return loaded.value;
 }
 // Creates an independent store. The app uses getFidelity(); tests inject storage, search and edition.
 export function createFidelity({storage = null, search = '', edition = null} = {}) {
@@ -165,11 +163,7 @@ export function createFidelity({storage = null, search = '', edition = null} = {
     for (const listener of [...listeners]) listener(current, changed);
   }
   function persist() {
-    try {
-      storage?.setItem(STORAGE_KEY, JSON.stringify({version: 1, base, overrides}));
-    } catch {
-      // Private browsing or a full quota: the session keeps working without persistence.
-    }
+    fidelityStore.save({ base, overrides }, storage);
   }
   function tidy() {
     const settled = presetOf(storedValue);
