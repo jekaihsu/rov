@@ -7,11 +7,24 @@ import { titleCard } from '../brand/chapter_card.js';
 import { replayTitle } from '../story/cold_open_menu.js';
 import { createSettingsPanel, element } from './settings.js';
 import { localize } from '../i18n/index.js';
+import {
+  backdropChapter as chapterForBackdrop,
+  backdropLocation as locationForBackdrop,
+  backdropScene as sceneForBackdrop,
+} from './journal_backdrop.js';
 
 const STRINGS = localize('menu.front_page', {
   resume: '繼續', story: '劇情', training: '訓練', settings: '設定', exit: '離開',
   internal: '內部工具', locked: '完成前一關',
-  locations: ['清晨 · 港內', '日間 · 港口', '陰天 · 養殖場外海'],
+  locations: {
+    tutorial_pool: '清晨 · 室內水池',
+    open_water: '日間 · 港外',
+    harbor_inspection: '日間 · 港口',
+    aquaculture_pen: '陰天 · 養殖場外海',
+    prologue: '清晨 · 室內水池',
+    ch1: '日間 · 港口',
+    ch2: '陰天 · 養殖場外海',
+  },
 });
 
 export function internalLabel() {
@@ -27,12 +40,15 @@ export function assignment(career) {
 }
 
 export function backdropChapter(career, next) {
-  const order = ['prologue', 'ch1', 'ch2'];
-  let reached = Math.max(0, order.indexOf(next?.chapter));
-  for (const contract of career.data.contracts) {
-    if (career.save.contracts[contract.id]?.completed) reached = Math.max(reached, order.indexOf(contract.chapter));
-  }
-  return order[reached];
+  return chapterForBackdrop(career, next);
+}
+
+export function backdropScene(career, next = assignment(career)) {
+  return sceneForBackdrop(career, next);
+}
+
+export function backdropLocation(career, next = assignment(career)) {
+  return locationForBackdrop(STRINGS.locations, career, next);
 }
 
 export function buildFrontPage(ctx) {
@@ -67,8 +83,7 @@ export function buildFrontPage(ctx) {
     const chapter = journal(ctx.career).find(group => group.chapter.id === target?.chapter);
     const rows = chapter?.contracts || [];
     const complete = rows.filter(row => ctx.career.save.contracts[row.contract.id]?.completed);
-    const index = ['prologue', 'ch1', 'ch2'].indexOf(backdropChapter(ctx.career, target));
-    place.textContent = STRINGS.locations[Math.max(0, index)];
+    place.textContent = backdropLocation(ctx.career, target);
     heading.textContent = target?.title || STRINGS.story;
     const tally = `${complete.length} / ${rows.length}`;
     count.textContent = [chapter?.chapter.title, tally].filter(Boolean).join('   ·   ');
@@ -96,6 +111,7 @@ export function buildStory(ctx) {
             const button = element('button', 'field-order');
             button.dataset.order = contract.id;
             button.setAttribute('aria-disabled', String(!status.available));
+            button.classList.toggle('is-locked', !status.available);
             const record = ctx.career.save.contracts[contract.id];
             const sub = status.available ? medalLabel(record?.medal || 'none') : STRINGS.locked;
             button.dataset.medal = record?.medal || 'none';

@@ -394,20 +394,32 @@ body:is(.pause-open, .results-open) > :not(.app, .pause-menu, .results-screen, .
 
 /* Field journal. Typography sits directly on the live harbour shot. */
 .field-home { display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
-  padding-left: 2vw; color: #eef3f0; }
-.field-location { margin: 0; color: #ffa063; letter-spacing: .16em; font-size: clamp(14px, 1.2vw, 22px); }
+  padding-left: 2.4vw; color: #eef3f0; }
+.field-location { margin: 0; color: #ffa063; letter-spacing: .16em; font-size: clamp(16px, 1.35vw, 24px);
+  font-weight: 700; }
 .field-title { margin: .18em 0 .12em; max-width: 65vw; font-size: clamp(40px, 5.6vw, 104px);
   font-weight: 850; line-height: 1.04; text-wrap: balance; }
-.field-progress { margin: 0 0 3vh; font-size: clamp(15px, 1.35vw, 24px); }
-.field-actions { display: grid; gap: .4vh; min-width: clamp(180px, 17vw, 300px); }
-.field-action { padding: .45vh 1vw; font-size: clamp(20px, 2.6vh, 34px); font-weight: 700; }
-.field-action:first-child { background: #ff7a2f; color: #101819; margin-bottom: .8vh; }
+.field-progress { margin: 0 0 3.4vh; font-size: clamp(16px, 1.45vw, 26px); }
+.field-actions { display: grid; gap: .7vh; min-width: clamp(240px, 22vw, 380px); }
+.field-action { padding: .85vh 1.2vw; font-size: clamp(26px, 3.4vh, 44px); font-weight: 750;
+  letter-spacing: .02em; text-align: left; }
+.field-action:first-child { background: #ff7a2f; color: #101819; margin-bottom: 1vh; }
 .launch-menu .field-action:is(:focus, :hover), .launch-menu .field-order:is(:focus, :hover) {
-  outline: 3px solid #eef3f0; outline-offset: 2px; box-shadow: none; }
+  outline: 4px solid #eef3f0; outline-offset: 3px; box-shadow: none; background: rgba(255, 122, 47, .22); }
+.launch-menu .field-action:first-child:is(:focus, :hover) { background: #ff8d4d; color: #101819; }
 .field-story .menu-settings { width: 100%; max-width: none; }
 .field-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(430px,100%),1fr)); gap: 16px; }
 .field-order { position: relative; width: 100%; aspect-ratio: 2.25; container-type: size; }
-.field-order[aria-disabled=true] .brand-card-photo img { filter: grayscale(1) brightness(.22); }
+.field-order.is-locked .brand-card-photo { background: #071018; }
+.field-order.is-locked .brand-card-photo img { filter: grayscale(1) brightness(0) contrast(1.15);
+  opacity: .55; mix-blend-mode: luminosity; }
+.field-order.is-locked .brand-card-drawing { filter: brightness(0); opacity: .92; }
+.field-order.is-locked .brand-card-paper { background: #d7dde0; }
+.field-order.is-locked .brand-card-title,
+.field-order.is-locked .brand-card-sub,
+.field-order.is-locked .brand-card-number,
+.field-order.is-locked .brand-card-client { color: #4a5560; }
+.field-order.is-locked .brand-card-sub { color: #c45a1a; font-weight: 700; letter-spacing: .04em; }
 .field-order .brand-card-title { color: #101d22; font-size: clamp(16px, 6cqh, 28px); }
 .field-order .brand-card-head { flex-wrap: wrap; }
 .field-order .brand-card-mark { display: none; }

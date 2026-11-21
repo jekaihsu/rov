@@ -6,9 +6,13 @@
   "exit": "終了",
   "internal": "内部ツール",
   "locked": "前の任務を完了",
-  "locations": [
-    "早朝 · 港内",
-    "日中 · 港湾",
-    "曇天 · 沖合の養殖場"
-  ]
+  "locations": {
+    "tutorial_pool": "早朝 · 室内プール",
+    "open_water": "日中 · 港外",
+    "harbor_inspection": "日中 · 港湾",
+    "aquaculture_pen": "曇天 · 沖合の養殖場",
+    "prologue": "早朝 · 室内プール",
+    "ch1": "日中 · 港湾",
+    "ch2": "曇天 · 沖合の養殖場"
+  }
 }

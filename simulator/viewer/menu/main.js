@@ -20,7 +20,7 @@ import {
 // Registers the 下水流程 fidelity item so the launch menu's fidelity panel lists it.
 import '../procedure/fidelity_item.js';
 import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTitle } from './screens.js';
-import { assignment, backdropChapter, buildFrontPage, buildStory } from './front_page.js';
+import { assignment, backdropChapter, backdropScene, buildFrontPage, buildStory } from './front_page.js';
 import { steamEdition } from './edition.js';
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
@@ -261,8 +261,9 @@ function showBackdrop(name) {
   if (name === 'main' || name === 'story') {
     clearTimeout(previewTimer);
     backdrop.hide();
-    const chapter = backdropChapter(ctx.career, assignment(ctx.career));
-    const key = chapter === 'ch2' ? 'aquaculture_pen' : 'harbor_inspection';
+    const next = assignment(ctx.career);
+    const chapter = backdropChapter(ctx.career, next);
+    const key = backdropScene(ctx.career, next);
     stage.setScene(sceneFor(key), { journal: chapter });
   } else if (SHOWCASE_SCREENS.has(name)) {
     clearTimeout(previewTimer);
@@ -340,6 +341,9 @@ function launch({ replay = false } = {}) {
   stage.setPose('launch');
   music.setScreen(null);
   setTimeout(function leaveMenu() {
+    // Drop the menu WebGL scene before the navigation so a slow assign does not keep drawing it
+    // beside the dive (software GL then doubles frame time and trips the input failsafe).
+    stage.dispose();
     location.assign(url);
   }, reduced ? 0 : 650);
 }

@@ -6,9 +6,13 @@
   "exit": "Exit",
   "internal": "Internal tools",
   "locked": "Complete the previous assignment",
-  "locations": [
-    "Dawn · Inner harbour",
-    "Daylight · Port",
-    "Overcast · Offshore fish farm"
-  ]
+  "locations": {
+    "tutorial_pool": "Dawn · Indoor pool",
+    "open_water": "Daylight · Outer harbour",
+    "harbor_inspection": "Daylight · Port",
+    "aquaculture_pen": "Overcast · Offshore fish farm",
+    "prologue": "Dawn · Indoor pool",
+    "ch1": "Daylight · Port",
+    "ch2": "Overcast · Offshore fish farm"
+  }
 }

@@ -6,9 +6,13 @@
   "exit": "離開",
   "internal": "內部工具",
   "locked": "完成前一關",
-  "locations": [
-    "清晨 · 港內",
-    "日間 · 港口",
-    "陰天 · 養殖場外海"
-  ]
+  "locations": {
+    "tutorial_pool": "清晨 · 室內水池",
+    "open_water": "日間 · 港外",
+    "harbor_inspection": "日間 · 港口",
+    "aquaculture_pen": "陰天 · 養殖場外海",
+    "prologue": "清晨 · 室內水池",
+    "ch1": "日間 · 港口",
+    "ch2": "陰天 · 養殖場外海"
+  }
 }

@@ -71,7 +71,7 @@ export function isNewGame(profile = {}, record = loadColdOpen()) {
 
 /**
  * The game URL that plays the cold open, from the URL that would have launched the follow-up (the prologue).
- * Both a new game and a replay return to the main menu with the current language and connection settings.
+ * A first play keeps that follow-up in `next` (三個月前 → prologue). A replay returns to the main menu.
  */
 export function coldOpenUrl(followUp, {replay = false} = {}) {
   const url = new URL(followUp);
@@ -84,10 +84,14 @@ export function coldOpenUrl(followUp, {replay = false} = {}) {
   // A room of its own: the follow-up then joins its usual room fresh, with the campaign idle.
   url.searchParams.set('room', coldOpenRoom(url.searchParams.get('room')));
   for (const name of ['contract', 'exam', 'procedure']) url.searchParams.delete(name);
-  for (const name of ['play', 'chapter', 'contract', 'mission', 'scenario', 'exam', 'procedure', 'nointro']) {
-    next.searchParams.delete(name);
+  if (replay) {
+    for (const name of [...next.searchParams.keys()]) next.searchParams.delete(name);
+    next.searchParams.set('menu', 'main');
+    const ws = url.searchParams.get('ws');
+    if (ws) next.searchParams.set('ws', ws);
+    const lang = url.searchParams.get('lang');
+    if (lang) next.searchParams.set('lang', lang);
   }
-  next.searchParams.set('menu', 'main');
   url.searchParams.set(NEXT, next.search);
   return url;
 }

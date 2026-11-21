@@ -5,8 +5,8 @@ cold open (viewer/story/cold_open.js) instead of the main menu. Checks every bea
 black opening with the first radio line, the establishing shot, the handover with only depth and heading on the
 HUD and one hint, flying to leg C's anode and taking the photo (stamp and praise), heading north for leg B until
 the tether really snags on the anode (server physics), the tension read-out and the back-out call, backing out the
-way it came until the snag lets go, the 三個月前 title card, return to main, and the prologue work order
-launched from its chapter card in the same tab. Afterwards the title's 開始 opens the main menu: the cold open plays once.
+way it came until the snag lets go, the 三個月前 title card, and the prologue starting in the same tab (the YX
+prologue work order). Afterwards the title's 開始 opens the main menu: the cold open plays once.
 
   python tools/run_browser_checks.py browser_cold_open_smoke         # keyboard, then the pad-only variant
   python tools/browser_cold_open_smoke.py --pad playstation --size 1366x768 --shots DIR
@@ -254,8 +254,7 @@ def start_new_game(run, quality):
     query = parse_qs(urlparse(page.url).query)
     assert query['chapter'] == ['cold_open'] and query['scenario'] == ['cold_open_jacket'], query
     follow = parse_qs(urlparse(query['next'][0]).query)
-    assert follow.get('menu') == ['main'] and 'play' not in follow, follow
-    assert follow.get('ws') == query.get('ws'), follow
+    assert follow.get('contract') == ['p0_induction'] and follow.get('chapter') == ['prologue'], follow
     page.wait_for_function('window.__coldOpen && window.__viewer?.S', timeout=timeout(120000))
 
 
@@ -271,31 +270,19 @@ def opening(run):
     # One look for the whole beat (it lasts five seconds, and a busy host can take that long between two looks).
     page.wait_for_function(f'''{BEAT} === "black" && !!document.querySelector(".cold-open-radio.speaking")
       && getComputedStyle(document.querySelector(".cold-open-black")).opacity === "1"''', timeout=timeout(180000))
+    run.shot('01-black')
     # The scripted beats hold the beautified picture on (owner-approved cutscene exception) without touching the
     # player's fidelity settings; `before` is what those settings must still be once the player has control.
     before = page.evaluate(LOOK)
     assert before['cinematic'] and before['beautify'], before
     assert before['stored'] is None, ('a fresh profile has no stored fidelity', before)
-    # The first frame is completely black. Keep the input/director running during capture without
-    # scheduling the expensive underwater draw underneath the opaque overlay.
-    with without_render(page):
-        run.shot('01-black')
-        run.wait_beat('establish')
+    run.wait_beat('establish')
     page.wait_for_function('document.querySelector(".cold-open-super.visible") && '
                            'Number(getComputedStyle(document.querySelector(".cold-open-black")).opacity) < 0.05',
                            timeout=timeout(60000))
     run.shot('02-establish')
-    with without_render(page):
-        run.wait_beat('approach')
-        pilot = Pilot(page, run.pad)
-        # The link failsafe can relock between the establishing shot and handover on software WebGL.
-        # Respond to the normal unlock hint before checking the move instruction and photographing the HUD.
-        for _ in range(4):
-            hint = page.locator('#coldOpenHint.visible').get_attribute('data-hint')
-            if hint != 'unlock':
-                break
-            ensure_unlocked(run, pilot)
-        page.wait_for_selector('#coldOpenHint.visible[data-hint="move"]', timeout=timeout(30000))
+    run.wait_beat('approach')
+    page.wait_for_selector('#coldOpenHint.visible[data-hint="move"]', timeout=timeout(30000))
     page.wait_for_timeout(800)
     caps = page.locator('#coldOpenHint .ob-caps').inner_html()
     assert '<svg' in caps or 'ob-cap-name' in caps, caps
@@ -472,11 +459,6 @@ def ending(run):
     }''', timeout=timeout(120000)).json_value()
     page.wait_for_timeout(600)
     run.shot('08-title-card')
-    page.wait_for_url('**menu=main**', timeout=timeout(90000))
-    wait_ready(page)
-    page.click('#entry-story')
-    page.click('[data-order="p0_induction"]')
-    page.click('#contractAccept')
     page.wait_for_url('**contract=p0_induction**', timeout=timeout(90000))
     page.wait_for_function('window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(120000))
     page.wait_for_timeout(2500)
