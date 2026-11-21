@@ -162,7 +162,7 @@ def main():
     results = []
     for name in names:
         print(f'Running {name} ...', flush=True)
-        budget = 2400 if name == 'playtest_audit' else SCRIPT_TIMEOUTS.get(name, 0)
+        budget = SCRIPT_TIMEOUTS.get(name, 0)
         status, seconds, detail = run_script(name, max(args.timeout, budget))
         print(f'  {status} in {seconds:.0f} s', flush=True)
         results.append((name, status, seconds, detail))

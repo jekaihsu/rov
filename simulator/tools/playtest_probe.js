@@ -62,6 +62,10 @@
       const codes = own?.keys || rows.find(row => row.action === drive?.channel)?.keys || [];
       axes[name] = {keys: !own && drive?.sign < 0 ? codes.slice().reverse() : codes};
     }
+    for (const name of ['lock', 'depth', 'photo']) {
+      const row = rows.find(entry => entry.action === name);
+      axes[name] = {keys: row?.keys?.length ? [row.keys[0]] : []};
+    }
     return axes;
   }
   function texts(selector) {
@@ -107,6 +111,10 @@
     }
     const object = state?.operations?.objects?.find(entry => entry.kind === 'dead_fish' && !entry.held_by);
     const progress = items.filter(item => item.done).length + (goal?.progress || 0);
+    const offline = !!document.getElementById('offline') && !document.getElementById('offline').hidden;
+    const procedure = !!(state?.procedure?.active);
+    const connected = !!(state && (state.t != null || state.pos));
+    const directed = !!(state?.campaign?.directed && state.campaign.status === 'active');
     return {beat: beat(), progress, click, held: arm?.held, fish: object?.pos, hints, radio,
       walked: (state?.procedure?.seen?.length || 0) > 0,
       frames: frames.splice(0), pos: state?.pos,
@@ -114,6 +122,10 @@
       velocity: state?.vel, point: window.__viewer?.W?.objectives?.[0]?.point, goal: goal?.id,
       cold: !!window.__coldOpen, outcome: window.__coldOpen?.report.outcome || window.__results?.outcome?.success,
       controls: window.__coldOpen?.controls() || (state && await flightKeys(state.operation_mode)),
-      coldHint: document.querySelector('#coldOpenHint')?.dataset.hint};
+      coldHint: document.querySelector('#coldOpenHint')?.dataset.hint
+        || document.querySelector('#prologueHint')?.dataset.hint
+        || document.querySelector('#prologue')?.dataset.coldHint,
+      offline, procedure, connected, directed, keepDepth: !!state?.keep_depth,
+      target: node?.target || null};
   };
 })();

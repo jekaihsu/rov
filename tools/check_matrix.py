@@ -51,7 +51,12 @@ DEFAULT_CHECKS = (
 )
 
 # Per-script time limits above run_browser_checks' --timeout default, for checks that walk several full dives.
-SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 3600, 'browser_cold_open_smoke': 5400}
+SCRIPT_TIMEOUTS = {
+    'browser_playstation_smoke': 3600,
+    'browser_cold_open_smoke': 5400,
+    # Full career walk with per-beat JPEG captures; quick mode is far shorter.
+    'playtest_audit': 2400,
+}
 
 TIERS = {
     'quick': {

@@ -39,7 +39,9 @@ class SelectionTests(unittest.TestCase):
         selected = browser_checks('full', ['simulator/viewer/input/devices.js'])
         self.assertIn('browser_playstation_smoke', selected)
         self.assertGreater(SCRIPT_TIMEOUTS['browser_playstation_smoke'], 900)
-        self.assertTrue(set(SCRIPT_TIMEOUTS) <= set(DEFAULT_CHECKS))
+        self.assertEqual(SCRIPT_TIMEOUTS['playtest_audit'], 2400)
+        # Named-only scripts (playtest_audit) may also carry an explicit budget.
+        self.assertTrue(set(SCRIPT_TIMEOUTS) - {'playtest_audit'} <= set(DEFAULT_CHECKS))
 
     def test_docs_and_empty_diff(self):
         for paths in ([], ['docs/ci/timings.md']):

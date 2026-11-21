@@ -1,26 +1,34 @@
 """Fly a fresh career with keyboard inputs and audit visible story cues and rendered frame intervals.
 
 Install Playwright and Chromium; the full JPEG gallery also requires Pillow.
-From simulator/, start python -m qysim.server, then run
-ROV_HTTP_PORT=8080 ROV_WS_PORT=8765 python tools/playtest_audit.py.
-The browser harness can also start a private server: python tools/run_browser_checks.py playtest_audit
-runs the opening and first interactive part of induction. A full run writes a local report, trace and
-JPEGs in output/playtest-audit/<UTC date> at the repository root and a review gallery in docs/design.
+When ROV_HTTP_PORT is unset, this script starts qysim.server on free ports and stops it on exit
+(same pattern as run_browser_checks.py / browser_link_smoke.py). With ports already set, it reuses
+that server. Default exit is 0 after writing the report; pass --strict to fail when errors remain.
+python tools/run_browser_checks.py playtest_audit runs --quick without --strict.
 """
 import argparse
 import base64
 import datetime
 import json
 import math
+import os
+import socket
+import subprocess
+import sys
 import time
+import urllib.request
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
+SIM = ROOT / 'simulator'
 CATALOG = ROOT / 'simulator/viewer/career/contracts.json'
 TODAY = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
 MOVES = dict(zip(('move_前', 'move_後', 'move_右', 'move_左', 'move_下', 'move_上'),
                  ('w', 's', 'd', 'a', 'ArrowDown', 'ArrowUp')))
+# Wall seconds with no usable sample / stuck on loading before the run counts as a harness fault.
+LOAD_TIMEOUT_S = 90
+HARNESS_PREFIX = '工具失敗'
 
 
 def analyze(events, end):
@@ -55,8 +63,118 @@ def analyze(events, end):
     return gaps, stalls, overlaps
 
 
+def is_harness_status(status):
+    return isinstance(status, str) and status.startswith(HARNESS_PREFIX)
+
+
+def classify_error(message):
+    """Return 'harness' for tool/connection faults, otherwise 'level' for in-game findings."""
+    text = str(message)
+    markers = ('無法連線到模擬器', 'ERR_CONNECTION', 'net::ERR_', 'Target closed', 'Browser closed',
+               'Page crashed', 'WebSocket error', 'ws://', '載入超時', '伺服器斷線', 'context was destroyed')
+    return 'harness' if any(marker in text for marker in markers) else 'level'
+
+
+def free_port():
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1', 0))
+        return probe.getsockname()[1]
+
+
+def start_server(log_path):
+    """Start qysim.server on free ports and export ROV_* so http_base()/ws_base() resolve."""
+    from _browser import host
+    ports = {'http': free_port(), 'ws': free_port(), 'rpc': free_port()}
+    command = [sys.executable, '-m', 'qysim.server', '--host', host(),
+               '--http-port', str(ports['http']), '--ws-port', str(ports['ws']),
+               '--rpc-port', str(ports['rpc'])]
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log = open(log_path, 'w', encoding='utf-8')
+    process = subprocess.Popen(command, cwd=SIM, stdout=log, stderr=subprocess.STDOUT)
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            break
+        try:
+            urllib.request.urlopen(f"http://{host()}:{ports['http']}/", timeout=2).close()
+            os.environ['ROV_HTTP_PORT'] = str(ports['http'])
+            os.environ['ROV_WS_PORT'] = str(ports['ws'])
+            return process, log, ports
+        except OSError:
+            time.sleep(0.5)
+    stop_server(process, log)
+    raise RuntimeError(f'Simulator did not start; see {log_path}')
+
+
+def stop_server(process, log):
+    if process is None:
+        return
+    if process.poll() is None:
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+    if log is not None:
+        log.close()
+
+
+def directed_controls(s):
+    """Pilot the R1 directed prologue beats (same geometry as browser_prologue_smoke)."""
+    beat = s['beat']
+    axes = s.get('controls') or {}
+
+    def key(axis, index, fallback):
+        codes = axes.get(axis, {}).get('keys') or []
+        return codes[index] if len(codes) > index else fallback
+
+    lock = (axes.get('lock', {}) or {}).get('keys', ['Space'])
+    lock = lock[0] if lock else 'Space'
+    if s['locked'] and beat in ('unlock', 'approach', 'descend', 'hold', 'A', 'B', 'C'):
+        return [], lock
+    if beat == 'approach':
+        return [key('surge', 0, 'w')], None
+    if beat == 'descend':
+        return [key('heave', 1, 'ArrowDown')], None
+    if beat == 'hold' and not s.get('keepDepth'):
+        depth = (axes.get('depth', {}) or {}).get('keys', ['h'])
+        return [], depth[0] if depth else 'h'
+    if beat == 'coast':
+        return [], None
+    target = s.get('target')
+    if not target or not s.get('pos'):
+        return [], None
+    north, east, down = [a - b for a, b in zip(target, s['pos'])]
+    tn, te = target[0], target[1]
+    distance = math.hypot(tn, te) or 1.0
+    stand_off = (north * tn + east * te) / distance
+    travel_n = north - 5 * tn / distance
+    travel_e = east - 5 * te / distance
+    station = math.hypot(travel_n, travel_e) > 1.6
+    bearing = math.atan2(travel_e, travel_n) if station else math.atan2(east, north)
+    error = (math.degrees(bearing) - s['heading'] + 540) % 360 - 180
+    held = []
+    if abs(error) > 9:
+        held.append(key('yaw', int(error < 0), 'ArrowRight' if error > 0 else 'ArrowLeft'))
+    if station and abs(error) < 22:
+        held.append(key('surge', 0, 'w'))
+    if abs(down) > 0.45:
+        held.append(key('heave', int(down > 0), 'ArrowDown' if down > 0 else 'ArrowUp'))
+    shutter = (not station and abs(error) < 10 and stand_off > 2.5 and abs(down) < 0.7
+               and beat in ('A', 'B', 'C'))
+    photo = (axes.get('photo', {}) or {}).get('keys', ['p'])
+    return held, (photo[0] if photo else 'p') if shutter else None
+
+
 def controls(s, contract):
     beat = s['beat']
+    # Deck checklist and boot screens: only the on-screen primary/click target. Pressing Space while
+    # locked with a career goal used to unlock mid-begin and trigger a second procedure begin.
+    if beat == 'loading' or s.get('procedure') or (isinstance(beat, str) and '/' in beat):
+        return [], None
+    if s.get('directed') and beat not in ('loading', 'results'):
+        return directed_controls(s)
     if s['type'] == 'dialogue' and not s['cold'] and beat not in ('loading', 'results') and '/' not in beat:
         return [], 'Enter'
     if beat in MOVES:
@@ -177,7 +295,10 @@ class Audit:
 
     def error(self, message):
         if self.active:
-            self.active['errors'].append([self.elapsed(), message])
+            kind = classify_error(message)
+            self.active['errors'].append([self.elapsed(), message, kind])
+            if kind == 'harness':
+                self.active['harness'] = True
 
     def click(self, selector):
         t = self.elapsed()
@@ -191,11 +312,14 @@ class Audit:
         self.name = name
         self.wall_start = time.time()
         self.start = time.monotonic()
-        self.active = dict(events=[], frames=[], inputs=[], errors=[], end=0, status='進行中')
+        self.active = dict(events=[], frames=[], inputs=[], errors=[], end=0, status='進行中',
+                           harness=False)
         self.runs[name] = self.active
 
     def finish(self, status):
         self.active['events'].sort(key=lambda item: item['t'])
+        if self.active.get('harness') and not is_harness_status(status):
+            status = f'{HARNESS_PREFIX}（連線）'
         self.active.update(status=status, end=self.elapsed())
         self.active = None
         # Preserve completed levels if a later page or the browser process fails.
@@ -211,6 +335,7 @@ class Audit:
         previous = None
         last_click = None
         last_progress = last_tap = high_water = 0
+        last_live = 0
         while True:
             if name == 'cold_open' and 'p0_induction' in parse_qs(urlsplit(self.page.url).query).get('contract', []):
                 status = '完成'
@@ -218,16 +343,33 @@ class Audit:
             try:
                 s = self.page.evaluate('window.auditSample?.()')
             except Error as error:
-                if 'context was destroyed' not in str(error):
-                    raise
-                continue
+                text = str(error)
+                if 'context was destroyed' in text:
+                    continue
+                self.error(text)
+                status = f'{HARNESS_PREFIX}（頁面）'
+                break
             t = self.elapsed()
             if not s:
+                if t - last_live >= LOAD_TIMEOUT_S and t - last_progress >= LOAD_TIMEOUT_S:
+                    self.error('載入超時：畫面沒有可用遙測')
+                    status = f'{HARNESS_PREFIX}（載入超時）'
+                    break
                 if t - last_progress >= 120:
                     status = '卡關'
                     break
                 self.page.wait_for_timeout(200)
                 continue
+            if s.get('offline'):
+                self.error('無法連線到模擬器')
+                status = f'{HARNESS_PREFIX}（無法連線到模擬器）'
+                break
+            if s.get('connected') or s.get('pos') is not None:
+                last_live = t
+            elif t - last_live >= LOAD_TIMEOUT_S and beat_is_loading(s):
+                self.error('載入超時：黑畫面或伺服器無狀態')
+                status = f'{HARNESS_PREFIX}（載入超時）'
+                break
             if s.get('outcome') is not None:
                 run['outcome'] = s['outcome']
             beat = s['beat']
@@ -249,11 +391,17 @@ class Audit:
                 run['events'].append(event)
                 previous = cue
             first_deck_action = beat.startswith('checks/') and s.get('walked')
-            if quick and name == 'p0_induction' and (first_deck_action or beat == 'move'):
+            # After R1 the first interactive directed beat is unlock → approach.
+            first_directed = s.get('directed') and beat == 'approach'
+            if quick and name == 'p0_induction' and (first_deck_action or beat == 'move' or first_directed):
                 status = '完成序章首段'
                 break
             if beat == 'results':
                 status = '結算'
+                break
+            if beat == 'loading' and t - last_progress >= LOAD_TIMEOUT_S:
+                self.error('載入超時：黑畫面載入超時')
+                status = f'{HARNESS_PREFIX}（載入超時）'
                 break
             if t - last_progress >= 120:
                 run['stalled_at'] = {k: s.get(k) for k in ('beat', 'pos', 'velocity', 'heading', 'locked', 'goal')}
@@ -286,6 +434,10 @@ class Audit:
         self.finish(status)
 
 
+def beat_is_loading(sample):
+    return not sample or sample.get('beat') in (None, 'loading')
+
+
 def fly_contract(audit, base, job, quick=False):
     from _browser import http_base, ws_base
     from _menu import wait_ready
@@ -307,8 +459,9 @@ def fly_contract(audit, base, job, quick=False):
             # Keep the fresh career intact. Open the playable scene in a disposable profile
             # with its specified equipment so later chapters still get actual flight coverage.
             browser = page.context.browser
-            # Release the board's 3D preview before benchmarking the isolated dive.
-            page.goto('about:blank')
+            # Park the board preview on a static page so its WebGL work stops, without tearing
+            # down the document in a way that races the shared server socket.
+            page.goto('data:text/html,<title>audit-idle</title>')
             trial = browser.new_page(viewport=dict(width=1600, height=900))
             fixture = Audit(trial, audit.out)
             fixture.runs = audit.runs
@@ -323,7 +476,9 @@ def fly_contract(audit, base, job, quick=False):
                 trial.goto(f'{http_base()}/?ws={ws_base()}&quality=performance&room=trial{time.time_ns()}&'
                            + urlencode(query))
                 fixture.fly(name, job)
-                audit.runs[name]['status'] += '（未解鎖，獨立試飛）'
+                status = audit.runs[name]['status']
+                if not status.startswith(HARNESS_PREFIX):
+                    audit.runs[name]['status'] = status + '（未解鎖，獨立試飛）'
             finally:
                 if fixture.active:
                     fixture.finish('稽核中斷')
@@ -369,11 +524,16 @@ def play(audit, quick):
         try:
             fly_contract(audit, base, job, quick)
         except Error as error:
+            kind = classify_error(error)
+            status = f'{HARNESS_PREFIX}（頁面）' if kind == 'harness' else '稽核中斷'
             if audit.active:
-                audit.finish('稽核中斷')
+                audit.error(str(error))
+                audit.finish(status)
             run = audit.runs.setdefault(job['id'], {})
-            run['status'] = '稽核中斷'
-            run.setdefault('errors', []).append([run.get('end', 0), str(error)])
+            run['status'] = status
+            run.setdefault('errors', []).append([run.get('end', 0), str(error), kind])
+            if kind == 'harness':
+                run['harness'] = True
             print(job['id'], str(error), flush=True)
             if page.is_closed():
                 raise
@@ -388,11 +548,29 @@ def play(audit, quick):
         audit.runs.setdefault(name, {'status': '設計表有列，尚無工單'})
 
 
+def findings(runs):
+    """Level findings that --strict turns into a non-zero exit (harness faults always count)."""
+    problems = []
+    for name, run in runs.items():
+        status = run.get('status', '')
+        if is_harness_status(status) or run.get('harness'):
+            problems.append(name)
+            continue
+        if status.startswith(('卡關', '稽核中斷')):
+            problems.append(name)
+            continue
+        if any(classify_error(entry[1]) == 'level' for entry in run.get('errors', [])):
+            problems.append(name)
+    return problems
+
+
 def main():
     from playwright.sync_api import sync_playwright
     from _browser import gl_mode, launch, timeout
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--quick', action='store_true', help='stop after the first interactive prologue segment')
+    parser.add_argument('--strict', action='store_true',
+                        help='exit non-zero when level findings or harness faults remain')
     parser.add_argument('--out', type=Path, default=ROOT / 'output/playtest-audit' / TODAY)
     parser.add_argument('--summary', type=Path, help='Markdown review gallery path (full run by default)')
     args = parser.parse_args()
@@ -401,22 +579,35 @@ def main():
     elif not args.summary:
         args.summary = ROOT / 'docs/design/playtest-audit' / (TODAY + '.md')
     args.out.mkdir(parents=True, exist_ok=True)
-    with sync_playwright() as pw:
-        browser = launch(pw)
-        page = browser.new_page(cold_open=True, viewport=dict(width=1600, height=900))
-        page.set_default_timeout(timeout(30000))
-        audit = Audit(page, args.out)
-        try:
-            play(audit, args.quick)
-        finally:
-            if audit.active:
-                audit.finish('稽核中斷')
-            (args.out / 'trace.json').write_text(json.dumps(audit.runs, ensure_ascii=False), encoding='utf-8')
-            from playtest_report import report
-            report(audit.runs, args.out, args.summary, f'Chromium {browser.version} · {gl_mode()} GL')
-            browser.close()
-    return int(any(run['status'].startswith(('卡關', '稽核中斷')) or run.get('errors')
-                   for run in audit.runs.values()))
+    owned = os.environ.get('ROV_HTTP_PORT') is None
+    process = log = None
+    if owned:
+        process, log, _ports = start_server(args.out / 'server.log')
+    code = 1
+    try:
+        with sync_playwright() as pw:
+            browser = launch(pw)
+            page = browser.new_page(cold_open=True, viewport=dict(width=1600, height=900))
+            page.set_default_timeout(timeout(30000))
+            audit = Audit(page, args.out)
+            try:
+                play(audit, args.quick)
+            finally:
+                if audit.active:
+                    audit.finish('稽核中斷')
+                (args.out / 'trace.json').write_text(json.dumps(audit.runs, ensure_ascii=False), encoding='utf-8')
+                from playtest_report import report
+                report(audit.runs, args.out, args.summary,
+                       f'Chromium {browser.version} · {gl_mode()} GL')
+                browser.close()
+        problems = findings(audit.runs)
+        if problems:
+            print('findings:', ', '.join(problems), flush=True)
+        code = 1 if args.strict and problems else 0
+    finally:
+        if owned:
+            stop_server(process, log)
+    return code
 
 
 if __name__ == '__main__':

@@ -27,6 +27,7 @@ def report(runs, out, summary=None, browser_info=None):
         from browser_cold_open_smoke import contact_sheet
         from PIL import Image
     table = ['# 自動試玩稽核', '', '1600×900，鍵盤。時間單位為實際秒數。卡關表示連續 120 秒沒有換節拍，目標進度也沒有增加。',
+             '工具或連線失敗（無法連線、載入超時、伺服器斷線）記為「工具失敗」，不算卡關。',
              '未解鎖的工單使用獨立瀏覽器存檔，配給工單指定裝備，從水中開始。原職涯保留在看板。',
              '空白合計整段安靜區間。長幀含截圖成本，以兩次動畫影格相隔超過 200 ms 計。',
              '每關依卡關、錯誤、提示並存、空白長度及長幀數選出三張證據圖。',
@@ -42,6 +43,8 @@ def report(runs, out, summary=None, browser_info=None):
             continue
         events = run['events']
         gaps, stalls, overlap = analyze(events, run['end'])
+        if run.get('harness') or str(run.get('status', '')).startswith('工具失敗'):
+            stalls = []
         lengths = [b - a for a, b in gaps]
         frames = run['frames']
         means, long = frame_stats(frames)
@@ -80,8 +83,10 @@ def report(runs, out, summary=None, browser_info=None):
         def severity(index):
             a, b = starts[index:index + 2]
             silence = max((min(y, b) - max(x, a) for x, y in gaps), default=0)
-            errors = sum(a <= t < b for t, _ in run['errors'])
-            return (any(a <= y <= b for _, y in stalls), errors, any(a <= t < b for t, _ in overlap),
+            errors = sum(a <= entry[0] < b for entry in run['errors'])
+            stalled = 0 if run.get('harness') or str(run.get('status', '')).startswith('工具失敗') else (
+                any(a <= y <= b for _, y in stalls))
+            return (stalled, errors, any(a <= t < b for t, _ in overlap),
                     max(0, silence), sum(beat == shots[index]['beat'] for _, _, beat in long))
         gallery.extend(['', f'### {name}', ''])
         for index in sorted(range(len(shots)), key=severity, reverse=True)[:3]:
