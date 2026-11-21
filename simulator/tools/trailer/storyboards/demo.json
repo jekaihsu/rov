@@ -1,0 +1,113 @@
+{
+  "format": "rov-trailer-1",
+  "title": "ROV Solution — demo cut (素材，非成片)",
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "shots": [
+    {
+      "id": "demo-01-cold-open",
+      "title": "倒敘開場建立鏡頭",
+      "duration": 8,
+      "scenario": "cold_open_jacket",
+      "seed": 1,
+      "hud": false,
+      "hero_at": 4.0,
+      "weather": {"current_kn": 0.15, "surface_dir": 345, "visibility_m": 22},
+      "camera": {
+        "mode": "orbit",
+        "keyframes": [
+          {"t": 0.0, "azimuth": 0.4, "radius": 5.2, "height": 1.4, "fov": 50},
+          {"t": 4.0, "azimuth": 1.6, "radius": 4.4, "height": 1.1, "fov": 48},
+          {"t": 8.0, "azimuth": 2.8, "radius": 3.8, "height": 0.9, "fov": 46}
+        ]
+      },
+      "drive": [
+        {"t": 0.0, "surge": 0.0, "yaw": 0.0, "keep_depth": true, "led": 2, "locked": false}
+      ],
+      "notes": "Reuses the cold-open jacket site for the demo establish."
+    },
+    {
+      "id": "demo-02-harbor-fpv",
+      "title": "港灣 FPV 漂移修正",
+      "duration": 7,
+      "scenario": "harbor_inspection",
+      "seed": 7,
+      "hud": true,
+      "hero_at": 3.0,
+      "weather": {"current_kn": 1.0, "surface_dir": 90, "visibility_m": 7},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.4, "yaw": -0.3, "keep_depth": true, "led": 2},
+        {"t": 2.0, "surge": 0.55, "yaw": 0.35},
+        {"t": 4.5, "surge": 0.35, "yaw": -0.15, "sway": 0.1}
+      ]
+    },
+    {
+      "id": "demo-03-tether-orbit",
+      "title": "纜線第三人稱",
+      "duration": 6,
+      "scenario": "harbor_inspection",
+      "seed": 11,
+      "hud": false,
+      "hero_at": 3.0,
+      "weather": {"current_kn": 0.7, "surface_dir": 95, "visibility_m": 8},
+      "camera": {
+        "mode": "follow",
+        "keyframes": [
+          {"t": 0.0, "offset": [1.4, 1.5, -3.8], "lookOffset": [0, 0.1, 1.2], "fov": 52},
+          {"t": 3.0, "offset": [2.2, 1.8, -2.6], "lookOffset": [0, 0.2, 1.0], "fov": 50},
+          {"t": 6.0, "offset": [0.6, 1.3, -4.2], "lookOffset": [0, 0.15, 1.4], "fov": 52}
+        ]
+      },
+      "drive": [
+        {"t": 0.0, "surge": 0.35, "yaw": 0.25, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.45, "yaw": -0.2}
+      ]
+    },
+    {
+      "id": "demo-04-pool",
+      "title": "水池下潛",
+      "duration": 5,
+      "scenario": "tutorial_pool",
+      "seed": 3,
+      "hud": true,
+      "hero_at": 2.5,
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "heave": -0.35, "surge": 0.2, "keep_depth": false, "led": 1},
+        {"t": 2.0, "heave": -0.2, "surge": 0.4, "keep_depth": true, "led": 2}
+      ]
+    },
+    {
+      "id": "demo-05-hull",
+      "title": "船殼接近",
+      "duration": 6,
+      "scenario": "hull_inspection",
+      "seed": 5,
+      "hud": true,
+      "hero_at": 3.0,
+      "weather": {"current_kn": 0.4, "visibility_m": 10},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.4, "heave": 0.05, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.2, "sway": 0.15, "yaw": 0.1}
+      ]
+    },
+    {
+      "id": "demo-06-pen",
+      "title": "養殖網衣",
+      "duration": 6,
+      "scenario": "aquaculture_pen",
+      "seed": 9,
+      "hud": true,
+      "hero_at": 3.0,
+      "weather": {"current_kn": 0.35, "visibility_m": 8},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.35, "sway": 0.1, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.25, "yaw": 0.2}
+      ]
+    }
+  ]
+}

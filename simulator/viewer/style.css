@@ -267,6 +267,12 @@ body.movie .viewport{border:0;border-radius:0}
 body.movie .viewport .pip{top:auto;bottom:24px;right:24px;width:320px;height:204px}
 body.movie .viewport .subtitle{bottom:64px;font-size:22px}
 body.movie .sticks{display:none}
+
+/* trailer capture (?trailer): same chrome hide as movie, plus FPS/debug meta.
+   Storyboard may re-show the flight HUD (depth / heading) without the engineering racks. */
+body.trailer #meta,body.trailer #engineering,body.trailer .pad-info,body.trailer #padInfo{display:none!important}
+body.trailer .replay{display:none!important}
+body.trailer:not(.hud-hidden) .flight{display:block!important}
 .card{position:absolute;inset:0;z-index:var(--z-banner);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;background:rgba(4,10,16,.62);color:#eef8ff;transition:opacity .6s;pointer-events:none}
 .card[hidden]{display:flex!important;opacity:0}
 .card b{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,5vw,64px);letter-spacing:.02em;line-height:1.05;text-wrap:balance}
