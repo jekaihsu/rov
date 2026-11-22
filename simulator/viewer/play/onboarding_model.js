@@ -158,8 +158,10 @@ export function tipActive(tip, state) {
 }
 
 // The first tip whose event is happening and that this profile has not seen yet, or null.
-export function pendingTip(progress, state) {
+export function pendingTip(progress, state, step = null) {
   return TIPS.find(function due(tip) {
+    // Above a sloping reef the DVL can lose bottom before the pilot first unlocks. Its assist starts on unlock.
+    if (tip === 'dvl' && step === 'unlock' && state?.locked) return false;
     return !progress.tips[tip] && tipActive(tip, state);
   }) || null;
 }

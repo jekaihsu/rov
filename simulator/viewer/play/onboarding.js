@@ -253,11 +253,10 @@ export function installOnboarding({ input, readOnly = false }) {
   // What should be on screen now, ignoring the appear delay: a due tip first, else the next basic step.
   function wanted(state) {
     if (!progress.enabled || readOnly || !state || state.paused || screenBusy()) return null;
-    const tip = pendingTip(progress, state);
-    if (tip) return { kind: 'tip', id: tip };
     // A USB hand controller or the SDK flies the vehicle: the key and pad hints would be wrong.
-    if (state.controller || state.remote_control) return null;
-    const step = currentStep(progress);
+    const step = state.controller || state.remote_control ? null : currentStep(progress);
+    const tip = pendingTip(progress, state, step);
+    if (tip) return { kind: 'tip', id: tip };
     return step ? { kind: 'step', id: step } : null;
   }
   function tipFinished(state, now) {
@@ -287,7 +286,7 @@ export function installOnboarding({ input, readOnly = false }) {
       return;
     }
     // A tip that comes due replaces a step hint that is still waiting to be done.
-    if (!done && pendingTip(progress, state)) {
+    if (!done && pendingTip(progress, state, shown.id)) {
       hide();
       return;
     }

@@ -18,7 +18,7 @@ import {
   createFishMesh, createSchoolMotion, fishGeometry, fishMaterial, replaceFishBody, updateSchoolMotion,
 } from './fish_life.js';
 import {KIT_SPECIES, fishSite, kitMaterial, loadKitSpecies, schoolKitSpecies, setKitDetail} from './fish_kit.js';
-import {penTurn, placePenFish} from './pen_life.js';
+import {penTurn, placePenFish, penBoundary} from './pen_life.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
 // Level of detail per tier for all schools together: at most `full` fish within `fullRange` metres use the full
@@ -125,9 +125,11 @@ function buildSchool(school, context, random) {
   const pos = P(school.pos);
   const stage = {matrices: new Float32Array(count * 16), swim: new Float32Array(count * 3),
     distance: new Float32Array(count), level: new Uint8Array(count)};
+  const motion = createSchoolMotion(fish, {length}, random);
+  if (farm) motion.confine = penBoundary(world.scenario?.aquaculture);
   return {id: school.id, species, tint, mesh: group, meshes, fish, farm, pos, target: pos.clone(),
     vel: new THREE.Vector3(0, 0, 0.3), heading: null, stage, visible: true,
-    motion: createSchoolMotion(fish, {length}, random)};
+    motion};
 }
 
 function seeded(text) {
@@ -180,6 +182,7 @@ function vehicleTracker() {
   const position = new THREE.Vector3();
   const previous = new THREE.Vector3();
   const velocity = new THREE.Vector3();
+  const forward = new THREE.Vector3();
   let known = false;
   return function trackVehicle(state, dt) {
     if (!Array.isArray(state?.pos)) return null;
@@ -187,7 +190,14 @@ function vehicleTracker() {
     if (known && dt > 0) velocity.lerp(previous.sub(position).multiplyScalar(-1 / dt), 1 - Math.exp(-dt * 4));
     previous.copy(position);
     known = true;
-    return {position, velocity, lamps: (state.rc?.right_switch || 0) > 0};
+    // Forward axis of the lamp housing from the physical NED attitude, independent of the viewing camera.
+    const pitch = THREE.MathUtils.degToRad(state.euler?.[1] || 0);
+    const yaw = THREE.MathUtils.degToRad(state.euler?.[2] || 0);
+    forward.set(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
+    let thrust = 0;
+    for (const motor of state.thrust || []) thrust = Math.max(thrust, Math.abs(motor));
+    const lamps = state.power?.lights_on !== false && (state.rc?.right_switch || 0) > 0;
+    return {position, velocity, forward, thrust, lamps};
   };
 }
 

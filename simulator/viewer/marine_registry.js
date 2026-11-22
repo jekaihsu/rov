@@ -101,6 +101,37 @@ function bladeGeometry(kind) {
   return g;
 }
 
+// Three folded blades share a holdfast. Vary their lengths, bearings and taper across each bed.
+function kelpBlades(variant) {
+  const vertices = [];
+  const indices = [];
+  for (let leaf = 0; leaf < 3; leaf++) {
+    const height = 1 - leaf * 0.16;
+    const bearing = leaf * 2.4 + variant * 0.8;
+    const base = vertices.length / 3;
+    for (let step = 0; step <= 5; step++) {
+      const t = step / 5;
+      const angle = bearing + 0.7 * Math.sin(3 * t + variant);
+      const width = 0.008 + 0.115 * Math.sin(Math.PI * t) ** 1.1;
+      const reach = 0.22 * t + 0.12 * Math.sin(3 * t);
+      const x = Math.cos(bearing) * reach;
+      const z = Math.sin(bearing) * reach;
+      for (const side of [-1, 1]) {
+        vertices.push(x + side * width * Math.sin(angle), t * height, z - side * width * Math.cos(angle));
+      }
+      if (step < 5) {
+        const i = base + step * 2;
+        indices.push(i, i + 1, i + 3, i, i + 3, i + 2);
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 /** Plumose anemone placeholder: a short column with a frilled crown, 1 m tall along +Y (instances scale it). */
 function anemoneGeometry() {
   const column = new THREE.CylinderGeometry(.3, .38, .7, 8, 1);
@@ -115,7 +146,7 @@ const FALLBACK = {
   fish: () => fishGeometry(),
   coral: (variant) => coralGeometry(variant),
   seastar: () => seastarGeometry(),
-  kelp: () => bladeGeometry('kelp'),
+  kelp: kelpBlades,
   seagrass: () => bladeGeometry('seagrass'),
   anemone: () => anemoneGeometry(),
 };

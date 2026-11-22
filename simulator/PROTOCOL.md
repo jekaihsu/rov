@@ -344,6 +344,13 @@ field reports of 4–5 s lag and 5 s/20 s freezes; sources in
 
 ## 4. World object (`type: "world"`)
 
+`habitat.discoveries` is an optional static array of small surface details.
+Each entry carries a stable `id`, a guide category `kind`, its NED attachment `pos` (metres),
+an outward NED unit `normal` and `yaw` (degrees around the normal).
+Clients can omit the details when absent. For these entities the existing `observation_photo`
+operation also accepts onboard evidence outside expedition mode. Accepted detail observations carry
+`world_seed`. Together with `scene` and `entity_id` it identifies a particular find across dives.
+
 ```text
 seabed_depth m
 obstacles [ {type:"cylinder", name, p0 [n,e,d], p1 [n,e,d], radius, kind: pile|monopile|jacket_leg|brace|mast|...}

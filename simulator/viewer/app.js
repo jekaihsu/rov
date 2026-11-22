@@ -55,13 +55,14 @@ import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
 import {installExpeditionClient} from './expedition_client.js';
-import {installExpeditionPanel} from './expedition_panel.js';
+import {expeditionObjectives, installExpeditionPanel} from './expedition_panel.js';
 import {inspectObservation} from './observation_camera.js';
 import {installPilotGuide} from './pilot_guide.js';
 import {drawROVAttitude} from './attitude_indicator.js';
 import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
+import {updateFlowSpecks} from './fx/suspension.js';
 import { createDaylight } from './fx/daylight.js';
 import { readReplay } from './replay_store.js';
 import { installDebrief } from './debrief/install.js';
@@ -415,9 +416,10 @@ function particleFlow(x, y, z) {      // host flow grid (NED) when available, el
   if (v) return v;
   const m = currentAt(-y); partFlow[0] = m[0]; partFlow[1] = m[1]; partFlow[2] = 0; return partFlow;
 }
-function updateParticles(dt, centre) {
+function updateParticles(dt, centre, lampLevel) {
   particles.visible = $('optFlow').checked;
   if (!particles.visible) return;
+  updateFlowSpecks(particles, renderer, camera, centre, siltFx.optics, lampLevel);
   if (!partCentre) partCentre = centre.clone();
   for (let i = 0; i < NP; i++) {
     const j = i * 3; let x = partPos[j], y = partPos[j + 1], z = partPos[j + 2];
@@ -611,10 +613,6 @@ function onState(m) {
 }
 const target = { pos: new THREE.Vector3(), q: new THREE.Quaternion(), init: false };
 
-function expeditionObjectives(state){
-  return [...(state.expedition?.active?.steps||[]).filter(step=>step.point&&!step.completed).map(step=>({...step,kind:'inspect',done:step.completed})),
-    ...(state.expedition?.markers||[]).filter(marker=>marker.point||marker.pos).map(marker=>({...marker,id:'discovery:'+marker.entity_id,point:marker.point||marker.pos,kind:'checkpoint',radius:.35}))];
-}
 function engineeringPhotoTargets(){
   const id=S?.expedition?.active?.id;
   const needed=new Set((S?.expedition?.active?.steps||[]).filter(step=>step.role==='photo'&&!step.completed).map(step=>step.entity_id));
@@ -1257,12 +1255,13 @@ function frame(now) {
   shaderWarmup.update(now);
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
+  const lampLevel = S?.power?.lights_on === false ? 0 : [0, .55, 1][S?.rc?.right_switch || 0] || 0;
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
-    displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
+    displayFar: Math.max(90, cameraRig.topH * 4), lampLevel, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
   spoolStation.update(dt, !!intro?.onScene, camera);           // the intro brings its own boat while it plays
   objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
-  if (!inIntro) updateParticles(dt, rovG.position);
+  if (!inIntro) updateParticles(dt, rovG.position, lampLevel);
   updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
   topMark.visible = camMode === 'top';

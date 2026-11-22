@@ -483,6 +483,10 @@ export function replaceFishBody(mesh, body, material) {
 // measured behaviour.
 const AVOID_RADIUS = 1.0;
 const AVOID_RADIUS_LAMPS = 0.4;      // extra distance with the lamps on (pen fish shy from lights, server too)
+// Individual offsets only. Beyond the avoidance envelope fish drift into a quiet lamp beam.
+// A large measured motor load produces a short flush even while the hull is holding position.
+const LAMP_REACH = 5.0;
+const WASH_REACH = 2.4;
 const AVOID_GAIN = 0.9;
 const AVOID_OUT_RATE = 4.0;
 const AVOID_BACK_RATE = 0.45;
@@ -545,21 +549,25 @@ function angleDelta(from, to) {
 }
 
 function avoidVehicle(state, position, vehicle, dt) {
-  // Push the fish out of a sphere round the vehicle, quickly outwards and slowly back to its slot.
-  let push = 0;
+  let shift = 0;
   if (vehicle) {
     away.copy(state.position).sub(vehicle.position);
     const distance = Math.max(away.length(), 0.05);
-    const radius = AVOID_RADIUS + (vehicle.lamps ? AVOID_RADIUS_LAMPS : 0);
+    away.multiplyScalar(1 / distance);
+    const thrust = THREE.MathUtils.smoothstep(vehicle.thrust || 0, 0.15, 0.75);
+    const radius = AVOID_RADIUS + (vehicle.lamps ? AVOID_RADIUS_LAMPS : 0) + WASH_REACH * thrust;
     if (distance < radius) {
-      push = (radius - distance) * AVOID_GAIN;
-      away.multiplyScalar(push / distance);
-      const closing = vehicle.velocity ? vehicle.velocity.dot(away) / Math.max(push, 1e-3) : 0;
-      if (closing > STARTLE_SPEED || distance < radius * 0.5) state.startle = 1;
+      shift = (radius - distance) * AVOID_GAIN;
+      const closing = vehicle.velocity ? vehicle.velocity.dot(away) : 0;
+      if (thrust > 0.35 || closing > STARTLE_SPEED || distance < radius * 0.5) state.startle = 1;
+    } else if (vehicle.lamps && vehicle.forward && distance < LAMP_REACH) {
+      const beam = THREE.MathUtils.smoothstep(vehicle.forward.dot(away), 0.72, 0.95);
+      const reach = Math.min(distance - radius, LAMP_REACH - distance, 0.75);
+      shift = -reach * beam * (1 - thrust);
     }
   }
-  if (!push) away.set(0, 0, 0);
-  const rate = push ? AVOID_OUT_RATE : AVOID_BACK_RATE;
+  away.multiplyScalar(shift);
+  const rate = shift > 0 ? AVOID_OUT_RATE : AVOID_BACK_RATE;
   state.avoid.lerp(away, 1 - Math.exp(-rate * dt));
   state.startle = Math.max(0, state.startle - STARTLE_DECAY * dt);
   position.add(state.avoid);
@@ -597,7 +605,8 @@ const swimValue = [0, 1, 0];
 /**
  * Move one school's instances. `placeFish(item, t, position, euler)` gives the fish's slot (school layout,
  * server centre) and base heading; `base` is the school's speed through the water (m/s). `vehicle` is
- * {position, velocity, lamps} in three space or null. `target` is an instanced mesh or a sink (meshSink, or
+ * {position, velocity, forward, lamps, thrust} or null: the three-space hull pose and velocity, live circuit
+ * state and largest normalized motor load. `target` is an instanced mesh or a sink (meshSink, or
  * any {put(i, distance, item, matrix, swim), end(count), eye?}); it receives the instance matrices, swim values
  * [phase, amplitude, bend] and per-fish colours.
  */
@@ -615,6 +624,7 @@ export function updateSchoolMotion(motion, target, dt, t, placeFish, base, vehic
     const first = state.heading === null;
     state.position.copy(placed);
     avoidVehicle(state, placed, vehicle, step);
+    motion.confine?.(placed);
     state.position.copy(placed);
     // Swimming direction: the school's track plus the fish's own drift and avoid displacement.
     wanderVelocity(state, t, length, local);
