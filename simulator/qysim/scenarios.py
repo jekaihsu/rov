@@ -227,7 +227,8 @@ def hull_inspection() -> Scenario:
     return Scenario(
         "hull_inspection", "船殼底部檢查", "80 m 貨輪吃水 8 m。從船底下穿過沿龍骨檢查，再繞到右舷。纜線可能卡在船底邊緣。",
         seabed_depth=sea, obstacles=hull, current=CurrentProfile(0.6, 0, 0.5, 10, 0.2, 20, TI_SHELTERED),
-        visibility_m=7.0, start_pos=(0, 0, 3), spool_pos=(-5, 0, 0), tether_length=70.0,
+        visibility_m=7.0, start_pos=(30.0, -13.2, 6.0), start_heading_deg=90.0,
+        spool_pos=(-5, 0, 0), tether_length=70.0,
         objectives=[Objective("checkpoint", f"船底 {i + 1}", p, radius=1.8) for i, p in enumerate(pts)])
 
 
@@ -524,11 +525,11 @@ def aquaculture_pen() -> Scenario:
     return Scenario(
         "aquaculture_pen", pen_strings["name"], pen_strings["brief"],
         seabed_depth=25., obstacles=obstacles, visibility_m=8., biome="aquaculture",
-        seabed_type="mud", water_type="shelf", start_pos=(3., 0., 7.),
-        spool_pos=(-2., 0., 0.), tether_length=150., time_limit_s=2400.,
+        seabed_type="mud", water_type="shelf", start_pos=(1.8, 1.1, 1.25),
+        start_heading_deg=18.0, spool_pos=(-2., 0., 0.), tether_length=150., time_limit_s=2400.,
         current=CurrentProfile(.8, 90, .5, 95, .3, 100, TI_SHELTERED),
-        objectives=[Objective("pen_lap", pen_strings["lap"], (3., 0., 7.)),
-                    Objective("pen_photo", pen_strings["photo"], (3., 0., 7.), target="hole-0"),
+        objectives=[Objective("pen_lap", pen_strings["lap"], (1.8, 1.1, 1.25)),
+                    Objective("pen_photo", pen_strings["photo"], (1.8, 1.1, 1.25), target="hole-0"),
                     Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
 
 

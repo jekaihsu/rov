@@ -22,29 +22,32 @@ def populate(world, scenario):
         for n, e in ((12, -4), (37, -12)):
             place("shackle", (n, e, world.seabed_depth), .85)
         schools = placed_schools([dict(home=(2, 0, 4), count=16)], np.random.default_rng(world.world_seed))
-        # Start the orbit across the vehicle's bow, just inside visibility at deployment.
-        schools[0].update(id="approach-school", home=np.array([-2., .2, 3.6]),
-                          pos=np.array([3., .2, 3.6]), phase=0.)
+        # Between the vehicle and the port side so the first look shows fish against the plating.
+        schools[0].update(id="approach-school", home=np.array([30., -11.4, 6.0]),
+                          pos=np.array([30.2, -10.8, 6.0]), phase=0.)
         if world.fish_schools:
-            world.fish_schools[0].update(home=np.array([2., -.5, 4.4]),
-                                         pos=np.array([7., -.5, 4.4]), phase=0.)
+            world.fish_schools[0].update(home=np.array([28., -10.6, 6.5]),
+                                         pos=np.array([26., -10.2, 6.5]), phase=0.)
         if len(world.fish_schools) >= 2:
-            world.fish_schools[1].update(home=np.array([12.5, -1.3, 8.4]),
-                                         pos=np.array([17.5, -1.3, 8.4]), phase=0.)
+            world.fish_schools[1].update(home=np.array([33., -10.8, 7.2]),
+                                         pos=np.array([35., -10.4, 7.2]), phase=0.)
         world.fish_schools.extend(schools)
     elif scenario.startswith("aquaculture_pen"):
         for cable in world.obstacles:
             if cable.kind == "pen_rope" and cable.name.endswith("-0"):
                 pos = .52 * np.asarray(cable.p0) + .48 * np.asarray(cable.p1)
                 place("kelp", pos, .72, 65)
-        # Holdfasts follow the outside face. The first frond is rooted on the lower lip of the opening.
-        for e, depth, scale in ((1.1, 8.02, .85), (3.6, 7.6, .7), (6, 7.3, .78),
-                                (8.5, 6.2, .64), (10.7, 5.1, .82), (12.8, 4.0, .66)):
+        # Holdfasts on the outside face. Keep the opening itself clear so the torn lip reads as a hole.
+        for e, depth, scale in ((2.6, 5.4, .7), (3.6, 9.2, .72), (6, 7.3, .78),
+                                (8.5, 6.2, .64), (10.7, 5.1, .82), (12.8, 4.0, .66),
+                                (4.2, 3.4, .7)):
             n = 24 - math.sqrt(18.02 ** 2 - e ** 2)
             place("kelp", (n, e, depth), scale, e * 31)
         for n, e in ((8, 2), (18, -8), (30, -4)):
             place("feed", (n, e, world.seabed_depth), .8)
         schools = placed_schools([dict(home=(-2, 2, 7), count=16)], np.random.default_rng(world.world_seed))
-        schools[0].update(id="wild-school-1", wild=True, home=np.array([.0, .6, 7.1]),
-                          pos=np.array([5., .6, 7.1]), phase=0.)
+        # Outside the western net wall, between the spawn and the net under the float collar.
+        schools[0].update(id="wild-school-1", wild=True, species="aji",
+                          home=np.array([3.2, 1.5, 1.6]),
+                          pos=np.array([4.4, 1.6, 1.55]), phase=0.)
         world.fish_schools.extend(schools)

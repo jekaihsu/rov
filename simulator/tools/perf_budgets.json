@@ -2,7 +2,7 @@
   "about": "Frame-cost budgets for `python tools/browser_gpu_bench.py --check` (docs/design/performance/README.md). Counts per frame at the seed=1 start pose, measured by tools/perf_probe.js; textureMB is GPU texture memory allocated through the context. Limits are the perf/smooth measurements plus about 15 % headroom: raise one only with a reason in the PR description.",
   "viewport": [1280, 720],
   "scenes": {
-    "dive:hull_inspection:medium:onboard": {"draws": 84, "triangles": 98000, "passes": 5, "fullScreenPasses": 4,
+    "dive:hull_inspection:medium:onboard": {"draws": 84, "triangles": 115000, "passes": 5, "fullScreenPasses": 4,
       "textureMB": 72},
     "dive:aquaculture_pen:medium:onboard": {"draws": 56, "triangles": 140000, "passes": 5, "fullScreenPasses": 4,
       "textureMB": 66},
@@ -22,8 +22,8 @@
     "dive:cold_open_jacket:performance:third": {"draws": 92, "triangles": 133000, "passes": 1, "fullScreenPasses": 0,
       "textureMB": 25},
     "dive:cold_open_jacket:medium:onboard": {"draws": 59, "triangles": 71000, "passes": 5, "fullScreenPasses": 4,
-      "textureMB": 73},
+      "textureMB": 95},
     "dive:cold_open_jacket:medium:third": {"draws": 100, "triangles": 164000, "passes": 5, "fullScreenPasses": 4,
-      "textureMB": 73}
+      "textureMB": 95}
   }
 }

@@ -26,5 +26,7 @@ class InspectionFindsTest(unittest.TestCase):
                 self.assertEqual(len(pos), 3)
                 self.assertGreater(radius, 0)
             total += len(ids)
-        self.assertLessEqual(total, 30)
+            if site == "aquaculture_pen":
+                self.assertGreaterEqual(len(ids), 15)
+        self.assertLessEqual(total, 31)
         self.assertGreaterEqual(total, 15)

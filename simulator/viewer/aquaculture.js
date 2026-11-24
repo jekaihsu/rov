@@ -9,7 +9,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 // dyed nylon, 26 mm ropes along the panel joints and every 4 m of depth, fouling strongest near the surface.
 const NET_TILE_M = 0.32;
 const NET_PANEL_HALF_M = 18 * Math.sin(Math.PI / 48);
-const INTACT_EDGE_DISTANCE_M = 1; // Outside the 0.26 m fray band.
+const INTACT_EDGE_DISTANCE_M = 1; // Outside the fray band used by torn panels.
 
 const NET_VERTEX_HEAD = `varying float penDepth;
 varying float penFloor;
@@ -36,6 +36,17 @@ float penNoise(vec2 p) {
   float bottom = mix(penHash(i + vec2(0.0, 1.0)), penHash(i + vec2(1.0, 1.0)), f.x);
   return mix(top, bottom, f.y);
 }
+// Smooth multi-octave field for soft algae and mussel patches (no square cells).
+float penFbm(vec2 p) {
+  float sum = 0.0;
+  float amp = 0.5;
+  for (int octave = 0; octave < 4; octave++) {
+    sum += amp * penNoise(p);
+    p = p * 2.07 + vec2(19.3, 7.1);
+    amp *= 0.5;
+  }
+  return sum;
+}
 `;
 // Resolve individual diamond bars in metre coordinates out to four metres. At grazing angles and at
 // distance the filtered texture supplies the net's solidity, while growth still follows the panel.
@@ -47,16 +58,20 @@ const NET_FRAGMENT_MAP = `
   float penHalf = penIsFloor ? 1.0 : PEN_PANEL_HALF;
   float penBay = clamp(1.0 - (penAcross / penHalf) * (penAcross / penHalf), 0.0, 1.0);
   float penSag = penIsFloor ? 0.0 : 0.09 * penBay;
-  vec2 penField = penIsFloor ? penWorld.xz * 0.45 : vec2(penWorld.x + penWorld.z * 0.6, penWorld.y * 1.4) * 0.45;
-  float penPatch = penNoise(penField);
-  float penFine = penNoise(penField * 5.3 + 11.0);
-  // Hung netting is never a ruled grid: bars wander by a few centimetres over half a metre.
-  vec2 penWander = vec2(penNoise(penField * 2.6 + 3.0), penNoise(penField * 2.6 + 19.0)) - 0.5;
-  vec2 penPoint = vec2(penAcross, penAlong + penSag) + 0.07 * penWander + 0.012 * vec2(penFine, penPatch);
-  // Cut ends lose their lateral tension: unravel and hang in small tufts along a damaged lip.
-  float penFray = penIsFloor ? 0.0 : 1.0 - smoothstep(0.03, 0.26, penUv.y);
-  penPoint.x += penFray * (0.035 * sin(penAcross * 17.0) + 0.05 * (penFine - 0.5));
-  penPoint.y += penFray * 0.04 * sin(penAcross * 11.0);
+  vec2 penField = penIsFloor
+    ? penWorld.xz * 0.55
+    : vec2(penWorld.x + penWorld.z * 0.55, penWorld.y) * 0.55;
+  // Broad, smooth growth field; fine detail only tints colour, never carves square patches.
+  float penSoft = penFbm(penField * 0.85 + 2.4);
+  float penDetail = penFbm(penField * 2.2 + 8.1);
+  float penMussel = penFbm(penField * 1.7 + 15.0);
+  vec2 penWander = vec2(penNoise(penField * 2.4 + 3.0), penNoise(penField * 2.4 + 19.0)) - 0.5;
+  vec2 penPoint = vec2(penAcross, penAlong + penSag) + 0.06 * penWander
+    + 0.015 * vec2(penDetail - 0.5, penSoft - 0.5);
+  // Cut ends lose tension: strands unravel and hang along a damaged lip (metres in penUv.y).
+  float penFray = penIsFloor ? 0.0 : 1.0 - smoothstep(0.04, 0.55, penUv.y);
+  penPoint.x += penFray * (0.05 * sin(penAcross * 19.0) + 0.08 * (penDetail - 0.5));
+  penPoint.y += penFray * (0.07 * sin(penAcross * 13.0) + 0.05 * penSoft);
 
   vec4 penTex = texture2D(map, penPoint / PEN_TILE);
   vec2 diamonds = vec2(penPoint.x + penPoint.y, penPoint.x - penPoint.y) / 0.075;
@@ -64,30 +79,38 @@ const NET_FRAGMENT_MAP = `
   vec2 aa = max(fwidth(diamonds), vec2(0.001));
   vec2 strands = 1.0 - smoothstep(vec2(0.025), vec2(0.025) + aa, edge);
   float netRange = length(cameraPosition - penWorld);
-  float penGrowth = penIsFloor ? 0.3 : mix(1.0, 0.16, smoothstep(0.5, 11.0, penDepth));
-  float penFoul = clamp(penGrowth * (0.15 + 1.5 * penPatch * penPatch + 0.4 * penFine), 0.0, 1.0);
+  // Fouling is strongest under the float collar and fades with depth (algae / mussels).
+  float penGrowth = penIsFloor ? 0.22 : mix(1.0, 0.08, smoothstep(0.35, 10.0, penDepth));
+  float algaeMask = smoothstep(0.28, 0.82, penSoft);
+  float musselMask = smoothstep(0.48, 0.9, penMussel) * smoothstep(0.25, 0.7, penSoft);
+  float penFoul = clamp(penGrowth * (0.25 + 0.55 * algaeMask + 0.4 * musselMask), 0.0, 1.0);
 
-  float penFar = clamp(penTex.a * (1.5 + 2.4 * penFoul), 0.0, 1.0);
-
-  float penAlpha = mix(max(strands.x, strands.y), min(0.32, penFar), smoothstep(4.0, 9.0, netRange));
-  // Tufts of growth close single meshes where the net is fouled.
-  float colony = penPatch * 0.78 + penFine * 0.22 + 0.18 * penFray;
-  float tufts = penNoise(penField * 27.0);
-  float penTuft = smoothstep(0.57, 0.72, colony) * smoothstep(0.22, 0.65, penGrowth)
-    * smoothstep(0.25, 0.78, tufts) * mix(1.0, 0.32, smoothstep(4.0, 10.0, netRange));
-  penAlpha = max(penAlpha, 0.94 * penTuft);
+  float penFar = clamp(penTex.a * (1.4 + 1.8 * penFoul), 0.0, 1.0);
+  float penBars = max(strands.x, strands.y);
+  // Near a tear the diamond grid breaks into loose, discontinuous strands.
+  float penGap = step(0.62, fract(penAcross * 6.5 + penDetail * 2.0));
+  penBars *= mix(1.0, (0.08 + 0.55 * penDetail) * (1.0 - 0.85 * penGap), penFray);
+  float penAlpha = mix(penBars, min(0.34, penFar), smoothstep(4.0, 9.0, netRange));
+  // Soft film follows the low-frequency field only — no hard tuft cutouts.
+  float penFilm = penFoul * algaeMask * mix(0.55, 0.2, smoothstep(4.0, 10.0, netRange));
+  penAlpha = max(penAlpha, 0.55 * penFilm * (1.0 - 0.7 * penFray));
+  // A thicker, lighter lip along the cut so the opening reads from a few metres away.
+  float penLip = penFray * penFray * (0.55 + 0.45 * sin(penAcross * 28.0));
+  penAlpha = max(penAlpha, 0.9 * penLip * mix(1.0, 0.45, smoothstep(5.0, 12.0, netRange)));
   float penJoint = penHalf - abs(penAcross);
   float penBand = abs(fract((penAlong + 0.6 * penSag) / 4.0 + 0.5) - 0.5) * 4.0;
   float penRopeDistance = penIsFloor ? penJoint : min(penJoint, penBand);
   float penRope = clamp((0.016 - penRopeDistance) / max(fwidth(penRopeDistance), 1e-4) + 0.5, 0.0, 1.0);
-  vec3 penAlgae = mix(vec3(0.15, 0.135, 0.085), vec3(0.12, 0.19, 0.075), (1.0 - smoothstep(1.0, 7.0, penDepth)));
-  vec3 penTwine = mix(vec3(0.03, 0.035, 0.033), penAlgae, penFoul);
-  penTwine *= (0.55 + 0.6 * penTex.r) * (0.6 + 0.8 * penPatch);
-  penTwine = mix(penTwine, mix(vec3(0.13, 0.105, 0.035), vec3(0.35, 0.27, 0.12), tufts), penTuft);
-  vec3 penRopeColor = mix(vec3(0.2, 0.21, 0.18), penAlgae * 1.3, 0.75 * penFoul);
+  vec3 penAlgae = mix(vec3(0.12, 0.15, 0.06), vec3(0.09, 0.2, 0.07), clamp(1.0 - penDepth / 8.0, 0.0, 1.0));
+  vec3 penMusselTone = mix(vec3(0.16, 0.13, 0.09), vec3(0.28, 0.22, 0.13), musselMask);
+  vec3 penTwine = mix(vec3(0.03, 0.035, 0.033), mix(penAlgae, penMusselTone, 0.55 * musselMask), penFoul);
+  penTwine *= 0.55 + 0.45 * penTex.r;
+  penTwine = mix(penTwine, vec3(0.34, 0.28, 0.12), penLip);
+  penTwine = mix(penTwine, vec3(0.22, 0.17, 0.08), penFray * (1.0 - penLip) * 0.5);
+  vec3 penRopeColor = mix(vec3(0.2, 0.21, 0.18), penAlgae * 1.2, 0.65 * penFoul);
   diffuseColor.rgb *= mix(penTwine, penRopeColor, penRope);
-  float penLoose = smoothstep(0.2, 0.75, penFine + 0.2 * sin(90.0 * penAcross));
-  diffuseColor.a *= max(penAlpha * mix(1.0, penLoose, penFray), penRope);
+  float penLoose = smoothstep(0.15, 0.8, penDetail + 0.25 * sin(70.0 * penAcross + 9.0 * penAlong));
+  diffuseColor.a *= max(penAlpha * mix(1.0, penLoose, penFray * (1.0 - penLip)), penRope);
 #endif
 `;
 
@@ -121,7 +144,7 @@ function dressNetMaterial(material) {
       .replace('#include <map_fragment>', NET_FRAGMENT_MAP)
       .replace('#include <alphatest_fragment>', 'if (diffuseColor.a < 0.03) discard;');
   };
-  material.customProgramCacheKey = () => 'pen-net-v2';
+  material.customProgramCacheKey = () => 'pen-net-v5';
 }
 
 // Rotationally moulded mooring float with rounded shoulders and a rope eye below the waterline.
@@ -147,7 +170,7 @@ export function buildPenPart(set, ob) {
       geometry.rotateX(-Math.PI / 2);
       geometry.rotateY(Math.PI / 2);
     } else if (ob.kind === 'pen_net') {
-      geometry = new THREE.PlaneGeometry(ob.half[0] * 2, ob.half[2] * 2, torn ? 24 : 4, Math.ceil(ob.half[2] * 2));
+      geometry = new THREE.PlaneGeometry(ob.half[0] * 2, ob.half[2] * 2, torn ? 32 : 4, Math.ceil(ob.half[2] * 2));
       geometry.rotateY(Math.PI / 2);
     } else {
       geometry = new THREE.BoxGeometry(ob.half[1] * 2, ob.half[2] * 2, ob.half[0] * 2);
@@ -161,9 +184,14 @@ export function buildPenPart(set, ob) {
       // Wall U is metres across. V only drives lip fraying; a large constant disables it on intact walls.
       const edgeDistance = torn ? Math.abs(y - lip) : INTACT_EDGE_DISTANCE_M;
       uv.setXY(i, pos.getZ(i), ob.half[2] < .1 ? pos.getX(i) : edgeDistance);
-      if (torn && edgeDistance < .001) {
-        const inset = .09 * Math.abs(Math.sin(pos.getZ(i) * 13 + lip));
-        pos.setY(i, y + (upper ? inset : -inset));
+      if (torn && edgeDistance < 0.55) {
+        const t = 1 - edgeDistance / 0.55;
+        const across = pos.getZ(i);
+        // Stay inside SCENE_TOLERANCE (0.1 m): irregular cut and outward peel of the lip.
+        const scallop = 0.09 * t * t * (0.4 + 0.6 * Math.abs(Math.sin(across * 14 + lip * 2.5)));
+        const peel = 0.09 * t * t * (0.5 + 0.5 * Math.sin(across * 9.0 + 1.7));
+        pos.setY(i, y + (upper ? scallop : -scallop));
+        pos.setX(i, pos.getX(i) + peel);
       }
     }
     geometry.rotateY(-ob.yaw_deg * Math.PI / 180);

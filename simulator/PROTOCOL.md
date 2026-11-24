@@ -1000,7 +1000,9 @@ Net visual motion is bounded to 0.05 m and never changes server collision shapes
 本 PR 尚未實作此選填欄位，因此不需要伺服器升級或能力探測。
 
 網箱側網障礙物的選填欄位 `torn_edge` 標出破洞邊緣，值為 `top` 或 `bottom`。省略時按完整網片繪製。
-網箱外的野生魚群在 `world.habitat.fish_schools[]` 附上選填的 `wild: true`。網箱內的魚群沿用原有資料格式。
+網箱外的野生魚群在 `world.habitat.fish_schools[]` 附上選填的 `wild: true`。
+選填的 `species` 指定 kit 魚種識別碼（例如 `"aji"`）；前端有值才覆寫該場的預設魚種表。
+網箱內的魚群沿用原有資料格式。
 
 A host viewer can request directed presentation with optional `beats: true` on
 `campaign_start`. Chapters with a beat script expose `campaign.directed`,

@@ -1000,5 +1000,6 @@ class World:
                 "habitat": {"entities": self.habitat_entities,
                             "fish_schools": [{"id": s["id"], "pos": s["pos"].round(4).tolist(),
                                               "count": s["count"], "phase": s["phase"], "variant": s["variant"],
-                                              **({"wild": True} if s.get("wild") else {})}
+                                              **({"wild": True} if s.get("wild") else {}),
+                                              **({"species": s["species"]} if s.get("species") else {})}
                                              for s in self.fish_schools]}}

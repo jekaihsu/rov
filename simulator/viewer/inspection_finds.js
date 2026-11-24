@@ -49,23 +49,23 @@ export function findGeometry(kind) {
   return mergeGeometries(parts);
 }
 
-// A holdfast on a rope or net supports several broad blades. Each one twists around its midrib.
+// A holdfast on a rope or net supports several soft, ribbon-like blades (not square patches).
 export function attachedKelp() {
   const positions = [];
   const indices = [];
-  for (let blade = 0; blade < 9; blade++) {
-    const angle = blade * 2.39996;
-    const length = .52 + .4 * (.5 + .5 * Math.sin(blade * 1.7));
+  for (let blade = 0; blade < 11; blade++) {
+    const angle = blade * 2.39996 + 0.15 * Math.sin(blade);
+    const length = .48 + .42 * (.5 + .5 * Math.sin(blade * 1.7));
     const base = positions.length / 3;
-    for (let step = 0; step <= 10; step++) {
-      const t = step / 10;
-      const curl = angle + .75 * t;
-      const reach = (.2 + .4 * length) * t;
-      const width = (.035 + .09 * Math.sin(Math.PI * t)) * (1 - .94 * t ** 7);
+    for (let step = 0; step <= 14; step++) {
+      const t = step / 14;
+      const curl = angle + .55 * t + 0.2 * Math.sin(2.4 * t + blade);
+      const reach = (.15 + .38 * length) * t;
+      const width = (.03 + .08 * Math.sin(Math.PI * t)) * (1 - .92 * t ** 6);
       for (const side of [-1, 0, 1]) {
-        const wave = side * width * (1 + .18 * Math.sin(15 * t + blade));
+        const wave = side * width * (1 + .22 * Math.sin(9 * t + blade * 1.3));
         positions.push(reach * Math.cos(curl) - wave * Math.sin(curl),
-          length * t * (1 - .36 * t) + (side === 0 ? width * .28 : 0),
+          length * t * (1 - .32 * t) + (side === 0 ? width * .22 : 0),
           reach * Math.sin(curl) + wave * Math.cos(curl));
       }
       if (!step) continue;

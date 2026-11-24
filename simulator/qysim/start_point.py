@@ -57,7 +57,7 @@ def near_target_pose(sim):
         if depth < 1.0:
             continue
         point = np.array([north, east, depth])
-        if float(sim.world.sdf(point)[0]) < MIN_CLEARANCE_M:
+        if float(sim.world.sdf(point)[0]) <= MIN_CLEARANCE_M:
             continue
         look = face[:2] - point[:2]
         heading = math.degrees(math.atan2(float(look[1]), float(look[0]))) % 360.0

@@ -122,6 +122,18 @@ test('a school holds its heading, stays round its centre and opens up round the 
   }
 });
 
+test('wild schools use the species field from habitat data', () => {
+  const world = {scenario: {key: 'aquaculture_pen'}, biome: 'aquaculture', world_seed: 71,
+    habitat: {fish_schools: [
+      {id: 'pen-school-0', pos: [34, 0, 6], count: 48, variant: 0},
+      {id: 'wild-school-1', pos: [5, 1, 3], count: 16, variant: 0, wild: true, species: 'aji'},
+    ]}};
+  const drawn = schools.createSharedSchools(new THREE.Group(), world, 'low', 71);
+  assert.equal(drawn.schools[0].species, 'madai');
+  assert.equal(drawn.schools[1].species, 'aji');
+  assert.equal(drawn.schools[1].farm, false);
+});
+
 test('pen fish are the farmed species and keep the pen layout', () => {
   const world = {scenario: {key: 'aquaculture_pen'}, biome: 'aquaculture', world_seed: 71,
     habitat: {fish_schools: [{id: 'pen-school-0', pos: [34, 0, 6], count: 48, variant: 0}]}};

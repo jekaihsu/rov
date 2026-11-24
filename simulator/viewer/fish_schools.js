@@ -18,7 +18,9 @@ import * as THREE from 'three';
 import {
   createFishMesh, createSchoolMotion, fishGeometry, fishMaterial, replaceFishBody, updateSchoolMotion,
 } from './fish_life.js';
-import {KIT_SPECIES, fishSite, kitMaterial, loadKitSpecies, schoolKitSpecies, setKitDetail} from './fish_kit.js';
+import {
+  KIT_SPECIES, fishSite, kitMaterial, loadKitSpecies, schoolKitSpecies, setKitDetail,
+} from './fish_kit.js';
 import {penTurn, placePenFish} from './pen_life.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
@@ -100,7 +102,8 @@ function levelMesh(body, material, capacity, school, level) {
 function buildSchool(school, context, random) {
   const {world, detail, lod, bodies} = context;
   const farm = fishSite(world) === 'pen' && !school.wild;
-  const species = school.wild ? 'aji' : schoolKitSpecies(world, school.id);
+  // Species comes from the school record when set (wild schools); otherwise the site kit table.
+  const species = KIT_SPECIES[school.species] ? school.species : schoolKitSpecies(world, school.id);
   const length = KIT_SPECIES[species].length;
   const count = farm ? Math.ceil(school.count * (PEN_CROWD[detail] || 1)) : school.count;
   const spread = Math.max(1, length / SCHOOL_BOX_LENGTH);
