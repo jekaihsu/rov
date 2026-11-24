@@ -68,6 +68,8 @@ test("state frames map to dive, tether retrace, coop and evidence events", () =>
   const snagged = { ...base, tether_ops: { result: null } };
   const cleared = { ...base, tether_ops: { result: { correct: true, returned: true, score: 80 } } };
   assert.deepEqual(stateEvents(snagged, cleared), ["untangled", "tether_retrace"]);
+  const wrongExit = { ...base, tether_ops: { result: { correct: false, returned: false, score: 10 } } };
+  assert.deepEqual(stateEvents(snagged, wrongExit), [], "wrong tether exit must not unlock untangled");
   const coop = { ...base, mission: { mode: "inspection_coop", status: "completed" } };
   assert.deepEqual(stateEvents(base, coop), ["inspection_coop"]);
   const before = { ...base, expedition: { last_observation: null } };

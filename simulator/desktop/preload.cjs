@@ -1,8 +1,19 @@
 // Isolated desktop bridge; no raw IPC or native modules are exposed.
+// Sandboxed preload (sandbox:true) cannot require node:fs / node:path, so the main
+// process passes the build edition through webPreferences.additionalArguments.
 const {contextBridge, ipcRenderer} = require('electron');
-const { resolveEdition } = require('./steam/edition.cjs');
 
-const edition = resolveEdition(process.env);
+function readEditionArg(argv = process.argv) {
+  const prefix = '--rov-edition=';
+  for (const arg of argv) {
+    if (!arg.startsWith(prefix)) continue;
+    const value = arg.slice(prefix.length);
+    if (value === 'steam' || value === 'internal') return value;
+  }
+  return 'internal';
+}
+
+const edition = readEditionArg();
 
 contextBridge.exposeInMainWorld('rovDesktop', Object.freeze({
   edition,

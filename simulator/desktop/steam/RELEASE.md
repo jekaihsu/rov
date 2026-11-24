@@ -10,7 +10,8 @@ visible in the engineering drawer's Steam developer panel. No authentication
 credentials are needed.
 
 `ROV_BUILD_EDITION=steam` selects Steam packaging settings (product name
-`ROV Solution`, baked `steam/build_edition.json`, instructor UI omitted from the
+`ROV Solution`, baked `steam/build_edition.json` in the package copy via
+`packageAfterCopy`, instructor UI omitted from the
 frozen viewer). Internal training builds keep `edition !== 'steam'` so achievements
 and Rich Presence stay hidden. Windows packaging remains `workflow_dispatch` only.
 

@@ -15,6 +15,14 @@ try {
   assert.equal(resolveEdition({ ROV_BUILD_EDITION: 'internal' }), 'internal');
   assert.equal(editionConfig({ ROV_BUILD_EDITION: 'steam' }).showAchievements, true);
   assert.equal(editionConfig({ ROV_BUILD_EDITION: 'internal' }).showAchievements, false);
+
+  // Requiring forge.config must not rewrite the tracked bake file (dirty worktree).
+  const bakePath = path.join(__dirname, 'steam', 'build_edition.json');
+  const beforeBake = fs.readFileSync(bakePath);
+  const forge = require('./forge.config.cjs');
+  assert.equal(fs.readFileSync(bakePath).equals(beforeBake), true);
+  assert.equal(typeof forge.hooks.packageAfterCopy, 'function');
+  assert.ok(forge.packagerConfig.name);
   assert.ok(INCLUDE.includes('preferences.json'));
   assert.ok(EXCLUDE.includes('numba-cache/**'));
 

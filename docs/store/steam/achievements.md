@@ -40,7 +40,7 @@
 | cable_discipline | ACH_CABLE_DISCIPLINE | 放纜紀律 | 結算時 `discipline_score ≥ 90` 且纜線未斷 | 否 |
 | zero_collision | ACH_ZERO_COLLISION | 零碰撞完成 | 任一成功結算且 contacts = 0 | 否 |
 | prologue_done | ACH_PROLOGUE_DONE | 序章結訓 | `p2_open_water` 完成（見習執照路徑） | 否 |
-| untangled | ACH_UNTANGLED | 解開纏繞 | 目標 `untangle` 完成，或 `tether_ops` 脫困結果出現 | 否 |
+| untangled | ACH_UNTANGLED | 解開纏繞 | 目標 `untangle` 完成，或 `tether_ops.result.correct === true`（照原路成功脫困；錯誤處置不計） | 否 |
 | inspection_coop | ACH_INSPECTION_COOP | 協作巡檢 | 三人協作巡檢任務成功 | 否 |
 | recovery_work | ACH_RECOVERY_WORK | 回收到位 | 探索委託 `recover` 完成 | 否 |
 | deployment_work | ACH_DEPLOYMENT_WORK | 部署到位 | 探索委託 `deploy` 完成 | 否 |

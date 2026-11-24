@@ -55,9 +55,10 @@ export function stateEvents(previous, state) {
   if (previous && untangledCount(state) > untangledCount(previous)) events.push('untangled');
   const previousResult = tetherResult(previous);
   const result = tetherResult(state);
-  if (result && result !== previousResult) {
+  // Only a correct retrace (back to the snag, then free) counts — a wrong exit still sets result.
+  if (result && result !== previousResult && result.correct) {
     events.push('untangled');
-    if (result.correct) events.push('tether_retrace');
+    events.push('tether_retrace');
   }
   if (state.mission?.mode === 'inspection_coop' && state.mission.status === 'completed') {
     events.push('inspection_coop');

@@ -1,13 +1,11 @@
 // Package only the desktop runtime, production dependencies and native Steamworks libraries.
+// Edition product names come from env / bake file; never rewrite the tracked build_edition.json
+// on require (that dirties the worktree). Bake into the package copy in packageAfterCopy.
 const fs = require('node:fs');
 const path = require('node:path');
 const { editionConfig } = require('./steam/edition.cjs');
 
 const edition = editionConfig(process.env);
-fs.writeFileSync(
-  path.join(__dirname, 'steam', 'build_edition.json'),
-  `${JSON.stringify({ edition: edition.id }, null, 2)}\n`,
-);
 
 const runtimeFiles = new Set([
   '/main.cjs',
@@ -44,4 +42,13 @@ module.exports = {
     executableName: edition.executableName,
   },
   makers: [{ name: '@electron-forge/maker-zip', platforms: ['win32'] }],
+  hooks: {
+    // Write into the staged app copy only — source steam/build_edition.json stays tracked and clean.
+    async packageAfterCopy(_config, buildPath) {
+      fs.writeFileSync(
+        path.join(buildPath, 'steam', 'build_edition.json'),
+        `${JSON.stringify({ edition: edition.id }, null, 2)}\n`,
+      );
+    },
+  },
 };

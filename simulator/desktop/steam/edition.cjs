@@ -1,5 +1,6 @@
 // Resolves the desktop build edition: Steam player build vs internal training build.
-// Packaged apps read steam/build_edition.json (written by forge.config when ROV_BUILD_EDITION=steam).
+// Packaged apps read steam/build_edition.json (forge packageAfterCopy bakes ROV_BUILD_EDITION into
+// the staged copy; the tracked source file stays internal and is never rewritten on require).
 const fs = require('node:fs');
 const path = require('node:path');
 

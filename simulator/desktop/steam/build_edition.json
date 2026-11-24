@@ -1,4 +1,4 @@
 {
   "edition": "internal",
-  "note": "forge.config.cjs overwrites this when ROV_BUILD_EDITION=steam before packaging."
+  "note": "Source default. forge packageAfterCopy bakes ROV_BUILD_EDITION into the staged package copy only."
 }
