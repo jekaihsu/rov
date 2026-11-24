@@ -50,7 +50,9 @@ def run_once(page, label):
         campaign = page.evaluate('window.__viewer.S.campaign')
         if campaign['status'] == 'completed':
             break
-        node = campaign['node']
+        node = campaign.get('node') or {}
+        if campaign.get('chapter') != 'course_b01' or 'type' not in node:
+            raise AssertionError(f'{label}: left training course unexpectedly: {campaign}')
         visited.append(node['id'])
         print(label, node['id'], flush=True)
         if node['type'] == 'dialogue':
@@ -59,7 +61,14 @@ def run_once(page, label):
             wait_left(page, node['id'])
         else:
             hold_until_advanced(page, node['id'], inputs[node['id']], inputs['unlock'])
+        # A failsafe unlock (Space) must not start the story chain after the course ends.
+        if page.evaluate('window.__viewer.S.campaign.status') == 'completed':
+            break
     page.wait_for_function('window.__viewer.S.campaign.status === "completed"')
+    page.wait_for_function(
+        'window.__viewer.S.campaign.chapter === "course_b01"',
+        timeout=timeout(5000),
+    )
     page.wait_for_function('window.__training?.scorecard', timeout=timeout(30000))
     scorecard = page.evaluate('window.__training.scorecard')
     assert scorecard['lessonId'] == 'course_b01', scorecard
