@@ -1,0 +1,35 @@
+// Training pool radio calls, captions and action labels.
+import {localize} from '../i18n/index.js';
+
+export const STRINGS = localize('story.prologue_copy', {
+  "site": "三個月前 · 公司訓練池",
+  "sub": "淡水 · 水深 8 m",
+  "lin": "林岑 · 向潮指揮",
+  "ma": "馬力 · R-2",
+  "tender": "周楷 · 纜手",
+  "black": "向潮指揮呼叫 R-1。今天第一次搭班。",
+  "establish": "尾板淨空，接頭乾燥。線我看著。",
+  "unlock": "R-1，池裡沒人。解鎖，我陪你飛。",
+  "approach": "看見北牆的 A 了嗎？慢慢靠近。",
+  "descend": "A 在水下四米。下潛，讓板子進到鏡頭中央。",
+  "coast": "現在鬆桿。盯著板子，看深度還在不在變。",
+  "hold": "R-1，深度在變。開定深，穩住畫面。",
+  "trim": "記下讀數。下次先穩住，再按快門。",
+  "A": "北牆 A，四米深。靠近、對準，拍一張。",
+  "B": "纜還夠。轉向東牆，拍 B，深度一樣。",
+  "C": "最後一張，南牆 C。拍完我收纜。",
+  "again": "R-1，收到嗎？照剛才那一步，慢慢來。",
+  "report": "收到 {n}/3 張可用照片。記住今天的取景距離。",
+  "miss": "這一項記在補練單。先走下一站。",
+  "lock": "解鎖",
+  "surge": "前進",
+  "heave": "下潛",
+  "neutral": "鬆桿",
+  "depth": "定深",
+  "photo": "拍攝標記",
+  "harbor": "港灣巡檢",
+  "yaw": "轉向標板",
+  "range": "靠近標板",
+  "level": "對準標板深度",
+  "back": "後退取景"
+});

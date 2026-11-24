@@ -4,6 +4,7 @@
 // docs/story/bible.md (周楷 tether hand, 方晴 deck, 林岑 supervisor). Lines play through the shared radio voice
 // (audio/voice.js: clip if generated, otherwise text with the radio click) and show as a caption on the story layer;
 // the caption waits while campaign dialogue is on screen, so the two never overlap.
+import { getFidelity } from '../fidelity.js';
 import {installVoice} from '../audio/voice.js';
 import { localize } from '../i18n/index.js';
 
@@ -94,8 +95,9 @@ export function createCrewRadio() {
     root.hidden = false;
     root.setAttribute(OPEN_ATTRIBUTE, '');
     Promise.resolve(voice.playLine({speaker: name, text: line, language: 'zh-TW'})).catch(function ignore() {});
-    busyUntil = performance.now() + LINE_MS;
-    timer = setTimeout(showNext, LINE_MS + (queue.length ? GAP_MS : 0));
+    const duration = LINE_MS * (getFidelity().get("radioDuration") ?? 1);
+    busyUntil = performance.now() + duration;
+    timer = setTimeout(showNext, duration + (queue.length ? GAP_MS : 0));
   }
   function say(call) {
     if (!call) return;

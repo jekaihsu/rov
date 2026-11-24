@@ -1,0 +1,149 @@
+{
+  "contexts": {
+    "flight": "操縦",
+    "orbit": "周回",
+    "tool": "工具",
+    "dialogue": "会話",
+    "menu": "メニュー"
+  },
+  "actions": {
+    "left_lr": "左スティック左右",
+    "left_ud": "左スティック上下",
+    "right_lr": "右スティック左右",
+    "right_ud": "右スティック上下",
+    "left_wave": "左ホイール",
+    "right_wave": "右ホイール",
+    "surge": "前進／後退",
+    "sway": "右移動／左移動",
+    "heave": "浮上／潜航",
+    "yaw": "右旋回／左旋回",
+    "pitch": "機首上げ／下げ",
+    "boost": "スティック最大入力",
+    "photo": "撮影",
+    "record": "録画（長押し）",
+    "depth": "深度維持",
+    "lock": "ロック／解除",
+    "mode": "A/S/C モード",
+    "engineering": "技術パネル",
+    "light": "照明",
+    "camera": "視点切替",
+    "assist": "操縦補助",
+    "profile": "飛行プロファイル",
+    "up": "任務カード",
+    "left": "システムカード",
+    "right": "地図カード",
+    "down": "操作カード",
+    "arm": "アーム操作",
+    "settings": "コントローラー設定",
+    "reportBug": "問題を報告",
+    "pause": "一時停止",
+    "cameraGimbal": "ジンバル安定化",
+    "cameraPitchUp": "カメラ上向き",
+    "cameraPitchDown": "カメラ下向き",
+    "cameraOrbitX": "周回・水平",
+    "cameraOrbitY": "周回・垂直",
+    "paintSpray": "塗装マーク",
+    "sonarPeek": "ソナーカード",
+    "visionToggle": "視覚オーバーレイ",
+    "visionMark": "対象に印を付ける",
+    "dialogueAccept": "会話を続ける",
+    "dialogueSkip": "チュートリアルをスキップ",
+    "menuUp": "前の項目",
+    "menuDown": "次の項目",
+    "menuLeft": "減少／前へ",
+    "menuRight": "増加／次へ",
+    "menuStick": "フォーカス上下",
+    "menuStickX": "フォーカス左右",
+    "menuRotate": "展示を回転",
+    "accept": "決定",
+    "back": "戻る",
+    "tabPrevious": "前のタブ",
+    "tabNext": "次のタブ"
+  },
+  "meanings": {
+    "surge": [
+      "前進／後退",
+      "後退／前進"
+    ],
+    "sway": [
+      "右移動／左移動",
+      "左移動／右移動"
+    ],
+    "heave": [
+      "浮上／潜航",
+      "潜航／浮上"
+    ],
+    "yaw": [
+      "右旋回／左旋回",
+      "左旋回／右旋回"
+    ],
+    "pitch": [
+      "機首上げ／機首下げ",
+      "機首下げ／機首上げ"
+    ],
+    "roll": [
+      "右傾斜／左傾斜",
+      "左傾斜／右傾斜"
+    ]
+  },
+  "layouts": {
+    "console": "操縦器",
+    "game": "ゲーム（WASD）"
+  },
+  "hold": "長押し",
+  "pad": [
+    "A",
+    "B",
+    "X",
+    "Y",
+    "LB",
+    "RB",
+    "LT",
+    "RT",
+    "View",
+    "Menu",
+    "L3",
+    "R3",
+    "十字キー上",
+    "十字キー下",
+    "十字キー左",
+    "十字キー右",
+    "Home"
+  ],
+  "axes": [
+    "左スティック左右",
+    "左スティック上下",
+    "右スティック左右",
+    "右スティック上下"
+  ],
+  "keys": {
+    "Space": "Space",
+    "Tab": "Tab",
+    "Enter": "Enter",
+    "Escape": "Esc",
+    "KeyQ": "Q",
+    "KeyE": "E",
+    "ArrowUp": "↑",
+    "ArrowDown": "↓",
+    "ArrowLeft": "←",
+    "ArrowRight": "→",
+    "BracketLeft": "[",
+    "BracketRight": "]",
+    "ShiftLeft": "Shift",
+    "ShiftRight": "Shift",
+    "ControlLeft": "Ctrl",
+    "ControlRight": "右 Ctrl",
+    "AltLeft": "Alt",
+    "Backspace": "Backspace",
+    "Backquote": "`",
+    "Minus": "-",
+    "Equal": "=",
+    "Semicolon": ";",
+    "Quote": "'",
+    "Comma": ",",
+    "Period": ".",
+    "Slash": "/",
+    "Backslash": "\\"
+  },
+  "separator": " · "
+}

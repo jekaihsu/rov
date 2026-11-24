@@ -131,8 +131,9 @@ canvas.gl, .launch-menu .menu-canvas { filter: brightness(var(--rov-brightness, 
 [data-unit=length]::after { content: "m"; }
 html[data-units=imperial] [data-unit=length]::after { content: "ft"; }
 /* Colour-blind modes swap the HUD's go / warning / danger colours for distinguishable ones (Okabe–Ito). */
-html[data-color-blind=deuteranopia], html[data-color-blind=protanopia] {
+html[data-color-blind=deuteranopia] {
   --go: #56b4e9; --warn: #f0e442; --danger: #e69f00; }
+html[data-color-blind=protanopia] { --go: #56b4e9; --warn: #e69f00; --danger: #cc79a7; }
 html[data-color-blind=tritanopia] { --go: #009e73; --warn: #cc79a7; --danger: #d55e00; }
 /* Motion comfort: decorative interface animation off (the camera side lives in camera_rig.js). */
 html.motion-comfort *, html.motion-comfort *::before, html.motion-comfort *::after {
