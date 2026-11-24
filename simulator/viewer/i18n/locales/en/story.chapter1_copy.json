@@ -1,0 +1,105 @@
+{
+  "speakers": {
+    "lin": "Lin Cen · Tide Control",
+    "zhou": "Zhou Kai · Tide Cable",
+    "fang": "Fang Qing · Deck",
+    "ma": "Ma Li · R-Two",
+    "yeh": "Yeh Li · Shore"
+  },
+  "locations": {
+    "c1_pier_level2": [
+      "Qingyu Port · Sector B, low tide",
+      "Depth · Low vis 1.5 m"
+    ],
+    "c1_hull_fouling": [
+      "Qingyu Basin · Alongside the Qinglan",
+      "Alongside · LOTO"
+    ],
+    "c1_dropped_object": [
+      "Qingyu Basin · Works berth",
+      "Sonar search"
+    ],
+    "c1_signoff_exam": [
+      "Qingyu Port · Shift change, sectors A and B",
+      "Rush window"
+    ]
+  },
+  "hints": {
+    "move": "Forward",
+    "photo": "Photo",
+    "measure": "Measure",
+    "rate": "Rate",
+    "reverse": "Back up",
+    "release": "Let go of the sticks",
+    "unlock": "Unlock the thrusters",
+    "loto": "Confirm isolation"
+  },
+  "stamp": {
+    "measure": "Measurement logged",
+    "photo": "Photo logged",
+    "rate": "Rating entered"
+  },
+  "tension": "Tether tension",
+  "cards": {
+    "ch1End": "Chapter 1｜Harbour and ships",
+    "ch2Bridge": "Chapter 2｜Aquaculture"
+  },
+  "lines": {
+    "pier_open": "Shore Yeh. Three piles. I need thickness readings.",
+    "pier_establish": "Short payout. No wide turns in the murk.",
+    "pier_task": "R-One, low vis. One point at a time.",
+    "pier_nudge": "R-One, can you frame both dots and the outer edge?",
+    "pier_near": "Stand off about seven tenths of visibility.",
+    "pier_measured": "Point logged. Next level.",
+    "pier_contact": "Contact. Back off and line up again.",
+    "pier_murky": "Silt's up. Wait for a clear reading.",
+    "pier_timeout": "Tide window's up. Mark the unmeasured cells.",
+    "pier_settle_gold": "Clean measurements. Steady distance.",
+    "pier_settle_silver": "Deliverable. One point remeasured.",
+    "pier_settle_bronze": "Numbers complete. Photos a little soft.",
+    "pier_settle_abort": "Back aboard. We'll reschedule the missing points.",
+    "pier_report": "Shore copies. Night crew can pick a scraper from that shot.",
+    "hull_open": "Lockout and tagout confirmed?",
+    "hull_establish": "I'll watch the line at the opening.",
+    "hull_task": "Outline of the opening first. Stay out of dark gaps.",
+    "hull_nudge": "R-One, check the section you're on first.",
+    "hull_loto": "Vessel confirms pumps and prop locked out.",
+    "hull_nearProp": "Prop area. Confirm it's stopped first.",
+    "hull_suction": "Silt's up. Back to the last visible outline.",
+    "hull_rated": "Grating photographed. Enter the rating.",
+    "hull_timeout": "Close this section. Send the gaps to the vessel.",
+    "hull_settle_gold": "All ratings in. No fouled line.",
+    "hull_settle_silver": "Deliverable. Rushed part of the flat bottom.",
+    "hull_settle_bronze": "Accepted. Prop shot's a little distant.",
+    "hull_settle_abort": "Safe return first. We'll rebook the hull.",
+    "hull_report": "Management needs the ratings. Send them my way.",
+    "drop_open": "Sonar first. Then eyes.",
+    "drop_establish": "Keep the line clear of debris.",
+    "drop_task": "Engineers need their instrument. Do what you can.",
+    "drop_nudge": "R-One, back to the last completed sweep.",
+    "drop_echoes": "Bright return. Go check it.",
+    "drop_decoy": "R-One, look at the outline. The instrument has a handle.",
+    "drop_target": "That's the instrument. Photo first.",
+    "drop_photo": "Deck ready for recovery.",
+    "drop_timeout": "Save the search log. Leave uncertain returns open.",
+    "drop_settle_gold": "Quick find. Every step documented.",
+    "drop_settle_silver": "Found it. Took the long way round.",
+    "drop_settle_bronze": "The search log is usable.",
+    "drop_settle_abort": "Right call. Say what you couldn't verify.",
+    "drop_report": "Position received. Thanks.",
+    "sign_open": "I need the files before handover.",
+    "sign_establish": "Short window. Hold first.",
+    "sign_task": "R-One, just the three anomalies.",
+    "sign_nudge": "R-One, see the seam from the old shot?",
+    "sign_photos": "First one saved.",
+    "sign_snag": "R-One, line is tight. Retrace your track.",
+    "sign_tension": "Tension! Hold.",
+    "sign_abort": "Abort. Window's too short.",
+    "sign_timeout": "Shore, final records. I'll list what's missing.",
+    "sign_settle_gold": "Matched the angles. Kept the window.",
+    "sign_settle_silver": "Good for handover. Sound judgment on timing.",
+    "sign_settle_bronze": "Just usable. One angle was off.",
+    "sign_settle_abort": "Right. Safe return. Log the reason.",
+    "sign_report": "Done. End-of-traineeship check passed."
+  }
+}

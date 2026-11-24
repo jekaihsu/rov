@@ -137,5 +137,17 @@
       "client": "YX · 訓練中心",
       "sub": "COURSE · FINAL ASSESSMENT"
     }
+  },
+  "career": {
+    "ch1": {
+      "number": "第一章 / 01",
+      "client": "青嶼港務局",
+      "sub": "HARBOUR · PILES AND HULL"
+    },
+    "ch2": {
+      "number": "第二章 / 02",
+      "client": "折帆灣養殖",
+      "sub": "NET PEN · AQUACULTURE"
+    }
   }
 }

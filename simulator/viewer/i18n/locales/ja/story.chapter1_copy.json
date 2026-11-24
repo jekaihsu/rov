@@ -1,0 +1,105 @@
+{
+  "speakers": {
+    "lin": "リン・ツェン · コウチョウ指揮",
+    "zhou": "シュウ・カイ · ケーブル",
+    "fang": "ファン・チン · 甲板",
+    "ma": "マー・リー · R-2",
+    "yeh": "イェ・リー · 陸上局"
+  },
+  "locations": {
+    "c1_pier_level2": [
+      "青嶼港・B区、干潮",
+      "水深・低視程 1.5 m"
+    ],
+    "c1_hull_fouling": [
+      "青嶼港内・青嵐号舷側",
+      "接岸 · LOTO"
+    ],
+    "c1_dropped_object": [
+      "青嶼港内・工事用岸壁",
+      "ソナー捜索"
+    ],
+    "c1_signoff_exam": [
+      "青嶼港・A／B区の引き継ぎ",
+      "急ぎの窓口"
+    ]
+  },
+  "hints": {
+    "move": "前進",
+    "photo": "撮影",
+    "measure": "測定",
+    "rate": "等級",
+    "reverse": "後退",
+    "release": "スティックを離す",
+    "unlock": "スラスター解除",
+    "loto": "隔離を確認"
+  },
+  "stamp": {
+    "measure": "測定を記録",
+    "photo": "写真を記録",
+    "rate": "等級を記入"
+  },
+  "tension": "テザー張力",
+  "cards": {
+    "ch1End": "第一章｜港と船舶",
+    "ch2Bridge": "第二章｜養殖場"
+  },
+  "lines": {
+    "pier_open": "陸上局の葉です。杭三本、厚さの数値をください。",
+    "pier_establish": "小刻みに送る。濁りの中で大回りはなし。",
+    "pier_task": "R-1、視界不良。一点ずつ。",
+    "pier_nudge": "R-1、二つの光点と外縁が一緒に映るか。",
+    "pier_near": "間隔は視程の七割を目安に。",
+    "pier_measured": "測点記録。次の深度へ。",
+    "pier_contact": "接触。離れて合わせ直して。",
+    "pier_murky": "砂が舞った。晴れてから測ろう。",
+    "pier_timeout": "潮待ち時間終了。未測定の欄に印を。",
+    "pier_settle_gold": "測定良好。距離も安定。",
+    "pier_settle_silver": "提出できる。一点だけ再測定。",
+    "pier_settle_bronze": "数値はそろった。写真が少し甘い。",
+    "pier_settle_abort": "戻ろう。残りの測点は別日に。",
+    "pier_report": "陸上局、受領。夜勤はこの写真でスクレーパーを選べます。",
+    "hull_open": "ロックアウトとタグアウト、確認は？",
+    "hull_establish": "入口のラインは見てる。",
+    "hull_task": "まず入口の輪郭を。暗い隙間には入らないで。",
+    "hull_nudge": "R-1、まず今の区画を照合して。",
+    "hull_loto": "船側より、ポンプとプロペラの隔離確認。",
+    "hull_nearProp": "プロペラ区画。まず停止を確認。",
+    "hull_suction": "濁った。輪郭が見えた所まで戻って。",
+    "hull_rated": "格子の写真よし。等級を記入。",
+    "hull_timeout": "この区画はここまで。未確認箇所を船側へ。",
+    "hull_settle_gold": "等級は全部そろった。ラインも無事だ。",
+    "hull_settle_silver": "納品可。平底で少し急いだな。",
+    "hull_settle_bronze": "受領済み。プロペラは少し遠い。",
+    "hull_settle_abort": "安全帰還が先。船底は再手配だ。",
+    "hull_report": "船管に等級表を。私に転送してください。",
+    "drop_open": "まずソナー。次に映像。",
+    "drop_establish": "底のがれきにラインを掛けないで。",
+    "drop_task": "工事班が計器を待っています。お願いします。",
+    "drop_nudge": "R-1、最後に走査した線まで戻ろう。",
+    "drop_echoes": "強い反応。確認しよう。",
+    "drop_decoy": "R-1、輪郭を見て。計器なら取っ手がある。",
+    "drop_target": "計器だ。先に撮影。",
+    "drop_photo": "甲板、回収準備よし。",
+    "drop_timeout": "捜索記録を保存。不鮮明な反応は保留。",
+    "drop_settle_gold": "発見が早い。記録もそろった。",
+    "drop_settle_silver": "発見。少し遠回りしたな。",
+    "drop_settle_bronze": "捜索記録は提出できる。",
+    "drop_settle_abort": "それでいい。未確認の範囲も書こう。",
+    "drop_report": "位置を受領。助かりました。",
+    "sign_open": "引き継ぎまでにファイルをください。",
+    "sign_establish": "作業時間が短い。いったん待とう。",
+    "sign_task": "R-1、対象は異常三点。",
+    "sign_nudge": "R-1、前の写真の継ぎ目がわかるか。",
+    "sign_photos": "一点目、保存。",
+    "sign_snag": "R-1、ラインが張った。来た経路を戻って。",
+    "sign_tension": "張力上昇。停止。",
+    "sign_abort": "中止。時間が足りない。",
+    "sign_timeout": "陸上局、最終記録です。未確認項目を記載します。",
+    "sign_settle_gold": "撮影角度よし。時間も守れた。",
+    "sign_settle_silver": "引き継げる。時間の判断もよかった。",
+    "sign_settle_bronze": "何とか使える。一点、角度がずれた。",
+    "sign_settle_abort": "よし、無事帰還。理由を記録して。",
+    "sign_report": "終了。見習い修了審査は合格。"
+  }
+}

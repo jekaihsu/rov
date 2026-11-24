@@ -137,5 +137,17 @@
       "client": "YX · Training Centre",
       "sub": "COURSE · FINAL ASSESSMENT"
     }
+  },
+  "career": {
+    "ch1": {
+      "number": "Chapter 1 / 01",
+      "client": "Qingyu Port Authority",
+      "sub": "HARBOUR · PILES AND HULL"
+    },
+    "ch2": {
+      "number": "Chapter 2 / 02",
+      "client": "Zhefan Bay aquaculture",
+      "sub": "NET PEN · AQUACULTURE"
+    }
   }
 }

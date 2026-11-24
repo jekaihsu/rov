@@ -1,0 +1,105 @@
+{
+  "speakers": {
+    "lin": "林岑 · 向潮指挥",
+    "zhou": "周楷 · 缆手",
+    "fang": "方晴 · 甲板",
+    "ma": "马力 · R-2",
+    "yeh": "叶理 · 岸台"
+  },
+  "locations": {
+    "c1_pier_level2": [
+      "青屿港 · B 区低潮",
+      "水深 · 低能见 1.5 m"
+    ],
+    "c1_hull_fouling": [
+      "青屿港池 · 青岚轮舷侧",
+      "靠泊 · LOTO"
+    ],
+    "c1_dropped_object": [
+      "青屿港池 · 工程泊位",
+      "声纳搜寻"
+    ],
+    "c1_signoff_exam": [
+      "青屿港 · A／B 区交班",
+      "赶工窗口"
+    ]
+  },
+  "hints": {
+    "move": "前进",
+    "photo": "拍照",
+    "measure": "量测",
+    "rate": "评级",
+    "reverse": "后退",
+    "release": "放开推杆",
+    "unlock": "解锁推进器",
+    "loto": "确认隔离"
+  },
+  "stamp": {
+    "measure": "量测已记录",
+    "photo": "照片已记录",
+    "rate": "评级已写入"
+  },
+  "tension": "缆线张力",
+  "cards": {
+    "ch1End": "第一章｜港口与船舶",
+    "ch2Bridge": "第二章｜养殖场"
+  },
+  "lines": {
+    "pier_open": "岸台－叶。三根桩，要厚度数字。",
+    "pier_establish": "线短放。浊水别绕远。",
+    "pier_task": "R-1，低能见。一次一点。",
+    "pier_nudge": "R-1，尺点和外缘能同框吗？",
+    "pier_near": "距离抓七成能见。",
+    "pier_measured": "点位记了。下一层。",
+    "pier_contact": "碰了。退，重对。",
+    "pier_murky": "扬沙。等清再量。",
+    "pier_timeout": "潮时到了。未量的格子注记。",
+    "pier_settle_gold": "量测干净。距离也稳。",
+    "pier_settle_silver": "能交。有一点重测。",
+    "pier_settle_bronze": "数字齐。照片偏糊。",
+    "pier_settle_abort": "回来。缺点改期补。",
+    "pier_report": "岸台收到。夜班拿这张挑刮刀。",
+    "hull_open": "LOTO 确认了吗？",
+    "hull_establish": "我看着入口的线。",
+    "hull_task": "先入口轮廓。别钻黑缝。",
+    "hull_nudge": "R-1，先核对目前这一区。",
+    "hull_loto": "船方回报：泵与桨锁定。",
+    "hull_nearProp": "螺桨区。先确认停转。",
+    "hull_suction": "扬沙。退回有轮廓处。",
+    "hull_rated": "门格有了。评级写上。",
+    "hull_timeout": "这区先封存。缺项交船方。",
+    "hull_settle_gold": "评级齐。缆没卡死。",
+    "hull_settle_silver": "能交。平底有一段急。",
+    "hull_settle_bronze": "客户收。螺桨照偏远。",
+    "hull_settle_abort": "安全第一。重排船底。",
+    "hull_report": "船管要评级表。转给我。",
+    "drop_open": "声纳先。眼睛后。",
+    "drop_establish": "线别缠底垃圾。",
+    "drop_task": "工程队在催仪器。尽力。",
+    "drop_nudge": "R-1，回上一条扫完的线。",
+    "drop_echoes": "亮点。过去确认。",
+    "drop_decoy": "R-1，看外缘。仪器该有个把手。",
+    "drop_target": "是仪器。先拍照。",
+    "drop_photo": "甲板备回收。",
+    "drop_timeout": "收搜索纪录。没看清的保留。",
+    "drop_settle_gold": "找得快。证据链完整。",
+    "drop_settle_silver": "找到。走了点弯路。",
+    "drop_settle_bronze": "搜索纪录可交。",
+    "drop_settle_abort": "对。空白不如诚实。",
+    "drop_report": "座标收到。谢了。",
+    "sign_open": "交班前我要文件。",
+    "sign_establish": "窗口短。先停。",
+    "sign_task": "R-1，只打三点异常。",
+    "sign_nudge": "R-1，认得旧照那道接缝吗？",
+    "sign_photos": "一号存了。",
+    "sign_snag": "R-1，线紧了。照来路退。",
+    "sign_tension": "张力！停。",
+    "sign_abort": "中止。窗不够。",
+    "sign_timeout": "岸台，末批纪录。缺项我列。",
+    "sign_settle_gold": "同角度干净。窗口也守住。",
+    "sign_settle_silver": "能交班。窗口判断得当。",
+    "sign_settle_bronze": "文件勉强。有一处角度飘。",
+    "sign_settle_abort": "对。人机回，报告写原因。",
+    "sign_report": "收工。见习结束考核过。"
+  }
+}

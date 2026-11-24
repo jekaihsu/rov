@@ -51,6 +51,7 @@ import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_qu
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
+import {installChapter1, chapter1ControlsBlocked} from './story/chapter1.js';
 import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
@@ -582,6 +583,7 @@ function onState(m) {
   campaignPanel.update(m);
   coldOpen.update(m, W);
   if (!REPLAY) prologue.update(m);
+  chapter1.update(m, W);
   chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -645,8 +647,8 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
-    || resultsOpen() || feedbackOpen(),
+const input = installInput({blocked: () => prologueControlsBlocked(S) || chapter1ControlsBlocked()
+    || collectionOpen || pauseMenuOpen() || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
@@ -1220,6 +1222,8 @@ installVoice({engine: audio, music});
 const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
+const chapter1 = installChapter1({input, setCam, camera, rovG, music, getWorld: () => W, readOnly: !!REPLAY,
+  getContractId: () => params.get('contract')});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
@@ -1287,6 +1291,7 @@ function frame(now) {
   music.update(renderState.display(S));
   coldOpen.frame(dt);
   prologue.frame();
+  chapter1.frame(dt);
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);

@@ -38,6 +38,11 @@ export const STRINGS = localize('brand.chapters', {
     course_a03: {number: '進階課程 / A03', client: 'YX · 訓練中心', sub: 'COURSE · STRONG CURRENT EXIT'},
     course_a04: {number: '進階課程 / A04', client: 'YX · 訓練中心', sub: 'COURSE · FINAL ASSESSMENT'},
   },
+  // Career story chapters (contracts.json ch1/ch2): not campaign scripts; used by chapter1 closing cards.
+  career: {
+    ch1: {number: '第一章 / 01', client: '青嶼港務局', sub: 'HARBOUR · PILES AND HULL'},
+    ch2: {number: '第二章 / 02', client: '折帆灣養殖', sub: 'NET PEN · AQUACULTURE'},
+  },
 });
 
 // Chapter id → symbol name in brand/marks.js (CHAPTER_SYMBOL_IDS).
@@ -92,10 +97,26 @@ const PLATE_ALIASES = {
   incident_current: 'monopile_current',
 };
 const TITLE_SEPARATOR = '｜';
+const CAREER_SYMBOLS = Object.freeze({ch1: 'harbor', ch2: 'pen'});
+const CAREER_SCENES = Object.freeze({ch1: 'harbor_inspection', ch2: 'aquaculture_pen'});
 
 /** File stem of the plate in brand/plates/ for a scenario key. */
 export function plateFor(scenario) {
   return Object.hasOwn(PLATE_ALIASES, scenario || '') ? PLATE_ALIASES[scenario] : scenario || '';
+}
+
+/** Title-card payload for a career chapter id (ch1 / ch2). overrides may set title or scenario. */
+export function careerChapterCardData(id, overrides = {}) {
+  const lines = STRINGS.career?.[id] || STRINGS.generic;
+  return {
+    id,
+    symbol: CAREER_SYMBOLS[id] || 'generic',
+    number: lines.number || STRINGS.generic.number,
+    client: lines.client || STRINGS.generic.client,
+    sub: lines.sub || STRINGS.generic.sub,
+    title: cardTitle(overrides.title) || id,
+    scenario: overrides.scenario || CAREER_SCENES[id] || '',
+  };
 }
 
 function symbolFor(chapterId) {
