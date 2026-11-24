@@ -32,6 +32,12 @@ test('interpolateVector holds a single keyframe', () => {
   assert.deepEqual(interpolateVector(frames, 'position', 4), [1, 2, 3]);
 });
 
+test('interpolateVector returns null when the attribute is omitted', () => {
+  const frames = [{t: 0, position: [1, 2, 3]}, {t: 1, position: [2, 2, 3]}];
+  assert.equal(interpolateVector(frames, 'lookAt', 0.5), null);
+  assert.equal(interpolateVector([{t: 0}], 'offset', 0), null);
+});
+
 test('interpolateScalar blends fov', () => {
   const frames = [{t: 0, fov: 40}, {t: 2, fov: 60}];
   assert.ok(Math.abs(interpolateScalar(frames, 'fov', 1, 50) - 50) < 1e-6);
@@ -53,6 +59,18 @@ test('evaluateCameraPath fixed', () => {
   };
   const sample = evaluateCameraPath(path, 1, {position: [0, 0, 0]});
   assert.ok(Math.abs(sample.position[0] - 2) < 1e-5);
+});
+
+test('evaluateCameraPath fixed without lookAt falls back to ROV', () => {
+  const path = {mode: 'fixed', keyframes: [{t: 0, position: [1, 2, 3]}]};
+  const sample = evaluateCameraPath(path, 0, {position: [9, 8, 7]});
+  assert.deepEqual(sample.lookAt, [9, 8, 7]);
+});
+
+test('evaluateCameraPath follow without lookOffset uses the default', () => {
+  const path = {mode: 'follow', keyframes: [{t: 0, offset: [0, 1, -2]}]};
+  const sample = evaluateCameraPath(path, 0, {position: [0, 0, 0], heading: 0});
+  assert.deepEqual(sample.lookAt, [0, 0.2, 1.5]);
 });
 
 test('evaluateCameraPath orbit', () => {

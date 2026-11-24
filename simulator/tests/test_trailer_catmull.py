@@ -25,6 +25,11 @@ class CatmullRomTests(unittest.TestCase):
         frames = [{'t': 0.0, 'position': [1.0, 2.0, 3.0]}]
         self.assertEqual(interpolate_vector(frames, 'position', 1.5), [1.0, 2.0, 3.0])
 
+    def test_interpolate_vector_missing_attr_returns_none(self):
+        frames = [{'t': 0.0, 'position': [1.0, 2.0, 3.0]}, {'t': 1.0, 'position': [2.0, 2.0, 3.0]}]
+        self.assertIsNone(interpolate_vector(frames, 'lookAt', 0.5))
+        self.assertIsNone(interpolate_vector([{'t': 0.0}], 'offset', 0.0))
+
     def test_interpolate_scalar_between_two(self):
         frames = [{'t': 0.0, 'fov': 40.0}, {'t': 2.0, 'fov': 60.0}]
         self.assertAlmostEqual(interpolate_scalar(frames, 'fov', 1.0, 50.0), 50.0, places=5)
@@ -46,6 +51,22 @@ class CameraPathTests(unittest.TestCase):
         }
         sample = evaluate_camera_path(path, 1.0, {'position': [0, 0, 0]})
         self.assertAlmostEqual(sample['position'][0], 2.0, places=5)
+
+    def test_fixed_without_look_at_falls_back_to_rov(self):
+        path = {
+            'mode': 'fixed',
+            'keyframes': [{'t': 0.0, 'position': [1.0, 2.0, 3.0]}],
+        }
+        sample = evaluate_camera_path(path, 0.0, {'position': [9.0, 8.0, 7.0]})
+        self.assertEqual(sample['lookAt'], [9.0, 8.0, 7.0])
+
+    def test_follow_without_look_offset_uses_default(self):
+        path = {
+            'mode': 'follow',
+            'keyframes': [{'t': 0.0, 'offset': [0.0, 1.0, -2.0]}],
+        }
+        sample = evaluate_camera_path(path, 0.0, {'position': [0.0, 0.0, 0.0], 'heading': 0.0})
+        self.assertEqual(sample['lookAt'], [0.0, 0.2, 1.5])
 
     def test_follow_offset_rotates_with_heading(self):
         path = {

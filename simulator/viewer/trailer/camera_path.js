@@ -41,9 +41,12 @@ function pointAt(keyframes, attr, index) {
   return frame[attr];
 }
 
-/** Interpolate a vector attribute across keyframes with Catmull-Rom. */
+/** Interpolate a vector attribute across keyframes with Catmull-Rom.
+ *  Returns null when any keyframe omits the attribute so callers can use defaults
+ *  (lookAt / lookOffset / offset are optional in storyboards). */
 export function interpolateVector(keyframes, attr, t) {
   if (!keyframes.length) return null;
+  if (!keyframes.every((frame) => Array.isArray(frame[attr]))) return null;
   if (keyframes.length === 1) return pointAt(keyframes, attr, 0).slice();
   const times = keyframes.map((frame) => frame.t);
   const i = segmentIndex(times, t);

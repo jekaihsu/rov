@@ -43,7 +43,10 @@ def _point_at(keyframes: list[dict], attr: str, index: int):
 
 
 def interpolate_vector(keyframes: list[dict], attr: str, t: float) -> list[float] | None:
+    """Catmull-Rom for a vector attribute; None when any keyframe omits it (optional lookAt/offset)."""
     if not keyframes:
+        return None
+    if not all(isinstance(frame.get(attr), (list, tuple)) for frame in keyframes):
         return None
     if len(keyframes) == 1:
         return list(_point_at(keyframes, attr, 0))

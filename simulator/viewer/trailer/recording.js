@@ -134,18 +134,21 @@ export function installTrailerRecording({
     };
   }
 
+  // setMode always restarts the 0.25 s blend; only call it when the path mode changes.
+  let appliedCam = null;
+
   function applyPose(sample) {
     if (!sample || sample.mode === 'onboard' || !sample.position) {
-      if (sample?.mode === 'onboard') setCam('onboard');
       return;
     }
-    if (typeof setCam === 'function') {
-      // Keep third-person allowed; the path owns the pose.
+    if (appliedCam !== 'path' && typeof setCam === 'function') {
+      // One chase switch so the hull is visible; the path owns the pose afterwards.
       try {
         setCam('chase');
       } catch {
         /* ignored */
       }
+      appliedCam = 'path';
     }
     camera.position.set(sample.position[0], sample.position[1], sample.position[2]);
     if (sample.lookAt) {
@@ -199,7 +202,11 @@ export function installTrailerRecording({
     setPath(next) {
       path = next || null;
       clock = 0;
-      if (path?.mode === 'onboard') setCam('onboard');
+      appliedCam = null;
+      if (path?.mode === 'onboard') {
+        setCam('onboard');
+        appliedCam = 'onboard';
+      }
     },
     setHud: applyHud,
     hudParts() {
