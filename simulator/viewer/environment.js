@@ -464,13 +464,15 @@ export class Environment {
     for (const sc of this.schools || []) {
       if (sc.c.distanceTo(camera.position) > 60) continue;         // out of sight: skip the work
       // Decorative schools beyond the near band update at 12 Hz (same idea as fish_schools far cards).
+      // Advance orbit angle by the accumulated interval so throttling only drops redraws, not swim speed.
       sc._farAcc = (sc._farAcc || 0) + dt;
       const near = sc.c.distanceTo(camera.position) < 18;
       if (!near && sc._farAcc < 1 / 12) continue;
+      const step = near ? dt : sc._farAcc;
       sc._farAcc = 0;
       for (let i = 0; i < sc.fish.length; i++) {
         const f = sc.fish[i];
-        f.a += dt * f.w * sc.dir;
+        f.a += step * f.w * sc.dir;
         const r = f.r + Math.sin(t * 0.3 + f.ph) * 1.2;
         p.set(sc.c.x + Math.cos(f.a) * r, sc.c.y + f.y + Math.sin(t * 0.5 + f.ph) * 0.6, sc.c.z + Math.sin(f.a) * r);
         const heading = -f.a - (sc.dir > 0 ? 0 : Math.PI);

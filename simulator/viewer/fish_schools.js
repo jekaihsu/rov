@@ -159,9 +159,10 @@ function freeSchoolPlacer(school) {
 }
 
 function penSchoolPlacer(school) {
-  const turn = penTurn(school);
+  // Read turn from the live school each placement: caching penTurn() at build time would lock the initial
+  // placeholder velocity (0, 0, 0.3) and face some farms the wrong way once the server velocity arrives.
   return function placeFarmFish(item, t, position, euler) {
-    placePenFish(school, item, t, turn, position, euler);
+    placePenFish(school, item, t, penTurn(school), position, euler);
     euler.z = 0;
   };
 }
@@ -334,16 +335,19 @@ export function createSharedSchools(group, world, detail, worldSeed) {
         }
         const near = school.pos.distanceTo(camera.position) < (lod.distanceRange + 4);
         // Always stage once so the first visible frame has valid matrices; then far schools tick at FAR_CARD_HZ.
+        // Pass the accumulated interval so heading / swim phase advance at real time, not at 12 Hz × one frame.
+        let step = dt;
         if (!near) {
           school.farAcc += dt;
           if (school.staged && school.farAcc < 1 / FAR_CARD_HZ) continue;
+          step = school.farAcc;
           school.farAcc = 0;
         } else {
           school.farAcc = 0;
         }
-        steerSchool(school, dt);
+        steerSchool(school, step);
         const base = Math.max(school.farm ? 0.3 : 0.15, school.vel.length());
-        updateSchoolMotion(school.motion, stageSink(school.stage, camera.position), dt, t, school.place, base,
+        updateSchoolMotion(school.motion, stageSink(school.stage, camera.position), step, t, school.place, base,
           vehicle);
         school.staged = true;
         school.dirty = true;
