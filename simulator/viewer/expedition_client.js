@@ -1,4 +1,4 @@
-import {savePhoto,saveResult} from './collection_store.js';
+import {COLLECTION_CATEGORIES,savePhoto,saveResult} from './collection_store.js';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 // Photos remain local. Only a small visibility report crosses the room socket.
@@ -34,7 +34,7 @@ export function installExpeditionClient({send,capture,getState,getWorld,getSessi
             }
           });
           const result=response.observation;
-          if(result?.accepted&&['coral','seastar','seagrass','kelp','fish_school'].includes(result.entry?.category))observation=result.entry;
+          if(result?.accepted&&Object.hasOwn(COLLECTION_CATEGORIES,result.entry?.category))observation=result.entry;
           reason=result?.reason||response.message||'已保存照片。';
         }
       }else if(!readOnly&&recordCamera){
