@@ -40,6 +40,14 @@ export function keySkipsIntro(code, { skippable, backKeys }) {
   return !!skippable && (backKeys || []).includes(code);
 }
 
+// Menu-back while the skip prompt is hidden: keyboard arrives as run(1, 0); pad frames have dt > 0, so fire on
+// the rising edge (wasDown false → pressed). Returns {fire, down} for the next sample's wasDown.
+export function menuBackPulse(value, dt, wasDown = false) {
+  const pressed = value > 0.5;
+  if (!dt) return { fire: pressed, down: false };
+  return { fire: pressed && !wasDown, down: pressed };
+}
+
 function span(className, html) {
   const node = document.createElement('span');
   node.className = className;
@@ -53,6 +61,7 @@ export function installIntroSkip({ input, button, skip, onMenuBack = null }) {
   if (!button) return { refresh() {} };
   let family = '';
   let heldMs = 0;
+  let menuBackDown = false;
   function menuBackEnabled() {
     return !!onMenuBack?.enabled?.();
   }
@@ -76,9 +85,10 @@ export function installIntroSkip({ input, button, skip, onMenuBack = null }) {
     button.classList.toggle('holding', value > 0);
   }
   // Called every pad frame while the prompt is up (continuous action); a key press arrives with dt 0 instead and is
-  // handled by the keydown listener below. When the skip prompt is hidden, a key/tap back opens the menu hook.
+  // handled by the keydown listener below. When the skip prompt is hidden, a key or pad press edge opens the menu hook.
   function hold(value, dt) {
     if (introSkippable()) {
+      menuBackDown = false;
       if (!dt) return;
       heldMs = value > 0.5 ? heldMs + dt * 1000 : 0;
       setProgress(Math.min(1, heldMs / HOLD_MS));
@@ -88,7 +98,13 @@ export function installIntroSkip({ input, button, skip, onMenuBack = null }) {
       skipBy('pad');
       return;
     }
-    if (!dt && menuBackEnabled()) onMenuBack.run();
+    if (!menuBackEnabled()) {
+      menuBackDown = false;
+      return;
+    }
+    const pulse = menuBackPulse(value, dt, menuBackDown);
+    menuBackDown = pulse.down;
+    if (pulse.fire) onMenuBack.run();
   }
   input?.registerActions?.({
     back: {

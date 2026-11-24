@@ -19,14 +19,12 @@ function declarationsFrom(css, blockMatcher) {
   return decls;
 }
 
-// Behaviour of the title wrap cascade: keep-all + normal wrap means CJK words stay intact.
-function allowsMidWordBreak(decls) {
-  if (decls['word-break'] === 'keep-all') return false;
-  if (decls['overflow-wrap'] === 'anywhere') return true;
-  return decls['overflow-wrap'] !== 'normal';
+// keep-all prefers intact CJK phrases; break-word (not anywhere) is only the overflow fallback.
+function prefersIntactCjk(decls) {
+  return decls['word-break'] === 'keep-all' && decls['overflow-wrap'] !== 'anywhere';
 }
 
-test('career CSS CJK title rule disables mid-word wrapping', async () => {
+test('career CSS CJK title rule prefers intact words with an overflow fallback', async () => {
   const css = await readFile(new URL('../viewer/career/career.css', import.meta.url), 'utf8');
   for (const lang of CJK_LANGS) {
     assert.match(css, new RegExp(`:lang\\(${lang}\\)`));
@@ -36,14 +34,14 @@ test('career CSS CJK title rule disables mid-word wrapping', async () => {
     /:lang\(ja\)\s*\.bp-title[\s\S]*?\{([^}]+)\}/,
   );
   assert.equal(decls['word-break'], 'keep-all');
-  assert.equal(decls['overflow-wrap'], 'normal');
+  assert.equal(decls['overflow-wrap'], 'break-word');
   assert.equal(decls['line-break'], 'strict');
-  assert.equal(allowsMidWordBreak(decls), false);
+  assert.equal(prefersIntactCjk(decls), true);
 });
 
 test('big-picture default still allows anywhere wrap for Latin titles', async () => {
   const css = await readFile(new URL('../viewer/menu/big_picture.css', import.meta.url), 'utf8');
   const decls = declarationsFrom(css, /\.bp-title\s*\{([^}]+)\}/);
   assert.equal(decls['overflow-wrap'], 'anywhere');
-  assert.equal(allowsMidWordBreak(decls), true);
+  assert.equal(prefersIntactCjk(decls), false);
 });
