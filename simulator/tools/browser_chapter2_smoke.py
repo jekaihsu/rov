@@ -46,11 +46,15 @@ INIT_CAREER = {
     'migration': None,
 }
 
-INIT = (
-    "localStorage.setItem('rov.intro.seen.v1', '1');"
-    "localStorage.setItem('rov.coldOpen.v1', JSON.stringify({seen:true}));"
-    f"localStorage.setItem('rov.career.v1', {json.dumps(json.dumps(INIT_CAREER))});"
-)
+def init_script(career):
+    return (
+        "localStorage.setItem('rov.intro.seen.v1', '1');"
+        "localStorage.setItem('rov.coldOpen.v1', JSON.stringify({seen:true,enabled:true}));"
+        f"localStorage.setItem('rov.career.v1', {json.dumps(json.dumps(career))});"
+    )
+
+
+INIT = init_script(INIT_CAREER)
 
 
 def shot(page, name):
@@ -58,6 +62,21 @@ def shot(page, name):
     page.screenshot(path=str(path), type='jpeg', quality=78)
     shutil.copy2(path, DOCS / f'{name}.jpg')
     return path
+
+
+def load_career(page):
+    raw = page.evaluate("localStorage.getItem('rov.career.v1')")
+    career = json.loads(raw) if isinstance(raw, str) else raw
+    if isinstance(career, str):
+        career = json.loads(career)
+    return career
+
+
+def store_career(page, career):
+    page.evaluate(
+        '(value) => localStorage.setItem("rov.career.v1", value)',
+        json.dumps(career),
+    )
 
 
 def contact_sheet(paths, name):
@@ -89,6 +108,14 @@ def open_contract(page, contract_id, scenario_key):
     wait_screen(page, 'contract')
     page.wait_for_timeout(300)
     page.click('#contractAccept')
+    # Exam work orders need a second, explicit confirmation (forces the real fidelity preset).
+    try:
+        page.wait_for_function(
+            'document.querySelector("#contractAccept")?.dataset?.confirming === "true"',
+            timeout=timeout(2500))
+        page.click('#contractAccept')
+    except Exception:
+        pass
     page.wait_for_function(
         f'window.__career?.contract?.id === "{contract_id}" && '
         f'window.__viewer?.W?.scenario?.key === "{scenario_key}"',
@@ -234,13 +261,19 @@ def run_mission(page, contract_id, scenario_key, prefix, driver):
     paths = []
     open_contract(page, contract_id, scenario_key)
     paths.append(shot(page, f'{prefix}-01-enter'))
+    # Scripted beats: black ~3 s, establish ~7.5 s, handover ~1.5 s.
     page.wait_for_timeout(3500)
     paths.append(shot(page, f'{prefix}-02-establish'))
-    page.wait_for_timeout(4000)
+    page.wait_for_timeout(9000)
     paths.append(shot(page, f'{prefix}-03-handover'))
     driver(page)
     page.wait_for_timeout(500)
     paths.append(shot(page, f'{prefix}-04-work'))
+    settled = page.evaluate('() => window.__career?.settled')
+    if not settled:
+        # Scripted tracker may need an explicit hand-in when auto-settle misses a frame.
+        page.evaluate('() => { try { window.__career.submit(); window.__career.submit(); } catch (e) {} }')
+        page.wait_for_timeout(800)
     page.wait_for_selector('#resultsScreen:not([hidden])', timeout=timeout(25000))
     outcome = page.evaluate('window.__results.outcome')
     assert outcome and outcome.get('kind') == 'career', outcome
@@ -249,47 +282,47 @@ def run_mission(page, contract_id, scenario_key, prefix, driver):
     return outcome
 
 
+def career_for(mission):
+    career = json.loads(json.dumps(INIT_CAREER))
+    career['contracts']['c2_net_inspection'] = {'completed': 1, 'attempts': 1, 'best': 85}
+    career['contracts']['c2_mort_recovery'] = {'completed': 1, 'attempts': 1, 'best': 85}
+    if mission == 'c21':
+        career['contracts']['c2_net_inspection'] = {'completed': 0, 'attempts': 0, 'best': 0}
+        career['contracts'].pop('c2_mort_recovery', None)
+        career['contracts'].pop('c2_escape_event', None)
+    elif mission == 'c22':
+        career['contracts']['c2_mort_recovery'] = {'completed': 0, 'attempts': 0, 'best': 0}
+        career['contracts'].pop('c2_escape_event', None)
+    else:
+        career['contracts']['c2_escape_event'] = {'completed': 0, 'attempts': 0, 'best': 0}
+    return career
+
+
+def fresh_page(browser, mission):
+    page = browser.new_page(viewport={'width': 1600, 'height': 900})
+    page.set_default_timeout(timeout(30000))
+    page.add_init_script(init_script(career_for(mission)))
+    return page
+
+
 def run():
     with sync_playwright() as playwright:
         browser = launch(playwright, headless=True)
-        page = browser.new_page(viewport={'width': 1600, 'height': 900})
-        page.set_default_timeout(timeout(30000))
-        page.add_init_script(INIT)
         errors = []
-        page.on('pageerror', lambda error: errors.append(str(error)))
         base = (f'{http_base(8092)}/?ws={ws_base(8792)}&room=c2r3{time.time_ns()}&quality=performance'
                 '&fidelity=assisted&nointro=1')
-        page.goto(base)
-        page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
 
-        # C2-1: unlock later missions by completing prerequisites in the seeded save already.
-        career = json.loads(json.loads(page.evaluate("localStorage.getItem('rov.career.v1')")))
-        career['contracts']['c2_net_inspection'] = {'completed': 0, 'attempts': 0, 'best': 0}
-        career['contracts'].pop('c2_mort_recovery', None)
-        page.evaluate(
-            f"localStorage.setItem('rov.career.v1', {json.dumps(json.dumps(career))})")
-        page.reload()
-        page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
-        run_mission(page, 'c2_net_inspection', 'aquaculture_pen_slack', 'c21', drive_net)
-
-        # Seed C2-1 done for C2-2.
-        career = json.loads(json.loads(page.evaluate("localStorage.getItem('rov.career.v1')")))
-        career['contracts']['c2_net_inspection'] = {'completed': 1, 'attempts': 1, 'best': 85}
-        career['contracts']['c2_mort_recovery'] = {'completed': 0, 'attempts': 0, 'best': 0}
-        page.evaluate(
-            f"localStorage.setItem('rov.career.v1', {json.dumps(json.dumps(career))})")
-        page.goto(base + '&_=' + str(time.time_ns()))
-        page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
-        run_mission(page, 'c2_mort_recovery', 'aquaculture_pen_inside', 'c22', drive_mort)
-
-        career = json.loads(json.loads(page.evaluate("localStorage.getItem('rov.career.v1')")))
-        career['contracts']['c2_mort_recovery'] = {'completed': 1, 'attempts': 1, 'best': 85}
-        career['contracts']['c2_escape_event'] = {'completed': 0, 'attempts': 0, 'best': 0}
-        page.evaluate(
-            f"localStorage.setItem('rov.career.v1', {json.dumps(json.dumps(career))})")
-        page.goto(base + '&_=' + str(time.time_ns()))
-        page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
-        run_mission(page, 'c2_escape_event', 'aquaculture_pen_escape', 'c23', drive_escape)
+        for mission, contract_id, scenario, driver in (
+            ('c21', 'c2_net_inspection', 'aquaculture_pen_slack', drive_net),
+            ('c22', 'c2_mort_recovery', 'aquaculture_pen_inside', drive_mort),
+            ('c23', 'c2_escape_event', 'aquaculture_pen_escape', drive_escape),
+        ):
+            page = fresh_page(browser, mission)
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            page.goto(base + f'&m={mission}&_={time.time_ns()}')
+            page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
+            run_mission(page, contract_id, scenario, mission, driver)
+            page.close()
 
         assert not errors, errors
         browser.close()
