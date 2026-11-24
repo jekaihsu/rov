@@ -1,0 +1,523 @@
+INFO Draco mesh compression is available, use library at /workspace/tools/blender/4.2/python/lib/python3.11/site-packages/libextern_draco.so
+08:31:56 | INFO: Starting glTF 2.0 export
+08:31:56 | INFO: Extracting primitive: cutter_arm_base__alu
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_base__cyan_dk
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_base__steel
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_base__steel_dk
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_turret__alu
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_turret__chrome
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_turret__cyan
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_turret__cyan_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_turret__steel
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_turret__steel_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__alu
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__chrome
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__cyan
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__cyan_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__hose
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__hose_cy
+08:31:56 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__steel
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_upper__steel_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_fore__alu
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_fore__chrome
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_fore__cyan
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_fore__cyan_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_fore__hose
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_fore__hose_cy
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_fore__steel_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_wrist__cyan_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_wrist__steel
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_hand__alu
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_hand__cyan
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_arm_hand__steel_dk
+08:31:56 | INFO: Primitives created: 1
+08:31:56 | INFO: Extracting primitive: cutter_shear_blade__blade
+08:31:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_blade__chrome
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__alu
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__blade
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__cyan
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__cyan_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__hose
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__hose_cy
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__steel
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__steel_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_shear_head__steel_dk.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_decal_side
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_decal_side.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_decal_top
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__alu
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__alu.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__blade
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__brass
+08:31:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__cyan_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__hose
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__hose_cy
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__slate_lt
+08:31:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__steel
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__steel.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_detail__steel_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__alu
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__alu.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__alu.002
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__brass
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__cyan
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__cyan.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__cyan_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__foam
+08:31:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__glass
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__rubber
+08:31:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__slate
+08:31:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__slate_lt
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__steel
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__steel.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__steel.002
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_frame__steel_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_hoses__hose
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_hoses__hose_cy
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_marker0__decal
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_marker1__decal
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__alu
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__alu.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__alu.002
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__cyan_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__glass
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__glass.001
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__lens_emit
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__rubber
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__slate
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__status_led
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_sensors__steel
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_tether__alu
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_tether__hose
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_tether__rubber
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_tether__steel
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_tether__steel_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_thrusters__alu
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_thrusters__cyan_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_thrusters__slate
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_thrusters__slate_lt
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: cutter_thrusters__steel_dk
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: prop_0__prop
+08:31:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: prop_1__prop
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: prop_2__prop
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: prop_3__prop
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: prop_4__prop
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Extracting primitive: prop_5__prop
+08:31:57 | INFO: Primitives created: 1
+08:31:57 | INFO: Finished glTF 2.0 export in 1.4221630096435547 s
+
+EXPORTED rov01b_cutter_lod0 5.98MB tris=140404
+08:31:59 | INFO: Starting glTF 2.0 export
+08:31:59 | INFO: Extracting primitive: cutter_arm_base__alu
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_base__cyan_dk
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_base__steel
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_base__steel_dk
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_turret__alu
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_turret__chrome
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_turret__cyan
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_turret__cyan_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_turret__steel
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_turret__steel_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__alu
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__chrome
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__cyan
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__cyan_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__hose
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__hose_cy
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__steel
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_upper__steel_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_fore__alu
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_fore__chrome
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_fore__cyan
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_fore__cyan_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_fore__hose
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_fore__hose_cy
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_fore__steel_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_wrist__cyan_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_wrist__steel
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_hand__alu
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_hand__cyan
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_arm_hand__steel_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_blade__blade
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_blade__chrome
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__alu
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__blade
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__cyan
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__cyan_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__hose
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__hose_cy
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__steel
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__steel_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_shear_head__steel_dk.001
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_decal_side
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_decal_side.001
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_decal_top
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__alu
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__alu.001
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__blade
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__brass
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__cyan_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__hose
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__hose_cy
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__slate_lt
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__steel
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__steel.001
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_detail__steel_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__alu
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__alu.001
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__alu.002
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__brass
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__cyan
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__cyan.001
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__cyan_dk
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__foam
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__glass
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__rubber
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:31:59 | INFO: Primitives created: 1
+08:31:59 | INFO: Extracting primitive: cutter_frame__slate
+08:31:59 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_frame__slate_lt
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_frame__steel
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_frame__steel.001
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_frame__steel.002
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_frame__steel_dk
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_hoses__hose
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_hoses__hose_cy
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_marker0__decal
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_marker1__decal
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__alu
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__alu.001
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__alu.002
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__cyan_dk
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__glass
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__glass.001
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__lens_emit
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__rubber
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__slate
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__status_led
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_sensors__steel
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_tether__alu
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_tether__hose
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_tether__rubber
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_tether__steel
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_tether__steel_dk
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_thrusters__alu
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_thrusters__cyan_dk
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_thrusters__slate
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_thrusters__slate_lt
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: cutter_thrusters__steel_dk
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: prop_0__prop
+08:32:00 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: prop_1__prop
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: prop_2__prop
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: prop_3__prop
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: prop_4__prop
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Extracting primitive: prop_5__prop
+08:32:00 | INFO: Primitives created: 1
+08:32:00 | INFO: Finished glTF 2.0 export in 1.1192021369934082 s
+
+EXPORTED rov01b_cutter_lod1 3.48MB tris=92936
+08:32:13 | INFO: Starting glTF 2.0 export
+08:32:13 | INFO: Extracting primitive: seabed
+08:32:13 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:13 | INFO: Primitives created: 1
+08:32:13 | INFO: Extracting primitive: cable_L__yarn
+08:32:13 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:13 | INFO: Primitives created: 1
+08:32:13 | INFO: Extracting primitive: cable_L__armour
+08:32:13 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:13 | INFO: Primitives created: 1
+08:32:13 | INFO: Extracting primitive: cable_L__yarn.001
+08:32:13 | INFO: Primitives created: 1
+08:32:13 | INFO: Extracting primitive: cable_L__bedding
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_L__sheath
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_L__xlpe_a
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_L__copper
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_L__xlpe_b
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_L__xlpe_c
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_L__yarn.002
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__yarn
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__armour
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__yarn.001
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__bedding
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__sheath
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__xlpe_a
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__copper
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__xlpe_b
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__xlpe_c
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_stub__yarn.002
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_far__yarn
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: cable_far__armour
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: rocks
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: algae
+08:32:14 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:14 | INFO: Primitives created: 1
+08:32:14 | INFO: Extracting primitive: sponges
+08:32:15 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:15 | INFO: Primitives created: 1
+08:32:15 | INFO: Extracting primitive: shells
+08:32:15 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:32:15 | INFO: Primitives created: 1
+08:32:15 | INFO: Extracting primitive: barnacles
+08:32:15 | INFO: Primitives created: 1
+08:32:15 | INFO: Finished glTF 2.0 export in 2.1390936374664307 s
+
+EXPORTED cablecut_world 11.01MB tris=180176
+Blender 4.2.23 LTS (hash d0cbe84903e8 built 2026-07-21 01:31:03)
+
+Blender quit

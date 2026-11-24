@@ -1,0 +1,99 @@
+{
+  "app_metadata": {
+    "product_id": "CORR-ROV-01",
+    "steam_title": "ROV-01: Subsea Inspection & 6-DOF Flight Simulator",
+    "developer": "Coriolis Subsea Simulation Studio",
+    "publisher": "Coriolis Subsea Simulation Studio",
+    "supported_languages": [
+      "tchinese",
+      "english",
+      "japanese"
+    ],
+    "controller_support": "Full Controller Support (Steam Input / Xbox / DualSense / Steam Deck)",
+    "hull_ip_compliance": {
+      "chassis_architecture": "procedural://rov-01 3-layer open-frame industrial chassis",
+      "default_livery": "cyber_cyan",
+      "selectable_liveries": [
+        "cyber_cyan",
+        "arctic_white",
+        "stealth_titanium"
+      ],
+      "palette_hex": {
+        "buoyancy_syntactic_foam": "#06B6D4",
+        "buoyancy_highlight": "#22D3EE",
+        "anodized_aluminum_trim": "#38BDF8",
+        "carbon_titanium_open_frame": "#1E293B",
+        "matte_carbon_pressure_hull": "#0F172A",
+        "reflective_engineering_strips": "#F8FAFC"
+      },
+      "orange_shell_excluded": true
+    }
+  },
+  "locales": {
+    "tchinese": {
+      "language_code": "tchinese",
+      "title": "ROV-01：深海工程巡檢與 6-DOF 水下無人機模擬器",
+      "short_description": "硬核深海 ROV-01 六自由度（6-DOF）水下無人機操控與非破壞檢測（NDT）模擬器。搭載深海賽博青與鈦合金開放式抗壓骨架、6 推進器向量水動力物理、超音波測厚（UT）A-Scan 耦合挑戰、單推進器失效返航與臍帶纜纏繞生存，完整支援雙搖桿與 Steam Deck。",
+      "about_this_game_markdown": "# 關於《ROV-01：深海工程巡檢與 6-DOF 水下無人機模擬器》\n\n**《ROV-01 Simulator》** 是一款專為工業級水下機器人飛手與硬核載具模擬玩家打造的 **六自由度（6-DOF）水下動力學與深海工程巡檢模擬器**。你將駕駛原創設計的 **「ROV-01 深海賽博青／海工鈦合金開放式框架水下無人機」**，在能見度受限、海流干擾與臍帶纜張力拉扯的真實海底環境中，完成高精度的非破壞超音波測厚（UT NDT）與極限故障返航任務。\n\n### 核心特色\n\n* **真實 6 推進器向量水動力物理（6-Thruster Vector Physics）**\n  採用 Fossen 六自由度剛體水動力模型（含附加質量、二次方流體阻尼、浮心／重心復原力矩），配備 4 顆 45° 水平向量推進器（`T1..T4`）與 2 顆垂直 Z 軸推進器（`T5..T6`），以偽逆矩陣（Pseudoinverse Control Allocation）即時分配 6 軸推力。\n* **超音波測厚非破壞檢測（Ultrasonic Thickness NDT Gauging）**\n  搭載 316L 不鏽鋼伸縮式 UT 測厚探頭、三態光學耦合指示環（`#22D3EE` 搜尋／`#F59E0B` 傾角校正／`#10B981` 鎖定）與即時 A-Scan 示波器。飛手必須啟動定深／定艏向自駕並維持法線夾角 `< 3.0°` 連續穩定貼合滿 `3.0 秒`，才能取得合格船體板厚讀數。\n* **推進器失效與臍帶纜纏繞極限生存（Thruster Fault & Tether Snag Survival）**\n  模擬單顆推進器斷電失效（如 `T3 = 0%` 降級 5 推進器非對稱補償）、連續高負載熱降額（Thermal Derating）、強海流蟹行偏航，以及臍帶纜懸鏈線張力與障礙物纏繞（Entanglement）緊急上浮安全互鎖機制。\n* **4 大深海工程戰役與離線競速排行榜（4 Subsea Campaigns & Speedrun Leaderboard）**\n  涵蓋 `M1` 訓練池 6-DOF 姿態考核、`M2` 船體腐蝕超音波測厚（UT NDT）、`M3` 深海溝單推進器失效救援返航、`M4` 海底高壓管線競速巡檢。內建金／銀／銅牌（`GOLD` / `SILVER` / `BRONZE`）評等、個人最佳紀錄（PB）持久化與 4 項 Steam 成就。\n* **完整手把／Steam Deck 支援與原創深海賽博青塗裝（Full Gamepad / Steam Deck Support）**\n  原生內建雙搖桿 `0.08` 徑向死區與 `0.35` 連續指數曲線（Continuous Expo），支援 `F2` 即時切換 3 種專業 HUD（`INDUSTRIAL_P260` 工程雙視窗、`TACTICAL_SONAR` 戰術聲納、`STEAM_DIEGETIC` 沉浸頭盔視角）與 3 款非橘色海工塗裝（`cyber_cyan` 深海賽博青、`arctic_white` 極地白、`stealth_titanium` 隱匿鈦灰）。",
+      "about_this_game_bbcode": "[h2]關於《ROV-01：深海工程巡檢與 6-DOF 水下無人機模擬器》[/h2]\n[b]《ROV-01 Simulator》[/b] 是一款專為工業級水下機器人飛手與硬核載具模擬玩家打造的 [b]六自由度（6-DOF）水下動力學與深海工程巡檢模擬器[/b]。你將駕駛原創設計的 [b]「ROV-01 深海賽博青／海工鈦合金開放式框架水下無人機」[/b]，在海流干擾與臍帶纜張力拉扯的真實水下環境中，完成高精度非破壞超音波測厚（UT NDT）與故障返航任務。\n\n[h2]核心特色[/h2]\n[list]\n[*][b]真實 6 推進器向量水動力物理（6-Thruster Vector Physics）[/b]：採用 Fossen 6-DOF 水動力模型（含附加質量、二次方阻尼、復原力矩），配置 4 顆 45° 水平向量推進器（T1..T4）與 2 顆垂直 Z 軸推進器（T5..T6），即時運算偽逆矩陣推力分配。\n[*][b]超音波測厚非破壞檢測（Ultrasonic Thickness NDT Gauging）[/b]：配備 316L 不鏽鋼 UT 探頭、三態光學耦合指示環（#22D3EE / #F59E0B / #10B981）與即時 A-Scan 波形儀。必須維持法線夾角 < 3.0° 連續貼合滿 3.0 秒方可完成有效採樣。\n[*][b]推進器失效與臍帶纜纏繞極限生存（Thruster Fault & Tether Snag Survival）[/b]：挑戰 T3 推進器失效降級 5 推進器非對稱返航、馬達過熱降額、0.5~2.0 kn 側向海流與臍帶纜纏繞防斷纜互鎖。\n[*][b]4 大深海工程戰役與競速排行榜（4 Subsea Campaigns & Speedrun Leaderboard）[/b]：收錄 M1 訓練池檢定、M2 船體 UT 測厚、M3 深海減推力搜救、M4 海底管線計時賽，支援 GOLD / SILVER / BRONZE 獎牌、離線 PB 紀錄與 4 項 Steam 成就。\n[*][b]完整手把／Steam Deck 支援與 3 款海工塗裝（Full Gamepad & Steam Deck Support）[/b]：內建雙搖桿 0.08 徑向死區與 0.35 連續 Expo 曲線，支援 3 種 HUD 模式（INDUSTRIAL_P260 / TACTICAL_SONAR / STEAM_DIEGETIC）與 cyber_cyan / arctic_white / stealth_titanium 塗裝切換。\n[/list]"
+    },
+    "english": {
+      "language_code": "english",
+      "title": "ROV-01: Subsea Inspection & 6-DOF Flight Simulator",
+      "short_description": "Hardcore 6-DOF underwater ROV flight & NDT inspection simulator. Pilot the open-frame Cyber-Cyan & Subsea Titanium ROV-01 with 6-thruster vector hydrodynamics, <3° Ultrasonic Thickness (UT) A-scan gauging, 5-thruster fault recovery, tether snag physics, and full Steam Deck / gamepad support.",
+      "about_this_game_markdown": "# About ROV-01: Subsea Inspection & 6-DOF Flight Simulator\n\n**ROV-01 Simulator** is a precision **6-Degrees-of-Freedom (6-DOF) underwater hydrodynamics and non-destructive testing (NDT) inspection simulator** built for subsea robotics pilots and hardcore vehicle simulation enthusiasts. Take command of the original **ROV-01 Deep-Sea Cyber-Cyan & Subsea Titanium Open-Frame Remotely Operated Vehicle** across murky offshore structures, cross-currents, and high-tension umbilical tether hazards.\n\n### Key Features\n\n* **6-Thruster Vector Physics & Fossen 6-DOF Hydrodynamics**\n  Powered by a deterministic 6-DOF rigid-body physics engine modeling added mass, quadratic hydrodynamic drag, buoyancy/gravity restoring moments, and real-time pseudoinverse control allocation across 4 horizontal 45° vectored thrusters (`T1..T4`) and 2 vertical Z-axis thrusters (`T5..T6`).\n* **Ultrasonic Thickness (UT) NDT Gauging & Live A-Scan Oscilloscope**\n  Engage Depth Hold and Heading Hold to align the 316L stainless-steel UT transducer within `< 3.0°` of the hull surface normal for a continuous `3.0-second` couplant lock. Monitor the tri-state optical coupling halo (`#22D3EE` searching, `#F59E0B` angle warning, `#10B981` locked) and real-time ultrasonic echo waveform.\n* **Thruster Fault & Tether Snag Survival**\n  Survive asymmetric single-thruster knockouts (`T3 = 0%` degraded 5-thruster recovery), continuous high-load thermal derating, `0.5–2.0 kn` subsea cross-currents, and catenary umbilical tether entanglement with formal emergency-surface safety interlocks.\n* **4 Subsea Campaigns, Speedrun Medals & Steam Achievements**\n  Master `M1` 6-DOF Pool Qualification, `M2` Hull Ultrasonic NDT Certification, `M3` Deep-Trench SAR Under Thruster Fault, and `M4` Subsea Pipeline Time Trial. Track offline Personal Best (PB) speedrun times, earn `GOLD` / `SILVER` / `BRONZE` medals, and unlock 4 Steam Achievements.\n* **Full Gamepad / Steam Deck Support & Custom Subsea Liveries**\n  Engineered for dual-stick 6-DOF controllers with `0.08` radial deadzone and `0.35` continuous expoinput shaping. Cycle live between 3 specialized HUDs (`INDUSTRIAL_P260`, `TACTICAL_SONAR`, `STEAM_DIEGETIC`) and 3 non-orange industrial hull liveries (`cyber_cyan`, `arctic_white`, `stealth_titanium`).",
+      "about_this_game_bbcode": "[h2]About ROV-01: Subsea Inspection & 6-DOF Flight Simulator[/h2]\n[b]ROV-01 Simulator[/b] is a precision [b]6-Degrees-of-Freedom (6-DOF) underwater hydrodynamics and non-destructive testing (NDT) inspection simulator[/b] built for subsea robotics pilots and hardcore simulation enthusiasts. Command the original [b]ROV-01 Deep-Sea Cyber-Cyan & Subsea Titanium Open-Frame ROV[/b] through offshore structures, cross-currents, and umbilical tether hazards.\n\n[h2]Key Features[/h2]\n[list]\n[*][b]6-Thruster Vector Physics[/b]: Fossen 6-DOF hydrodynamics with added mass, quadratic drag, restoring moments, and pseudoinverse control allocation across 4 horizontal 45° vectored thrusters (T1..T4) and 2 vertical Z-axis thrusters (T5..T6).\n[*][b]Ultrasonic Thickness (UT) NDT Gauging[/b]: Align the 316L stainless UT probe within < 3.0° of the hull normal for 3.0 seconds while monitoring the tri-state optical status ring (#22D3EE / #F59E0B / #10B981) and live A-scan waveform.\n[*][b]Thruster Fault & Tether Snag Survival[/b]: Overcome T3 thruster loss with 5-thruster degraded allocation, thermal derating, cross-current crabbing, and umbilical tether snag interlocks.\n[*][b]4 Subsea Campaigns & Offline Speedrun Leaderboard[/b]: Compete across M1 Pool Qualification, M2 Hull UT Gauging, M3 Deep-Trench Fault Recovery, and M4 Pipeline Time Trial with GOLD / SILVER / BRONZE medals and 4 Steam Achievements.\n[*][b]Full Gamepad / Steam Deck Support[/b]: Native Steam Input dual-stick 6-DOF controls (0.08 radial deadzone, 0.35 continuous expo), 3 switchable HUD themes (INDUSTRIAL_P260 / TACTICAL_SONAR / STEAM_DIEGETIC), and 3 subsea liveries (cyber_cyan / arctic_white / stealth_titanium).\n[/list]"
+    },
+    "japanese": {
+      "language_code": "japanese",
+      "title": "ROV-01：深海構造物点検＆6-DOF水中ドローンシミュレーター",
+      "short_description": "本格派6自由度（6-DOF）産業用水中ドローン操縦＆非破壊検査（NDT）シミュレーター。サイバーシアン＆チタン製オープンフレーム機「ROV-01」を操り、6スラスター流体物理、超音波肉厚測定（UT）、スラスター故障からの帰還、テザー絡まり回避に挑め。Steam Deck・ゲームパッド完全対応。",
+      "about_this_game_markdown": "# 『ROV-01：深海構造物点検＆6-DOF水中ドローンシミュレーター』について\n\n**『ROV-01 Simulator』** は、産業用水中ロボット（ROV）パイロットおよびハードコアな物理シミュレーション愛好家向けに設計された **6自由度（6-DOF）水中流体力学＆非破壊検査（NDT）シミュレーター** です。独自設計の **「ROV-01 ディープシー・サイバーシアン＆サブシーチタン・オープンフレーム機」** を操縦し、潮流外乱やアンビリカルテザー（有索ケーブル）の張力が作用する過酷な海中環境で精密点検ミッションを遂行します。\n\n### 主な特徴\n\n* **6スラスター・ベクトル流体物理（6-Thruster Vector Physics）**\n  付加質量・二次流体抗力・復原モーメントを再現したFossen 6-DOF運動方程式と擬似逆行列推力配分を搭載。水平45°ベクトルスラスター4基（`T1..T4`）と垂直Z軸スラスター2基（`T5..T6`）をリアルタイム制御します。\n* **超音波肉厚測定・非破壊検査（Ultrasonic Thickness NDT Gauging）**\n  316Lステンレス製UTプローブ、3色光学カップリングリング（`#22D3EE` 探索／`#F59E0B` 角度警告／`#10B981` ロック）、リアルタイムAスコープ波形表示を搭載。定深・定方位オートパイロットを活用し、法線角度 `< 3.0°` を `3.0秒間` 維持して正確な船体肉厚データを取得します。\n* **スラスター故障＆テザー絡まりサバイバル（Thruster Fault & Tether Snag Survival）**\n  単一スラスター喪失（`T3 = 0%` 時の5基縮退制御）、連続高負荷時のサーマルディレーティング（熱出力制限）、横潮流に対するクラブ角補正、テザー絡まり時の緊急浮上インターロックを忠実に再現。\n* **4つの深海キャンペーン＆オフラインタイムアタック（4 Subsea Campaigns & Speedrun Leaderboard）**\n  `M1` 訓練プール6-DOF検定、`M2` 船体UT肉厚測定、`M3` 深海スラスター故障救難帰還、`M4` 海底パイプライン・タイムトライアルを収録。`GOLD` / `SILVER` / `BRONZE` メダル判定、自己ベスト（PB）ローカル保存、Steam実績4種に対応。\n* **ゲームパッド／Steam Deck完全対応＆3種の産業用カラーリング（Full Gamepad / Steam Deck Support）**\n  デュアルスティック6-DOF操作（ラジアルデッドゾーン `0.08`・連続Expo `0.35`）に標準対応。3種類のHUDモード（`INDUSTRIAL_P260` / `TACTICAL_SONAR` / `STEAM_DIEGETIC`）と3種類の非オレンジ系サブシー塗装（`cyber_cyan` / `arctic_white` / `stealth_titanium`）を収録。",
+      "about_this_game_bbcode": "[h2]『ROV-01：深海構造物点検＆6-DOF水中ドローンシミュレーター』について[/h2]\n[b]『ROV-01 Simulator』[/b] は、産業用ROVパイロットと物理シム愛好家のための [b]6自由度（6-DOF）水中流体力学＆非破壊検査（NDT）シミュレーター[/b] です。独自設計の [b]「ROV-01 サイバーシアン＆サブシーチタン・オープンフレーム機」[/b] を操り、潮流やテザー張力が働く海中で精密点検を遂行します。\n\n[h2]主な特徴[/h2]\n[list]\n[*][b]6スラスター・ベクトル流体物理[/b]：水平45°ベクトルスラスター4基（T1..T4）と垂直Z軸スラスター2基（T5..T6）によるFossen 6-DOF流体モデルと擬似逆行列推力配分。\n[*][b]超音波肉厚測定（UT NDT）[/b]：法線角度 < 3.0° を 3.0秒間維持する精密プローブ接触判定と、光学ステータスリング（#22D3EE / #F59E0B / #10B981）＆リアルタイムAスコープ波形。\n[*][b]スラスター故障＆テザー絡まりサバイバル[/b]：T3スラスター故障時の5基縮退制御、熱出力制限、潮流補正、テザー絡まり時の緊急浮上安全インターロック。\n[*][b]4つの深海キャンペーン＆スピードラン記録[/b]：M1〜M4の4ミッション、GOLD / SILVER / BRONZE メダル判定、オフラインPBランキング、4つのSteam実績を収録。\n[*][b]ゲームパッド／Steam Deck完全対応[/b]：ラジアルデッドゾーン0.08＆連続Expo 0.35、3種のHUD切替（INDUSTRIAL_P260 / TACTICAL_SONAR / STEAM_DIEGETIC）、3種のサブシー塗装（cyber_cyan / arctic_white / stealth_titanium）に対応。\n[/list]"
+    }
+  },
+  "system_requirements_win64": {
+    "minimum": {
+      "os": "Windows 10 / 11 (64-bit)",
+      "processor": "Intel Core i5-8400 or AMD Ryzen 5 2600 (4 Cores / 2.8 GHz+)",
+      "memory": "8 GB RAM",
+      "graphics": "NVIDIA GeForce GTX 1050 Ti / AMD Radeon RX 560 / Intel Iris Xe (WebGL 2.0 / DirectX 11 compatible, 2 GB VRAM)",
+      "directx": "Version 11",
+      "storage": "600 MB available space",
+      "additional_notes": "Supports Xbox, DualSense, and Steam Deck controllers via Steam Input, or Keyboard + Mouse."
+    },
+    "recommended": {
+      "os": "Windows 11 (64-bit)",
+      "processor": "Intel Core i7-10700K or AMD Ryzen 5 5600X",
+      "memory": "16 GB RAM",
+      "graphics": "NVIDIA GeForce RTX 2060 / AMD Radeon RX 6600 or higher (60 FPS locked at 1080p/1440p with dual-viewport P260 HUD)",
+      "directx": "Version 12",
+      "storage": "1 GB available space (SSD recommended)",
+      "additional_notes": "Dual-analog gamepad strongly recommended for precision 6-DOF attitude & UT coupling control."
+    }
+  },
+  "content_survey_and_ai_disclosure": {
+    "mature_content_survey": {
+      "frequent_violence_or_gore": false,
+      "nudity_or_sexual_content": false,
+      "adult_only_sexual_content": false,
+      "general_mature_content": false,
+      "substance_abuse_or_alcohol": false,
+      "gambling_or_loot_boxes": false,
+      "target_rating": "All Ages / General Audience (ESRB Everyone / PEGI 3 / CSRR 0+)"
+    },
+    "valve_ai_disclosure_2026": {
+      "pre_generated_ai_content_in_build": false,
+      "live_generated_ai_content": false,
+      "questionnaire_selection": {
+        "Pre-Generated": "No (All 3D geometry is deterministic procedural Three.js code `procedural://rov-01`, all physics are deterministic Fossen 6-DOF math, and all HUD/capsule graphics are deterministically rendered from the engine. Per Valve's Jan 2026 policy, AI-assisted coding tools do not require player-facing disclosure.)",
+        "Live-Generated": "No (The simulator runs 100% offline with zero runtime generative AI API calls.)"
+      }
+    },
+    "ip_and_livery_declaration": {
+      "third_party_brands_zero": true,
+      "non_orange_hull_enforced": true,
+      "notes": "Uses 100% original ROV-01 open-frame industrial chassis with Deep-Sea Cyber Cyan (#06B6D4 / #22D3EE) syntactic foam and Subsea Titanium (#1E293B / #38BDF8) livery. Zero third-party ROV trademarks or orange consumer shells."
+    }
+  }
+}

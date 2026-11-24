@@ -1,0 +1,71 @@
+#usda 1.0
+(
+    defaultPrim = "SR_IND_07_ModularPipeBridgeTruss"
+    doc = "NVIDIA Omniverse SimReady OpenUSD Subsea Industrial Asset (SR-IND-07) — Source: huggingface.co/datasets/nvidia/simready-assets/conveyor_belt_a02 (CC-BY-4.0)"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "SR_IND_07_ModularPipeBridgeTruss" (
+    kind = "component"
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "PhysicsCollisionAPI", "PhysicsMaterialAPI"]
+)
+{
+    custom string simready:assetId = "SR-IND-07"
+    custom string simready:hfDataset = "nvidia/simready-assets"
+    custom string simready:hfPackage = "conveyor_belt_a02"
+    custom string simready:hfPackageId = "simready.hf.nvidia.simready-assets.conveyor_belt_a02.2026.10.09_001817352293"
+    custom string simready:hfRootUsd = "simready_usd/sm_conveyor_belt_a02_01.usd"
+    custom string simready:hfContentSha256 = "696cfc002c291d440827d2e9e6f48538e39a9150652513bfee654d2585102d02"
+    custom string simready:license = "CC-BY-4.0"
+    custom string simready:missionId = "mission_4_pipeline"
+    custom string simready:missionCode = "M4"
+    custom string simready:titleZh = "模組化海底管橋與防撞桁架門框"
+    custom string simready:titleEn = "Modular Subsea Pipe Bridge & Structural Truss Portal"
+    custom string simready:shapeArchetype = "pipe_truss_portal"
+    custom string simready:pbrColorHex = "#38BDF8"
+    custom string simready:secondaryColorHex = "#1E293B"
+    custom double subsea:utNominalWallMm = 22.00
+    custom double subsea:utActualWallMm = 21.40
+    custom double subsea:displacementM3 = 0.1150
+
+    bool physics:rigidBodyEnabled = true
+    bool physics:collisionEnabled = true
+    uniform token physics:approximation = "convexHull"
+    float physics:mass = 890.00
+    point3f physics:centerOfMass = (0.000, 0.000, -0.180)
+    float physics:staticFriction = 0.700
+    float physics:dynamicFriction = 0.560
+    float physics:restitution = 0.150
+
+    double3 xformOp:translate = (11.000, 0.000, 8.200)
+    float3 xformOp:scale = (1.000, 1.000, 1.000)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+    def Mesh "Visual_And_Collision_Hull" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        float3[] extent = [(-1.600, -1.400, -1.500), (1.600, 1.400, 1.500)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [
+            0, 1, 2, 3,
+            4, 7, 6, 5,
+            0, 4, 5, 1,
+            1, 5, 6, 2,
+            2, 6, 7, 3,
+            3, 7, 4, 0
+        ]
+        point3f[] points = [
+            (-1.600, -1.400, -1.500),
+            (1.600, -1.400, -1.500),
+            (1.600, 1.400, -1.500),
+            (-1.600, 1.400, -1.500),
+            (-1.600, -1.400, 1.500),
+            (1.600, -1.400, 1.500),
+            (1.600, 1.400, 1.500),
+            (-1.600, 1.400, 1.500)
+        ]
+        color3f[] primvars:displayColor = [(0.133, 0.827, 0.933)]
+    }
+}

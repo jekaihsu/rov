@@ -1,0 +1,1193 @@
+"""Wave 1 B2B Fault & Hazard Training Mode + B2C 4-Mission Catalog + 6DoF Gamepad & UT SOP Evaluator.
+
+CORR-ROV-01 Compliant: Uses self-designed ROV-01 open-frame industrial vehicle identity
+with zero commercial shell or external brand strings.
+"""
+from __future__ import annotations
+
+import math
+import time
+from dataclasses import dataclass, field
+import numpy as np
+
+from .b2b_roster import CohortRosterManager, verify_certificate_signature
+from .cable_campaign import SubseaCableCampaign
+from .simready_usd import (
+    UsdPhysicsAsset,
+    compute_usd_collision_impulse,
+    load_simready_assets,
+    load_simready_catalog_dict,
+)
+from .input_shaping import (
+    DEFAULT_DEADZONE,
+    DEFAULT_EXPO,
+    _clamp,
+    _num,
+    axis_deadzone_expo,
+    radial_deadzone_expo,
+    sanitize,
+    shape_gamepad_6dof as _shape_gamepad_6dof_1d,
+    shape_stick_2d,
+)
+
+THRUSTER_LABELS = (
+    "T1 左前水平向量 (45°)",
+    "T2 右前水平向量 (45°)",
+    "T3 左後水平向量 (45°)",
+    "T4 右後水平向量 (45°)",
+    "T5 左側垂直推進 (Z)",
+    "T6 右側垂直推進 (Z)",
+)
+
+WAVE1_MISSION_CATALOG = {
+    "mission_1_pool": {
+        "id": "mission_1_pool",
+        "scenario_key": "mission_1_pool",
+        "code": "M1",
+        "title": "Mission 1：新手訓練池",
+        "subtitle": "Pool Basic 6DoF & Gamepad Calibration",
+        "category": "B2C Tutorial / 6DoF Calibration",
+        "brief": "於平靜高能見度訓練水池練習雙搖桿 6DoF（進退、橫移、升降、俯仰、橫滾、偏航）、死區與 Expo 曲線調校，穿過 4 座水下校準門。",
+        "visibility_m": 26.0,
+        "turbidity_ntu": 1.2,
+        "current_kn": 0.05,
+        "current_dir": 90.0,
+    },
+    "mission_2_hull_ut": {
+        "id": "mission_2_hull_ut",
+        "scenario_key": "mission_2_hull_ut",
+        "code": "M2",
+        "title": "Mission 2：港灣船體巡檢與測厚 SOP",
+        "subtitle": "Harbor Hull Inspection & UT Gauging",
+        "category": "B2B Industrial SOP / UT Gauging",
+        "brief": "沿停泊貨輪船底執行 4 點超音波測厚（UT-01～UT-04）與海生物巡檢，維持定深與航向穩定並產出 0-100 分 SOP 評估報告。",
+        "visibility_m": 11.5,
+        "turbidity_ntu": 8.5,
+        "current_kn": 0.38,
+        "current_dir": 115.0,
+    },
+    "mission_3_sar_fault": {
+        "id": "mission_3_sar_fault",
+        "scenario_key": "mission_3_sar_fault",
+        "code": "M3",
+        "title": "Mission 3：暗流深海搜救與單推進器失效返航",
+        "subtitle": "Deep Current SAR & Thruster Fault Return",
+        "category": "B2B Fault & Hazard Training",
+        "brief": "於 1.45 kn 深海側流與高濁度環境定位黑盒子信標，演練 T3 推進器卡死／零輸出時之 5 推進器向量重分配與緊急返航（RTH）。",
+        "visibility_m": 7.2,
+        "turbidity_ntu": 18.4,
+        "current_kn": 1.45,
+        "current_dir": 65.0,
+    },
+    "mission_4_pipeline": {
+        "id": "mission_4_pipeline",
+        "scenario_key": "mission_4_pipeline",
+        "code": "M4",
+        "title": "Mission 4：狹窄管線穿越計時賽",
+        "subtitle": "Pipeline Time Trial",
+        "category": "B2C Steam Time Trial",
+        "brief": "高速穿越海底雙管線廊道與防撞桁架 5 座計時檢查點，考驗 6DoF 精準轉向、臍帶纜張力控制與零碰撞極速紀錄。",
+        "visibility_m": 9.8,
+        "turbidity_ntu": 11.0,
+        "current_kn": 0.75,
+        "current_dir": 140.0,
+    },
+}
+
+
+def apply_deadzone_and_expo(value: float, deadzone: float = 0.08, expo: float = 0.35) -> float:
+    """Apply symmetric deadzone and cubic Expo sensitivity curve to a raw axis in [-1, 1]."""
+    return axis_deadzone_expo(value, deadzone, expo)
+
+
+def shape_6dof_gamepad(raw_axes: dict, deadzone: float = 0.08, expo: float = 0.35) -> dict[str, float]:
+    """Shape all 6 DoF gamepad axes with strict finite boundary sanitization and 2D radial (surge, sway)."""
+    src = raw_axes if isinstance(raw_axes, dict) else {}
+    dz, ex = sanitize(deadzone, expo)
+    raw_surge = _clamp(_num(src.get("surge", 0.0), 0.0), -1.0, 1.0)
+    raw_sway = _clamp(_num(src.get("sway", 0.0), 0.0), -1.0, 1.0)
+    surge_s, sway_s = radial_deadzone_expo(raw_surge, raw_sway, dz, ex)
+    out = {
+        "surge": round(surge_s, 4),
+        "sway": round(sway_s, 4),
+    }
+    for k in ("heave", "roll", "pitch", "yaw"):
+        out[k] = round(apply_deadzone_and_expo(_num(src.get(k, 0.0), 0.0), dz, ex), 4)
+    return out
+
+
+shape_gamepad_6dof = shape_6dof_gamepad
+
+
+def allocate_6thruster_with_fault_compensation(
+    B: np.ndarray,
+    B_pinv: np.ndarray,
+    wrench: np.ndarray,
+    health: np.ndarray | None = None,
+    damping: float = 0.05,
+) -> np.ndarray:
+    """Allocate a 6-DoF wrench across thrusters, dynamically reallocating around any faulted thruster.
+
+    Boundary-hardened against NaN/Inf/1e308 wrench/health inputs and all 2^6=64 fault masks
+    (including 0..6 dead thrusters and zero/negative damping).
+    """
+    B_arr = np.asarray(B, dtype=float)
+    n_thr = B_arr.shape[1] if B_arr.ndim == 2 else 6
+    try:
+        w_raw = np.asarray(wrench, dtype=float).reshape(-1)
+    except (TypeError, ValueError):
+        return np.zeros(n_thr, dtype=float)
+    if w_raw.shape[0] != B_arr.shape[0]:
+        w = np.zeros(B_arr.shape[0], dtype=float)
+        m = min(len(w_raw), len(w))
+        w[:m] = w_raw[:m]
+    else:
+        w = w_raw.copy()
+    w = np.where(np.isfinite(w), np.clip(w, -1e6, 1e6), 0.0)
+    if np.all(np.abs(w) < 1e-15):
+        return np.zeros(n_thr, dtype=float)
+
+    dmp = _num(damping, 0.05)
+    dmp = max(1e-3, min(10.0, abs(dmp))) if dmp != 0.0 else 0.05
+
+    if health is None:
+        h = np.ones(n_thr, dtype=float)
+    else:
+        try:
+            h_raw = np.asarray(health, dtype=float).reshape(-1)
+        except (TypeError, ValueError):
+            h_raw = np.ones(n_thr, dtype=float)
+        h = np.ones(n_thr, dtype=float)
+        m = min(len(h_raw), n_thr)
+        h[:m] = h_raw[:m]
+        h = np.where(np.isfinite(h), np.clip(h, 0.0, 1.0), 0.0)
+
+    if np.all(h <= 0.10):
+        return np.zeros(n_thr, dtype=float)
+
+    if np.all(h >= 0.98):
+        B_pinv_safe = np.where(np.isfinite(B_pinv), B_pinv, 0.0)
+        u = B_pinv_safe @ w
+    else:
+        h_eff = np.where(h <= 0.10, 0.0, h)
+        B_active = B_arr * h_eff[None, :]
+        gram = B_active @ B_active.T + (dmp ** 2) * np.eye(B_arr.shape[0])
+        try:
+            gram_inv = np.linalg.inv(gram)
+            if not np.all(np.isfinite(gram_inv)):
+                gram_inv = np.linalg.pinv(gram)
+        except np.linalg.LinAlgError:
+            gram_inv = np.linalg.pinv(gram)
+        B_active_pinv = B_active.T @ gram_inv
+        u = B_active_pinv @ w
+        u = np.where(h <= 0.10, 0.0, u)
+
+    u = np.where(np.isfinite(u), u, 0.0)
+    peak = float(np.max(np.abs(u))) if len(u) else 0.0
+    if not math.isfinite(peak) or peak <= 0.0:
+        return np.zeros(n_thr, dtype=float)
+    if peak > 1.0:
+        u = u / peak
+    return np.clip(np.where(np.isfinite(u), u, 0.0), -1.0, 1.0)
+
+
+@dataclass
+class UtCheckpoint:
+    id: str
+    label: str
+    zone: str
+    point: list[float]
+    nominal_mm: float
+    measured_mm: float
+    completed: bool = False
+    sampled_at_s: float | None = None
+    sampled_depth_m: float | None = None
+
+    @property
+    def diminution_pct(self) -> float:
+        return round(max(0.0, (self.nominal_mm - self.measured_mm) / self.nominal_mm * 100.0), 1)
+
+    @property
+    def status(self) -> str:
+        return "WARN_CORROSION" if self.diminution_pct >= 7.0 else "PASS"
+
+    def as_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "label": self.label,
+            "zone": self.zone,
+            "point": list(self.point),
+            "nominal_mm": self.nominal_mm,
+            "measured_mm": self.measured_mm,
+            "diminution_pct": self.diminution_pct,
+            "status": self.status,
+            "completed": self.completed,
+            "sampled_at_s": self.sampled_at_s,
+            "sampled_depth_m": self.sampled_depth_m,
+        }
+
+
+def default_ut_checkpoints() -> list[UtCheckpoint]:
+    return [
+        UtCheckpoint("UT-01", "UT-01 艏部舭龍骨焊縫", "Bow Bilge Keel", [6.0, -2.2, 5.2], 16.0, 15.6),
+        UtCheckpoint("UT-02", "UT-02 舯部平底船殼板", "Midship Flat Bottom", [0.0, -2.2, 7.6], 18.0, 17.3),
+        UtCheckpoint("UT-03", "UT-03 海水格柵箱體外壁", "Sea Chest Grating", [-5.5, -2.2, 6.2], 14.0, 12.8),
+        UtCheckpoint("UT-04", "UT-04 艉軸管與舵柱法蘭", "Stern Thruster Flange", [-9.5, 0.0, 5.8], 20.0, 19.4),
+    ]
+
+
+def simready_ut_checkpoints(assets: list[UsdPhysicsAsset] | None = None) -> list[UtCheckpoint]:
+    items = assets if assets is not None else load_simready_assets()
+    out: list[UtCheckpoint] = []
+    for a in items:
+        if a.ut_checkpoint_id:
+            out.append(
+                UtCheckpoint(
+                    a.ut_checkpoint_id,
+                    a.ut_label or f"{a.ut_checkpoint_id} {a.title_zh}",
+                    a.ut_zone or a.title_en,
+                    list(a.ned_pos),
+                    float(a.ut_nominal_mm),
+                    float(a.ut_actual_mm),
+                )
+            )
+    return out
+
+
+class Wave1Manager:
+    """State machine & telemetry manager for Wave 1 6DoF Gamepad, Fault Reallocation, B2B Hazards & UT SOP."""
+
+    def __init__(self, sim):
+        self.sim = sim
+        self.deadzone: float = 0.08
+        self.expo: float = 0.35
+        self.raw_6dof: dict[str, float] = {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+        self.shaped_6dof: dict[str, float] = {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+        self.direct_6dof_active: bool = False
+        self.direct_6dof_until: float = -1.0
+
+        sc_key = getattr(getattr(sim, "scenario", None), "key", "open_water")
+        self.mission_id: str = sc_key if sc_key in WAVE1_MISSION_CATALOG else "mission_1_pool"
+        meta = WAVE1_MISSION_CATALOG.get(self.mission_id, WAVE1_MISSION_CATALOG["mission_1_pool"])
+
+        self.mode_state: str = "normal"
+        self.mission_aborted: bool = False
+        self.faulted_thrusters: list[int] = []
+        self.reallocation_active: bool = False
+        self.fault_injected_at: float | None = None
+
+        self.emergency_return_active: bool = False
+        self.emergency_return_started_at: float | None = None
+        self.emergency_return_time_s: float | None = None
+        self.emergency_return_completed: bool = False
+
+        self.hull_integrity: float = 100.0
+        self.collision_count: int = 0
+        self.last_seen_event_idx: int = 0
+        self.collision_log: list[dict] = []
+        self.collision_cooldown_s: float = 0.25
+        self._last_micro_collision_t: float | None = None
+
+        self.turbidity_ntu: float = float(meta["turbidity_ntu"])
+        self.ut_checkpoints: list[UtCheckpoint] = default_ut_checkpoints()
+
+        self._depth_err_sq_sum: float = 0.0
+        self._heading_err_sq_sum: float = 0.0
+        self._stability_samples: int = 0
+        self.depth_hold_stability_pct: float = 96.4
+        self.heading_stability_pct: float = 95.8
+
+        # Wave 3: Flight Control Loops (Depth Hold PID, Heading Hold PID, Emergency Surface, Tether Snag Recovery, UT 3s Lock)
+        self.depth_hold_active: bool = False
+        self._manual_6dof_forced: bool = False
+        self.target_depth_m: float = round(_clamp(_num(getattr(self.sim, "depth", 0.0), 0.0), 0.0, 200.0), 3)
+        self.depth_hold_error_m: float = 0.0
+        self._depth_pid_i: float = 0.0
+
+        self.heading_hold_active: bool = False
+        yaw_deg = math.degrees(_num(getattr(self.sim, "yaw", 0.0), 0.0)) % 360.0
+        self.target_heading_deg: float = round(yaw_deg, 2)
+        self.heading_hold_error_deg: float = 0.0
+        self._heading_pid_i: float = 0.0
+
+        self.emergency_surface_active: bool = False
+        self.emergency_surface_started_at: float | None = None
+        self.emergency_surface_time_s: float | None = None
+        self.emergency_surface_completed: bool = False
+
+        self.tether_snag_simulated: bool = False
+        self.tether_snag_recovered_count: int = 0
+        self.crush_depth_m: float = 28.0
+
+        self.ut_state: str = "ut_searching"  # ut_searching | ut_aligning | ut_coupled_lock
+        self.ut_sample_state: str = "Idle"   # Idle | Sampling_Hold_3s | Sample_Valid | Sample_Rejected
+        self.ut_target_id: str | None = None
+        self.ut_tilt_deg: float = 0.9
+        self.ut_distance_m: float = 1.85
+        self.ut_hold_elapsed_s: float = 0.0
+        self.ut_required_hold_s: float = 3.0
+        self.b2b_roster: CohortRosterManager = CohortRosterManager.create_tuesday_demo_cohort()
+        self.simready_assets: list[UsdPhysicsAsset] = load_simready_assets()
+        self.simready_ut_checkpoints: list[UtCheckpoint] = simready_ut_checkpoints(self.simready_assets)
+        self.last_simready_collision: dict | None = None
+        self.cable_campaign: SubseaCableCampaign = SubseaCableCampaign()
+
+    def _is_tether_entangled(self) -> bool:
+        wraps = getattr(getattr(self.sim, "tether", None), "wraps", None) or {}
+        return bool(
+            self.tether_snag_simulated
+            or any(abs(v) >= 1.0 for v in wraps.values())
+        )
+
+    @property
+    def autopilot_mode(self) -> str:
+        if self.emergency_surface_active:
+            return "Emergency_Surface"
+        if self.depth_hold_active and self.heading_hold_active:
+            return "Depth_Heading_Hold"
+        if self.depth_hold_active:
+            return "Depth_Hold"
+        if self.heading_hold_active:
+            return "Heading_Hold"
+        return "Manual_6DoF"
+
+    @property
+    def tether_state(self) -> str:
+        if self._is_tether_entangled():
+            return "Entangled"
+        tether_st = self.sim.tether.state() if hasattr(self.sim, "tether") else {}
+        if tether_st.get("tension_n", 0.0) >= tether_st.get("warn_n", 250.0):
+            return "High_Tension"
+        return "Clear"
+
+    @property
+    def probe_coupling(self) -> str:
+        if self.ut_state == "ut_coupled_lock":
+            return "Coupled_Locked"
+        if self.ut_state == "ut_aligning":
+            return "Coupled_Locked" if (self.ut_tilt_deg <= 3.0 and self.ut_distance_m <= 0.65) else "Tilted_Warn"
+        return "Uncoupled"
+
+    @property
+    def depth_zone(self) -> str:
+        d = _num(getattr(self.sim, "depth", 0.0), 0.0)
+        if d >= self.crush_depth_m:
+            return "Crush_Hazard"
+        if d <= 0.25:
+            return "Surface_0m"
+        return "Work_Depth"
+
+    def apply_gamepad_6dof(self, axes: dict, deadzone: float | None = None, expo: float | None = None) -> dict:
+        src = axes if isinstance(axes, dict) else {}
+        if deadzone is not None:
+            self.deadzone, _ = sanitize(deadzone, self.expo)
+        elif "deadzone" in src and src["deadzone"] is not None:
+            self.deadzone, _ = sanitize(src["deadzone"], self.expo)
+        if expo is not None:
+            _, self.expo = sanitize(self.deadzone, expo)
+        elif "expo" in src and src["expo"] is not None:
+            _, self.expo = sanitize(self.deadzone, src["expo"])
+
+        for k in ("surge", "sway", "heave", "roll", "pitch", "yaw"):
+            if k in src:
+                self.raw_6dof[k] = _clamp(_num(src[k], 0.0), -1.0, 1.0)
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            self.raw_6dof = {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+            self.shaped_6dof = {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+            self.direct_6dof_active = False
+            self.sim.rc_physical.rc_lock = 1
+            self.sim.rc_physical.centre_sticks()
+            return dict(self.shaped_6dof)
+
+        self.shaped_6dof = shape_6dof_gamepad(self.raw_6dof, self.deadzone, self.expo)
+        self.direct_6dof_active = any(abs(v) > 1e-4 for v in self.shaped_6dof.values())
+        self.direct_6dof_until = _num(self.sim.t, 0.0) + 4.0
+        rc = self.sim.rc_physical
+        rc.set_channel("left_ud", int(round(1500 + 500 * self.shaped_6dof["surge"])))
+        rc.set_channel("left_lr", int(round(1500 + 500 * self.shaped_6dof["sway"])))
+        rc.set_channel("right_ud", int(round(1500 + 500 * self.shaped_6dof["heave"])))
+        rc.set_channel("right_lr", int(round(1500 + 500 * self.shaped_6dof["yaw"])))
+        rc.set_channel("left_wave", int(round(1500 + 500 * self.shaped_6dof["pitch"])))
+        rc.set_channel("right_wave", int(round(1500 + 500 * self.shaped_6dof["roll"])))
+        if "unlocked" in src:
+            rc.rc_lock = 0 if src["unlocked"] else 1
+        return self.shaped_6dof
+
+    def inject_thruster_fault(self, thruster_index: int | None = 2, jammed: bool = True) -> dict:
+        n = len(self.sim.health)
+        if thruster_index is None or not jammed:
+            self.sim.health[:] = 1.0
+            self.faulted_thrusters = []
+            self.reallocation_active = False
+            self.mode_state = "emergency_return" if self.emergency_return_active else "normal"
+            self.sim._log("fault", "全部 6 具推進器已恢復 100% 正常輸出")
+            return self.state()
+
+        idx = max(0, min(n - 1, int(_num(thruster_index, 2))))
+        self.sim.health[idx] = 0.0
+        if idx not in self.faulted_thrusters:
+            self.faulted_thrusters.append(idx)
+        self.reallocation_active = True
+        if self.fault_injected_at is None:
+            self.fault_injected_at = round(_num(self.sim.t, 0.0), 2)
+        if not self.emergency_return_active:
+            self.mode_state = "thruster_fault_reallocated"
+        label = THRUSTER_LABELS[idx] if idx < len(THRUSTER_LABELS) else f"T{idx + 1}"
+        self.sim.damage_events.append({"t": round(_num(self.sim.t, 0.0), 2), "thruster": f"T{idx + 1}", "health": 0.0})
+        self.sim._log("fault", f"故障注入：{label} 卡死 (0%) -> 啟動其餘推進器向量重分配補償")
+        return self.state()
+
+    def trigger_emergency_return(self, enable: bool = True) -> dict:
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            self.emergency_return_active = False
+            self.mode_state = "mission_aborted"
+            return self.state()
+        self.emergency_return_active = bool(enable)
+        if self.emergency_return_active:
+            self.sim.rc_physical.rc_lock = 0
+            self.sim.rc_physical.keep_depth = 1
+            self.emergency_return_started_at = _num(self.sim.t, 0.0)
+            self.emergency_return_completed = False
+            self.mode_state = "emergency_return"
+            self.sim._log("rth", "啟動緊急返航模式 (Emergency RTH) — 自動重分配推力導引返回投放母船點")
+        else:
+            self.mode_state = "thruster_fault_reallocated" if self.reallocation_active else "normal"
+            self.sim._log("rth", "取消緊急返航模式，交還手動搖桿控制")
+        return self.state()
+
+    def inject_collision_impulse(self, speed_mps: float = 0.85, zone: str = "front-stbd") -> dict:
+        raw_spd = _num(speed_mps, -1.0)
+        self.hull_integrity = round(_clamp(_num(self.hull_integrity, 100.0), 0.0, 100.0), 1)
+        if raw_spd <= 0.0:
+            return self.state()
+
+        now_t = _num(getattr(self.sim, "t", 0.0), 0.0)
+        # Cooldown guard against rapid consecutive micro-collision jitter (< 0.25 m/s within 0.25s)
+        if raw_spd < 0.25:
+            if self._last_micro_collision_t is not None and (now_t - self._last_micro_collision_t) < self.collision_cooldown_s:
+                return self.state()
+            self._last_micro_collision_t = now_t
+
+        spd = _clamp(raw_spd, 0.01, 50.0)
+        if raw_spd >= 100.0:
+            deduction = 100.0
+        elif spd < 0.25:
+            deduction = round(min(4.0, 14.0 * spd), 1)
+        else:
+            deduction = round(min(28.0, 4.5 + 14.0 * spd), 1)
+
+        self.hull_integrity = round(_clamp(self.hull_integrity - deduction, 0.0, 100.0), 1)
+        self.collision_count += 1
+        entry = {
+            "t": round(now_t, 2),
+            "zone": str(zone or "hull"),
+            "impact_speed_mps": round(spd, 2),
+            "deduction": deduction,
+            "hull_integrity": self.hull_integrity,
+        }
+        self.collision_log.append(entry)
+        self.collision_log = self.collision_log[-10:]
+
+        # Inv_UtSampleRequiresCoupledAndStable: collision during UT hold resets dwell
+        if self.ut_state == "ut_aligning":
+            self.ut_hold_elapsed_s = 0.0
+            self.ut_sample_state = "Sample_Rejected"
+
+        # ACT-03 / Inv_ZeroHullForcesAbort: 0% hull integrity immediately aborts mission & locks thrusters
+        if self.hull_integrity <= 0.0:
+            self.hull_integrity = 0.0
+            self.mission_aborted = True
+            self.mode_state = "mission_aborted"
+            self.emergency_surface_active = False
+            self.emergency_return_active = False
+            self.depth_hold_active = False
+            self.heading_hold_active = False
+            self.direct_6dof_active = False
+            self.sim.controller.depth_hold = None
+            self.sim.rc_physical.rc_lock = 1
+            self.sim.rc_physical.centre_sticks()
+            self.sim.vehicle.s.thrust[:] = 0.0
+            self.sim._log("collision", f"致命碰撞 ({zone}, {spd:.2f} m/s) -> 機體完整度歸零 (0.0%)！強制鎖死推進器並終止任務 (Mission Aborted)")
+        elif self.hull_integrity <= 35.0:
+            self.mode_state = "hull_critical"
+            self.sim._log("collision", f"碰撞衝量 ({zone}, {spd:.2f} m/s) -> 機體完整度 -{deduction:.1f}% (剩餘 {self.hull_integrity:.1f}%)")
+        else:
+            self.sim._log("collision", f"碰撞衝量 ({zone}, {spd:.2f} m/s) -> 機體完整度 -{deduction:.1f}% (剩餘 {self.hull_integrity:.1f}%)")
+        return self.state()
+
+    def set_hazard_params(
+        self,
+        *,
+        current_kn: float | None = None,
+        current_dir: float | None = None,
+        turbidity_ntu: float | None = None,
+    ) -> dict:
+        cur = self.sim.world.current
+        if current_kn is not None:
+            kn = _clamp(_num(current_kn, cur.surface_kn), 0.0, 6.0)
+            cur.surface_kn = kn
+            cur.mid_kn = kn * 0.9
+            cur.bottom_kn = kn * 0.65
+        if current_dir is not None:
+            d = _num(current_dir, cur.surface_dir) % 360.0
+            cur.surface_dir = d
+            cur.mid_dir = d
+            cur.bottom_dir = d
+        if turbidity_ntu is not None:
+            self.turbidity_ntu = _clamp(_num(turbidity_ntu, self.turbidity_ntu), 0.5, 50.0)
+            self.sim.scenario.visibility_m = round(max(2.5, 28.0 / (1.0 + 0.14 * self.turbidity_ntu)), 1)
+        self.sim._log(
+            "hazard",
+            f"環境危害更新：洋流 {cur.mid_kn:.2f} kn @ {cur.mid_dir:.0f}° · 濁度 {self.turbidity_ntu:.1f} NTU (能見度 {self.sim.scenario.visibility_m:.1f} m)",
+        )
+        return self.state()
+
+    def set_depth_hold(self, enable: bool = True, target_depth_m: float | None = None) -> dict:
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            self.depth_hold_active = False
+            return self.state()
+        self.depth_hold_active = bool(enable)
+        if self.depth_hold_active:
+            self._manual_6dof_forced = False
+            cur_d = _clamp(_num(getattr(self.sim, "depth", 0.0), 0.0), 0.0, 200.0)
+            tgt_d = cur_d if target_depth_m is None else _clamp(_num(target_depth_m, cur_d), 0.0, 200.0)
+            self.target_depth_m = round(tgt_d, 3)
+            self.sim.rc_physical.rc_lock = 0
+            self.sim.rc_physical.keep_depth = 1
+            self.sim.controller.depth_hold = self.target_depth_m
+            self._depth_pid_i = 0.0
+            self.depth_hold_error_m = round(self.target_depth_m - cur_d, 4)
+            self.sim._log("depth_hold", f"啟動定深 PID 控制迴路：目標深度 {self.target_depth_m:.2f} m")
+        else:
+            self._manual_6dof_forced = True
+            self.sim.rc_physical.keep_depth = 0
+            self.sim.controller.depth_hold = None
+            self.depth_hold_error_m = 0.0
+            if self.ut_state == "ut_aligning":
+                self.ut_hold_elapsed_s = 0.0
+                self.ut_sample_state = "Sample_Rejected"
+            self.sim._log("depth_hold", "解除定深 PID 控制迴路")
+        return self.state()
+
+    def set_heading_hold(self, enable: bool = True, target_heading_deg: float | None = None) -> dict:
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            self.heading_hold_active = False
+            return self.state()
+        self.heading_hold_active = bool(enable)
+        if self.heading_hold_active:
+            cur_deg = math.degrees(_num(getattr(self.sim, "yaw", 0.0), 0.0)) % 360.0
+            tgt_deg = cur_deg if target_heading_deg is None else (_num(target_heading_deg, cur_deg) % 360.0)
+            self.target_heading_deg = round(tgt_deg, 2)
+            self.sim.rc_physical.rc_lock = 0
+            self._heading_pid_i = 0.0
+            err_deg = (self.target_heading_deg - cur_deg + 180.0) % 360.0 - 180.0
+            self.heading_hold_error_deg = round(err_deg, 3)
+            self.sim._log("heading_hold", f"啟動定艏向 PID 控制迴路：目標艏向 {self.target_heading_deg:.1f}°")
+        else:
+            self.heading_hold_error_deg = 0.0
+            self.sim._log("heading_hold", "解除定艏向 PID 控制迴路")
+        return self.state()
+
+    def trigger_emergency_surface(self, enable: bool = True) -> dict:
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            self.emergency_surface_active = False
+            self.mode_state = "mission_aborted"
+            return self.state()
+
+        # ACT-01 / Inv_NoEmergencySurfaceWhenEntangled: block Emergency_Surface while tether is entangled!
+        if bool(enable) and self._is_tether_entangled():
+            self.emergency_surface_active = False
+            self.set_depth_hold(True)
+            self.mode_state = "tether_snag_warning"
+            self.sim._log("surface", "⛔ 拒絕緊急上浮：偵測到臍帶纜纏繞 (Entangled)，強制鎖定定深模式防止拉斷纜線！")
+            return self.state()
+
+        self.emergency_surface_active = bool(enable)
+        if self.emergency_surface_active:
+            self.emergency_return_active = False
+            self.depth_hold_active = False
+            self.sim.controller.depth_hold = None
+            self.sim.rc_physical.rc_lock = 0
+            self.sim.rc_physical.keep_depth = 0
+            self.emergency_surface_started_at = _num(self.sim.t, 0.0)
+            self.emergency_surface_completed = False
+            self.ut_state = "ut_searching"
+            self.ut_sample_state = "Idle"
+            self.ut_hold_elapsed_s = 0.0
+            self.mode_state = "emergency_surface"
+            self.sim._log("surface", "啟動緊急上浮模式 (Emergency Surface Ascent) — 最大垂直推力快速上浮至水面")
+        else:
+            self.mode_state = "thruster_fault_reallocated" if self.reallocation_active else "normal"
+            self.sim._log("surface", "取消緊急上浮模式")
+        return self.state()
+
+    def inject_tether_snag(self) -> dict:
+        self.tether_snag_simulated = True
+        # Inv_NoEmergencySurfaceWhenEntangled: immediately abort emergency surface and lock Depth_Hold
+        if self.emergency_surface_active:
+            self.emergency_surface_active = False
+        if not self.mission_aborted and self.hull_integrity > 0.0:
+            self.set_depth_hold(True)
+        if self.ut_state == "ut_aligning":
+            self.ut_hold_elapsed_s = 0.0
+            self.ut_sample_state = "Sample_Rejected"
+        self.mode_state = "tether_snag_warning"
+        self.sim._log("tether", "⚠️ 臍帶纜纏繞告警：偵測到結構物纏繞點與高張力 (Tether Snag Warning)")
+        return self.state()
+
+    def resolve_tether_snag(self) -> dict:
+        self.tether_snag_simulated = False
+        self.tether_snag_recovered_count += 1
+        if hasattr(self.sim, "tether"):
+            if len(getattr(self.sim.tether, "nodes", [])) > 2:
+                self.sim.tether.nodes = [self.sim.tether.nodes[0], self.sim.tether.nodes[-1]]
+            if hasattr(self.sim.tether, "snagged_on") and isinstance(self.sim.tether.snagged_on, list):
+                self.sim.tether.snagged_on.clear()
+            if hasattr(self.sim.tether, "wraps") and isinstance(self.sim.tether.wraps, dict):
+                self.sim.tether.wraps.clear()
+            self.sim.tether.payout(1.5)
+        self.mode_state = "thruster_fault_reallocated" if self.reallocation_active else "normal"
+        self.sim._log("tether", f"纜線纏繞告警解除：執行退繞釋放與出纜 +1.5m 完成 (累計解除 {self.tether_snag_recovered_count} 次)")
+        return self.state()
+
+    def start_ut_coupling(self, checkpoint_id: str | None = None, *, tilt_deg: float = 1.4, distance_m: float = 0.42) -> dict:
+        if self.mission_aborted or self.hull_integrity <= 0.0 or self._is_tether_entangled() or self.emergency_surface_active:
+            self.ut_sample_state = "Sample_Rejected"
+            return self.state()
+        target = None
+        all_cps = list(self.ut_checkpoints) + list(self.simready_ut_checkpoints)
+        if checkpoint_id:
+            target = next((c for c in all_cps if c.id == checkpoint_id), None)
+        if target is None:
+            uncompleted = [c for c in self.ut_checkpoints if not c.completed]
+            target = uncompleted[0] if uncompleted else self.ut_checkpoints[0]
+        self.ut_target_id = target.id
+        self.ut_tilt_deg = round(_clamp(_num(tilt_deg, 90.0), 0.0, 180.0), 2)
+        self.ut_distance_m = round(_clamp(_num(distance_m, 10.0), 0.0, 50.0), 2)
+        self.ut_hold_elapsed_s = 0.0
+        self.ut_state = "ut_aligning"
+        if not self.depth_hold_active and not self._manual_6dof_forced:
+            self.set_depth_hold(True)
+        self.ut_sample_state = "Sampling_Hold_3s" if (self.ut_tilt_deg < 3.0 and self.ut_distance_m <= 0.65 and self.depth_hold_active) else "Sample_Rejected"
+        self.sim._log(
+            "ut",
+            f"UT 探頭接觸對準 ({target.id})：距離 {self.ut_distance_m:.2f}m | 傾角 {self.ut_tilt_deg:.1f}° (保持 <3° 達 3.0s 自動鎖定)",
+        )
+        return self.state()
+
+    def sample_ut_checkpoint(self, checkpoint_id: str | None = None, *, tilt_deg: float | None = None) -> dict:
+        if tilt_deg is not None:
+            self.ut_tilt_deg = round(_clamp(_num(tilt_deg, 90.0), 0.0, 180.0), 2)
+
+        # Every entry point requires the same target's uninterrupted coupling dwell.
+        if (
+            self.mission_aborted
+            or self.hull_integrity <= 0.0
+            or self._is_tether_entangled()
+            or self.emergency_surface_active
+            or self.ut_tilt_deg >= 3.0
+            or self._manual_6dof_forced
+            or self.ut_state != "ut_aligning"
+            or (checkpoint_id is not None and checkpoint_id != self.ut_target_id)
+            or self.ut_distance_m > 0.65
+            or self.ut_hold_elapsed_s < self.ut_required_hold_s
+            or not self.depth_hold_active
+        ):
+            self.ut_hold_elapsed_s = 0.0
+            self.ut_sample_state = "Sample_Rejected"
+            self.sim._log("ut", f"⛔ UT 測厚採樣拒絕：未滿足定深鎖定或探頭法向角 < 3.0° 穩定保持 3 秒條件 (tilt={self.ut_tilt_deg:.1f}°)")
+            return self.state()
+
+        if not self.depth_hold_active:
+            self.set_depth_hold(True)
+
+        target = None
+        all_cps = list(self.ut_checkpoints) + list(self.simready_ut_checkpoints)
+        target = next((c for c in all_cps if c.id == self.ut_target_id), None)
+        if target is None:
+            self.ut_hold_elapsed_s = 0.0
+            self.ut_sample_state = "Sample_Rejected"
+            return self.state()
+        target.completed = True
+        target.sampled_at_s = round(_num(self.sim.t, 0.0), 2)
+        target.sampled_depth_m = round(_clamp(_num(self.sim.depth, 0.0), 0.0, 200.0), 2)
+        self.ut_target_id = target.id
+        self.ut_tilt_deg = min(3.0, _clamp(_num(self.ut_tilt_deg, 1.4), 0.0, 3.0))
+        self.ut_distance_m = min(0.65, _clamp(_num(self.ut_distance_m, 0.42), 0.0, 0.65))
+        self.ut_hold_elapsed_s = self.ut_required_hold_s
+        self.ut_state = "ut_coupled_lock"
+        self.ut_sample_state = "Sample_Valid"
+        for obj in self.sim.scenario.objectives:
+            if not getattr(obj, "done", False) and obj.kind in ("inspect", "station_keep", "checkpoint"):
+                obj.done = True
+                break
+        self.sim._log(
+            "ut",
+            f"UT 測厚 3 秒穩定鎖定完成 {target.id} ({target.label})：實測 {target.measured_mm:.1f} mm / 標稱 {target.nominal_mm:.1f} mm (減薄 {target.diminution_pct:.1f}% · {target.status})",
+        )
+        return self.state()
+
+    def step(self, dt: float) -> dict[str, float] | None:
+        """Update Wave 1 state machine, process new world collisions, and return override pilot cmd if active."""
+        dt_safe = _clamp(_num(dt, 0.02), 0.0, 1.0)
+        if dt_safe <= 0.0:
+            return {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")} if self.mission_aborted else None
+
+        # 0. Inv_ZeroHullForcesAbort: if mission is aborted or hull destroyed, keep motors locked at zero
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            self.hull_integrity = 0.0
+            self.mission_aborted = True
+            self.mode_state = "mission_aborted"
+            self.sim.rc_physical.rc_lock = 1
+            self.sim.vehicle.s.thrust[:] = 0.0
+            return {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+
+        # 1. Check new physics contact events -> deduct hull integrity
+        events = self.sim.world.events
+        while self.last_seen_event_idx < len(events):
+            ev = events[self.last_seen_event_idx]
+            self.last_seen_event_idx += 1
+            if getattr(ev, "vehicle_id", "default") == self.sim.vehicle_id:
+                spd = _num(getattr(ev, "speed", 0.35), 0.0)
+                if spd >= 0.18:
+                    self.inject_collision_impulse(spd, getattr(ev, "where", "hull"))
+
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            return {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+
+        # 2. Inv_NoEmergencySurfaceWhenEntangled & Inv_CrushHazardForcesEmergencyOrHold
+        if self._is_tether_entangled() and self.emergency_surface_active:
+            self.emergency_surface_active = False
+            self.set_depth_hold(True)
+            self.mode_state = "tether_snag_warning"
+
+        cur_depth = _clamp(_num(self.sim.depth, 0.0), 0.0, 200.0)
+        if cur_depth >= self.crush_depth_m:
+            if self._is_tether_entangled():
+                if not self.depth_hold_active:
+                    self.set_depth_hold(True)
+            elif not self.emergency_surface_active:
+                self.trigger_emergency_surface(True)
+
+        # 3. Update rolling depth & heading stability metrics (ACT-02: legacy 2.2m auto-sample shortcut removed)
+        pos = self.sim.vehicle.s.pos
+        roll, pitch, _ = self.sim.vehicle.euler
+        att_tilt_deg = _clamp(math.hypot(math.degrees(_num(roll, 0.0)), math.degrees(_num(pitch, 0.0))), 0.0, 180.0)
+        depth_err = 0.0
+        if self.sim.controller.depth_hold is not None:
+            depth_err = min(50.0, abs(cur_depth - _num(self.sim.controller.depth_hold, cur_depth)))
+        self._depth_err_sq_sum = min(1e9, self._depth_err_sq_sum + (depth_err ** 2) * dt_safe)
+        self._heading_err_sq_sum = min(1e9, self._heading_err_sq_sum + ((att_tilt_deg / 15.0) ** 2) * dt_safe)
+        self._stability_samples += 1
+        total_t = max(1.0, _num(self.sim.t, 1.0))
+        rms_depth = math.sqrt(max(0.0, self._depth_err_sq_sum / total_t))
+        rms_tilt = math.sqrt(max(0.0, self._heading_err_sq_sum / total_t))
+        self.depth_hold_stability_pct = round(_clamp(100.0 - 18.0 * rms_depth, 60.0, 100.0), 1)
+        self.heading_stability_pct = round(_clamp(100.0 - 12.0 * rms_tilt, 60.0, 100.0), 1)
+
+        # 3b. Step Seamless 4-Stage Subsea Cable Campaign (Operation: Deep Link)
+        self.cable_campaign.step(dt_safe, pos, self.hull_integrity)
+
+        # 4. Sync thruster fault list from sim.health
+        faults = [i for i, h in enumerate(self.sim.health) if _num(h, 0.0) <= 0.15]
+        self.faulted_thrusters = faults
+        self.reallocation_active = len(faults) > 0
+
+        # 4b. Wave 3 UT 3-Second Stable Sampling Lock progression (strictly enforces Inv_UtSampleRequiresCoupledAndStable)
+        if self.ut_state == "ut_aligning":
+            if (
+                self.depth_hold_active
+                and not self._is_tether_entangled()
+                and self.ut_tilt_deg < 3.0
+                and self.ut_distance_m <= 0.65
+            ):
+                self.ut_sample_state = "Sampling_Hold_3s"
+                self.ut_hold_elapsed_s = round(min(self.ut_required_hold_s, self.ut_hold_elapsed_s + dt_safe), 3)
+                if self.ut_hold_elapsed_s >= self.ut_required_hold_s:
+                    self.sample_ut_checkpoint(self.ut_target_id)
+            else:
+                self.ut_hold_elapsed_s = 0.0
+                self.ut_sample_state = "Sample_Rejected"
+
+        # 4c. Wave 3 Emergency Surface Blow/Ascent guidance
+        if self.emergency_surface_active:
+            elapsed_surf = max(0.0, _num(self.sim.t, 0.0) - _num(self.emergency_surface_started_at, _num(self.sim.t, 0.0)))
+            self.emergency_surface_time_s = round(max(0.05, elapsed_surf), 2)
+            if cur_depth <= 0.25:
+                self.emergency_surface_completed = True
+                self.emergency_surface_active = False
+                self.mode_state = "thruster_fault_reallocated" if self.reallocation_active else "normal"
+                self.sim._log("surface", f"緊急上浮完成！耗時 {self.emergency_surface_time_s:.2f}s 安全浮抵水面")
+                return {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+            flare = 0.95 if cur_depth > 0.8 else max(0.25, min(0.85, 0.85 * cur_depth))
+            return {
+                "surge": 0.0,
+                "sway": 0.0,
+                "heave": flare,
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 0.0,
+            }
+
+        # 5. Emergency Return-to-Home (RTH) guidance
+        if self.emergency_return_active:
+            home = np.asarray(self.sim.scenario.start_pos, dtype=float)
+            delta = home - pos
+            horiz_dist = float(math.hypot(_num(delta[0], 0.0), _num(delta[1], 0.0)))
+            elapsed_rth = max(0.0, _num(self.sim.t, 0.0) - _num(self.emergency_return_started_at, _num(self.sim.t, 0.0)))
+            if self.emergency_return_started_at is not None and not self.emergency_return_completed:
+                self.emergency_return_time_s = round(max(0.1, elapsed_rth), 2)
+            if elapsed_rth >= 3.0 and horiz_dist <= 2.2 and abs(_num(delta[2], 0.0)) <= 1.8:
+                self.emergency_return_completed = True
+                self.emergency_return_active = False
+                self.mode_state = "thruster_fault_reallocated" if self.reallocation_active else "normal"
+                self.sim._log("rth", f"緊急返航完成！耗時 {self.emergency_return_time_s or 0.0:.1f}s 安全返抵母船回收點")
+                return {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+
+            desired_yaw = math.atan2(_num(delta[1], 0.0), _num(delta[0], 0.0))
+            yaw_err = (desired_yaw - _num(self.sim.yaw, 0.0) + math.pi) % (2 * math.pi) - math.pi
+            self.sim.controller.depth_hold = float(home[2])
+            return {
+                "surge": _clamp(0.45 * horiz_dist * math.cos(yaw_err), -0.75, 0.75),
+                "sway": _clamp(0.35 * horiz_dist * math.sin(yaw_err), -0.55, 0.55),
+                "heave": _clamp(0.5 * _num(delta[2], 0.0), -0.6, 0.6),
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": _clamp(1.2 * yaw_err, -0.65, 0.65),
+            }
+
+        # 6. Direct 6DoF gamepad override + Wave 3 Depth Hold PID & Heading Hold PID
+        cmd_active = self.direct_6dof_active and _num(self.sim.t, 0.0) <= self.direct_6dof_until
+        if cmd_active or self.depth_hold_active or self.heading_hold_active:
+            out_cmd = dict(self.shaped_6dof) if cmd_active else {k: 0.0 for k in ("surge", "sway", "heave", "roll", "pitch", "yaw")}
+            if self.depth_hold_active:
+                self.target_depth_m = _clamp(_num(self.target_depth_m, cur_depth), 0.0, 200.0)
+                err_z = _clamp(self.target_depth_m - cur_depth, -50.0, 50.0)
+                self.depth_hold_error_m = round(err_z, 4)
+                self._depth_pid_i = _clamp(_num(self._depth_pid_i, 0.0) + err_z * dt_safe, -0.45, 0.45)
+                vz = _clamp(_num(self.sim.vehicle.world_velocity()[2], 0.0), -20.0, 20.0)
+                self.sim.controller.depth_hold = self.target_depth_m
+                out_cmd["heave"] = round(_clamp(1.45 * err_z + 0.32 * self._depth_pid_i - 0.90 * vz, -0.85, 0.85), 4)
+            if self.heading_hold_active:
+                cur_deg = math.degrees(_num(self.sim.yaw, 0.0)) % 360.0
+                self.target_heading_deg = _num(self.target_heading_deg, cur_deg) % 360.0
+                err_deg = _num((self.target_heading_deg - cur_deg + 180.0) % 360.0 - 180.0, 0.0)
+                self.heading_hold_error_deg = round(err_deg, 3)
+                err_rad = math.radians(err_deg)
+                self._heading_pid_i = _clamp(_num(self._heading_pid_i, 0.0) + err_rad * dt_safe, -0.35, 0.35)
+                wz = _clamp(_num(self.sim.vehicle.s.omega[2], 0.0), -20.0, 20.0)
+                out_cmd["yaw"] = round(_clamp(1.55 * err_rad + 0.25 * self._heading_pid_i - 0.55 * wz, -0.80, 0.80), 4)
+            return out_cmd
+        return None
+
+    def compute_sop_evaluation(self) -> dict:
+        self.hull_integrity = round(_clamp(_num(self.hull_integrity, 100.0), 0.0, 100.0), 1)
+        ut_done = sum(1 for c in self.ut_checkpoints if c.completed)
+        ut_total = len(self.ut_checkpoints)
+        obj_done = sum(1 for o in self.sim.scenario.objectives if getattr(o, "done", False))
+        obj_total = max(1, len(self.sim.scenario.objectives))
+
+        completion_ratio = max(ut_done / max(1, ut_total), (ut_done + obj_done) / max(1, ut_total + obj_total))
+        waypoint_pts = round(40.0 * _clamp(completion_ratio, 0.0, 1.0), 1)
+        d_stab = _clamp(_num(self.depth_hold_stability_pct, 96.4), 0.0, 100.0)
+        h_stab = _clamp(_num(self.heading_stability_pct, 95.8), 0.0, 100.0)
+        stability_pts = round(25.0 * (0.55 * d_stab + 0.45 * h_stab) / 100.0, 1)
+        integrity_pts = round(20.0 * (self.hull_integrity / 100.0), 1)
+
+        if self.reallocation_active or self.fault_injected_at is not None:
+            fault_pts = 15.0 if (self.emergency_return_completed or self.emergency_return_time_s is not None) else 12.5
+        else:
+            fault_pts = 13.5
+
+        raw_total = _clamp(waypoint_pts + stability_pts + integrity_pts + fault_pts, 0.0, 100.0)
+
+        # ACT-03 / Inv_ZeroHullForcesAbort & Inv_NoCertWithThrusterFaultUnlessReturned
+        if self.hull_integrity <= 0.0 or self.mission_aborted:
+            total_score = 0.0
+            grade = "F (淘汰 · 機體結構損毀 Mission Aborted)"
+            sop_cert_status = "Failed_Retry"
+        elif self.hull_integrity < 80.0:
+            total_score = round(min(raw_total, 78.0), 1)
+            grade = (
+                "B (良 · 機體擦撞損耗低於 80% 認證門檻，建議重訓)" if total_score >= 70.0 else
+                "C (待加強 · 需重訓搖桿死區與防撞控制)"
+            )
+            sop_cert_status = "Failed_Retry"
+        else:
+            total_score = round(raw_total, 1)
+            grade = (
+                "A+ (優異 · 具備複雜海況與故障應變資格)" if total_score >= 90.0 else
+                "A (合格 · 符合 B2B 船體巡檢 SOP 標準)" if total_score >= 80.0 else
+                "B (良 · 建議加強定深與邊角測厚穩定度)" if total_score >= 70.0 else
+                "C (待加強 · 需重訓搖桿死區與防撞控制)"
+            )
+            sop_cert_status = (
+                "Certified_Pass"
+                if (total_score >= 85.0 and ut_done == ut_total and not self._is_tether_entangled()
+                    and not self.emergency_surface_active
+                    and (not (self.reallocation_active or self.fault_injected_at is not None)
+                         or self.emergency_return_completed))
+                else "Pending"
+            )
+
+        tether_state = self.sim.tether.state()
+        return {
+            "report_version": "ROV-01-SOP-v2.1",
+            "generated_at": time.strftime("%Y-%m-%d %H:%M:%S UTC+8"),
+            "vehicle_model": "ROV-01 (6-Thruster Open-Frame Industrial)",
+            "mission_id": self.mission_id,
+            "mission_title": WAVE1_MISSION_CATALOG.get(self.mission_id, {}).get("title", self.sim.scenario.name),
+            "elapsed_s": round(_num(self.sim.t, 0.0), 2),
+            "total_score": total_score,
+            "grade": grade,
+            "sop_cert_status": sop_cert_status,
+            "breakdown": {
+                "waypoint_ut_completion_pts": waypoint_pts,
+                "stability_hold_pts": stability_pts,
+                "hull_integrity_safety_pts": integrity_pts,
+                "fault_compensation_rth_pts": fault_pts,
+            },
+            "metrics": {
+                "ut_completed": ut_done,
+                "ut_total": ut_total,
+                "ut_completion_pct": round(100.0 * ut_done / max(1, ut_total), 1),
+                "waypoints_completed": obj_done,
+                "waypoints_total": len(self.sim.scenario.objectives),
+                "depth_hold_stability_pct": d_stab,
+                "heading_stability_pct": h_stab,
+                "hull_integrity_pct": self.hull_integrity,
+                "collision_count": self.collision_count,
+                "faulted_thrusters": [f"T{i + 1}" for i in self.faulted_thrusters],
+                "reallocation_active": self.reallocation_active,
+                "emergency_return_time_s": self.emergency_return_time_s,
+                "emergency_return_completed": self.emergency_return_completed,
+                "tether_tension_n": _num(tether_state.get("tension_n", 0.0), 0.0),
+                "tether_snagged": self._is_tether_entangled(),
+                "current_kn": round(float(np.linalg.norm(self.sim.vehicle.current_ned)) / 0.514444, 2),
+                "turbidity_ntu": round(self.turbidity_ntu, 1),
+                "visibility_m": round(_num(self.sim.scenario.visibility_m, 10.0), 1),
+            },
+            "ut_checkpoints": [c.as_dict() for c in self.ut_checkpoints],
+            "collision_log": list(self.collision_log),
+        }
+
+    def handle_campaign_action(self, sub_action: str, payload: dict | None = None) -> dict:
+        data = payload or {}
+        pos = self.sim.vehicle.s.pos
+        if sub_action == "reset":
+            st = self.cable_campaign.reset_campaign()
+        elif sub_action == "set_stage":
+            stage_num = int(data.get("stage_num", 1))
+            st = self.cable_campaign.set_stage(stage_num, pos)
+            tgt = st["target_ned"]
+            if stage_num == 1:
+                self.sim.vehicle.s.pos[:] = np.array([1.2, -0.3, 2.4], dtype=float)
+            elif stage_num == 2:
+                self.sim.vehicle.s.pos[:] = np.array([7.1, 0.2, 5.9], dtype=float)
+            elif stage_num == 3:
+                self.sim.vehicle.s.pos[:] = np.array([8.0, -1.8, 6.6], dtype=float)
+                self.set_depth_hold(True, target_depth_m=6.6)
+                self.set_heading_hold(True, target_heading_deg=0.0)
+                self.set_hazard_params(current_kn=1.2, current_dir=90.0)
+            elif stage_num == 4:
+                self.sim.vehicle.s.pos[:] = np.array([0.8, 0.0, 2.3], dtype=float)
+                self.set_depth_hold(True, target_depth_m=2.3)
+            st = self.cable_campaign.to_dict(self.sim.vehicle.s.pos)
+        elif sub_action == "advance_ring":
+            st = self.cable_campaign.advance_sonar_ring(pos)
+        elif sub_action == "grab_cable":
+            st = self.cable_campaign.grab_or_tow_cable(pos, place_in_saddle=bool(data.get("place_in_saddle", False)))
+        elif sub_action == "repair_step":
+            if not self.depth_hold_active and not self.mission_aborted and self.hull_integrity > 0.0:
+                self.set_depth_hold(True, target_depth_m=float(pos[2]))
+            st = self.cable_campaign.perform_repair_step(float(data.get("step_delta_pct", 34.0)), pos)
+        elif sub_action == "extract_complete":
+            st = self.cable_campaign.complete_extraction(
+                hull_integrity_pct=self.hull_integrity,
+                elapsed_s=float(getattr(self.sim, "t", 120.0)),
+                rov_pos_ned=pos,
+            )
+        else:
+            st = self.cable_campaign.to_dict(pos)
+        return {"ok": True, "campaign": st, "wave1": self.state()}
+
+    def get_simready_asset(self, asset_id: str) -> UsdPhysicsAsset | None:
+        aid = str(asset_id or "").strip().upper()
+        return next((a for a in self.simready_assets if a.asset_id.upper() == aid), None)
+
+    def collide_simready_asset(self, asset_id: str, impact_speed_mps: float | None = None) -> dict:
+        asset = self.get_simready_asset(asset_id) or (self.simready_assets[0] if self.simready_assets else None)
+        if asset is None:
+            return {"ok": False, "error": f"Unknown SimReady asset: {asset_id}"}
+        if impact_speed_mps is not None and math.isfinite(float(impact_speed_mps)) and float(impact_speed_mps) > 0.0:
+            spd = _clamp(float(impact_speed_mps), 0.05, 12.0)
+            vel_ned = np.array([spd, 0.0, 0.0], dtype=float)
+        else:
+            vel_ned = np.asarray(self.sim.vehicle.world_velocity(), dtype=float)
+            if float(np.linalg.norm(vel_ned)) < 0.18:
+                vel_ned = np.array([0.85, 0.0, 0.0], dtype=float)
+        impulse = compute_usd_collision_impulse(
+            asset,
+            rov_vel_ned=vel_ned,
+            rov_pos_ned=self.sim.vehicle.s.pos,
+        )
+        self.last_simready_collision = impulse
+        self.inject_collision_impulse(impulse["impact_speed_mps"], f"SimReady:{asset.asset_id}")
+        if not self.mission_aborted and self.hull_integrity > 0.0:
+            self.sim.vehicle.s.vel[:] = np.asarray(impulse["rebound_velocity_ned"], dtype=float)
+        return {
+            "ok": True,
+            "collision": impulse,
+            "wave1": self.state(),
+        }
+
+    def teleport_to_simready_asset(self, asset_id: str) -> dict:
+        asset = self.get_simready_asset(asset_id) or (self.simready_assets[0] if self.simready_assets else None)
+        if asset is None:
+            return {"ok": False, "error": f"Unknown SimReady asset: {asset_id}"}
+        if self.mission_aborted or self.hull_integrity <= 0.0:
+            return {"ok": False, "error": "Mission aborted", "wave1": self.state()}
+        ax, ay, az = asset.ned_pos
+        standoff_pos = np.array([ax - 1.4, ay, az], dtype=float)
+        self.sim.vehicle.s.pos[:] = standoff_pos
+        self.sim.vehicle.s.vel[:] = 0.0
+        self.sim.vehicle.s.omega[:] = 0.0
+        self.set_depth_hold(True, target_depth_m=float(az))
+        self.sim._log(
+            "simready",
+            f"導航定位至 SimReady OpenUSD 資產 {asset.asset_id} ({asset.title_zh}) @ NED ({ax:.1f}, {ay:.1f}, {az:.1f}m)",
+        )
+        return {
+            "ok": True,
+            "asset": asset.to_dict(),
+            "rov_pos_ned": [round(float(x), 3) for x in self.sim.vehicle.s.pos],
+            "wave1": self.state(),
+        }
+
+    def get_b2b_roster(self) -> dict:
+        data = self.b2b_roster.to_dict()
+        return {
+            "ok": True,
+            "cohort_id": self.b2b_roster.cohort_id,
+            "summary": data["summary"],
+            "records": data["records"],
+        }
+
+    def record_b2b_run(
+        self,
+        trainee_id: str,
+        trainee_name: str,
+        department: str = "永祥水下工程部 (Subsea Ops)",
+        timestamp: str | None = None,
+    ) -> dict:
+        rec = self.b2b_roster.record_wave1_run(
+            self,
+            trainee_id=trainee_id,
+            trainee_name=trainee_name,
+            department=department,
+            timestamp=timestamp,
+        )
+        rec_dict = rec.to_dict()
+        return {
+            "ok": True,
+            "verified": verify_certificate_signature(rec_dict),
+            **rec_dict,
+            "record": rec_dict,
+            "certificate": rec_dict,
+            "cohort_summary": self.b2b_roster.compute_cohort_summary(),
+        }
+
+    def state(self) -> dict:
+        tether_st = self.sim.tether.state()
+        tether_warn = bool(
+            self._is_tether_entangled()
+            or (
+                not self.emergency_surface_completed
+                and tether_st.get("tension_n", 0.0) >= tether_st.get("warn_n", 250.0)
+            )
+        )
+        if self.hull_integrity <= 0.0 or self.mission_aborted:
+            sm = "mission_aborted"
+        elif self.hull_integrity <= 35.0:
+            sm = "hull_critical"
+        elif self.emergency_surface_active:
+            sm = "emergency_surface"
+        elif self.emergency_return_active:
+            sm = "emergency_return"
+        elif self.reallocation_active:
+            sm = "thruster_fault_reallocated"
+        elif tether_warn:
+            sm = "tether_snag_warning"
+        else:
+            sm = "normal"
+        self.mode_state = sm
+
+        return {
+            "mission_id": self.mission_id,
+            "mission_catalog": list(WAVE1_MISSION_CATALOG.values()),
+            "mode_state": self.mode_state,
+            "mission_aborted": self.mission_aborted,
+            "gamepad": {
+                "deadzone": self.deadzone,
+                "expo": self.expo,
+                "raw_6dof": dict(self.raw_6dof),
+                "shaped_6dof": dict(self.shaped_6dof),
+            },
+            "thrusters": {
+                "labels": list(THRUSTER_LABELS),
+                "faulted_indices": list(self.faulted_thrusters),
+                "faulted_names": [f"T{i + 1}" for i in self.faulted_thrusters],
+                "reallocation_active": self.reallocation_active,
+            },
+            "hazards": {
+                "hull_integrity": self.hull_integrity,
+                "collision_count": self.collision_count,
+                "turbidity_ntu": round(self.turbidity_ntu, 1),
+                "visibility_m": round(_num(self.sim.scenario.visibility_m, 10.0), 1),
+                "tether_warning": tether_warn,
+                "emergency_return_active": self.emergency_return_active,
+                "emergency_return_time_s": self.emergency_return_time_s,
+                "emergency_return_completed": self.emergency_return_completed,
+            },
+            "wave3": {
+                "autopilot_mode": self.autopilot_mode,
+                "tether_state": self.tether_state,
+                "probe_coupling": self.probe_coupling,
+                "ut_sample_state": self.ut_sample_state,
+                "depth_zone": self.depth_zone,
+                "depth_hold_active": self.depth_hold_active,
+                "target_depth_m": self.target_depth_m,
+                "depth_hold_error_m": self.depth_hold_error_m,
+                "heading_hold_active": self.heading_hold_active,
+                "target_heading_deg": self.target_heading_deg,
+                "heading_hold_error_deg": self.heading_hold_error_deg,
+                "emergency_surface_active": self.emergency_surface_active,
+                "emergency_surface_time_s": self.emergency_surface_time_s,
+                "emergency_surface_completed": self.emergency_surface_completed,
+                "tether_snag_active": tether_warn,
+                "tether_snag_recovered_count": self.tether_snag_recovered_count,
+                "ut_state": self.ut_state,
+                "ut_ring_state": (
+                    "coupled" if (self.mission_id == "mission_2_hull_ut" and self.ut_state == "ut_coupled_lock") else
+                    "aligning" if (self.mission_id == "mission_2_hull_ut" and self.ut_state == "ut_aligning") else
+                    "searching"
+                ),
+                "ut_target_id": self.ut_target_id,
+                "ut_tilt_deg": self.ut_tilt_deg,
+                "ut_distance_m": self.ut_distance_m,
+                "ut_hold_elapsed_s": self.ut_hold_elapsed_s,
+                "ut_required_hold_s": self.ut_required_hold_s,
+            },
+            "cable_campaign": self.cable_campaign.to_dict(self.sim.vehicle.s.pos),
+            "simready_usd": {
+                "asset_count": len(self.simready_assets),
+                "mission_assets": [a.to_dict() for a in self.simready_assets if a.mission_id == self.mission_id],
+                "all_assets": [a.to_dict() for a in self.simready_assets],
+                "ut_checkpoints": [c.as_dict() for c in self.simready_ut_checkpoints],
+                "last_collision": self.last_simready_collision,
+            },
+            "sop_evaluation": self.compute_sop_evaluation(),
+        }
+
+
+Wave1Engine = Wave1Manager

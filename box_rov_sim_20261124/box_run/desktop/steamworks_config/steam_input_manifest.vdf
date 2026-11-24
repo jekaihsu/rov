@@ -1,0 +1,80 @@
+"In Game Actions"
+{
+	"actions"
+	{
+		"ROVFlightControls"
+		{
+			"title" "#ActionSet_ROVFlightControls"
+			"StickPadGyro"
+			{
+				"LeftStick_SurgeSway"
+				{
+					"title" "#Action_LeftStick_SurgeSway"
+					"input_mode" "joystick_move"
+				}
+				"RightStick_HeaveYaw"
+				{
+					"title" "#Action_RightStick_HeaveYaw"
+					"input_mode" "joystick_move"
+				}
+			}
+			"AnalogTrigger"
+			{
+				"CameraTilt"
+				{
+					"title" "#Action_CameraTilt"
+				}
+			}
+			"Button"
+			{
+				"Surge" "#Action_Surge"
+				"Sway" "#Action_Sway"
+				"Heave" "#Action_Heave"
+				"Yaw" "#Action_Yaw"
+				"Depth_Hold" "#Action_Depth_Hold"
+				"Heading_Hold" "#Action_Heading_Hold"
+				"Emergency_Surface" "#Action_Emergency_Surface"
+				"UT_Sample" "#Action_UT_Sample"
+				"Motor_Arm_Toggle" "#Action_Motor_Arm_Toggle"
+				"Gain_Cycle" "#Action_Gain_Cycle"
+			}
+		}
+	}
+	"localization"
+	{
+		"english"
+		{
+			"ActionSet_ROVFlightControls" "ROV-01 6DoF Flight & Inspection Controls"
+			"Action_LeftStick_SurgeSway" "Planar Translation (Surge / Sway)"
+			"Action_RightStick_HeaveYaw" "Vertical & Heading (Heave / Yaw)"
+			"Action_CameraTilt" "Optical / Sonar Gimbal Tilt"
+			"Action_Surge" "Surge Axis (Forward / Reverse)"
+			"Action_Sway" "Sway Axis (Port / Starboard)"
+			"Action_Heave" "Heave Axis (Ascend / Descend)"
+			"Action_Yaw" "Yaw Axis (Rotate Heading)"
+			"Action_Depth_Hold" "Toggle Auto Depth Hold"
+			"Action_Heading_Hold" "Toggle Auto Heading Hold"
+			"Action_Emergency_Surface" "Trigger Emergency Surface Procedure"
+			"Action_UT_Sample" "Acquire 3s Ultrasonic Thickness (UT) Sample"
+			"Action_Motor_Arm_Toggle" "Arm / Disarm 6-Vectored Thrusters"
+			"Action_Gain_Cycle" "Cycle Thruster Power Gain (25% / 50% / 75% / 100%)"
+		}
+		"tchinese"
+		{
+			"ActionSet_ROVFlightControls" "ROV-01 六自由度潛航與測厚控制"
+			"Action_LeftStick_SurgeSway" "水平推進與橫移 (Surge / Sway)"
+			"Action_RightStick_HeaveYaw" "垂直升降與偏航 (Heave / Yaw)"
+			"Action_CameraTilt" "光學／聲納雲台俯仰"
+			"Action_Surge" "前後推進軸 (Surge)"
+			"Action_Sway" "左右橫移軸 (Sway)"
+			"Action_Heave" "垂直升降軸 (Heave)"
+			"Action_Yaw" "艏向偏航軸 (Yaw)"
+			"Action_Depth_Hold" "切換自動定深 (Depth Hold)"
+			"Action_Heading_Hold" "切換自動定艏向 (Heading Hold)"
+			"Action_Emergency_Surface" "啟動緊急上浮程序 (Emergency Surface)"
+			"Action_UT_Sample" "執行 3 秒超音波測厚採樣 (UT Sample)"
+			"Action_Motor_Arm_Toggle" "解鎖／鎖定六向量推進器"
+			"Action_Gain_Cycle" "切換推力增益檔位 (25% / 50% / 75% / 100%)"
+		}
+	}
+}

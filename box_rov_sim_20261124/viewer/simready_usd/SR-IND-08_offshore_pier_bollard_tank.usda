@@ -1,0 +1,71 @@
+#usda 1.0
+(
+    defaultPrim = "SR_IND_08_OffshorePierBollardTank"
+    doc = "NVIDIA Omniverse SimReady OpenUSD Subsea Industrial Asset (SR-IND-08) — Source: huggingface.co/datasets/nvidia/simready-assets/ibcTank_steel_stainless_a01 (CC-BY-4.0)"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "SR_IND_08_OffshorePierBollardTank" (
+    kind = "component"
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "PhysicsCollisionAPI", "PhysicsMaterialAPI"]
+)
+{
+    custom string simready:assetId = "SR-IND-08"
+    custom string simready:hfDataset = "nvidia/simready-assets"
+    custom string simready:hfPackage = "ibcTank_steel_stainless_a01"
+    custom string simready:hfPackageId = "simready.hf.nvidia.simready-assets.ibcTank_steel_stainless_a01.2026.10.09_054826694413"
+    custom string simready:hfRootUsd = "simready_usd/sm_ibcTank_steel_stainless_a01_01.usd"
+    custom string simready:hfContentSha256 = "d09f0536901a4c175d925ffabb0c1576649f3502f00bed59c3407759570d2ba3"
+    custom string simready:license = "CC-BY-4.0"
+    custom string simready:missionId = "mission_4_pipeline"
+    custom string simready:missionCode = "M4"
+    custom string simready:titleZh = "重型港灣碼頭繫船柱與不鏽鋼護舷儲槽"
+    custom string simready:titleEn = "Heavy Harbor Pier Bollard & Stainless Containment Tank"
+    custom string simready:shapeArchetype = "bollard_tank"
+    custom string simready:pbrColorHex = "#CBD5E1"
+    custom string simready:secondaryColorHex = "#06B6D4"
+    custom double subsea:utNominalWallMm = 16.00
+    custom double subsea:utActualWallMm = 15.50
+    custom double subsea:displacementM3 = 0.0980
+
+    bool physics:rigidBodyEnabled = true
+    bool physics:collisionEnabled = true
+    uniform token physics:approximation = "convexHull"
+    float physics:mass = 740.00
+    point3f physics:centerOfMass = (0.000, 0.000, -0.300)
+    float physics:staticFriction = 0.740
+    float physics:dynamicFriction = 0.600
+    float physics:restitution = 0.100
+
+    double3 xformOp:translate = (15.500, 2.600, 8.800)
+    float3 xformOp:scale = (1.000, 1.000, 1.000)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+    def Mesh "Visual_And_Collision_Hull" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        float3[] extent = [(-1.200, -1.200, -1.300), (1.200, 1.200, 1.300)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [
+            0, 1, 2, 3,
+            4, 7, 6, 5,
+            0, 4, 5, 1,
+            1, 5, 6, 2,
+            2, 6, 7, 3,
+            3, 7, 4, 0
+        ]
+        point3f[] points = [
+            (-1.200, -1.200, -1.300),
+            (1.200, -1.200, -1.300),
+            (1.200, 1.200, -1.300),
+            (-1.200, 1.200, -1.300),
+            (-1.200, -1.200, 1.300),
+            (1.200, -1.200, 1.300),
+            (1.200, 1.200, 1.300),
+            (-1.200, 1.200, 1.300)
+        ]
+        color3f[] primvars:displayColor = [(0.133, 0.827, 0.933)]
+    }
+}

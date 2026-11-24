@@ -1,0 +1,1246 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "id": "camera",
+      "name": "低照度攝影機",
+      "product": "ROV-02 4K Cam",
+      "category": "光學",
+      "shape": "camera",
+      "dimensions_m": [
+        0.0909365,
+        0.0996746,
+        0.0996509
+      ],
+      "mass_kg": 0.156,
+      "submerged_mass_kg": 0.156,
+      "power_w": 5,
+      "slot_kind": "internal_camera",
+      "source": "local://docs/rov-payloads",
+      "unit": "張",
+      "description": "艙內 4K 攝影模組，安裝於 ROV-02-HEAVY 前端耐壓艙內並擷取巡檢影像。模組本身沒有防水外殼。",
+      "model": "models/tools/camera.glb",
+      "display_model": "models/tools/camera.glb",
+      "models": [
+        "rov02_heavy"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "manufacturer_stl_components",
+      "uncertainty": "採原廠 BR-103829 RevB CAD。保留來源實際外廓，未拉伸到產品規格的名義直徑；艙內安裝位置需依實機圖紙覆核。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "zoom",
+      "name": "變焦攝影機",
+      "product": "SubC Rayfin SCI",
+      "category": "光學",
+      "shape": "zoom",
+      "dimensions_m": [
+        0.28,
+        0.11,
+        0.11
+      ],
+      "mass_kg": 2.1,
+      "submerged_mass_kg": 0.966,
+      "power_w": 18,
+      "slot_kind": "front",
+      "source": "https://www.subcimaging.com/rayfin-single-channel-inspection/",
+      "unit": "×",
+      "description": "調整視野，放大查看表面細節。",
+      "model": "models/tools/zoom.glb",
+      "display_model": "models/tools/zoom.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "stereo",
+      "name": "雙目攝影機",
+      "product": "Voyis Discovery Stereo",
+      "category": "光學",
+      "shape": "stereo",
+      "dimensions_m": [
+        0.2,
+        0.38,
+        0.16
+      ],
+      "mass_kg": 4.1,
+      "submerged_mass_kg": 1.886,
+      "power_w": 32,
+      "slot_kind": "front",
+      "source": "https://voyis.com/discovery-stereo-inspection-series/",
+      "unit": "m",
+      "description": "左右視差畫面與近距離測距。",
+      "model": "models/tools/stereo.glb",
+      "display_model": "models/tools/stereo.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "light",
+      "name": "水下工作燈",
+      "product": "ROV-02 Lumen R3 CAD",
+      "category": "光學",
+      "shape": "light",
+      "dimensions_m": [
+        0.0783943,
+        0.0384845,
+        0.0369989
+      ],
+      "mass_kg": 0.115,
+      "submerged_mass_kg": 0.053,
+      "power_w": 15,
+      "slot_kind": "light",
+      "source": "local://docs/rov-payloads",
+      "unit": "%",
+      "description": "可調亮度照明，耗電随亮度改變。",
+      "model": "models/tools/light.glb",
+      "display_model": "models/tools/light.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "manufacturer_stl_components",
+      "uncertainty": "採原廠 LUMEN-ASM-R3 公開 CAD；不等同後續 R4 鏡片版本。材質、亮度與耗電響應為展示估計。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "laser",
+      "name": "雷射比例尺",
+      "product": "通用雙光點雷射比例尺（Generic dual-point laser scaler）",
+      "category": "光學",
+      "shape": "laser",
+      "dimensions_m": [
+        0.095,
+        0.18,
+        0.055
+      ],
+      "mass_kg": 0.42,
+      "submerged_mass_kg": 0.193,
+      "power_w": 3,
+      "slot_kind": "front",
+      "source": "internal-estimate",
+      "unit": "m",
+      "description": "雙光點投影，量測落點間距。",
+      "model": "models/tools/laser.glb",
+      "display_model": "models/tools/laser.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "scanner",
+      "name": "三維雷射掃描器",
+      "product": "Voyis Insight Nano",
+      "category": "光學",
+      "shape": "scanner",
+      "dimensions_m": [
+        0.26,
+        0.18,
+        0.12
+      ],
+      "mass_kg": 3.0,
+      "submerged_mass_kg": 1.38,
+      "power_w": 25,
+      "slot_kind": "front",
+      "source": "https://voyis.com/insight-nano/",
+      "unit": "點",
+      "description": "逐線掃描可見表面並保存局部點雲。",
+      "model": "models/tools/scanner.glb",
+      "display_model": "models/tools/scanner.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "ping360",
+      "name": "旋轉扫描聲納",
+      "product": "ROV-02 Ping360",
+      "category": "聲學與導航",
+      "shape": "ping360",
+      "dimensions_m": [
+        0.105,
+        0.1,
+        0.105
+      ],
+      "mass_kg": 0.51,
+      "submerged_mass_kg": 0.175,
+      "power_w": 5,
+      "slot_kind": "top",
+      "source": "local://docs/rov-payloads",
+      "unit": "m",
+      "description": "旋轉掃描周圍結構，顯示距離回波。",
+      "model": "models/tools/ping360.glb",
+      "display_model": "models/tools/ping360.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "manufacturer_stl",
+      "uncertainty": "本體使用原廠公開 STL；材質、線材佈線、關節分件與動態參數為重建。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300,
+      "cad_url": "local://docs/rov-payloads"
+    },
+    {
+      "id": "oculus",
+      "name": "前視多波束聲納",
+      "product": "Blueprint Oculus M750d",
+      "category": "聲學與導航",
+      "shape": "oculus",
+      "dimensions_m": [
+        0.125,
+        0.122,
+        0.065
+      ],
+      "mass_kg": 0.98,
+      "submerged_mass_kg": 0.451,
+      "power_w": 18,
+      "slot_kind": "front",
+      "source": "https://www.blueprintsubsea.com/oculus/",
+      "unit": "m",
+      "description": "前視扇形聲納，觀察附近障礙。",
+      "model": "models/tools/oculus.glb",
+      "display_model": "models/tools/oculus.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "altimeter",
+      "name": "聲學高度計",
+      "product": "ROV-02 Ping BR-100725 RevA",
+      "category": "聲學與導航",
+      "shape": "altimeter",
+      "dimensions_m": [
+        0.04062,
+        0.0499932,
+        0.0711
+      ],
+      "mass_kg": 0.2,
+      "submerged_mass_kg": 0.092,
+      "power_w": 3,
+      "slot_kind": "bottom",
+      "source": "local://docs/rov-payloads",
+      "unit": "m",
+      "description": "向下量測離底高度。",
+      "model": "models/tools/altimeter.glb",
+      "display_model": "models/tools/altimeter.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "manufacturer_stl_components",
+      "uncertainty": "採原廠 BR-100725 RevA 公開外殼 CAD；不等同後續較大的 BR-101684 RevB。高度含接頭，感測響應為模擬。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "dvl",
+      "name": "都卜勒測速儀",
+      "product": "Water Linked DVL A50",
+      "category": "聲學與導航",
+      "shape": "dvl",
+      "dimensions_m": [
+        0.1,
+        0.1,
+        0.066
+      ],
+      "mass_kg": 0.2,
+      "submerged_mass_kg": 0.092,
+      "power_w": 4,
+      "slot_kind": "bottom",
+      "source": "https://www.waterlinked.com/dvl",
+      "unit": "m/s",
+      "description": "顯示底部鎖定、對地速度與離底高度。",
+      "model": "models/tools/dvl.glb",
+      "display_model": "models/tools/dvl.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "usbl",
+      "name": "聲學定位應答器",
+      "product": "Tritech MicronNav 200",
+      "category": "聲學與導航",
+      "shape": "usbl",
+      "dimensions_m": [
+        0.11,
+        0.08,
+        0.19
+      ],
+      "mass_kg": 0.65,
+      "submerged_mass_kg": 0.299,
+      "power_w": 8,
+      "slot_kind": "top",
+      "source": "https://www.tritech.co.uk/support/resources",
+      "unit": "m",
+      "description": "顯示相對母船的位置與聲學量測品質。",
+      "model": "models/tools/usbl.glb",
+      "display_model": "models/tools/usbl.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "ins",
+      "name": "整合慣性導航",
+      "product": "Sonardyne SPRINT-Nav M",
+      "category": "聲學與導航",
+      "shape": "ins",
+      "dimensions_m": [
+        0.148,
+        0.148,
+        0.213
+      ],
+      "mass_kg": 3.2,
+      "submerged_mass_kg": 1.472,
+      "power_w": 15,
+      "slot_kind": "bottom",
+      "source": "https://www.sonardyne.com/product/sprint-nav-m/",
+      "unit": "°",
+      "description": "顯示姿態、航向及整合導航位置。",
+      "model": "models/tools/ins.glb",
+      "display_model": "models/tools/ins.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [
+        "length",
+        "width",
+        "height"
+      ],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "ctd",
+      "name": "溫鹽深儀",
+      "product": "Valeport MIDAS CTD",
+      "category": "環境感測",
+      "shape": "ctd",
+      "dimensions_m": [
+        0.42,
+        0.12,
+        0.12
+      ],
+      "mass_kg": 2.0,
+      "submerged_mass_kg": 0.92,
+      "power_w": 4,
+      "slot_kind": "side",
+      "source": "https://www.valeport.co.uk/products/midas-ctd/",
+      "unit": "°C / PSU / m",
+      "description": "記錄水溫、鹽度和深度剖面。",
+      "model": "models/tools/ctd.glb",
+      "display_model": "models/tools/ctd.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "turbidity",
+      "name": "濁度感測器",
+      "product": "Valeport Hyperion Turbidity",
+      "category": "環境感測",
+      "shape": "probe",
+      "dimensions_m": [
+        0.18,
+        0.05,
+        0.05
+      ],
+      "mass_kg": 0.35,
+      "submerged_mass_kg": 0.161,
+      "power_w": 2,
+      "slot_kind": "side",
+      "source": "https://www.valeport.co.uk/product-types/water-quality/",
+      "unit": "NTU",
+      "description": "量測模擬水體及揚沙的濁度。",
+      "model": "models/tools/turbidity.glb",
+      "display_model": "models/tools/turbidity.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "oxygen",
+      "name": "溶氧感測器",
+      "product": "Aanderaa Optode 4831",
+      "category": "環境感測",
+      "shape": "oxygen",
+      "dimensions_m": [
+        0.1115,
+        0.036,
+        0.036
+      ],
+      "mass_kg": 0.2,
+      "submerged_mass_kg": 0.092,
+      "power_w": 1,
+      "slot_kind": "side",
+      "source": "https://www.aanderaa.com/media/pdfs/d403_aanderaa_oxygen_sensor_4831_4831f.pdf",
+      "unit": "mg/L",
+      "description": "收集場景中的溶氧剖面。",
+      "model": "models/tools/oxygen.glb",
+      "display_model": "models/tools/oxygen.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [
+        "length"
+      ],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "ph",
+      "name": "酸鹼度感測器",
+      "product": "Sea-Bird SBE 18",
+      "category": "環境感測",
+      "shape": "ph",
+      "dimensions_m": [
+        0.29,
+        0.06,
+        0.06
+      ],
+      "mass_kg": 0.6,
+      "submerged_mass_kg": 0.276,
+      "power_w": 1,
+      "slot_kind": "side",
+      "source": "https://www.seabird.com/products/sbe-18-ph-sensor?productCategoryId=54627869929",
+      "unit": "pH",
+      "description": "記錄採樣位置的模擬酸鹼度。",
+      "model": "models/tools/ph.glb",
+      "display_model": "models/tools/ph.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "chlorophyll",
+      "name": "葉綠素感測器",
+      "product": "Valeport Hyperion Chlorophyll a",
+      "category": "環境感測",
+      "shape": "probe",
+      "dimensions_m": [
+        0.18,
+        0.05,
+        0.05
+      ],
+      "mass_kg": 0.35,
+      "submerged_mass_kg": 0.161,
+      "power_w": 2,
+      "slot_kind": "side",
+      "source": "https://www.valeport.co.uk/product-types/water-quality/",
+      "unit": "µg/L",
+      "description": "收集模擬葉綠素濃度。",
+      "model": "models/tools/chlorophyll.glb",
+      "display_model": "models/tools/chlorophyll.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "current",
+      "name": "流速計",
+      "product": "Valeport Model 803",
+      "category": "環境感測",
+      "shape": "current",
+      "dimensions_m": [
+        0.26,
+        0.12,
+        0.12
+      ],
+      "mass_kg": 0.55,
+      "submerged_mass_kg": 0.253,
+      "power_w": 3,
+      "slot_kind": "top",
+      "source": "https://www.valeport.co.uk/applications/auv-rov-asv/",
+      "unit": "m/s",
+      "description": "量測 ROV 所在位置的水流向量。",
+      "model": "models/tools/current.glb",
+      "display_model": "models/tools/current.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "ut",
+      "name": "超音波測厚計",
+      "product": "Cygnus Mini ROV",
+      "category": "檢測與採樣",
+      "shape": "ut",
+      "dimensions_m": [
+        0.2,
+        0.065,
+        0.065
+      ],
+      "mass_kg": 0.55,
+      "submerged_mass_kg": 0.253,
+      "power_w": 3,
+      "slot_kind": "front",
+      "source": "https://cygnus-instruments.com/support/product-manuals/",
+      "unit": "mm",
+      "description": "探頭靠近金屬試片後讀取模擬厚度。",
+      "model": "models/tools/ut.glb",
+      "display_model": "models/tools/ut.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "cp",
+      "name": "陰極保護探針",
+      "product": "Oceaneering CP Probe",
+      "category": "檢測與採樣",
+      "shape": "cp",
+      "dimensions_m": [
+        0.32,
+        0.045,
+        0.045
+      ],
+      "mass_kg": 0.4,
+      "submerged_mass_kg": 0.184,
+      "power_w": 1,
+      "slot_kind": "front",
+      "source": "https://www.oceaneering.com/products/rov-cathodic-protection-cp-probe/",
+      "unit": "mV",
+      "description": "探頭接觸測試站，記錄模擬保護電位。",
+      "model": "models/tools/cp.glb",
+      "display_model": "models/tools/cp.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "water",
+      "name": "水樣採集器",
+      "product": "通用 100 mL 水樣採集器（Generic 100 mL water sampler）",
+      "category": "檢測與採樣",
+      "shape": "water",
+      "dimensions_m": [
+        0.2,
+        0.095,
+        0.095
+      ],
+      "mass_kg": 0.45,
+      "submerged_mass_kg": 0.207,
+      "power_w": 8,
+      "slot_kind": "side",
+      "source": "internal-estimate",
+      "unit": "mL",
+      "description": "開啟取樣閥，保存位置、深度與水樣。",
+      "model": "models/tools/water.glb",
+      "display_model": "models/tools/water.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "sediment",
+      "name": "沉積物採樣器",
+      "product": "Newton Sediment Sampler",
+      "category": "檢測與採樣",
+      "shape": "sediment",
+      "dimensions_m": [
+        0.32,
+        0.14,
+        0.12
+      ],
+      "mass_kg": 0.7,
+      "submerged_mass_kg": 0.322,
+      "power_w": 12,
+      "slot_kind": "arm",
+      "source": "local://docs/rov-payloads",
+      "unit": "mL",
+      "description": "用採樣杯收集海床沉積物。",
+      "model": "models/tools/sediment.glb",
+      "display_model": "models/tools/sediment.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    },
+    {
+      "id": "gripper",
+      "name": "電動夾爪",
+      "product": "Newton Subsea Gripper R3",
+      "category": "檢測與採樣",
+      "shape": "gripper",
+      "dimensions_m": [
+        0.303926,
+        0.062851,
+        0.055745
+      ],
+      "mass_kg": 0.524,
+      "submerged_mass_kg": 0.267,
+      "power_w": 12,
+      "slot_kind": "arm",
+      "source": "local://docs/rov-payloads",
+      "unit": "%",
+      "description": "開合夾爪，夾持場景中的可回收物。",
+      "model": "models/tools/gripper.glb",
+      "display_model": "models/tools/gripper.glb",
+      "models": [
+        "rov01",
+        "rov02_heavy",
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "manufacturer_stl_components",
+      "uncertainty": "本體與固定夾環採原廠公開 CAD；材質、夾環位置與夾爪展示動作仍為估計，未完成機構驗證。",
+      "measured_dimensions": [
+        "length"
+      ],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300,
+      "cad_url": "local://docs/rov-payloads"
+    },
+    {
+      "id": "hydraulic_arm",
+      "name": "液壓機械臂",
+      "product": "Hydro-Lek HLK-43000",
+      "category": "檢測與採樣",
+      "shape": "arm",
+      "dimensions_m": [
+        0.599,
+        0.222,
+        0.184
+      ],
+      "mass_kg": 8.4,
+      "submerged_mass_kg": 3.864,
+      "power_w": 0,
+      "slot_kind": "arm",
+      "source": "local://docs/rov-payloads",
+      "unit": "°",
+      "description": "操控關節、夾爪並搬運巡檢工作物。",
+      "model": "models/tools/hydraulic_arm.glb",
+      "display_model": "models/tools/hydraulic_arm.glb",
+      "models": [
+        "rov01_pro"
+      ],
+      "requires": [
+        "hpu"
+      ],
+      "estimated": true,
+      "reference_level": "manufacturer_photo_reconstruction",
+      "uncertainty": "依原廠照片重建折疊外形；外廓為模型估計，未取得原廠完整尺寸圖。只有夾爪展示動作，臂鏈關節尚未完成外觀與運動對位。",
+      "measured_dimensions": [],
+      "counted": true,
+      "color": "#c8d5df",
+      "max_depth_m": 300,
+      "static_reference": true
+    },
+    {
+      "id": "hpu",
+      "name": "液壓動力組",
+      "product": "Hydro-Lek HLK-91000",
+      "category": "動力附件",
+      "shape": "hpu",
+      "dimensions_m": [
+        0.238,
+        0.11,
+        0.063
+      ],
+      "mass_kg": 4.4,
+      "submerged_mass_kg": 2.4,
+      "power_w": 300,
+      "slot_kind": "power",
+      "source": "local://docs/rov-payloads",
+      "unit": "bar Δp",
+      "description": "為液壓機械臂供油，觀察壓力、流量與油溫。",
+      "model": "models/tools/hpu.glb",
+      "display_model": "models/tools/hpu.glb",
+      "models": [
+        "rov01_pro"
+      ],
+      "requires": [],
+      "estimated": true,
+      "reference_level": "photo_reconstruction",
+      "uncertainty": "外形細節、安裝轉接、阻力、耗電與感測響應為模擬估計；未公開尺寸不是原廠 CAD。",
+      "measured_dimensions": [
+        "length",
+        "width",
+        "height"
+      ],
+      "counted": false,
+      "color": "#c8d5df",
+      "max_depth_m": 300
+    }
+  ],
+  "vehicles": {
+    "rov02_heavy": {
+      "mounts": [
+        {
+          "id": "front",
+          "name": "前方主掛點",
+          "kind": "front",
+          "position": [
+            0.324,
+            0.0,
+            -0.022
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "front_aux",
+          "name": "前方輔助",
+          "kind": "front",
+          "position": [
+            0.252,
+            0.18,
+            0.022
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "light",
+          "name": "工作燈掛點",
+          "kind": "light",
+          "position": [
+            0.23,
+            -0.18,
+            -0.058
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "top",
+          "name": "右側中段聲學支架",
+          "kind": "top",
+          "position": [
+            0.0,
+            0.28,
+            -0.02
+          ],
+          "max_mass_kg": 5,
+          "estimated": true,
+          "reference": "local://docs/rov-payloads"
+        },
+        {
+          "id": "bottom",
+          "name": "底部導航掛點",
+          "kind": "bottom",
+          "position": [
+            0.0,
+            0.0,
+            0.238
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "side_port",
+          "name": "左側感測器",
+          "kind": "side",
+          "position": [
+            -0.072,
+            -0.223,
+            0.022
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "side_starboard",
+          "name": "右側感測器",
+          "kind": "side",
+          "position": [
+            -0.072,
+            0.223,
+            0.022
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "arm",
+          "name": "前底板・電池旁夾爪座",
+          "kind": "arm",
+          "position": [
+            0.0,
+            -0.115,
+            0.115
+          ],
+          "max_mass_kg": 14,
+          "estimated": true,
+          "reference": "local://docs/rov-payloads"
+        },
+        {
+          "id": "power",
+          "name": "後部動力托架",
+          "kind": "power",
+          "position": [
+            -0.259,
+            0.0,
+            0.166
+          ],
+          "max_mass_kg": 14,
+          "estimated": true
+        },
+        {
+          "id": "internal_camera",
+          "name": "前端耐壓艙內",
+          "kind": "internal_camera",
+          "position": [
+            0.155,
+            0.0,
+            -0.015
+          ],
+          "max_mass_kg": 0.3,
+          "estimated": true
+        }
+      ],
+      "payload_kg": 6,
+      "power_budget_w": 100,
+      "voltage_v": 16,
+      "battery_wh": 288,
+      "source": "battery",
+      "default_loadout": []
+    },
+    "rov01_pro": {
+      "mounts": [
+        {
+          "id": "front",
+          "name": "前方主掛點",
+          "kind": "front",
+          "position": [
+            0.45,
+            0,
+            -0.03
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "front_aux",
+          "name": "前方輔助",
+          "kind": "front",
+          "position": [
+            0.35,
+            0.25,
+            0.03
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "light",
+          "name": "工作燈掛點",
+          "kind": "light",
+          "position": [
+            0.32,
+            -0.25,
+            -0.08
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "top",
+          "name": "頂部聲學掛點",
+          "kind": "top",
+          "position": [
+            -0.1,
+            0,
+            -0.31
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "bottom",
+          "name": "底部導航掛點",
+          "kind": "bottom",
+          "position": [
+            0,
+            0,
+            0.33
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "side_port",
+          "name": "左側感測器",
+          "kind": "side",
+          "position": [
+            -0.1,
+            -0.31,
+            0.03
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "side_starboard",
+          "name": "右側感測器",
+          "kind": "side",
+          "position": [
+            -0.1,
+            0.31,
+            0.03
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "arm",
+          "name": "工具托架",
+          "kind": "arm",
+          "position": [
+            0.3,
+            -0.12,
+            0.4
+          ],
+          "max_mass_kg": 14,
+          "estimated": true
+        },
+        {
+          "id": "power",
+          "name": "後部動力托架",
+          "kind": "power",
+          "position": [
+            -0.36,
+            0,
+            0.23
+          ],
+          "max_mass_kg": 14,
+          "estimated": true
+        }
+      ],
+      "payload_kg": 18,
+      "power_budget_w": 600,
+      "voltage_v": 48,
+      "battery_wh": null,
+      "source": "surface",
+      "default_loadout": [
+        {
+          "slot": "arm",
+          "tool": "hydraulic_arm"
+        },
+        {
+          "slot": "power",
+          "tool": "hpu"
+        }
+      ]
+    },
+    "rov01": {
+      "mounts": [
+        {
+          "id": "front",
+          "name": "前方主掛點",
+          "kind": "front",
+          "position": [
+            0.36,
+            0.0,
+            -0.024
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "front_aux",
+          "name": "前方輔助",
+          "kind": "front",
+          "position": [
+            0.28,
+            0.2,
+            0.024
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "light",
+          "name": "工作燈掛點",
+          "kind": "light",
+          "position": [
+            0.256,
+            -0.2,
+            -0.064
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "top",
+          "name": "頂部聲學掛點",
+          "kind": "top",
+          "position": [
+            -0.08,
+            0.0,
+            -0.248
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "bottom",
+          "name": "底部導航掛點",
+          "kind": "bottom",
+          "position": [
+            0.0,
+            0.0,
+            0.264
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "side_port",
+          "name": "左側感測器",
+          "kind": "side",
+          "position": [
+            -0.08,
+            -0.248,
+            0.024
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "side_starboard",
+          "name": "右側感測器",
+          "kind": "side",
+          "position": [
+            -0.08,
+            0.248,
+            0.024
+          ],
+          "max_mass_kg": 5,
+          "estimated": true
+        },
+        {
+          "id": "arm",
+          "name": "工具托架",
+          "kind": "arm",
+          "position": [
+            0.24,
+            -0.096,
+            0.32
+          ],
+          "max_mass_kg": 14,
+          "estimated": true
+        },
+        {
+          "id": "power",
+          "name": "後部動力托架",
+          "kind": "power",
+          "position": [
+            -0.288,
+            0.0,
+            0.184
+          ],
+          "max_mass_kg": 14,
+          "estimated": true
+        }
+      ],
+      "payload_kg": 8,
+      "power_budget_w": 120,
+      "voltage_v": 24,
+      "battery_wh": 900,
+      "source": "battery",
+      "default_loadout": []
+    }
+  },
+  "notes": "掛點、配重與電力預算為此模擬器的訓練配置，非實機安裝認證。24 類工具與一套配套液壓動力組。"
+}

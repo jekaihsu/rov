@@ -1,0 +1,13 @@
+"AppBuild"
+{
+	"AppID" "480" // Replace 480 with assigned Steam Direct AppID after $100 fee activation
+	"Desc" "ROV-01 Underwater Inspection & Pilot Training Simulator - Win64 Build"
+	"ContentRoot" "..\\dist\\steam_depot_win64\\"
+	"BuildOutput" "..\\dist\\steam_pipe_output\\"
+	"Preview" "0"
+	"SetLive" "" // Set to "beta" for internal QA branch; default branch must be published in Steamworks Web UI
+	"Depots"
+	{
+		"481" "depot_build_win64.vdf" // Replace 481 with assigned Win64 DepotID (typically AppID + 1)
+	}
+}

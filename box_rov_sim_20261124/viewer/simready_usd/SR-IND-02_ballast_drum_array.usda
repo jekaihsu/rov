@@ -1,0 +1,71 @@
+#usda 1.0
+(
+    defaultPrim = "SR_IND_02_BallastDrumArray"
+    doc = "NVIDIA Omniverse SimReady OpenUSD Subsea Industrial Asset (SR-IND-02) — Source: huggingface.co/datasets/nvidia/simready-assets/drum_steel_a01 (CC-BY-4.0)"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "SR_IND_02_BallastDrumArray" (
+    kind = "component"
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "PhysicsCollisionAPI", "PhysicsMaterialAPI"]
+)
+{
+    custom string simready:assetId = "SR-IND-02"
+    custom string simready:hfDataset = "nvidia/simready-assets"
+    custom string simready:hfPackage = "drum_steel_a01"
+    custom string simready:hfPackageId = "simready.hf.nvidia.simready-assets.drum_steel_a01.2026.10.09_011312912512"
+    custom string simready:hfRootUsd = "simready_usd/sm_drum_steel_a01_01.usd"
+    custom string simready:hfContentSha256 = "91d7e9d449b062b189735b28a1ded603d36b771b078fa54cda9de26eb0e579e5"
+    custom string simready:license = "CC-BY-4.0"
+    custom string simready:missionId = "mission_1_pool"
+    custom string simready:missionCode = "M1"
+    custom string simready:titleZh = "水下壓載鋼桶與密封容器陣列"
+    custom string simready:titleEn = "Subsea Ballast & Containment Steel Drum Array"
+    custom string simready:shapeArchetype = "drum_array"
+    custom string simready:pbrColorHex = "#06B6D4"
+    custom string simready:secondaryColorHex = "#334155"
+    custom double subsea:utNominalWallMm = 10.00
+    custom double subsea:utActualWallMm = 9.70
+    custom double subsea:displacementM3 = 0.0850
+
+    bool physics:rigidBodyEnabled = true
+    bool physics:collisionEnabled = true
+    uniform token physics:approximation = "convexHull"
+    float physics:mass = 240.00
+    point3f physics:centerOfMass = (0.000, 0.000, -0.080)
+    float physics:staticFriction = 0.580
+    float physics:dynamicFriction = 0.460
+    float physics:restitution = 0.220
+
+    double3 xformOp:translate = (5.500, 2.400, 4.600)
+    float3 xformOp:scale = (1.000, 1.000, 1.000)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+    def Mesh "Visual_And_Collision_Hull" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        float3[] extent = [(-0.900, -0.900, -0.950), (0.900, 0.900, 0.950)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [
+            0, 1, 2, 3,
+            4, 7, 6, 5,
+            0, 4, 5, 1,
+            1, 5, 6, 2,
+            2, 6, 7, 3,
+            3, 7, 4, 0
+        ]
+        point3f[] points = [
+            (-0.900, -0.900, -0.950),
+            (0.900, -0.900, -0.950),
+            (0.900, 0.900, -0.950),
+            (-0.900, 0.900, -0.950),
+            (-0.900, -0.900, 0.950),
+            (0.900, -0.900, 0.950),
+            (0.900, 0.900, 0.950),
+            (-0.900, 0.900, 0.950)
+        ]
+        color3f[] primvars:displayColor = [(0.133, 0.827, 0.933)]
+    }
+}

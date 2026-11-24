@@ -1,0 +1,80 @@
+{
+  "A_viewer": {
+    "title": "ROV-01 模擬器 · B2B 故障重分配與水下巡檢訓練",
+    "missing_404": [
+      "boot.js",
+      "menu.css",
+      "style.css"
+    ],
+    "page_errors": [],
+    "brand": {
+      "label": "viewer",
+      "dom_hit": null,
+      "url_hits": [],
+      "clean": true
+    }
+  },
+  "B_p260": {
+    "title": "P260 · ROV-01 水下聲納與巡檢 SOP 演示",
+    "fps_raf": 3.0,
+    "raf": {
+      "frames": 10,
+      "seconds": 3.36689999999851
+    },
+    "canvases": [
+      [
+        1424,
+        712
+      ],
+      [
+        1424,
+        982
+      ]
+    ],
+    "missing_404": [
+      "sop.css"
+    ],
+    "page_errors": [],
+    "brand": {
+      "label": "p260",
+      "dom_hit": null,
+      "url_hits": [],
+      "clean": true
+    }
+  },
+  "C_input_shaping_browser": {
+    "inside_dz_diag_005": [
+      0,
+      0
+    ],
+    "radial_diag_006": [
+      0.0037298451142132607,
+      0.0037298451142132607
+    ],
+    "edge_plus_1e9": 7.06521738758553e-10,
+    "half_lin": 0.5,
+    "half_expo035": 0.36875,
+    "full": 1,
+    "corner": [
+      0.7071067811865475,
+      0.7071067811865475
+    ],
+    "zero_dz_legal": [
+      0,
+      0
+    ]
+  },
+  "C_brand_gate_live": {
+    "exit": 0,
+    "lines": [
+      "[brand_gate] live-http http://127.0.0.1:34805/index.html: clean",
+      "[brand_gate] live-http http://127.0.0.1:34805/tool_catalogue.json: clean",
+      "[brand_gate] RESULT=PASS hits=0"
+    ]
+  },
+  "not_measurable_on_box": [
+    "thrust_response",
+    "collision",
+    "engine FPS (server cannot start: missing modules)"
+  ]
+}

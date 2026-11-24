@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>P260 · ROV-01 沉船採集工作台</title>
+  <link rel="icon" href="data:,"><link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="./"><span class="brand-symbol">◈</span> P260 <span class="brand-sub">FIELDWORK</span></a><span class="edition">沉船採集工作台 <span class="badge">內部討論版</span></span><a id="document-link" href="docs/comparison.pdf" target="_blank" rel="noopener">資料對照文件 ↗</a></header>
+<main>
+  <p style="font-size:13px;margin:0 0 18px"><a href="./">← 返回 ROV-01 SOP 動態演示</a>　｜　本頁計畫獨立保存，不改變首頁固定示範。</p>
+  <section class="page-heading"><div><p class="eyebrow">LANYU / CAPTURE PLANNING</p><h1>沉船分段採集計畫</h1><p class="lede">選擇區段、安排分層，記錄採集參數與交接檢查。</p></div><div class="actions"><button id="load">載入計畫</button><button id="export-csv">交接 CSV</button><button id="export" class="primary">匯出計畫 ↗</button><input id="file" type="file" accept=".json,application/json" hidden></div></section>
+  <div id="message" role="status" aria-live="polite" hidden></div>
+  <div class="workspace">
+    <section class="visual-panel" aria-label="沉船分區與路徑">
+      <div class="visual-toolbar"><div class="segments" aria-label="採集分段"><button data-segment="A" aria-pressed="false">01 <b>A 端</b></button><button data-segment="MID" aria-pressed="true">02 <b>中段</b></button><button data-segment="B" aria-pressed="false">03 <b>B 端</b></button></div><button id="reset-view" class="quiet">重設視角</button></div>
+      <div class="model-area"><div id="viewer" aria-label="可旋轉的沉船參考模型"></div><div class="model-caption"><span class="tiny-dot"></span> 蘭嶼沉船 · 結構參考模型 <span>非實測尺度</span></div><div id="model-status" role="status">正在載入沉船模型…</div><button id="retry" hidden>重新載入模型</button><div class="model-hint">拖曳旋轉 · 滾輪縮放</div></div>
+      <div class="route-panel"><div class="route-heading"><div><p class="eyebrow">LOCAL SCAN / 局部路徑</p><h2 id="route-title">中段 · 3 層水平往返</h2></div><button id="play" aria-pressed="false">▶ 預覽路徑</button></div><svg id="route" viewBox="0 0 680 145" role="img" aria-label="分層蛇形採集路徑示意"><defs><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#ffffff0d" stroke-width="1"/></pattern></defs><rect x="38" y="10" width="604" height="120" fill="url(#grid)"/><g id="route-lines"></g><circle id="route-dot" r="6" fill="#66dfd2" stroke="#0d282d" stroke-width="3"/></svg><div class="route-foot"><span id="route-label">只示意掃描與換層順序</span><span>無公尺比例 · 非導航航點</span></div></div>
+    </section>
+    <aside class="inspector"><div class="tabs" role="tablist"><button id="tab-plan" role="tab" aria-selected="true" aria-controls="planning">01 採集規劃</button><button id="tab-check" role="tab" aria-selected="false" aria-controls="handover">02 交接檢查</button></div>
+      <section id="planning" role="tabpanel" aria-labelledby="tab-plan"><div class="section-heading"><h2><span class="segment-name">中段</span>採集參數</h2><span class="muted">計畫值</span></div><p class="helper">新表是待驗證草案；此處不代表設備實際回報。</p>
+      <form id="settings" novalidate><div class="fields">
+        <label>採集層數<input name="layers" type="number" min="1" max="12" step="1" required><small>示例 3 層，可調整</small></label>
+        <label>掃描方向<select name="direction"><option value="horizontal">水平蛇形</option><option value="vertical">垂直蛇形</option></select><small>機頭持續面向目標</small></label>
+        <label>離目標距離 <span>m</span><input name="distanceM" type="number" min="0.000001" step="any" required><small>新表參考 5–20 m</small></label>
+        <label>計畫航速 <span>m/s</span><input name="speedMps" type="number" min="0.000001" step="any" required><small>新表一般區 ≤ 0.25 m/s</small></label>
+        <label>前向重疊 <span>%</span><input name="forwardOverlap" type="number" min="0" max="99.9" step="0.1" required><small>新表 ≥ 50%；示例 80%</small></label>
+        <label>側向重疊 <span>%</span><input name="sideOverlap" type="number" min="0" max="99.9" step="0.1" required><small>沿用舊示例 70%，待確認</small></label>
+        <label>錄影寬度 <span>px</span><input name="width" type="number" min="1" step="1" required><small>新表 1920 × 1080</small></label>
+        <label>錄影高度 <span>px</span><input name="height" type="number" min="1" step="1" required><small>錄影規格，非動畫輸出</small></label>
+        <label>錄影幀率 <span>fps</span><input name="fps" type="number" min="0.000001" step="any" required><small>新表 ≥ 60 fps</small></label>
+        <label>白平衡<select name="whiteBalance"><option value="auto">自動</option><option value="manual">手動</option></select><small>新表指定自動，現場待驗證</small></label>
+      </div><p id="form-error" role="alert" hidden></p></form><div class="draft-note"><strong>與草案對照</strong><ul id="warnings"></ul><p>參數符合文字條件，也不等於影像合格或建模成功。</p></div></section>
+      <section id="handover" role="tabpanel" aria-labelledby="tab-check" hidden><div class="section-heading"><h2><span class="segment-name">中段</span>交接檢查</h2><span id="check-count" class="muted"></span></div><p class="helper">逐層記錄人工確認結果；缺項會保留在匯出檔。</p><div id="layer-tabs" class="layer-tabs" aria-label="選擇採集層"></div><div id="checks"></div><p class="helper final-note">「已確認」只表示人工檢查紀錄，不是自動品質檢測。</p></section>
+    </aside>
+  </div>
+  <section class="bottom-bar"><div><span class="eyebrow">PLAN RECORD</span><label class="title-label" for="plan-title">計畫名稱</label><input id="plan-title" maxlength="200" aria-label="計畫名稱"></div><div><strong id="overall">所有交接項目待確認</strong><p>三段為幾何示意；A／B 端尚未確認為實船艏艉。分段不代表風險等級。</p></div><button id="example">重設示範計畫</button></section>
+  <footer><span>純本機規劃 · 未連接 ROV 或感測器</span><span>來源：ROV-01 採集規範草案 × 既有巡檢示例 <a href="README.md" target="_blank">使用說明 ↗</a></span></footer>
+</main><script type="module" src="app.mjs"></script>
+</body></html>

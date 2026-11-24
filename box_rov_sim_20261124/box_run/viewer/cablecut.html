@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ROV-01 · Cable Cut</title>
+<style>
+  html,body{margin:0;height:100%;background:#031116;overflow:hidden;cursor:none}
+  canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;outline:none}
+  .t{position:fixed;font:500 13px/1.4 "Segoe UI",system-ui,sans-serif;letter-spacing:.04em;color:#bfeaf0;
+     text-shadow:0 0 6px #021015,0 0 2px #021015;pointer-events:none;opacity:0;transition:opacity 1.2s ease;user-select:none}
+  #obj{left:22px;top:18px}
+  #hint{left:50%;bottom:20px;transform:translateX(-50%);color:#8cc9d2;font-size:12px}
+  #msg{left:50%;top:44%;transform:translate(-50%,-50%);font-size:20px;letter-spacing:.18em;text-align:center}
+  #load{left:50%;top:50%;transform:translate(-50%,-50%);opacity:.8}
+  #fade{position:fixed;inset:0;background:#031116;opacity:1;transition:opacity 1.6s ease;pointer-events:none}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/cablecut_three/build/three.module.js",
+  "three/addons/": "./vendor/cablecut_three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="fade"></div>
+<div id="load" class="t">loading…</div>
+<div id="obj" class="t"></div>
+<div id="msg" class="t"></div>
+<div id="hint" class="t"></div>
+<script type="module" src="cablecut.js"></script>
+</body>
+</html>

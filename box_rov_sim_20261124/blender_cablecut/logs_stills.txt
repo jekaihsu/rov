@@ -1,0 +1,6 @@
+== build Tue Nov 10 08:19:37 CST 2026
+BUILD_SEC 51.139010190963745 objects 270
+== hero_scene_full start 08:20:30
+RENDER_SEC 287.7860817909241
+== hero_cable_cross_section start 08:25:20
+RENDER_SEC 207.35230898857117

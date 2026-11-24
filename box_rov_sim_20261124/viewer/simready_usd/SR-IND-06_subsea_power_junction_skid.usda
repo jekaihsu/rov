@@ -1,0 +1,71 @@
+#usda 1.0
+(
+    defaultPrim = "SR_IND_06_SubseaPowerJunctionSkid"
+    doc = "NVIDIA Omniverse SimReady OpenUSD Subsea Industrial Asset (SR-IND-06) — Source: huggingface.co/datasets/nvidia/simready-assets/electrical_main_terminal_a01 (CC-BY-4.0)"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "SR_IND_06_SubseaPowerJunctionSkid" (
+    kind = "component"
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "PhysicsCollisionAPI", "PhysicsMaterialAPI"]
+)
+{
+    custom string simready:assetId = "SR-IND-06"
+    custom string simready:hfDataset = "nvidia/simready-assets"
+    custom string simready:hfPackage = "electrical_main_terminal_a01"
+    custom string simready:hfPackageId = "simready.hf.nvidia.simready-assets.electrical_main_terminal_a01.2026.10.09_012558714653"
+    custom string simready:hfRootUsd = "simready_usd/sm_electrical_main_terminal_a01_01.usd"
+    custom string simready:hfContentSha256 = "2f54bdf8a887efe6c91efb3d7a06667fad3708b759b16744763123e6f653342e"
+    custom string simready:license = "CC-BY-4.0"
+    custom string simready:missionId = "mission_3_sar_fault"
+    custom string simready:missionCode = "M3"
+    custom string simready:titleZh = "海底高壓配電接線盒與發電底座"
+    custom string simready:titleEn = "Subsea Power Junction Terminal & Generator Skid"
+    custom string simready:shapeArchetype = "power_skid"
+    custom string simready:pbrColorHex = "#06B6D4"
+    custom string simready:secondaryColorHex = "#0F172A"
+    custom double subsea:utNominalWallMm = 20.00
+    custom double subsea:utActualWallMm = 19.30
+    custom double subsea:displacementM3 = 0.0720
+
+    bool physics:rigidBodyEnabled = true
+    bool physics:collisionEnabled = true
+    uniform token physics:approximation = "convexHull"
+    float physics:mass = 560.00
+    point3f physics:centerOfMass = (0.000, 0.000, -0.250)
+    float physics:staticFriction = 0.720
+    float physics:dynamicFriction = 0.580
+    float physics:restitution = 0.120
+
+    double3 xformOp:translate = (9.400, -2.200, 12.600)
+    float3 xformOp:scale = (1.000, 1.000, 1.000)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+    def Mesh "Visual_And_Collision_Hull" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        float3[] extent = [(-1.250, -0.950, -1.050), (1.250, 0.950, 1.050)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [
+            0, 1, 2, 3,
+            4, 7, 6, 5,
+            0, 4, 5, 1,
+            1, 5, 6, 2,
+            2, 6, 7, 3,
+            3, 7, 4, 0
+        ]
+        point3f[] points = [
+            (-1.250, -0.950, -1.050),
+            (1.250, -0.950, -1.050),
+            (1.250, 0.950, -1.050),
+            (-1.250, 0.950, -1.050),
+            (-1.250, -0.950, 1.050),
+            (1.250, -0.950, 1.050),
+            (1.250, 0.950, 1.050),
+            (-1.250, 0.950, 1.050)
+        ]
+        color3f[] primvars:displayColor = [(0.133, 0.827, 0.933)]
+    }
+}

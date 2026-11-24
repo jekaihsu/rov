@@ -1,0 +1,72 @@
+#usda 1.0
+(
+    defaultPrim = "SR_IND_04_CentrifugalPumpHousing"
+    doc = "NVIDIA Omniverse SimReady OpenUSD Subsea Industrial Asset (SR-IND-04) — Source: huggingface.co/datasets/nvidia/simready-assets/engineComponent_water_pump_a01 (CC-BY-4.0)"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "SR_IND_04_CentrifugalPumpHousing" (
+    kind = "component"
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "PhysicsCollisionAPI", "PhysicsMaterialAPI"]
+)
+{
+    custom string simready:assetId = "SR-IND-04"
+    custom string simready:hfDataset = "nvidia/simready-assets"
+    custom string simready:hfPackage = "engineComponent_water_pump_a01"
+    custom string simready:hfPackageId = "simready.hf.nvidia.simready-assets.engineComponent_water_pump_a01.2026.10.09_015302615742"
+    custom string simready:hfRootUsd = "simready_usd/sm_engineComponent_water_pump_a01_01.usd"
+    custom string simready:hfContentSha256 = "0a3b61dcab8830609bbf5792d6bad1cd0f3bf782d8d5beaff9c7ebd7d86cdb97"
+    custom string simready:license = "CC-BY-4.0"
+    custom string simready:missionId = "mission_2_hull_ut"
+    custom string simready:missionCode = "M2"
+    custom string simready:titleZh = "離心泵浦與渦輪蝸殼機組"
+    custom string simready:titleEn = "Centrifugal Pump & Turbine Volute Housing Unit"
+    custom string simready:shapeArchetype = "pump_housing"
+    custom string simready:pbrColorHex = "#38BDF8"
+    custom string simready:secondaryColorHex = "#1E293B"
+    custom string subsea:utCheckpointId = "UT-SR-02"
+    custom double subsea:utNominalWallMm = 18.00
+    custom double subsea:utActualWallMm = 17.40
+    custom double subsea:displacementM3 = 0.0560
+
+    bool physics:rigidBodyEnabled = true
+    bool physics:collisionEnabled = true
+    uniform token physics:approximation = "convexHull"
+    float physics:mass = 420.00
+    point3f physics:centerOfMass = (-0.040, 0.000, -0.100)
+    float physics:staticFriction = 0.640
+    float physics:dynamicFriction = 0.500
+    float physics:restitution = 0.160
+
+    double3 xformOp:translate = (-2.800, -1.900, 6.800)
+    float3 xformOp:scale = (1.000, 1.000, 1.000)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+    def Mesh "Visual_And_Collision_Hull" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        float3[] extent = [(-1.150, -0.950, -0.900), (1.150, 0.950, 0.900)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [
+            0, 1, 2, 3,
+            4, 7, 6, 5,
+            0, 4, 5, 1,
+            1, 5, 6, 2,
+            2, 6, 7, 3,
+            3, 7, 4, 0
+        ]
+        point3f[] points = [
+            (-1.150, -0.950, -0.900),
+            (1.150, -0.950, -0.900),
+            (1.150, 0.950, -0.900),
+            (-1.150, 0.950, -0.900),
+            (-1.150, -0.950, 0.900),
+            (1.150, -0.950, 0.900),
+            (1.150, 0.950, 0.900),
+            (-1.150, 0.950, 0.900)
+        ]
+        color3f[] primvars:displayColor = [(0.133, 0.827, 0.933)]
+    }
+}

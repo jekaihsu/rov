@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROV-01 × NVIDIA Omniverse SimReady OpenUSD 水下工業物理資產檢視器 (@huggingface/usd-web-viewer)</title>
+<style>
+  :root {
+    --bg: #040d1a;
+    --panel: rgba(7, 19, 34, 0.92);
+    --border: rgba(34, 211, 238, 0.35);
+    --cyan: #22D3EE;
+    --amber: #F59E0B;
+    --emerald: #10B981;
+    --text: #F8FAFC;
+    --muted: #94A3B8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Noto Sans TC", system-ui, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header.topbar {
+    height: 52px;
+    background: rgba(4, 12, 24, 0.96);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    z-index: 20;
+  }
+  .brand-row { display: flex; align-items: center; gap: 12px; }
+  .badge-cyan {
+    background: rgba(34, 211, 238, 0.16);
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 700;
+    font-family: monospace;
+  }
+  .badge-emerald {
+    background: rgba(16, 185, 129, 0.16);
+    color: var(--emerald);
+    border: 1px solid var(--emerald);
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 330px 1fr 410px;
+    min-height: 0;
+  }
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid rgba(148, 163, 184, 0.18);
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 10;
+  }
+  .sidebar.right {
+    border-right: none;
+    border-left: 1px solid rgba(148, 163, 184, 0.18);
+  }
+  h2 {
+    margin: 0 0 6px 0;
+    font-size: 12.5px;
+    color: var(--cyan);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .asset-card {
+    text-align: left;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(13, 28, 46, 0.82);
+    color: var(--text);
+    cursor: pointer;
+    margin-bottom: 6px;
+    transition: all 0.15s;
+  }
+  .asset-card:hover { border-color: var(--cyan); }
+  .asset-card.active {
+    border-color: var(--cyan);
+    background: rgba(34, 211, 238, 0.15);
+    box-shadow: 0 0 14px rgba(34, 211, 238, 0.25);
+  }
+  .asset-card .top {
+    display: flex;
+    justify-content: space-between;
+    font-family: monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    font-weight: 700;
+  }
+  .asset-card .title { font-size: 12.5px; font-weight: 700; margin: 3px 0 2px; }
+  .asset-card .sub { font-size: 10.5px; color: var(--muted); font-family: monospace; }
+  .viewport-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 35%, #0b2641 0%, #040d1a 85%);
+  }
+  #usdCanvas { width: 100%; height: 100%; display: block; }
+  .vp-overlay-top {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+  }
+  .vp-toolbar {
+    pointer-events: auto;
+    display: flex;
+    gap: 8px;
+    background: rgba(6, 16, 30, 0.88);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    align-items: center;
+  }
+  .vp-toolbar label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .kv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .kv-box {
+    background: rgba(15, 23, 42, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .kv-box span { display: block; font-size: 10px; color: var(--muted); }
+  .kv-box b { font-size: 12px; color: var(--text); font-family: monospace; }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  button.act-btn {
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--cyan);
+    background: rgba(34, 211, 238, 0.14);
+    color: var(--text);
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.act-btn.warn { border-color: var(--amber); background: rgba(245, 158, 11, 0.16); color: #fde68a; }
+  button.act-btn.ok { border-color: var(--emerald); background: rgba(16, 185, 129, 0.16); color: #6ee7b7; }
+  pre.usda-box {
+    margin: 0;
+    padding: 8px 10px;
+    background: rgba(2, 8, 16, 0.94);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    border-radius: 6px;
+    color: #7dd3fc;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    line-height: 1.38;
+    max-height: 225px;
+    overflow: auto;
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/",
+  "@huggingface/usd-web-viewer": "./vendor/usd-web-viewer/dist/esm/index.js"
+} }
+</script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand-row">
+    <span class="badge-cyan">OpenUSD 1.0 · UsdPhysics</span>
+    <strong style="font-size:15px;">ROV-01 × NVIDIA Omniverse SimReady 水下工業物理資產檢視器</strong>
+    <span style="font-size:12px;color:var(--muted);">huggingface.co/datasets/nvidia/simready-assets · @huggingface/usd-web-viewer@0.2.0</span>
+  </div>
+  <div class="brand-row">
+    <span class="badge-emerald" id="ipComplianceBadge">IP 合規：100% 通用工業設備 (CC-BY-4.0) · 0 客戶廠區/外部 ROV 品牌</span>
+    <a href="index.html" style="color:var(--cyan);font-size:12px;text-decoration:none;border:1px solid var(--cyan);padding:4px 10px;border-radius:6px;">← 返回 ROV-01 主模擬器</a>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- Left Sidebar: 8 Curated SimReady OpenUSD Assets -->
+  <aside class="sidebar">
+    <h2><span>SimReady 水下巡檢資產清單</span><span id="assetCountTag">8 件</span></h2>
+    <div id="assetListContainer"></div>
+  </aside>
+
+  <!-- Center 3D OpenUSD + ROV-01 Subsea Viewport -->
+  <main class="viewport-wrap">
+    <canvas id="usdCanvas"></canvas>
+    <div class="vp-overlay-top">
+      <div class="vp-toolbar">
+        <label><input type="checkbox" id="togCollider" checked> <span style="color:#22D3EE;font-weight:700;">UsdPhysics.CollisionAPI 碰撞網格 (#22D3EE)</span></label>
+        <label><input type="checkbox" id="togCoM" checked> <span style="color:#F59E0B;font-weight:700;">UsdPhysics.MassAPI 質心 CoM (#F59E0B)</span></label>
+        <label><input type="checkbox" id="togAllGrid"> <span>展示全部 8 件資產陣列</span></label>
+      </div>
+      <div class="vp-toolbar" style="font-family:monospace;color:#6ee7b7;" id="vpStatusPill">
+        ROV-01 (Deep-Sea Cyber Cyan) + SimReady OpenUSD Stage Ready
+      </div>
+    </div>
+  </main>
+
+  <!-- Right Sidebar: UsdPhysics Telemetry, Collision Test & Raw .usda Stage Inspector -->
+  <aside class="sidebar right">
+    <h2><span>UsdPhysics 剛體與水下浮力屬性</span><span id="selectedAssetBadge" style="font-family:monospace;">SR-IND-03</span></h2>
+    <div class="kv-grid" id="physicsKvGrid"></div>
+
+    <h2><span>互動物理衝量 & B2B UT 測厚實測</span><span style="color:var(--emerald);font-size:11px;">即時模擬</span></h2>
+    <div class="btn-row">
+      <button type="button" class="act-btn warn" id="btnRunCollision">⚡ 觸發 UsdPhysics 碰撞衝量</button>
+      <button type="button" class="act-btn ok" id="btnRunUtGauge">🟢 執行 UT 超音波壁厚採樣</button>
+    </div>
+    <div id="simTestOutput" style="background:rgba(15,28,46,0.9);border:1px solid rgba(245,158,11,0.45);border-radius:6px;padding:8px;font-size:11.5px;line-height:1.45;color:#fde68a;">
+      點擊上方按鈕可測試 ROV-01 與當前 SimReady OpenUSD 資產之三維恢復係數 (Restitution) 碰撞衝量與超音波測厚回波。
+    </div>
+
+    <h2><span>OpenUSD Stage 階層與 .usda 原始碼</span><span style="font-family:monospace;font-size:10.5px;">upAxis = "Z"</span></h2>
+    <div id="stageHierarchyBox" style="font-family:monospace;font-size:11px;background:rgba(13,25,42,0.85);padding:6px 8px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);color:#a7f3d0;"></div>
+    <pre class="usda-box" id="rawUsdaBox">#usda 1.0 ...</pre>
+  </aside>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createRov01IndustrialMesh } from './rov01_mesh.js';
+import { buildSimReadyAssetGroup, USD_WEB_VIEWER_META } from './simready_usd_loader.js';
+
+const canvas = document.getElementById('usdCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x04101f);
+scene.fog = new THREE.FogExp2(0x05182c, 0.032);
+
+const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 200);
+camera.position.set(-2.9, 1.55, 3.15);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.target.set(0.2, 0.05, 0);
+
+// Subsea lighting
+scene.add(new THREE.HemisphereLight(0x38bdf8, 0x09192b, 1.35));
+const dirLight = new THREE.DirectionalLight(0xe0f2fe, 1.65);
+dirLight.position.set(5, 10, 6);
+scene.add(dirLight);
+const rimLight = new THREE.PointLight(0x22d3ee, 1.4, 18);
+rimLight.position.set(-2.5, 2.0, 2.5);
+scene.add(rimLight);
+
+// Seabed & engineering calibration grid
+const grid = new THREE.GridHelper(28, 28, 0x22d3ee, 0x1e3a5f);
+grid.position.y = -1.25;
+scene.add(grid);
+
+// Build ROV-01 (Deep-Sea Cyber Cyan & Titanium open-frame) positioned on left inspecting the SimReady asset
+const rovModel = createRov01IndustrialMesh({ frame: 'three', livery: 'cyber_cyan' });
+const rovGroup = rovModel.root || rovModel.group || rovModel;
+rovGroup.position.set(-1.55, 0.18, 0.35);
+rovGroup.rotation.y = 0.25;
+scene.add(rovGroup);
+
+const stageRoot = new THREE.Group();
+stageRoot.name = 'SimReadyPreviewStageRoot';
+scene.add(stageRoot);
+
+let catalogData = null;
+let selectedAssetId = 'SR-IND-03';
+let showCollider = true;
+let showCoM = true;
+let showAllGrid = false;
+
+async function fetchCatalog() {
+  try {
+    const r = await fetch('/api/simready/catalog');
+    if (r.ok) return await r.json();
+  } catch {}
+  const r2 = await fetch('./simready_usd/simready_catalog.json');
+  return await r2.json();
+}
+
+function rebuildStage() {
+  while (stageRoot.children.length) stageRoot.remove(stageRoot.children[0]);
+  const assets = catalogData?.assets || [];
+  if (!assets.length) return;
+
+  if (showAllGrid) {
+    assets.forEach((a, idx) => {
+      const g = buildSimReadyAssetGroup(THREE, a, { showCollider, showCoM });
+      const row = Math.floor(idx / 4);
+      const col = idx % 4;
+      g.position.set((col - 1.2) * 3.2, 0, (row - 0.5) * 3.4);
+      stageRoot.add(g);
+    });
+  } else {
+    const active = assets.find((a) => a.asset_id === selectedAssetId) || assets[0];
+    const g = buildSimReadyAssetGroup(THREE, active, { showCollider, showCoM });
+    g.position.set(0.75, 0, 0);
+    stageRoot.add(g);
+  }
+}
+
+async function selectAsset(assetId) {
+  selectedAssetId = assetId;
+  const assets = catalogData?.assets || [];
+  const asset = assets.find((a) => a.asset_id === assetId) || assets[0];
+  if (!asset) return;
+
+  document.getElementById('selectedAssetBadge').textContent = `${asset.asset_id} [${asset.mission_code}]`;
+
+  const listEl = document.getElementById('assetListContainer');
+  listEl.innerHTML = assets.map((a) => `
+    <button type="button" class="asset-card ${a.asset_id === selectedAssetId ? 'active' : ''}" data-id="${a.asset_id}">
+      <div class="top">
+        <span>${a.asset_id} · ${a.mission_code}</span>
+        <span>${a.ut_checkpoint_id || (a.usd_physics?.mass_kg ?? a.mass_kg) + ' kg'}</span>
+      </div>
+      <div class="title">${a.title_zh}</div>
+      <div class="sub">HF: ${a.hf_package}</div>
+    </button>
+  `).join('');
+  listEl.querySelectorAll('.asset-card').forEach((btn) => {
+    btn.addEventListener('click', () => selectAsset(btn.dataset.id));
+  });
+
+  const p = asset.usd_physics || {};
+  document.getElementById('physicsKvGrid').innerHTML = `
+    <div class="kv-box"><span>HF SimReady Package</span><b style="color:#22D3EE;">${asset.hf_package}</b></div>
+    <div class="kv-box"><span>授權與規範 (License)</span><b style="color:#10B981;">${asset.license} · OpenUSD 1.0</b></div>
+    <div class="kv-box"><span>乾重 physics:mass</span><b>${p.mass_kg ?? asset.mass_kg} kg (${p.dry_weight_n ?? 3040} N)</b></div>
+    <div class="kv-box"><span>海水浮力 / 水中淨重</span><b>${p.buoyancy_force_n ?? 420} N / ${p.submerged_weight_n ?? 2620} N</b></div>
+    <div class="kv-box"><span>靜摩擦 μs / 動摩擦 μd</span><b>${p.static_friction ?? 0.68} / ${p.dynamic_friction ?? 0.55}</b></div>
+    <div class="kv-box"><span>恢復係數 physics:restitution</span><b>e = ${p.restitution ?? 0.14} (${p.approximation || 'convexHull'})</b></div>
+    <div class="kv-box"><span>質心 physics:centerOfMass</span><b>(${(p.center_of_mass || [0,0,0]).join(', ')}) m</b></div>
+    <div class="kv-box"><span>UT 超音波壁厚標稱 / 實測</span><b style="color:#10B981;">${asset.ut_nominal_mm} mm / ${asset.ut_actual_mm} mm</b></div>
+  `;
+
+  document.getElementById('stageHierarchyBox').innerHTML = `
+    <div>├─ <b>/${asset.prim_name}</b> <span style="color:#22D3EE;">[Xform · PhysicsRigidBodyAPI, PhysicsMassAPI, PhysicsMaterialAPI]</span></div>
+    <div>│  └─ <b>/Visual_And_Collision_Hull</b> <span style="color:#F59E0B;">[Mesh · PhysicsCollisionAPI · ${asset.mesh_vertex_count || 8} verts]</span></div>
+    <div>└─ <b>SHA-256</b>: <span style="color:#94A3B8;">${(asset.hf_content_sha256 || '').slice(0, 32)}…</span></div>
+  `;
+
+  try {
+    const res = await fetch(`/api/simready/usd/${asset.asset_id}`);
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('rawUsdaBox').textContent = (data.raw_usda || '').trim();
+    } else {
+      const r2 = await fetch(`./simready_usd/${asset.usd_file}`);
+      document.getElementById('rawUsdaBox').textContent = (await r2.text()).trim();
+    }
+  } catch {}
+
+  rebuildStage();
+}
+
+document.getElementById('togCollider').addEventListener('change', (e) => {
+  showCollider = e.target.checked;
+  rebuildStage();
+});
+document.getElementById('togCoM').addEventListener('change', (e) => {
+  showCoM = e.target.checked;
+  rebuildStage();
+});
+document.getElementById('togAllGrid').addEventListener('change', (e) => {
+  showAllGrid = e.target.checked;
+  rebuildStage();
+});
+
+document.getElementById('btnRunCollision').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/simready/collide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ asset_id: selectedAssetId, impact_speed_mps: 0.95 }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const c = data.collision || {};
+      document.getElementById('simTestOutput').innerHTML = `
+        ⚡ <b>UsdPhysics 碰撞衝量計算完成 (${c.asset_id})</b><br>
+        • 撞擊相對速度：<b>${c.impact_speed_mps} m/s</b> | 等效約化質量：<b>${c.reduced_mass_kg} kg</b><br>
+        • 法向碰撞衝量 J_n：<b>${c.normal_impulse_ns} N·s</b> (e = ${c.restitution_used})<br>
+        • 切向摩擦衝量 J_t：<b>${c.friction_impulse_ns} N·s</b> (μ_d = ${c.dynamic_friction_used})<br>
+        • ROV-01 反彈速度向量：<b>[${(c.rebound_velocity_ned || []).join(', ')}] m/s</b>
+      `;
+    }
+  } catch {}
+});
+
+document.getElementById('btnRunUtGauge').addEventListener('click', () => {
+  const assets = catalogData?.assets || [];
+  const a = assets.find((x) => x.asset_id === selectedAssetId) || assets[0];
+  if (!a) return;
+  const dim = Math.max(0, ((a.ut_nominal_mm - a.ut_actual_mm) / a.ut_nominal_mm) * 100).toFixed(1);
+  document.getElementById('simTestOutput').innerHTML = `
+    🟢 <b>B2B 超音波測厚 (UT A-Scan) 鎖定完成 · ${a.ut_checkpoint_id || a.asset_id}</b><br>
+    • 目標組件：<b>${a.title_zh}</b><br>
+    • 標稱壁厚：<b>${a.ut_nominal_mm.toFixed(1)} mm</b> | 實測回波壁厚：<b>${a.ut_actual_mm.toFixed(1)} mm</b><br>
+    • 腐蝕減薄率：<b>${dim}%</b> (${Number(dim) >= 7.0 ? '<span style="color:#F59E0B;">WARN_CORROSION 需排程檢修</span>' : '<span style="color:#10B981;">PASS 符合規範</span>'})
+  `;
+});
+
+function onResize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(rect.width, rect.height, false);
+  camera.aspect = rect.width / Math.max(1, rect.height);
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', onResize);
+
+let t = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  t += 0.016;
+  if (rovModel?.updateThrusters) {
+    rovModel.updateThrusters([0.35, 0.35, 0.35, 0.35, 0.2, 0.2], 0.016, [1, 1, 1, 1, 1, 1], 'coupled');
+  }
+  rovGroup.position.y = 0.18 + Math.sin(t * 1.6) * 0.03;
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+fetchCatalog().then(async (cat) => {
+  catalogData = cat;
+  onResize();
+  await selectAsset('SR-IND-03');
+  // Automatically trigger one collision & UT preview so telemetry box is populated
+  document.getElementById('btnRunCollision').click();
+  animate();
+  window.__simreadyPreviewReady = true;
+});
+</script>
+</body>
+</html>

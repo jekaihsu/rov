@@ -1,0 +1,116 @@
+{
+  "arena_hud_verification": {
+    "initial_theme": "TACTICAL_SONAR",
+    "after_f2_theme": "INDUSTRIAL_P260",
+    "after_pill_theme": "STEAM_DIEGETIC",
+    "cycled_back_theme": "TACTICAL_SONAR",
+    "widgets_present": {
+      "hasHexRadar": true,
+      "hasUtAScan": true,
+      "hasTetherBar": true,
+      "hasRpmSpectrum": true,
+      "hasSplitTimer": true,
+      "hasDiegeticFrame": true,
+      "presetOrder": [
+        "TACTICAL_SONAR",
+        "INDUSTRIAL_P260",
+        "STEAM_DIEGETIC"
+      ]
+    }
+  },
+  "screenshots_1920x1080": [
+    {
+      "file": "steam_ss_01_m1_pool_6dof.png",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "bytes": 1194380
+    },
+    {
+      "file": "steam_ss_02_m2_hull_ut_gauging.png",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "bytes": 820829
+    },
+    {
+      "file": "steam_ss_03_m3_deep_sar_t3_fault.png",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "bytes": 948667
+    },
+    {
+      "file": "steam_ss_04_m4_pipeline_time_trial.png",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "bytes": 993102
+    },
+    {
+      "file": "steam_ss_05_p260_dual_viewport.png",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "bytes": 254925
+    }
+  ],
+  "steam_capsules": [
+    {
+      "file": "main_capsule_1232x706.png",
+      "width": 1232,
+      "height": 706,
+      "mode": "RGB",
+      "bytes": 161425
+    },
+    {
+      "file": "header_capsule_920x430.png",
+      "width": 920,
+      "height": 430,
+      "mode": "RGB",
+      "bytes": 91040
+    },
+    {
+      "file": "small_capsule_462x174.png",
+      "width": 462,
+      "height": 174,
+      "mode": "RGB",
+      "bytes": 41310
+    },
+    {
+      "file": "vertical_capsule_748x896.png",
+      "width": 748,
+      "height": 896,
+      "mode": "RGB",
+      "bytes": 177799
+    },
+    {
+      "file": "library_capsule_600x900.png",
+      "width": 600,
+      "height": 900,
+      "mode": "RGB",
+      "bytes": 179151
+    },
+    {
+      "file": "library_header_920x430.png",
+      "width": 920,
+      "height": 430,
+      "mode": "RGB",
+      "bytes": 90458
+    },
+    {
+      "file": "library_hero_3840x1240.png",
+      "width": 3840,
+      "height": 1240,
+      "mode": "RGB",
+      "bytes": 351161
+    },
+    {
+      "file": "library_logo_1280x720.png",
+      "width": 1280,
+      "height": 720,
+      "mode": "RGBA",
+      "bytes": 32866
+    }
+  ]
+}

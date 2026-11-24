@@ -1,0 +1,258 @@
+{
+  "ticket": "#80",
+  "suiteTotals": {
+    "modelsVerified": [
+      "M_06_rov_fault_and_sop_eval",
+      "M_07_rov_autopilot_and_ut_sampling",
+      "M_08_rov_pipeline_and_tether_physics"
+    ],
+    "negativeModelsVerified": [
+      "M_06_rov_broken",
+      "M_07_rov_autopilot_broken",
+      "M_08_rov_pipeline_broken"
+    ],
+    "totalProductionStates": 114,
+    "totalProductionTransitions": 235,
+    "totalProductionViolations": 0,
+    "totalNegativeStates": 26,
+    "totalNegativeTransitions": 26,
+    "totalCaughtBugClasses": 14,
+    "allInvariantsVerifiedCount": 12
+  },
+  "model": "M_06_rov_fault_and_sop_eval",
+  "production": {
+    "distinctStates": 55,
+    "transitions": 83,
+    "works": 55,
+    "wrong": 0,
+    "codeLikeCount": 0,
+    "invariantsVerified": [
+      "TypeOK",
+      "Inv_NoCertWithThrusterFaultUnlessReturned",
+      "Inv_ThrusterFaultCapsAllocation",
+      "Inv_ZeroHullForcesAbort"
+    ]
+  },
+  "negativeBrokenTest": {
+    "model": "M_06_rov_broken",
+    "distinctStates": 9,
+    "transitions": 11,
+    "works": 4,
+    "wrong": 5,
+    "caughtClasses": [
+      {
+        "n": 1,
+        "invariant": "Inv_ThrusterFaultCapsAllocation",
+        "readerSteps": 2,
+        "endState": "Nominal 6-DoF flight, 5 thrusters, tether normal, hull 100%, UT pending, cert pending",
+        "lastSteps": [
+          "buggy controller keeps nominal 6-DoF on 5 thrusters"
+        ]
+      },
+      {
+        "n": 2,
+        "invariant": "Inv_ThrusterFaultCapsAllocation",
+        "readerSteps": 3,
+        "endState": "Nominal 6-DoF flight, 5 thrusters, tether normal, hull 50%, UT pending, cert pending",
+        "lastSteps": [
+          "buggy controller keeps nominal 6-DoF on 5 thrusters"
+        ]
+      },
+      {
+        "n": 3,
+        "invariant": "Inv_ZeroHullForcesAbort",
+        "readerSteps": 3,
+        "endState": "Nominal 6-DoF flight, 6 thrusters, tether normal, hull 0%, UT pending, cert pending",
+        "lastSteps": [
+          "buggy controller continues flight at 0% hull integrity"
+        ]
+      },
+      {
+        "n": 4,
+        "invariant": "Inv_NoCertWithThrusterFaultUnlessReturned",
+        "readerSteps": 4,
+        "endState": "Mission complete, 0 thrusters, tether normal, hull 50%, UT pending, certified pass",
+        "lastSteps": [
+          "buggy evaluator grants certified pass with hull 50% and no UT"
+        ]
+      },
+      {
+        "n": 5,
+        "invariant": "Inv_ThrusterFaultCapsAllocation",
+        "readerSteps": 4,
+        "endState": "Nominal 6-DoF flight, 5 thrusters, tether normal, hull 0%, UT pending, cert pending",
+        "lastSteps": [
+          "buggy controller keeps nominal 6-DoF on 5 thrusters"
+        ]
+      },
+      {
+        "n": 6,
+        "invariant": "Inv_ZeroHullForcesAbort",
+        "readerSteps": 4,
+        "endState": "Nominal 6-DoF flight, 5 thrusters, tether normal, hull 0%, UT pending, cert pending",
+        "lastSteps": [
+          "buggy controller continues flight at 0% hull integrity"
+        ]
+      }
+    ]
+  },
+  "wave3AutopilotAndUtSampling": {
+    "model": "M_07_rov_autopilot_and_ut_sampling",
+    "production": {
+      "distinctStates": 27,
+      "transitions": 81,
+      "works": 27,
+      "wrong": 0,
+      "codeLikeCount": 0,
+      "invariantsVerified": [
+        "TypeOK",
+        "Inv_UtSampleRequiresCoupledAndStable",
+        "Inv_NoEmergencySurfaceWhenEntangled",
+        "Inv_CrushHazardForcesEmergencyOrHold"
+      ]
+    },
+    "negativeBrokenTest": {
+      "model": "M_07_rov_autopilot_broken",
+      "distinctStates": 9,
+      "transitions": 8,
+      "works": 3,
+      "wrong": 6,
+      "codeLikeCount": 0,
+      "caughtClasses": [
+        {
+          "n": 1,
+          "invariant": "Inv_CrushHazardForcesEmergencyOrHold",
+          "readerSteps": 2,
+          "endState": "Manual 6-DoF flight, in crush hazard depth, tether clear, probe uncoupled, UT idle",
+          "lastSteps": [
+            "buggy controller sinks into crush hazard depth while staying in manual 6-DoF"
+          ]
+        },
+        {
+          "n": 2,
+          "invariant": "Inv_UtSampleRequiresCoupledAndStable",
+          "readerSteps": 2,
+          "endState": "Manual 6-DoF flight, at work depth, tether clear, probe uncoupled, UT sample valid",
+          "lastSteps": [
+            "buggy gauge records valid UT reading while uncoupled in manual 6-DoF"
+          ]
+        },
+        {
+          "n": 3,
+          "invariant": "Inv_CrushHazardForcesEmergencyOrHold",
+          "readerSteps": 3,
+          "endState": "Manual 6-DoF flight, in crush hazard depth, tether clear, probe uncoupled, UT sample valid",
+          "lastSteps": [
+            "buggy controller sinks into crush hazard depth while staying in manual 6-DoF"
+          ]
+        },
+        {
+          "n": 4,
+          "invariant": "Inv_NoEmergencySurfaceWhenEntangled",
+          "readerSteps": 3,
+          "endState": "Emergency surface ascent, at work depth, tether entangled, probe uncoupled, UT idle",
+          "lastSteps": [
+            "buggy controller fires emergency surface ascent while tether is entangled"
+          ]
+        },
+        {
+          "n": 5,
+          "invariant": "Inv_NoEmergencySurfaceWhenEntangled",
+          "readerSteps": 4,
+          "endState": "Emergency surface ascent, at work depth, tether entangled, probe uncoupled, UT sample valid",
+          "lastSteps": [
+            "buggy controller fires emergency surface ascent while tether is entangled"
+          ]
+        }
+      ]
+    },
+    "artifacts": {
+      "mmd": "/workspace/pstack_verify/07_rov_autopilot_and_ut_sampling.mmd",
+      "tla": "/workspace/pstack_verify/M_07_rov_autopilot_and_ut_sampling.tla",
+      "cfg": "/workspace/pstack_verify/M_07_rov_autopilot_and_ut_sampling.cfg",
+      "map": "/workspace/pstack_verify/M_07_rov_autopilot_and_ut_sampling.map.mjs",
+      "brokenTla": "/workspace/pstack_verify/M_07_rov_autopilot_broken.tla",
+      "brokenCfg": "/workspace/pstack_verify/M_07_rov_autopilot_broken.cfg",
+      "brokenMap": "/workspace/pstack_verify/M_07_rov_autopilot_broken.map.mjs",
+      "statechartPng": "/workspace/rov_sim/rov_autopilot_ut_statechart.png",
+      "tlcGraphPng": "/workspace/pstack_verify/M_07_rov_autopilot_and_ut_sampling-statechart/chart.png",
+      "brokenTlcGraphPng": "/workspace/pstack_verify/M_07_rov_autopilot_broken-statechart/chart.png"
+    }
+  },
+  "wave3PipelineAndTetherPhysics": {
+    "model": "M_08_rov_pipeline_and_tether_physics",
+    "production": {
+      "distinctStates": 32,
+      "transitions": 71,
+      "works": 32,
+      "wrong": 0,
+      "codeLikeCount": 0,
+      "invariantsVerified": [
+        "TypeOK",
+        "Inv_SequentialGateOrderForGold",
+        "Inv_StormCurrentRequiresDerateGuard",
+        "Inv_OverheatOrSnagForcesDisqualifyOrRecover"
+      ]
+    },
+    "negativeBrokenTest": {
+      "model": "M_08_rov_pipeline_broken",
+      "distinctStates": 8,
+      "transitions": 7,
+      "works": 4,
+      "wrong": 4,
+      "codeLikeCount": 0,
+      "caughtClasses": [
+        {
+          "n": 1,
+          "invariant": "Inv_OverheatOrSnagForcesDisqualifyOrRecover",
+          "readerSteps": 2,
+          "endState": "at pipeline Gate 1, thruster overheat cutout, tether slack free, calm 0 kn current, silver pass",
+          "lastSteps": [
+            "buggy evaluator grants Silver pass after thruster overheat cutout"
+          ]
+        },
+        {
+          "n": 2,
+          "invariant": "Inv_SequentialGateOrderForGold",
+          "readerSteps": 2,
+          "endState": "at pipeline Gate 1, thrusters nominal 100%, tether slack free, calm 0 kn current, gold certified",
+          "lastSteps": [
+            "buggy evaluator grants Gold certification at Gate 1 skipping Gates 2 and 3"
+          ]
+        },
+        {
+          "n": 3,
+          "invariant": "Inv_StormCurrentRequiresDerateGuard",
+          "readerSteps": 2,
+          "endState": "at start bay Gate 0, thruster overheat cutout, tether taut drag, storm 2 kn current, run in progress",
+          "lastSteps": [
+            "buggy controller jumps from nominal 100% directly to overheat cutout under 2-knot storm and taut drag"
+          ]
+        }
+      ]
+    },
+    "artifacts": {
+      "mmd": "/workspace/pstack_verify/08_rov_pipeline_and_tether_physics.mmd",
+      "tla": "/workspace/pstack_verify/M_08_rov_pipeline_and_tether_physics.tla",
+      "cfg": "/workspace/pstack_verify/M_08_rov_pipeline_and_tether_physics.cfg",
+      "map": "/workspace/pstack_verify/M_08_rov_pipeline_and_tether_physics.map.mjs",
+      "brokenTla": "/workspace/pstack_verify/M_08_rov_pipeline_broken.tla",
+      "brokenCfg": "/workspace/pstack_verify/M_08_rov_pipeline_broken.cfg",
+      "brokenMap": "/workspace/pstack_verify/M_08_rov_pipeline_broken.map.mjs",
+      "statechartPng": "/workspace/rov_sim/rov_pipeline_physics_statechart.png",
+      "tlcGraphPng": "/workspace/pstack_verify/M_08_rov_pipeline_and_tether_physics-statechart/chart.png",
+      "brokenTlcGraphPng": "/workspace/pstack_verify/M_08_rov_pipeline_broken-statechart/chart.png"
+    }
+  },
+  "artifacts": {
+    "mmd": "/workspace/pstack_verify/06_rov_fault_and_sop_eval.mmd",
+    "tla": "/workspace/pstack_verify/M_06_rov_fault_and_sop_eval.tla",
+    "cfg": "/workspace/pstack_verify/M_06_rov_fault_and_sop_eval.cfg",
+    "map": "/workspace/pstack_verify/M_06_rov_fault_and_sop_eval.map.mjs",
+    "brokenTla": "/workspace/pstack_verify/M_06_rov_broken.tla",
+    "brokenCfg": "/workspace/pstack_verify/M_06_rov_broken.cfg",
+    "brokenMap": "/workspace/pstack_verify/M_06_rov_broken.map.mjs",
+    "statechartPng": "/workspace/rov_sim/rov_fault_sop_statechart.png",
+    "tlcGraphPng": "/workspace/pstack_verify/M_06_rov_fault_and_sop_eval-statechart/chart.png"
+  }
+}

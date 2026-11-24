@@ -1,0 +1,71 @@
+#usda 1.0
+(
+    defaultPrim = "SR_IND_05_ArticulatedManipulatorArm"
+    doc = "NVIDIA Omniverse SimReady OpenUSD Subsea Industrial Asset (SR-IND-05) — Source: huggingface.co/datasets/nvidia/simready-assets/arm_articulated_support_a01 (CC-BY-4.0)"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "SR_IND_05_ArticulatedManipulatorArm" (
+    kind = "component"
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "PhysicsCollisionAPI", "PhysicsMaterialAPI"]
+)
+{
+    custom string simready:assetId = "SR-IND-05"
+    custom string simready:hfDataset = "nvidia/simready-assets"
+    custom string simready:hfPackage = "arm_articulated_support_a01"
+    custom string simready:hfPackageId = "simready.hf.nvidia.simready-assets.arm_articulated_support_a01.2026.10.08_214129733183"
+    custom string simready:hfRootUsd = "simready_usd/sm_arm_articulated_support_a01_01.usd"
+    custom string simready:hfContentSha256 = "60ad5030c69750496c06df8286abef921f5a0c1105abcc1dd5b4483f6ba99225"
+    custom string simready:license = "CC-BY-4.0"
+    custom string simready:missionId = "mission_3_sar_fault"
+    custom string simready:missionCode = "M3"
+    custom string simready:titleZh = "多關節工業機械手臂與水下夾爪總成"
+    custom string simready:titleEn = "Articulated Industrial Manipulator & Gripper Assembly"
+    custom string simready:shapeArchetype = "manipulator_arm"
+    custom string simready:pbrColorHex = "#22D3EE"
+    custom string simready:secondaryColorHex = "#334155"
+    custom double subsea:utNominalWallMm = 15.00
+    custom double subsea:utActualWallMm = 14.60
+    custom double subsea:displacementM3 = 0.0190
+
+    bool physics:rigidBodyEnabled = true
+    bool physics:collisionEnabled = true
+    uniform token physics:approximation = "convexHull"
+    float physics:mass = 145.00
+    point3f physics:centerOfMass = (0.050, 0.000, -0.220)
+    float physics:staticFriction = 0.600
+    float physics:dynamicFriction = 0.480
+    float physics:restitution = 0.200
+
+    double3 xformOp:translate = (6.800, 1.500, 11.200)
+    float3 xformOp:scale = (1.000, 1.000, 1.000)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+    def Mesh "Visual_And_Collision_Hull" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        float3[] extent = [(-0.850, -0.750, -1.350), (0.850, 0.750, 1.350)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [
+            0, 1, 2, 3,
+            4, 7, 6, 5,
+            0, 4, 5, 1,
+            1, 5, 6, 2,
+            2, 6, 7, 3,
+            3, 7, 4, 0
+        ]
+        point3f[] points = [
+            (-0.850, -0.750, -1.350),
+            (0.850, -0.750, -1.350),
+            (0.850, 0.750, -1.350),
+            (-0.850, 0.750, -1.350),
+            (-0.850, -0.750, 1.350),
+            (0.850, -0.750, 1.350),
+            (0.850, 0.750, 1.350),
+            (-0.850, 0.750, 1.350)
+        ]
+        color3f[] primvars:displayColor = [(0.133, 0.827, 0.933)]
+    }
+}

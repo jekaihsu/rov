@@ -1,0 +1,9 @@
+BUILD_SEC 46.6483941078186 objects 296
+== hero_scene_full start 08:30:46
+RENDER_SEC 228.45278143882751
+== hero_cable_cross_section start 08:34:35
+RENDER_SEC 187.16169428825378
+== hero_cutter_shear_closing start 08:37:44
+RENDER_SEC 674.5571720600128
+== hero_rov01A_holder_closeup start 08:49:01
+RENDER_SEC 412.9578866958618

@@ -1,0 +1,34 @@
+{
+ "checks": {
+  "ready": true,
+  "moved_with_W": true,
+  "yawed_with_arrow": true,
+  "holder_ready_and_inrange": true,
+  "severed": true
+ },
+ "shots": [
+  "01_start.png",
+  "04_before_cut.png",
+  "06_after_cut.png"
+ ],
+ "load_s": 3.716,
+ "pos_before": [
+  5.829999995231629,
+  4.980000042915345,
+  1.3
+ ],
+ "pos_after_W": [
+  5.730877016342632,
+  4.915188864411,
+  1.3
+ ],
+ "final_state": "done",
+ "fps": 2.09307193190541,
+ "frames": 256,
+ "dom_text_elements": [
+  "obj:Mission complete — R to restart"
+ ],
+ "pageerrors": [],
+ "console_errors": [],
+ "total_s": 402.758
+}

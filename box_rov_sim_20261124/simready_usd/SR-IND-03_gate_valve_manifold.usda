@@ -1,0 +1,72 @@
+#usda 1.0
+(
+    defaultPrim = "SR_IND_03_GateValveManifold"
+    doc = "NVIDIA Omniverse SimReady OpenUSD Subsea Industrial Asset (SR-IND-03) — Source: huggingface.co/datasets/nvidia/simready-assets/drainage_pumpSystem_a01 (CC-BY-4.0)"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+)
+
+def Xform "SR_IND_03_GateValveManifold" (
+    kind = "component"
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI", "PhysicsCollisionAPI", "PhysicsMaterialAPI"]
+)
+{
+    custom string simready:assetId = "SR-IND-03"
+    custom string simready:hfDataset = "nvidia/simready-assets"
+    custom string simready:hfPackage = "drainage_pumpSystem_a01"
+    custom string simready:hfPackageId = "simready.hf.nvidia.simready-assets.drainage_pumpSystem_a01.2026.10.09_230152644711"
+    custom string simready:hfRootUsd = "simready_usd/sm_drainage_pumpSystem_a01_01.usd"
+    custom string simready:hfContentSha256 = "fa1421bf25031ad4e1afd6be59573161fd0704b61702e4ea9e911746568864c1"
+    custom string simready:license = "CC-BY-4.0"
+    custom string simready:missionId = "mission_2_hull_ut"
+    custom string simready:missionCode = "M2"
+    custom string simready:titleZh = "高壓工業閘閥與海底分流管匯總成"
+    custom string simready:titleEn = "High-Pressure Industrial Gate Valve & Subsea Manifold"
+    custom string simready:shapeArchetype = "valve_manifold"
+    custom string simready:pbrColorHex = "#22D3EE"
+    custom string simready:secondaryColorHex = "#0F172A"
+    custom string subsea:utCheckpointId = "UT-SR-01"
+    custom double subsea:utNominalWallMm = 14.00
+    custom double subsea:utActualWallMm = 12.60
+    custom double subsea:displacementM3 = 0.0420
+
+    bool physics:rigidBodyEnabled = true
+    bool physics:collisionEnabled = true
+    uniform token physics:approximation = "convexHull"
+    float physics:mass = 310.00
+    point3f physics:centerOfMass = (0.000, 0.020, -0.120)
+    float physics:staticFriction = 0.680
+    float physics:dynamicFriction = 0.550
+    float physics:restitution = 0.140
+
+    double3 xformOp:translate = (4.200, -1.800, 5.400)
+    float3 xformOp:scale = (1.000, 1.000, 1.000)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+
+    def Mesh "Visual_And_Collision_Hull" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {
+        float3[] extent = [(-1.050, -0.850, -1.000), (1.050, 0.850, 1.000)]
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [
+            0, 1, 2, 3,
+            4, 7, 6, 5,
+            0, 4, 5, 1,
+            1, 5, 6, 2,
+            2, 6, 7, 3,
+            3, 7, 4, 0
+        ]
+        point3f[] points = [
+            (-1.050, -0.850, -1.000),
+            (1.050, -0.850, -1.000),
+            (1.050, 0.850, -1.000),
+            (-1.050, 0.850, -1.000),
+            (-1.050, -0.850, 1.000),
+            (1.050, -0.850, 1.000),
+            (1.050, 0.850, 1.000),
+            (-1.050, 0.850, 1.000)
+        ]
+        color3f[] primvars:displayColor = [(0.133, 0.827, 0.933)]
+    }
+}

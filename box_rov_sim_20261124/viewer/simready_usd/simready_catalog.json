@@ -1,0 +1,431 @@
+{
+  "schema_version": "SimReady-OpenUSD-Subsea-1.0",
+  "source_dataset": "https://huggingface.co/datasets/nvidia/simready-assets",
+  "source_space": "https://huggingface.co/spaces/nvidia/simready-central",
+  "web_viewer_package": "@huggingface/usd-web-viewer@0.2.0",
+  "web_viewer_changelog": "https://huggingface.co/changelog/openusd-viewer-and-simready-asset-previews",
+  "ip_compliance": "100% Generic Industrial NVIDIA SimReady Assets (CC-BY-4.0) — Zero real client/wind-farm names, zero third-party ROV hulls",
+  "asset_count": 8,
+  "assets": [
+    {
+      "asset_id": "SR-IND-01",
+      "usd_file": "SR-IND-01_calibration_rack.usda",
+      "prim_name": "SR_IND_01_CalibrationRack",
+      "title_zh": "工業校準剛架與重型托盤底座",
+      "title_en": "Industrial Calibration Rack & Heavy Pallet Frame",
+      "mission_id": "mission_1_pool",
+      "mission_code": "M1",
+      "category": "Calibration Structure / UsdPhysics Collider",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "Xray_machine_XrayArmRack_a01",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.Xray_machine_XrayArmRack_a01.2026.10.08_210113147574",
+      "hf_root_usd": "simready_usd/sm_Xray_machine_XrayArmRack_a01_01.usd",
+      "hf_content_sha256": "d96a5b2e0c6aa05f8fbf3e6e38a285a9fa243993d98fc078b331862b0b794584",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        3.5,
+        -2.5,
+        4.2
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -1.1,
+        -0.8,
+        -1.2
+      ],
+      "extent_max": [
+        1.1,
+        0.8,
+        1.2
+      ],
+      "mass_kg": 185.0,
+      "displacement_m3": 0.024,
+      "center_of_mass": [
+        0.0,
+        0.0,
+        -0.15
+      ],
+      "static_friction": 0.65,
+      "dynamic_friction": 0.52,
+      "restitution": 0.18,
+      "pbr_color_hex": "#38BDF8",
+      "secondary_color_hex": "#1E293B",
+      "ut_checkpoint_id": null,
+      "ut_nominal_mm": 12.0,
+      "ut_actual_mm": 11.8,
+      "shape_archetype": "calibration_rack"
+    },
+    {
+      "asset_id": "SR-IND-02",
+      "usd_file": "SR-IND-02_ballast_drum_array.usda",
+      "prim_name": "SR_IND_02_BallastDrumArray",
+      "title_zh": "水下壓載鋼桶與密封容器陣列",
+      "title_en": "Subsea Ballast & Containment Steel Drum Array",
+      "mission_id": "mission_1_pool",
+      "mission_code": "M1",
+      "category": "Ballast Container / Friction & Restitution Target",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "drum_steel_a01",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.drum_steel_a01.2026.10.09_011312912512",
+      "hf_root_usd": "simready_usd/sm_drum_steel_a01_01.usd",
+      "hf_content_sha256": "91d7e9d449b062b189735b28a1ded603d36b771b078fa54cda9de26eb0e579e5",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        5.5,
+        2.4,
+        4.6
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -0.9,
+        -0.9,
+        -0.95
+      ],
+      "extent_max": [
+        0.9,
+        0.9,
+        0.95
+      ],
+      "mass_kg": 240.0,
+      "displacement_m3": 0.085,
+      "center_of_mass": [
+        0.0,
+        0.0,
+        -0.08
+      ],
+      "static_friction": 0.58,
+      "dynamic_friction": 0.46,
+      "restitution": 0.22,
+      "pbr_color_hex": "#06B6D4",
+      "secondary_color_hex": "#334155",
+      "ut_checkpoint_id": null,
+      "ut_nominal_mm": 10.0,
+      "ut_actual_mm": 9.7,
+      "shape_archetype": "drum_array"
+    },
+    {
+      "asset_id": "SR-IND-03",
+      "usd_file": "SR-IND-03_gate_valve_manifold.usda",
+      "prim_name": "SR_IND_03_GateValveManifold",
+      "title_zh": "高壓工業閘閥與海底分流管匯總成",
+      "title_en": "High-Pressure Industrial Gate Valve & Subsea Manifold",
+      "mission_id": "mission_2_hull_ut",
+      "mission_code": "M2",
+      "category": "B2B UT Thickness Gauging Target (UT-SR-01)",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "drainage_pumpSystem_a01",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.drainage_pumpSystem_a01.2026.10.09_230152644711",
+      "hf_root_usd": "simready_usd/sm_drainage_pumpSystem_a01_01.usd",
+      "hf_content_sha256": "fa1421bf25031ad4e1afd6be59573161fd0704b61702e4ea9e911746568864c1",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        4.2,
+        -1.8,
+        5.4
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -1.05,
+        -0.85,
+        -1.0
+      ],
+      "extent_max": [
+        1.05,
+        0.85,
+        1.0
+      ],
+      "mass_kg": 310.0,
+      "displacement_m3": 0.042,
+      "center_of_mass": [
+        0.0,
+        0.02,
+        -0.12
+      ],
+      "static_friction": 0.68,
+      "dynamic_friction": 0.55,
+      "restitution": 0.14,
+      "pbr_color_hex": "#22D3EE",
+      "secondary_color_hex": "#0F172A",
+      "ut_checkpoint_id": "UT-SR-01",
+      "ut_label": "UT-SR-01 高壓閘閥管匯法蘭壁厚",
+      "ut_zone": "SimReady Subsea Manifold",
+      "ut_nominal_mm": 14.0,
+      "ut_actual_mm": 12.6,
+      "shape_archetype": "valve_manifold"
+    },
+    {
+      "asset_id": "SR-IND-04",
+      "usd_file": "SR-IND-04_centrifugal_pump_housing.usda",
+      "prim_name": "SR_IND_04_CentrifugalPumpHousing",
+      "title_zh": "離心泵浦與渦輪蝸殼機組",
+      "title_en": "Centrifugal Pump & Turbine Volute Housing Unit",
+      "mission_id": "mission_2_hull_ut",
+      "mission_code": "M2",
+      "category": "B2B UT Thickness Gauging Target (UT-SR-02)",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "engineComponent_water_pump_a01",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.engineComponent_water_pump_a01.2026.10.09_015302615742",
+      "hf_root_usd": "simready_usd/sm_engineComponent_water_pump_a01_01.usd",
+      "hf_content_sha256": "0a3b61dcab8830609bbf5792d6bad1cd0f3bf782d8d5beaff9c7ebd7d86cdb97",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        -2.8,
+        -1.9,
+        6.8
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -1.15,
+        -0.95,
+        -0.9
+      ],
+      "extent_max": [
+        1.15,
+        0.95,
+        0.9
+      ],
+      "mass_kg": 420.0,
+      "displacement_m3": 0.056,
+      "center_of_mass": [
+        -0.04,
+        0.0,
+        -0.1
+      ],
+      "static_friction": 0.64,
+      "dynamic_friction": 0.5,
+      "restitution": 0.16,
+      "pbr_color_hex": "#38BDF8",
+      "secondary_color_hex": "#1E293B",
+      "ut_checkpoint_id": "UT-SR-02",
+      "ut_label": "UT-SR-02 離心泵浦蝸殼耐壓外壁",
+      "ut_zone": "SimReady Pump Volute",
+      "ut_nominal_mm": 18.0,
+      "ut_actual_mm": 17.4,
+      "shape_archetype": "pump_housing"
+    },
+    {
+      "asset_id": "SR-IND-05",
+      "usd_file": "SR-IND-05_articulated_manipulator_arm.usda",
+      "prim_name": "SR_IND_05_ArticulatedManipulatorArm",
+      "title_zh": "多關節工業機械手臂與水下夾爪總成",
+      "title_en": "Articulated Industrial Manipulator & Gripper Assembly",
+      "mission_id": "mission_3_sar_fault",
+      "mission_code": "M3",
+      "category": "Subsea Intervention & Articulated Link Target",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "arm_articulated_support_a01",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.arm_articulated_support_a01.2026.10.08_214129733183",
+      "hf_root_usd": "simready_usd/sm_arm_articulated_support_a01_01.usd",
+      "hf_content_sha256": "60ad5030c69750496c06df8286abef921f5a0c1105abcc1dd5b4483f6ba99225",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        6.8,
+        1.5,
+        11.2
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -0.85,
+        -0.75,
+        -1.35
+      ],
+      "extent_max": [
+        0.85,
+        0.75,
+        1.35
+      ],
+      "mass_kg": 145.0,
+      "displacement_m3": 0.019,
+      "center_of_mass": [
+        0.05,
+        0.0,
+        -0.22
+      ],
+      "static_friction": 0.6,
+      "dynamic_friction": 0.48,
+      "restitution": 0.2,
+      "pbr_color_hex": "#22D3EE",
+      "secondary_color_hex": "#334155",
+      "ut_checkpoint_id": null,
+      "ut_nominal_mm": 15.0,
+      "ut_actual_mm": 14.6,
+      "shape_archetype": "manipulator_arm"
+    },
+    {
+      "asset_id": "SR-IND-06",
+      "usd_file": "SR-IND-06_subsea_power_junction_skid.usda",
+      "prim_name": "SR_IND_06_SubseaPowerJunctionSkid",
+      "title_zh": "海底高壓配電接線盒與發電底座",
+      "title_en": "Subsea Power Junction Terminal & Generator Skid",
+      "mission_id": "mission_3_sar_fault",
+      "mission_code": "M3",
+      "category": "Deep-Sea SAR Recovery & Relay Skid",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "electrical_main_terminal_a01",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.electrical_main_terminal_a01.2026.10.09_012558714653",
+      "hf_root_usd": "simready_usd/sm_electrical_main_terminal_a01_01.usd",
+      "hf_content_sha256": "2f54bdf8a887efe6c91efb3d7a06667fad3708b759b16744763123e6f653342e",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        9.4,
+        -2.2,
+        12.6
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -1.25,
+        -0.95,
+        -1.05
+      ],
+      "extent_max": [
+        1.25,
+        0.95,
+        1.05
+      ],
+      "mass_kg": 560.0,
+      "displacement_m3": 0.072,
+      "center_of_mass": [
+        0.0,
+        0.0,
+        -0.25
+      ],
+      "static_friction": 0.72,
+      "dynamic_friction": 0.58,
+      "restitution": 0.12,
+      "pbr_color_hex": "#06B6D4",
+      "secondary_color_hex": "#0F172A",
+      "ut_checkpoint_id": null,
+      "ut_nominal_mm": 20.0,
+      "ut_actual_mm": 19.3,
+      "shape_archetype": "power_skid"
+    },
+    {
+      "asset_id": "SR-IND-07",
+      "usd_file": "SR-IND-07_modular_pipe_bridge_truss.usda",
+      "prim_name": "SR_IND_07_ModularPipeBridgeTruss",
+      "title_zh": "模組化海底管橋與防撞桁架門框",
+      "title_en": "Modular Subsea Pipe Bridge & Structural Truss Portal",
+      "mission_id": "mission_4_pipeline",
+      "mission_code": "M4",
+      "category": "Pipeline Time-Trial Structural Portal Collider",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "conveyor_belt_a02",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.conveyor_belt_a02.2026.10.09_001817352293",
+      "hf_root_usd": "simready_usd/sm_conveyor_belt_a02_01.usd",
+      "hf_content_sha256": "696cfc002c291d440827d2e9e6f48538e39a9150652513bfee654d2585102d02",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        11.0,
+        0.0,
+        8.2
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -1.6,
+        -1.4,
+        -1.5
+      ],
+      "extent_max": [
+        1.6,
+        1.4,
+        1.5
+      ],
+      "mass_kg": 890.0,
+      "displacement_m3": 0.115,
+      "center_of_mass": [
+        0.0,
+        0.0,
+        -0.18
+      ],
+      "static_friction": 0.7,
+      "dynamic_friction": 0.56,
+      "restitution": 0.15,
+      "pbr_color_hex": "#38BDF8",
+      "secondary_color_hex": "#1E293B",
+      "ut_checkpoint_id": null,
+      "ut_nominal_mm": 22.0,
+      "ut_actual_mm": 21.4,
+      "shape_archetype": "pipe_truss_portal"
+    },
+    {
+      "asset_id": "SR-IND-08",
+      "usd_file": "SR-IND-08_offshore_pier_bollard_tank.usda",
+      "prim_name": "SR_IND_08_OffshorePierBollardTank",
+      "title_zh": "重型港灣碼頭繫船柱與不鏽鋼護舷儲槽",
+      "title_en": "Heavy Harbor Pier Bollard & Stainless Containment Tank",
+      "mission_id": "mission_4_pipeline",
+      "mission_code": "M4",
+      "category": "Harbor Pier / Pipeline Corridor Anchor Structure",
+      "hf_dataset": "nvidia/simready-assets",
+      "hf_package": "ibcTank_steel_stainless_a01",
+      "hf_package_id": "simready.hf.nvidia.simready-assets.ibcTank_steel_stainless_a01.2026.10.09_054826694413",
+      "hf_root_usd": "simready_usd/sm_ibcTank_steel_stainless_a01_01.usd",
+      "hf_content_sha256": "d09f0536901a4c175d925ffabb0c1576649f3502f00bed59c3407759570d2ba3",
+      "license": "CC-BY-4.0",
+      "ned_pos": [
+        15.5,
+        2.6,
+        8.8
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "extent_min": [
+        -1.2,
+        -1.2,
+        -1.3
+      ],
+      "extent_max": [
+        1.2,
+        1.2,
+        1.3
+      ],
+      "mass_kg": 740.0,
+      "displacement_m3": 0.098,
+      "center_of_mass": [
+        0.0,
+        0.0,
+        -0.3
+      ],
+      "static_friction": 0.74,
+      "dynamic_friction": 0.6,
+      "restitution": 0.1,
+      "pbr_color_hex": "#CBD5E1",
+      "secondary_color_hex": "#06B6D4",
+      "ut_checkpoint_id": null,
+      "ut_nominal_mm": 16.0,
+      "ut_actual_mm": 15.5,
+      "shape_archetype": "bollard_tank"
+    }
+  ]
+}

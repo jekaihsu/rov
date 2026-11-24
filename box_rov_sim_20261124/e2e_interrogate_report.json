@@ -1,0 +1,134 @@
+{
+  "ticket": "#80",
+  "worker": "Worker 3 (/create-verification-skill & /interrogate Red-Team QA)",
+  "timestamp_utc8": "2026-10-26 03:44:36 UTC+8",
+  "suites": {
+    "unit_and_redteam_tests": {
+      "exit_code": 0,
+      "tests_ran": 109,
+      "elapsed_s": 38.738,
+      "pass": true
+    },
+    "worker4_guard_verification": {
+      "exit_code": 0,
+      "overall_guard_pass": true,
+      "shipped_files_scanned": 204,
+      "shipped_brand_violations_count": 0,
+      "binary_3d_mesh_files_found": [],
+      "obfuscated_vendor_shims": [],
+      "probes_violated_in_runtime": [],
+      "pass": true
+    },
+    "live_websocket_6dof_mission_loop": {
+      "pass": true,
+      "steps": [
+        {
+          "step": "depth_and_heading_hold",
+          "wave3": {
+            "autopilot_mode": "Depth_Heading_Hold",
+            "tether_state": "Clear",
+            "probe_coupling": "Uncoupled",
+            "ut_sample_state": "Idle",
+            "depth_zone": "Work_Depth",
+            "depth_hold_active": true,
+            "target_depth_m": 4.5,
+            "depth_hold_error_m": -0.3,
+            "heading_hold_active": true,
+            "target_heading_deg": 90.0,
+            "heading_hold_error_deg": -50.001,
+            "emergency_surface_active": false,
+            "emergency_surface_time_s": null,
+            "emergency_surface_completed": false,
+            "tether_snag_active": false,
+            "tether_snag_recovered_count": 0,
+            "ut_state": "ut_searching",
+            "ut_ring_state": "searching",
+            "ut_target_id": null,
+            "ut_tilt_deg": 0.9,
+            "ut_distance_m": 1.85,
+            "ut_hold_elapsed_s": 0.0,
+            "ut_required_hold_s": 3.0
+          }
+        },
+        {
+          "step": "act01_entangled_surface_blocked",
+          "pass": true,
+          "mode_state": "tether_snag_warning",
+          "emergency_surface_active": false
+        },
+        {
+          "step": "act02_ut_3s_coupled_lock",
+          "pass": true,
+          "ut_state": "ut_coupled_lock",
+          "ut_sample_state": "Sample_Valid",
+          "ut_hold_elapsed_s": 3.0
+        },
+        {
+          "step": "t3_fault_reallocation",
+          "pass": true,
+          "faulted_names": [
+            "T3"
+          ]
+        }
+      ]
+    },
+    "playwright_webgl_e2e": {
+      "viewer_probe": {
+        "title": "ROV-01 模擬器 · B2B 故障重分配與水下巡檢訓練",
+        "has_rov_audio": true,
+        "has_rov_input_shaping": true,
+        "nan_shaping_guard": {
+          "surge": 0,
+          "sway": 0,
+          "heave": 0,
+          "roll": 1,
+          "pitch": 0,
+          "yaw": 0
+        },
+        "stick2d_sample": [
+          0.4754331343695357,
+          -0.3169554229130238
+        ],
+        "canvases": [
+          [
+            560,
+            250
+          ],
+          [
+            480,
+            60
+          ],
+          [
+            520,
+            240
+          ],
+          [
+            864,
+            540
+          ]
+        ],
+        "raf_telemetry": {
+          "frames": 15,
+          "avg_fps": 9.6,
+          "p95_frame_ms": 116.7
+        },
+        "body_text_len": 812
+      },
+      "missing_404": [],
+      "page_errors": [],
+      "dom_brand_hit": null,
+      "url_brand_hits": [],
+      "p260_raf": {
+        "frames": 6,
+        "avg_fps": 3.8
+      },
+      "p260_missing_404": [],
+      "p260_page_errors": [],
+      "p260_brand_hit": null,
+      "brand_gate_live_http_exit": 0,
+      "pass": true
+    }
+  },
+  "overall_pass": true,
+  "elapsed_total_s": 70.8
+}

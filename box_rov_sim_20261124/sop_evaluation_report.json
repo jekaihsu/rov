@@ -1,0 +1,115 @@
+{
+  "report_version": "ROV-01-SOP-v2.1",
+  "generated_at": "2026-10-24 18:43:13 UTC+8",
+  "vehicle_model": "ROV-01 (6-Thruster Open-Frame Industrial)",
+  "mission_id": "mission_2_hull_ut",
+  "mission_title": "Mission 2：港灣船體巡檢與測厚 SOP",
+  "elapsed_s": 5.17,
+  "total_score": 94.1,
+  "grade": "A+ (優異 · 具備複雜海況與故障應變資格)",
+  "breakdown": {
+    "waypoint_ut_completion_pts": 40,
+    "stability_hold_pts": 24.7,
+    "hull_integrity_safety_pts": 15.9,
+    "fault_compensation_rth_pts": 13.5
+  },
+  "metrics": {
+    "ut_completed": 4,
+    "ut_total": 4,
+    "ut_completion_pct": 100,
+    "waypoints_completed": 4,
+    "waypoints_total": 4,
+    "depth_hold_stability_pct": 100,
+    "heading_stability_pct": 97.1,
+    "hull_integrity_pct": 79.4,
+    "collision_count": 1,
+    "faulted_thrusters": [],
+    "reallocation_active": false,
+    "emergency_return_time_s": null,
+    "emergency_return_completed": false,
+    "tether_tension_n": 0,
+    "tether_snagged": true,
+    "current_kn": 0.29,
+    "turbidity_ntu": 8.5,
+    "visibility_m": 11.5
+  },
+  "ut_checkpoints": [
+    {
+      "id": "UT-01",
+      "label": "UT-01 艏部舭龍骨焊縫",
+      "zone": "Bow Bilge Keel",
+      "point": [
+        6,
+        -2.2,
+        5.2
+      ],
+      "nominal_mm": 16,
+      "measured_mm": 15.6,
+      "diminution_pct": 2.5,
+      "status": "PASS",
+      "completed": true,
+      "sampled_at_s": 1.86,
+      "sampled_depth_m": 4.74
+    },
+    {
+      "id": "UT-02",
+      "label": "UT-02 舯部平底船殼板",
+      "zone": "Midship Flat Bottom",
+      "point": [
+        0,
+        -2.2,
+        7.6
+      ],
+      "nominal_mm": 18,
+      "measured_mm": 17.3,
+      "diminution_pct": 3.9,
+      "status": "PASS",
+      "completed": true,
+      "sampled_at_s": 2.07,
+      "sampled_depth_m": 4.73
+    },
+    {
+      "id": "UT-03",
+      "label": "UT-03 海水格柵箱體外壁",
+      "zone": "Sea Chest Grating",
+      "point": [
+        -5.5,
+        -2.2,
+        6.2
+      ],
+      "nominal_mm": 14,
+      "measured_mm": 12.8,
+      "diminution_pct": 8.6,
+      "status": "WARN_CORROSION",
+      "completed": true,
+      "sampled_at_s": 2.22,
+      "sampled_depth_m": 4.72
+    },
+    {
+      "id": "UT-04",
+      "label": "UT-04 艉軸管與舵柱法蘭",
+      "zone": "Stern Thruster Flange",
+      "point": [
+        -9.5,
+        0,
+        5.8
+      ],
+      "nominal_mm": 20,
+      "measured_mm": 19.4,
+      "diminution_pct": 3,
+      "status": "PASS",
+      "completed": true,
+      "sampled_at_s": 2.39,
+      "sampled_depth_m": 4.71
+    }
+  ],
+  "collision_log": [
+    {
+      "t": 4.74,
+      "zone": "front",
+      "impact_speed_mps": 1.15,
+      "deduction": 20.6,
+      "hull_integrity": 79.4
+    }
+  ]
+}

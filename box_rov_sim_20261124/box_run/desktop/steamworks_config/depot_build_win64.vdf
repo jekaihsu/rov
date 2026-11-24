@@ -1,0 +1,16 @@
+"DepotBuild"
+{
+	"DepotID" "481" // Replace 481 with assigned Win64 DepotID
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+	"FileExclusion" "*.pdb"
+	"FileExclusion" "*.log"
+	"FileExclusion" "steam_appid.txt"
+	"FileExclusion" "steam_app_id.txt"
+	"FileExclusion" "steam_build_manifest.json"
+	"FileExclusion" "__pycache__*"
+}

@@ -1,0 +1,455 @@
+INFO Draco mesh compression is available, use library at /workspace/tools/blender/4.2/python/lib/python3.11/site-packages/libextern_draco.so
+08:30:10 | INFO: Starting glTF 2.0 export
+08:30:10 | INFO: Extracting primitive: holder_arm_base__alu
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_base__cyan_dk
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_base__steel
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_base__steel_dk
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_turret__alu
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_turret__chrome
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_turret__cyan
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_turret__cyan_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_turret__steel
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_turret__steel_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__alu
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__chrome
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__cyan
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__cyan_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__hose
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__hose_cy
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__steel
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_upper__steel_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_fore__alu
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_fore__chrome
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_fore__cyan
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_fore__cyan_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_fore__hose
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_fore__hose_cy
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_fore__steel_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_wrist__cyan_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_wrist__steel
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_hand__alu
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_hand__cyan
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_arm_hand__steel_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_housing__cyan
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_housing__cyan_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_housing__steel
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_housing__steel_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_lo_g__rubber
+08:30:10 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_lo_g__steel
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_lo_g__steel_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_up_g__rubber
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_up_g__steel
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_jaw_up_g__steel_dk
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_decal_side
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_decal_side.001
+08:30:10 | INFO: Primitives created: 1
+08:30:10 | INFO: Extracting primitive: holder_decal_top
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__alu
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__alu.001
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__blade
+08:30:11 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__brass
+08:30:11 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__cyan_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__hose
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__hose_cy
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__slate_lt
+08:30:11 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__steel
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__steel.001
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_detail__steel_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__alu
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__alu.001
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__alu.002
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__brass
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__cyan
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__cyan_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__foam
+08:30:11 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__glass
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__rubber
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__slate
+08:30:11 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__slate.001
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__steel
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__steel.001
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__steel.002
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_frame__steel_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_hoses__hose
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_hoses__hose_cy
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_marker0__decal
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__alu
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__alu.001
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__alu.002
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__cyan_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__glass
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__glass.001
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__lens_emit
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__rubber
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__slate
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__status_led
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_sensors__steel
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_tether__alu
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_tether__hose
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_tether__rubber
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_tether__steel
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_tether__steel_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_thrusters__alu
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_thrusters__cyan_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_thrusters__slate
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_thrusters__slate_lt
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: holder_thrusters__steel_dk
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: prop_0__prop
+08:30:11 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: prop_1__prop
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: prop_2__prop
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: prop_3__prop
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: prop_4__prop
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Extracting primitive: prop_5__prop
+08:30:11 | INFO: Primitives created: 1
+08:30:11 | INFO: Finished glTF 2.0 export in 0.6711633205413818 s
+
+EXPORTED rov01a_holder_lod0 5.96MB tris=140008
+08:30:12 | INFO: Starting glTF 2.0 export
+08:30:12 | INFO: Extracting primitive: holder_arm_base__alu
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_base__cyan_dk
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_base__steel
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_base__steel_dk
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_turret__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_turret__chrome
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_turret__cyan
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_turret__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_turret__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_turret__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__chrome
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__cyan
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__hose
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__hose_cy
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_upper__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_fore__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_fore__chrome
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_fore__cyan
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_fore__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_fore__hose
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_fore__hose_cy
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_fore__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_wrist__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_wrist__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_hand__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_hand__cyan
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_arm_hand__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_housing__cyan
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_housing__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_housing__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_housing__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_lo_g__rubber
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_lo_g__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_lo_g__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_up_g__rubber
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_up_g__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_jaw_up_g__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_decal_side
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_decal_side.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_decal_top
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__alu.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__blade
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__brass
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__hose
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__hose_cy
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__slate_lt
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__steel.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_detail__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__alu.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__alu.002
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__brass
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__cyan
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__foam
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__glass
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__rubber
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__slate
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__slate.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__steel.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__steel.002
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_frame__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_hoses__hose
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_hoses__hose_cy
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_marker0__decal
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__alu.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__alu.002
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__glass
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__glass.001
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__lens_emit
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__rubber
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__slate
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__status_led
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_sensors__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_tether__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_tether__hose
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_tether__rubber
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_tether__steel
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_tether__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_thrusters__alu
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_thrusters__cyan_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_thrusters__slate
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_thrusters__slate_lt
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: holder_thrusters__steel_dk
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: prop_0__prop
+08:30:12 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: prop_1__prop
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: prop_2__prop
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: prop_3__prop
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: prop_4__prop
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Extracting primitive: prop_5__prop
+08:30:12 | INFO: Primitives created: 1
+08:30:12 | INFO: Finished glTF 2.0 export in 0.47392821311950684 s
+
+EXPORTED rov01a_holder_lod1 3.45MB tris=92540
+Blender 4.2.23 LTS (hash d0cbe84903e8 built 2026-07-21 01:31:03)
+Traceback (most recent call last):
+  File "/workspace/rov_sim/blender_cablecut/scripts/export.py", line 63, in <module>
+    elif w == "rov_cutter": build_rov_asset("cutter", "B", "shear"); nm = "rov01b_cutter"
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/rov_sim/blender_cablecut/scripts/export.py", line 40, in build_rov_asset
+    M = build_mats()
+        ^^^^^^^^^^^^
+  File "/workspace/rov_sim/blender_cablecut/scripts/mats.py", line 27, in build_mats
+    M["alu"] = make_pbr("alu", (0.55, 0.60, 0.65), 0.34, 1.0, uvscale=1.0, grime=0.22, scratch=0.9, brushed=0.7, bump=0.5, seed=11)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/rov_sim/blender_cablecut/scripts/lib.py", line 126, in make_pbr
+    ta = img(pa, "sRGB", 300); to = img(po, "Non-Color", 0); tn = img(pn, "Non-Color", -300)
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/rov_sim/blender_cablecut/scripts/lib.py", line 124, in img
+    t.image = load_img(path, cs); t.interpolation = "Smart"; t.extension = "REPEAT"
+    ^^^^^^^
+ReferenceError: StructRNA of type Image has been removed
+
+Blender quit
