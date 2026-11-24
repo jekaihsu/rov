@@ -10,6 +10,7 @@
   "examOn": "Licence exam · real mode",
   "examVoid": "Settings beyond the real vehicle were enabled during the exam; this attempt does not count toward the licence.",
   "photoSaved": "Photo saved; the client reviews it after hand-in.",
+  "lotoLock": "LOTO not confirmed; thrusters remain locked.",
   "outcome": {
     "complete": "Contract complete",
     "partial": "Partial hand-in",

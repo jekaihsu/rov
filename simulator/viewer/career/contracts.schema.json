@@ -52,6 +52,47 @@
         "value": {}
       }
     },
+    "compareSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "yaw_tol_deg": {"type": "number", "minimum": 0},
+        "standoff_tol_m": {"type": "number", "minimum": 0}
+      }
+    },
+    "referencePose": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "yaw_deg": {"type": "number"},
+        "standoff_m": {"type": "number", "minimum": 0},
+        "point": {"$ref": "#/$defs/point"},
+        "look_at": {"$ref": "#/$defs/point"},
+        "heading_deg": {"type": "number"},
+        "standoff": {"$ref": "#/$defs/range"}
+      }
+    },
+    "radioTrigger": {
+      "type": "object",
+      "required": ["id", "when", "speaker", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "when": {"type": "string", "minLength": 1},
+        "speaker": {"type": "string"},
+        "text": {"type": "string", "minLength": 1}
+      }
+    },
+    "settleComments": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gold": {"type": "string"},
+        "silver": {"type": "string"},
+        "bronze": {"type": "string"},
+        "abort": {"type": "string"}
+      }
+    },
     "deliverable": {
       "type": "object",
       "required": ["id", "kind", "label"],
@@ -69,6 +110,19 @@
         "condition": {"$ref": "#/$defs/condition"},
         "equipment": {"$ref": "#/$defs/id"},
         "reading": {"type": "string"},
+        "truth_cm": {"type": "number", "minimum": 0},
+        "growth": {"enum": ["soft", "hard"]},
+        "rating": {"type": "integer", "minimum": 0, "maximum": 4},
+        "compare": {
+          "oneOf": [
+            {"type": "boolean"},
+            {"$ref": "#/$defs/compareSpec"}
+          ]
+        },
+        "reference": {"$ref": "#/$defs/referencePose"},
+        "gate": {"type": "string", "minLength": 1},
+        "face": {"$ref": "#/$defs/point"},
+        "work": {"type": "string"},
         "after": {"$ref": "#/$defs/id"},
         "object_kind": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
         "below": {"type": "number", "minimum": 0},
@@ -112,8 +166,10 @@
         "client": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
         "clientName": {"type": "string", "minLength": 1},
         "job": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
+        "workOrder": {"type": "string", "minLength": 1},
         "scenario": {"type": "string", "minLength": 1},
         "launchScenario": {"type": "string", "minLength": 1},
+        "visibility_m": {"type": "number", "exclusiveMinimum": 0},
         "runtime": {"enum": ["deliverables", "chapter"]},
         "campaignChapter": {"$ref": "#/$defs/id"},
         "vehicles": {"type": "array", "minItems": 1, "uniqueItems": true,
@@ -133,6 +189,7 @@
         "optional": {"type": "boolean"},
         "partial": {"type": "number", "minimum": 0, "maximum": 1},
         "provisional": {"type": "boolean"},
+        "lotoBeforeUnlock": {"type": "boolean"},
         "summary": {"type": "string", "minLength": 1},
         "brief": {"type": "string", "minLength": 1},
         "radio": {
@@ -155,9 +212,11 @@
                   "text": {"type": "string", "minLength": 1}
                 }
               }
-            }
+            },
+            "triggers": {"type": "array", "items": {"$ref": "#/$defs/radioTrigger"}}
           }
         },
+        "settleComments": {"$ref": "#/$defs/settleComments"},
         "conditions": {"type": "string"},
         "currentKn": {"type": "number", "minimum": 0},
         "deliverables": {"type": "array", "items": {"$ref": "#/$defs/deliverable"}},

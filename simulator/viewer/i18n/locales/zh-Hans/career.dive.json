@@ -10,6 +10,7 @@
   "examOn": "执照考核中 · 真实模式",
   "examVoid": "考核期间开启了超出真机的设定，本次不计入执照。",
   "photoSaved": "照片已存档，交付后由客户审核。",
+  "lotoLock": "LOTO 未确认，推进器保持锁定。",
   "outcome": {
     "complete": "委托完成",
     "partial": "部分交付",
