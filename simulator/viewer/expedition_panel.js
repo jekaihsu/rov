@@ -1,3 +1,22 @@
+import {COLLECTION_CATEGORIES} from './collection_store.js';
+
+export function expeditionObjectives(state) {
+  const run = state.expedition;
+  const stations = (run?.active?.steps || []).filter(step => step.point && !step.completed);
+  const markers = (run?.markers || []).filter(marker => marker.point || marker.pos);
+  return [
+    ...stations.map(step => ({...step, kind: 'inspect', done: step.completed})),
+    ...markers.map(marker => ({
+      ...marker,
+      id: 'discovery:' + marker.entity_id,
+      label: COLLECTION_CATEGORIES[marker.label] || marker.label,
+      point: marker.point || marker.pos,
+      kind: 'checkpoint',
+      radius: .35,
+    })),
+  ];
+}
+
 export function installExpeditionPanel({send,getSession,takePhoto,openCollection,setOnboard,readOnly=false}){
   const panel=document.createElement('section');panel.className='expedition-panel';panel.hidden=true;
   panel.innerHTML=`<div class="expedition-title"><strong>海洋探索與工程</strong><button type="button" class="exp-collection">收藏</button></div>
