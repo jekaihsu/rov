@@ -77,61 +77,83 @@ test("state frames map to dive, tether retrace, coop and evidence events", () =>
   assert.deepEqual(stateEvents(before, fish), ["evidence_photo"]);
 });
 
+function careerComplete(extra = {}) {
+  return {
+    kind: "career",
+    success: true,
+    contacts: 0,
+    medal: "gold",
+    contracts: {},
+    career: { pay: { outcome: "complete" } },
+    ...extra,
+  };
+}
+
 test("finished runs map to skill-based career and contract events", () => {
   assert.deepEqual(outcomeEvents({ kind: "scenario", success: true, contacts: 0 }), ["zero_collision"]);
   assert.deepEqual(outcomeEvents({ kind: "scenario", success: false, contacts: 0 }), []);
   assert.deepEqual(outcomeEvents({ kind: "contract", id: "recover", success: true, contacts: 2 }), ["recovery_work"]);
   assert.deepEqual(outcomeEvents({ kind: "contract", id: "deploy", success: true, contacts: 1 }), ["deployment_work"]);
   assert.deepEqual(
-    outcomeEvents({
-      kind: "career",
-      id: "c1_pier_level1",
-      success: true,
-      contacts: 0,
-      medal: "gold",
-      contracts: {},
-    }),
+    outcomeEvents(careerComplete({ id: "c1_pier_level1" })),
     ["zero_collision", "harbor_clean"],
   );
   assert.deepEqual(
-    outcomeEvents({
-      kind: "career",
+    outcomeEvents(careerComplete({
       id: "c1_pier_level2",
-      success: true,
       contacts: 1,
       medal: "silver",
       measured: true,
       visibility_m: 1.2,
-      contracts: {},
-    }),
+    })),
     ["pier_measure", "murk_measure"],
   );
   assert.deepEqual(
-    outcomeEvents({
-      kind: "career",
-      id: "p1_pool_checkout",
-      success: true,
-      contacts: 0,
-      medal: "gold",
-      contracts: {},
-    }),
+    outcomeEvents(careerComplete({ id: "p1_pool_checkout" })),
     ["zero_collision", "pool_gold"],
   );
   assert.ok(CHAPTER1_CONTRACTS.length === 7);
   const medals = Object.fromEntries(CHAPTER1_CONTRACTS.map((id) => [id, { medal: "gold" }]));
   assert.equal(chapterAllGold(medals), true);
   assert.deepEqual(
-    outcomeEvents({
-      kind: "career",
+    outcomeEvents(careerComplete({
       id: "c1_signoff_exam",
-      success: true,
-      contacts: 0,
-      medal: "gold",
       examPassed: true,
       examValid: true,
       contracts: medals,
-    }).sort(),
+    })).sort(),
     ["chapter1_gold", "grade2_exam", "real_exam", "zero_collision"].sort(),
+  );
+});
+
+test("partial career payouts do not unlock completion achievements", () => {
+  const partial = {
+    kind: "career",
+    id: "c1_pier_level2",
+    success: true,
+    contacts: 0,
+    medal: "none",
+    measured: true,
+    visibility_m: 1.0,
+    examPassed: false,
+    examValid: true,
+    contracts: {},
+    career: { pay: { outcome: "partial" } },
+  };
+  assert.deepEqual(
+    outcomeEvents(partial),
+    ["murk_measure"],
+    "partial work may keep measurement/discipline awards, not pier_measure or zero_collision",
+  );
+  assert.deepEqual(
+    outcomeEvents({
+      ...partial,
+      id: "p2_open_water",
+      measured: false,
+      visibility_m: 12,
+    }),
+    [],
+    "partial open-water hand-in must not unlock prologue_done",
   );
 });
 

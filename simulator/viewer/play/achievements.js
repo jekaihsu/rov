@@ -96,6 +96,10 @@ function measureDone(outcome) {
   });
 }
 
+function careerCompleted(outcome) {
+  return outcome?.career?.pay?.outcome === 'complete';
+}
+
 // Events earned by a finished run (play/results_model.js / career dive outcome).
 export function outcomeEvents(outcome) {
   const events = [];
@@ -107,33 +111,40 @@ export function outcomeEvents(outcome) {
     if (outcome.id === 'inspect') events.push('inspection_coop');
   }
   if (outcome.kind === 'chapter' && outcome.id === 'prologue') events.push('first_dive');
-  if ((outcome.contacts ?? 0) === 0) events.push('zero_collision');
+  // Career partials still set success=true; only a full payout counts as a clean finished run.
+  if ((outcome.contacts ?? 0) === 0 && (outcome.kind !== 'career' || careerCompleted(outcome))) {
+    events.push('zero_collision');
+  }
 
   if (outcome.kind === 'career') {
+    const completed = careerCompleted(outcome);
     const medal = outcome.medal;
     const id = outcome.id;
-    if (id === 'c1_pier_level1' && (outcome.contacts ?? 0) === 0) events.push('harbor_clean');
-    if (id === 'p1_pool_checkout' && medal === 'gold') events.push('pool_gold');
-    if (id === 'p2_open_water') {
-      events.push('prologue_done');
-      if ((outcome.contacts ?? 0) === 0) events.push('open_water_clean');
-    }
-    const mapped = CONTRACT_EVENTS[id];
-    if (mapped && mapped !== 'harbor_clean' && mapped !== 'pool_gold' && mapped !== 'open_water_clean') {
-      if (mapped === 'grade2_exam') {
-        if (outcome.examPassed) events.push('grade2_exam');
-      } else {
-        events.push(mapped);
+    if (completed) {
+      if (id === 'c1_pier_level1' && (outcome.contacts ?? 0) === 0) events.push('harbor_clean');
+      if (id === 'p1_pool_checkout' && medal === 'gold') events.push('pool_gold');
+      if (id === 'p2_open_water') {
+        events.push('prologue_done');
+        if ((outcome.contacts ?? 0) === 0) events.push('open_water_clean');
       }
+      const mapped = CONTRACT_EVENTS[id];
+      if (mapped && mapped !== 'harbor_clean' && mapped !== 'pool_gold' && mapped !== 'open_water_clean') {
+        if (mapped === 'grade2_exam') {
+          if (outcome.examPassed) events.push('grade2_exam');
+        } else {
+          events.push(mapped);
+        }
+      }
+      if (outcome.examPassed && outcome.examValid) events.push('real_exam');
+      if (chapterAllGold(outcome.contracts)) events.push('chapter1_gold');
     }
-    if (outcome.examPassed && outcome.examValid) events.push('real_exam');
+    // Measurement / cable discipline can be earned on the dive even when the payout is only partial.
     if (measureDone(outcome) && Number(outcome.visibility_m) <= LOW_VISIBILITY_M) {
       events.push('murk_measure');
     }
     if (!outcome.tetherBroken && Number(outcome.tetherDiscipline) >= CABLE_DISCIPLINE_MIN) {
       events.push('cable_discipline');
     }
-    if (chapterAllGold(outcome.contracts)) events.push('chapter1_gold');
   }
   return [...new Set(events)];
 }
