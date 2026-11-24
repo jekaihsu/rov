@@ -59,11 +59,15 @@
       "properties": {
         "id": {"$ref": "#/$defs/id"},
         "kind": {"enum": ["state", "checkpoint", "station_keep", "inspect", "photo", "measure", "probe", "confirm",
-          "surface", "lift"]},
+          "surface", "lift", "deposit", "lap", "report"]},
         "label": {"type": "string", "minLength": 1},
         "required": {"type": "boolean"},
         "point": {"$ref": "#/$defs/point"},
+        "center": {"$ref": "#/$defs/point"},
         "radius": {"type": "number", "exclusiveMinimum": 0},
+        "radius_range": {"$ref": "#/$defs/range"},
+        "depth_range": {"$ref": "#/$defs/range"},
+        "sectors": {"type": "integer", "minimum": 4, "maximum": 48},
         "hold_s": {"type": "number", "minimum": 0},
         "standoff": {"$ref": "#/$defs/range"},
         "condition": {"$ref": "#/$defs/condition"},
@@ -72,18 +76,31 @@
         "after": {"$ref": "#/$defs/id"},
         "object_kind": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
         "below": {"type": "number", "minimum": 0},
-        "count": {"type": "integer", "minimum": 1}
+        "count": {"type": "integer", "minimum": 1},
+        "truth": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clock": {"type": "number", "minimum": 0, "maximum": 12},
+            "depth": {"type": "number", "minimum": 0}
+          }
+        },
+        "clock_tol": {"type": "number", "minimum": 0, "maximum": 6},
+        "depth_tol": {"type": "number", "minimum": 0}
       },
       "allOf": [
         {
           "if": {"properties": {"kind": {"enum": ["checkpoint", "station_keep", "inspect", "photo", "measure", "probe",
-            "surface"]}}},
+            "surface", "deposit"]}}},
           "then": {"required": ["point"]}
         },
         {"if": {"properties": {"kind": {"const": "state"}}}, "then": {"required": ["condition"]}},
         {"if": {"properties": {"kind": {"enum": ["measure", "probe"]}}}, "then": {"required": ["equipment", "reading"]}},
         {"if": {"properties": {"kind": {"const": "photo"}}}, "then": {"required": ["standoff"]}},
-        {"if": {"properties": {"kind": {"const": "lift"}}}, "then": {"required": ["object_kind", "below"]}}
+        {"if": {"properties": {"kind": {"const": "lift"}}}, "then": {"required": ["object_kind", "below"]}},
+        {"if": {"properties": {"kind": {"const": "deposit"}}}, "then": {"required": ["object_kind"]}},
+        {"if": {"properties": {"kind": {"const": "lap"}}}, "then": {"required": ["radius_range", "depth_range"]}},
+        {"if": {"properties": {"kind": {"const": "report"}}}, "then": {"required": ["truth"]}}
       ]
     },
     "hazard": {
@@ -153,6 +170,30 @@
                   "when": {"type": "string", "minLength": 1},
                   "speaker": {"type": "string", "minLength": 1},
                   "text": {"type": "string", "minLength": 1}
+                }
+              }
+            },
+            "cues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["text"],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {"$ref": "#/$defs/id"},
+                  "speaker": {"type": "string"},
+                  "text": {"type": "string", "minLength": 1},
+                  "urgent": {"type": "boolean"},
+                  "when": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "deliverable": {"$ref": "#/$defs/id"},
+                      "done": {"type": "boolean"},
+                      "lamps": {"type": "boolean"},
+                      "speed_gt": {"type": "number", "minimum": 0}
+                    }
+                  }
                 }
               }
             }

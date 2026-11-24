@@ -1,11 +1,21 @@
 {
   "note": "YX 委託看板的工單資料。座標為 NED（北、東、向下為正，公尺），與 qysim/scenarios.py 的場景一致。報酬與聲譽為遊戲數值。",
   "clients": {
-    "yx": {"label": "YX 海事服務"},
-    "harbor": {"label": "港務"},
-    "shipping": {"label": "船東與船管"},
-    "marine_works": {"label": "海事工程"},
-    "aquaculture": {"label": "養殖業者"}
+    "yx": {
+      "label": "YX 海事服務"
+    },
+    "harbor": {
+      "label": "港務"
+    },
+    "shipping": {
+      "label": "船東與船管"
+    },
+    "marine_works": {
+      "label": "海事工程"
+    },
+    "aquaculture": {
+      "label": "養殖業者"
+    }
   },
   "jobs": {
     "training": "公司內訓",
@@ -19,6 +29,7 @@
     "ut": "超音波測厚（UT）",
     "net": "網衣巡檢",
     "recovery": "回收作業",
+    "escape": "破網逃魚",
     "mooring": "繫泊檢查"
   },
   "chapters": [
@@ -35,7 +46,7 @@
     {
       "id": "ch2",
       "title": "第二章 · 養殖場",
-      "summary": "外海箱網：網衣、死魚與繫泊。需要二級駕駛員執照。",
+      "summary": "青灣箱網：網衣巡檢、死魚回收，與破網逃魚緊急處理。需要二級駕駛員執照。",
       "scenario": "aquaculture_pen"
     }
   ],
@@ -51,7 +62,11 @@
       "scenario": "tutorial_pool",
       "runtime": "chapter",
       "campaignChapter": "prologue",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "none",
       "pay": 1500,
       "reputation": 5,
@@ -63,10 +78,26 @@
         "start": "向潮－指揮呼叫 R-1。今天池裡認識搭檔。先檢查。",
         "done": "收工。程序過了。",
         "lines": [
-          {"when": "start", "speaker": "林岑", "text": "向潮－指揮呼叫 R-1。"},
-          {"when": "start", "speaker": "林岑", "text": "今天池裡認識搭檔。先檢查。"},
-          {"when": "start", "speaker": "方晴", "text": "甲板淨空。尾板就緒。"},
-          {"when": "start", "speaker": "周楷", "text": "纜手就位。線我看著。"}
+          {
+            "when": "start",
+            "speaker": "林岑",
+            "text": "向潮－指揮呼叫 R-1。"
+          },
+          {
+            "when": "start",
+            "speaker": "林岑",
+            "text": "今天池裡認識搭檔。先檢查。"
+          },
+          {
+            "when": "start",
+            "speaker": "方晴",
+            "text": "甲板淨空。尾板就緒。"
+          },
+          {
+            "when": "start",
+            "speaker": "周楷",
+            "text": "纜手就位。線我看著。"
+          }
         ]
       },
       "deliverables": []
@@ -81,7 +112,11 @@
       "job": "checkout",
       "scenario": "tutorial_pool",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "none",
       "pay": 4000,
       "reputation": 5,
@@ -94,29 +129,150 @@
         "done": "照片夠了。準備回收。",
         "partial": "人機回來就好。重跑本趟。",
         "lines": [
-          {"when": "start", "speaker": "林岑", "text": "入水。人離甲板再解鎖。"},
-          {"when": "start", "speaker": "周楷", "text": "纜手就位。線我看著。"},
-          {"when": "unlock", "speaker": "林岑", "text": "很好。慢慢來，先往前。"},
-          {"when": "depth_hold", "speaker": "林岑", "text": "手可以鬆一點了。"},
-          {"when": "photo_north", "speaker": "林岑", "text": "周楷，把這張留著。"},
-          {"when": "photo_north", "speaker": "周楷", "text": "收到。新人第一張。"},
-          {"when": "photo_south", "speaker": "林岑", "text": "照片夠了。準備回收。"},
-          {"when": "recover", "speaker": "方晴", "text": "上鎖確認。尾板上收。"},
-          {"when": "done", "speaker": "林岑", "text": "收工。程序過了。"},
-          {"when": "done", "speaker": "周楷", "text": "線收好。明天港外見。"},
-          {"when": "done", "speaker": "馬力", "text": "回來。泡麵偏鹹，將就。"}
+          {
+            "when": "start",
+            "speaker": "林岑",
+            "text": "入水。人離甲板再解鎖。"
+          },
+          {
+            "when": "start",
+            "speaker": "周楷",
+            "text": "纜手就位。線我看著。"
+          },
+          {
+            "when": "unlock",
+            "speaker": "林岑",
+            "text": "很好。慢慢來，先往前。"
+          },
+          {
+            "when": "depth_hold",
+            "speaker": "林岑",
+            "text": "手可以鬆一點了。"
+          },
+          {
+            "when": "photo_north",
+            "speaker": "林岑",
+            "text": "周楷，把這張留著。"
+          },
+          {
+            "when": "photo_north",
+            "speaker": "周楷",
+            "text": "收到。新人第一張。"
+          },
+          {
+            "when": "photo_south",
+            "speaker": "林岑",
+            "text": "照片夠了。準備回收。"
+          },
+          {
+            "when": "recover",
+            "speaker": "方晴",
+            "text": "上鎖確認。尾板上收。"
+          },
+          {
+            "when": "done",
+            "speaker": "林岑",
+            "text": "收工。程序過了。"
+          },
+          {
+            "when": "done",
+            "speaker": "周楷",
+            "text": "線收好。明天港外見。"
+          },
+          {
+            "when": "done",
+            "speaker": "馬力",
+            "text": "回來。泡麵偏鹹，將就。"
+          }
         ]
       },
       "deliverables": [
-        {"id": "unlock", "kind": "state", "label": "解鎖推進器", "condition": {"path": "locked", "op": "eq", "value": false}},
-        {"id": "hover", "kind": "station_keep", "label": "池中央懸停 20 秒（偏移 < 0.6 m）", "point": [0, 4, 3],
-          "radius": 0.6, "hold_s": 20},
-        {"id": "photo_north", "kind": "photo", "label": "北池壁照片", "point": [12, 0, 4], "standoff": [1, 9]},
-        {"id": "photo_east", "kind": "photo", "label": "東池壁照片", "point": [0, 12, 4], "standoff": [1, 9]},
-        {"id": "photo_south", "kind": "photo", "label": "南池壁照片", "point": [-12, 0, 4], "standoff": [1, 9]},
-        {"id": "depth_hold", "kind": "state", "label": "定深功能確認", "required": false,
-          "condition": {"path": "keep_depth", "op": "eq", "value": true}},
-        {"id": "recover", "kind": "surface", "label": "回投放點，準備回收", "point": [0, 0, 0.6], "radius": 2.5}
+        {
+          "id": "unlock",
+          "kind": "state",
+          "label": "解鎖推進器",
+          "condition": {
+            "path": "locked",
+            "op": "eq",
+            "value": false
+          }
+        },
+        {
+          "id": "hover",
+          "kind": "station_keep",
+          "label": "池中央懸停 20 秒（偏移 < 0.6 m）",
+          "point": [
+            0,
+            4,
+            3
+          ],
+          "radius": 0.6,
+          "hold_s": 20
+        },
+        {
+          "id": "photo_north",
+          "kind": "photo",
+          "label": "北池壁照片",
+          "point": [
+            12,
+            0,
+            4
+          ],
+          "standoff": [
+            1,
+            9
+          ]
+        },
+        {
+          "id": "photo_east",
+          "kind": "photo",
+          "label": "東池壁照片",
+          "point": [
+            0,
+            12,
+            4
+          ],
+          "standoff": [
+            1,
+            9
+          ]
+        },
+        {
+          "id": "photo_south",
+          "kind": "photo",
+          "label": "南池壁照片",
+          "point": [
+            -12,
+            0,
+            4
+          ],
+          "standoff": [
+            1,
+            9
+          ]
+        },
+        {
+          "id": "depth_hold",
+          "kind": "state",
+          "label": "定深功能確認",
+          "required": false,
+          "condition": {
+            "path": "keep_depth",
+            "op": "eq",
+            "value": true
+          }
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點，準備回收",
+          "point": [
+            0,
+            0,
+            0.6
+          ],
+          "radius": 2.5
+        }
       ]
     },
     {
@@ -129,12 +285,20 @@
       "job": "familiarization",
       "scenario": "open_water",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "none",
-      "requires": ["p1_pool_checkout"],
+      "requires": [
+        "p1_pool_checkout"
+      ],
       "pay": 4000,
       "reputation": 5,
-      "exam": {"grants": "trainee"},
+      "exam": {
+        "grants": "trainee"
+      },
       "partial": 0.5,
       "summary": "見習考核：四個浮標檢查點、定深、鬆桿看漂移。全程真實模式。約 15–20 分。",
       "brief": "工單 YX-TR-002。青嶼港外避風水域。依序通過四個檢查點，定深保持，途中鬆桿觀察漂移再穩住，回投放點。微流；推力不等於速度。考核強制真實設定。通過後頒發見習駕駛員執照。",
@@ -144,30 +308,156 @@
         "done": "熟悉夠了。回船。",
         "partial": "回來對。重跑熟悉趟。",
         "lines": [
-          {"when": "start", "speaker": "林岑", "text": "R-1，四個浮標檢查點。依序。"},
-          {"when": "start", "speaker": "周楷", "text": "外海線會拖。我跟著放。"},
-          {"when": "start", "speaker": "方晴", "text": "窗口晴。甲板就緒。"},
-          {"when": "cp1", "speaker": "周楷", "text": "一號過。線還夠。"},
-          {"when": "cp2", "speaker": "林岑", "text": "二號好。定深盯著。"},
-          {"when": "drift", "speaker": "林岑", "text": "看到了吧。推回來。"},
-          {"when": "cp3", "speaker": "周楷", "text": "三號。別繞自己的線。"},
-          {"when": "cp4", "speaker": "林岑", "text": "四號到位。鬆桿，看漂移。"},
-          {"when": "done", "speaker": "林岑", "text": "熟悉夠了。回船。"},
-          {"when": "done", "speaker": "方晴", "text": "回收口令開始。"},
-          {"when": "done", "speaker": "馬力", "text": "明天才是真工單。"},
-          {"when": "licence", "speaker": "林岑", "text": "見習過了。下一章港務真單。"}
+          {
+            "when": "start",
+            "speaker": "林岑",
+            "text": "R-1，四個浮標檢查點。依序。"
+          },
+          {
+            "when": "start",
+            "speaker": "周楷",
+            "text": "外海線會拖。我跟著放。"
+          },
+          {
+            "when": "start",
+            "speaker": "方晴",
+            "text": "窗口晴。甲板就緒。"
+          },
+          {
+            "when": "cp1",
+            "speaker": "周楷",
+            "text": "一號過。線還夠。"
+          },
+          {
+            "when": "cp2",
+            "speaker": "林岑",
+            "text": "二號好。定深盯著。"
+          },
+          {
+            "when": "drift",
+            "speaker": "林岑",
+            "text": "看到了吧。推回來。"
+          },
+          {
+            "when": "cp3",
+            "speaker": "周楷",
+            "text": "三號。別繞自己的線。"
+          },
+          {
+            "when": "cp4",
+            "speaker": "林岑",
+            "text": "四號到位。鬆桿，看漂移。"
+          },
+          {
+            "when": "done",
+            "speaker": "林岑",
+            "text": "熟悉夠了。回船。"
+          },
+          {
+            "when": "done",
+            "speaker": "方晴",
+            "text": "回收口令開始。"
+          },
+          {
+            "when": "done",
+            "speaker": "馬力",
+            "text": "明天才是真工單。"
+          },
+          {
+            "when": "licence",
+            "speaker": "林岑",
+            "text": "見習過了。下一章港務真單。"
+          }
         ]
       },
       "deliverables": [
-        {"id": "unlock", "kind": "state", "label": "解鎖推進器", "condition": {"path": "locked", "op": "eq", "value": false}},
-        {"id": "cp1", "kind": "checkpoint", "label": "檢查點 1", "point": [10, 0, 6], "radius": 1.5},
-        {"id": "depth_hold", "kind": "state", "label": "開啟定深", "condition": {"path": "keep_depth", "op": "eq", "value": true}},
-        {"id": "cp2", "kind": "checkpoint", "label": "檢查點 2", "point": [10, 10, 10], "radius": 1.5},
-        {"id": "drift", "kind": "station_keep", "label": "懸停 15 秒，觀察漂移", "point": [5, 10, 12], "radius": 1.2,
-          "hold_s": 15},
-        {"id": "cp3", "kind": "checkpoint", "label": "檢查點 3", "point": [0, 10, 14], "radius": 1.5},
-        {"id": "cp4", "kind": "checkpoint", "label": "檢查點 4", "point": [0, 0, 8], "radius": 1.5},
-        {"id": "recover", "kind": "surface", "label": "回投放點上浮", "point": [-2, 0, 0.5], "radius": 3}
+        {
+          "id": "unlock",
+          "kind": "state",
+          "label": "解鎖推進器",
+          "condition": {
+            "path": "locked",
+            "op": "eq",
+            "value": false
+          }
+        },
+        {
+          "id": "cp1",
+          "kind": "checkpoint",
+          "label": "檢查點 1",
+          "point": [
+            10,
+            0,
+            6
+          ],
+          "radius": 1.5
+        },
+        {
+          "id": "depth_hold",
+          "kind": "state",
+          "label": "開啟定深",
+          "condition": {
+            "path": "keep_depth",
+            "op": "eq",
+            "value": true
+          }
+        },
+        {
+          "id": "cp2",
+          "kind": "checkpoint",
+          "label": "檢查點 2",
+          "point": [
+            10,
+            10,
+            10
+          ],
+          "radius": 1.5
+        },
+        {
+          "id": "drift",
+          "kind": "station_keep",
+          "label": "懸停 15 秒，觀察漂移",
+          "point": [
+            5,
+            10,
+            12
+          ],
+          "radius": 1.2,
+          "hold_s": 15
+        },
+        {
+          "id": "cp3",
+          "kind": "checkpoint",
+          "label": "檢查點 3",
+          "point": [
+            0,
+            10,
+            14
+          ],
+          "radius": 1.5
+        },
+        {
+          "id": "cp4",
+          "kind": "checkpoint",
+          "label": "檢查點 4",
+          "point": [
+            0,
+            0,
+            8
+          ],
+          "radius": 1.5
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點上浮",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
@@ -180,7 +470,11 @@
       "job": "gvi",
       "scenario": "harbor_inspection",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "trainee",
       "pay": 8000,
       "reputation": 10,
@@ -194,15 +488,116 @@
         "partial": "先交這些。剩下的樁我跟管理處說改天補。"
       },
       "deliverables": [
-        {"id": "pile_a1", "kind": "photo", "label": "A 列 1 號樁", "point": [21, -10, 6], "standoff": [1, 4.5]},
-        {"id": "pile_a2", "kind": "photo", "label": "A 列 2 號樁", "point": [27, -10, 6], "standoff": [1, 4.5]},
-        {"id": "pile_a3", "kind": "photo", "label": "A 列 3 號樁", "point": [33, -10, 6], "standoff": [1, 4.5]},
-        {"id": "pile_b1", "kind": "photo", "label": "B 列 1 號樁", "point": [21, 10, 6], "standoff": [1, 4.5]},
-        {"id": "pile_b2", "kind": "photo", "label": "B 列 2 號樁", "point": [27, 10, 6], "standoff": [1, 4.5]},
-        {"id": "pile_b3", "kind": "photo", "label": "B 列 3 號樁", "point": [33, 10, 6], "standoff": [1, 4.5]},
-        {"id": "quay", "kind": "photo", "label": "碼頭壁面概況（加分）", "required": false, "point": [42, 0, 8],
-          "standoff": [1.5, 5]},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
+        {
+          "id": "pile_a1",
+          "kind": "photo",
+          "label": "A 列 1 號樁",
+          "point": [
+            21,
+            -10,
+            6
+          ],
+          "standoff": [
+            1,
+            4.5
+          ]
+        },
+        {
+          "id": "pile_a2",
+          "kind": "photo",
+          "label": "A 列 2 號樁",
+          "point": [
+            27,
+            -10,
+            6
+          ],
+          "standoff": [
+            1,
+            4.5
+          ]
+        },
+        {
+          "id": "pile_a3",
+          "kind": "photo",
+          "label": "A 列 3 號樁",
+          "point": [
+            33,
+            -10,
+            6
+          ],
+          "standoff": [
+            1,
+            4.5
+          ]
+        },
+        {
+          "id": "pile_b1",
+          "kind": "photo",
+          "label": "B 列 1 號樁",
+          "point": [
+            21,
+            10,
+            6
+          ],
+          "standoff": [
+            1,
+            4.5
+          ]
+        },
+        {
+          "id": "pile_b2",
+          "kind": "photo",
+          "label": "B 列 2 號樁",
+          "point": [
+            27,
+            10,
+            6
+          ],
+          "standoff": [
+            1,
+            4.5
+          ]
+        },
+        {
+          "id": "pile_b3",
+          "kind": "photo",
+          "label": "B 列 3 號樁",
+          "point": [
+            33,
+            10,
+            6
+          ],
+          "standoff": [
+            1,
+            4.5
+          ]
+        },
+        {
+          "id": "quay",
+          "kind": "photo",
+          "label": "碼頭壁面概況（加分）",
+          "required": false,
+          "point": [
+            42,
+            0,
+            8
+          ],
+          "standoff": [
+            1.5,
+            5
+          ]
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
@@ -215,10 +610,18 @@
       "job": "marine_growth",
       "scenario": "harbor_inspection",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "trainee",
-      "requires": ["c1_pier_level1"],
-      "equipment": ["laser_scaler"],
+      "requires": [
+        "c1_pier_level1"
+      ],
+      "equipment": [
+        "laser_scaler"
+      ],
       "pay": 12000,
       "reputation": 12,
       "partial": 0.5,
@@ -231,21 +634,134 @@
         "partial": "缺的那幾點我記下來，下次潮況好再補。"
       },
       "deliverables": [
-        {"id": "a1_upper", "kind": "measure", "label": "A1 樁 · 水深 4 m", "point": [20.35, -10, 4],
-          "standoff": [0.4, 1.6], "hold_s": 3, "equipment": "laser_scaler", "reading": "硬附著（藤壺）3 cm · 覆蓋約 60%"},
-        {"id": "a1_lower", "kind": "measure", "label": "A1 樁 · 水深 12 m", "point": [20.35, -10, 12],
-          "standoff": [0.4, 1.6], "hold_s": 3, "equipment": "laser_scaler", "reading": "硬附著（貽貝）6 cm · 覆蓋約 85%"},
-        {"id": "a3_upper", "kind": "measure", "label": "A3 樁 · 水深 4 m", "point": [32.35, -10, 4],
-          "standoff": [0.4, 1.6], "hold_s": 3, "equipment": "laser_scaler", "reading": "軟附著（海鞘）8 cm · 覆蓋約 40%"},
-        {"id": "a3_lower", "kind": "measure", "label": "A3 樁 · 水深 12 m", "point": [32.35, -10, 12],
-          "standoff": [0.4, 1.6], "hold_s": 3, "equipment": "laser_scaler", "reading": "硬附著（藤壺）4 cm · 覆蓋約 70%"},
-        {"id": "b2_upper", "kind": "measure", "label": "B2 樁 · 水深 4 m", "point": [26.35, 10, 4],
-          "standoff": [0.4, 1.6], "hold_s": 3, "equipment": "laser_scaler", "reading": "硬附著（藤壺）2 cm · 覆蓋約 50%"},
-        {"id": "b2_lower", "kind": "measure", "label": "B2 樁 · 水深 12 m", "point": [26.35, 10, 12],
-          "standoff": [0.4, 1.6], "hold_s": 3, "equipment": "laser_scaler", "reading": "硬附著（貽貝）7 cm · 覆蓋約 90%"},
-        {"id": "b2_photo", "kind": "photo", "label": "B2 樁附著層近照（加分）", "required": false, "point": [27, 10, 12],
-          "standoff": [1, 2.5]},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
+        {
+          "id": "a1_upper",
+          "kind": "measure",
+          "label": "A1 樁 · 水深 4 m",
+          "point": [
+            20.35,
+            -10,
+            4
+          ],
+          "standoff": [
+            0.4,
+            1.6
+          ],
+          "hold_s": 3,
+          "equipment": "laser_scaler",
+          "reading": "硬附著（藤壺）3 cm · 覆蓋約 60%"
+        },
+        {
+          "id": "a1_lower",
+          "kind": "measure",
+          "label": "A1 樁 · 水深 12 m",
+          "point": [
+            20.35,
+            -10,
+            12
+          ],
+          "standoff": [
+            0.4,
+            1.6
+          ],
+          "hold_s": 3,
+          "equipment": "laser_scaler",
+          "reading": "硬附著（貽貝）6 cm · 覆蓋約 85%"
+        },
+        {
+          "id": "a3_upper",
+          "kind": "measure",
+          "label": "A3 樁 · 水深 4 m",
+          "point": [
+            32.35,
+            -10,
+            4
+          ],
+          "standoff": [
+            0.4,
+            1.6
+          ],
+          "hold_s": 3,
+          "equipment": "laser_scaler",
+          "reading": "軟附著（海鞘）8 cm · 覆蓋約 40%"
+        },
+        {
+          "id": "a3_lower",
+          "kind": "measure",
+          "label": "A3 樁 · 水深 12 m",
+          "point": [
+            32.35,
+            -10,
+            12
+          ],
+          "standoff": [
+            0.4,
+            1.6
+          ],
+          "hold_s": 3,
+          "equipment": "laser_scaler",
+          "reading": "硬附著（藤壺）4 cm · 覆蓋約 70%"
+        },
+        {
+          "id": "b2_upper",
+          "kind": "measure",
+          "label": "B2 樁 · 水深 4 m",
+          "point": [
+            26.35,
+            10,
+            4
+          ],
+          "standoff": [
+            0.4,
+            1.6
+          ],
+          "hold_s": 3,
+          "equipment": "laser_scaler",
+          "reading": "硬附著（藤壺）2 cm · 覆蓋約 50%"
+        },
+        {
+          "id": "b2_lower",
+          "kind": "measure",
+          "label": "B2 樁 · 水深 12 m",
+          "point": [
+            26.35,
+            10,
+            12
+          ],
+          "standoff": [
+            0.4,
+            1.6
+          ],
+          "hold_s": 3,
+          "equipment": "laser_scaler",
+          "reading": "硬附著（貽貝）7 cm · 覆蓋約 90%"
+        },
+        {
+          "id": "b2_photo",
+          "kind": "photo",
+          "label": "B2 樁附著層近照（加分）",
+          "required": false,
+          "point": [
+            27,
+            10,
+            12
+          ],
+          "standoff": [
+            1,
+            2.5
+          ]
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
@@ -258,9 +774,15 @@
       "job": "fouling",
       "scenario": "hull_inspection",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "trainee",
-      "requires": ["c1_pier_level1"],
+      "requires": [
+        "c1_pier_level1"
+      ],
       "pay": 14000,
       "reputation": 12,
       "partial": 0.5,
@@ -273,20 +795,98 @@
         "partial": "有拍到的先給船管，螺槳那邊下次再來。"
       },
       "deliverables": [
-        {"id": "keel_starboard", "kind": "photo", "label": "右舷舭龍骨", "point": [48, 8.5, 7.5], "standoff": [1, 4],
-          "reading": "附著評級 FR 2：薄層藻膜、零星藤壺"},
-        {"id": "keel_port", "kind": "photo", "label": "左舷舭龍骨", "point": [48, -8.5, 7.5], "standoff": [1, 4],
-          "reading": "附著評級 FR 1：軟質藻膜"},
-        {"id": "loto", "kind": "confirm", "label": "主機停機、軸系上鎖（LOTO）"},
-        {"id": "propeller", "kind": "photo", "label": "螺槳葉片", "point": [14.4, 1.5, 5.6], "standoff": [1, 4],
-          "after": "loto", "reading": "附著評級 FR 3：葉根藤壺群"},
-        {"id": "rudder", "kind": "photo", "label": "舵", "point": [11.8, 0.3, 5], "standoff": [1, 4], "after": "loto",
-          "reading": "附著評級 FR 2：舵板下緣藤壺"},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [0, 0, 0.5], "radius": 3}
+        {
+          "id": "keel_starboard",
+          "kind": "photo",
+          "label": "右舷舭龍骨",
+          "point": [
+            48,
+            8.5,
+            7.5
+          ],
+          "standoff": [
+            1,
+            4
+          ],
+          "reading": "附著評級 FR 2：薄層藻膜、零星藤壺"
+        },
+        {
+          "id": "keel_port",
+          "kind": "photo",
+          "label": "左舷舭龍骨",
+          "point": [
+            48,
+            -8.5,
+            7.5
+          ],
+          "standoff": [
+            1,
+            4
+          ],
+          "reading": "附著評級 FR 1：軟質藻膜"
+        },
+        {
+          "id": "loto",
+          "kind": "confirm",
+          "label": "主機停機、軸系上鎖（LOTO）"
+        },
+        {
+          "id": "propeller",
+          "kind": "photo",
+          "label": "螺槳葉片",
+          "point": [
+            14.4,
+            1.5,
+            5.6
+          ],
+          "standoff": [
+            1,
+            4
+          ],
+          "after": "loto",
+          "reading": "附著評級 FR 3：葉根藤壺群"
+        },
+        {
+          "id": "rudder",
+          "kind": "photo",
+          "label": "舵",
+          "point": [
+            11.8,
+            0.3,
+            5
+          ],
+          "standoff": [
+            1,
+            4
+          ],
+          "after": "loto",
+          "reading": "附著評級 FR 2：舵板下緣藤壺"
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            0,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ],
       "hazards": [
-        {"id": "propeller_zone", "label": "未確認 LOTO 就接近螺槳", "point": [14.4, 0, 5.6], "radius": 3, "until": "loto",
-          "points": 25}
+        {
+          "id": "propeller_zone",
+          "label": "未確認 LOTO 就接近螺槳",
+          "point": [
+            14.4,
+            0,
+            5.6
+          ],
+          "radius": 3,
+          "until": "loto",
+          "points": 25
+        }
       ]
     },
     {
@@ -299,10 +899,18 @@
       "job": "search",
       "scenario": "sonar_search",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "trainee",
-      "requires": ["c1_pier_level1"],
-      "equipment": ["imaging_sonar"],
+      "requires": [
+        "c1_pier_level1"
+      ],
+      "equipment": [
+        "imaging_sonar"
+      ],
       "pay": 12000,
       "reputation": 12,
       "optional": true,
@@ -316,10 +924,43 @@
         "partial": "至少知道大概在哪了，謝啦。"
       },
       "deliverables": [
-        {"id": "contact", "kind": "checkpoint", "label": "以聲納找到回波並接近", "point": [16, 5, 13], "radius": 2.5},
-        {"id": "confirm_photo", "kind": "photo", "label": "相機確認：測量儀", "point": [17, 5, 13], "standoff": [0.3, 1.2],
-          "reading": "確認為工程隊測量儀，外殼完整"},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-3, 0, 0.5], "radius": 3}
+        {
+          "id": "contact",
+          "kind": "checkpoint",
+          "label": "以聲納找到回波並接近",
+          "point": [
+            16,
+            5,
+            13
+          ],
+          "radius": 2.5
+        },
+        {
+          "id": "confirm_photo",
+          "kind": "photo",
+          "label": "相機確認：測量儀",
+          "point": [
+            17,
+            5,
+            13
+          ],
+          "standoff": [
+            0.3,
+            1.2
+          ],
+          "reading": "確認為工程隊測量儀，外殼完整"
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            -3,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
@@ -332,10 +973,18 @@
       "job": "cp",
       "scenario": "harbor_inspection",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "trainee",
-      "requires": ["c1_pier_level1"],
-      "equipment": ["cp_probe"],
+      "requires": [
+        "c1_pier_level1"
+      ],
+      "equipment": [
+        "cp_probe"
+      ],
       "minReputation": 15,
       "pay": 10000,
       "reputation": 10,
@@ -351,13 +1000,59 @@
         "partial": "先交這兩點。"
       },
       "deliverables": [
-        {"id": "cp_west", "kind": "probe", "label": "碼頭壁 南段 · 水深 6 m", "point": [42, -12, 6], "radius": 1.0,
-          "hold_s": 3, "equipment": "cp_probe", "reading": "−930 mV：保護良好"},
-        {"id": "cp_mid", "kind": "probe", "label": "碼頭壁 中段 · 水深 10 m", "point": [42, 0, 10], "radius": 1.0,
-          "hold_s": 3, "equipment": "cp_probe", "reading": "−870 mV：保護良好"},
-        {"id": "cp_east", "kind": "probe", "label": "碼頭壁 北段 · 水深 6 m", "point": [42, 12, 6], "radius": 1.0,
-          "hold_s": 3, "equipment": "cp_probe", "reading": "−760 mV：保護不足，建議檢修陽極"},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
+        {
+          "id": "cp_west",
+          "kind": "probe",
+          "label": "碼頭壁 南段 · 水深 6 m",
+          "point": [
+            42,
+            -12,
+            6
+          ],
+          "radius": 1.0,
+          "hold_s": 3,
+          "equipment": "cp_probe",
+          "reading": "−930 mV：保護良好"
+        },
+        {
+          "id": "cp_mid",
+          "kind": "probe",
+          "label": "碼頭壁 中段 · 水深 10 m",
+          "point": [
+            42,
+            0,
+            10
+          ],
+          "radius": 1.0,
+          "hold_s": 3,
+          "equipment": "cp_probe",
+          "reading": "−870 mV：保護良好"
+        },
+        {
+          "id": "cp_east",
+          "kind": "probe",
+          "label": "碼頭壁 北段 · 水深 6 m",
+          "point": [
+            42,
+            12,
+            6
+          ],
+          "radius": 1.0,
+          "hold_s": 3,
+          "equipment": "cp_probe",
+          "reading": "−760 mV：保護不足，建議檢修陽極"
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
@@ -370,10 +1065,18 @@
       "job": "ut",
       "scenario": "hull_inspection",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "trainee",
-      "requires": ["c1_hull_fouling"],
-      "equipment": ["ut_gauge"],
+      "requires": [
+        "c1_hull_fouling"
+      ],
+      "equipment": [
+        "ut_gauge"
+      ],
       "minReputation": 10,
       "pay": 11000,
       "reputation": 10,
@@ -388,15 +1091,73 @@
         "partial": "缺的點驗船師會再要，先交。"
       },
       "deliverables": [
-        {"id": "ut_sb_fwd", "kind": "probe", "label": "右舷 船中前", "point": [60, 9, 4], "radius": 1.0, "hold_s": 3,
-          "equipment": "ut_gauge", "reading": "15.8 mm（原厚 16 mm）"},
-        {"id": "ut_sb_aft", "kind": "probe", "label": "右舷 船中後", "point": [40, 9, 4], "radius": 1.0, "hold_s": 3,
-          "equipment": "ut_gauge", "reading": "15.1 mm（原厚 16 mm）"},
-        {"id": "ut_ps_fwd", "kind": "probe", "label": "左舷 船中前", "point": [60, -9, 4], "radius": 1.0, "hold_s": 3,
-          "equipment": "ut_gauge", "reading": "15.9 mm（原厚 16 mm）"},
-        {"id": "ut_ps_aft", "kind": "probe", "label": "左舷 船中後", "point": [40, -9, 4], "radius": 1.0, "hold_s": 3,
-          "equipment": "ut_gauge", "reading": "14.6 mm（原厚 16 mm，接近換板門檻）"},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [0, 0, 0.5], "radius": 3}
+        {
+          "id": "ut_sb_fwd",
+          "kind": "probe",
+          "label": "右舷 船中前",
+          "point": [
+            60,
+            9,
+            4
+          ],
+          "radius": 1.0,
+          "hold_s": 3,
+          "equipment": "ut_gauge",
+          "reading": "15.8 mm（原厚 16 mm）"
+        },
+        {
+          "id": "ut_sb_aft",
+          "kind": "probe",
+          "label": "右舷 船中後",
+          "point": [
+            40,
+            9,
+            4
+          ],
+          "radius": 1.0,
+          "hold_s": 3,
+          "equipment": "ut_gauge",
+          "reading": "15.1 mm（原厚 16 mm）"
+        },
+        {
+          "id": "ut_ps_fwd",
+          "kind": "probe",
+          "label": "左舷 船中前",
+          "point": [
+            60,
+            -9,
+            4
+          ],
+          "radius": 1.0,
+          "hold_s": 3,
+          "equipment": "ut_gauge",
+          "reading": "15.9 mm（原厚 16 mm）"
+        },
+        {
+          "id": "ut_ps_aft",
+          "kind": "probe",
+          "label": "左舷 船中後",
+          "point": [
+            40,
+            -9,
+            4
+          ],
+          "radius": 1.0,
+          "hold_s": 3,
+          "equipment": "ut_gauge",
+          "reading": "14.6 mm（原厚 16 mm，接近換板門檻）"
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            0,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
@@ -409,12 +1170,21 @@
       "job": "gvi",
       "scenario": "harbor_inspection",
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "trainee",
-      "requires": ["c1_pier_level2", "c1_hull_fouling"],
+      "requires": [
+        "c1_pier_level2",
+        "c1_hull_fouling"
+      ],
       "pay": 15000,
       "reputation": 15,
-      "exam": {"grants": "grade2"},
+      "exam": {
+        "grants": "grade2"
+      },
       "partial": 0.5,
       "summary": "二級考核：回到上次的三個異常點，照原本的角度重拍，讓下一班找得到。全程真實模式。",
       "brief": "這是二級駕駛員考核，也是一張真的工單：管理處要比對上次記下的三個異常有沒有惡化。A2 樁水深 10 m 的裂痕、B3 樁水深 14 m 的混凝土剝落、碼頭壁南段水深 12 m 的缺角，各從原本的位置（約 1–2.5 m）正對重拍；碼頭壁中段再做一次 6 秒定點目視。纜線不要繞樁，回收前全部做完。",
@@ -425,15 +1195,74 @@
         "partial": "差一點。照片角度再練練，下週再考。"
       },
       "deliverables": [
-        {"id": "a2_crack", "kind": "photo", "label": "A2 樁 · 水深 10 m 裂痕", "point": [27, -10, 10],
-          "standoff": [1, 2.5], "reading": "裂痕長度與上次相同，未見擴大"},
-        {"id": "b3_spall", "kind": "photo", "label": "B3 樁 · 水深 14 m 剝落", "point": [33, 10, 14],
-          "standoff": [1, 2.5], "reading": "剝落面積略增，建議下季複查"},
-        {"id": "quay_chip", "kind": "photo", "label": "碼頭壁南段 · 水深 12 m 缺角", "point": [42, -6, 12],
-          "standoff": [1, 2.5], "reading": "缺角無變化"},
-        {"id": "quay_station", "kind": "inspect", "label": "碼頭壁中段 · 定點目視 6 秒", "point": [39, 0, 10],
-          "radius": 1.5, "hold_s": 6},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
+        {
+          "id": "a2_crack",
+          "kind": "photo",
+          "label": "A2 樁 · 水深 10 m 裂痕",
+          "point": [
+            27,
+            -10,
+            10
+          ],
+          "standoff": [
+            1,
+            2.5
+          ],
+          "reading": "裂痕長度與上次相同，未見擴大"
+        },
+        {
+          "id": "b3_spall",
+          "kind": "photo",
+          "label": "B3 樁 · 水深 14 m 剝落",
+          "point": [
+            33,
+            10,
+            14
+          ],
+          "standoff": [
+            1,
+            2.5
+          ],
+          "reading": "剝落面積略增，建議下季複查"
+        },
+        {
+          "id": "quay_chip",
+          "kind": "photo",
+          "label": "碼頭壁南段 · 水深 12 m 缺角",
+          "point": [
+            42,
+            -6,
+            12
+          ],
+          "standoff": [
+            1,
+            2.5
+          ],
+          "reading": "缺角無變化"
+        },
+        {
+          "id": "quay_station",
+          "kind": "inspect",
+          "label": "碼頭壁中段 · 定點目視 6 秒",
+          "point": [
+            39,
+            0,
+            10
+          ],
+          "radius": 1.5,
+          "hold_s": 6
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
@@ -442,112 +1271,558 @@
       "order": 10,
       "title": "網衣巡檢",
       "client": "aquaculture",
-      "clientName": "東澳外海箱網場",
+      "clientName": "青灣箱網／翁慈",
       "job": "net",
       "scenario": "aquaculture_pen",
       "launchScenario": "aquaculture_pen_slack",
       "currentKn": 0.3,
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "grade2",
       "pay": 16000,
       "reputation": 12,
       "partial": 0.5,
-      "summary": "平潮時沿箱網外側繞一圈，找出兩個網衣破洞並拍照。靠太近推進器會吸網。",
-      "brief": "場長說最近每天少魚，懷疑網衣破了。趁平潮從網外側繞一圈（東、北、西、南四個方位都要經過），看到破洞就停下來正對拍照。不要貼網太近，推進器會把網衣吸過來；纜線也別跨過繫泊纜。",
+      "summary": "工單 YX-AQ-001：沿網外側三個深度環繞，找出兩處破洞拍照並以時鐘方位與深度回報。燈勿過亮。",
+      "brief": "客戶：青灣箱網／翁慈。地點：折帆灣箱網 3 號圈。載具：YX Model R（燈調暗）。工作內容：網外側淺、中、深三層各環繞一圈（覆蓋率計分）；找到破洞後拍照，並回報時鐘方位與深度。海況：流 0.3–0.8 kn；能見度中等；魚群密集。注意：推進器勿吸網；燈勿過亮嚇魚；高速近魚扣分。",
       "conditions": "平潮時段：表層流約 0.3 kn（本工單的場址條件，非機型能力值）。",
       "radio": {
-        "speaker": "場長 阿美",
-        "start": "魚很怕生，你慢一點，牠們就不會亂跑。",
-        "done": "兩個洞都找到了，今天下午就補。謝謝你們。",
-        "partial": "先補找到的這個，剩下的明天平潮再看。"
+        "speaker": "翁慈",
+        "start": "網台－翁。三號圈，例行網衣。燈別太亮，魚會瘋。",
+        "done": "座標收到。安排補網。",
+        "partial": "先補找到的洞，剩下改期再查。",
+        "cues": [
+          {
+            "id": "c2_net_enter",
+            "speaker": "林岑",
+            "text": "R-1，貼網但不吸網。",
+            "when": {
+              "deliverable": "lap_shallow",
+              "done": false
+            }
+          },
+          {
+            "id": "c2_net_shallow",
+            "speaker": "周楷",
+            "text": "淺層過。放一點線。",
+            "when": {
+              "deliverable": "lap_shallow",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_net_hole",
+            "speaker": "翁慈",
+            "text": "方位報出來。",
+            "when": {
+              "deliverable": "hole_upper",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_net_report",
+            "speaker": "林岑",
+            "text": "指揮代記。繼續找。",
+            "when": {
+              "deliverable": "hole_upper_report",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_net_second",
+            "speaker": "周楷",
+            "text": "第二個。深度也報。",
+            "when": {
+              "deliverable": "hole_lower",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_net_lamps",
+            "speaker": "翁慈",
+            "text": "燈別太亮，魚會瘋。",
+            "urgent": true,
+            "when": {
+              "lamps": true
+            }
+          },
+          {
+            "id": "c2_net_speed",
+            "speaker": "翁慈",
+            "text": "慢點！魚在撞網。",
+            "urgent": true,
+            "when": {
+              "speed_gt": 1.2
+            }
+          }
+        ]
       },
       "deliverables": [
-        {"id": "ring_south", "kind": "checkpoint", "label": "南側網外（水深 7 m）", "point": [3.5, 0, 7], "radius": 2.5},
-        {"id": "ring_east", "kind": "checkpoint", "label": "東側網外", "point": [24, 20.5, 8], "radius": 2.5},
-        {"id": "ring_north", "kind": "checkpoint", "label": "北側網外", "point": [44.5, 0, 8], "radius": 2.5},
-        {"id": "ring_west", "kind": "checkpoint", "label": "西側網外", "point": [24, -20.5, 8], "radius": 2.5},
-        {"id": "hole_upper", "kind": "photo", "label": "破洞 · 水深約 7 m", "point": [6.08, 1.17, 7],
-          "standoff": [0.8, 4], "reading": "破洞約 2.3 × 2.0 m，需換網片"},
-        {"id": "hole_lower", "kind": "photo", "label": "破洞 · 水深約 13 m", "point": [6.08, -1.17, 13],
-          "standoff": [0.8, 4], "reading": "破洞約 2.3 × 2.0 m，邊緣磨損"},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
+        {
+          "id": "lap_shallow",
+          "kind": "lap",
+          "label": "淺層環繞（約 4–8 m）",
+          "center": [
+            24,
+            0,
+            0
+          ],
+          "radius_range": [
+            19.2,
+            22.5
+          ],
+          "depth_range": [
+            4,
+            8
+          ],
+          "sectors": 24
+        },
+        {
+          "id": "lap_mid",
+          "kind": "lap",
+          "label": "中層環繞（約 8–12 m）",
+          "center": [
+            24,
+            0,
+            0
+          ],
+          "radius_range": [
+            19.2,
+            22.5
+          ],
+          "depth_range": [
+            8,
+            12
+          ],
+          "sectors": 24
+        },
+        {
+          "id": "lap_deep",
+          "kind": "lap",
+          "label": "深層環繞（約 12–15 m）",
+          "center": [
+            24,
+            0,
+            0
+          ],
+          "radius_range": [
+            19.2,
+            22.5
+          ],
+          "depth_range": [
+            12,
+            15
+          ],
+          "sectors": 24
+        },
+        {
+          "id": "hole_upper",
+          "kind": "photo",
+          "label": "破洞 · 水深約 7 m",
+          "point": [
+            6.08,
+            1.17,
+            7
+          ],
+          "standoff": [
+            0.8,
+            4
+          ],
+          "reading": "破洞約 2.3 × 2.0 m，需換網片"
+        },
+        {
+          "id": "hole_upper_report",
+          "kind": "report",
+          "label": "回報上破洞方位與深度",
+          "after": "hole_upper",
+          "truth": {
+            "clock": 6,
+            "depth": 7
+          },
+          "clock_tol": 1,
+          "depth_tol": 2
+        },
+        {
+          "id": "hole_lower",
+          "kind": "photo",
+          "label": "破洞 · 水深約 13 m",
+          "point": [
+            6.08,
+            -1.17,
+            13
+          ],
+          "standoff": [
+            0.8,
+            4
+          ],
+          "reading": "破洞約 2.3 × 2.0 m，邊緣磨損"
+        },
+        {
+          "id": "hole_lower_report",
+          "kind": "report",
+          "label": "回報下破洞方位與深度",
+          "after": "hole_lower",
+          "truth": {
+            "clock": 6,
+            "depth": 13
+          },
+          "clock_tol": 1,
+          "depth_tol": 2
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
       "id": "c2_mort_recovery",
       "chapter": "ch2",
       "order": 20,
-      "title": "死魚回收（Model V）",
+      "title": "死魚回收",
       "client": "aquaculture",
-      "clientName": "東澳外海箱網場",
+      "clientName": "青灣箱網／翁慈",
       "job": "recovery",
       "scenario": "aquaculture_pen",
       "launchScenario": "aquaculture_pen_inside",
       "currentKn": 0.3,
       "runtime": "deliverables",
-      "vehicles": ["falcon"],
+      "vehicles": [
+        "falcon"
+      ],
       "licence": "grade2",
-      "requires": ["c2_net_inspection"],
-      "equipment": ["gripper"],
+      "requires": [
+        "c2_net_inspection"
+      ],
+      "equipment": [
+        "gripper"
+      ],
       "pay": 18000,
       "reputation": 12,
       "partial": 0.5,
-      "summary": "從網邊走道把 Model V 放進網內，用夾爪把網底的死魚夾起來。需要機械臂，只能派 Model V。",
-      "brief": "網底積了幾尾死魚，放著會壞水質。這次從箱網走道直接把機子放進網內，只有 Model V 有機械臂，所以派它。下到網底，一尾一尾夾起來提離網底；夾住以後配平會變，慢慢來，碰網底會驚動整箱魚。",
+      "summary": "工單 YX-AQ-002：從走道放 Model V 進網內，夾取死魚放入收集籃。",
+      "brief": "客戶：青灣箱網。地點：三號圈網底。載具：YX Model V＋夾爪；收集籃在網底交接點。工作內容：夾取指定死魚放入收集籃（至少三尾）。海況同場；網底易揚沙。注意：掉落可重夾；碰網過多扣分。派 Model V：輕作業型已有機械臂，不必在觀測型 R 上另掛輕夾爪。",
       "conditions": "網內下水、平潮時段：表層流約 0.3 kn（本工單的場址條件）。",
       "radio": {
-        "speaker": "場長 阿美",
-        "start": "這工作不好看，但很重要。",
-        "done": "網底乾淨多了。下次請你吃魚，活的那種。",
-        "partial": "先收這些，剩下的我們用撈網。"
+        "speaker": "翁慈",
+        "start": "底層有死魚。夾上來。",
+        "done": "數量夠。謝謝。",
+        "partial": "先收這些，剩下場方自行。",
+        "cues": [
+          {
+            "id": "c2_mort_grip",
+            "speaker": "林岑",
+            "text": "夾穩再抬。配平會變。",
+            "when": {
+              "deliverable": "lift_fish",
+              "done": false
+            }
+          },
+          {
+            "id": "c2_mort_lift",
+            "speaker": "周楷",
+            "text": "離底。送到籃。",
+            "when": {
+              "deliverable": "lift_fish",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_mort_basket",
+            "speaker": "方晴",
+            "text": "一尾進。",
+            "when": {
+              "deliverable": "basket_fish",
+              "done": false
+            }
+          },
+          {
+            "id": "c2_mort_done",
+            "speaker": "翁慈",
+            "text": "數量夠。謝謝。",
+            "when": {
+              "deliverable": "basket_fish",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_mort_lamps",
+            "speaker": "翁慈",
+            "text": "燈再暗。等魚散。",
+            "urgent": true,
+            "when": {
+              "lamps": true
+            }
+          }
+        ]
       },
       "deliverables": [
-        {"id": "first_fish", "kind": "lift", "label": "夾起一尾死魚並提離網底", "object_kind": "dead_fish",
-          "below": 15.3, "count": 1, "point": [13, -3, 15.8]},
-        {"id": "second_fish", "kind": "lift", "label": "再回收一尾（加分）", "required": false,
-          "object_kind": "dead_fish", "below": 15.3, "count": 2, "point": [21, 4, 15.8]},
-        {"id": "recover", "kind": "surface", "label": "回到網內下水點回收", "point": [16, 0, 0.5], "radius": 3}
+        {
+          "id": "lift_fish",
+          "kind": "lift",
+          "label": "夾起死魚並提離網底（至少三尾）",
+          "object_kind": "dead_fish",
+          "below": 15.3,
+          "count": 3,
+          "point": [
+            13,
+            -3,
+            15.8
+          ]
+        },
+        {
+          "id": "basket_fish",
+          "kind": "deposit",
+          "label": "放入網底收集籃（至少三尾）",
+          "object_kind": "dead_fish",
+          "point": [
+            16,
+            0,
+            15.5
+          ],
+          "radius": 1.2,
+          "count": 3,
+          "after": "lift_fish"
+        },
+        {
+          "id": "extra_fish",
+          "kind": "deposit",
+          "label": "再多收一尾（加分）",
+          "required": false,
+          "object_kind": "dead_fish",
+          "point": [
+            16,
+            0,
+            15.5
+          ],
+          "radius": 1.2,
+          "count": 4
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回到網內下水點回收",
+          "point": [
+            16,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     },
     {
-      "id": "c2_mooring_exam",
+      "id": "c2_escape_event",
       "chapter": "ch2",
       "order": 90,
-      "title": "章末：颱風過後的錨繩（箱網簽注考核）",
+      "title": "大事件：破網逃魚",
       "client": "aquaculture",
-      "clientName": "東澳外海箱網場",
-      "job": "mooring",
+      "clientName": "青灣箱網／翁慈",
+      "job": "escape",
       "scenario": "aquaculture_pen",
-      "launchScenario": "aquaculture_pen_slack",
-      "currentKn": 0.3,
+      "launchScenario": "aquaculture_pen_escape",
+      "currentKn": 0.7,
       "runtime": "deliverables",
-      "vehicles": ["x1", "bluerov2_heavy", "falcon"],
+      "vehicles": [
+        "x1",
+        "bluerov2_heavy",
+        "falcon"
+      ],
       "licence": "grade2",
-      "requires": ["c2_net_inspection"],
-      "pay": 20000,
-      "reputation": 15,
-      "exam": {"endorsement": "aquaculture"},
+      "requires": [
+        "c2_net_inspection",
+        "c2_mort_recovery"
+      ],
+      "pay": 22000,
+      "reputation": 18,
+      "exam": {
+        "endorsement": "aquaculture"
+      },
       "partial": 0.5,
-      "summary": "沿南側兩條錨繩從浮標看到錨，記錄錨繩狀況。全程真實模式。",
-      "brief": "颱風剛過，場長要確認繫泊還撐得住。從東南、西南兩個角浮標下去，沿錨繩一路看到錨，錨繩中段各拍一張狀況照。自己的纜線不要跨過錨繩。這是箱網作業簽注的考核。",
-      "conditions": "平潮時段：表層流約 0.3 kn；錨在水深約 25 m。",
+      "summary": "工單 YX-AQ-009（緊急）：密度異常下降。先找優先破洞拍照回報，確認周邊裂縫，監看至場方到位。",
+      "brief": "客戶：青灣箱網／翁慈。監測發現三號圈密度異常下降。緊急順序：1) 找到主要破洞並拍照定位（方位／深度）；2) 沿破洞周邊確認是否擴大或多處；3) 回報場方補網隊，ROV 監看至場方確認或安全中止。流轉強；魚群躁動。先定位再情緒；勿高速追魚；人機與網衣安全優先。窗口約十二分鐘級。",
+      "conditions": "緊急窗口：表層流約 0.7 kn；場景時限約 15 分。",
       "radio": {
-        "speaker": "林督導",
-        "start": "湧浪會讓你上下晃，那是正常的，不是你的錯。",
-        "done": "簽注下來了。你現在是養殖場會指名的駕駛員。",
-        "partial": "還差一點，等下一個平潮再考。"
+        "speaker": "翁慈",
+        "start": "密度掉了！快！燈別太亮！",
+        "done": "補網到位。你們可收。",
+        "partial": "座標已交。先堵住再說情緒。",
+        "cues": [
+          {
+            "id": "c2_esc_start",
+            "speaker": "林岑",
+            "text": "R-1，先找洞，別追魚。",
+            "urgent": true,
+            "when": {
+              "deliverable": "priority_hole",
+              "done": false
+            }
+          },
+          {
+            "id": "c2_esc_fish",
+            "speaker": "周楷",
+            "text": "魚在往外擠。",
+            "urgent": true,
+            "when": {
+              "deliverable": "priority_hole",
+              "done": false
+            }
+          },
+          {
+            "id": "c2_esc_hole",
+            "speaker": "林岑",
+            "text": "方位報。深度報。",
+            "urgent": true,
+            "when": {
+              "deliverable": "priority_hole",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_esc_report",
+            "speaker": "翁慈",
+            "text": "補網組出動。你盯著。",
+            "urgent": true,
+            "when": {
+              "deliverable": "priority_report",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_esc_second",
+            "speaker": "周楷",
+            "text": "小裂。也拍。",
+            "when": {
+              "deliverable": "secondary_hole",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_esc_watch",
+            "speaker": "林岑",
+            "text": "周圍還有沒有裂。",
+            "when": {
+              "deliverable": "watch",
+              "done": false
+            }
+          },
+          {
+            "id": "c2_esc_window",
+            "speaker": "方晴",
+            "text": "流在升。十二分窗口。",
+            "urgent": true,
+            "when": {
+              "deliverable": "watch",
+              "done": false
+            }
+          },
+          {
+            "id": "c2_esc_ok",
+            "speaker": "馬力",
+            "text": "這趟你做得對。",
+            "when": {
+              "deliverable": "watch",
+              "done": true
+            }
+          },
+          {
+            "id": "c2_esc_lamps",
+            "speaker": "翁慈",
+            "text": "燈別太亮！",
+            "urgent": true,
+            "when": {
+              "lamps": true
+            }
+          },
+          {
+            "id": "c2_esc_chase",
+            "speaker": "翁慈",
+            "text": "別追魚！找洞！",
+            "urgent": true,
+            "when": {
+              "speed_gt": 1.0
+            }
+          }
+        ]
       },
       "deliverables": [
-        {"id": "east_buoy", "kind": "checkpoint", "label": "東南角浮標下方", "point": [0, 24, 4], "radius": 2.5},
-        {"id": "east_line", "kind": "photo", "label": "東南錨繩中段", "point": [-3.5, 27.5, 13.8], "standoff": [0.8, 4],
-          "reading": "外皮磨損，未見斷股"},
-        {"id": "east_anchor", "kind": "checkpoint", "label": "東南錨", "point": [-7, 31, 23.5], "radius": 2.5},
-        {"id": "west_buoy", "kind": "checkpoint", "label": "西南角浮標下方", "point": [0, -24, 4], "radius": 2.5},
-        {"id": "west_line", "kind": "photo", "label": "西南錨繩中段", "point": [-3.5, -27.5, 13.8], "standoff": [0.8, 4],
-          "reading": "纏有廢棄漁網，建議清除"},
-        {"id": "west_anchor", "kind": "checkpoint", "label": "西南錨", "point": [-7, -31, 23.5], "radius": 2.5},
-        {"id": "recover", "kind": "surface", "label": "回投放點回收", "point": [-2, 0, 0.5], "radius": 3}
+        {
+          "id": "priority_hole",
+          "kind": "photo",
+          "label": "優先破洞拍照定位",
+          "point": [
+            6.08,
+            1.17,
+            7
+          ],
+          "standoff": [
+            0.8,
+            4
+          ],
+          "reading": "主破洞約 2.3 × 2.0 m，魚群外逃"
+        },
+        {
+          "id": "priority_report",
+          "kind": "report",
+          "label": "回報主破洞方位與深度",
+          "after": "priority_hole",
+          "truth": {
+            "clock": 6,
+            "depth": 7
+          },
+          "clock_tol": 1,
+          "depth_tol": 2
+        },
+        {
+          "id": "secondary_hole",
+          "kind": "photo",
+          "label": "周邊小裂確認拍照",
+          "point": [
+            6.08,
+            -1.17,
+            13
+          ],
+          "standoff": [
+            0.8,
+            4
+          ],
+          "reading": "次破洞／小裂，建議一併修補",
+          "after": "priority_report"
+        },
+        {
+          "id": "watch",
+          "kind": "station_keep",
+          "label": "破洞前監看至場方確認（約 20 秒）",
+          "point": [
+            4.5,
+            1.2,
+            7
+          ],
+          "radius": 2.5,
+          "hold_s": 20,
+          "after": "secondary_hole"
+        },
+        {
+          "id": "recover",
+          "kind": "surface",
+          "label": "回投放點回收",
+          "point": [
+            -2,
+            0,
+            0.5
+          ],
+          "radius": 3
+        }
       ]
     }
   ]

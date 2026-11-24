@@ -11,8 +11,10 @@ import { blockFor } from '../fleet_names.js';
 import { localize } from '../i18n/index.js';
 import { formatTime } from '../play/results_model.js';
 import { loadCareerData } from './data.js';
+import { installChapter2Radio } from './chapter2_radio.js';
 import { createTracker } from './deliverables.js';
 import { PHOTO_VERDICT_ITEM } from './fidelity_item.js';
+import { createHoleReport } from './hole_report.js';
 import { createCareerRadio } from './radio.js';
 import { contractById, contractView, itemLabel } from './rules.js';
 import { loadCareer, storeCareer } from './save.js';
@@ -26,6 +28,7 @@ const STRINGS = localize('career.dive', {
   submitPartial: '再按一次：部分交件（約 {pay} 元）',
   submitAbort: '再按一次：中止作業（不支付報酬）',
   confirm: '確認：{label}',
+  report: '回報：{label}',
   penaltiesOne: '扣分項目 {n}',
   penaltiesMany: '扣分項目 {n}',
   examOn: '執照考核中 · 真實模式',
@@ -112,7 +115,13 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   const actions = element('div', 'career-card-actions');
   const note = element('p', 'objective-feedback');
   note.setAttribute('role', 'status');
-  node.append(careerRadio.element, subhead, list, status, actions, note);
+  const holeReport = createHoleReport({
+    onSubmit(id, values) {
+      submitReport(id, values);
+    },
+  });
+  node.append(careerRadio.element, subhead, list, status, actions, holeReport.root, note);
+  let cueRadio = { observe() {}, dispose() {} };
 
   loadCareerData().then(function ready(loaded) {
     data = loaded;
@@ -157,6 +166,9 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     dive = null;
     doneIds = new Set();
     careerRadio.bind(contract.radio || null);
+    cueRadio.dispose?.();
+    cueRadio = installChapter2Radio(contract.radio?.cues || []);
+    holeReport.hide();
     if (contract.runtime !== 'chapter') careerRadio.play('start');
     openChapterCard();
   }
@@ -222,9 +234,10 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     if (!dive) openDive(state);
     const dt = countTime(state);
     tracker.observe(state, dt);
+    const snapshot = tracker.snapshot();
+    cueRadio.observe(state, snapshot);
     persist();
     if (contract.runtime === 'chapter') return;
-    const snapshot = tracker.snapshot();
     announceProgress(snapshot);
     if (snapshot.tetherBroken) settle(true);
     else if (snapshot.complete) settle(false);
@@ -324,6 +337,16 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   function confirmItem(id) {
     tracker?.confirm(id);
   }
+  function submitReport(id, values) {
+    if (!tracker || settled) return null;
+    const result = tracker.report(id, values);
+    feedback = result.message;
+    if (result.ok) {
+      holeReport.hide();
+      careerRadio.play(id);
+    }
+    return result;
+  }
   function distanceText(item, state) {
     const pos = state?.pos;
     if (!item.point || item.done || !Array.isArray(pos)) return '';
@@ -366,6 +389,21 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
       });
       return button;
     });
+    const reporting = snapshot.items.find(function reportable(item) {
+      return item.reportable;
+    });
+    if (reporting) {
+      holeReport.show(reporting);
+      const button = element('button', 'objective-accept', STRINGS.report.replace('{label}', reporting.label));
+      button.type = 'button';
+      button.dataset.report = reporting.id;
+      button.addEventListener('click', function openReport() {
+        holeReport.show(reporting);
+      });
+      buttons.push(button);
+    } else {
+      holeReport.hide();
+    }
     if (contract.runtime !== 'chapter') {
       const button = element('button', 'objective-link', submitLabel(snapshot));
       button.type = 'button';
@@ -456,6 +494,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
       return tracker?.snapshot() || null;
     },
     submit,
+    report: submitReport,
     get settled() {
       return settled;
     },

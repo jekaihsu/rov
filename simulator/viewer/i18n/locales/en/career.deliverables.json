@@ -12,5 +12,8 @@
   "wrap": "Tether wrapped on {name}",
   "needs": "Requires equipment: {item}",
   "after": "Complete first: {label}",
-  "last": "Recover after other required items"
+  "last": "Recover after other required items",
+  "reportBad": "Clock or depth does not match the hole; report again.",
+  "reportOk": "Hole report logged: {clock} o’clock · {depth} m",
+  "reportNeed": "Report clock position and depth"
 }

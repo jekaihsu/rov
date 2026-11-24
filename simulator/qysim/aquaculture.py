@@ -10,16 +10,44 @@ STRINGS = {
     "photo": "拍下網衣破洞",
     "recover": "夾起並提離網底一條死魚",
     "fish": "待回收死魚",
+    "basket": "死魚收集籃",
 }
 CENTER = (24., 0.)
 RADIUS = 18.
 SEGMENTS = 48
 DEPTH = 16.
 HOLES = ((23, 3), (24, 6))
+# Outside the net on the north-east arc — clear of the west-side launch (3, 0, 7).
+LAP_WAYPOINT = (42.19, 10.5, 7.)
+# First hole centre (panel 23); kept as a named constant so scenarios and tests stay aligned.
+HOLE_PHOTO_POINT = (6.08, 1.17, 7.)
+BASKET_POS = (16., 0., 15.5)
 
 
 def point(angle, radius=RADIUS, depth=0.):
     return (CENTER[0] + radius * math.cos(angle), radius * math.sin(angle), depth)
+
+
+def clock_bearing_ned(pos, center=CENTER):
+    """Clock face on the pen: 12 = north (+N), 3 = east (+E). Returns 1–12 (float)."""
+    north = float(pos[0]) - center[0]
+    east = float(pos[1]) - center[1]
+    deg = math.degrees(math.atan2(east, north)) % 360.0
+    clock = deg / 30.0
+    if clock < 0.5:
+        return 12.0
+    return clock if clock <= 12.0 else 12.0
+
+
+def hole_truth(hole):
+    """Player-facing truth for a hole report: clock bearing and depth in metres."""
+    pos = hole["pos"]
+    return {
+        "id": hole["id"],
+        "clock": round(clock_bearing_ned(pos), 1),
+        "depth": round(float(pos[2]), 1),
+        "pos": list(pos) if not isinstance(pos, list) else pos,
+    }
 
 
 def layout():
@@ -73,13 +101,22 @@ def layout():
         obstacles.append(Box(f"pen-anchor-{i}", end, (.8, .8, .3), 0, "pen_anchor"))
     fish = [dict(id=f"mort-{i}", pos=[x, y, 15.80])
             for i, (x, y) in enumerate(((9., 1.), (13., -3.), (21., 4.), (29., -5.)))]
-    return obstacles, dict(center=list(CENTER), radius=RADIUS, net_depth=DEPTH, holes=holes, dead_fish=fish)
+    basket = dict(id="basket-0", pos=list(BASKET_POS), radius=.8)
+    return obstacles, dict(center=list(CENTER), radius=RADIUS, net_depth=DEPTH, holes=holes,
+                           dead_fish=fish, basket=basket)
 
 
 def work_objects():
-    return {fish["id"]: dict(id=fish["id"], label=STRINGS["fish"], kind="dead_fish",
-            pos=np.array(fish["pos"]), vel=np.zeros(3), mass=.8, buoyancy_kg=.75,
-            radius=.15, held_by=None) for fish in layout()[1]["dead_fish"]}
+    data = layout()[1]
+    objects = {fish["id"]: dict(id=fish["id"], label=STRINGS["fish"], kind="dead_fish",
+            pos=np.array(fish["pos"], dtype=float), vel=np.zeros(3), mass=.8, buoyancy_kg=.75,
+            radius=.15, held_by=None) for fish in data["dead_fish"]}
+    basket = data["basket"]
+    objects[basket["id"]] = dict(
+        id=basket["id"], label=STRINGS["basket"], kind="collection_basket",
+        pos=np.array(basket["pos"], dtype=float), vel=np.zeros(3), mass=40., buoyancy_kg=40.,
+        radius=float(basket["radius"]), held_by=None, graspable=False)
+    return objects
 
 
 def update_objective(scorer, ob, sim):

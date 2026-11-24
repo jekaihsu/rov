@@ -960,14 +960,17 @@ feature tangent; small sphere capsules sample angled features without changing t
 ### Aquaculture scene metadata (optional)
 
 `world.scenario.aquaculture` only appears for `aquaculture_pen` and its site variants `aquaculture_pen_slack`
-(slack-water current) and `aquaculture_pen_inside` (vehicle and spool start inside the net, slack water; only the
-`pen_recover` objective): `center` (N/E metres),
-`radius`, `net_depth`, `holes` (`id`, NED `pos`, metre `size`, `panel`) and
-`dead_fish` (`id`, initial NED `pos`). Live fish recovery positions come from existing
-`state.operations.objects`; `kind: "dead_fish"` is optional. Existing arm ownership,
-load and release semantics apply. New scenario objective kinds are `pen_lap`,
-`pen_photo`, `pen_recover`; ordinary photo commands capture hole evidence.
-Net visual motion is bounded to 0.05 m and never changes server collision shapes.
+(slack-water current), `aquaculture_pen_inside` (vehicle and spool start inside the net, slack water; only the
+`pen_recover` objective) and `aquaculture_pen_escape` (rising current, torn-net emergency): `center` (N/E metres),
+`radius`, `net_depth`, `holes` (`id`, NED `pos`, metre `size`, `panel`, optional `truth` with `clock` /
+`depth` for report UI), `dead_fish` (`id`, initial NED `pos`) and optional `basket` (`id`, NED `pos`,
+`radius`). The escape variant also may include optional `escape` (`hole_id`, `priority`, `window_s`, `truth`).
+Live fish and basket positions come from existing `state.operations.objects`; `kind: "dead_fish"` and
+`kind: "collection_basket"` (with `graspable: false`) are optional. Existing arm ownership, load and release
+semantics apply. Scenario objective kinds remain `pen_lap`, `pen_photo`, `pen_recover`; ordinary photo
+commands capture hole evidence. Net visual motion is bounded to 0.05 m and never changes server collision
+shapes. When `escape` is present the server may soften pen-school bounds toward the priority hole
+(presentation only; not a stock / economics model).
 
 ## L1 多語文字（相容性方案，尚未新增 wire 欄位）
 

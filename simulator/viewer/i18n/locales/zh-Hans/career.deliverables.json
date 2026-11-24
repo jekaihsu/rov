@@ -12,5 +12,8 @@
   "wrap": "缆线缠绕 {name}",
   "needs": "需要装备：{item}",
   "after": "先完成：{label}",
-  "last": "完成其他必要项目后回收"
+  "last": "完成其他必要项目后回收",
+  "reportBad": "方位或深度与破洞不符，再报一次。",
+  "reportOk": "破洞回报已记入：{clock} 点钟 · {depth} m",
+  "reportNeed": "请回报时钟方位与深度"
 }

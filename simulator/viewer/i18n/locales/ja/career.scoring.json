@@ -9,6 +9,9 @@
     "probe": "探査",
     "confirm": "確認",
     "lift": "回収",
-    "surface": "回収"
+    "surface": "回収",
+    "deposit": "投入",
+    "lap": "周回",
+    "report": "報告"
   }
 }

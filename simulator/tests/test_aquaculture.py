@@ -22,12 +22,29 @@ class AquacultureTests(unittest.TestCase):
         obstacles, data = layout()
         self.assertEqual(len(data['holes']), 2)
         self.assertEqual(len(data['dead_fish']), 4)
+        self.assertEqual(data['basket']['id'], 'basket-0')
         for hole in data['holes']:
             self.assertGreater(self.world.sdf(np.array(hole['pos']))[0], .8)
         net = next(ob for ob in obstacles if ob.kind == 'pen_net')
         self.assertLess(net.sdf(np.array(net.center))[0], 0)
         self.assertTrue(net.snag_hold)
         self.assertGreater(self.world.sdf(np.array(self.sc.start_pos))[0], .4)
+
+    def test_objectives_are_not_on_the_spawn(self):
+        start = np.asarray(self.sc.start_pos, float)
+        for objective in self.sc.objectives:
+            point = np.asarray(objective.point, float)
+            # Regression: lap/photo used to share the west-side launch coordinates exactly.
+            self.assertFalse(np.allclose(point, start, atol=0.25), objective.kind)
+            self.assertGreater(np.linalg.norm(point[:2] - start[:2]), 2.5, objective.kind)
+
+    def test_hole_clock_truth(self):
+        from qysim.aquaculture import hole_truth, clock_bearing_ned
+        hole = layout()[1]['holes'][0]
+        truth = hole_truth(hole)
+        self.assertAlmostEqual(truth['clock'], 6.0, delta=0.5)
+        self.assertAlmostEqual(truth['depth'], 7.0, delta=0.1)
+        self.assertAlmostEqual(clock_bearing_ned(hole['pos']), truth['clock'], delta=0.05)
 
     def test_photo_facing(self):
         hole = np.array(layout()[1]['holes'][0]['pos'])
@@ -68,6 +85,18 @@ class AquacultureTests(unittest.TestCase):
         for school in self.world.fish_schools:
             self.assertLessEqual(np.linalg.norm(school['pos'][:2] - [24, 0]), 14.)
             self.assertLess(school['pos'][2], 14.)
+
+    def test_escape_schools_may_pass_the_torn_panel(self):
+        from qysim.engine import Simulator
+        sim = Simulator('aquaculture_pen_escape', 71)
+        self.assertIsNotNone(sim.world.escape_hole)
+        start = np.array(sim.world.fish_schools[0]['pos'], float)
+        for i in range(120):
+            sim.world.time = i * .05
+            step_schools(sim.world, .05, [])
+        radii = [np.linalg.norm(s['pos'][:2] - [24., 0.]) for s in sim.world.fish_schools]
+        self.assertTrue(any(r > 14. for r in radii) or np.linalg.norm(
+            sim.world.fish_schools[0]['pos'] - start) > 1.0)
 
     def test_real_gripper_recovers_shared_fish(self):
         from qysim.engine import Simulator

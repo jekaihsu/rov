@@ -9,6 +9,9 @@
     "probe": "Probe",
     "confirm": "Confirm",
     "lift": "Recover",
-    "surface": "Recover"
+    "surface": "Recover",
+    "deposit": "Deposit",
+    "lap": "Lap",
+    "report": "Report"
   }
 }

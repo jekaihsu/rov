@@ -77,13 +77,24 @@ class PenVariantTest(unittest.TestCase):
     """Site variants the chapter-2 work orders launch: same pen, start point and current setting only."""
 
     def test_variants_share_the_pen_and_lower_the_current(self):
+        from qysim import chapter2 as c2
         from qysim.aquaculture import CENTER, RADIUS
         base = scenarios.build("aquaculture_pen", 0)
-        for key in ("aquaculture_pen_slack", "aquaculture_pen_inside"):
+        for key in ("aquaculture_pen_slack", "aquaculture_pen_inside", "aquaculture_pen_escape"):
             variant = scenarios.build(key, 0)
-            self.assertEqual(len(variant.obstacles), len(base.obstacles), key)
-            self.assertEqual(variant.seabed_depth, base.seabed_depth, key)
-            self.assertLess(variant.current.surface_kn, base.current.surface_kn, key)
+            if key == "aquaculture_pen_inside":
+                # C2-2 drops the seabed to the net floor and removes floor panels so silt jets hit fluff.
+                self.assertEqual(variant.seabed_depth, c2.INSIDE_SEABED, key)
+                self.assertLess(len(variant.obstacles), len(base.obstacles), key)
+                self.assertFalse(any(str(o.name).startswith("pen-floor-") for o in variant.obstacles), key)
+            else:
+                self.assertEqual(len(variant.obstacles), len(base.obstacles), key)
+                self.assertEqual(variant.seabed_depth, base.seabed_depth, key)
+            if key == "aquaculture_pen_escape":
+                self.assertGreater(variant.current.surface_kn, base.current.surface_kn * 0.5, key)
+                self.assertIn("escape", variant.summary()["aquaculture"], key)
+            else:
+                self.assertLess(variant.current.surface_kn, base.current.surface_kn, key)
             self.assertIn("aquaculture", variant.summary(), key)
         inside = scenarios.build("aquaculture_pen_inside", 0)
         offset = ((inside.start_pos[0] - CENTER[0]) ** 2 + (inside.start_pos[1] - CENTER[1]) ** 2) ** .5
@@ -94,7 +105,7 @@ class PenVariantTest(unittest.TestCase):
         from qysim.operations import ensure_objects
         sim = Simulator("aquaculture_pen_inside", 0)
         kinds = {entry["kind"] for entry in ensure_objects(sim).values()}
-        self.assertEqual(kinds, {"dead_fish"})
+        self.assertEqual(kinds, {"dead_fish", "collection_basket"})
 
 
 if __name__ == "__main__":
