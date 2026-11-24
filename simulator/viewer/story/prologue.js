@@ -8,6 +8,7 @@ import {actionCaps, axisCaps} from '../play/onboarding.js';
 import {deviceFamily} from '../input/glyphs.js';
 import {installVoice} from '../audio/voice.js';
 import {getLanguage} from '../i18n/index.js';
+import {getFidelity} from '../fidelity.js';
 import {licenceSerial, showLicenceAward} from '../brand/licence_award.js';
 import {showTitleCard} from '../brand/chapter_card.js';
 import {chapterCardData} from '../brand/chapters.js';
@@ -68,7 +69,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     stage.words.textContent = words;
     stage.speaker.textContent = speaker;
     stage.radio.classList.add('speaking');
-    radioUntil = now + 6;
+    radioUntil = now + 6 * getFidelity().get('radioDuration');
     Promise.resolve(voice.playLine({speaker, text: words, language: getLanguage()})).catch(function quiet() {});
   }
 

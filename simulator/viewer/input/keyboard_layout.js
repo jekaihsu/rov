@@ -35,7 +35,9 @@ export function keyboardLayout(fidelity = getFidelity()) {
 // The binding rows for the stored settings (rov.input.v1) and the active layout.
 export function rowsFor(settings, fidelity = getFidelity()) {
   const layout = keyboardLayout(fidelity);
-  return keyboardRows(layout, settings?.keys?.[layout]);
+  return keyboardRows(layout, settings?.keys?.[layout]).map(row => ({
+    ...row, pad: settings?.bindings?.[row.action] ?? row.pad,
+  }));
 }
 
 // The input layer publishes the rows it uses so text-only surfaces (pilot guide, story radio) show the same keys.

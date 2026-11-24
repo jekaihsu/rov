@@ -184,6 +184,9 @@ export function installColdOpen({
     event.stopImmediatePropagation();
     skip('key');
   }, true);
+  document.addEventListener('rov-key-rows', function invalidateHint() {
+    hintSignature = '';
+  });
   document.addEventListener('rov-input-device', function deviceChanged(event) {
     family = event.detail && event.detail !== 'touch' ? deviceFamily(event.detail) : 'keyboard';
     hintSignature = '';
@@ -264,7 +267,7 @@ export function installColdOpen({
     if (speaking || !queue.length) return;
     const next = queue.shift();
     const language = getLanguage();
-    speaking = {...next, until: time + lineSeconds(next.text, language)};
+    speaking = {...next, until: time + lineSeconds(next.text, language) * (getFidelity().get("radioDuration") ?? 1)};
     speaker.textContent = next.speaker;
     words.textContent = next.text;
     radio.classList.add('speaking');

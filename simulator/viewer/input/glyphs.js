@@ -1,6 +1,16 @@
 // Text-only geometric SVG button caps, with no trademark artwork.
 // Face labels follow the Standard Gamepad *position*: index 0 is the bottom face button.
 // Switch-family pads print different letters on those positions (B/A/Y/X), so the labels swap.
+import { actionKey, padLabel } from './bindings.js';
+
+export function actionGlyph(action, rows, family) {
+  const row = rows.find(entry => entry.action === action);
+  if (!row) return '';
+  const names = padNames(family) || faceLabels(family);
+  const label = family === 'keyboard' ? actionKey(action, rows) : padLabel(row.pad, names);
+  return label ? glyph(0, 'keyboard', label) : '';
+}
+
 const LABELS = {
   generic: ['1', '2', '3', '4'],
   xbox: ['A', 'B', 'X', 'Y'],
