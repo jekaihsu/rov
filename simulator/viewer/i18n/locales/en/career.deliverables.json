@@ -12,5 +12,10 @@
   "wrap": "Tether wrapped on {name}",
   "needs": "Requires equipment: {item}",
   "after": "Complete first: {label}",
-  "last": "Recover after other required items"
+  "last": "Recover after other required items",
+  "rated": "Fouling rating FR {n}",
+  "angleDrift": "Shot angle drifted from the reference",
+  "measureSoft": "Soft fouling {cm} cm",
+  "measureHard": "Hard fouling {cm} cm",
+  "measurePlain": "{cm} cm"
 }

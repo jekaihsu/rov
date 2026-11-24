@@ -12,5 +12,10 @@
   "wrap": "纜線繞上 {name}",
   "needs": "需要裝備：{item}",
   "after": "先完成：{label}",
-  "last": "完成其他必要項目後回收"
+  "last": "完成其他必要項目後回收",
+  "rated": "附著評級 FR {n}",
+  "angleDrift": "拍攝角度偏離參考",
+  "measureSoft": "軟附著 {cm} cm",
+  "measureHard": "硬附著 {cm} cm",
+  "measurePlain": "{cm} cm"
 }

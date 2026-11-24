@@ -43,6 +43,8 @@ DEFAULT_CHECKS = (
     'browser_cold_open_smoke',
     'browser_prologue_smoke',
     'browser_career_smoke',
+    # Chapter 1 C1-1…C1-4 documentary beats + physics turns (parameterized --mission).
+    'browser_chapter1_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
     'browser_link_smoke',
@@ -51,7 +53,11 @@ DEFAULT_CHECKS = (
 )
 
 # Per-script time limits above run_browser_checks' --timeout default, for checks that walk several full dives.
-SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 3600, 'browser_cold_open_smoke': 5400}
+SCRIPT_TIMEOUTS = {
+    'browser_playstation_smoke': 3600,
+    'browser_cold_open_smoke': 5400,
+    'browser_chapter1_smoke': 3600,
+}
 
 TIERS = {
     'quick': {

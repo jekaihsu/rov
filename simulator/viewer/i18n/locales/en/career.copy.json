@@ -4,13 +4,13 @@
       "label": "YX Marine Services"
     },
     "harbor": {
-      "label": "Harbour authority"
+      "label": "Qingyu Port Authority"
     },
     "shipping": {
       "label": "Owners & ship managers"
     },
     "marine_works": {
-      "label": "Marine works"
+      "label": "Embankment Works"
     },
     "aquaculture": {
       "label": "Aquaculture operators"
@@ -54,7 +54,8 @@
         "speaker": "Lin Cen",
         "start": "Control calling R-1. First watch together. Check in.",
         "done": "Secure the deck. Procedure complete."
-      }
+      },
+      "deliverables": {}
     },
     "p1_pool_checkout": {
       "title": "Pool checkout dive",
@@ -140,7 +141,16 @@
         "b2_upper": "Pile B2 · 4 m depth",
         "b2_lower": "Pile B2 · 12 m depth",
         "b2_photo": "Pile B2 growth close-up (bonus)",
-        "recover": "Return to launch for recovery"
+        "recover": "Return to launch for recovery",
+        "a1_d4": "Pile A1 · 4 m",
+        "a1_d8": "Pile A1 · 8 m",
+        "a1_d12": "Pile A1 · 12 m",
+        "a3_d4": "Pile A3 · 4 m",
+        "a3_d8": "Pile A3 · 8 m",
+        "a3_d12": "Pile A3 · 12 m",
+        "b2_d4": "Pile B2 · 4 m",
+        "b2_d8": "Pile B2 · 8 m",
+        "b2_d12": "Pile B2 · 12 m"
       }
     },
     "c1_hull_fouling": {
@@ -160,7 +170,12 @@
         "loto": "Main stopped, shaft locked out (LOTO)",
         "propeller": "Propeller blades",
         "rudder": "Rudder",
-        "recover": "Return to launch for recovery"
+        "recover": "Return to launch for recovery",
+        "seachest_fwd": "Forward sea chest",
+        "seachest_aft": "Aft sea chest",
+        "transducer": "Echo sounder",
+        "flat_port": "Flat bottom, port track",
+        "flat_starboard": "Flat bottom, starboard track"
       }
     },
     "c1_dropped_object": {
@@ -177,7 +192,9 @@
       "deliverables": {
         "contact": "Acquire sonar return and close",
         "confirm_photo": "Camera confirm: survey unit",
-        "recover": "Return to launch for recovery"
+        "recover": "Return to launch for recovery",
+        "mark": "Mark for divers",
+        "lift": "Lift / basket"
       }
     },
     "c1_quay_cp": {
@@ -233,7 +250,8 @@
         "b3_spall": "Pile B3 · spall at 14 m",
         "quay_chip": "South quay wall · chip at 12 m",
         "quay_station": "Mid quay wall · 6 s station visual",
-        "recover": "Return to launch for recovery"
+        "recover": "Return to launch for recovery",
+        "anomaly_extra": "Unlisted crack (optional)"
       }
     },
     "c2_net_inspection": {

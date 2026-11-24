@@ -12,5 +12,10 @@
   "wrap": "缆线缠绕 {name}",
   "needs": "需要装备：{item}",
   "after": "先完成：{label}",
-  "last": "完成其他必要项目后回收"
+  "last": "完成其他必要项目后回收",
+  "rated": "附着评级 FR {n}",
+  "angleDrift": "拍摄角度偏离参考",
+  "measureSoft": "软附着 {cm} cm",
+  "measureHard": "硬附着 {cm} cm",
+  "measurePlain": "{cm} cm"
 }

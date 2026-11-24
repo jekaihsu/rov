@@ -4,13 +4,13 @@
       "label": "YX 海事サービス"
     },
     "harbor": {
-      "label": "港湾当局"
+      "label": "青嶼港務局"
     },
     "shipping": {
       "label": "船主・船舶管理"
     },
     "marine_works": {
-      "label": "海事工事"
+      "label": "堤防工事"
     },
     "aquaculture": {
       "label": "養殖事業者"
@@ -54,7 +54,8 @@
         "speaker": "林岑",
         "start": "指揮から R-1。初当直だ。点検から始めよう。",
         "done": "作業終了。手順よし。"
-      }
+      },
+      "deliverables": {}
     },
     "p1_pool_checkout": {
       "title": "プールチェックアウト潜航",
@@ -140,7 +141,16 @@
         "b2_upper": "B2杭 · 水深 4 m",
         "b2_lower": "B2杭 · 水深 12 m",
         "b2_photo": "B2杭 生物層の近接写真（加点）",
-        "recover": "投入点へ戻り回収"
+        "recover": "投入点へ戻り回収",
+        "a1_d4": "A1杭 · 水深4 m",
+        "a1_d8": "A1杭 · 水深8 m",
+        "a1_d12": "A1杭 · 水深12 m",
+        "a3_d4": "A3杭 · 水深4 m",
+        "a3_d8": "A3杭 · 水深8 m",
+        "a3_d12": "A3杭 · 水深12 m",
+        "b2_d4": "B2杭 · 水深4 m",
+        "b2_d8": "B2杭 · 水深8 m",
+        "b2_d12": "B2杭 · 水深12 m"
       }
     },
     "c1_hull_fouling": {
@@ -160,7 +170,12 @@
         "loto": "主機停止・軸系ロックアウト（LOTO）",
         "propeller": "プロペラブレード",
         "rudder": "舵",
-        "recover": "投入点へ戻り回収"
+        "recover": "投入点へ戻り回収",
+        "seachest_fwd": "前方シーチェスト",
+        "seachest_aft": "後方シーチェスト",
+        "transducer": "測深トランスデューサ",
+        "flat_port": "平底左舷航路",
+        "flat_starboard": "平底右舷航路"
       }
     },
     "c1_dropped_object": {
@@ -177,7 +192,9 @@
       "deliverables": {
         "contact": "ソナーでエコーを捉え接近",
         "confirm_photo": "カメラ確認：測量機",
-        "recover": "投入点へ戻り回収"
+        "recover": "投入点へ戻り回収",
+        "mark": "ダイバー向け標示",
+        "lift": "吊り上げ／バスケット"
       }
     },
     "c1_quay_cp": {
@@ -233,7 +250,8 @@
         "b3_spall": "B3杭 · 水深 14 m 剥落",
         "quay_chip": "岸壁南区間 · 水深 12 m 欠け",
         "quay_station": "岸壁中央 · 定点目視 6秒",
-        "recover": "投入点へ戻り回収"
+        "recover": "投入点へ戻り回収",
+        "anomaly_extra": "未記載の亀裂（任意）"
       }
     },
     "c2_net_inspection": {

@@ -4,13 +4,13 @@
       "label": "YX 海事服务"
     },
     "harbor": {
-      "label": "港务"
+      "label": "青屿港务局"
     },
     "shipping": {
       "label": "船东与船管"
     },
     "marine_works": {
-      "label": "海事工程"
+      "label": "堤岸工程"
     },
     "aquaculture": {
       "label": "养殖业者"
@@ -54,7 +54,8 @@
         "speaker": "林岑",
         "start": "向潮指挥呼叫 R-1。今天池里认识搭档。先检查。",
         "done": "收工。程序过了。"
-      }
+      },
+      "deliverables": {}
     },
     "p1_pool_checkout": {
       "title": "水池检查潜",
@@ -140,7 +141,16 @@
         "b2_upper": "B2 桩 · 水深 4 m",
         "b2_lower": "B2 桩 · 水深 12 m",
         "b2_photo": "B2 桩附着层近照（加分）",
-        "recover": "回投放点回收"
+        "recover": "回投放点回收",
+        "a1_d4": "A1 桩 · 水深 4 m",
+        "a1_d8": "A1 桩 · 水深 8 m",
+        "a1_d12": "A1 桩 · 水深 12 m",
+        "a3_d4": "A3 桩 · 水深 4 m",
+        "a3_d8": "A3 桩 · 水深 8 m",
+        "a3_d12": "A3 桩 · 水深 12 m",
+        "b2_d4": "B2 桩 · 水深 4 m",
+        "b2_d8": "B2 桩 · 水深 8 m",
+        "b2_d12": "B2 桩 · 水深 12 m"
       }
     },
     "c1_hull_fouling": {
@@ -160,7 +170,12 @@
         "loto": "主机停机、轴系上锁（LOTO）",
         "propeller": "螺旋桨叶片",
         "rudder": "舵",
-        "recover": "回投放点回收"
+        "recover": "回投放点回收",
+        "seachest_fwd": "前海底门",
+        "seachest_aft": "后海底门",
+        "transducer": "测深换能器",
+        "flat_port": "平底左舷航线",
+        "flat_starboard": "平底右舷航线"
       }
     },
     "c1_dropped_object": {
@@ -177,7 +192,9 @@
       "deliverables": {
         "contact": "以声呐找到回波并接近",
         "confirm_photo": "相机确认：测量仪",
-        "recover": "回投放点回收"
+        "recover": "回投放点回收",
+        "mark": "标记交潜水员",
+        "lift": "挂绳／入篮"
       }
     },
     "c1_quay_cp": {
@@ -233,7 +250,8 @@
         "b3_spall": "B3 桩 · 水深 14 m 剥落",
         "quay_chip": "码头壁南段 · 水深 12 m 缺角",
         "quay_station": "码头壁中段 · 定点目视 6 秒",
-        "recover": "回投放点回收"
+        "recover": "回投放点回收",
+        "anomaly_extra": "未列裂缝（可选）"
       }
     },
     "c2_net_inspection": {

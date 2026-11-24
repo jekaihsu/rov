@@ -102,6 +102,7 @@ export function installChapter1({
       surge: axisControl('surge'),
       yaw: axisControl('yaw'),
       heave: axisControl('heave'),
+      sway: axisControl('sway'),
       photo: actionControl('photo'),
     }),
     debug: () => ({
@@ -109,12 +110,17 @@ export function installChapter1({
       reveal: view?.reveal || [],
       hint: view?.hint || null,
       outcome: view?.outcome || null,
+      missionId,
       lines: log.map(function id(entry) {
         return entry.id;
       }),
       look: {cinematic: look.active, beautify: beautifyEnabled(), fidelity: getFidelity().snapshot()},
     }),
     report,
+    skip: () => {
+      if (!director || ended) return;
+      applyView(director.skip(now()));
+    },
   };
 
   document.addEventListener('rov-key-rows', function invalidateHint() {
@@ -161,6 +167,7 @@ export function installChapter1({
     return {keys: row?.keys || [], pad: keys.bindings?.[action] ?? bindingRow(action)?.pad ?? null};
   }
   function spots() {
+    // Landmarks match qysim/chapter1.py (provisional site data); fall back to scenario objectives.
     const objectives = world?.objectives || world?.scenario?.objectives || [];
     const piles = objectives.filter(function pile(item) {
       return /pile|pier|柱|樁/i.test(item.id || item.label || '');
@@ -171,16 +178,58 @@ export function installChapter1({
       return /prop|螺槳/i.test(entry.id || entry.label || '');
     })?.point;
     const decoy = objectives.find(function item(entry) {
-      return /decoy|rock|石/i.test(entry.id || entry.label || '');
+      return /decoy|rock|石|礁/i.test(entry.id || entry.label || '');
     })?.point;
     const target = objectives.find(function item(entry) {
-      return /instrument|target|儀/i.test(entry.id || entry.label || '');
+      return /instrument|target|儀|測量/i.test(entry.id || entry.label || '');
     })?.point;
     return {
-      piles: piles.length ? piles : [[0, 8], [4, 10], [-4, 10]],
-      prop: prop ? prop.slice(0, 2) : [0, -6],
-      decoy: decoy ? decoy.slice(0, 2) : [6, 4],
-      target: target ? target.slice(0, 2) : [-6, 4],
+      piles: piles.length ? piles : [[21, -10], [27, -10], [33, -10]],
+      prop: prop ? prop.slice(0, 2) : [14.4, 0],
+      decoy: decoy ? decoy.slice(0, 2) : [14, 5],
+      target: target ? target.slice(0, 2) : [18, 5],
+    };
+  }
+  function careerFlags() {
+    const snap = globalThis.__career?.snapshot?.() || null;
+    if (!snap) return {};
+    const items = snap.items || [];
+    const done = new Set(items.filter(function finished(item) {
+      return item.done;
+    }).map(function id(item) {
+      return item.id;
+    }));
+    const measured = items.some(function laser(item) {
+      return item.kind === 'measure' && item.done;
+    });
+    const rated = items.some(function fouling(item) {
+      return item.rating != null && item.done;
+    });
+    const photographed = items.some(function photo(item) {
+      return item.kind === 'photo' && item.done;
+    });
+    const photosDone = items.filter(function photo(item) {
+      return item.kind === 'photo' && item.done;
+    }).length >= 2;
+    const lotoDone = !globalThis.__career?.blocksUnlock?.();
+    return {
+      measured,
+      rated,
+      photographed,
+      photosDone,
+      lotoDone,
+      complete: !!snap.complete,
+      missionDone: !!snap.complete,
+      aborted: !!globalThis.__career?.settled && !snap.complete,
+      nearPile: items.some(function near(item) {
+        return item.kind === 'measure' && item.near;
+      }),
+      nearProp: done.has('propeller') || items.some(function near(item) {
+        return item.id === 'propeller' && item.near;
+      }),
+      atTarget: done.has('contact') || done.has('confirm_photo'),
+      atDecoy: false,
+      echoesSeen: done.has('contact') || photographed,
     };
   }
   function telemetry(s) {
@@ -192,7 +241,7 @@ export function installChapter1({
     const silt = Number(s?.turbidity?.silt || s?.silt || 0);
     const vis = Number(s?.turbidity?.visibility_m);
     const flow = Math.hypot(s?.current_here?.[0] || 0, s?.current_here?.[1] || 0);
-    const career = s?.career || {};
+    const career = {...(s?.career || {}), ...careerFlags()};
     return {
       input: sticks,
       pos: s?.pos,

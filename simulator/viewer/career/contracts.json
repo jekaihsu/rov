@@ -2,7 +2,7 @@
   "note": "YX 委託看板的工單資料。座標為 NED（北、東、向下為正，公尺），與 qysim/scenarios.py 的場景一致。報酬與聲譽為遊戲數值。",
   "clients": {
     "yx": {
-      "label": "YX 工作隊"
+      "label": "YX 海事服務"
     },
     "harbor": {
       "label": "青嶼港務局"

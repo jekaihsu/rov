@@ -12,5 +12,10 @@
   "wrap": "テザーが {name} に巻き付いた",
   "needs": "必要な装備：{item}",
   "after": "先に完了：{label}",
-  "last": "他の必須項目のあとで回収"
+  "last": "他の必須項目のあとで回収",
+  "rated": "付着等級 FR {n}",
+  "angleDrift": "撮影角が参照からずれている",
+  "measureSoft": "軟質付着 {cm} cm",
+  "measureHard": "硬質付着 {cm} cm",
+  "measurePlain": "{cm} cm"
 }
