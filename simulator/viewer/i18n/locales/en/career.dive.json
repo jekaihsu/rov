@@ -23,5 +23,6 @@
   "rows": {
     "deliverables": "Deliverables",
     "time": "Dive time"
-  }
+  },
+  "report": "Report: {label}"
 }

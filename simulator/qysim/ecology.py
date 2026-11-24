@@ -117,7 +117,16 @@ def placed_schools(specs, rng) -> list:
     return out
 
 
+def _escape_hole(world):
+    """Optional priority hole while fish are escaping a torn pen (presentation + soft bounds)."""
+    hole = getattr(world, "escape_hole", None)
+    if hole is None:
+        return None
+    return np.asarray(hole, float)
+
+
 def step_schools(world, dt, vehicles):
+    escape = _escape_hole(world)
     for school in world.fish_schools:
         p, phase = school["pos"], school["phase"]
         angle = world.time * .06 + phase
@@ -136,6 +145,11 @@ def step_schools(world, dt, vehicles):
                 distance = np.linalg.norm(away)
                 if vehicle.get("light", 0) and distance < 8:
                     desired += away / max(distance, .1) * (8 - distance) * .25
+            if escape is not None:
+                # Crowd toward the torn panel and slip a short way outside — not a full stock model.
+                to_hole = escape - p
+                desired += to_hole * .35
+                desired += (escape - np.array([24., 0., escape[2]])) * .08
         d, normal, _ = world.sdf(p)
         if d < 3:
             desired += normal * (3-d) * 1.5
@@ -152,7 +166,8 @@ def step_schools(world, dt, vehicles):
         if school.get("pen"):
             offset = nxt[:2] - [24., 0.]
             radius = np.linalg.norm(offset)
-            if radius > 14:
-                nxt[:2] = [24., 0.] + offset * 14 / radius
+            limit = 18.5 if escape is not None else 14.
+            if radius > limit:
+                nxt[:2] = [24., 0.] + offset * limit / radius
             nxt[2] = np.clip(nxt[2], 3., 13.)
         school["pos"] = nxt

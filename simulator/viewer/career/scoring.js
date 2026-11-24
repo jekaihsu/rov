@@ -16,6 +16,9 @@ const STRINGS = localize('career.scoring', {
     probe: '探測',
     confirm: '確認',
     lift: '回收',
+    deposit: '投放',
+    lap: '環繞',
+    report: '回報',
     surface: '回收',
   },
 });

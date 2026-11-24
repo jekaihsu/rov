@@ -12,5 +12,8 @@
   "wrap": "纜線繞上 {name}",
   "needs": "需要裝備：{item}",
   "after": "先完成：{label}",
-  "last": "完成其他必要項目後回收"
+  "last": "完成其他必要項目後回收",
+  "reportBad": "方位或深度與破洞不符，再報一次。",
+  "reportOk": "破洞回報已記入：{clock} 點鐘 · {depth} m",
+  "reportNeed": "請回報時鐘方位與深度"
 }

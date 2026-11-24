@@ -9,6 +9,9 @@
     "probe": "探测",
     "confirm": "确认",
     "lift": "回收",
-    "surface": "回收"
+    "surface": "回收",
+    "deposit": "投放",
+    "lap": "环绕",
+    "report": "回报"
   }
 }

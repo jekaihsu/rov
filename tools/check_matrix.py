@@ -43,6 +43,7 @@ DEFAULT_CHECKS = (
     'browser_cold_open_smoke',
     'browser_prologue_smoke',
     'browser_career_smoke',
+    'browser_chapter2_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
     'browser_link_smoke',
@@ -68,6 +69,7 @@ BROWSER_PATHS = {
                                 'browser_campaign_smoke'),
     'simulator/viewer/feedback/': ('browser_feedback_smoke', 'browser_menu_smoke', 'browser_hud_smoke',
                                    'browser_menu_gamepad_smoke'),
+    'simulator/viewer/career/': ('browser_career_smoke', 'browser_chapter2_smoke', 'browser_results_smoke'),
 }
 
 

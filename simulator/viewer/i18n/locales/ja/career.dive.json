@@ -23,5 +23,6 @@
   "rows": {
     "deliverables": "成果物",
     "time": "作業時間"
-  }
+  },
+  "report": "報告：{label}"
 }

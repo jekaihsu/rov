@@ -90,7 +90,7 @@ class Scenario:
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
                 "water_type": water_type_for(self.biome, self.water_type, self.water),
-                **({"aquaculture": layout()[1]}
+                **({"aquaculture": _aquaculture_summary(self.key)}
                    if is_pen_site(self.key) else {})}
 
 
@@ -519,16 +519,17 @@ def incident_current() -> Scenario:
 
 
 def aquaculture_pen() -> Scenario:
-    from .aquaculture import layout, STRINGS as pen_strings
+    from .aquaculture import layout, STRINGS as pen_strings, LAP_WAYPOINT, HOLE_PHOTO_POINT
     obstacles, _ = layout()
+    # Lap and hole targets sit on the net path, not on the west-side launch point (spawn used to overlap both).
     return Scenario(
         "aquaculture_pen", pen_strings["name"], pen_strings["brief"],
         seabed_depth=25., obstacles=obstacles, visibility_m=8., biome="aquaculture",
         seabed_type="mud", water_type="shelf", start_pos=(3., 0., 7.),
         spool_pos=(-2., 0., 0.), tether_length=150., time_limit_s=2400.,
         current=CurrentProfile(.8, 90, .5, 95, .3, 100, TI_SHELTERED),
-        objectives=[Objective("pen_lap", pen_strings["lap"], (3., 0., 7.)),
-                    Objective("pen_photo", pen_strings["photo"], (3., 0., 7.), target="hole-0"),
+        objectives=[Objective("pen_lap", pen_strings["lap"], LAP_WAYPOINT),
+                    Objective("pen_photo", pen_strings["photo"], HOLE_PHOTO_POINT, target="hole-0"),
                     Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
 
 
@@ -537,6 +538,8 @@ PEN_VARIANT_STRINGS = {
     "slack_brief": "同一座箱網，平潮時段下水：表層流較弱。繞網檢查與繫泊檢查用。",
     "inside_name": "離岸養殖箱網（網內下水）",
     "inside_brief": "從箱網走道把載具直接放進網內，平潮時段。網底死魚回收用；需要機械臂。",
+    "escape_name": "離岸養殖箱網（破網逃魚）",
+    "escape_brief": "監測密度異常下降：優先破洞向外逃魚。先定位主破洞並回報，再監看至場方到位。",
 }
 # Slack-water current of the pen site variants (assumed, like every scenario current; not a vehicle limit).
 PEN_SLACK_CURRENT = (.3, 90, .2, 95, .1, 100)
@@ -545,6 +548,22 @@ PEN_SLACK_CURRENT = (.3, 90, .2, 95, .1, 100)
 def is_pen_site(key: str) -> bool:
     """The aquaculture pen and its variants share one site (layout, dead fish, hole photos)."""
     return str(key).startswith("aquaculture_pen")
+
+
+def _aquaculture_summary(key: str) -> dict:
+    """Site metadata for the viewer; escape variant adds an optional priority-hole block."""
+    from .aquaculture import layout, hole_truth
+    data = dict(layout()[1])
+    data["holes"] = [dict(hole, **{"truth": hole_truth(hole)}) for hole in data["holes"]]
+    if str(key) == "aquaculture_pen_escape":
+        primary = data["holes"][0]
+        data["escape"] = {
+            "hole_id": primary["id"],
+            "priority": True,
+            "window_s": 720,
+            "truth": primary["truth"],
+        }
+    return data
 
 
 def aquaculture_pen_slack() -> Scenario:
@@ -566,6 +585,18 @@ def aquaculture_pen_inside() -> Scenario:
     sc.spool_pos = (16., 0., 0.)
     sc.tether_length = 60.
     sc.objectives = [o for o in sc.objectives if o.kind == "pen_recover"]
+    return sc
+
+
+def aquaculture_pen_escape() -> Scenario:
+    """Emergency variant: same pen at rising current; world.aquaculture.escape marks the priority hole."""
+    sc = aquaculture_pen_slack()
+    sc.key = "aquaculture_pen_escape"
+    sc.name = PEN_VARIANT_STRINGS["escape_name"]
+    sc.brief = PEN_VARIANT_STRINGS["escape_brief"]
+    sc.current = CurrentProfile(.7, 90, .5, 95, .35, 100, TI_SHELTERED)
+    sc.time_limit_s = 900.
+    sc.objectives = [o for o in sc.objectives if o.kind in ("pen_photo", "pen_lap")]
     return sc
 
 
@@ -597,6 +628,7 @@ LIBRARY = {
     "aquaculture_pen": aquaculture_pen,
     "aquaculture_pen_slack": aquaculture_pen_slack,
     "aquaculture_pen_inside": aquaculture_pen_inside,
+    "aquaculture_pen_escape": aquaculture_pen_escape,
     "cold_open_jacket": cold_open_jacket,
 }
 

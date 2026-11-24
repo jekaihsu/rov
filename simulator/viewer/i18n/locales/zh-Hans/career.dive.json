@@ -23,5 +23,6 @@
   "rows": {
     "deliverables": "交付项目",
     "time": "作业时间"
-  }
+  },
+  "report": "回报：{label}"
 }
