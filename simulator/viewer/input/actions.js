@@ -43,6 +43,12 @@ export function curve(value, { expo = 0, sensitivity = 1, invert = false } = {})
   );
 }
 
+// Apply physical-stick preferences before the bindings route the axes to vehicle channels.
+export function shapeStick(x, y, {inner, outer, expo, invert}) {
+  const [horizontal, vertical] = radial(x, y, inner, outer);
+  return [curve(horizontal, {expo}), curve(vertical, {expo, invert})];
+}
+
 // Capability is advertised by telemetry, never inferred from the client defaults.
 export function assistFields(state, controls) {
   const assist = state?.assist;

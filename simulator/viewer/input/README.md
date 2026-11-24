@@ -2,7 +2,7 @@
 
 Open controller settings with F9, the sidebar button, or controller Back + Start.
 D-pad up/down moves focus; left/right adjusts sliders and selects options; primary
-button activates, secondary returns. Focus a binding field and move an axis or
+button activates, secondary returns. Activate a binding field, release the navigation control, then move an axis or
 press a button to capture a binding, or enter `a0`, `-a1`, `b7`, `b7~` (digital
 threshold), or `b7,b6` (positive minus negative). Reset restores defaults.
 
@@ -37,10 +37,11 @@ the controller dialog (鍵盤按鍵: click, press the new key, Esc cancels); cho
 `keys[layout]`, and a key already used in the same context is refused (`keyCollisions`). Help tables name stick
 channels by what they do (前進／後退), not by the stick.
 
-Menu context (launch menu, pause menu, settings): D-pad or arrow keys and the left stick move focus, A / Enter
-confirms, B / Esc goes back, LB / RB or Q / E switch tabs, the right stick turns the hangar turntable. These rows are
-fixed (not rebindable) and are read by `../menu/navigator.js`; the flight input layer adds them to the stored
-bindings (`menuPadBindings`) so feature modules that register menu actions, such as the deck checklist, see the pad.
+Menu defaults (launch menu, pause menu, settings): D-pad or arrow keys and the left stick move focus, A / Enter
+confirms, B / Esc goes back, LB / RB or Q / E switch tabs, the right stick turns the hangar turntable. These rows can be rebound and are read by `../menu/navigator.js`; the same sources drive the deck checklist. The editor itself retains the standard D-pad,
+confirm and back controls for recovery. Clear a conflicting assignment before reusing its source.
+Version 3 of the binding map retains custom flight bindings and initializes newly editable actions from the table.
+Reset restores both layouts and controller bindings without removing device calibration.
 
 Assist level and flight profile belong to the fidelity profile (`../fidelity.js`); the `real` preset starts
 at assist 0. Both RC fields are omitted until telemetry advertises an assist object. Selecting the drone

@@ -1,17 +1,17 @@
 // Radio subtitles, shared chapter selection and local campaign progress preferences.
-import {glyph, deviceFamily} from '../input/glyphs.js';
-import {BINDINGS, actionKey, axisChannel, pilotAxisKeys} from '../input/bindings.js';
+import {actionGlyph, deviceFamily} from '../input/glyphs.js';
+import {BINDINGS, axisChannel, pilotAxisKeys} from '../input/bindings.js';
 import {listCollection, saveResult} from '../collection_store.js';
 import {vehicleName} from '../fleet_names.js';
 import {installVoice} from '../audio/voice.js';
-import { campaignStore } from '../saves/registry.js';
-
-const STRINGS = {
-  menuOption: '潮間帶工作隊 · 劇情與新手教學',
+import {localize} from '../i18n/index.js';
+import {campaignStore} from '../saves/registry.js';
+const STRINGS = localize('story.campaign', {
+  menuOption: 'YX 海事服務 · 劇情與新手教學',
   menuBrief: '從水池練習開始，解鎖港灣與船殼巡檢。章節與課程可在任務面板重玩。',
   sticker: '裝上首次下潛貼紙', vehicle: `部署解鎖的作業載具 ${vehicleName('falcon')}`,
   resume: '從存檔點繼續', saveFailed: '進度儲存失敗，請匯出學員成績備份。',
-  title: '潮間帶工作隊', chapters: '章節 / 訓練課程', next: '繼續', skip: '跳過教學',
+  title: 'YX 海事服務', chapters: '章節 / 訓練課程', next: '繼續', skip: '跳過教學',
   history: '無線電紀錄', pending: '籌備中', locked: '先完成前一任務', course: '公司課程（略過故事）',
   export: '匯出學員成績', complete: '任務完成。回到章節選單，準備下一次下潛。',
   retry: '先停一下，別急。我們照剛才那一步再試一次。', replay: '重玩序章',
@@ -20,15 +20,15 @@ const STRINGS = {
     left_ud: '左桿上下', left_lr: '左桿左右', right_ud: '右桿上下', right_lr: '右桿左右',
     left_wave: '左滾輪', right_wave: '右滾輪',
   },
-};
+});
 export const CAMPAIGN_MENU_STRINGS = {title: STRINGS.menuOption, brief: STRINGS.menuBrief};
 
 const KEY = 'rov.campaign.v1';
 const CHANNELS = STRINGS.channels;
 // The move_ steps of the prologue test these pilot axes, in the order of their condition paths.
 const MOVE_AXES = ['surge', 'sway', 'heave'];
-// Story steps that wait for one control: [face button index, action whose key is shown].
-const STEP_ACTIONS = {unlock: [3, 'lock'], depth: [2, 'depth'], photo: [0, 'photo']};
+// Story steps that wait for a bound input action.
+const STEP_ACTIONS = {unlock: 'lock', depth: 'depth', photo: 'photo'};
 
 export function installCampaign({send, readOnly = false, voice = null} = {}) {
   const radioVoice = voice || installVoice();
@@ -49,7 +49,7 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
   function keyRows() {
     return boundInput?.keyRows?.() || BINDINGS;
   }
-  next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
+  next.innerHTML = actionGlyph('dialogueAccept', keyRows(), family) + STRINGS.next;
   const cap = document.createElement('span');
   root.append(avatar, speaker, text, cap, hint, next);
   document.body.append(root);
@@ -121,16 +121,17 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
   let restoreSent = false;
   let savedSignature = '';
   function refreshGlyphs() {
-    next.innerHTML = glyph(0, family, 'Enter') + STRINGS.next;
+    next.innerHTML = actionGlyph('dialogueAccept', keyRows(), family) + STRINGS.next;
     const step = STEP_ACTIONS[current?.node?.id];
-    cap.innerHTML = step ? glyph(step[0], family, actionKey(step[1], keyRows())) : '';
+    cap.innerHTML = step ? actionGlyph(step, keyRows(), family) : '';
   }
+  document.addEventListener('rov-key-rows', refreshGlyphs);
   document.addEventListener('rov-input-device', function storyDevice(event) {
     family = deviceFamily(event.detail === 'touch' ? '' : event.detail);
     refreshGlyphs();
   });
   function command(action, extra = {}) {
-    send({type: 'operation', action, ...extra});
+    send({type: 'operation', action, ...(action === 'campaign_start' ? {beats: true} : {}), ...extra});
   }
   function advance() {
     if (revealed < line.length) {
@@ -246,7 +247,7 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
     next.disabled = !host;
     // The prelude (the cold open) draws its own radio subtitles (story/cold_open.js).
     const prelude = campaign.chapters.find(entry => entry.id === campaign.chapter)?.category === 'prelude';
-    root.hidden = prelude || !['active', 'completed'].includes(campaign.status);
+    root.hidden = campaign.directed || prelude || !['active', 'completed'].includes(campaign.status);
     const node = campaign.node;
     const key = JSON.stringify([campaign.chapter, campaign.index, campaign.status]);
     if (key === signature) return;

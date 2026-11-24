@@ -69,16 +69,32 @@ app.whenReady().then(async()=>{
     throw Error('Unknown Steam method');
   });
   const windowFile = path.join(data, 'window.json');
+  let savedWindow = null;
+  try {
+    savedWindow = JSON.parse(fs.readFileSync(windowFile, 'utf8'));
+  } catch {
+    savedWindow = null;
+  }
   ipcMain.handle('rov:display', (event, value) => {
     if (!trusted(event)) throw Error('Untrusted sender');
-    if (!value) return screen.getAllDisplays().map(({ id, bounds, displayFrequency }) =>
-      ({ id, bounds, displayFrequency, refreshRateMutable: false, vsync: true }));
+    const displays = displaySettings.listDisplays(screen);
+    if (!value) {
+      return {
+        displays,
+        current: displaySettings.readCurrent(window, displays, savedWindow),
+      };
+    }
     const saved = displaySettings.apply(window, screen.getAllDisplays(), value);
+    savedWindow = saved;
     writeSyncAtomic(windowFile, JSON.stringify(saved));
     return saved;
   });
   try {
-    displaySettings.apply(window, screen.getAllDisplays(), JSON.parse(fs.readFileSync(windowFile, 'utf8')));
+    if (savedWindow) {
+      displaySettings.apply(window, screen.getAllDisplays(), savedWindow);
+    } else {
+      throw Error('no saved window');
+    }
   } catch {
     if (steam.status().deck || process.env.ROV_STEAM_DECK === '1') {
       window.setSize(1280, 800);
@@ -94,6 +110,7 @@ app.whenReady().then(async()=>{
       const value = { mode: window.isFullScreen() ? 'windowed' : 'fullscreen',
         display: screen.getDisplayMatching(bounds).id, width: bounds.width, height: bounds.height };
       displaySettings.apply(window, screen.getAllDisplays(), value);
+      savedWindow = value;
       writeSyncAtomic(windowFile, JSON.stringify(value));
     }
   });

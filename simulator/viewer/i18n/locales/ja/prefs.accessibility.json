@@ -1,0 +1,20 @@
+{
+  "leftDeadzone": "左スティックのデッドゾーン",
+  "rightDeadzone": "右スティックのデッドゾーン",
+  "leftResponse": "左スティックの応答曲線",
+  "rightResponse": "右スティックの応答曲線",
+  "leftInvert": "左スティックの Y 軸を反転",
+  "rightInvert": "右スティックの Y 軸を反転",
+  "subtitleSize": "字幕サイズ",
+  "small": "小",
+  "medium": "中",
+  "large": "大",
+  "extraLarge": "特大",
+  "subtitleOpacity": "字幕背景の不透明度",
+  "speakerColor": "話者名の色",
+  "cyan": "シアン",
+  "white": "白",
+  "amber": "琥珀色",
+  "radioDuration": "無線字幕の表示時間（倍率）",
+  "reduceFlashes": "撮影・衝突時の点滅を抑える"
+}

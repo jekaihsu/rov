@@ -31,10 +31,16 @@ class HandleViewerResilienceTests(unittest.TestCase):
         self.host = SimHost(Simulator("open_water", 3))
         self.player = self.host.room.join("Pilot")
 
-    def test_unknown_type_is_invalid_command(self):
-        with self.assertRaises(ValueError) as raised:
-            self.host.handle_viewer({"type": "not_a_real_command"}, room=self.host.room, player=self.player)
-        self.assertIn("unknown type", str(raised.exception))
+    def test_unknown_type_is_quietly_ignored(self):
+        # Forward-compatible clients may send newer message types; the host must not reply invalid_command.
+        reply = self.host.handle_viewer(
+            {"type": "not_a_real_command"},
+            room=self.host.room,
+            player=self.player,
+        )
+        self.assertIsNone(reply)
+        self.host.room.step(0.01)
+        self.assertTrue(self.player.connected)
 
     def test_bad_rc_keeps_physics_alive(self):
         with self.assertRaises(ValueError):
@@ -93,11 +99,11 @@ class WebSocketResilienceTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(0.1)
                 self.assertEqual(host.room.vehicles[session["vehicle_id"]].rc.right_ud, 1700)
                 await ws.send(json.dumps({"type": "nope"}))
-                err = await receive_type(ws, "error")
-                self.assertEqual(err["code"], "invalid_command")
-                # Physics and the seat survive the bad packet.
+                # Unknown types are ignored; no error reply and the seat stays connected.
+                await asyncio.sleep(0.1)
                 host.room.step(0.01)
                 self.assertTrue(host.room.players[session["player_id"]].connected)
+                self.assertEqual(host.room.vehicles[session["vehicle_id"]].rc.right_ud, 1700)
 
     async def test_disconnect_and_resume(self):
         import websockets

@@ -47,6 +47,7 @@ export const PRESET_NAMES = ['real', 'assisted'];
 export const STORAGE_KEY = 'rov.fidelity.v1';
 const THIRD_PERSON_VIEWS = ['chase', 'orbit', 'top'];
 const registry = new Map();
+const labelSources = new Map();
 const stores = new Set();
 let singleton = null;
 
@@ -96,7 +97,7 @@ export function registerFidelityItem(definition, strings = {}) {
   if (item.exceeds(item.defaults.real)) {
     throw new Error(`Fidelity item ${item.id} must not exceed the real vehicle in the real preset`);
   }
-  Object.assign(STRINGS, strings);
+  for (const key of Object.keys(strings)) labelSources.set(key, strings);
   registry.set(item.id, Object.freeze(item));
   for (const refresh of stores) refresh([item.id]);
   return item;
@@ -105,7 +106,7 @@ export function fidelityItems() {
   return [...registry.values()];
 }
 export function fidelityText(key) {
-  return STRINGS[key] ?? key;
+  return labelSources.get(key)?.[key] ?? STRINGS[key] ?? key;
 }
 function readStored(storage) {
   const loaded = fidelityStore.load(storage);

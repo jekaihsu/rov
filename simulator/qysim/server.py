@@ -835,10 +835,8 @@ class SimHost:
             sim.sdk_call("QYRovControllerManage", "set_remote_control_status", ["OFF"], {})
         if t in ("scenario", "reset", "pause", "current", "model"):
             return {"type": "command_result", "action": t, "ok": True}
-        if t in ("vision_results", "rc", "start", "operation", "payout", "auto_payout", "reel",
-                 "operation_mode", "shaping", "remote_release", "procedure"):
-            return None
-        raise ValueError(f"unknown type {t!r}")
+        # Unknown types are ignored for forward compatibility (PROTOCOL / AGENTS.md rule 1).
+        return None
 
 
 def parse_tide_start(msg: dict):
