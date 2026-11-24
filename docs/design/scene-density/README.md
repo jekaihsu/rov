@@ -9,7 +9,10 @@
 - 可拍攝細節改走 R6 已定義的 `inspection_finds`（habitat 實體），刪除自建的 `site_discoveries`／`discovery_details`。
 - 每場約 8 個近距看得清楚的主體（材質、頂點色、受燈光與陰影），不堆灰方塊。
 - `observation_photo` 維持只在遠征模式可用（撤回對 SDK 行為的放寬）。
-- 開放水域測站浮具改以與碰撞一致的 tube 繪製，修正近水面 oversized capsule 造成的深藍三角板。
+- 開放水域測站浮具改以與碰撞一致的 tube 繪製，並把回收浮標完全沒入水面下。
+- 近水面（深度 < 0.4 m）關閉水下 optics 雙面海面與背景對水面的硬裁切
+  （`fx/surface.js`、`fx/daylight.js`、`fx/water_optics.js`），避免機載畫面出現深藍三角板。
+  證明圖：`spawns/open_water_depth01.jpg`。
 
 ## 驗收畫面
 

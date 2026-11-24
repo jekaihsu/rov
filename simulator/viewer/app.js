@@ -132,8 +132,10 @@ const seabed = new THREE.Group(); scene.add(seabed);
 }
 seabed.position.y = -30;
 // sea surface
+// Front-facing only: DoubleSide let the 800 m plane clip the near frustum just under the surface
+// into a solid cyan triangle across the onboard view (open_water ~0.1 m).
 const surface = new THREE.Mesh(new THREE.PlaneGeometry(800, 800),
-  new THREE.MeshBasicMaterial({ color: 0x6fc3d8, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }));
+  new THREE.MeshBasicMaterial({ color: 0x6fc3d8, transparent: true, opacity: 0.32, side: THREE.FrontSide, depthWrite: false }));
 surface.rotation.x = -Math.PI / 2; scene.add(surface);
 
 /* ═════════════════════════ ROV ═════════════════════════ */

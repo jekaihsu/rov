@@ -75,49 +75,84 @@ def _open_water(world):
     def floor(n, e):
         return float(world.depth_at(np.array([n, e, 0.])))
 
-    # First look faces the north drop and the nearby bank colony.
-    _place(world, "anemone_clump", (12.4, .6, 5.1), .9, 20)
-    _place(world, "barnacle", (13.05, 1.15, 6.8), .75, 40)
+    # First look (vis 12 m): mid-water colony 2–3 m ahead of spawn, then the recovery lane.
+    _place(world, "anemone_clump", (2.2, .35, 2.4), 1.25, 18)
+    _place(world, "barnacle", (2.8, 1.1, 2.7), 1.05, 40)
+    _place(world, "rope_coil", (3.4, -.2, 3.1), .95, 8)
+    _place(world, "shackle", (4.2, .7, 3.6), .8, 55)
+    _place(world, "anemone_clump", (5.5, 1.4, 4.2), 1.0, 22)
     _place(world, "shell_bed", (9.2, 4.4, floor(9.2, 4.4)), .95, 12)
-    _place(world, "shackle", (10.6, 9.4, floor(10.6, 9.4)), .7, 55)
-    _place(world, "rope_coil", (1.8, 9.6, floor(1.8, 9.6)), .8, 8)
-    _place(world, "anemone_clump", (11.8, 18.5, floor(11.8, 18.5) - .2), 1.0, 70)
-    _place(world, "barnacle", (12.6, -15.2, floor(12.6, -15.2) - .15), .95, 210)
-    _place(world, "seastar", (8.8, 1.2, floor(8.8, 1.2)), .18, 95)
+    _place(world, "barnacle", (12.4, .6, 5.1), .85, 20)
+    _place(world, "seastar", (8.8, 1.2, floor(8.8, 1.2)), .22, 95)
 
 
 def _jacket(world, key):
-    # Anodes and the near face of C/A legs sit in the launch cone for cold open and jacket work.
-    roots = (
-        (-8.2, -7.1, 12.0), (-6.4, -8.0, 11.4), (4.2, -7.6, 12.2), (6.1, -5.8, 10.8),
-        (-5.1, 5.4, 11.2), (3.8, 6.2, 9.6), (-1.2, -1.4, 7.5), (8.4, -2.2, 13.5),
-    )
-    kinds = ("barnacle", "anemone_clump", "barnacle", "anemone_clump",
-             "barnacle", "anemone_clump", "shackle", "rope_coil")
+    # Keep the first four finds inside ~half the site visibility so the spawn look is not empty fog.
+    if key == "cold_open_jacket":
+        # start (−12, −9, 11.5), vis 22 m — face the near C leg
+        roots = (
+            (-10.2, -8.2, 11.7), (-9.4, -7.4, 12.0), (-8.6, -6.6, 11.4), (-7.8, -7.8, 12.3),
+            (-7.2, -6.4, 11.6), (-6.0, -7.2, 12.2), (-5.2, -5.5, 11.0), (-4.4, -7.8, 10.8),
+        )
+    elif key == "incident_jacket":
+        # start (0, 0, 12), vis 12 m
+        roots = (
+            (2.0, -.6, 12.2), (2.8, .8, 11.8), (3.6, -1.2, 12.5), (4.4, .4, 11.5),
+            (-7.2, -6.4, 11.6), (-6.0, -7.2, 12.2), (-5.2, -5.5, 11.0), (-4.4, -7.8, 10.8),
+        )
+    elif key == "tether_untangle":
+        # start (8, 2.8, 10), vis 9 m — hang mid-water near the wrap
+        roots = (
+            (7.2, 1.6, 10.2), (6.4, 2.2, 9.8), (6.8, 3.6, 10.4), (5.5, 2.0, 9.5),
+            (4.2, 1.0, 9.0), (3.0, 2.5, 8.5), (2.0, .5, 8.0), (1.0, 3.0, 7.5),
+        )
+    else:
+        # jacket_inspection start (0, 0, 3), vis 8 m — jacket legs sit past the fog wall
+        roots = (
+            (2.1, .4, 3.2), (2.8, -.7, 3.5), (3.5, .9, 3.9), (4.2, -.3, 4.3),
+            (5.0, .6, 4.8), (6.0, -1.0, 5.4), (8.5, -1.2, 6.5), (12.0, -2.0, 8.0),
+        )
+    kinds = ("anemone_clump", "barnacle", "rope_coil", "anemone_clump",
+             "barnacle", "shackle", "anemone_clump", "rope_coil")
     for kind, pos in zip(kinds, roots):
-        _place(world, kind, pos, .85 if kind != "shackle" else .65, pos[0] * 9)
+        _place(world, kind, pos, 1.15 if kind == "anemone_clump" else .9 if kind != "shackle" else .7,
+               pos[0] * 9)
 
 
 def _wreck(world, key):
     bed = world.seabed_depth
     if key == "incident_wreck":
+        # start (8, 2.8, 128), vis 4 m
         items = (
-            ("rust_panel", (9.2, 1.4, 128.4), 1.0),
-            ("shackle", (11.0, -.8, 129.1), .7),
-            ("rope_coil", (7.4, 2.2, 128.8), .8),
-            ("barnacle", (8.1, -.2, 127.6), .9),
-            ("anemone_clump", (13.5, 1.6, 130.2), .75),
+            ("rust_panel", (8.8, 2.5, 128.3), 1.2),
+            ("shackle", (9.4, 2.0, 128.6), .8),
+            ("rope_coil", (9.8, 3.2, 128.5), .95),
+            ("barnacle", (10.2, 2.4, 128.9), 1.0),
+            ("anemone_clump", (10.8, 1.6, 129.2), .9),
             ("shell_bed", (15.0, -2.5, bed), .85),
             ("rust_panel", (20.5, -4.0, bed - .1), 1.05),
             ("shackle", (6.2, -1.5, 127.2), .6),
         )
-    else:
+    elif key == "korean_castle":
+        # start (0, 0, 4), vis 10 m
         items = (
-            ("rust_panel", (8.5, 2.0, 8.2), 1.0),
-            ("shackle", (14.2, 9.5, 12.4), .7),
-            ("rope_coil", (18.6, 12.8, 14.0), .85),
-            ("barnacle", (27.0, 18.2, 16.5), .9),
-            ("anemone_clump", (33.0, 20.0, 18.8), .8),
+            ("rust_panel", (2.0, .6, 4.3), 1.2),
+            ("shackle", (2.6, -.5, 4.6), .8),
+            ("rope_coil", (3.2, .9, 5.0), .95),
+            ("barnacle", (4.0, -.2, 5.4), 1.0),
+            ("anemone_clump", (5.0, 1.2, 5.8), .95),
+            ("shell_bed", (44.0, 14.0, bed), .9),
+            ("rust_panel", (48.5, 18.2, 24.0), 1.05),
+            ("shackle", (49.2, 20.4, 24.2), .65),
+        )
+    else:
+        # wreck_survey start (0, 0, 3), vis 4 m — subjects must sit inside the murk
+        items = (
+            ("rust_panel", (1.6, .4, 3.3), 1.25),
+            ("shackle", (2.1, -.5, 3.5), .85),
+            ("rope_coil", (2.5, .7, 3.7), 1.0),
+            ("barnacle", (2.9, -.2, 3.9), 1.05),
+            ("anemone_clump", (3.3, .5, 4.1), 1.0),
             ("shell_bed", (44.0, 14.0, bed), .9),
             ("rust_panel", (48.5, 18.2, 24.0), 1.05),
             ("shackle", (49.2, 20.4, 24.2), .65),
@@ -128,41 +163,44 @@ def _wreck(world, key):
 
 def _reef(world, key):
     if key == "seagrass_meadow":
+        # start (0, 0, 2), vis 12 m — mid-water colour first, bed subjects later
         items = (
+            ("anemone_clump", (2.2, .5, 2.6), 1.15),
+            ("rope_coil", (2.8, -.6, 3.0), .95),
+            ("shackle", (3.4, .8, 3.4), .7),
+            ("barnacle", (4.0, -.3, 3.8), .9),
             ("shell_bed", (5.2, -1.4, 7.6), .9),
-            ("seastar", (6.4, -2.8, 7.9), .16),
-            ("anemone_clump", (10.5, -6.0, 7.1), .8),
-            ("barnacle", (17.8, -10.2, 6.6), .7),
+            ("seastar", (6.4, -2.8, 7.9), .2),
+            ("anemone_clump", (10.5, -6.0, 7.1), .85),
             ("shell_bed", (24.0, 7.5, 7.4), .85),
-            ("seastar", (30.5, 6.2, 6.9), .15),
-            ("rope_coil", (8.2, 2.8, 4.4), .7),
-            ("shackle", (4.0, 2.2, 7.8), .55),
         )
     else:
+        # coral_reef start (0, 0, 3), vis 18 m
         items = (
-            ("anemone_clump", (8.2, -4.5, 10.2), .9),
-            ("barnacle", (11.0, -3.2, 9.4), .8),
-            ("seastar", (12.5, -6.0, 12.8), .18),
-            ("shell_bed", (14.0, 5.5, 12.5), .85),
-            ("anemone_clump", (19.5, -13.0, 11.0), .75),
-            ("barnacle", (28.5, 10.0, 11.5), .85),
-            ("seastar", (34.0, 9.5, 12.0), .16),
-            ("shackle", (9.5, -1.5, 8.8), .6),
+            ("anemone_clump", (2.2, -.5, 3.4), 1.3),
+            ("barnacle", (2.8, .7, 3.7), 1.05),
+            ("seastar", (3.3, -.9, 4.0), .28),
+            ("shell_bed", (3.8, .4, 4.3), 1.05),
+            ("anemone_clump", (5.5, -1.8, 5.2), 1.1),
+            ("shackle", (6.5, .6, 5.8), .75),
+            ("barnacle", (11.0, -4.5, 9.0), .85),
+            ("seastar", (19.5, -13.0, 11.0), .18),
         )
     for kind, pos, scale in items:
         _place(world, kind, pos, scale, pos[1] * 11)
 
 
 def _monopile(world):
+    # start (0, 0, 3), vis 10 m — pile is 15 m out; put colour in the launch cone
     items = (
-        ("barnacle", (10.6, -.8, 11.5), .9),
-        ("anemone_clump", (11.2, -2.4, 9.2), .8),
-        ("barnacle", (12.8, 1.5, 14.0), .85),
-        ("shackle", (8.4, 4.2, world.seabed_depth), .65),
-        ("rope_coil", (14.5, -3.5, 7.5), .75),
+        ("anemone_clump", (2.3, .4, 3.3), 1.2),
+        ("barnacle", (3.0, -.8, 3.7), 1.0),
+        ("rope_coil", (3.6, .9, 4.1), .95),
+        ("shackle", (4.2, -.3, 4.5), .75),
+        ("anemone_clump", (5.5, -1.2, 5.2), 1.0),
+        ("barnacle", (7.0, 1.0, 6.0), .9),
+        ("rope_coil", (10.0, -2.0, 8.0), .8),
         ("shell_bed", (2.5, -1.5, world.seabed_depth), .8),
-        ("anemone_clump", (13.5, -4.2, 12.5), .7),
-        ("barnacle", (9.5, 3.0, 16.0), .8),
     )
     for kind, pos, scale in items:
         _place(world, kind, pos, scale, pos[0] * 5)
@@ -170,14 +208,15 @@ def _monopile(world):
 
 def _sonar(world):
     bed = world.seabed_depth
+    # start (0, 0, 13), vis 0.8 m — only arm's-length subjects read without sonar
     items = (
-        ("rust_panel", (5.8, 5.5, 14.6), .9),
-        ("shackle", (9.0, 4.2, 13.6), .6),
-        ("rope_coil", (15.5, 5.5, 13.6), .7),
+        ("rust_panel", (.45, .2, 13.15), 1.1),
+        ("shackle", (.55, -.25, 13.05), .7),
+        ("rope_coil", (.35, .35, 13.25), .85),
+        ("barnacle", (.6, .05, 12.95), .9),
+        ("anemone_clump", (5.8, 5.5, 14.6), .85),
         ("shell_bed", (3.0, 1.0, bed), .8),
-        ("barnacle", (16.4, 5.2, 12.6), .75),
-        ("anemone_clump", (12.0, 5.8, 14.5), .7),
-        ("shackle", (17.2, 4.6, 12.4), .55),
+        ("shackle", (16.4, 5.2, 12.6), .55),
         ("shell_bed", (20.0, 6.5, bed), .85),
     )
     for kind, pos, scale in items:
@@ -187,34 +226,37 @@ def _sonar(world):
 def _incident_shallow(world, key):
     bed = world.seabed_depth
     table = {
+        # start (8, 0, 11.55), vis 3 m
         "incident_silt": (
+            ("rope_coil", (8.4, .3, 11.4), 1.0),
+            ("anemone_clump", (8.7, -.5, 11.6), 1.05),
+            ("shackle", (8.2, .7, 11.2), .7),
+            ("barnacle", (7.6, -.3, 11.0), .9),
             ("shell_bed", (7.5, .5, bed), .9),
             ("rope_coil", (5.2, -2.4, bed), .75),
-            ("shackle", (4.2, 2.1, 9.4), .55),
-            ("anemone_clump", (8.8, -1.0, bed - .2), .7),
-            ("barnacle", (2.4, 1.2, 6.5), .65),
             ("shell_bed", (1.5, -1.5, bed), .8),
-            ("rope_coil", (10.5, .8, bed), .7),
             ("shackle", (6.0, 2.5, bed), .5),
         ),
+        # start (7, 0, 10), vis 6 m
         "incident_compass": (
-            ("barnacle", (8.5, 1.5, 10.2), .85),
-            ("anemone_clump", (7.5, -4.2, 14.5), .75),
-            ("shackle", (3.5, 1.2, bed), .6),
-            ("rope_coil", (9.5, -2.0, 12.0), .7),
+            ("barnacle", (7.8, .5, 10.2), 1.0),
+            ("anemone_clump", (8.2, -.6, 10.4), 1.05),
+            ("rope_coil", (8.6, .8, 10.6), .9),
+            ("shackle", (7.4, -.4, 9.8), .7),
+            ("barnacle", (9.5, -2.0, 12.0), .85),
+            ("anemone_clump", (4.0, 2.0, 8.5), .8),
             ("shell_bed", (2.0, -1.5, bed), .8),
-            ("barnacle", (11.0, 6.5, 13.0), .8),
-            ("anemone_clump", (4.0, 2.0, 8.5), .7),
             ("shackle", (8.0, -5.0, 15.2), .55),
         ),
+        # start (6, 0, 8), vis 8 m
         "incident_current": (
-            ("barnacle", (6.5, .8, 8.2), .85),
-            ("anemone_clump", (1.9, -.6, 8.9), .7),
-            ("shackle", (8.2, -4.0, bed), .6),
-            ("rope_coil", (2.5, 3.2, bed), .75),
+            ("barnacle", (6.6, .4, 8.2), 1.0),
+            ("anemone_clump", (7.0, -.5, 8.4), 1.05),
+            ("rope_coil", (7.4, .7, 8.6), .9),
+            ("shackle", (6.2, -.3, 7.9), .7),
+            ("anemone_clump", (1.9, -.6, 8.9), .8),
             ("shell_bed", (11.0, -1.0, bed), .85),
             ("barnacle", (0.8, 2.0, 12.5), .75),
-            ("anemone_clump", (14.5, 5.5, 11.0), .7),
             ("shackle", (4.5, -2.5, bed), .55),
         ),
     }

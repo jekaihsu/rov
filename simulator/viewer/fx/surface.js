@@ -102,7 +102,10 @@ export function updateWaterSurface(surface, camera, scene, low, beauty = false) 
   if (!data) data = install(surface, scene);
   const below = camera.position.y < 0;
   const depth = -camera.position.y;
-  data.shafts.visible = !low && beauty && below && depth < 15;
+  // Below ~0.4 m the 800 m DoubleSide optics plane intersects the near frustum and fills the
+  // onboard view with a solid water-colour triangle (open_water at 0.1 m). Skip optics there.
+  const deepEnough = depth > 0.4;
+  data.shafts.visible = !low && beauty && below && deepEnough && depth < 15;
   if (data.shafts.visible) {
     // Hang the bands ahead of the camera, facing it about the vertical axis only.
     camera.getWorldDirection(forward);
@@ -113,11 +116,12 @@ export function updateWaterSurface(surface, camera, scene, low, beauty = false) 
     data.shafts.position.y = -8;
     data.shafts.rotation.set(0, Math.atan2(forward.x, forward.z), 0);
   }
-  const optics = !low && below;
+  const optics = !low && below && deepEnough;
   surface.material = optics ? data.material : data.original;
   surface.userData.observationIgnore = optics ? true : data.originalIgnore;
   // The optics surface writes no depth: draw it after the depth-tested water background, not under it.
   surface.renderOrder = optics ? WATER_BACKGROUND_ORDER + 1 : data.originalOrder;
+  if (below && !deepEnough) surface.visible = false;
 }
 
 export function disposeWaterSurface(surface) {

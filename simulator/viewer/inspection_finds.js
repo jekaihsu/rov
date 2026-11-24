@@ -4,16 +4,17 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
+// Albedo is lifted so mid-quality, lamps-off fog still reads colour at 2–4 m instead of grey slabs.
 export const FIND_COLORS = {
-  grate_fish: 0x9caaa0,
-  barnacle: 0xb9b29a,
-  scuff: 0x714538,
-  shackle: 0x6a5b4a,
-  feed: 0x846944,
-  anemone_clump: 0xb45d52,
-  rope_coil: 0x8a7348,
-  shell_bed: 0xc2b39a,
-  rust_panel: 0x7a4a32,
+  grate_fish: 0xb4c4b6,
+  barnacle: 0xd4cbb0,
+  scuff: 0x8a5540,
+  shackle: 0x8e7d68,
+  feed: 0xa07e4e,
+  anemone_clump: 0xd97868,
+  rope_coil: 0xb89255,
+  shell_bed: 0xe2d2b4,
+  rust_panel: 0xb05a38,
 };
 
 export const FIND_MATERIAL = {
@@ -64,12 +65,13 @@ export function findGeometry(kind) {
     return tintGeometry(mergeGeometries([bow, pin]), FIND_COLORS.shackle, .1);
   }
   if (kind === 'anemone_clump') {
-    for (let i = 0; i < 14; i++) {
+    // Eight stems keep the colony readable under a lamp without blowing cold-open triangle budgets.
+    for (let i = 0; i < 8; i++) {
       const theta = i * 2.39996;
-      const r = .12 * Math.sqrt((i + .5) / 14);
-      const stem = new THREE.CylinderGeometry(.018, .028, .16 + .08 * Math.sin(i), 8);
+      const r = .12 * Math.sqrt((i + .5) / 8);
+      const stem = new THREE.CylinderGeometry(.018, .028, .16 + .08 * Math.sin(i), 6);
       stem.translate(r * Math.cos(theta), .1, r * Math.sin(theta));
-      const crown = new THREE.SphereGeometry(.055 + .02 * Math.sin(i * 1.7), 10, 8);
+      const crown = new THREE.SphereGeometry(.055 + .02 * Math.sin(i * 1.7), 8, 6);
       crown.scale(1, .55, 1);
       crown.translate(r * Math.cos(theta), .2 + .04 * Math.sin(i), r * Math.sin(theta));
       parts.push(stem.index ? stem.toNonIndexed() : stem);
@@ -78,8 +80,8 @@ export function findGeometry(kind) {
     return tintGeometry(mergeGeometries(parts), FIND_COLORS.anemone_clump, .16);
   }
   if (kind === 'rope_coil') {
-    for (let turn = 0; turn < 5; turn++) {
-      const torus = new THREE.TorusGeometry(.16 + turn * .05, .028, 8, 24);
+    for (let turn = 0; turn < 4; turn++) {
+      const torus = new THREE.TorusGeometry(.16 + turn * .05, .028, 6, 16);
       torus.rotateX(Math.PI / 2);
       torus.translate(0, .03 * turn, 0);
       parts.push(torus.index ? torus.toNonIndexed() : torus);
@@ -91,10 +93,10 @@ export function findGeometry(kind) {
     return tintGeometry(mergeGeometries(parts), FIND_COLORS.rope_coil, .1);
   }
   if (kind === 'shell_bed') {
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 12; i++) {
       const theta = i * 2.39996;
-      const r = .42 * Math.sqrt((i + .5) / 18);
-      const shell = new THREE.SphereGeometry(.05 + .03 * Math.sin(i), 10, 6);
+      const r = .42 * Math.sqrt((i + .5) / 12);
+      const shell = new THREE.SphereGeometry(.05 + .03 * Math.sin(i), 8, 5);
       shell.scale(1, .28, .7);
       shell.rotateY(theta);
       shell.translate(r * Math.cos(theta), .02, r * Math.sin(theta));
@@ -110,7 +112,7 @@ export function findGeometry(kind) {
     flake.translate(.25, .05, .08);
     return tintGeometry(mergeGeometries([plate, flake]), FIND_COLORS.rust_panel, .18);
   }
-  const count = kind === 'feed' ? 100 : 58;
+  const count = kind === 'feed' ? 64 : 32;
   for (let i = 0; i < count; i++) {
     const theta = i * 2.39996;
     const r = Math.sqrt((i + .5) / count);
@@ -178,5 +180,8 @@ export function findMaterial(kind, uniforms) {
     vertexColors: true,
     roughness: opts.roughness,
     metalness: opts.metalness,
+    // Soft self-fill so lamps-off spawn looks still show ridges instead of silhouette voids.
+    emissive: new THREE.Color(tone).multiplyScalar(.18),
+    emissiveIntensity: .35,
   });
 }

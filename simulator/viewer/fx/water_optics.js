@@ -345,7 +345,9 @@ export function createWaterBackground() {
       void main() {
         vec3 dir = normalize(vFar - cameraPosition);
         float len = 1e4;
-        if (dir.y > 0.0) len = min(len, -cameraPosition.y / dir.y);
+        // Skip the hard surface clip in the top 0.4 m. At ~0.1 m the short upward path vs
+        // infinite downward path paints a solid water-colour plate across the onboard view.
+        if (dir.y > 0.0 && -cameraPosition.y > 0.4) len = min(len, -cameraPosition.y / dir.y);
         vec3 water = waterInscatter(cameraPosition, dir, len) + lampInscatter(cameraPosition, dir, len);
         gl_FragColor = vec4(water, 1.0);
         #include <tonemapping_fragment>

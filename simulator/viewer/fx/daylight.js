@@ -543,7 +543,12 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
     const nowAbove = camera.position.y > 0 && view !== 'top';
     sky.visible = nowAbove;
     sea.visible = nowAbove;
-    if (surface) surface.visible = view === 'top' ? camera.position.y < 0 : !nowAbove;
+    // Keep the flat surface hidden in the top 0.4 m underwater: its DoubleSide optics material
+    // otherwise clips the near frustum into a solid water-colour plate across the onboard view.
+    if (surface) {
+      const shallowUnder = camera.position.y > -0.4 && camera.position.y < 0;
+      surface.visible = view === 'top' ? camera.position.y < 0 : (!nowAbove && !shallowUnder);
+    }
     if (nowAbove !== above) {
       above = nowAbove;
       if (nowAbove) lightAboveWater();

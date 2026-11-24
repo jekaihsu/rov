@@ -1068,16 +1068,26 @@ function buildOne(set, ob, consumed) {
   else if (kind === 'valve_guard') simpleTube(set, ob, 'agedEnamel', 0);
   else if (kind === 'instrument_case') simpleTube(set, ob, 'ladder', 0);
   else if (kind === 'survey_float' || kind === 'valve_bonnet') {
-    // Tube matches the collision cylinder end-to-end. CapsuleGeometry's length is only the
-    // cylindrical middle, so using the full span plus hemispheres made near-surface floats
-    // swell into a deep plate across the onboard view at ~0.1 m depth.
+    // Collision is a capsule (segment + radius). Draw the cylindrical span plus hemisphere caps of
+    // the same radius — never CapsuleGeometry(fullSpan), which added two extra radii and ballooned
+    // near-surface floats into a plate across the onboard view.
     let finish = 'surveyFloat';
     if (world.scenario?.key === 'incident_wreck') finish = 'recoveryFloat';
     if (kind === 'valve_bonnet') finish = 'agedEnamel';
-    simpleTube(set, ob, finish, 0);
+    const radial = Math.max(8, Math.round(set.detail.radial * 0.6));
+    const a = P(ob.p0);
+    const b = P(ob.p1);
+    const caps = [];
+    for (const [end, other] of [[ob.p0, ob.p1], [ob.p1, ob.p0]]) {
+      const cap = new THREE.SphereGeometry(ob.radius, radial, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      const out = P(end).sub(P(other)).normalize();
+      cap.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, out));
+      const at = P(end);
+      cap.translate(at.x, at.y, at.z);
+      caps.push(cap);
+    }
+    set.add(merged([tube(a, b, ob.radius, radial), ...caps]), finish, [ob.name], 'solid', [ob]);
     if (ob.name.endsWith('float 1')) {
-      const a = P(ob.p0);
-      const b = P(ob.p1);
       const c = a.clone().lerp(b, .5);
       const collar = tube(c.clone().addScaledVector(UP, -.032), c.clone().addScaledVector(UP, .032),
         ob.radius + .008, set.detail.radial, true);
