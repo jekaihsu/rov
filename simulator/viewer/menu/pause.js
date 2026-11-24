@@ -7,6 +7,7 @@ import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './na
 import { acceptContract, contractBoard } from '../play/contracts.js';
 import { objectiveSummary } from '../play/mission_text.js';
 import { restartRun } from '../play/restart.js';
+import { mountPreferenceRows } from '../fidelity_panel.js';
 import { mountDisplaySettings } from './display_settings.js';
 import { onboardingSettings } from '../play/onboarding_settings.js';
 import { fitTitle, primaryButton } from './big_picture.js';
@@ -117,14 +118,22 @@ function buildSettings(input) {
         id: 'controls',
         label: STRINGS.tabs.controls,
         mount(pane) {
+          mountPreferenceRows(pane, ['leftDeadzone', 'leftResponse', 'leftInvert',
+            'rightDeadzone', 'rightResponse', 'rightInvert']);
           const opener = element('button', 'menu-next menu-wide', STRINGS.controller);
           opener.type = 'button';
           opener.addEventListener('click', function openController() {
             byId('inputSettingsButton')?.click();
           });
           pane.append(opener);
-          const state = input.hudState();
-          mountKeyHints(pane, state.bindings, { rows: state.keyRows, operationMode: state.operationMode });
+          function refreshHints() {
+            if (!pane.isConnected && pane.querySelector('.menu-hints')) return;
+            const state = input.hudState();
+            pane.querySelector('.menu-hints')?.remove();
+            mountKeyHints(pane, state.bindings, { rows: state.keyRows, operationMode: state.operationMode });
+          }
+          refreshHints();
+          document.addEventListener('rov-key-rows', refreshHints);
         },
       },
       { id: 'audio', label: STRINGS.tabs.audio, mount: mountAudio },

@@ -165,24 +165,31 @@ export function createCameraRig({camera, controls, rovG, renderer, params, getAn
       const hit = ray.intersectObjects(getObstacles(), true)[0];
       if (hit) goal.position.copy(p).addScaledVector(ray.ray.direction, Math.max(.15, hit.distance - .2));
     }
-    if (mode === 'onboard' || !ready) camera.position.copy(goal.position);
-    else for (const axis of ['x', 'y', 'z']) {
+    // Motion comfort snaps the chase / orbit / top cameras instead of springing, so the view does not bob.
+    if (mode === 'onboard' || !ready || comfort) {
+      camera.position.copy(goal.position);
+      velocity.set(0, 0, 0);
+    } else for (const axis of ['x', 'y', 'z']) {
       [camera.position[axis], velocity[axis]] = spring(camera.position[axis], velocity[axis],
         goal.position[axis], mode === 'cine' ? 4 : 12, dt);
     }
-    const errorQ = camera.quaternion.clone().multiply(goal.quaternion.clone().invert());
-    if (errorQ.w < 0) errorQ.set(-errorQ.x, -errorQ.y, -errorQ.z, -errorQ.w);
-    const angle = 2 * Math.acos(clamp(errorQ.w, -1, 1));
-    const error = new THREE.Vector3(errorQ.x, errorQ.y, errorQ.z);
-    if (error.lengthSq() > 1e-12) error.normalize().multiplyScalar(angle);
-    for (const axis of ['x', 'y', 'z']) {
-      [error[axis], angularVelocity[axis]] = spring(error[axis], angularVelocity[axis], 0,
-        mode === 'onboard' ? 45 : 14, dt);
+    if (comfort || (mode === 'onboard' && !gimbal)) {
+      camera.quaternion.copy(goal.quaternion);
+      angularVelocity.set(0, 0, 0);
+    } else {
+      const errorQ = camera.quaternion.clone().multiply(goal.quaternion.clone().invert());
+      if (errorQ.w < 0) errorQ.set(-errorQ.x, -errorQ.y, -errorQ.z, -errorQ.w);
+      const angle = 2 * Math.acos(clamp(errorQ.w, -1, 1));
+      const error = new THREE.Vector3(errorQ.x, errorQ.y, errorQ.z);
+      if (error.lengthSq() > 1e-12) error.normalize().multiplyScalar(angle);
+      for (const axis of ['x', 'y', 'z']) {
+        [error[axis], angularVelocity[axis]] = spring(error[axis], angularVelocity[axis], 0,
+          mode === 'onboard' ? 45 : 14, dt);
+      }
+      const remaining = error.length();
+      camera.quaternion.setFromAxisAngle(remaining > 1e-9 ? error.divideScalar(remaining) :
+        new THREE.Vector3(0, 1, 0), remaining).multiply(goal.quaternion);
     }
-    const remaining = error.length();
-    camera.quaternion.setFromAxisAngle(remaining > 1e-9 ? error.divideScalar(remaining) :
-      new THREE.Vector3(0, 1, 0), remaining).multiply(goal.quaternion);
-    if (mode === 'onboard' && !gimbal) camera.quaternion.copy(goal.quaternion);
     camera.fov += (goal.fov - camera.fov) * (1 - Math.exp(-dt * 8));
     if (transition < 1) {
       transition = Math.min(1, transition + dt / .25);

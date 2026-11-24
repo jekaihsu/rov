@@ -1,0 +1,149 @@
+{
+  "contexts": {
+    "flight": "Flight",
+    "orbit": "Orbit",
+    "tool": "Tool",
+    "dialogue": "Dialogue",
+    "menu": "Menu"
+  },
+  "actions": {
+    "left_lr": "Left stick horizontal",
+    "left_ud": "Left stick vertical",
+    "right_lr": "Right stick horizontal",
+    "right_ud": "Right stick vertical",
+    "left_wave": "Left wheel",
+    "right_wave": "Right wheel",
+    "surge": "Forward / reverse",
+    "sway": "Strafe right / left",
+    "heave": "Ascend / descend",
+    "yaw": "Yaw right / left",
+    "pitch": "Pitch up / down",
+    "boost": "Full stick travel",
+    "photo": "Photo",
+    "record": "Record (hold)",
+    "depth": "Depth hold",
+    "lock": "Lock / unlock",
+    "mode": "A/S/C mode",
+    "engineering": "Engineering drawer",
+    "light": "Lights",
+    "camera": "Camera view",
+    "assist": "Assist level",
+    "profile": "Flight profile",
+    "up": "Mission card",
+    "left": "Systems card",
+    "right": "Map card",
+    "down": "Controls card",
+    "arm": "Arm operation",
+    "settings": "Controller settings",
+    "reportBug": "Report a problem",
+    "pause": "Pause",
+    "cameraGimbal": "Gimbal stabilization",
+    "cameraPitchUp": "Tilt up",
+    "cameraPitchDown": "Tilt down",
+    "cameraOrbitX": "Orbit horizontally",
+    "cameraOrbitY": "Orbit vertically",
+    "paintSpray": "Paint mark",
+    "sonarPeek": "Sonar card",
+    "visionToggle": "Vision overlay",
+    "visionMark": "Mark target",
+    "dialogueAccept": "Continue dialogue",
+    "dialogueSkip": "Skip tutorial",
+    "menuUp": "Previous item",
+    "menuDown": "Next item",
+    "menuLeft": "Decrease / previous",
+    "menuRight": "Increase / next",
+    "menuStick": "Move focus vertically",
+    "menuStickX": "Move focus horizontally",
+    "menuRotate": "Rotate display",
+    "accept": "Confirm",
+    "back": "Back",
+    "tabPrevious": "Previous tab",
+    "tabNext": "Next tab"
+  },
+  "meanings": {
+    "surge": [
+      "Forward / reverse",
+      "reverse / Forward"
+    ],
+    "sway": [
+      "Strafe right / left",
+      "left / Strafe right"
+    ],
+    "heave": [
+      "Ascend / descend",
+      "descend / Ascend"
+    ],
+    "yaw": [
+      "Yaw right / left",
+      "left / Yaw right"
+    ],
+    "pitch": [
+      "Pitch up / down",
+      "down / Pitch up"
+    ],
+    "roll": [
+      "Roll right / left",
+      "left / Roll right"
+    ]
+  },
+  "layouts": {
+    "console": "Console",
+    "game": "Game (WASD)"
+  },
+  "hold": "Hold",
+  "pad": [
+    "A",
+    "B",
+    "X",
+    "Y",
+    "LB",
+    "RB",
+    "LT",
+    "RT",
+    "View",
+    "Menu",
+    "L3",
+    "R3",
+    "D-pad up",
+    "D-pad down",
+    "D-pad left",
+    "D-pad right",
+    "Home"
+  ],
+  "axes": [
+    "Left stick horizontal",
+    "Left stick vertical",
+    "Right stick horizontal",
+    "Right stick vertical"
+  ],
+  "keys": {
+    "Space": "Space",
+    "Tab": "Tab",
+    "Enter": "Enter",
+    "Escape": "Esc",
+    "KeyQ": "Q",
+    "KeyE": "E",
+    "ArrowUp": "↑",
+    "ArrowDown": "↓",
+    "ArrowLeft": "←",
+    "ArrowRight": "→",
+    "BracketLeft": "[",
+    "BracketRight": "]",
+    "ShiftLeft": "Shift",
+    "ShiftRight": "Shift",
+    "ControlLeft": "Ctrl",
+    "ControlRight": "Right Ctrl",
+    "AltLeft": "Alt",
+    "Backspace": "Backspace",
+    "Backquote": "`",
+    "Minus": "-",
+    "Equal": "=",
+    "Semicolon": ";",
+    "Quote": "'",
+    "Comma": ",",
+    "Period": ".",
+    "Slash": "/",
+    "Backslash": "\\"
+  },
+  "separator": " · "
+}
