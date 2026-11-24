@@ -98,7 +98,7 @@ class PenVariantTest(unittest.TestCase):
 
 
 class Chapter1SiteVariantTest(unittest.TestCase):
-    """Harbor / hull visibility variants for chapter-1 work orders: same site, visibility only."""
+    """Harbor / hull chapter-1 variants: same site builders, scene-data physics turns in chapter1.py."""
 
     def test_harbor_and_hull_variants_keep_geometry(self):
         harbor = scenarios.build("harbor_inspection", 0)
@@ -115,6 +115,7 @@ class Chapter1SiteVariantTest(unittest.TestCase):
         self.assertEqual(berth.visibility_m, 3.0)
         self.assertIn("harbor_inspection_turbid", scenarios.LIBRARY)
         self.assertIn("hull_inspection_berth", scenarios.LIBRARY)
+        self.assertIn("sonar_search_echoes", scenarios.LIBRARY)
 
 
 if __name__ == "__main__":

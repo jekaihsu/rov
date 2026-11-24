@@ -593,30 +593,27 @@ def cold_open_jacket() -> Scenario:
 
 
 def harbor_inspection_turbid() -> Scenario:
-    """Same harbor site at ~1.5 m visibility for Level II marine-growth sampling."""
-    sc = harbor_inspection()
-    sc.key = "harbor_inspection_turbid"
-    sc.name, sc.brief = HARBOR_VARIANT_STRINGS["turbid_name"], HARBOR_VARIANT_STRINGS["turbid_brief"]
-    sc.visibility_m = 1.5
-    return sc
+    """Chapter-1 turbid harbour turn (qysim/chapter1.py): 1.5 m vis and pile-A standoff spawn."""
+    from .chapter1 import harbor_inspection_turbid as build_site
+    return build_site()
 
 
 def harbor_inspection_signoff() -> Scenario:
-    """Same harbor site at ~4 m visibility for the chapter-1 afternoon sign-off recheck."""
-    sc = harbor_inspection()
-    sc.key = "harbor_inspection_signoff"
-    sc.name, sc.brief = HARBOR_VARIANT_STRINGS["signoff_name"], HARBOR_VARIANT_STRINGS["signoff_brief"]
-    sc.visibility_m = 4.0
-    return sc
+    """Chapter-1 sign-off rush (qysim/chapter1.py): 4 m vis and a snaggable pile for the wrap."""
+    from .chapter1 import harbor_inspection_signoff as build_site
+    return build_site()
 
 
 def hull_inspection_berth() -> Scenario:
-    """Same hull site at ~3 m visibility for berth fouling-rating work orders."""
-    sc = hull_inspection()
-    sc.key = "hull_inspection_berth"
-    sc.name, sc.brief = HULL_VARIANT_STRINGS["berth_name"], HULL_VARIANT_STRINGS["berth_brief"]
-    sc.visibility_m = 3.0
-    return sc
+    """Chapter-1 berth hull turn (qysim/chapter1.py): 3 m vis and provisional prop-suction current."""
+    from .chapter1 import hull_inspection_berth as build_site
+    return build_site()
+
+
+def sonar_search_echoes() -> Scenario:
+    """Chapter-1 sonar search with three echoes (qysim/chapter1.py); only the instrument is the goal."""
+    from .chapter1 import sonar_search_echoes as build_site
+    return build_site()
 
 
 LIBRARY = {
@@ -628,6 +625,7 @@ LIBRARY = {
 
     "tutorial_pool": tutorial_pool,
     "sonar_search": sonar_search,
+    "sonar_search_echoes": sonar_search_echoes,
     "open_water": open_water,
     "jacket_inspection": jacket_inspection,
     "monopile_current": monopile_current,

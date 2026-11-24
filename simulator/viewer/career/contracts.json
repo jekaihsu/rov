@@ -1178,6 +1178,7 @@
       "workOrder": "YX-SR-003",
       "job": "search",
       "scenario": "sonar_search",
+      "launchScenario": "sonar_search_echoes",
       "runtime": "deliverables",
       "vehicles": [
         "x1",

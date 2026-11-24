@@ -967,10 +967,12 @@ Net visual motion is bounded to 0.05 m and never changes server collision shapes
 
 ### Chapter-1 site variants (optional catalogue keys)
 
-Same clone pattern as the pen variants: geometry, currents and objectives match the base scene; only
-`visibility_m` / name / brief change. Catalogue keys: `harbor_inspection_turbid` (≈1.5 m, Level II
-sampling), `harbor_inspection_signoff` (≈4 m, afternoon sign-off), `hull_inspection_berth` (≈3 m,
-berth fouling rating). Base keys `harbor_inspection` and `hull_inspection` stay unchanged.
+Same clone pattern as the pen variants: base site geometry stays, with scene-data tweaks for each
+physics turn (see `qysim/chapter1.py`). Catalogue keys: `harbor_inspection_turbid` (≈1.5 m, Level II
+standoff spawn), `harbor_inspection_signoff` (≈4 m, snaggable pile / wrap layout for the rush),
+`hull_inspection_berth` (≈3 m, provisional prop-suction current), `sonar_search_echoes` (three solid
+returns; only the instrument is the objective). Base keys `harbor_inspection`, `hull_inspection` and
+`sonar_search` stay unchanged.
 
 ## L1 多語文字（相容性方案，尚未新增 wire 欄位）
 
