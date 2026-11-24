@@ -1,6 +1,7 @@
 {
   "language": "Language",
   "languageHelp": "After changing language, return to the main menu to update any remaining screens.",
+  "monitor": "Monitor",
   "window": "Display mode",
   "modes": {
     "windowed": "Windowed",
@@ -42,6 +43,8 @@
   "fovHelp": "Chase, orbit and top-down views; onboard camera retains its real field of view.",
   "comfort": [
     "Motion comfort",
-    "Disable speed-based chase distance and FOV changes, and reduce interface animation."
-  ]
+    "Disable speed-based chase distance and FOV changes, snap external camera follow, and reduce pad vibration and interface animation."
+  ],
+  "haptic": "Vibration strength",
+  "hapticHelp": "Pad vibration intensity. Motion comfort reduces it further."
 }

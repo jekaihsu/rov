@@ -95,6 +95,19 @@ function buildRow(item, fidelity, prefix) {
   }
   return {row, show};
 }
+// Mount a related set of preferences beside the controls that use them.
+export function mountPreferenceRows(parent, ids) {
+  const fidelity = getFidelity();
+  const prefix = `pref${serial++}`;
+  const rows = fidelity.items().filter(item => ids.includes(item.id)).map(item => buildRow(item, fidelity, prefix));
+  parent.append(...rows.map(entry => entry.row));
+  function refresh() {
+    for (const entry of rows) entry.show();
+  }
+  fidelity.subscribe(refresh);
+  refresh();
+}
+
 // Mounts the section into `parent` and keeps it in step with the store. Returns the section element.
 export function installFidelityPanel(parent, fidelity = getFidelity()) {
   const prefix = `fidelity${serial++}`;

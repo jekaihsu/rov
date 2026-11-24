@@ -184,6 +184,9 @@ export function installColdOpen({
     event.stopImmediatePropagation();
     skip('key');
   }, true);
+  document.addEventListener('rov-key-rows', function invalidateHint() {
+    hintSignature = '';
+  });
   document.addEventListener('rov-input-device', function deviceChanged(event) {
     family = event.detail && event.detail !== 'touch' ? deviceFamily(event.detail) : 'keyboard';
     hintSignature = '';
@@ -247,6 +250,7 @@ export function installColdOpen({
       broken: !!tether.broken,
       tension: tether.tension_rov || 0,
       pos: s?.pos,
+      heading: s?.euler?.[2],
       speed: Math.hypot(vel[0] || 0, vel[1] || 0, vel[2] || 0),
     };
   }
@@ -264,7 +268,7 @@ export function installColdOpen({
     if (speaking || !queue.length) return;
     const next = queue.shift();
     const language = getLanguage();
-    speaking = {...next, until: time + lineSeconds(next.text, language)};
+    speaking = {...next, until: time + lineSeconds(next.text, language) * (getFidelity().get("radioDuration") ?? 1)};
     speaker.textContent = next.speaker;
     words.textContent = next.text;
     radio.classList.add('speaking');
@@ -276,10 +280,8 @@ export function installColdOpen({
     const keys = controls();
     if (id === 'move') return [[axisCaps('surge', family, keys), STRINGS.hints.move]];
     if (id === 'photo') return [[actionCaps('photo', family, keys), STRINGS.hints.photo]];
-    if (id === 'turn') {
-      return [[axisCaps('yaw', family, keys), STRINGS.hints.turn],
-        [axisCaps('surge', family, keys), STRINGS.hints.forward]];
-    }
+    if (id === 'turn') return [[axisCaps('yaw', family, keys), STRINGS.hints.turn]];
+    if (id === 'forward') return [[axisCaps('surge', family, keys), STRINGS.hints.forward]];
     if (id === 'reverse') return [[axisCaps('surge', family, keys), STRINGS.hints.reverse]];
     if (id === 'release') return [['', STRINGS.hints.release]];
     if (id === 'unlock') return [[actionCaps('lock', family, keys), STRINGS.hints.unlock]];

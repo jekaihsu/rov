@@ -22,6 +22,7 @@
   "career.shop",
   "career.shop_rules",
   "career.summary",
+  "collection_store",
   "feedback.dialog",
   "feedback.index",
   "feedback.save",
@@ -33,6 +34,8 @@
   "hud.system_status",
   "hud.thruster_names",
   "i18n.index",
+  "input.bindings",
+  "input.settings",
   "menu.big_picture",
   "menu.cards",
   "menu.catalogue",
@@ -57,6 +60,7 @@
   "play.onboarding_settings",
   "play.results",
   "play.results_model",
+  "prefs.accessibility",
   "procedure.crew_radio",
   "procedure.deck_stage",
   "procedure.deck_steps",
@@ -65,5 +69,7 @@
   "story.campaign",
   "story.cold_open",
   "story.cold_open_menu",
+  "story.feel_settings",
+  "story.flight_feedback",
   "story.prologue_copy"
 ]

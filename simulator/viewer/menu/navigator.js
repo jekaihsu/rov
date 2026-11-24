@@ -2,7 +2,9 @@
 // of input/bindings.js: focus moves spatially between the visible controls of the active screen (or of an
 // open modal dialog), confirm clicks, back closes the dialog or steps back, LB/RB switch tabs and the right
 // stick turns the hangar turntable. Also renders the footer button prompts for the device in use.
-import { BINDINGS, bindingRow, createResolver, inputIds, keyLabel, keyRow, padLabel } from '../input/bindings.js';
+import { rowsFor } from "../input/keyboard_layout.js";
+import { inputPreferences } from '../input/preferences.js';
+import { createResolver, inputIds, keyLabel, keyRow, padLabel } from '../input/bindings.js';
 import { createDevices } from '../input/devices.js';
 import { deviceFamily, glyph, padNames } from '../input/glyphs.js';
 
@@ -21,24 +23,19 @@ const REPEAT_MS = 140;
 const STICK = 0.6;
 const ROTATE_DEADZONE = 0.15;
 const FOCUSABLE = 'button, a[href], input:not([type=hidden]), select, summary, [tabindex="0"]';
-const MENU_PAD = Object.fromEntries(BINDINGS.filter(function menuRow(row) {
-  return row.context === 'menu' && row.pad;
-}).map(function padSource(row) {
-  return [row.action, row.pad];
-}));
+let menuRows;
+let menuPad = {};
+function updateMenuRows(rows) {
+  menuRows = rows;
+  menuPad = Object.fromEntries(rows.filter(row => row.context === 'menu').map(row => [row.action, row.pad]));
+}
+updateMenuRows(rowsFor(inputPreferences));
+globalThis.document?.addEventListener('rov-key-rows', event => updateMenuRows(event.detail.rows));
 
 export async function loadControllerDatabase() {
   try {
     const response = await fetch(new URL('../input/controller-db.json', import.meta.url));
     return await response.json();
-  } catch {
-    return {};
-  }
-}
-
-function readCustomMappings() {
-  try {
-    return JSON.parse(localStorage.getItem('rov.input.v1') || '{}').custom || {};
   } catch {
     return {};
   }
@@ -91,7 +88,7 @@ export function nearestInDirection(from, candidates, direction) {
 }
 
 function capFor(action, family) {
-  const row = bindingRow(action);
+  const row = menuRows.find(row => row.action === action);
   if (!row) return '';
   if (family === 'keyboard') {
     const key = row.keys?.[0];
@@ -141,10 +138,11 @@ export function renderPrompts(container, items, family) {
 // handlers: scope() → element whose controls are navigable; back(); tab(direction); rotate(value, dt);
 // family(name) when the device in use changes; frame(frame) with every polled device frame.
 export function createMenuNavigator({ database = {}, handlers, root = document.documentElement }) {
-  const devices = createDevices(database, readCustomMappings());
+  const devices = createDevices(database, inputPreferences.custom);
   const resolver = createResolver();
   let active = false;
   let previous = {};
+  let editorOwnsPress = false;
   let heldDirection = '';
   let nextRepeat = 0;
   let family = 'keyboard';
@@ -238,7 +236,10 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
     handlers.back?.();
   }
   function run(action) {
-    if (action === 'menuUp') move('up');
+    if (action === 'menuStick') move('down');
+    else if (action === 'menuStickX') move('right');
+    else if (action === 'menuRotate') handlers.rotate?.(1, 0.1);
+    else if (action === 'menuUp') move('up');
     else if (action === 'menuDown') move('down');
     else if (action === 'menuLeft') move('left');
     else if (action === 'menuRight') move('right');
@@ -251,9 +252,11 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
     return !!document.getElementById('inputSettings')?.open;
   }
   function onKey(event) {
-    if (!active || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!active || event.defaultPrevented) return;
+    const modifierKey = /^(Control|Meta|Alt)(Left|Right)$/.test(event.code);
+    if (!modifierKey && (event.ctrlKey || event.metaKey || event.altKey)) return;
     if (foreignPanel()) return;
-    const row = keyRow(event.code, MENU);
+    const row = keyRow(event.code, MENU, menuRows);
     if (!row || row.context !== 'menu') return;
     setFamily('keyboard');
     setInputKind('key');
@@ -279,14 +282,17 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
     const dt = Math.min(0.1, (now - lastTime) / 1000);
     lastTime = now;
     const frame = devices.poll('auto');
+    const editing = foreignPanel();
     handlers.frame?.(frame);
-    if (!active || !frame.pad || !frame.snapshot?.known || foreignPanel()) {
+    if (editing || foreignPanel()) editorOwnsPress = true;
+    else if (!frame.snapshot?.buttons.some(value => value > 0.5)) editorOwnsPress = false;
+    if (!active || !frame.pad || !frame.snapshot?.known || editorOwnsPress) {
       if (frame.snapshot) resolver.block(frame.snapshot);
       previous = {};
       heldDirection = '';
       return;
     }
-    const values = resolver.resolve(MENU_PAD, frame.snapshot, MENU, now);
+    const values = resolver.resolve(menuPad, frame.snapshot, MENU, now);
     const signature = frame.snapshot.buttons.map(function pressed(value) {
       return value > 0.5 ? 1 : 0;
     }).join('') + frame.snapshot.axes.map(function moved(value) {
@@ -337,6 +343,9 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
     setFamily(deviceFamily(id || ''));
     setInputKind(id ? 'pad' : 'key');
   }
+  document.addEventListener('rov-key-rows', function refreshPrompts() {
+    if (active) handlers.family?.(family);
+  });
   addEventListener('keydown', onKey);
   document.addEventListener('rov-input-device', deviceChanged);
   addEventListener('pointerdown', function pointer(event) {

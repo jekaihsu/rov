@@ -205,3 +205,17 @@ body.procedure-open[data-hud-style=osd] #flightMission { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) {
   #crewRadio { animation: none; }
 }
+
+/* A short subtitle above the pilot's lower instruments; deck checks keep their own radio position. */
+#crewRadio[data-flight] {
+  top: auto;
+  bottom: max(16vh, 72px);
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  max-width: min(84vw, 38em);
+  background: color-mix(in srgb, var(--pp-main) 84%, transparent);
+}
+body:has(#crewRadio[data-flight]:not([hidden])) .onboarding-hint:not(:focus-within) {
+  visibility: hidden;
+}

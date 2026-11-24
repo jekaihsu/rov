@@ -63,6 +63,30 @@ def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None):
     counts = {"rock": 18, "coral": 72 if reef else 0,
               "seastar": 28 if reef else 18, "kelp": 0 if reef or grass else 90,
               "seagrass": 260 if grass else 35 if reef else 0}
+    if biome == "harbor":
+        # Small benthic survey sites around the bents, in the lee of successive pile pairs.
+        # Labels and poses travel through the same authoritative habitat as reef observations.
+        counts.update(kelp=0, seastar=0, rock=7)
+        for i in range(22):
+            north = 5 + 2 * (i % 16)
+            east = (-1 if i % 4 < 2 else 1) * (2.5 + i % 7)
+            if i >= 16:
+                east += 5
+            for offset in (0, 2.5, -2.5, 5, -5, 8, -8):
+                site = [north, east + offset, 0]
+                depth = float(world.terrain.sample_many([site])[0][0])
+                probe = np.array([north, east + offset, depth - .5])
+                if all(ob.sdf(probe)[0] > 1.8 for ob in world.obstacles):
+                    east += offset
+                    break
+            else:
+                continue
+            kind = "kelp" if i % 3 == 0 else "seastar"
+            if i >= 16:
+                kind = "harbor_tool"
+            entities.append(dict(id=f"harbor-{kind}-{i}", kind=kind, pos=[north, east, depth],
+                                 scale={"kelp": 1.15, "harbor_tool": 1., "seastar": .28}[kind],
+                                 yaw=i * 47 % 360, variant=i % 3))
     exclusion = [np.asarray(p, float) for p in keep_clear]
     for kind, count in counts.items():
         for _ in range(count):

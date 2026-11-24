@@ -134,5 +134,15 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）
 皆為本專案原創程式幾何，CC0-1.0，沒有外部模型、照片或貼圖。養殖魚與死魚載入後改用上方 Fish Kit 的嘉鱲（`fish/madai*`）。
 
+## R5 青嶼港
+
+樁、排架、鏈環、附著群、斷纜與岸上設施使用原創程式幾何。樁身和岸壁重用上表 Poly Haven
+`concrete`，鏈與岸吊重用 `rust_coarse_01`，海床重用 ambientCG `Ground054`。港區地表另沿用 Poly Haven
+`shell_floor_01`、`aerial_beach_01` 與高畫質的 `coast_sand_01`。以上掃描均為 CC0 1.0。
+
+R5 港區的藤壺剖面、貽貝殼、海藻葉、岸壁配件、岸吊、天際線及海床工具為本專案原創程序幾何。
+`harbor_growth_c.webp`、`harbor_growth_n.webp` 由 `tools/bake_harbor_growth.py` 將原創殼體、葉片高度場與上述 CC0
+`concrete`、`shell_floor_01` 掃描合成，沿用 CC0。
+
 The training-pool A/B/C wall plates are original procedural artwork. The viewer draws
 their lettering, border and scale bars on a canvas in `story/prologue.js`.

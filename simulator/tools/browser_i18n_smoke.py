@@ -20,6 +20,9 @@ def capture(page, language, screen):
     for width, height in [(1280, 720), (1600, 900)]:
         page.set_viewport_size({'width': width, 'height': height})
         page.wait_for_timeout(300)
+        # Wait for the outgoing menu's visibility transition before measuring the new screen at this size.
+        page.wait_for_function("""() => [...document.querySelectorAll('#launchMenu .menu-screen:not([data-active])')]
+            .every(panel => getComputedStyle(panel).visibility === 'hidden')""", timeout=timeout(10000))
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), (language, screen, width)
         issues = page.locator('#launchMenu button:visible, #resultsScreen button:visible').evaluate_all('''nodes =>
             nodes.filter(node => {

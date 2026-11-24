@@ -1,3 +1,4 @@
+import { installChannelTable } from './input/channel_table.js';
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createStateMerger, VIEWER_CAPS } from './state_merge.js';
 import { createCameraRig } from './camera_rig.js';
@@ -20,6 +21,7 @@ import {installTetherReel} from './tether_reel.js';
 import {thrusterLabel} from './hud/thruster_names.js';
 import {installStartPresentation} from './start_presentation.js';
 import {objectiveFade, objectiveNearFade} from './hud/objective_fade.js';
+import {installFlightFeedback} from './story/flight_feedback.js';
 import {installPhotoFeedback} from './hud/photo_feedback.js';
 import {installIntroSkip} from './play/intro_skip.js';
 import {installOnboarding} from './play/onboarding.js';
@@ -644,26 +646,6 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const CH_NAME = { left_ud: '左搖桿 上下', left_lr: '左搖桿 左右', right_ud: '右搖桿 上下', right_lr: '右搖桿 左右', left_wave: '左滾輪', right_wave: '右滾輪' };
-const CH_KEYS = { left_ud: ['W', 'S'], left_lr: ['D', 'A'], right_ud: ['↑', '↓'], right_lr: ['→', '←'], left_wave: ['E', 'Q'], right_wave: ['C', 'Z'] };
-const MAP = {        // qysim/rc.py _MAP: axis → [channel, sign]
-  ROV_USA: { pitch: ['left_ud', -1], yaw: ['left_lr', 1], surge: ['right_ud', 1], roll: ['right_lr', 1], heave: ['left_wave', 1], sway: ['right_wave', 1] },
-  ROV_JPN: { surge: ['left_ud', 1], yaw: ['left_lr', 1], pitch: ['right_ud', -1], roll: ['right_lr', 1], heave: ['left_wave', 1], sway: ['right_wave', 1] },
-  ROV_CHN: { surge: ['left_ud', 1], roll: ['left_lr', 1], pitch: ['right_ud', -1], yaw: ['right_lr', 1], heave: ['left_wave', 1], sway: ['right_wave', 1] },
-  UAV_USA: { heave: ['left_ud', 1], yaw: ['left_lr', 1], surge: ['right_ud', 1], sway: ['right_lr', 1], pitch: ['left_wave', 1], roll: ['right_wave', 1] },
-  UAV_JPN: { surge: ['left_ud', 1], yaw: ['left_lr', 1], heave: ['right_ud', 1], sway: ['right_lr', 1], pitch: ['left_wave', 1], roll: ['right_wave', 1] },
-  UAV_CHN: { surge: ['left_ud', 1], sway: ['left_lr', 1], heave: ['right_ud', 1], yaw: ['right_lr', 1], pitch: ['left_wave', 1], roll: ['right_wave', 1] },
-};
-const AX = { surge: ['前進', '後退', '前後'], sway: ['右移', '左移', '橫移'], heave: ['上浮', '下潛', '升降'], roll: ['右滾', '左滾', '橫滾'], pitch: ['抬頭', '低頭', '俯仰'], yaw: ['右轉', '左轉', '轉向'] };
-function chanMeaning(mode, ch) {
-  const t = MAP[mode] || MAP.ROV_USA;
-  for (const [axis, [c, sign]] of Object.entries(t)) if (c === ch) {
-    const [p, n, name] = AX[axis];
-    return { axis, name, pos: sign > 0 ? p : n, neg: sign > 0 ? n : p };
-  }
-  return { axis: '', name: '—', pos: '', neg: '' };
-}
-
 const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
     || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
@@ -749,25 +731,7 @@ function drawSticks(msg) {
   $('bPhoto').classList.toggle('on', hold.photo.size > 0); $('bRec').classList.toggle('on', hold.record.size > 0);
 }
 
-const mapRows = {};
-let mapMode = '';
-function buildMapTable(mode) {
-  if (mode === mapMode) return; mapMode = mode;
-  const tb = $('mapTbl'); tb.innerHTML = '';
-  for (const c of CH) {
-    const m = chanMeaning(mode, c), tr = document.createElement('tr');
-    tr.innerHTML = `<td>${CH_NAME[c]}</td><td>${m.name}<span class="hint"> ${c.endsWith('ud') ? '↑' : '→'}${m.pos}</span></td><td class="bar"><div class="track c"><div class="fill"></div></div></td><td class="pwm">1500</td>`;
-    tb.appendChild(tr); mapRows[c] = { pwm: tr.querySelector('.pwm'), fill: tr.querySelector('.fill') };
-    const kk = CH_KEYS[c];
-    if (c.endsWith('wave')) {
-      $('lbl_' + c).innerHTML = `${m.neg} <kbd>${kk[1]}</kbd> ◀ ${c === 'left_wave' ? '左' : '右'}滾輪 ▶ <kbd>${kk[0]}</kbd> ${m.pos}`;
-    } else {
-      $(`lbl_${c}_p`).innerHTML = `<kbd>${kk[0]}</kbd>${m.pos}`;
-      $(`lbl_${c}_n`).innerHTML = c.endsWith('lr') ? `${m.neg}<kbd>${kk[1]}</kbd>` : `<kbd>${kk[1]}</kbd>${m.neg}`;
-    }
-  }
-}
-buildMapTable('ROV_USA');
+const {meters: mapRows, update: buildMapTable} = installChannelTable();
 
 /* ═════════════════════════ training / panel controls ═════════════════════════ */
 function fillCatalogue(select) {
@@ -1247,7 +1211,7 @@ window.__movieDone = false;
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 const audio = installAudio({
-  getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
+  getWorld: () => W, getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
@@ -1255,6 +1219,8 @@ installVoice({engine: audio, music});
 const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
+const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio: procedurePanel.radio,
+  onboard: () => camMode === 'onboard'});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
@@ -1318,8 +1284,11 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
-  audio.update(renderState.display(S));
-  music.update(renderState.display(S));
+  const displayed = renderState.display(S);
+  audio.update(displayed);
+  music.update(displayed);
+  if (displayed) flightFeedback.update(displayed, W,
+    !!(rep || introActive() || pauseMenuOpen() || collectionOpen || resultsOpen()));
   coldOpen.frame(dt);
   prologue.frame();
   cameraLook.update();

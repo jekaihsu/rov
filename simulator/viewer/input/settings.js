@@ -1,15 +1,18 @@
 // Controller setup, live shaping preview and sequential calibration; flight is suspended while open.
+import "../prefs/accessibility.js";
 import { CHANNELS, PRESETS, curve, radial, bindingValue } from "./actions.js";
 import {
-  actionLabel, bindingRow, defaultPadBindings, findCollisions, hintItems, inputIds, keyCollisions, keyLabel,
-  keyRebindable, layoutLabel, visibleAction,
+  BINDINGS, actionLabel, bindingRow, contextLabel, editablePadBindings, findCollisions, hintItems, inputIds,
+  keyCollisions, keyLabel, layoutLabel, visibleAction,
 } from "./bindings.js";
-import { keyboardLayout, rowsFor } from "./keyboard_layout.js";
+import { keyboardLayout, rowsFor, publishKeyRows } from "./keyboard_layout.js";
 import { getFidelity } from "../fidelity.js";
+import { getDisplayPrefs } from "../prefs/display.js";
 import {
   CALIBRATION_STEPS, captureCalibrationStep, buildCustomMapping, isNeutral
 } from "./calibrate.js";
-const STRINGS = {
+import { localize } from "../i18n/core.js";
+const STRINGS = localize("input.settings", {
   title: "手把設定",
   close: "返回",
   auto: "自動選擇",
@@ -35,8 +38,10 @@ const STRINGS = {
   capture: "請按下新按鍵…",
   keyTaken: "按鍵已被使用，未變更：",
   keySaved: "已儲存",
+  clear: "解除綁定",
+  negative: "請放開，再按反方向的按鍵。",
   keyReset: "還原此配置的預設按鍵",
-};
+});
 // Fixed menu navigation, read from the menu rows of the binding table.
 function menuSource(action) {
   return Number(inputIds(bindingRow(action).pad)[0].slice(1));
@@ -52,7 +57,14 @@ const NAV = {
 };
 // onKeys: called after the player rebinds a keyboard key, so the input layer can pick up the new rows.
 export function installSettings(settings, save, haptics, setMode, onKeys = null) {
-  const featureActions = new Map();
+  let capturePad = null;
+  let positiveButton = null;
+  let waitRelease = true;
+  function changedBindings() {
+    save();
+    if (onKeys) onKeys();
+    else publishKeyRows(rowsFor(settings));
+  }
   const button = document.createElement("button");
   button.textContent = STRINGS.title;
   button.id = "inputSettingsButton";
@@ -64,6 +76,14 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     "border-radius:10px;max-height:84vh;width:640px;overflow:auto;padding:24px";
   root.innerHTML = `<style>#inputSettings label{display:block;margin:12px 0}
     #inputSettings :focus-visible{outline:3px solid #4fd1e0}#inputSettings input{max-width:240px}
+    #inputSettings summary{cursor:pointer;padding:8px 0;font-weight:600}
+    #inputSettings #padBindings>div{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px}
+    #inputSettings #padBindings label,#keyboardBindings div>div{display:flex;align-items:center;gap:8px;
+      justify-content:space-between;margin:0;padding:5px 0;border-bottom:1px solid #35505c}
+    #inputSettings #padBindings h3{grid-column:1/-1}
+    #inputSettings #padBindings input{width:7em}
+    #inputSettings details[open]>p[role=status]{position:sticky;top:0;background:#10232c;color:#b7f3ed}
+    #keyboardBindings span{flex:1}
     #inputSettings canvas{width:100%;height:120px}</style>`;
   document.body.append(root);
   function element(tag, text, parent = root) {
@@ -74,10 +94,17 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
   }
   element("h2", STRINGS.title);
   const close = element("button", STRINGS.close);
-  close.onclick = function closeSettings() {
+  function releaseEditorFocus() {
+    if (!root.open && root.contains(document.activeElement)) document.activeElement.blur();
+  }
+  function closeSettings() {
     root.close();
-  };
+    releaseEditorFocus();
+  }
+  close.onclick = closeSettings;
   button.onclick = function openSettings() {
+    if (root.open) return;
+    waitRelease = true;
     root.showModal();
   };
   const select = element("select", "");
@@ -88,9 +115,9 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
   const preset = element("select", "");
   for (const key of Object.keys(PRESETS)) element("option", STRINGS[key], preset).value = key;
   preset.onchange = function changePreset() {
-    settings.bindings = { ...defaultPadBindings(), ...PRESETS[preset.value] };
+    settings.bindings = { ...editablePadBindings(), ...PRESETS[preset.value] };
     setMode(preset.value === "drone" ? "UAV_USA" : "ROV_USA");
-    save();
+    changedBindings();
     renderBindings();
   };
   function slider(label, object, key, min, max, step, fallback) {
@@ -106,11 +133,16 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       save();
     };
   }
-  slider(STRINGS.inner, settings, "inner", 0, 0.5, 0.01, 0.08);
+  // Older profiles stored one dead zone for both sticks.
+  if (Number.isFinite(settings.inner)) {
+    for (const side of ["left", "right"]) getFidelity().set(side + "Deadzone", settings.inner);
+    delete settings.inner;
+    save();
+  }
   slider(STRINGS.outer, settings, "outer", 0, 0.3, 0.01, 0.02);
   for (const channel of CHANNELS) {
     const group = element("details", "");
-    element("summary", channel, group);
+    element("summary", actionLabel(channel), group);
     settings.channels[channel] ||= {};
     // Channel controls use the same persistence path as global shaping.
     for (const [key, max, fallback] of [
@@ -139,11 +171,12 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     };
   }
   const preview = element("select", "");
-  for (const channel of CHANNELS) element("option", channel, preview).value = channel;
+  for (const channel of CHANNELS) element("option", actionLabel(channel), preview).value = channel;
   const canvas = element("canvas", "");
   canvas.width = 600;
   canvas.height = 120;
   const bindings = element("details", "");
+  bindings.id = "padBindings";
   element("summary", STRINGS.bind, bindings);
   const collisionNote = element("p", "", bindings);
   collisionNote.setAttribute("role", "status");
@@ -155,34 +188,76 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       : "";
   }
   function renderBindings() {
-    for (const [name, action] of featureActions) settings.bindings[name] ??= action.binding ?? "";
+    capturePad = null;
     rows.replaceChildren();
-    for (const [name, binding] of Object.entries(settings.bindings)) {
+    let context;
+    for (const definition of BINDINGS) {
+      const name = definition.action;
       if (!visibleAction(name)) continue;
-      const row = element("label", featureActions.get(name)?.label || actionLabel(name), rows);
+      const binding = settings.bindings[name];
+      if (context !== definition.context) {
+        context = definition.context;
+        element("h3", contextLabel(context), rows);
+      }
+      const row = element("label", actionLabel(name), rows);
       const input = element("input", "", row);
       input.dataset.binding = name;
       input.value = Array.isArray(binding) ? binding.join(",") : binding;
+      const clear = element("button", STRINGS.clear, rows);
+      clear.onclick = function clearPad() {
+        input.value = "";
+        input.dispatchEvent(new Event("change"));
+      };
+      input.onclick = function startPadCapture() {
+        capturePad = input;
+        positiveButton = null;
+        waitRelease = true;
+        collisionNote.textContent = STRINGS.capture;
+      };
       input.onchange = function rebind() {
-        if (featureActions.has(name) && !input.value.trim()) {
-          settings.bindings[name] = "";
-          save();
-          showCollisions();
+        capturePad = null;
+        const raw = input.value.trim();
+        const parts = raw.split(",").map(part => part.trim());
+        const chord = name === "settings" && /^b\d+\+b\d+$/.test(raw);
+        const valid = !raw || chord || (parts.length <= 2 && parts.every(part => /^-?[ab]\d+~?$/.test(part)));
+        const candidate = parts.length === 2 ? parts : raw;
+        const conflicts = findCollisions(undefined, {...settings.bindings, [name]: candidate})
+          .filter(entry => entry.actions.includes(name));
+        if (!valid || conflicts.length) {
+          input.value = String(settings.bindings[name]);
+          collisionNote.textContent = STRINGS.keyTaken + conflicts.flatMap(c => c.actions).map(actionLabel).join(" / ");
           return;
         }
-        const parts = input.value.split(",").map((p) => p.trim());
-        if (!parts.every((p) => /^-?[ab]\d+~?$/.test(p))) return;
-        settings.bindings[name] = parts.length > 1 ? parts.slice(0, 2) : parts[0];
-        save();
-        showCollisions();
+        settings.bindings[name] = candidate;
+        changedBindings();
+        collisionNote.textContent = STRINGS.keySaved;
       };
     }
     showCollisions();
   }
+  root.addEventListener("close", function resetCapture() {
+    releaseEditorFocus();
+    capturePad = null;
+  });
   renderBindings();
-  mountKeyboard();
-  // Mute lives on padHaptics (擬真設定); this dialog only keeps strength and a test pulse.
-  slider(STRINGS.strength, settings, "strength", 0, 1, 0.05, 1);
+  const renderKeyboard = mountKeyboard();
+  // Mute lives on padHaptics (擬真設定); strength is shared with the display tab (prefs/display.js).
+  settings.strength ??= getDisplayPrefs().get("hapticStrength") ?? 1;
+  const strengthRow = element("label", STRINGS.strength);
+  const strengthInput = element("input", "", strengthRow);
+  strengthInput.type = "range";
+  strengthInput.min = 0;
+  strengthInput.max = 1;
+  strengthInput.step = 0.05;
+  strengthInput.value = settings.strength;
+  getDisplayPrefs().subscribe(function syncStrength(values, id) {
+    if (id === "hapticStrength") strengthInput.value = values.hapticStrength;
+  });
+  strengthInput.oninput = function changeStrength() {
+    settings.strength = +strengthInput.value;
+    getDisplayPrefs().set("hapticStrength", settings.strength);
+    save();
+  };
   element("button", STRINGS.test).onclick = function test() {
     haptics.pulse("hard");
   };
@@ -210,10 +285,14 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
   element("button", STRINGS.skip).onclick = function skip() {
     if (wizard) next("");
   };
-  element("button", STRINGS.reset).onclick = function reset() {
-    localStorage.removeItem("rov.input.v1");
-    window.rovDesktop?.rememberInput?.({});
-    location.reload();
+  const resetBindings = element("button", STRINGS.reset);
+  close.after(resetBindings, document.getElementById("keyboardBindings"), bindings);
+  resetBindings.onclick = function reset() {
+    settings.bindings = editablePadBindings();
+    settings.keys = {};
+    changedBindings();
+    renderBindings();
+    renderKeyboard();
   };
   let lastNavigation = 0;
   function update(frame) {
@@ -243,15 +322,24 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       return;
     }
     if (pad && !frame.snapshot.known) prompt.textContent = STRINGS.unknown;
+    const side = preview.value.startsWith("left") ? "left" : "right";
+    const fidelity = getFidelity();
+    function previewY(value) {
+      const stick = !preview.value.endsWith("wave");
+      const inner = fidelity.get(side + "Deadzone");
+      const radialValue = stick ? radial(value, 0, inner, settings.outer)[0] : value;
+      const shaped = stick ? curve(radialValue, {
+        expo: fidelity.get(side + "Response"),
+        invert: preview.value.endsWith("ud") && fidelity.get(side + "Invert"),
+      }) : value;
+      return 60 - curve(shaped, settings.channels[preview.value]) * 54;
+    }
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, 600, 120);
     ctx.strokeStyle = "#4fd1e0";
     ctx.beginPath();
     for (let x = 0; x <= 600; x++) {
-      const y =
-        110 -
-        curve(radial(x / 600, 0, settings.inner ?? 0.08, settings.outer ?? 0.02)[0], settings.channels[preview.value]) *
-          100;
+      const y = previewY(x / 600);
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -260,28 +348,43 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     ctx.beginPath();
     ctx.arc(
       v * 600,
-      110 -
-        curve(radial(v, 0, settings.inner ?? 0.08, settings.outer ?? 0.02)[0], settings.channels[preview.value]) * 100,
+      previewY(v),
       5,
       0,
       Math.PI * 2,
     );
     ctx.fillStyle = "#5fd38a";
     ctx.fill();
-    if (!pad || !frame.snapshot.known || performance.now() - lastNavigation < 220) return;
+    if (!pad || !frame.snapshot.known) return;
     const b = frame.snapshot.buttons;
     const focused = document.activeElement;
-    if (focused?.dataset.binding) {
-      const buttonIndex = b.findIndex((value, index) => index < 12 && value > 0.5);
+    if (waitRelease) {
+      if (b.some(value => value > 0.5) || frame.snapshot.axes.some(value => Math.abs(value) > 0.6)) return;
+      waitRelease = false;
+    }
+    if (!capturePad && performance.now() - lastNavigation < 220) return;
+    if (capturePad && focused === capturePad) {
+      const buttonIndex = b.findIndex(value => value > 0.5);
       const axisIndex = frame.snapshot.axes.findIndex((value) => Math.abs(value) > 0.75);
       if (buttonIndex >= 0 || axisIndex >= 0) {
-        focused.value =
-          buttonIndex >= 0 ? `b${buttonIndex}` : `${frame.snapshot.axes[axisIndex] < 0 ? "-" : ""}a${axisIndex}`;
+        const row = bindingRow(focused.dataset.binding);
+        const sign = frame.snapshot.axes[axisIndex] < 0 ? "-" : "";
+        const source = buttonIndex >= 0 ? `b${buttonIndex}` : `${sign}a${axisIndex}`;
+        if (row.axis && buttonIndex >= 0 && positiveButton === null) {
+          positiveButton = source;
+          collisionNote.textContent = STRINGS.negative;
+          waitRelease = true;
+          return;
+        }
+        const buttons = b.flatMap((value, index) => value > 0.5 ? ["b" + index] : []);
+        if (row.gesture === "chord" && buttons.length === 2) focused.value = buttons.join("+");
+        else focused.value = positiveButton ? positiveButton + "," + source : source;
         focused.dispatchEvent(new Event("change"));
-        close.focus();
+        waitRelease = true;
         lastNavigation = performance.now();
         return;
       }
+      return;
     }
     if (focused?.tagName === "SELECT" && (b[NAV.left] > 0.5 || b[NAV.right] > 0.5)) {
       focused.selectedIndex =
@@ -297,8 +400,11 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       const controls = [...root.querySelectorAll("button,select,input,summary")].filter((e) => e.checkVisibility());
       const index = controls.indexOf(document.activeElement);
       controls[(index + direction + controls.length) % controls.length]?.focus();
-    } else if (b[NAV.accept] > 0.5) document.activeElement?.click();
-    else if (b[NAV.back] > 0.5) root.close();
+    } else if (b[NAV.accept] > 0.5) {
+      document.activeElement?.click();
+      waitRelease = true;
+    }
+    else if (b[NAV.back] > 0.5) closeSettings();
     else if (document.activeElement?.type === "range" && (b[NAV.left] > 0.5 || b[NAV.right] > 0.5)) {
       const input = document.activeElement;
       input.value = +input.value + (b[NAV.right] > 0.5 ? 1 : -1) * +input.step;
@@ -331,23 +437,44 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       const rows = rowsFor(settings);
       const names = labels(rows);
       help.textContent = STRINGS.keyboardHelp.replace("{layout}", layoutLabel(layout));
+      const {keyAction, keyIndex} = document.activeElement?.dataset || {};
       list.replaceChildren();
+      let context;
       for (const row of rows) {
-        if (!visibleAction(row.action) || !keyRebindable(row) || !row.keys.length) continue;
+        if (!visibleAction(row.action)) continue;
+        if (context !== row.context) {
+          context = row.context;
+          element("h3", contextLabel(context), list);
+        }
         const line = element("div", "", list);
-        element("span", `${names[row.action] || actionLabel(row.action)} `, line);
-        const parts = (names[row.action] || "").split("／");
-        row.keys.forEach(function keyButton(code, index) {
-          const text = row.axis && parts[index] ? `${keyLabel(code)}（${parts[index]}）` : keyLabel(code);
-          const button = element("button", text, line);
+        element("span", actionLabel(row.action), line);
+        const parts = (names[row.action] || "").split(/\s*[／/]\s*/);
+        const slots = row.keys?.length ? row.keys : row.axis || row.context === "orbit" ? ["", ""] : [""];
+        slots.forEach(function keyButton(code, index) {
+          const cap = keyLabel(code) || "＋";
+          const text = row.axis && parts[index] ? `${cap} · ${parts[index]}` : cap;
+          const button = element("button", text || "＋", line);
           button.dataset.keyAction = row.action;
           button.dataset.keyIndex = String(index);
           button.onclick = function startCapture() {
-            capture = { action: row.action, index, keys: [...row.keys] };
+            if (capture) capture.button.textContent = capture.caption;
+            capture = { action: row.action, index, keys: [...slots], button, caption: button.textContent };
             button.textContent = STRINGS.capture;
             note.textContent = "";
           };
         });
+        const clear = element("button", STRINGS.clear, line);
+        clear.onclick = function clearKeys() {
+          const next = overrides(layout);
+          next[row.action] = [];
+          settings.keys = {...settings.keys, [layout]: next};
+          capture = null;
+          changedBindings();
+          render();
+        };
+      }
+      if (keyAction) {
+        list.querySelector(`[data-key-action="${keyAction}"][data-key-index="${keyIndex}"]`)?.focus();
       }
     }
     function captureKey(event) {
@@ -356,7 +483,7 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       event.stopPropagation();
       const pending = capture;
       capture = null;
-      if (event.code === "Escape") {
+      if (event.code === "Escape" && pending.action !== "pause" && pending.action !== "back") {
         render();
         return;
       }
@@ -373,25 +500,28 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
         return;
       }
       settings.keys = { ...(settings.keys || {}), [layout]: next };
-      save();
-      onKeys?.();
+      changedBindings();
       note.textContent = STRINGS.keySaved;
       render();
     }
+    root.addEventListener("close", function cancelCapture() {
+      capture = null;
+      render();
+    });
     root.addEventListener("keydown", captureKey, true);
     reset.onclick = function resetKeys() {
       const layout = keyboardLayout();
       if (settings.keys) delete settings.keys[layout];
-      save();
-      onKeys?.();
+      changedBindings();
       render();
     };
     getFidelity().subscribe(render);
     render();
+    return render;
   }
-  function registerActions(definitions) {
-    for (const [name, action] of Object.entries(definitions)) featureActions.set(name, action);
-    renderBindings();
-  }
-  return { registerActions, update, open: () => root.open, selected: () => (select.value === "auto" ? "" : select.value) };
+  return {
+    update,
+    open: () => root.open,
+    selected: () => select.value === "auto" ? "" : select.value,
+  };
 }
