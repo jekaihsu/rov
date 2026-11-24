@@ -31,17 +31,24 @@ def sounding_mooring(label, anchor, top, float_depths):
 
 # Pairs of coordinates let the survey riser rake with the local current. Choose the
 # offset side so it doesn't cross the inspection lane or interfere with a prewrap.
+# Harbor, hull and aquaculture landmarks belong to R5/R6. This module only dresses T1 sites.
 MOORINGS = {
     "jacket_inspection": ("Service mooring", (10.1, 7.2), (8.1, 5.7, .15), (3.6, 9.4)),
     "monopile_current": ("Scour survey", (8, 5), (6, 3, .2), (3.6, 11.5)),
     "tether_untangle": ("Outer mooring", (-3.6, 2.2), (-2.8, 1.8, .2), (4.4, 6.7, 10.5)),
-    "hull_inspection": ("Berth mooring", (9, -4), (5, -2, .14), (3.6, 7.6)),
     "incident_wreck": ("Recovery shot", (5.0, -.10), (-42.3, -.10, .18), (26, 51, 76, 101, 117.4, 120.3, 123.1, 125.6)),
     "incident_silt": ("Sediment station", (2.1, 2), (-1.9, .52, .26), (3.3, 6.6, 9.5)),
     "incident_jacket": ("Recovery shot", (-10.8, -3.9), (-12.9, -1.8, .18), (4, 9, 12)),
     "incident_compass": ("Reference mooring", (-2, 2.5), (-2.3, .39, .18), (4.6, 9.7)),
     "incident_current": ("Current mooring", (2.3, -1.85), (1.4, -.3, .18), (3.4, 9.2, 14.8)),
     "random": ("Survey mooring", (5, -4.6), (4, -2.8, .2), (3.6,)),
+}
+
+OWNED = {
+    "open_water", "jacket_inspection", "monopile_current", "tether_untangle",
+    "wreck_survey", "korean_castle", "coral_reef", "seagrass_meadow", "sonar_search",
+    "incident_jacket", "incident_wreck", "incident_silt", "incident_compass", "incident_current",
+    "cold_open_jacket", "random",
 }
 
 
@@ -217,6 +224,8 @@ def detached_ribs(prefix, n, e, bed):
 def add_landmarks(site):
     """Extend the authored scene without changing controls, missions, water or spawn poses."""
     key = site.key
+    if key not in OWNED:
+        return site
     sea = site.seabed_depth
     obs = site.obstacles
     if key in MOORINGS:
@@ -236,12 +245,6 @@ def add_landmarks(site):
         obs.extend(sounding_mooring("Meadow transect", (7.8, 3.5, sea), (8.7, 3.3, .24), (2.2, 4.6)))
         obs.extend(sounding_mooring("Transect end", (4.2, 2.8, sea), (3.7, 2.5, .24), (1.7,)))
         obs.append(Cylinder("Transect floatline", (3.7, 2.5, .24), (8.7, 3.3, .24), .031, "survey_line"))
-    elif key == "harbor_inspection":
-        # A detached mooring dolphin off the working jetty. The open water
-        # between its piles forms a sight line toward the quay.
-        for i, (n, e) in enumerate(((7.5, -1.6), (9.1, -1.7), (8.5, -.4))):
-            obs.append(Cylinder(f"Mooring dolphin leg {i + 1}", (n, e, sea), (n, e, -1.2), .35, "pile"))
-        obs.append(Box("Mooring dolphin cap", (8.3, -1.1, -1.35), (1.42, 1.21, .24), -8, "deck"))
     elif key == "sonar_search":
         # Acoustic target stays in its original bearing. The pipe partly buried
         # off the search lane makes a second return at a different range.

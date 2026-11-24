@@ -4,13 +4,12 @@ import unittest
 import numpy as np
 
 from qysim import scenarios
-from qysim.aquaculture import layout
-from qysim.scene_landmarks import MOORINGS
+from qysim.scene_landmarks import MOORINGS, OWNED
 
 
 class LandmarkTests(unittest.TestCase):
     def test_landmarks_leave_launch_and_work_stations_clear(self):
-        for key in (*scenarios.LIBRARY, "random"):
+        for key in OWNED:
             site = scenarios.build(key, 42)
             source = scenarios.LIBRARY[key]() if key != "random" else scenarios.random_scenario(42)
             additions = site.obstacles[len(source.obstacles):]
@@ -40,20 +39,13 @@ class LandmarkTests(unittest.TestCase):
                     self.assertLessEqual(sinker.sdf(np.array(riser.p0))[0], riser.radius)
                     self.assertLess(riser.sdf((np.asarray(ob.p0) + ob.p1) / 2)[0], 0)
 
-    def test_numbered_tags_are_lashed_to_intact_pen_faces(self):
-        obstacles, evidence = layout()
-        tags = [ob for ob in obstacles if ob.kind == "pen_tag"]
-        fixtures = {ob.name: ob for ob in obstacles}
-        self.assertEqual(len(tags), len({tag.name for tag in tags}))
-        self.assertTrue(tags)
-        for tag in tags:
-            panel_index = int(tag.name.split()[-1]) - 1
-            panel = fixtures[f"pen-net-{panel_index}-0"]
-            with self.subTest(tag=tag.name):
-                self.assertNotIn(panel_index, [hole["panel"] for hole in evidence["holes"]])
-                self.assertLess(panel.sdf(np.asarray(tag.center))[0] - tag.half[1], .015)
-
     def test_arch_has_an_open_notch_and_a_solid_lintel(self):
         rock = scenarios.build("coral_reef").obstacles
         self.assertTrue(all(ob.sdf(np.array([11.2, -2.65, 10.9]))[0] > .8 for ob in rock))
         self.assertLess(min(ob.sdf(np.array([11.2, -2.65, 6.7]))[0] for ob in rock), -.4)
+
+    def test_r5_r6_geometry_unchanged_by_landmarks(self):
+        for key in ("harbor_inspection", "hull_inspection", "aquaculture_pen"):
+            site = scenarios.build(key, 42)
+            source = scenarios.LIBRARY[key]()
+            self.assertEqual([o.name for o in site.obstacles], [o.name for o in source.obstacles])

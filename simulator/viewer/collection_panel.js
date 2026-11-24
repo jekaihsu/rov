@@ -1,5 +1,3 @@
-import {GUIDE_CATEGORIES} from './play/achievements.js';
-import {siteFinds, findCaption, guideText} from './collection_categories.js';
 import {FLEET_IDS, siteName, vehicleName} from './fleet_names.js';
 import {COLLECTION_CATEGORIES,listCollection,getPhotoBlob,setCover,exportCollection,importCollection,downloadCollectionFile} from './collection_store.js';
 
@@ -39,29 +37,10 @@ export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose
     const grid=element('div',undefined,'collection-grid');
     for(const [category,name]of Object.entries(COLLECTION_CATEGORIES)){
       const guide=collection.guides.find(g=>g.category===category),photo=guide&&collection.photos.find(p=>p.id===guide.photoId);
-      // Keep new kinds hidden until discovered on a dive.
-      if (!guide && !GUIDE_CATEGORIES.includes(category)) continue;
       if(photo)grid.append(photoCard(photo,name,`首次觀測 ${date(guide.unlockedAt)}`));
       else{const article=element('article',undefined,'collection-card');article.append(element('div','尚未觀測','collection-locked'),element('h3',name),element('p','切換機載視角，在有效距離內完成拍攝。'));grid.append(article);}
     }
     content.append(grid);
-    const finds = siteFinds(collection.photos);
-    if (!finds.length) return;
-    const plates = element('div', undefined, 'collection-grid');
-    for (const photo of finds.slice(0, pageSize)) {
-      const obs = photo.observation;
-      const site = sceneText(obs.scene);
-      plates.append(photoCard(photo, categoryName(obs.category), findCaption(obs, site)));
-    }
-    content.append(element('h3', guideText.finds), plates);
-    if (finds.length > pageSize) {
-      const more = element('button', guideText.moreFinds, 'collection-more');
-      more.onclick = function showMoreFinds() {
-        pageSize += 24;
-        render();
-      };
-      content.append(more);
-    }
   }
   function renderPhotos(){
     if(!collection.photos.length){empty('把這次潛航留下來','拍攝的原圖會收進這裡。機載視角的有效生物觀測也會解鎖圖鑑；其他視角保留為紀念照。');return;}

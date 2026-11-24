@@ -19,7 +19,7 @@ import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyl
 import {seabedMaterial, siteProfile} from './seabed.js';
 import {HABITAT_ROCKS, habitatRockGeometry, rockLod, upgradeRockMesh} from './scan_materials.js';
 import {buildSurfaceSet} from './surface_set.js';
-import {installDiscoveryDetails} from './discovery_details.js';
+import {FIND_COLORS, attachedKelp, findGeometry, findMaterial} from './inspection_finds.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.05, ...o });
@@ -91,6 +91,8 @@ export class Environment {
     // Stable server identities, separate from draw buckets / instance ordering.
     // Read only at photo capture; no raycasts or observation work in update().
     this.observationTargets = [];
+    this.inspectionBatches = [];
+    this.inspectionRange = 2 * (world.scenario?.visibility_m || 12) + 1.6;
     this.uniforms = { uTime: { value: 0 }, uFlow: { value: new THREE.Vector3() }, ...createKelpFlowUniforms() };
     const key = `${world.scenario?.key || 'x'}:${world.scenario?.seed ?? ''}`;
     const R = rng(key);
@@ -110,7 +112,6 @@ export class Environment {
       this._kelp(R);
       this._fish(R, world);
     }
-    this.discoveries = installDiscoveryDetails(this.group, world, this.observationTargets);
     this._structureLife(world, options.detail || 'medium');
     this._surface(R);
   }
@@ -275,7 +276,15 @@ export class Environment {
     const matrix = new THREE.Matrix4(), rotation = new THREE.Quaternion();
     for (const entities of buckets.values()) {
       const {kind,variant} = entities[0]; let geo, mat;
-      if (kind === 'coral') {
+      const onNet = kind === 'kelp' && this.world.biome === 'aquaculture';
+      if (onNet) {
+        geo = attachedKelp();
+        mat = kelpMaterial(this.uniforms);
+        mat.color.setHex(0xa3833f);
+      } else if (Object.hasOwn(FIND_COLORS, kind)) {
+        geo = findGeometry(kind);
+        mat = findMaterial(kind);
+      } else if (kind === 'coral') {
         geo = reefCoralGeometry(reefCoralStyle(entities[0]), this.detail);
         mat = reefCoralMaterial(reefCoralStyle(entities[0]));
       } else if (kind === 'seastar') {
@@ -288,8 +297,8 @@ export class Environment {
         mat.color.set(kind==='seagrass'?0x53683d:0x5e643a);
       }
       const mesh = new THREE.InstancedMesh(geo,mat,entities.length);
-      if(kind!=='rock')upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
-      else upgradeRockMesh(mesh, (rocks) => habitatRockGeometry(rocks, variant, this.detail), this.detail)
+      if(!onNet && kind!=='rock' && !Object.hasOwn(FIND_COLORS, kind))upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
+      else if (kind === 'rock') upgradeRockMesh(mesh, (rocks) => habitatRockGeometry(rocks, variant, this.detail), this.detail)
         .catch(() => false);
       mesh.userData.observationEntities = entities.map(e=>({entity_id:e.id,category:e.kind}));
       if(kind==='kelp'||kind==='seagrass') mesh.userData.observationBend = this.uniforms;
@@ -297,16 +306,19 @@ export class Environment {
         const item=entities[i], p=P(item.pos);
         rotation.setFromAxisAngle(new THREE.Vector3(0,1,0),-item.yaw*Math.PI/180);
         const scale = new THREE.Vector3(item.scale,item.scale,item.scale);
-        if(kind==='kelp') scale.y*=2.3;
+        if(kind==='kelp' && !onNet && !Object.hasOwn(FIND_COLORS, kind)) scale.y*=2.3;
         if(kind==='seagrass') scale.y*=.55;
         matrix.compose(p,rotation,scale);mesh.setMatrixAt(i,matrix);
         if (kind === 'coral') mesh.setColorAt(i, reefCoralTint(item));
-        if(['coral','seastar','kelp','seagrass'].includes(kind))
+        if(Object.hasOwn(FIND_COLORS, kind) || ['coral','seastar','kelp','seagrass'].includes(kind))
           this.observationTargets.push({entity_id:item.id,category:kind,mesh,instanceIds:[i]});
       }
       mesh.instanceMatrix.needsUpdate=true;
-      mesh.receiveShadow=true;mesh.castShadow=kind==='rock'||kind==='coral';
+      mesh.receiveShadow=true;mesh.castShadow=kind==='rock'||kind==='coral'||Object.hasOwn(FIND_COLORS, kind);
       // Animated vertex displacement extends outside the unbent grass bounds.
+      if (onNet || Object.hasOwn(FIND_COLORS, kind)) {
+        this.inspectionBatches.push({mesh, anchors: entities.map(item => P(item.pos))});
+      }
       if(kind==='kelp'||kind==='seagrass')mesh.frustumCulled=false;
       else mesh.computeBoundingSphere();
       this.group.add(mesh);
@@ -423,12 +435,14 @@ export class Environment {
   update(dt, camera, flow = null, state = null, flowField = null) {
     this.t = Number.isFinite(state?.t) ? state.t : this.t + dt;
     const t = this.t;
-    this.discoveries?.update(camera);
     this.reef?.update(t, this.fishSchools?.vehicle);
     this.uniforms.uTime.value = t;
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
     updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
     const under = camera.position.y < 0;
+    for (const {mesh, anchors} of this.inspectionBatches || []) {
+      mesh.visible = !under || anchors.some(anchor => anchor.distanceTo(camera.position) < this.inspectionRange);
+    }
     this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
     for (const { rotor, w } of this.rotors) rotor.rotation.z -= dt * w;
     for (const b of this.buoys) { b.b.position.y = Math.sin(t * 1.1 + b.ph) * 0.25; b.b.rotation.z = Math.sin(t * 0.9 + b.ph) * 0.08; b.lamp.visible = (t + b.ph) % 4 < 0.6; }
@@ -455,7 +469,6 @@ export class Environment {
   }
 
   dispose() {
-    this.discoveries?.dispose();
     this.scene.remove(this.group);
     const geometries=new Set(),materials=new Set(),textures=new Set();
     this.group.traverse((o)=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material]))materials.add(m);});

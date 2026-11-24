@@ -140,15 +140,10 @@ their lettering, border and scale bars on a canvas in `story/prologue.js`.
 ## T1 水下調查場景（原創程式素材）
 
 海床起伏與魚群棲點依虛構場址編排。調查繫泊浮具、礁拱、殘骸散落帶與儀器架的尺寸及位置定義於
-`qysim/scene_landmarks.py`；岩面由 `viewer/reef_outcrop.js` 建模。港灣遠景的倉房、街廓與筒倉由
-`viewer/surface_set.js` 產生。這些場景設計與幾何皆為本專案原創。
+`qysim/scene_landmarks.py`；岩面由 `viewer/reef_outcrop.js` 建模。這些場景設計與幾何皆為本專案原創。
+港灣、船殼與養殖網箱的場景重建歸 R5／R6，不在本任務改動。
 
-圖鑑的貝殼碎屑、蛇尾、蟹蛻、附著生物、玻璃與陶片、卸扣、漁網及纜繩碎段等，由
-`viewer/discovery_geometry.js` 以原創幾何與頂點色製作。`viewer/discovery_details.js` 將它們裝在
-主機給定的表面位置。這些近拍細節均以程式建構。
-
-港樁編號、舊樁塗層、浮具反光帶及艙門漆面由 `viewer/structure_materials.js` 繪製。船底鋼板、
-進水格柵、塢墩留下的舊漆印、船底檢驗肋位編號與舵面檢修蓋由 `viewer/hull_finish.js` 繪製。
-船底犧牲陽極、箱網節段牌、吊掛探頭及海床繫泊設備皆為
-原創幾何。這些新增素材以 CC0-1.0 釋出。露出海床的礁面沿用本表既有的 Poly Haven
-`low_tide_rocks`（CC0）貼圖。
+近拍可拍攝的調查主體由 `qysim/inspection_finds.py` 與 `viewer/inspection_finds.js` 以原創幾何與
+MeshStandard 材質製作（藤壺帶、海葵叢、盤繩、碎貝、鏽板、卸扣等），並走既有的 habitat 實體與
+遠征拍照路徑。浮具與繩索表面由 `viewer/structure_materials.js` 繪製。露出海床的礁面沿用本表既有的
+Poly Haven `low_tide_rocks`（CC0）貼圖。新增程式幾何以 CC0-1.0 釋出。

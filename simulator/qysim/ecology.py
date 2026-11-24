@@ -47,7 +47,7 @@ def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None, sit
     ``placed``: optional scenario-placed fish schools, a list of ``{"home": (n, e, d), "count": int}``. A site
     that sets them (a jacket that works as an artificial reef) gets those schools instead of the random ones."""
     from .world import Cylinder
-    from .site_habitat import bank_patch
+    from .site_habitat import habitat_xy
     rng = np.random.default_rng(np.random.SeedSequence([seed, 8271]))
     entities = []
     schools = []
@@ -68,10 +68,8 @@ def create_habitat(world, biome: str, seed: int, keep_clear=(), placed=None, sit
     for kind, count in counts.items():
         for index in range(count):
             for attempt in range(40):
-                if site == "open_water" and kind in ("kelp", "rock") and index < count * .8:
-                    xy = bank_patch(index, rng)
-                else:
-                    xy = rng.uniform([-12, -35], [62, 35])
+                patch = habitat_xy(site, kind, index, count, rng)
+                xy = patch if patch is not None else rng.uniform([-12, -35], [62, 35])
                 if any(np.linalg.norm(xy - p[:2]) < 4.0 for p in exclusion):
                     continue
                 z = float(world.terrain.sample_many(np.array([[*xy, 0]]))[0][0])

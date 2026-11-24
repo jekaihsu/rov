@@ -79,6 +79,16 @@ def shape_bed(terrain, key, obstacles, clear):
 # sunlit slopes make the edge legible from the channel. Other sites retain their biome scatter.
 _BANK_PATCHES = np.array([(-3, -19), (11, 21), (21, 18), (12, -16), (-6, 19)])
 
+# Optional habitat scatter overrides: kinds + fraction of placements pulled onto authored patches.
+HABITAT_PATCHES = {
+    "open_water": {"kinds": ("kelp", "rock"), "fraction": .8, "patches": _BANK_PATCHES, "jitter": (1.1, 2.1)},
+}
 
-def bank_patch(index, rng):
-    return _BANK_PATCHES[index % len(_BANK_PATCHES)] + rng.normal(0, (1.1, 2.1))
+
+def habitat_xy(site, kind, index, count, rng):
+    """Return a horizontal placement for one habitat entity, or None to use the biome scatter box."""
+    rule = HABITAT_PATCHES.get(site)
+    if not rule or kind not in rule["kinds"] or index >= count * rule["fraction"]:
+        return None
+    patch = rule["patches"][index % len(rule["patches"])]
+    return patch + rng.normal(0, rule["jitter"])

@@ -28,6 +28,8 @@ STRINGS = {
     "pool_name": "室內測試水池",
     "pool_brief": "潮間帶工作隊的首次操控練習。",
     "pool_walls": ("池北壁", "池南壁", "池東壁", "池西壁"),
+    "open_water_name": "開放水域熟悉",
+    "open_water_brief": "微弱洋流，航線外有測站浮標。依序通過 4 個檢查點，熟悉搖桿、A/S 模式和定深。",
 }
 
 
@@ -174,7 +176,7 @@ def _inspect_leg(ob: Cylinder, depth: float, cx: float, cy: float, label: str) -
 def open_water() -> Scenario:
     pts = [(10, 0, 6), (10, 10, 10), (0, 10, 14), (0, 0, 8)]
     return Scenario(
-        "open_water", "開放水域熟悉", "微弱洋流，航線外有測站浮標。依序通過 4 個檢查點，熟悉搖桿、A/S 模式和定深。",
+        "open_water", STRINGS["open_water_name"], STRINGS["open_water_brief"],
         seabed_depth=25.0, current=CurrentProfile(0.3, 45, 0.3, 45, 0.1, 45, TI_SHELTERED),
         start_pos=(0, 0, 2), tether_length=30.0,
         objectives=[Objective("checkpoint", f"檢查點 {i + 1}", p, radius=1.5) for i, p in enumerate(pts)]
@@ -394,25 +396,7 @@ def harbor_obstacles(sea: float) -> list:
         for k, x in ((2, 27), (3, 33)):
             obs.append(Cylinder(f"Harbor pile {row}{k}", (x, y, -2), (x, y, sea), .65))
         obs.append(Box(f"Jetty deck {row}", (30.5, y, -2.4), (11.5, 2.2, .4), 0, "deck"))
-    # Battered supports lean in beneath the two finger piers. A shorter transverse service
-    # deck connects them by the quay. Keep its middle bay clear for the wall inspection.
-    for side in (-1, 1):
-        obs.append(Cylinder(f"Jetty batter {side}", (21, side * 9.8, -2), (11.6, side * 4.6, sea),
-                            .34, "pile"))
-        obs.append(Cylinder(f"Service deck support {side}", (34, side * 4.2, -2), (34, side * 2.2, sea),
-                            .46, "pile"))
-    # Ladder landing on the inner side of jetty B, carried by a pair of guide piles.
-    obs.append(Box("Jetty B landing", (21, 7, -2.4), (1.0, 2.6, .4), 0, "deck"))
-    for n in (20.3, 21.7):
-        obs.append(Cylinder(f"Landing guide {n}", (n, 4.9, -2), (n, -.9, sea), .25, "pile"))
-    # The two wales tie the raked landing legs together below low water.
-    for depth in (7.35, 8.75):
-        east = 4.9 - 5.8 * (depth + 2) / (sea + 2)
-        obs.append(Cylinder(f"Landing wale {depth}", (20.3, east, depth), (21.7, east, depth), .13, "brace"))
-    obs.append(Box("Service walkway", (34, 0, -2.4), (1.1, 8, .4), 0, "deck"))
     obs += dressing.dress_quay(quay, sea, keep_clear=(0.0,))
-    # The submerged outfall grille is flush with the inspection face, inside the working light's reach.
-    obs.append(Box("Quay outfall grille", (41.98, .12, 10), (.045, .61, .47), 0, "service_hatch"))
     # snaggable debris off the quay (mooring block, rope, rubble), placed on main with the tether snag model
     obs += [SnagFeature("Harbor mooring block", (24, -6, sea), .5, .6, item="debris"),
             SnagFeature("Harbor rope tangle", (30, 4, sea), .25, .3, item="rope"),

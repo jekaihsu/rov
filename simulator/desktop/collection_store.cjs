@@ -2,10 +2,10 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const {randomUUID,createHash}=require('node:crypto');
-const CATEGORIES = [
-  'coral', 'seastar', 'seagrass', 'kelp', 'fish_school',
-  'mussels', 'barnacles', 'limpet', 'anemones', 'brittle_star', 'shell_hash', 'crab_molt',
-  'rope_offcut', 'shackle', 'bottle_glass', 'ceramic_shard', 'net_patch', 'rust_flake',
+const CATEGORIES=[
+  'coral','seastar','seagrass','kelp','fish_school',
+  'grate_fish','barnacle','scuff','shackle','feed',
+  'anemone_clump','rope_coil','shell_bed','rust_panel',
 ];
 const LIMITS={image:12*1024*1024,total:80*1024*1024,index:4*1024*1024,archive:128*1024*1024,photos:500,results:2000};
 const empty=()=>({version:1,photos:[],guides:[],results:[]});

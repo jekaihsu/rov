@@ -1,0 +1,12 @@
+{
+  "pool_name": "Indoor test pool",
+  "pool_brief": "First stick practice for the intertidal work team.",
+  "pool_walls": [
+    "North wall",
+    "South wall",
+    "East wall",
+    "West wall"
+  ],
+  "open_water_name": "Open-water familiarisation",
+  "open_water_brief": "Light current with survey buoys outside the lane. Pass four checkpoints to learn the sticks, A/S modes and depth hold."
+}

@@ -3,7 +3,6 @@
 // (off in `real`: oracle detection exceeds the real vehicle); keys come from input/bindings.js (`visionToggle`,
 // `visionMark`) and the engineering drawer carries pointer buttons. The overlay canvas sits on --z-scene-mark.
 import {inspectObservation} from '../observation_camera.js';
-import {COLLECTION_CATEGORIES} from '../collection_categories.js';
 import {registerFidelityItem, getFidelity} from '../fidelity.js';
 import {OracleDetector, OnnxDetector, RemoteDetector} from './detector.js';
 import {clipOutsideInstruments} from '../hud/safe_zones.js';
@@ -20,8 +19,7 @@ const STRINGS = {
 };
 
 export function classLabel(cls) {
-  if (Object.hasOwn(STRINGS.classes, cls)) return STRINGS.classes[cls];
-  return Object.hasOwn(COLLECTION_CATEGORIES, cls) ? COLLECTION_CATEGORIES[cls] : STRINGS.classes.unknown;
+  return STRINGS.classes[cls] || STRINGS.classes.unknown;
 }
 export const VISION_ITEM = 'aiOverlay';
 

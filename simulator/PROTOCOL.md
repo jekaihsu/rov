@@ -344,12 +344,9 @@ field reports of 4–5 s lag and 5 s/20 s freezes; sources in
 
 ## 4. World object (`type: "world"`)
 
-`habitat.discoveries` is an optional static array of small surface details.
-Each entry carries a stable `id`, a guide category `kind`, its NED attachment `pos` (metres),
-an outward NED unit `normal` and `yaw` (degrees around the normal).
-Clients can omit the details when absent. For these entities the existing `observation_photo`
-operation also accepts onboard evidence outside expedition mode. Accepted detail observations carry
-`world_seed`. Together with `scene` and `entity_id` it identifies a particular find across dives.
+`habitat.entities[]` may include optional inspection subjects (`id` prefixed `inspection-`) with the
+same fields as other habitat entities (`kind`, `pos`, `scale`, `yaw`, `variant`). Clients that do not
+recognise a `kind` may skip drawing it. Photographing them still uses expedition `observation_photo`.
 
 ```text
 seabed_depth m

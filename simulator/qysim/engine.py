@@ -136,7 +136,8 @@ class Simulator:
             from .site_habitat import school_refuges
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear,
                                          schools=school_refuges(sc), site=sc.key)
-            self.world.discovery_scenario = sc
+            from .inspection_finds import populate
+            populate(self.world, sc.key)
             self.world.configure_silt(sc_mod.silt_seabed_type(sc.biome, sc.seabed_type), sc.bnl_height_m, sc.bnl_mg_l)
             self.world.visibility_m = sc.visibility_m
         self.geo = GeoFrame()

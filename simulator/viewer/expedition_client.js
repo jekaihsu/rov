@@ -23,10 +23,7 @@ export function installExpeditionClient({send,capture,getState,getWorld,getSessi
         sceneName:world?.scenario?.name,depth:state?.depth??state?.pos?.[2],vehicle_id:state?.vehicle_id,model_id:state?.model_id,pos:state?.pos,
         photographer:getSession()?.player_id,pose:{t:state?.t,pos:state?.pos,q:state?.q}}));
       let observation=null,reason=shot.evidence?.reason||'已保存紀念照片。';
-      const expedition = state?.mission?.mode === 'expedition';
-      const fieldFind = world?.habitat?.discoveries?.some(item => item.id === shot.evidence?.entity_id);
-      if (!readOnly && !expedition && recordCamera) send({type: 'operation', action: 'mission_photo'});
-      if(!readOnly && (expedition || fieldFind)){
+      if(!readOnly&&state?.mission?.mode==='expedition'){
         if(shot.view==='onboard'&&shot.evidence?.ok){
           notify('正在確認取景與觀测目標…');
           const response=await new Promise(resolve=>{
@@ -37,9 +34,11 @@ export function installExpeditionClient({send,capture,getState,getWorld,getSessi
             }
           });
           const result=response.observation;
-          if(result?.accepted&&Object.hasOwn(COLLECTION_CATEGORIES, result.entry?.category))observation=result.entry;
+          if(result?.accepted&&Object.hasOwn(COLLECTION_CATEGORIES,result.entry?.category))observation=result.entry;
           reason=result?.reason||response.message||'已保存照片。';
         }
+      }else if(!readOnly&&recordCamera){
+        send({type:'operation',action:'mission_photo'});
       }
       await savePhoto({id:photoId,blob:shot.blob,metadata,observation});
       notify(observation?'觀測成功，已登錄圖鑑與照片。':reason);

@@ -22,69 +22,6 @@ def point(angle, radius=RADIUS, depth=0.):
     return (CENTER[0] + radius * math.cos(angle), radius * math.sin(angle), depth)
 
 
-def inspection_stations():
-    """Numbered inspection tags follow intact panel faces. A bridle on the outer mooring grid
-    carries a water-quality probe at the fish's swimming depth."""
-    obs = []
-    for i, depth in ((8, 5.), (25, 7.), (29, 7.3), (32, 7.), (36, 9.)):
-        angle = (i + .5) * math.tau / SEGMENTS
-        panel = RADIUS * math.cos(math.pi / SEGMENTS)
-        face = point(angle, panel + .05, depth)
-        yaw = math.degrees(angle) + 90
-        obs.append(Box(f"Survey tag {i + 1:02d}", face, (.26, .019, .15), yaw, "pen_tag"))
-        for side in (-.20, .20):
-            x = face[0] - side * math.sin(angle)
-            y = face[1] + side * math.cos(angle)
-            obs.append(Cylinder(f"Tag lashing {i + 1}:{side}", (x, y, depth - .13),
-                                (x, y, depth - .41), .012, "survey_line"))
-    yoke = (16.9, -18.95, 6.75)
-    obs.append(Cylinder("Sampler port bridle", (12, -24, 3), yoke, .041, "survey_line"))
-    obs.append(Cylinder("Sampler starboard bridle", (22, -24, 3), yoke, .041, "survey_line"))
-    obs.append(Cylinder("Sampler head float", (16.9, -18.95, 6.48), yoke, .22, "survey_float"))
-    obs.append(Cylinder("Oxygen logger pressure case", yoke, (16.9, -18.95, 7.46), .16, "instrument_case"))
-    for side in (-.13, .13):
-        obs.append(Cylinder(f"Probe guard {side}", (16.9 + side, -18.95, 7.43),
-                            (16.9 + side * .6, -18.95, 7.88), .026, "survey_line"))
-    obs.append(Cylinder("Oxygen probe", (16.9, -18.95, 7.42), (16.9, -18.95, 7.76), .056, "instrument_case"))
-    return obs
-
-
-def inside_station():
-    """The pen's internal oxygen profile string hangs from a small collar bridle.
-
-    The mortality pump intake rides on skids on the net floor; the return hose
-    follows the bottom to the opposite collar so the handler can inspect the fish.
-    """
-    head = (8.55, 2.0, .24)
-    obs = [Cylinder("Profile head float", (8.55, 2., .1), head, .23, "survey_float"),
-           Cylinder("Profile suspension", head, (8.55, 2., 14.87), .035, "survey_line")]
-    for i in (22, 24):
-        obs.append(Cylinder(f"Profile bridle {i}", point(i * math.tau / SEGMENTS), head, .033, "survey_line"))
-    for depth in (7.5, 10.3, 13.6):
-        # Bright pressure cases, with a narrow metal probe constrained by two open protective rails.
-        obs.append(Cylinder(f"Profile sensor {depth}", (8.55, 2., depth - .27),
-                            (8.55, 2., depth + .15), .135, "valve_guard"))
-        obs.append(Cylinder(f"Profile collar {depth}", (8.55, 2., depth - .26),
-                            (8.55, 2., depth - .18), .15, "survey_float"))
-        obs.append(Cylinder(f"Profile probe {depth}", (8.55, 2., depth + .15),
-                            (8.55, 2., depth + .50), .05, "instrument_case"))
-        for s in (-.11, .11):
-            obs.append(Cylinder(f"Profile guard {depth}/{s}", (8.55, 2. + s, depth + .11),
-                                (8.55, 2. + .45 * s, depth + .52), .021, "survey_line"))
-    obs.append(Cylinder("Profile tail weight", (8.55, 2., 14.74), (8.55, 2., 15.04), .095, "pen_sinker"))
-    # The low-profile siphon head points into the pen. Two skids distribute its weight over the net.
-    for e in (-1.65, -1.05):
-        obs.append(Cylinder(f"Intake skid {e}", (27., e, 15.88), (28.4, e, 15.88), .085, "pen_frame"))
-        obs.append(Cylinder(f"Intake bail {e}", (27.55, e, 15.84), (27.75, e, 15.04), .054, "valve_guard"))
-    obs.append(Cylinder("Intake lifting bar", (27.75, -1.65, 15.04), (27.75, -1.05, 15.04), .054, "valve_guard"))
-    obs.append(Cylinder("Intake pickup float", (27.75, -1.35, 14.84), (27.75, -1.35, 15.02), .12, "survey_float"))
-    obs.append(Cylinder("Siphon inlet", (27.25, -1.13, 15.63), (27.95, -1.50, 15.63), .245, "debris_pipe"))
-    hose = ((27.91, -1.50, 15.63), (31.8, -6.4, 15.82), (36.68, -12.68, 15.82), (36.68, -12.68, .1))
-    for i, (a, b) in enumerate(zip(hose, hose[1:])):
-        obs.append(Cylinder(f"Siphon hose {i}", a, b, .126, "pen_frame"))
-    return obs
-
-
 def layout():
     obstacles = []
     holes = []
@@ -134,8 +71,6 @@ def layout():
                                   (corner[0], corner[1], .25), .45, "pen_buoy"))
         end = lines[-1][1]
         obstacles.append(Box(f"pen-anchor-{i}", end, (.8, .8, .3), 0, "pen_anchor"))
-    obstacles.extend(inspection_stations())
-    obstacles.extend(inside_station())
     fish = [dict(id=f"mort-{i}", pos=[x, y, 15.80])
             for i, (x, y) in enumerate(((9., 1.), (13., -3.), (21., 4.), (29., -5.)))]
     return obstacles, dict(center=list(CENTER), radius=RADIUS, net_depth=DEPTH, holes=holes, dead_fish=fish)

@@ -1,20 +1,3 @@
-// Controls for expeditions, their inspection stations and the team's shared observations.
-import {COLLECTION_CATEGORIES} from './collection_categories.js';
-
-// Both mission stations and shared field-guide marks feed the viewer's existing objective list.
-export function expeditionObjectives(state) {
-  const run = state.expedition;
-  const stations = (run?.active?.steps || []).filter(step => step.point && !step.completed);
-  const markers = (run?.markers || []).filter(marker => marker.point || marker.pos);
-  return [
-    ...stations.map(step => ({...step, kind: 'inspect', done: step.completed})),
-    ...markers.map(marker => ({
-      ...marker, id: 'discovery:' + marker.entity_id, label: COLLECTION_CATEGORIES[marker.label] || marker.label,
-      point: marker.point || marker.pos, kind: 'checkpoint', radius: .35,
-    })),
-  ];
-}
-
 export function installExpeditionPanel({send,getSession,takePhoto,openCollection,setOnboard,readOnly=false}){
   const panel=document.createElement('section');panel.className='expedition-panel';panel.hidden=true;
   panel.innerHTML=`<div class="expedition-title"><strong>海洋探索與工程</strong><button type="button" class="exp-collection">收藏</button></div>
@@ -69,17 +52,7 @@ export function installExpeditionPanel({send,getSession,takePhoto,openCollection
     const dkey=JSON.stringify([discoveries,markers]);
     if(discoverySignature!==dkey){
       discoverySignature=dkey;const list=find('.exp-discoveries');list.replaceChildren();
-      for (const item of discoveries) {
-        const li = document.createElement('li');
-        const label = COLLECTION_CATEGORIES[item.category] || item.label || item.category || '觀測';
-        li.textContent = `${label} · ${item.photographer || item.vehicle_id || '隊友'}`;
-        const mark = document.createElement('button');
-        mark.textContent = markers.some(m => m.entity_id === item.entity_id) ? '已標記' : '共享位置';
-        mark.disabled = readOnly;
-        mark.onclick = () => command('expedition_mark', {entity_id: item.entity_id});
-        li.append(mark);
-        list.append(li);
-      }
+      for(const item of discoveries){const li=document.createElement('li');li.textContent=`${item.label||item.category||'觀測'} · ${item.photographer||item.vehicle_id||'隊友'}`;const mark=document.createElement('button');mark.textContent=markers.some(m=>m.entity_id===item.entity_id)?'已標記':'共享位置';mark.disabled=readOnly;mark.onclick=()=>command('expedition_mark',{entity_id:item.entity_id});li.append(mark);list.append(li);}
       if(!discoveries.length){const li=document.createElement('li');li.textContent='隊友的新發現會顯示在這裡。';list.append(li);}
     }
     const result=(exp.results||[]).at(-1);
