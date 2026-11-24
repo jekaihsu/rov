@@ -551,23 +551,30 @@ def is_pen_site(key: str) -> bool:
 
 
 def _aquaculture_summary(key: str) -> dict:
-    """Site metadata for the viewer; escape variant adds an optional priority-hole block."""
+    """Site metadata for the viewer; Chapter 2 variants add turning-point blocks (qysim/chapter2.py)."""
     from .aquaculture import layout, hole_truth
+    from .chapter2 import ESCAPE_WINDOW_S, chapter2_summary
     data = dict(layout()[1])
     data["holes"] = [dict(hole, **{"truth": hole_truth(hole)}) for hole in data["holes"]]
+    chapter2 = chapter2_summary(key)
+    if chapter2:
+        data["chapter2"] = chapter2
     if str(key) == "aquaculture_pen_escape":
         primary = data["holes"][0]
         data["escape"] = {
             "hole_id": primary["id"],
             "priority": True,
-            "window_s": 720,
+            "window_s": ESCAPE_WINDOW_S,
             "truth": primary["truth"],
         }
     return data
 
 
 def aquaculture_pen_slack() -> Scenario:
-    """Same pen and physics at slack water: a weaker current for the career's first pen work orders."""
+    """Same pen and physics at slack water: a weaker current for the career's first pen work orders.
+
+    Current still sets east (90°), so the lee face is the east arc — the C2-1 billow / snag band
+    (qysim/chapter2.py)."""
     sc = aquaculture_pen()
     sc.key = "aquaculture_pen_slack"
     sc.name, sc.brief = PEN_VARIANT_STRINGS["slack_name"], PEN_VARIANT_STRINGS["slack_brief"]
@@ -577,13 +584,21 @@ def aquaculture_pen_slack() -> Scenario:
 
 def aquaculture_pen_inside() -> Scenario:
     """Mortality retrieval as done on real farms: the vehicle is launched from the pen walkway into the net.
-    Only the start point, the tether spool and the current setting differ; the site and physics are the same."""
+
+    The seabed is the net floor with a fluff bed, and the polygonal floor panels are removed so thruster
+    jets reach the silt model when the pilot stirs near the morts (C2-2; qysim/chapter2.py)."""
+    from . import chapter2 as c2
     sc = aquaculture_pen_slack()
     sc.key = "aquaculture_pen_inside"
     sc.name, sc.brief = PEN_VARIANT_STRINGS["inside_name"], PEN_VARIANT_STRINGS["inside_brief"]
     sc.start_pos = (16., 0., 4.)
     sc.spool_pos = (16., 0., 0.)
     sc.tether_length = 60.
+    sc.seabed_depth = c2.INSIDE_SEABED
+    sc.seabed_type = c2.INSIDE_SEABED_TYPE
+    sc.bnl_height_m = c2.INSIDE_BNL_HEIGHT_M
+    sc.bnl_mg_l = c2.INSIDE_BNL_MG_L
+    sc.obstacles = [o for o in sc.obstacles if not str(getattr(o, "name", "")).startswith("pen-floor-")]
     sc.objectives = [o for o in sc.objectives if o.kind == "pen_recover"]
     return sc
 

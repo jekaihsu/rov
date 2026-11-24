@@ -49,6 +49,7 @@ import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
+import {installChapter2, chapter2ControlsBlocked} from './story/chapter2.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
 import {installChapterCards} from './brand/chapter_card.js';
@@ -582,6 +583,7 @@ function onState(m) {
   campaignPanel.update(m);
   coldOpen.update(m, W);
   if (!REPLAY) prologue.update(m);
+  if (!REPLAY) chapter2.update(m, W);
   chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -645,7 +647,8 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
+const input = installInput({blocked: () => prologueControlsBlocked(S) || chapter2ControlsBlocked(S, careerDive)
+  || collectionOpen || pauseMenuOpen()
     || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
@@ -1216,6 +1219,7 @@ installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
 const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
+const chapter2 = installChapter2({input, camera, rovG, setCam, music, career: careerDive});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
