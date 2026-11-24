@@ -99,6 +99,15 @@ with sync_playwright() as p:
         print('Real terrain F paint and peer rendering passed', flush=True)
 
         assert page.locator('#engineering').is_visible()
+        # Engineering drawer must not cover the HUD tool that toggles it closed.
+        assert page.evaluate("""() => {
+          const btn = document.querySelector('#flightDrawer');
+          const panel = document.querySelector('#engineering');
+          if (!btn || !panel || panel.hidden) return false;
+          const r = btn.getBoundingClientRect();
+          const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !!(top && (top === btn || btn.contains(top)));
+        }"""), 'open #engineering covered #flightDrawer'
         page.click('#flightDrawer')
         assert page.locator('#engineering').is_hidden()
         canvas=page.locator('.viewport canvas').first
