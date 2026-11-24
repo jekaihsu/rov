@@ -13,7 +13,16 @@ import {licenceSerial, showLicenceAward} from '../brand/licence_award.js';
 import {showTitleCard} from '../brand/chapter_card.js';
 import {chapterCardData} from '../brand/chapters.js';
 
-function wallPlate(id, [north, east, depth]) {
+const MARK_LABELS = Object.freeze({A: '2', B: '籠', C: '卸'});
+// Visual mount points (landmark faces). Beat targets stay on the stand-off poses used by photo_matches.
+const MARK_FACES = Object.freeze({
+  A: [6.0, 0.0, 2.8],
+  B: [5.2, 2.0, 5.2],
+  C: [7.0, -2.8, 2.8],
+});
+
+function wallPlate(id, target) {
+  const [north, east, depth] = MARK_FACES[id] || target;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 256;
   const ctx = canvas.getContext('2d');
@@ -22,16 +31,38 @@ function wallPlate(id, [north, east, depth]) {
   ctx.fillStyle = '#163540';
   ctx.fillRect(8, 8, 240, 240);
   ctx.fillStyle = '#f3eedb';
-  ctx.font = 'bold 164px sans-serif';
+  ctx.font = 'bold 140px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(id, 128, 186);
+  ctx.fillText(MARK_LABELS[id] || id, 128, 170);
   for (let x = 18; x < 240; x += 20) ctx.fillRect(x, 211, 10, 17);
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
-  const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshBasicMaterial({map}));
-  plate.position.set(-east, -depth, north);
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.85), new THREE.MeshBasicMaterial({map}));
+  const radial = Math.hypot(north, east) || 1;
+  // Sit on the near face of the landmark so the mark reads as a pile / gear plate, not a free float.
+  plate.position.set(-east + (east / radial) * 0.35, -depth, north - (north / radial) * 0.35);
   plate.lookAt(0, -depth, 0);
   return plate;
+}
+
+/** Boat-stern establishing shot: from the work-boat transom above the water, looking at the ROV as it settles. */
+function sternLaunchShot(camera, rovG, spool, progress) {
+  const k = Math.min(1, Math.max(0, progress));
+  // Three.js: (-east, -depth, north). Eye sits on the work-boat deck aft of the spool so the hull, ROV and piles share the frame.
+  const spoolN = spool?.[0] || -5;
+  const eye = new THREE.Vector3(
+    0.35 + 0.4 * k,
+    1.55 - 0.35 * k,
+    spoolN - 1.4 + 0.9 * k,
+  );
+  camera.position.copy(eye);
+  const look = rovG.position.clone();
+  look.y = -0.55 - 0.7 * k;
+  look.z += 3.2 + 2.4 * k;
+  camera.up.set(0, 1, 0);
+  camera.lookAt(look);
+  camera.fov = 48 - 4 * k;
+  camera.updateProjectionMatrix();
 }
 
 export function prologueControlsBlocked(state) {
@@ -57,6 +88,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   let family = 'keyboard';
   let plates = [];
   let radioUntil = 0;
+  let spool = [-6, 0, 0];
   document.addEventListener('rov-input-device', function device(event) {
     family = deviceFamily(event.detail === 'touch' ? '' : event.detail);
   });
@@ -82,7 +114,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     retryAt = 0;
 
     if (lastPlate && s.campaign.accepted > lastCount) {
-      stage.stamp.textContent = lastPlate + '  ✓';
+      stage.stamp.textContent = STRINGS.stampDone.replace('{id}', lastPlate);
       stampedUntil = s.t + 2.6;
     }
     lastCount = s.campaign.accepted;
@@ -104,7 +136,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
       nextLineAt = s.t + 2.6;
     } else if (!beat.card) say(beat.radio, s.t, s.campaign.accepted);
     if (beat.card === 'licence') {
-      const holder = s.room.players.find(player => player.vehicle_id === s.vehicle_id)?.name || 'R-1';
+      const holder = s.room.players.find(player => player.vehicle_id === s.vehicle_id)?.name
+        || STRINGS.callsign;
       card = showLicenceAward({
         grade: 'trainee',
         holderName: holder,
@@ -143,6 +176,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   function update(s) {
     const c = s.campaign;
     if (!c?.directed || c.status !== 'active') return clear();
+    if (Array.isArray(s.spool)) spool = s.spool;
     if (!stage) {
       stage = createBeatStage('prologue', [STRINGS.site, STRINGS.sub], '');
       plates = c.plates.map(({id, target}) => wallPlate(id, target));
@@ -206,7 +240,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   function frame() {
     if (!beat?.location) return;
     const progress = Math.min(1, (performance.now() / 1000 - shotStart) / beat.limit);
-    establishingShot(camera, rovG, progress);
+    if (beat.id === 'establish') sternLaunchShot(camera, rovG, spool, progress);
+    else establishingShot(camera, rovG, progress);
   }
   return {update, frame};
 }

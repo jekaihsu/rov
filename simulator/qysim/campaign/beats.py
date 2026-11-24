@@ -2,8 +2,18 @@
 from math import atan2, degrees, hypot
 
 
+def _is_still_photo(photo):
+    """Accept any still shutter file; reject recordings without depending on a particular image extension."""
+    name = str(photo.get('name', '')).upper()
+    if name.endswith('MP4') or name.endswith('MOV') or name.endswith('MKV'):
+        return False
+    if float(photo.get('time') or 0) > 0:
+        return False
+    return 'pose' in photo
+
+
 def photo_matches(target, photo):
-    if not photo['name'].endswith('.JPG'):
+    if not _is_still_photo(photo):
         return False
     pose = photo['pose']
     n, e, d = (coord - pose[axis] for coord, axis in zip(target, ('n', 'e', 'depth')))

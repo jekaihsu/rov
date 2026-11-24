@@ -12,7 +12,7 @@ export const STRINGS = localize('brand.chapters', {
   generic: {number: '任務', client: 'YX', sub: 'DIVE BRIEF'},
   cards: {
     cold_open: {number: '開場 / 00', client: 'YX · 離岸風場', sub: 'JACKET · TETHER SNAG'},
-    prologue: {number: '序章 / 00', client: 'YX 海事服務 · 訓練', sub: 'CHECKOUT DIVE · TRAINING POOL'},
+    prologue: {number: '序章 / 00', client: 'YX 海事服務 · 訓練', sub: 'CHECKOUT DIVE · HARBOUR SHALLOWS'},
     harbor: {number: '第一章 / 01', client: '港務單位', sub: 'PILES · CRACK SURVEY'},
     hull: {number: '第一章 / 02', client: '船東', sub: 'HULL · IN-WATER SURVEY'},
     harbor_signoff: {number: '第一章 / 03', client: '港務單位 · 交班', sub: 'PILES · RE-INSPECTION'},
@@ -43,7 +43,7 @@ export const STRINGS = localize('brand.chapters', {
 // Chapter id → symbol name in brand/marks.js (CHAPTER_SYMBOL_IDS).
 const SYMBOLS = {
   cold_open: 'offshore',
-  prologue: 'pool',
+  prologue: 'harbor',
   harbor: 'harbor',
   hull: 'hull',
   harbor_signoff: 'harbor',
@@ -57,7 +57,7 @@ const PREFIX_SYMBOLS = [['incident_', 'incident'], ['course_', 'course']];
 // does not carry the scenario, so the card keeps its own copy; tests compare it with simulator/campaign/*.json.
 const SCENES = {
   cold_open: 'cold_open_jacket',
-  prologue: 'tutorial_pool',
+  prologue: 'harbor_shallows',
   harbor: 'harbor_inspection',
   hull: 'hull_inspection',
   harbor_signoff: 'harbor_inspection',
@@ -86,6 +86,7 @@ const SCENES = {
 // Scenarios that share another site's plate (the drills run at the same structures).
 const PLATE_ALIASES = {
   cold_open_jacket: 'jacket_inspection',
+  harbor_shallows: 'harbor_inspection',
   incident_jacket: 'jacket_inspection',
   incident_wreck: 'wreck_survey',
   incident_compass: 'harbor_inspection',

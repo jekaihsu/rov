@@ -25,7 +25,7 @@
     {
       "id": "prologue",
       "title": "序章 · 見習之前",
-      "summary": "青嶼港訓練水池與港外避風水域：走完程序，拿下見習駕駛員執照。"
+      "summary": "青嶼港內淺水區與港外避風水域：走完程序，拿下見習駕駛員執照。"
     },
     {
       "id": "ch1",
@@ -44,11 +44,11 @@
       "id": "p0_induction",
       "chapter": "prologue",
       "order": 0,
-      "title": "新人內訓：水池操作課",
+      "title": "新人內訓：港內淺水操作課",
       "client": "yx",
       "clientName": "YX 海事服務 · 訓練",
       "job": "training",
-      "scenario": "tutorial_pool",
+      "scenario": "harbor_shallows",
       "runtime": "chapter",
       "campaignChapter": "prologue",
       "vehicles": ["x1", "bluerov2_heavy", "falcon"],
@@ -56,15 +56,15 @@
       "pay": 1500,
       "reputation": 5,
       "optional": true,
-      "summary": "馬力陪飛。到北牆觀察鬆桿時的深度變化，再拍三面標板。",
-      "brief": "青嶼港訓練池，淡水、無流。周楷看纜，馬力帶飛。依次帶回北、東、南三面標板的照片，由林岑點收。",
+      "summary": "馬力陪飛。港內平潮認 2 號樁、蟹籠與浮碼頭卸扣，鬆桿時學定深微調。",
+      "brief": "青嶼港內避風淺水區，晴天上午、平潮。周楷看纜，馬力帶飛。先在港裡練，不出港。依次帶回樁牌、蟹籠與錨鏈卸扣的照片，由林岑點收。",
       "radio": {
         "speaker": "林岑",
-        "start": "向潮－指揮呼叫 R-1。今天池裡認識搭檔。先檢查。",
+        "start": "向潮－指揮呼叫 R-1。先在港裡練，不出港。",
         "done": "收工。程序過了。",
         "lines": [
           {"when": "start", "speaker": "林岑", "text": "向潮－指揮呼叫 R-1。"},
-          {"when": "start", "speaker": "林岑", "text": "今天池裡認識搭檔。先檢查。"},
+          {"when": "start", "speaker": "林岑", "text": "先在港裡練，不出港。"},
           {"when": "start", "speaker": "方晴", "text": "甲板淨空。尾板就緒。"},
           {"when": "start", "speaker": "周楷", "text": "纜手就位。線我看著。"}
         ]

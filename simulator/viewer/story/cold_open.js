@@ -407,7 +407,7 @@ export function installColdOpen({
     radio.classList.remove('speaking');
     queue = [];
     voice.stop?.();
-    const data = chapterCardData({id: 'prologue', title: STRINGS.card.chapterTitle, scenario: 'tutorial_pool'});
+    const data = chapterCardData({id: 'prologue', title: STRINGS.card.chapterTitle, scenario: 'harbor_shallows'});
     data.id = 'cold_open_flashback';
     data.title = STRINGS.card.title;
     const card = showTitleCard(data, {duration: CARD_MS});

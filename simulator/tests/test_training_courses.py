@@ -111,4 +111,6 @@ class TrainingCourseTests(unittest.TestCase):
         expected = [copy.deepcopy(node) for node in source['nodes'] if node['type'] == 'wait']
         actual = [node for node in course['nodes'] if node['type'] == 'wait']
         self.assertEqual(actual, expected)
-        self.assertEqual(course['scenario'], source['scenario'])
+        # course_b01 keeps the company training pool; the directed prologue may use harbor_shallows.
+        self.assertEqual(course['scenario'], 'tutorial_pool')
+        self.assertIn(source['scenario'], ('tutorial_pool', 'harbor_shallows'))

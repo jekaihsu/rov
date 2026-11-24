@@ -42,6 +42,7 @@ test("dive sites exclude incident drills and the onboarding pool", () => {
     assert.equal(sites.includes(chapter.scenario), false, chapter.id);
   }
   assert.equal(sites.includes("tutorial_pool"), false);
+  assert.equal(sites.includes("harbor_shallows"), false);
   assert.ok(sites.includes("coral_reef"));
   const reef = scenes.find((scene) => scene.key === "coral_reef");
   assert.ok(supportsMode(reef, "expedition"));
