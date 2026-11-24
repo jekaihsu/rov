@@ -171,8 +171,11 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
   }
   function focusFirst(container = scope()) {
     const list = controls(container);
-    const preferred = list.find(function marked(element) {
-      return element.matches('[data-autofocus], [aria-pressed=true], [aria-selected=true]');
+    const explicit = list.find(function marked(element) {
+      return element.matches('[data-autofocus]');
+    });
+    const preferred = explicit || list.find(function marked(element) {
+      return element.matches('[aria-pressed=true], [aria-selected=true]');
     });
     focus(preferred || list[0]);
   }

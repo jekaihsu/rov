@@ -28,6 +28,8 @@ def walk(browser, edition):
     press(page, CIRCLE)
     choose_entry(page, 'story')
     page.wait_for_selector('#journalReplay')
+    page.wait_for_function('document.activeElement?.dataset?.order === "p0_induction"',
+                           timeout=timeout(10000))
     press(page, R1)
     wait_focus(page, 'journal-tab-ch1')
     press(page, L1)

@@ -9,7 +9,8 @@ from PIL import Image, ImageDraw, ImageFont
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, wait_screen
+from _menu import open_main, set_intro, wait_screen, wait_title_card_gone
+from browser_prologue_smoke import play_prologue
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'docs' / 'design' / 'main-menu-r8' / 'after'
@@ -38,6 +39,7 @@ def capture_pair(browser, name, open_screen):
     for width, height in SIZES:
         page = main_page(browser, width, height)
         open_screen(page)
+        page.mouse.move(4, 4)
         page.wait_for_timeout(1400)
         jpeg(page, OUT / f'after-{name}-{width}.jpg')
         page.close()
@@ -90,10 +92,35 @@ def capture_pause_results(browser):
         page.keyboard.press('Escape')
         page.wait_for_timeout(1000)
         jpeg(page, OUT / f'after-pause-{width}.jpg')
-        # Reuse pause as results stand-in when no results surface is open in free dive.
-        Image.open(OUT / f'after-pause-{width}.jpg').save(OUT / f'after-results-{width}.jpg', quality=82)
-        print(f'after-results-{width}.jpg (from pause)', flush=True)
         page.close()
+
+
+def capture_results(browser):
+    page = browser.new_page(viewport={'width': 1600, 'height': 900})
+    page.set_default_timeout(timeout(90000))
+    page.goto(
+        f'{http_base()}/?nointro&mission=campaign&control=UAV_CHN'
+        f'&quality=performance&model=bluerov2_heavy&room=r8results&ws={ws_base()}')
+    open_main(page)
+    page.click('#entry-training')
+    page.click('#training-tab-story')
+    page.click('[data-chapter="prologue"]')
+    page.click('#hangarNext')
+    wait_screen(page, 'briefing')
+    set_intro(page, False)
+    page.click('#startDive')
+    page.wait_for_function(
+        'window.__viewer?.S?.campaign?.chapter === "prologue"', timeout=timeout(120000))
+    wait_title_card_gone(page)
+    play_prologue(page)
+    page.wait_for_selector('#resultsScreen:not([hidden])', timeout=timeout(30000))
+    page.mouse.move(4, 4)
+    page.wait_for_timeout(600)
+    jpeg(page, OUT / 'after-results-1600.jpg')
+    page.set_viewport_size({'width': 1366, 'height': 768})
+    page.wait_for_timeout(500)
+    jpeg(page, OUT / 'after-results-1366.jpg')
+    page.close()
 
 
 def run():
@@ -105,6 +132,7 @@ def run():
         capture_pair(browser, 'training', lambda page: (page.click('#entry-training'), wait_screen(page, 'training')))
         capture_pair(browser, 'settings', lambda page: (page.click('#entry-settings'), wait_screen(page, 'settings')))
         capture_pause_results(browser)
+        capture_results(browser)
 
         lang_paths = []
         for lang, name in LANGS:

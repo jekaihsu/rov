@@ -55,11 +55,17 @@ function fitScale(root) {
 }
 
 function disposeTree(group) {
+  const geometries = new Set();
+  const materials = new Set();
   group.traverse(function release(object) {
-    object.geometry?.dispose();
-    const materials = Array.isArray(object.material) ? object.material : [object.material];
-    for (const material of materials) material?.dispose();
+    if (object.geometry) geometries.add(object.geometry);
+    const list = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of list) {
+      if (material) materials.add(material);
+    }
   });
+  for (const geometry of geometries) geometry.dispose();
+  for (const material of materials) material.dispose();
   group.clear();
 }
 
@@ -81,17 +87,122 @@ function journalWorld(world) {
   return {...world, obstacles, habitat};
 }
 
-function workCable(from, to) {
-  const curve = new THREE.CatmullRomCurve3([
-    from.clone(),
-    from.clone().lerp(to, 0.35).add(new THREE.Vector3(0.2, 0.35, -0.4)),
-    from.clone().lerp(to, 0.7).add(new THREE.Vector3(-0.15, 0.15, -0.2)),
-    to.clone(),
-  ]);
-  return new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 20, 0.018, 6, false),
-    new THREE.MeshStandardMaterial({color: 0xb8893d, roughness: 0.85, metalness: 0.05}),
+// Journal main shot stays on the vehicle, a little higher so the cable and floor gear sit in frame.
+const JOURNAL_MAIN = { eye: [-2.7, 1.45, 3.15], shift: 1.15, lift: -0.72, orbit: 0.008 };
+const CABLE = 0xc99443;
+
+function cableMaterial() {
+  return new THREE.MeshStandardMaterial({color: CABLE, roughness: 0.84, metalness: 0.04});
+}
+
+function cableMesh(points) {
+  const curve = new THREE.CatmullRomCurve3(points);
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, points.length * 2, 0.009, 5, false), cableMaterial());
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+// Slack umbilical: a short catenary onto the floor, then a loose run lying on it.
+function drapePoints(from, floorY, touch, end, side) {
+  const points = [];
+  const fall = 14;
+  for (let i = 0; i <= fall; i += 1) {
+    const t = i / fall;
+    const ease = Math.sin(t * Math.PI / 2);
+    const point = from.clone().lerp(touch, t);
+    point.y = from.y + (floorY - from.y) * ease;
+    point.addScaledVector(side, Math.sin(t * Math.PI) * 0.38);
+    points.push(point);
+  }
+  const run = 10;
+  for (let i = 1; i <= run; i += 1) {
+    const t = i / run;
+    const point = touch.clone().lerp(end, t);
+    point.y = floorY + 0.012;
+    point.addScaledVector(side, Math.sin(t * Math.PI) * 0.22);
+    points.push(point);
+  }
+  return points;
+}
+
+function floorLoop(center, floorY, right, toward) {
+  const points = [];
+  const steps = 18;
+  for (let i = 0; i <= steps; i += 1) {
+    const angle = (i / steps) * Math.PI * 1.7;
+    const point = center.clone();
+    point.addScaledVector(right, Math.cos(angle) * 0.36);
+    point.addScaledVector(toward, Math.sin(angle) * 0.24);
+    point.y = floorY + 0.012;
+    points.push(point);
+  }
+  return points;
+}
+
+function shadeProp(object) {
+  object.traverse(function mark(child) {
+    if (!child.isMesh) return;
+    child.castShadow = true;
+    child.receiveShadow = true;
+  });
+  return object;
+}
+
+function cableReel(position) {
+  const group = new THREE.Group();
+  group.position.copy(position);
+  const steel = new THREE.MeshStandardMaterial({color: 0x6a726e, roughness: 0.55, metalness: 0.4});
+  const wound = new THREE.MeshStandardMaterial({color: CABLE, roughness: 0.8, metalness: 0.05});
+  const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.32, 12), wound);
+  drum.rotation.z = Math.PI / 2;
+  const flange = new THREE.CylinderGeometry(0.36, 0.36, 0.03, 16);
+  const left = new THREE.Mesh(flange, steel);
+  left.rotation.z = Math.PI / 2;
+  left.position.x = -0.17;
+  const right = left.clone();
+  right.position.x = 0.17;
+  const legGeo = new THREE.BoxGeometry(0.06, 0.34, 0.06);
+  const legA = new THREE.Mesh(legGeo, steel);
+  legA.position.set(-0.17, -0.2, 0.16);
+  const legB = legA.clone();
+  legB.position.z = -0.16;
+  const legC = legA.clone();
+  legC.position.x = 0.17;
+  const legD = legB.clone();
+  legD.position.x = 0.17;
+  group.add(drum, left, right, legA, legB, legC, legD);
+  return shadeProp(group);
+}
+
+function toolBox(position) {
+  const group = new THREE.Group();
+  group.position.copy(position);
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.58, 0.26, 0.32),
+    new THREE.MeshStandardMaterial({color: 0xb4531f, roughness: 0.66, metalness: 0.08}),
   );
+  const lid = new THREE.Mesh(
+    new THREE.BoxGeometry(0.58, 0.05, 0.32),
+    new THREE.MeshStandardMaterial({color: 0x8a3e16, roughness: 0.72, metalness: 0.06}),
+  );
+  lid.position.y = 0.155;
+  const handle = new THREE.Mesh(
+    new THREE.TorusGeometry(0.09, 0.012, 6, 10, Math.PI),
+    new THREE.MeshStandardMaterial({color: 0x24282a, roughness: 0.4, metalness: 0.55}),
+  );
+  handle.rotation.z = Math.PI;
+  handle.position.y = 0.22;
+  group.add(body, lid, handle);
+  return shadeProp(group);
+}
+
+function viewBasis() {
+  const toward = new THREE.Vector3(JOURNAL_MAIN.eye[0], 0, JOURNAL_MAIN.eye[2]);
+  if (toward.lengthSq() < 1e-6) toward.set(0, 0, 1);
+  toward.normalize();
+  const right = new THREE.Vector3(toward.z, 0, -toward.x);
+  return { toward, right };
 }
 
 export function createStage(host, { quality = 'auto' } = {}) {
@@ -169,14 +280,6 @@ export function createStage(host, { quality = 'auto' } = {}) {
   }).catch(function ignored() {
     crewLib = null;
   });
-  const umbilical = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, .1, 0), new THREE.Vector3(-.4, .35, -.8),
-    new THREE.Vector3(-1.4, 1.2, -3), new THREE.Vector3(-2.5, 8, -7),
-  ]);
-  const tether = new THREE.Mesh(new THREE.TubeGeometry(umbilical, 24, .014, 5, false),
-    new THREE.MeshStandardMaterial({color: 0xc99443, roughness: .8}));
-  scene.add(tether);
-  tether.visible = false;
   // The fog set by setSea (SEA or SHOWCASE.fog); site cards widen it per frame and other poses restore it.
   let sea = SEA;
   // Large vehicles push the hangar camera back so they are never cropped (1 = the size the poses were set for).
@@ -283,6 +386,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
       });
       if (wall?.p0) {
         anchor.copy(P(world.start_pos || [0, 0, 3]));
+        // Sit the vehicle just off the pool floor so the spare cable reads as a short drape, not a pole.
+        anchor.y = seabed + 1.35;
         return;
       }
     }
@@ -319,45 +424,55 @@ export function createStage(host, { quality = 'auto' } = {}) {
     dressing.add(crew.root);
     dressing.userData.crew = crew;
   }
-  function dressJournal(world) {
+  function clearDressing() {
+    const crew = dressing.userData.crew;
+    if (crew) {
+      crew.root.removeFromParent();
+      dressing.userData.crew = null;
+    }
     disposeTree(dressing);
-    dressing.userData.crew = null;
+  }
+  // Spare umbilical, reel and toolbox on the floor behind the vehicle, where the main shot looks down.
+  function layWorksite(floorY) {
+    const { toward, right } = viewBasis();
+    const back = toward.clone().multiplyScalar(-1);
+    const gland = anchor.clone();
+    gland.y += 0.02;
+    gland.addScaledVector(back, 0.35);
+    const touch = anchor.clone();
+    touch.y = floorY;
+    touch.addScaledVector(back, 1.35);
+    touch.addScaledVector(right, 0.15);
+    const end = touch.clone().addScaledVector(back, 0.45).addScaledVector(right, 0.7);
+    dressing.add(cableMesh(drapePoints(gland, floorY, touch, end, right)));
+    dressing.add(cableMesh(floorLoop(end, floorY, right, back)));
+    const reelPos = touch.clone().addScaledVector(right, -0.85);
+    reelPos.y = floorY + 0.37;
+    const reel = cableReel(reelPos);
+    reel.rotation.y = Math.atan2(back.x, back.z);
+    dressing.add(reel);
+    const boxPos = end.clone().addScaledVector(right, 0.15).addScaledVector(back, 0.15);
+    boxPos.y = floorY + 0.13;
+    const box = toolBox(boxPos);
+    box.rotation.y = reel.rotation.y + 0.5;
+    dressing.add(box);
+  }
+  function dressJournal(world) {
+    clearDressing();
     if (!journal) return;
     const ticket = ++crewTicket;
-    const piles = (world.obstacles || []).filter(function pile(obstacle) {
-      return obstacle.type === 'cylinder' && (!obstacle.kind || obstacle.kind === 'pile');
+    const floorY = seabed + 0.03;
+    layWorksite(floorY);
+    const deck = (world.obstacles || []).find(function jetty(obstacle) {
+      return obstacle.kind === 'deck';
     });
-    if (piles.length) {
-      const first = P(piles[0].p0).lerp(P(piles[0].p1), 0.35);
-      const second = piles[1]
-        ? P(piles[1].p0).lerp(P(piles[1].p1), 0.4)
-        : first.clone().add(new THREE.Vector3(2, 0, 1));
-      dressing.add(workCable(first.clone().add(new THREE.Vector3(0.1, 0.2, 0)), second));
-      // A second working line from the vehicle toward the nearest pile, so the shot reads as a live job.
-      dressing.add(workCable(anchor.clone().add(new THREE.Vector3(0.05, 0.12, 0)), first));
-      const deck = (world.obstacles || []).find(function jetty(obstacle) {
-        return obstacle.kind === 'deck';
-      });
-      if (deck?.center) {
-        const spot = P(deck.center);
-        spot.y += 0.02;
-        placeCrew(spot, Math.PI * 0.7);
-      }
-    } else {
-      // Indoor pool / open water: spare umbilical loops in frame with the live tether.
-      dressing.add(workCable(
-        anchor.clone().add(new THREE.Vector3(-0.25, 0.08, 0.15)),
-        anchor.clone().add(new THREE.Vector3(1.8, 0.55, -1.4)),
-      ));
-      dressing.add(workCable(
-        anchor.clone().add(new THREE.Vector3(0.35, -0.05, -0.2)),
-        anchor.clone().add(new THREE.Vector3(-1.2, 0.35, -2.2)),
-      ));
-      // Deck tender at the pool rim (waterline), looking toward the vehicle.
-      placeCrew(new THREE.Vector3(anchor.x + 0.8, 0.02, anchor.z - 3.8), Math.PI);
+    if (deck?.center) {
+      const spot = P(deck.center);
+      spot.y += 0.02;
+      placeCrew(spot, Math.PI * 0.7);
     }
     // Humanoid loads asynchronously; refresh dressing once when the library arrives.
-    if (!crewLib) {
+    if (!crewLib && deck?.center) {
       Humanoid.load('models/worker.glb').then(function ready(lib) {
         if (disposed || ticket !== crewTicket) return;
         crewLib = lib;
@@ -370,7 +485,6 @@ export function createStage(host, { quality = 'auto' } = {}) {
     if (!entry || disposed) return;
     if (state.sceneKey === entry.key && hero === showcase && journal === chapter) return;
     journal = chapter;
-    tether.visible = !!journal;
     still = false;
     keyLight.color.set(journal === 'prologue' ? 0xffbf89 : journal === 'ch2' ? 0xb4cad4 : 0xffffff);
     showcase = hero;
@@ -425,7 +539,9 @@ export function createStage(host, { quality = 'auto' } = {}) {
   function setPose(name) {
     still = false;
     poseName = name;
-    pose = (showcase && SHOWCASE.poses[name]) || POSES[name] || POSES.main;
+    if (journal && name === 'main') pose = JOURNAL_MAIN;
+    else pose = (showcase && SHOWCASE.poses[name]) || POSES[name] || POSES.main;
+    dressing.visible = Boolean(journal) && name === 'main';
   }
   // value: −1..1 from the stick or a pointer drag; turns the turntable with a little momentum.
   function rotate(value, dt) {
@@ -496,7 +612,6 @@ export function createStage(host, { quality = 'auto' } = {}) {
     }
     environment?.update(dt, camera, new THREE.Vector3(0.1, 0, 0));
     dressing.userData.crew?.update?.(dt);
-    tether.position.copy(anchor);
     renderer.render(scene, camera);
     still = holdShot && state.modelReady;
   }
@@ -511,10 +626,10 @@ export function createStage(host, { quality = 'auto' } = {}) {
     model?.dispose();
     model = null;
     disposeTree(structures);
-    disposeTree(dressing);
-    tether.geometry.dispose();
-    tether.material.dispose();
-    scene.remove(tether);
+    clearDressing();
+    // dispose() drops GPU objects but keeps the WebGL context. A second context on the dive page
+    // then doubles software-GL frame time and the cold-open pilot flies into the jacket.
+    renderer.forceContextLoss();
     renderer.dispose();
     renderer.domElement.remove();
   }

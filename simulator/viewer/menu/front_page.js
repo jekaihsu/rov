@@ -107,11 +107,16 @@ export function buildStory(ctx) {
         function refresh() {
           const current = journal(ctx.career).find(item => item.chapter.id === group.chapter.id);
           grid.replaceChildren();
+          let focused = false;
           for (const { contract, status } of current.contracts) {
             const button = element('button', 'field-order');
             button.dataset.order = contract.id;
             button.setAttribute('aria-disabled', String(!status.available));
             button.classList.toggle('is-locked', !status.available);
+            if (status.available && !focused) {
+              button.dataset.autofocus = '';
+              focused = true;
+            }
             const record = ctx.career.save.contracts[contract.id];
             const sub = status.available ? medalLabel(record?.medal || 'none') : STRINGS.locked;
             button.dataset.medal = record?.medal || 'none';
@@ -132,6 +137,7 @@ export function buildStory(ctx) {
             replay.append(titleCard(data));
             replay.addEventListener('click', ctx.replayColdOpen);
             replay.id = 'journalReplay';
+            if (!focused) replay.dataset.autofocus = '';
             grid.append(replay);
           }
         }
