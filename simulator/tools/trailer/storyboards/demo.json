@@ -33,7 +33,7 @@
       "duration": 7,
       "scenario": "harbor_inspection",
       "seed": 7,
-      "hud": true,
+      "hud": ["depth", "heading"],
       "hero_at": 3.0,
       "weather": {"current_kn": 1.0, "surface_dir": 90, "visibility_m": 7},
       "camera": {"mode": "onboard"},

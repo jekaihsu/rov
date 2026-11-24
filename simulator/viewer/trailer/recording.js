@@ -1,11 +1,60 @@
 // Trailer recording presentation: hide debug chrome, pin quality and seed, drive camera paths.
 // Activated by ?trailer=1 (optionally with ?capture for fixed-step __advance). Does not change physics.
+// Session-only: never writes rov.quality or rov.fidelity.v1; quality comes from the URL (?quality=ultra).
 
 import {evaluateCameraPath} from './camera_path.js';
 
 const STRINGS = {
   recording: '錄影模式',
 };
+
+/** HUD parts a storyboard may keep on screen. Tools / cards / target aids stay off. */
+export const TRAILER_HUD_PARTS = Object.freeze([
+  'depth', 'heading', 'attitude', 'map', 'status', 'mission', 'telemetry', 'warning',
+]);
+
+const FULL_HUD = Object.freeze([...TRAILER_HUD_PARTS]);
+const MINIMAL_HUD = Object.freeze(['depth', 'heading']);
+
+/**
+ * True only for explicit on values. `?trailer=0` / `?trailer=false` stay off
+ * (unlike URLSearchParams.has, which is true whenever the key is present).
+ */
+export function trailerParamEnabled(params) {
+  if (!params || typeof params.get !== 'function') return false;
+  if (!params.has('trailer')) return false;
+  const value = params.get('trailer');
+  if (value === null || value === undefined) return false;
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === '' || normalized === '1' || normalized === 'true' || normalized === 'on' || normalized === 'yes') {
+    return true;
+  }
+  return false;
+}
+
+/** Normalize storyboard `hud` into a list of part ids (may be empty). */
+export function normalizeTrailerHud(spec) {
+  if (spec === false || spec === 'off' || spec == null) return [];
+  if (spec === true || spec === 'full') return [...FULL_HUD];
+  if (spec === 'minimal') return [...MINIMAL_HUD];
+  if (Array.isArray(spec)) {
+    const allowed = new Set(TRAILER_HUD_PARTS);
+    const parts = [];
+    for (const item of spec) {
+      const id = String(item || '').trim();
+      if (allowed.has(id) && !parts.includes(id)) parts.push(id);
+    }
+    return parts;
+  }
+  if (typeof spec === 'object') {
+    const parts = [];
+    for (const id of TRAILER_HUD_PARTS) {
+      if (spec[id]) parts.push(id);
+    }
+    return parts;
+  }
+  return [];
+}
 
 /**
  * Install trailer recording mode. Call `frame(dt)` after the normal camera rig update so the path
@@ -18,32 +67,33 @@ export function installTrailerRecording({
   setCam,
   getFidelity,
   document: doc = document,
-  storage = globalThis.localStorage,
 }) {
-  const enabled = params.has('trailer') || params.get('trailer') === '1';
+  const enabled = trailerParamEnabled(params);
   if (!enabled) {
     return {
       enabled: false,
       frame() {},
       setPath() {},
       setHud() {},
+      suppressAids() {},
       time() {
         return 0;
+      },
+      hideTargets() {
+        return false;
       },
     };
   }
 
   doc.body.classList.add('trailer', 'movie');
   doc.body.classList.add('hud-hidden');
-  try {
-    storage?.setItem('rov.quality', 'ultra');
-  } catch {
-    /* private mode */
-  }
+  doc.body.dataset.trailerHud = 'off';
+
+  // Allow chase/follow poses in-memory only; do not persist into rov.fidelity.v1.
   const fidelity = getFidelity?.();
-  if (fidelity) {
+  if (fidelity?.setSession) {
     try {
-      fidelity.set('thirdPerson', true);
+      fidelity.setSession('thirdPerson', true);
     } catch {
       /* ignored */
     }
@@ -51,12 +101,14 @@ export function installTrailerRecording({
 
   let path = null;
   let clock = 0;
-  let hudVisible = true;
+  let hudParts = [];
   let active = true;
 
-  function applyHud(visible) {
-    hudVisible = !!visible;
-    doc.body.classList.toggle('hud-hidden', !hudVisible);
+  function applyHud(spec) {
+    hudParts = normalizeTrailerHud(spec);
+    const show = hudParts.length > 0;
+    doc.body.classList.toggle('hud-hidden', !show);
+    doc.body.dataset.trailerHud = show ? hudParts.join(' ') : 'off';
   }
 
   function rovPose() {
@@ -113,10 +165,31 @@ export function installTrailerRecording({
     applyPose(sample);
   }
 
+  /** Hide wireframe targets, guides and world labels each frame (app.js re-enables some of them). */
+  function suppressAids({objG, navTarget, guide, routeLine, labelsCheckbox} = {}) {
+    if (objG) objG.visible = false;
+    if (navTarget) navTarget.visible = false;
+    if (guide) guide.visible = false;
+    if (routeLine) routeLine.visible = false;
+    if (labelsCheckbox) labelsCheckbox.checked = false;
+  }
+
+  // Drop labels at install so the first painted frame is already clean.
+  try {
+    const labels = doc.getElementById?.('optLabels');
+    if (labels) labels.checked = false;
+  } catch {
+    /* ignored */
+  }
+
   const api = {
     enabled: true,
     label: STRINGS.recording,
     frame,
+    suppressAids,
+    hideTargets() {
+      return true;
+    },
     time() {
       return clock;
     },
@@ -129,8 +202,11 @@ export function installTrailerRecording({
       if (path?.mode === 'onboard') setCam('onboard');
     },
     setHud: applyHud,
+    hudParts() {
+      return [...hudParts];
+    },
     hudVisible() {
-      return hudVisible;
+      return hudParts.length > 0;
     },
     evaluate(t) {
       return evaluateCameraPath(path, t, rovPose());
@@ -138,6 +214,7 @@ export function installTrailerRecording({
     stop() {
       active = false;
       doc.body.classList.remove('trailer', 'movie', 'hud-hidden');
+      delete doc.body.dataset.trailerHud;
     },
   };
 

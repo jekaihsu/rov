@@ -14,9 +14,18 @@ sys.path.insert(0, str(TOOLS))
 from _browser import http_base, launch, timeout, ws_base  # noqa: E402
 
 
-def _hud_flag(hud) -> bool:
+def _hud_payload(hud):
+    """Pass storyboard HUD through to window.__trailer.setHud (bool, 'minimal', or part list)."""
     if hud in (False, 'off'):
         return False
+    if hud in (True, 'full', None):
+        return True
+    if hud == 'minimal':
+        return 'minimal'
+    if isinstance(hud, list):
+        return list(hud)
+    if isinstance(hud, dict):
+        return [key for key, on in hud.items() if on]
     return True
 
 
@@ -54,8 +63,7 @@ def capture_clip(
     if frames_dir is not None and not hero_only:
         frames_dir.mkdir(parents=True, exist_ok=True)
     # Serve the clip from the simulator HTTP root so ?replay=… can fetch it.
-    # bake writes under simulator/output/trailer/…; the server mounts viewer/ and also may serve
-    # from the simulator root depending on config. Copy into viewer/_trailer_clips for a stable URL.
+    # bake writes under output/trailer/…; copy into viewer/_trailer_clips for a stable replay URL.
     viewer_clips = TOOLS.parent / 'viewer' / '_trailer_clips'
     viewer_clips.mkdir(parents=True, exist_ok=True)
     served = viewer_clips / clip_path.name
@@ -64,10 +72,9 @@ def capture_clip(
 
     base = http_base(http_port or 8092)
     ws = ws_base(ws_port or 8792)
-    query = (
-        f'?ws={ws}&replay={replay_url}&capture&trailer=1&nointro&nopip&quality=ultra'
-        f'&movie=0'
-    )
+    # Do not pass movie=… — params.has('movie') would still enable the demo title card.
+    # Quality is URL-only (recording.js must not write rov.quality into localStorage).
+    query = f'?ws={ws}&replay={replay_url}&capture&trailer=1&nointro&nopip&quality=ultra'
     url = f'{base}/{query}'
 
     frame_count = int(round(duration * fps))
@@ -98,7 +105,7 @@ def capture_clip(
                 window.__viewer.setCam('onboard');
               }
             }""",
-            [camera, _hud_flag(hud)],
+            [camera, _hud_payload(hud)],
         )
         # Warm a couple of frames so materials and the first state settle.
         for _ in range(3):

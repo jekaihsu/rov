@@ -28,6 +28,17 @@
 
 每個鏡頭可寫：`scenario`／`seed`、`duration`、`camera`（`onboard`／`follow`／`orbit`／`fixed` + Catmull-Rom 關鍵影格）、`drive`（推力腳本）、`hud`、`weather`。
 
+### `hud`（逐鏡頭）
+
+錄影模式預設藏標題卡、工具列、目標線框／標籤與除錯 UI。`hud` 只決定要留哪些飛行儀表：
+
+| 值 | 效果 |
+|---|---|
+| `false`／`"off"` | 全關 |
+| `"minimal"` 或 `["depth","heading"]` | 深度＋航向（開場建議） |
+| `true`／`"full"` | 完整飛行儀表（仍無工具列／標題卡） |
+| 字串陣列 | 自選：`depth` `heading` `attitude` `map` `status` `mission` `telemetry` `warning` |
+
 ## 怎麼跑
 
 在儲存庫根目錄：
@@ -35,9 +46,9 @@
 ```bash
 # 單元測試（插值、分鏡）
 cd simulator && python3 -m unittest tests.test_trailer_catmull tests.test_trailer_storyboard
-node --test tests/test_trailer_camera_path.mjs
+node --test tests/test_trailer_camera_path.mjs tests/test_trailer_recording.mjs
 
-# 錄 5 秒測試鏡頭（會自己開伺服器；輸出在 simulator/output/trailer/）
+# 錄 5 秒測試鏡頭（會自己開伺服器；輸出在 output/trailer/）
 python3 simulator/tools/trailer/run.py \
   --storyboard simulator/tools/trailer/storyboards/test_5s.json
 
@@ -61,9 +72,9 @@ python3 simulator/tools/trailer/run.py \
 ## 輸出（皆不提交）
 
 ```
-simulator/output/trailer/
-  <shot-id>/clip.json     # 烤好的回放
-  <shot-id>/frames/       # PNG 序列（可刪）
+output/trailer/                 # 儲存庫根目錄（任務書路徑）
+  <shot-id>/clip.json           # 烤好的回放
+  <shot-id>/frames/             # PNG 序列（可刪）
   <shot-id>/<shot-id>.mp4
   <shot-id>/hero.png
   manifest.json
@@ -76,7 +87,7 @@ docs/design/trailer/<shot-id>.jpg   # ≤ 300 KB，給擁有者審分鏡（提�
 
 1. **Bake**：後端 `Simulator` 固定 0.01 s 步長，依 `drive` 腳本採樣 60 Hz → `qysim-replay-2` 回放。不改物理。
 2. **Capture**：Playwright（`_browser.py`）開 `?replay=…&capture&trailer=1&quality=ultra`；每幀 `__advance(1/60)` 後截 PNG。畫面不卡在牆鐘。
-3. **錄影模式**（`viewer/trailer/recording.js`）：藏除錯／工程架、固定種子與最高畫質、套用攝影機路徑。
+3. **錄影模式**（`viewer/trailer/recording.js`）：藏除錯／標題卡／目標輔助、URL 最高畫質（不寫 localStorage）、套用攝影機路徑與逐鏡 HUD。
 4. **Encode**：ffmpeg 合成 MP4。
 5. **Hero**：每鏡一張 JPEG ≤ 300 KB 到 `docs/design/trailer/`。
 
@@ -92,3 +103,4 @@ docs/design/trailer/<shot-id>.jpg   # ≤ 300 KB，給擁有者審分鏡（提�
 - 不提交影片與 PNG；只提交工具與分鏡 JSON、代表畫面。
 - 字卡文字在分鏡的 `cards` 欄，給後製用；遊戲畫面不燒字。
 - 預潛／講評等 UI 鏡若要實拍介面，另開鏡頭補；本工具以潛航畫面為主。
+- `?trailer=0` 不會開啟錄影模式；必須 `trailer=1`（或 `true`／`on`）。

@@ -142,6 +142,16 @@ test('settings persist and round-trip through an injected storage', function () 
   assert.deepEqual(JSON.parse(storage.data.get(STORAGE_KEY)), {version: 1, base: 'real', overrides: {}});
   assert.equal(createFidelity({storage}).preset, 'real');
 });
+test('setSession changes values without writing storage', function () {
+  const storage = memoryStorage({
+    [STORAGE_KEY]: JSON.stringify({version: 1, base: 'real', overrides: {}}),
+  });
+  const fidelity = createFidelity({storage});
+  assert.equal(fidelity.get('thirdPerson'), false);
+  assert.equal(fidelity.setSession('thirdPerson', true), true);
+  assert.equal(fidelity.get('thirdPerson'), true);
+  assert.deepEqual(JSON.parse(storage.data.get(STORAGE_KEY)), {version: 1, base: 'real', overrides: {}});
+});
 test('a user change replaces the URL value for that item and persists', function () {
   const storage = memoryStorage();
   const fidelity = createFidelity({storage, search: 'fidelity=assisted&gimbal=0'});

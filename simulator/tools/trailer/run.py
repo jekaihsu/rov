@@ -34,7 +34,7 @@ from trailer.encode import encode_sequence  # noqa: E402
 from trailer.hero import write_hero_jpeg  # noqa: E402
 from trailer.storyboard import load_storyboard  # noqa: E402
 
-OUT = SIM / 'output' / 'trailer'
+OUT = ROOT / 'output' / 'trailer'
 HERO_DIR = ROOT / 'docs' / 'design' / 'trailer'
 
 
@@ -81,7 +81,7 @@ def stop_server(process, log):
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--storyboard', type=Path, required=True, help='storyboard JSON path')
-    parser.add_argument('--out', type=Path, default=OUT, help='output root (default simulator/output/trailer)')
+    parser.add_argument('--out', type=Path, default=OUT, help='output root (default output/trailer at repo root)')
     parser.add_argument('--hero-dir', type=Path, default=HERO_DIR, help='docs/design/trailer for review stills')
     parser.add_argument('--shots', default='', help='comma-separated shot ids (default: all)')
     parser.add_argument('--bake-only', action='store_true', help='only bake replay clips')

@@ -72,6 +72,32 @@ class StoryboardParseTests(unittest.TestCase):
             })
 
 
+class HudNormalizeTests(unittest.TestCase):
+    def test_minimal_and_parts(self):
+        minimal = validate_shot({
+            'id': 'm', 'duration': 1, 'scenario': 'harbor_inspection',
+            'camera': {'mode': 'onboard'}, 'hud': 'minimal',
+        })
+        self.assertEqual(minimal['hud'], ['depth', 'heading'])
+        parts = validate_shot({
+            'id': 'p', 'duration': 1, 'scenario': 'harbor_inspection',
+            'camera': {'mode': 'onboard'}, 'hud': ['heading', 'depth', 'heading'],
+        })
+        self.assertEqual(parts['hud'], ['heading', 'depth'])
+        off = validate_shot({
+            'id': 'o', 'duration': 1, 'scenario': 'harbor_inspection',
+            'camera': {'mode': 'onboard'}, 'hud': False,
+        })
+        self.assertIs(off['hud'], False)
+
+    def test_rejects_unknown_part(self):
+        with self.assertRaises(ValueError):
+            validate_shot({
+                'id': 'bad', 'duration': 1, 'scenario': 'harbor_inspection',
+                'camera': {'mode': 'onboard'}, 'hud': ['depth', 'radar'],
+            })
+
+
 class DriveSampleTests(unittest.TestCase):
     def test_piecewise_hold(self):
         drive = [

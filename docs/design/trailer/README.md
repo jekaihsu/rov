@@ -3,7 +3,7 @@
 每張 `*.jpg` 是對應鏡頭的代表畫面（≤ 300 KB），由 `simulator/tools/trailer/run.py` 產出。  
 分鏡定義在 `simulator/tools/trailer/storyboards/`；商店 80 秒說明見 `docs/store/steam/trailer.md`。
 
-重新產生審核靜幀：
+重新產生審核靜幀（輸出素材在 `output/trailer/`，靜幀寫入本目錄）：
 
 ```bash
 python3 simulator/tools/trailer/run.py \
@@ -11,6 +11,8 @@ python3 simulator/tools/trailer/run.py \
 python3 simulator/tools/trailer/run.py \
   --storyboard simulator/tools/trailer/storyboards/demo.json --hero-only
 ```
+
+錄影模式會隱藏標題卡、工具列、目標線框與除錯 UI；開場鏡頭的 `hud` 只留深度與航向。
 
 ## 商店 80 秒（`store_80s.json`）
 

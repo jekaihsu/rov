@@ -628,8 +628,10 @@ function updateRoute(nav) {
   const v = new THREE.Vector3();
   for (let i = 0; i < n; i++) { P(r[i], v); a[i * 3] = v.x; a[i * 3 + 1] = v.y; a[i * 3 + 2] = v.z; }
   routeLine.geometry.setDrawRange(0, n); routeLine.geometry.attributes.position.needsUpdate = true;
-  routeLine.visible = n > 1;
-  navTarget.visible = !!nav?.target; if (nav?.target) P(nav.target, navTarget.position);
+  const trailerAidsOff = document.body.classList.contains('trailer');
+  routeLine.visible = n > 1 && !trailerAidsOff;
+  navTarget.visible = !!nav?.target && !trailerAidsOff;
+  if (nav?.target) P(nav.target, navTarget.position);
 }
 
 let lastEvT = null;
@@ -810,7 +812,7 @@ const cameraLook = installCameraLook({renderer, getMode: () => camMode, fidelity
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
 const trailer = installTrailerRecording({
-  params, camera, rovG, setCam, getFidelity, document, storage: localStorage,
+  params, camera, rovG, setCam, getFidelity, document,
 });
 const updateCamera = dt => cameraRig.update(dt);
 $('camBtn').onclick = () => cameraRig.cycle();
@@ -1266,7 +1268,8 @@ function frame(now) {
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
   spoolStation.update(dt, !!intro?.onScene, camera);           // the intro brings its own boat while it plays
-  objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
+  objG.visible = !inIntro && !(trailer.enabled && trailer.hideTargets());
+  if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
@@ -1286,6 +1289,9 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
+  if (trailer.enabled) {
+    trailer.suppressAids({objG, navTarget, guide, routeLine, labelsCheckbox: $('optLabels')});
+  }
   audio.update(renderState.display(S));
   music.update(renderState.display(S));
   coldOpen.frame(dt);

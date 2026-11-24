@@ -18,6 +18,11 @@ KNOWN_SCENARIOS = frozenset({
 
 DRIVE_AXES = ('surge', 'sway', 'heave', 'yaw', 'pitch', 'roll')
 
+# Flight instruments a shot may keep; tools / title cards / target aids stay hidden in trailer mode.
+HUD_PARTS = ('depth', 'heading', 'attitude', 'map', 'status', 'mission', 'telemetry', 'warning')
+HUD_FULL = list(HUD_PARTS)
+HUD_MINIMAL = ['depth', 'heading']
+
 
 def load_storyboard(path: str | Path) -> dict[str, Any]:
     raw = Path(path).read_text(encoding='utf-8')
@@ -68,9 +73,7 @@ def validate_shot(shot: dict[str, Any], source: str = 'shot') -> dict[str, Any]:
     seed = int(shot.get('seed', 42))
     camera = validate_camera(shot.get('camera') or {'mode': 'onboard'}, source=f'{source}.camera')
     drive = validate_drive(shot.get('drive') or [], source=f'{source}.drive')
-    hud = shot.get('hud', True)
-    if hud not in (True, False, 'minimal', 'full', 'off'):
-        raise ValueError(f'{source}: hud must be bool or minimal/full/off')
+    hud = normalize_hud(shot.get('hud', True), source=f'{source}.hud')
     weather = shot.get('weather') or {}
     if not isinstance(weather, dict):
         raise ValueError(f'{source}: weather must be an object')
@@ -88,6 +91,30 @@ def validate_shot(shot: dict[str, Any], source: str = 'shot') -> dict[str, Any]:
         'cards': shot.get('cards') or {},
         'notes': shot.get('notes') or '',
     }
+
+
+def normalize_hud(hud: Any, source: str = 'hud') -> list[str] | bool:
+    """Return False (off), True (full), or an explicit list of HUD part ids."""
+    if hud in (False, 'off'):
+        return False
+    if hud in (True, 'full'):
+        return True
+    if hud == 'minimal':
+        return list(HUD_MINIMAL)
+    if isinstance(hud, list):
+        parts: list[str] = []
+        allowed = set(HUD_PARTS)
+        for index, item in enumerate(hud):
+            name = str(item).strip()
+            if name not in allowed:
+                raise ValueError(f'{source}[{index}]: unknown hud part {name!r}')
+            if name not in parts:
+                parts.append(name)
+        return parts
+    if isinstance(hud, dict):
+        parts = [name for name in HUD_PARTS if hud.get(name)]
+        return parts
+    raise ValueError(f'{source}: hud must be bool, minimal/full/off, or a list of {HUD_PARTS}')
 
 
 def validate_camera(camera: dict[str, Any], source: str = 'camera') -> dict[str, Any]:

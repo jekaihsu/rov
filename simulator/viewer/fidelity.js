@@ -179,7 +179,7 @@ export function createFidelity({storage = null, search = '', edition = null} = {
       if (storedValue(item) === item.defaults[base]) delete overrides[item.id];
     }
   }
-  function set(id, value) {
+  function applyOverride(id, value, {persistChange = true} = {}) {
     const item = registry.get(id);
     if (!item) return false;
     const next = normalizeFidelityValue(item, value);
@@ -188,9 +188,16 @@ export function createFidelity({storage = null, search = '', edition = null} = {
     dismissed.add(id);
     overrides[id] = next;
     tidy();
-    persist();
+    if (persistChange) persist();
     notify([id]);
     return true;
+  }
+  function set(id, value) {
+    return applyOverride(id, value, {persistChange: true});
+  }
+  // In-memory only: used by trailer capture so temporary third-person does not rewrite rov.fidelity.v1.
+  function setSession(id, value) {
+    return applyOverride(id, value, {persistChange: false});
   }
   function setPreset(name) {
     if (!PRESET_NAMES.includes(name)) return false;
@@ -229,7 +236,7 @@ export function createFidelity({storage = null, search = '', edition = null} = {
     get base() {
       return base;
     },
-    get, set, setPreset, snapshot, subscribe, exceeds, fromUrl, dispose,
+    get, set, setSession, setPreset, snapshot, subscribe, exceeds, fromUrl, dispose,
     items: fidelityItems
   };
 }
