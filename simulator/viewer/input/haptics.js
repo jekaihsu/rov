@@ -37,11 +37,7 @@ export function createHaptics(getPad, settings, fidelity) {
     const actuator = getPad()?.vibrationActuator;
     if (!actuator?.playEffect) return;
     const [duration, strong, weak] = PATTERNS[name] || PATTERNS.touch;
-<<<<<<< HEAD
-    const strength = settings.strength ?? 1;
-=======
     const strength = hapticMagnitude(settings, fidelity);
->>>>>>> origin/main
     if (strength <= 0) return;
     const effect = actuator.effects?.includes('trigger-rumble') ? 'trigger-rumble' : 'dual-rumble';
     try {
