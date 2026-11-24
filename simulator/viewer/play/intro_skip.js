@@ -2,8 +2,8 @@
 // A pad skips it by holding the menu `back` button (input/bindings.js) for HOLD_MS; Esc and a click skip at once.
 // The pad hold goes through the input layer: while the cinematic can be skipped the `back` action is enabled, so
 // the menu context owns that button and its flight action (record) never fires underneath the prompt.
-import { HOLD_MS, bindingRow, keyLabel } from '../input/bindings.js';
-import { deviceFamily, glyph } from '../input/glyphs.js';
+import { HOLD_MS } from '../input/bindings.js';
+import { deviceFamily, actionGlyph } from '../input/glyphs.js';
 
 import { localize } from '../i18n/index.js';
 
@@ -11,9 +11,6 @@ const STRINGS = localize('play.intro_skip', {
   label: '跳過下水動畫',
   hold: '按住跳過',
 });
-const BACK = bindingRow('back');
-const PAD_BUTTON = Number(String(BACK?.pad || 'b1').slice(1));
-const KEY = BACK?.keys?.[0] || 'Escape';
 const BUTTON_ID = 'skipIntro';
 // Another cutscene that borrows the prompt (story/cold_open.js) names itself here; null restores the label.
 let labelOverride = null;
@@ -46,8 +43,8 @@ export function installIntroSkip({ input, button, skip, active }) {
   function render() {
     const label = labelOverride || STRINGS.label;
     const parts = [];
-    if (family) parts.push(span('skip-cap', glyph(PAD_BUTTON, family)), span('skip-text', STRINGS.hold));
-    parts.push(span('skip-cap', glyph(0, 'keyboard', keyLabel(KEY))));
+    if (family) parts.push(span('skip-cap', actionGlyph('back', input.keyRows(), family)), span('skip-text', STRINGS.hold));
+    parts.push(span('skip-cap', actionGlyph('back', input.keyRows(), 'keyboard')));
     if (!family) parts.push(span('skip-text', label));
     button.replaceChildren(...parts);
     button.setAttribute('aria-label', label);
@@ -85,11 +82,12 @@ export function installIntroSkip({ input, button, skip, active }) {
     family = next;
     render();
   });
+  document.addEventListener('rov-key-rows', render);
   button.addEventListener('click', function clicked() {
     skipBy('click');
   });
   addEventListener('keydown', function escape(event) {
-    if (event.code !== KEY || !active()) return;
+    if (!active() || !input.keyRows().find(row => row.action === 'back')?.keys?.includes(event.code)) return;
     event.preventDefault();
     skipBy('key');
   });

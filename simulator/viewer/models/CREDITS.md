@@ -133,3 +133,6 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 原創的無結方目網衣，alpha 為跨網線的漸層；CC0-1.0，無第三方素材。`pen.glb` 內嵌的菱形網目僅供可攜檢視，未重建。
 珊瑚礁的群體外形、碎塊與小型礁魚（`reef_life.js`），以及魚類模型載入前的替代魚形與死魚（`fish_life.js`、`pen_life.js`）
 皆為本專案原創程式幾何，CC0-1.0，沒有外部模型、照片或貼圖。養殖魚與死魚載入後改用上方 Fish Kit 的嘉鱲（`fish/madai*`）。
+
+The training-pool A/B/C wall plates are original procedural artwork. The viewer draws
+their lettering, border and scale bars on a canvas in `story/prologue.js`.

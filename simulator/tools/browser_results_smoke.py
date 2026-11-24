@@ -10,26 +10,10 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import http_base, launch, timeout, ws_base
 from _menu import open_main, set_intro, wait_screen, wait_title_card_gone
-from _campaign_drive import hold_until_advanced, wait_left
+from browser_prologue_smoke import play_prologue
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'results-validation'
 OUT.mkdir(parents=True, exist_ok=True)
-KEYS = {'unlock': 'Space', 'move_前': 'w', 'move_後': 's', 'move_右': 'd', 'move_左': 'a',
-        'move_下': 'ArrowDown', 'move_上': 'ArrowUp', 'depth': 'h', 'light': 'l', 'photo': 'p'}
-
-
-def play_prologue(page):
-    for _ in range(60):
-        campaign = page.evaluate('window.__viewer.S.campaign')
-        if campaign['status'] == 'completed':
-            return
-        node = campaign['node']
-        if node['type'] == 'dialogue':
-            page.locator('.story-radio button').evaluate('button => { button.click(); button.click(); }')
-            wait_left(page, node['id'])
-        else:
-            hold_until_advanced(page, node['id'], KEYS[node['id']], KEYS['unlock'])
-    raise AssertionError('prologue did not finish')
 
 
 def run():
