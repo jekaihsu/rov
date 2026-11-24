@@ -39,6 +39,6 @@ N4 已接入：`brand.*`、`career.*`（含 `career.copy` 對應 contracts／lic
 - `tether.snag_focus`
 - `tether_reel`
 
-S1 已接入：`vision.overlay`、`input.hints`。
+S1 已接入：`vision.overlay`、`input.hints`、`pilot_guide`。
 
 另見 PROTOCOL.md 的伺服器／劇情／匯出快照盤點。

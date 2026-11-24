@@ -479,6 +479,32 @@ t='240' filter='url(%23n)'/%3E%3C/svg%3E");
 .brand-licence-stage .brand-licence {
   width: min(1180px, 76vw, 128vh);
 }
+.brand-licence-award {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-menu) + 6);
+  display: grid;
+  place-items: center;
+  background: rgba(4, 12, 18, .82);
+  opacity: 1;
+  transition: opacity .4s ease-out;
+}
+.brand-licence-award.leaving { opacity: 0; pointer-events: none; }
+.brand-licence-award-stage {
+  min-height: 0;
+  width: 100%;
+  padding: 4vh 4vw 8vh;
+  background: transparent;
+}
+.brand-licence-award-skip {
+  position: absolute;
+  bottom: 4vh;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  letter-spacing: .16em;
+  color: rgba(232, 241, 245, .7);
+}
 
 /* ── component sheet (brand/demo.html and ?brandDemo) ─────────────────────────────────────────────────────── */
 .brand-demo-page {

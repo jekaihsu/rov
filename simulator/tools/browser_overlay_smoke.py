@@ -150,6 +150,10 @@ def replay(browser, size):
 def campaign(browser, size):
     label = f'campaign {size[0]}x{size[1]}'
     page, errors = new_page(browser, size)
+    # Exercise the node-based radio and engineering drawer from a returning player's checkpoint.
+    page.add_init_script('''localStorage.setItem("rov.campaign.v1", JSON.stringify({
+      completed: [], checkpoint: {chapter:"prologue", index:0}
+    }))''')
     page.goto(f'{BASE_URL}/?play=1&nointro&mission=campaign&quality=performance'
               f'&ws={WS_URL}&room=overlay{time.time_ns()}')
     page.wait_for_function('window.__viewer?.S?.campaign && document.querySelector("#flightCable")',

@@ -1,6 +1,7 @@
 // Cable tender radio calls and the twist read-out on the HUD system card, from the optional state.tether_ops.
 // Servers without tether_ops are ignored. The radio sits where the campaign radio does, on the same story layer
 // (hud/tokens.css --z-story), and stays silent while campaign dialogue is on screen, so the two never overlap.
+import { getFidelity } from '../fidelity.js';
 const STRINGS = {
   speaker: '甲板 · 纜線手',
   length: '已放纜',
@@ -71,7 +72,7 @@ function showRadio(event) {
   const text = document.createElement('p');
   text.textContent = eventText(event);
   radio.replaceChildren(speaker, text);
-  until = performance.now() + SHOW_MS;
+  until = performance.now() + SHOW_MS * (getFidelity().get("radioDuration") ?? 1);
 }
 
 function systemCardText(ops) {

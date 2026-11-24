@@ -20,6 +20,14 @@ const STRINGS = localize('play.objective_card', {
 export const CARD_KEY = 'rov.objectiveCard.v1';
 const UPDATE_MS = 200;
 
+// Which body sections the card mounts. Never includes a first-dive guide — that list lives in onboarding.
+export function objectiveCardSections({ careerWork = false, inChapter = false, hasBoard = false } = {}) {
+  if (careerWork) return ['career'];
+  if (inChapter) return [];
+  if (hasBoard) return ['contracts'];
+  return [];
+}
+
 function element(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -140,19 +148,22 @@ export function installObjectiveCard({ send, getSession, readOnly = false, caree
     if (now - last < UPDATE_MS) return;
     last = now;
     const work = career?.panel?.(state) || null;
-    careerSlot.hidden = !work;
+    const inChapter = ['active', 'completed'].includes(state.campaign?.status);
+    const data = inChapter || work ? null : contractBoard(state, host());
+    const sections = objectiveCardSections({
+      careerWork: !!work,
+      inChapter,
+      hasBoard: !!data,
+    });
+    careerSlot.hidden = !sections.includes('career');
+    board.hidden = !sections.includes('contracts');
+    root.hidden = sections.length === 0;
     if (work) {
       if (careerSlot.firstChild !== work.node) careerSlot.replaceChildren(work.node);
-      board.hidden = true;
-      root.hidden = false;
       title.textContent = work.title;
       count.textContent = work.count;
       return;
     }
-    const inChapter = ['active', 'completed'].includes(state.campaign?.status);
-    const data = inChapter ? null : contractBoard(state, host());
-    board.hidden = !data;
-    root.hidden = !data;
     if (root.hidden) return;
     if (data) renderBoard(data);
     title.textContent = STRINGS.contracts;

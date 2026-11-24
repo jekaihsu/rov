@@ -1,0 +1,20 @@
+{
+  "leftDeadzone": "Left stick dead zone",
+  "rightDeadzone": "Right stick dead zone",
+  "leftResponse": "Left stick response curve",
+  "rightResponse": "Right stick response curve",
+  "leftInvert": "Invert left stick Y axis",
+  "rightInvert": "Invert right stick Y axis",
+  "subtitleSize": "Subtitle size",
+  "small": "Small",
+  "medium": "Medium",
+  "large": "Large",
+  "extraLarge": "Extra large",
+  "subtitleOpacity": "Subtitle background opacity",
+  "speakerColor": "Speaker name colour",
+  "cyan": "Cyan",
+  "white": "White",
+  "amber": "Amber",
+  "radioDuration": "Radio subtitle duration (multiplier)",
+  "reduceFlashes": "Reduce shutter and collision flashes"
+}

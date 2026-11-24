@@ -20,7 +20,10 @@ import {beginFields, createEventWatch} from './deck_flow.js';
 import {deckSignature, renderDeckChecks, renderDeckLaunch} from './deck_steps.js';
 import {createDeckStage} from './deck_stage.js';
 import {callFor, createCrewRadio, faultText} from './crew_radio.js';
+import { checklistNavigable } from './navigable.js';
 import { localize } from '../i18n/index.js';
+
+export { checklistNavigable } from './navigable.js';
 
 const STRINGS = localize('procedure.index', {
   title: '潛前檢查與回收',
@@ -191,7 +194,7 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     if (event.target !== panel) focusKey = event.target.dataset.focus || null;
   });
   function wanted() {
-    return !readOnly && !query.has('nointro') && fidelity.get(PROCEDURE_ITEM) === 'full';
+    return !readOnly && query.get('chapter') !== 'prologue' && !query.has('nointro') && fidelity.get(PROCEDURE_ITEM) === 'full';
   }
   function command(action, extra = {}) {
     send({type: 'procedure', action, ...extra});
@@ -407,7 +410,7 @@ export function installProcedure({send, readOnly = false, deck = null}) {
       begunGeneration = state.control_generation;
       pilotLog.clear();
       faultsSeen = 0;
-      if (wanted() && !state.procedure?.active) command('begin', beginFields(query));
+      if (!state.campaign?.directed && wanted() && !state.procedure?.active) command('begin', beginFields(query));
     }
     latestState = state;
     const p = state.procedure;
@@ -442,7 +445,11 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     render(p);
   }
   function navigable() {
-    return !panel.hidden && !!latest && latest.phase !== 'diving' && focusables().length > 0;
+    return checklistNavigable({
+      hidden: panel.hidden,
+      phase: latest?.phase,
+      focusableCount: focusables().length,
+    });
   }
   function moveFocus(step) {
     const items = focusables();

@@ -216,7 +216,7 @@ export function installChapterCards({
       return entry.id === key;
     }) || {id: key, title: key};
     // The prelude (cold open) opens on black and ends on its own card (story/cold_open.js).
-    if (chapter.category === 'prelude') return;
+    if (campaign.directed || chapter.category === 'prelude') return;
     const allowed = shouldShowChapterCard({
       replay: readOnly,
       bootOpen: bootOpen(),

@@ -2,8 +2,8 @@
 // A pad skips it by holding the menu `back` button (input/bindings.js) for HOLD_MS; Esc and a click skip at once.
 // The pad hold goes through the input layer: while the cinematic can be skipped the `back` action is enabled, so
 // the menu context owns that button and its flight action (record) never fires underneath the prompt.
-import { HOLD_MS, bindingRow, keyLabel } from '../input/bindings.js';
-import { deviceFamily, glyph } from '../input/glyphs.js';
+import { HOLD_MS } from '../input/bindings.js';
+import { deviceFamily, actionGlyph } from '../input/glyphs.js';
 
 import { localize } from '../i18n/index.js';
 
@@ -11,9 +11,6 @@ const STRINGS = localize('play.intro_skip', {
   label: '跳過下水動畫',
   hold: '按住跳過',
 });
-const BACK = bindingRow('back');
-const PAD_BUTTON = Number(String(BACK?.pad || 'b1').slice(1));
-const KEY = BACK?.keys?.[0] || 'Escape';
 const BUTTON_ID = 'skipIntro';
 // Another cutscene that borrows the prompt (story/cold_open.js) names itself here; null restores the label.
 let labelOverride = null;
@@ -30,6 +27,19 @@ export function introSkippable() {
   return !!button && !button.hidden;
 }
 
+// Bound keyboard codes for the menu `back` action (Escape by default; remappable).
+export function backKeyCodes(rows) {
+  const row = (rows || []).find(function match(entry) {
+    return entry.action === 'back';
+  });
+  return row?.keys || [];
+}
+
+// Esc / bound back only skips while the skip prompt is visible — never while the intro is merely held on deck.
+export function keySkipsIntro(code, { skippable, backKeys }) {
+  return !!skippable && (backKeys || []).includes(code);
+}
+
 function span(className, html) {
   const node = document.createElement('span');
   node.className = className;
@@ -38,9 +48,8 @@ function span(className, html) {
 }
 
 // input: the object installInput returned. button: the #skipIntro element. skip(): skip the cinematic.
-// active(): whether a cinematic is running at all (held on deck included). Esc only skips while the prompt is
-// visible; onMenuBack opens the pause menu (or another caller) when the deck checklist owns the menu context.
-export function installIntroSkip({ input, button, skip, active, onMenuBack = null }) {
+// Esc only skips while the prompt is visible; onMenuBack opens the pause menu when the deck checklist owns back.
+export function installIntroSkip({ input, button, skip, onMenuBack = null }) {
   if (!button) return { refresh() {} };
   let family = '';
   let heldMs = 0;
@@ -50,8 +59,8 @@ export function installIntroSkip({ input, button, skip, active, onMenuBack = nul
   function render() {
     const label = labelOverride || STRINGS.label;
     const parts = [];
-    if (family) parts.push(span('skip-cap', glyph(PAD_BUTTON, family)), span('skip-text', STRINGS.hold));
-    parts.push(span('skip-cap', glyph(0, 'keyboard', keyLabel(KEY))));
+    if (family) parts.push(span('skip-cap', actionGlyph('back', input.keyRows(), family)), span('skip-text', STRINGS.hold));
+    parts.push(span('skip-cap', actionGlyph('back', input.keyRows(), 'keyboard')));
     if (!family) parts.push(span('skip-text', label));
     button.replaceChildren(...parts);
     button.setAttribute('aria-label', label);
@@ -101,16 +110,18 @@ export function installIntroSkip({ input, button, skip, active, onMenuBack = nul
     family = next;
     render();
   });
+  document.addEventListener('rov-key-rows', render);
   button.addEventListener('click', function clicked() {
     skipBy('click');
   });
   addEventListener('keydown', function escape(event) {
-    if (event.code !== KEY || !introSkippable()) return;
+    if (!keySkipsIntro(event.code, {
+      skippable: introSkippable(),
+      backKeys: backKeyCodes(input.keyRows()),
+    })) return;
     event.preventDefault();
     skipBy('key');
   });
-  // active() is kept for callers that still need to know the cinematic is up (held deck included).
-  void active;
   render();
   rerender = render;
   return { refresh: render };

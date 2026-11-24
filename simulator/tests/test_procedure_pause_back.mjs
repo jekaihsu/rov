@@ -1,23 +1,40 @@
 // Esc during the deck checklist must open the pause menu, not be swallowed by intro-skip.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { backKeyCodes, introSkippable, keySkipsIntro } from '../viewer/play/intro_skip.js';
+import { checklistNavigable } from '../viewer/procedure/navigable.js';
 
-const VIEWER = new URL('../viewer/', import.meta.url);
-
-test('intro skip only consumes Esc while the skip prompt is visible', async () => {
-  const source = await readFile(new URL('play/intro_skip.js', VIEWER), 'utf8');
-  assert.match(source, /introSkippable\(\)/);
-  assert.match(source, /onMenuBack/);
-  // The capture listener must not fire solely because the intro is held on deck.
-  assert.doesNotMatch(
-    source,
-    /keydown[\s\S]*if \(event\.code !== KEY \|\| !active\(\)\) return/,
-  );
+test('intro skippable only while the skip prompt is visible', () => {
+  const previous = globalThis.document;
+  globalThis.document = {
+    getElementById(id) {
+      if (id !== 'skipIntro') return null;
+      return { hidden: true };
+    },
+  };
+  assert.equal(introSkippable(), false);
+  globalThis.document = {
+    getElementById(id) {
+      if (id !== 'skipIntro') return null;
+      return { hidden: false };
+    },
+  };
+  assert.equal(introSkippable(), true);
+  globalThis.document = previous;
 });
 
-test('procedure exposes a navigable check for the pause back hook', async () => {
-  const source = await readFile(new URL('procedure/index.js', VIEWER), 'utf8');
-  assert.match(source, /function navigable\(/);
-  assert.match(source, /canNavigate:\s*navigable/);
+test('bound back keys skip the intro only when the prompt is visible', () => {
+  const backKeys = backKeyCodes([{ action: 'back', keys: ['Escape', 'Backspace'] }]);
+  assert.deepEqual(backKeys, ['Escape', 'Backspace']);
+  assert.equal(keySkipsIntro('Escape', { skippable: true, backKeys }), true);
+  assert.equal(keySkipsIntro('Escape', { skippable: false, backKeys }), false);
+  assert.equal(keySkipsIntro('KeyQ', { skippable: true, backKeys }), false);
+});
+
+test('checklist navigable matches the pause-back enablement rule', () => {
+  assert.equal(checklistNavigable({ hidden: false, phase: 'checks', focusableCount: 2 }), true);
+  assert.equal(checklistNavigable({ hidden: true, phase: 'checks', focusableCount: 2 }), false);
+  assert.equal(checklistNavigable({ hidden: false, phase: 'diving', focusableCount: 2 }), false);
+  assert.equal(checklistNavigable({ hidden: false, phase: 'checks', focusableCount: 0 }), false);
+  assert.equal(checklistNavigable({ hidden: false, phase: null, focusableCount: 2 }), false);
 });

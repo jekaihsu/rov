@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CHECKS = (
     'browser_smoke',
     'browser_menu_smoke',
+    'browser_rebind_smoke',
     'browser_menu_gamepad_smoke',
     'browser_feedback_smoke',
     'browser_gamepad_matrix_smoke',
@@ -36,10 +37,13 @@ DEFAULT_CHECKS = (
     'browser_campaign_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
+    # S1 small-fix: Esc opens pause on the deck checklist; first-dive guide is not duplicated.
+    'browser_s1_smoke',
     # Fresh profile: launch cinematic and its pad skip, then the new-player hints over two dives.
     'browser_onboarding_smoke',
     # Fresh profile: the title's 開始 plays the new-game cold open, flown by keyboard and by pad, into the prologue.
     'browser_cold_open_smoke',
+    'browser_prologue_smoke',
     'browser_career_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
