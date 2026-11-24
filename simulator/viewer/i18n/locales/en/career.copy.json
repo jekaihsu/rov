@@ -33,7 +33,7 @@
   "chapters": {
     "prologue": {
       "title": "Prologue · Before trainee status",
-      "summary": "Qualify in the Qingyu harbour pool and sheltered water offshore."
+      "summary": "Qingyu harbour shallows and sheltered water: finish the procedures and earn your trainee licence."
     },
     "ch1": {
       "title": "Chapter 1 · Harbour and vessels",
@@ -46,13 +46,13 @@
   },
   "contracts": {
     "p0_induction": {
-      "title": "New-hire induction: pool ops class",
+      "title": "Induction: harbour shallows lesson",
       "clientName": "YX Marine Services · Training",
-      "summary": "Ma Li flies alongside. Observe depth drift at the north wall, then photograph three plates.",
-      "brief": "Qingyu training pool. Fresh water, no current. Zhou tends the tether while Ma coaches. Bring Lin one photo from each of the north, east and south walls.",
+      "summary": "Ma Li flies alongside. Read pile 2, the crab pot and the pontoon shackle; learn depth hold when you drift.",
+      "brief": "Sheltered harbour shallows, clear morning, slack water. Zhou Kai on the tether, Ma Li beside you. Train in harbour — no trip outside. Bring back photos of the pile plate, crab pot and chain shackle for Lin Cen.",
       "radio": {
         "speaker": "Lin Cen",
-        "start": "Control calling R-1. First watch together. Check in.",
+        "start": "Control to R-1. We train in the harbour today — no trip outside.",
         "done": "Secure the deck. Procedure complete."
       }
     },

@@ -316,7 +316,7 @@ function lastSummary() {
 function launch({ replay = false } = {}) {
   let url;
   try {
-    const prologue = { mission: 'campaign', chapter: 'prologue', scenario: 'tutorial_pool' };
+    const prologue = { mission: 'campaign', chapter: 'prologue', scenario: 'harbor_shallows' };
     const launched = replay ? { ...choice, ...prologue } : choice;
     url = routeLaunch(launchUrl(location.href, launched, location.protocol), launched, { replay });
   } catch (error) {

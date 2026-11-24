@@ -575,6 +575,12 @@ def cold_open_jacket() -> Scenario:
     return build_site()
 
 
+def harbor_shallows() -> Scenario:
+    """In-port shallows for the directed prologue (qysim/harbor_shallows.py); pool training stays on tutorial_pool."""
+    from .harbor_shallows import harbor_shallows as build_site
+    return build_site()
+
+
 LIBRARY = {
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
@@ -594,6 +600,7 @@ LIBRARY = {
     "coral_reef": coral_reef,
     "seagrass_meadow": seagrass_meadow,
     "harbor_inspection": harbor_inspection,
+    "harbor_shallows": harbor_shallows,
     "aquaculture_pen": aquaculture_pen,
     "aquaculture_pen_slack": aquaculture_pen_slack,
     "aquaculture_pen_inside": aquaculture_pen_inside,

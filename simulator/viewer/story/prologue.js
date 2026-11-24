@@ -13,6 +13,8 @@ import {licenceSerial, showLicenceAward} from '../brand/licence_award.js';
 import {showTitleCard} from '../brand/chapter_card.js';
 import {chapterCardData} from '../brand/chapters.js';
 
+const MARK_LABELS = Object.freeze({A: '2', B: '籠', C: '卸'});
+
 function wallPlate(id, [north, east, depth]) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 256;
@@ -22,16 +24,33 @@ function wallPlate(id, [north, east, depth]) {
   ctx.fillStyle = '#163540';
   ctx.fillRect(8, 8, 240, 240);
   ctx.fillStyle = '#f3eedb';
-  ctx.font = 'bold 164px sans-serif';
+  ctx.font = 'bold 140px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(id, 128, 186);
+  ctx.fillText(MARK_LABELS[id] || id, 128, 170);
   for (let x = 18; x < 240; x += 20) ctx.fillRect(x, 211, 10, 17);
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
-  const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshBasicMaterial({map}));
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), new THREE.MeshBasicMaterial({map}));
   plate.position.set(-east, -depth, north);
   plate.lookAt(0, -depth, 0);
   return plate;
+}
+
+/** Boat-stern establishing shot: look from the spool / work-boat transom toward the ROV in the water. */
+function sternLaunchShot(camera, rovG, spool, progress) {
+  const k = Math.min(1, Math.max(0, progress));
+  const boat = new THREE.Vector3(-(spool?.[1] || 0), 0.85 - 0.25 * k, spool?.[0] || -6);
+  const aft = new THREE.Vector3(0, 0.15, -1.4).applyQuaternion(rovG.quaternion);
+  const eye = boat.clone().lerp(rovG.position.clone().add(aft).add(new THREE.Vector3(1.2, 0.9, -0.4)), 0.15 + 0.2 * k);
+  eye.y = Math.max(eye.y, 0.35);
+  camera.position.copy(eye);
+  const look = rovG.position.clone();
+  look.y += 0.1 - 0.35 * k;
+  look.z += 0.8 * (1 - k);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(look);
+  camera.fov = 42 + 4 * k;
+  camera.updateProjectionMatrix();
 }
 
 export function prologueControlsBlocked(state) {
@@ -57,6 +76,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   let family = 'keyboard';
   let plates = [];
   let radioUntil = 0;
+  let spool = [-6, 0, 0];
   document.addEventListener('rov-input-device', function device(event) {
     family = deviceFamily(event.detail === 'touch' ? '' : event.detail);
   });
@@ -82,7 +102,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     retryAt = 0;
 
     if (lastPlate && s.campaign.accepted > lastCount) {
-      stage.stamp.textContent = lastPlate + '  ✓';
+      stage.stamp.textContent = STRINGS.stampDone.replace('{id}', lastPlate);
       stampedUntil = s.t + 2.6;
     }
     lastCount = s.campaign.accepted;
@@ -104,7 +124,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
       nextLineAt = s.t + 2.6;
     } else if (!beat.card) say(beat.radio, s.t, s.campaign.accepted);
     if (beat.card === 'licence') {
-      const holder = s.room.players.find(player => player.vehicle_id === s.vehicle_id)?.name || 'R-1';
+      const holder = s.room.players.find(player => player.vehicle_id === s.vehicle_id)?.name
+        || STRINGS.callsign;
       card = showLicenceAward({
         grade: 'trainee',
         holderName: holder,
@@ -143,6 +164,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   function update(s) {
     const c = s.campaign;
     if (!c?.directed || c.status !== 'active') return clear();
+    if (Array.isArray(s.spool)) spool = s.spool;
     if (!stage) {
       stage = createBeatStage('prologue', [STRINGS.site, STRINGS.sub], '');
       plates = c.plates.map(({id, target}) => wallPlate(id, target));
@@ -206,7 +228,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   function frame() {
     if (!beat?.location) return;
     const progress = Math.min(1, (performance.now() / 1000 - shotStart) / beat.limit);
-    establishingShot(camera, rovG, progress);
+    if (beat.id === 'establish') sternLaunchShot(camera, rovG, spool, progress);
+    else establishingShot(camera, rovG, progress);
   }
   return {update, frame};
 }

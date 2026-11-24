@@ -1,4 +1,4 @@
-"""Fly the training pool using real keyboard bindings. Capture the whole watch and its three survey photos."""
+"""Fly the harbour shallows prologue with real keyboard bindings. Capture the watch and its three survey photos."""
 import math
 import time
 from pathlib import Path
@@ -7,7 +7,8 @@ from playwright.sync_api import sync_playwright
 from _browser import http_base, launch, skip_render, timeout, ws_base
 from browser_cold_open_smoke import contact_sheet
 
-OUT = Path(__file__).resolve().parents[1] / 'output' / 'prologue-r1'
+OUT = Path(__file__).resolve().parents[1] / 'output' / 'prologue-harbor'
+DOCS = Path(__file__).resolve().parents[2] / 'docs' / 'design' / 'prologue-harbor'
 STATE = """() => {
   const s = window.__viewer.S;
   return {beat:s.campaign.node?.id, status:s.campaign.status, p:s.pos, yaw:s.euler[2],
@@ -124,14 +125,18 @@ def run():
         page = browser.new_page(viewport={'width': 1600, 'height': 900})
         errors = []
         page.on('pageerror', lambda err: (errors.append(str(err)), print(err, flush=True)))
-        page.goto(f'{http_base()}/?play=1&scenario=tutorial_pool&nointro&control=UAV_CHN'
-                  f'&room=pool{time.time_ns()}&quality=performance&ws={ws_base()}', wait_until='commit')
+        page.goto(f'{http_base()}/?play=1&scenario=harbor_shallows&nointro&control=UAV_CHN'
+                  f'&room=harbor{time.time_ns()}&quality=performance&ws={ws_base()}', wait_until='commit')
         page.wait_for_function('window.__viewer?.S?.campaign?.status === "idle"', timeout=timeout(90000))
         keys = flight_keys(page)
         skip_render(page)
         page.locator('.story-menu button').filter(has_text='序章｜見習之前').evaluate('button => button.click()')
         play_prologue(page, OUT, keys)
         assert not errors, errors
+        DOCS.mkdir(parents=True, exist_ok=True)
+        for path in OUT.glob('*.jpg'):
+            target = DOCS / path.name
+            target.write_bytes(path.read_bytes())
         browser.close()
 
 
