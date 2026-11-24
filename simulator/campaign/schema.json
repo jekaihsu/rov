@@ -278,6 +278,83 @@
           }
         }
       }
+    },
+    "beats": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "next",
+          "limit",
+          "hud"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "next": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "idle": {
+            "type": "number",
+            "minimum": 0
+          },
+          "radio": {
+            "type": "string"
+          },
+          "speaker": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "reminder": {
+            "type": "string"
+          },
+          "hud": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "condition": {
+            "$ref": "#/properties/nodes/items/properties/condition"
+          },
+          "target": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "number"
+            }
+          },
+          "card": {
+            "type": "string"
+          },
+          "cue": {
+            "type": "string"
+          },
+          "black": {
+            "type": "boolean"
+          },
+          "cinematic": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   }
 }

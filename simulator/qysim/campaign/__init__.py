@@ -1,4 +1,5 @@
 """Room-owned data-driven narrative; existing mission engines remain authoritative."""
+from .beats import BeatRun
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -33,6 +34,12 @@ def validate(script):
     ids = [node.get('id') for node in script['nodes']]
     if len(set(ids)) != len(ids) or any(not isinstance(i, str) for i in ids):
         raise ValueError('duplicate or invalid node id')
+    beats = script.get('beats', [])
+    targets = {beat['id'] for beat in beats}
+    if len(targets) != len(beats) or 'done' in targets:
+        raise ValueError('invalid beat ids')
+    if any(beat.get(key, 'done') not in targets | {'done'} for beat in beats for key in ('next', 'timeout')):
+        raise ValueError('invalid beat target')
     for node in script['nodes']:
         if node.get('type') not in TYPES:
             raise ValueError('unsupported node type')
@@ -75,6 +82,7 @@ class Campaign:
         self.room = room
         self.scripts = {p.stem: validate(json.loads(p.read_text(encoding='utf-8')))
                         for p in sorted(DATA.glob('*.json')) if p.name != 'schema.json'}
+        self.directed = None
         self.chapter = None
         self.index = 0
         self.completed = []
@@ -135,6 +143,9 @@ class Campaign:
             self.resumed = bool(msg.get('resume') and checkpoint and checkpoint['chapter'] == key)
             if self.resumed:
                 self.index = checkpoint['index']
+            self.directed = None
+            if script.get('beats') and msg.get('beats') and not self.resumed and not msg.get('course'):
+                self.directed = BeatRun(script['beats'], self.room.vehicles[player.vehicle_id])
             self.pilot = player.vehicle_id
             self.started = 0
             self.peak_tension = 0.
@@ -143,7 +154,15 @@ class Campaign:
             self.status = 'active'
             self.course = bool(msg.get('course', False))
         elif action == 'campaign_advance' and self.status == 'active':
-            if self.node and self.node['type'] == 'dialogue':
+            if self.directed:
+                sim = self.room.vehicles.get(self.pilot)
+                if sim is None:
+                    return dict(ok=False, message='pilot_unavailable')
+                index = self.directed.advance(self.node, msg, sim, condition_matches)
+                if index is None:
+                    return dict(ok=False, message='stale_or_unmet_beat')
+                self.index = index
+            elif self.node and self.node['type'] == 'dialogue':
                 self.index += 1
         elif action == 'campaign_skip':
             # Skipping onboarding is explicit; it never earns a rating or reward.
@@ -171,7 +190,8 @@ class Campaign:
 
     @property
     def node(self):
-        nodes = self.scripts[self.chapter]['nodes'] if self.chapter else []
+        field = 'beats' if self.directed else 'nodes'
+        nodes = self.scripts[self.chapter][field] if self.chapter else []
         return nodes[self.index] if self.index < len(nodes) else None
 
     def update(self, dt):
@@ -179,6 +199,8 @@ class Campaign:
             return
         sim = self.room.vehicles.get(self.pilot)
         if sim is None:
+            if self.directed:
+                self.status = 'interrupted'
             return
         self.started += dt
         self.peak_tension = max(self.peak_tension, float(sim.tether.tension_max))
@@ -195,6 +217,10 @@ class Campaign:
         for _ in range(MAX_NODES_PER_UPDATE):
             node = self.node
             if node is None:
+                if self.directed:
+                    for reward in self.scripts[self.chapter]['nodes']:
+                        if reward['type'] == 'reward' and reward['reward'] not in self.rewards:
+                            self.rewards.append(reward['reward'])
                 self.status = 'completed'
                 if self.chapter not in self.completed:
                     self.completed.append(self.chapter)
@@ -203,6 +229,12 @@ class Campaign:
                                          collisions=len(sim.world.events), tether_broken=bool(sim.tether.broken),
                                          peak_tension_n=round(self.peak_tension, 1),
                                          completion=1, resumed=self.resumed))
+                if self.directed and self.directed.plates:
+                    self.results[-1]['photos_accepted'] = self.directed.accepted
+                    self.results[-1]['photos_required'] = len(self.directed.plates)
+                return
+            if self.directed:
+                self.directed.observe(sim, node)
                 return
             kind = node['type']
             if kind == 'dialogue':
@@ -257,7 +289,9 @@ class Campaign:
             self.index += 1
 
     def state(self):
-        return deepcopy(dict(chapter=self.chapter, index=self.index, node=self.node, status=self.status,
+        sim = self.room.vehicles.get(self.pilot)
+        beat = self.directed.state(sim, self.node) if self.directed and sim is not None else {}
+        return deepcopy(dict(**beat, chapter=self.chapter, index=self.index, node=self.node, status=self.status,
                              objective=self.objective, dialogue=self.history[-30:], completed=self.completed,
                              rewards=self.rewards, results=self.results, checkpoint=self.checkpoint,
                              unlocks=dict(vehicles=['falcon'] if 'harbor_signoff' in self.completed else [],

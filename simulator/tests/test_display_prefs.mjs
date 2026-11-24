@@ -4,6 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
+  COMFORT_HAPTIC_SCALE,
   DISPLAY_DEFAULTS,
   createDisplayPrefs,
   createFrameGate,
@@ -13,6 +14,7 @@ import {
 } from "../viewer/prefs/display.js";
 import { createFidelity, fidelityItems } from "../viewer/fidelity.js";
 import { EXTERNAL_FOV_ITEM, MOTION_COMFORT_ITEM } from "../viewer/prefs/camera_items.js";
+import { hapticMagnitude } from "../viewer/input/haptics.js";
 
 function memoryStorage() {
   const data = new Map();
@@ -24,17 +26,21 @@ function memoryStorage() {
 
 test("display preferences are clamped, validated and persisted", () => {
   assert.deepEqual(normaliseDisplay({ brightness: 9, uiScale: 0.1, colorBlind: "x", units: "furlongs",
-    fpsCap: 45, language: "xx" }), { ...DISPLAY_DEFAULTS, brightness: 1.4, uiScale: 0.85 });
+    fpsCap: 45, language: "xx", hapticStrength: 4 }), {
+    ...DISPLAY_DEFAULTS, brightness: 1.4, uiScale: 0.85, hapticStrength: 1,
+  });
   const storage = memoryStorage();
   const prefs = createDisplayPrefs({ storage });
   const seen = [];
   prefs.subscribe((values) => seen.push(values.units));
   prefs.set("units", "imperial");
   prefs.set("fpsCap", 60);
-  assert.deepEqual(seen, ["imperial", "imperial"]);
+  prefs.set("hapticStrength", 0.4);
+  assert.deepEqual(seen, ["imperial", "imperial", "imperial"]);
   const again = createDisplayPrefs({ storage });
   assert.equal(again.get("units"), "imperial");
   assert.equal(again.get("fpsCap"), 60);
+  assert.equal(again.get("hapticStrength"), 0.4);
 });
 
 test("the language is stored only after the player picks one", function languageStorage() {
@@ -84,4 +90,16 @@ test("camera preferences are neutral fidelity items that do not change the real 
 test("the onboard camera keeps the real lens whatever the FOV preference", async () => {
   const rig = await readFile(new URL("../viewer/camera_rig.js", import.meta.url), "utf8");
   assert.match(rig, /mode === 'onboard' \? 70 : fidelity\.get\('externalFov'\)/);
+  assert.match(rig, /comfort/);
+});
+
+test("motion comfort scales pad vibration without clearing the stored strength", () => {
+  const storage = memoryStorage();
+  const prefs = createDisplayPrefs({ storage });
+  prefs.set("hapticStrength", 0.8);
+  const fidelity = createFidelity({ storage: memoryStorage() });
+  assert.equal(hapticMagnitude({ strength: 0.8 }, fidelity, prefs), 0.8);
+  fidelity.set(MOTION_COMFORT_ITEM, true);
+  assert.ok(Math.abs(hapticMagnitude({ strength: 0.8 }, fidelity, prefs) - 0.8 * COMFORT_HAPTIC_SCALE) < 1e-9);
+  assert.equal(fidelity.preset, "real");
 });

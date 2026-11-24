@@ -143,3 +143,6 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 R5 港區的藤壺剖面、貽貝殼、海藻葉、岸壁配件、岸吊、天際線及海床工具為本專案原創程序幾何。
 `harbor_growth_c.webp`、`harbor_growth_n.webp` 由 `tools/bake_harbor_growth.py` 將原創殼體、葉片高度場與上述 CC0
 `concrete`、`shell_floor_01` 掃描合成，沿用 CC0。
+
+The training-pool A/B/C wall plates are original procedural artwork. The viewer draws
+their lettering, border and scale bars on a canvas in `story/prologue.js`.
