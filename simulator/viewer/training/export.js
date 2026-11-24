@@ -2,6 +2,33 @@
 // the debrief/HTML pattern in PROTOCOL.md. Nothing is uploaded.
 
 import {recordsToCsv} from './scorecard.js';
+import {localize} from '../i18n/index.js';
+
+const STRINGS = localize('training.export', {
+  title: '學員成績單',
+  subtitle: '內部訓練 · 僅存本機',
+  provisional: '合格門檻暫定，待資深操作員基準航次校準。不上傳。',
+  student: '學員',
+  lesson: '課程',
+  level: '等級',
+  elapsed: '時間（秒）',
+  contacts: '纜線接觸次數',
+  tension: '最大張力（N）',
+  collisions: '碰撞',
+  photos: '照片',
+  photoQuality: '照片品質（暫定）',
+  procedure: '程序照順序',
+  fidelity: '擬真設定',
+  assist: '輔助使用',
+  result: '結果',
+  pass: '暫定通過',
+  fail: '需補訓／證據不足',
+  criteria: '通過標準',
+  goal: '目標技能',
+  yes: '是',
+  no: '否',
+  severe: '嚴重',
+});
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -22,36 +49,16 @@ function downloadBlob(filename, content, type) {
   }, 1000);
 }
 
+function documentLang() {
+  return globalThis.document?.documentElement?.lang || 'zh-Hant';
+}
+
 export function downloadTrainingCsv(records, filename = 'training-records.csv') {
   downloadBlob(filename, recordsToCsv(records), 'text/csv;charset=utf-8');
 }
 
 export function buildScorecardHtml(scorecard, strings = {}) {
-  const s = {
-    title: '學員成績單',
-    subtitle: '內部訓練 · 僅存本機',
-    provisional: '合格門檻暫定，待資深操作員基準航次校準。不上傳。',
-    student: '學員',
-    lesson: '課程',
-    level: '等級',
-    elapsed: '時間（秒）',
-    contacts: '纜線接觸次數',
-    tension: '最大張力（N）',
-    collisions: '碰撞',
-    photos: '照片',
-    photoQuality: '照片品質（暫定）',
-    procedure: '程序照順序',
-    fidelity: '擬真設定',
-    assist: '輔助使用',
-    result: '結果',
-    pass: '暫定通過',
-    fail: '需補訓／證據不足',
-    criteria: '通過標準',
-    goal: '目標技能',
-    yes: '是',
-    no: '否',
-    ...strings,
-  };
+  const s = {...STRINGS, ...strings};
   const passLabel = scorecard.passProvisional ? s.pass : s.fail;
   const photoDetail = scorecard.photoMeanStandoffM != null
     ? `${scorecard.photos} · ${scorecard.photoQuality} · ${scorecard.photoMeanStandoffM} m`
@@ -61,7 +68,7 @@ export function buildScorecardHtml(scorecard, strings = {}) {
     scorecard.fidelityLeftReal ? 'left_real' : 'stayed_real',
   ].join(' / ');
   return `<!doctype html>
-<html lang="zh-Hant">
+<html lang="${escapeHtml(documentLang())}">
 <head>
 <meta charset="utf-8">
 <title>${escapeHtml(s.title)}</title>
@@ -98,7 +105,7 @@ th{background:#e4eee7;width:38%}
 <tr><th>${escapeHtml(s.contacts)}</th><td>${escapeHtml(scorecard.tetherContactEpisodes)}</td></tr>
 <tr><th>${escapeHtml(s.tension)}</th><td>${escapeHtml(scorecard.maxTensionN)}</td></tr>
 <tr><th>${escapeHtml(s.collisions)}</th>
-<td>${escapeHtml(scorecard.collisions)} / severe ${escapeHtml(scorecard.severeCollisions)}</td></tr>
+<td>${escapeHtml(scorecard.collisions)} / ${escapeHtml(s.severe)} ${escapeHtml(scorecard.severeCollisions)}</td></tr>
 <tr><th>${escapeHtml(s.photos)}</th><td>${escapeHtml(photoDetail)}</td></tr>
 <tr><th>${escapeHtml(s.procedure)}</th>
 <td>${escapeHtml(scorecard.procedureInOrder ? s.yes : s.no)}</td></tr>

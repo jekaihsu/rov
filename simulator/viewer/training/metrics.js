@@ -7,16 +7,14 @@ function number(value, fallback = 0) {
   return Number.isFinite(value) ? value : fallback;
 }
 
-function collisionCount(events) {
-  if (!Array.isArray(events)) return 0;
-  return events.length;
-}
-
-function severeCollisionCount(events) {
-  if (!Array.isArray(events)) return 0;
-  return events.filter(function severe(event) {
-    return event?.severity === 'severe';
-  }).length;
+function eventKey(event) {
+  return [
+    event?.t,
+    event?.obstacle,
+    event?.severity,
+    event?.where,
+    event?.vehicle_id,
+  ].join('\0');
 }
 
 function objectiveOrderOk(score) {
@@ -53,6 +51,7 @@ export function createSessionMetrics({lessonId = '', startedAt = null} = {}) {
     tetherContactEpisodes: 0,
     tetherContactNodesPeak: 0,
     _wasContacting: false,
+    _seenEventKeys: new Set(),
     maxTensionN: 0,
     collisions: 0,
     severeCollisions: 0,
@@ -69,6 +68,17 @@ export function createSessionMetrics({lessonId = '', startedAt = null} = {}) {
     assistedUsed: false,
     injections: [],
   };
+}
+
+function accumulateCollisions(metrics, events) {
+  if (!Array.isArray(events) || !metrics._seenEventKeys) return;
+  for (const event of events) {
+    const key = eventKey(event);
+    if (metrics._seenEventKeys.has(key)) continue;
+    metrics._seenEventKeys.add(key);
+    metrics.collisions += 1;
+    if (event?.severity === 'severe') metrics.severeCollisions += 1;
+  }
 }
 
 export function observeState(metrics, state) {
@@ -99,8 +109,7 @@ export function observeState(metrics, state) {
     number(tether.tension_rov),
   );
 
-  metrics.collisions = Math.max(metrics.collisions, collisionCount(state.events));
-  metrics.severeCollisions = Math.max(metrics.severeCollisions, severeCollisionCount(state.events));
+  accumulateCollisions(metrics, state.events);
 
   const photos = number(state.photos);
   if (photos > metrics.photos) {
@@ -142,8 +151,8 @@ export function photoQualitySummary(metrics) {
     return {photos: metrics.photos, meanStandoffM: null, label: 'count_only'};
   }
   const mean = samples.reduce(function sum(a, b) { return a + b; }, 0) / samples.length;
-  // VideoRay-style working distance is visibility-linked; without a measured quality
-  // score we only report standoff as a provisional proxy for instructor review.
+  // Working distance is visibility-linked; without a measured quality score we only
+  // report standoff as a provisional proxy for instructor review.
   let label = 'review';
   if (mean <= 2.5) label = 'close';
   else if (mean <= 5) label = 'nominal';

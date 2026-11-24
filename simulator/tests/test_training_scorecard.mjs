@@ -6,10 +6,12 @@ import {createSessionMetrics, observeState, recordFidelityChange, photoQualitySu
 import {
   buildScorecard,
   evaluatePass,
+  isTetherBreakFailure,
   recordsToCsv,
   CSV_COLUMNS,
 } from '../viewer/training/scorecard.js';
 import {buildScorecardHtml} from '../viewer/training/export.js';
+import {shouldFinalizeTraining} from '../viewer/training/session.js';
 import {lessonsByGroup, findLesson} from '../viewer/training/catalogue.js';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -33,21 +35,21 @@ test('metrics track tether contacts, tension, collisions and photo standoff', ()
   observeState(metrics, {
     score: {elapsed: 12, objectives: [{done: true, point: [0, 0, 5]}, {done: false, point: [2, 0, 5]}], current_index: 1},
     tether: {contact_nodes: 2, tension_max: 180, snagged_on: []},
-    events: [{severity: 'touch'}, {severity: 'hard'}],
+    events: [{t: 1, obstacle: 'a', severity: 'touch', where: 'nose'}, {t: 2, obstacle: 'b', severity: 'hard', where: 'hull'}],
     photos: 0,
     pos: [0, 0, 5],
   });
   observeState(metrics, {
     score: {elapsed: 18, objectives: [{done: true, point: [0, 0, 5]}, {done: false, point: [2, 0, 5]}], current_index: 1},
     tether: {contact_nodes: 2, tension_max: 180, snagged_on: []},
-    events: [{severity: 'touch'}, {severity: 'hard'}],
+    events: [{t: 1, obstacle: 'a', severity: 'touch', where: 'nose'}, {t: 2, obstacle: 'b', severity: 'hard', where: 'hull'}],
     photos: 1,
     pos: [2.2, 0.1, 5.1],
   });
   observeState(metrics, {
     score: {elapsed: 20, objectives: [{done: true, point: [0, 0, 5]}, {done: true, point: [2, 0, 5]}], current_index: 2, finished: true, score: 90},
     tether: {contact_nodes: 0, tension_max: 40, snagged_on: []},
-    events: [{severity: 'touch'}, {severity: 'hard'}],
+    events: [{t: 1, obstacle: 'a', severity: 'touch', where: 'nose'}, {t: 2, obstacle: 'b', severity: 'hard', where: 'hull'}],
     photos: 1,
     pos: [2.2, 0.1, 5.1],
   });
@@ -59,6 +61,59 @@ test('metrics track tether contacts, tension, collisions and photo standoff', ()
   const photo = photoQualitySummary(metrics);
   assert.equal(photo.photos, 1);
   assert.ok(photo.meanStandoffM != null);
+});
+
+test('collisions accumulate across the rolling twelve-event window', () => {
+  const metrics = createSessionMetrics({lessonId: 'course_b01'});
+  const first = Array.from({length: 12}, (_, i) => ({
+    t: i, obstacle: `o${i}`, severity: i % 4 === 0 ? 'severe' : 'touch', where: 'hull',
+  }));
+  observeState(metrics, {
+    score: {elapsed: 10, objectives: []},
+    tether: {contact_nodes: 0, tension_max: 0, snagged_on: []},
+    events: first,
+    photos: 0,
+  });
+  const next = Array.from({length: 12}, (_, i) => ({
+    t: i + 12, obstacle: `n${i}`, severity: 'touch', where: 'hull',
+  }));
+  observeState(metrics, {
+    score: {elapsed: 20, objectives: []},
+    tether: {contact_nodes: 0, tension_max: 0, snagged_on: []},
+    events: next,
+    photos: 0,
+  });
+  assert.equal(metrics.collisions, 24);
+  assert.equal(metrics.severeCollisions, 3);
+});
+
+test('server tether-break failure blocks provisional pass', () => {
+  assert.equal(isTetherBreakFailure('臍帶纜斷裂'), true);
+  assert.equal(isTetherBreakFailure('斷纜（tether）'), true);
+  const metrics = createSessionMetrics({lessonId: 'course_b01'});
+  observeState(metrics, {
+    score: {elapsed: 12, finished: false, failed: '臍帶纜斷裂', objectives: []},
+    tether: {contact_nodes: 0, tension_max: 0, snagged_on: []},
+    events: [],
+    photos: 0,
+  });
+  const verdict = evaluatePass(metrics, findLesson(catalogue, 'course_b01'));
+  assert.equal(verdict.passProvisional, false);
+  assert.ok(verdict.reasons.includes('tether_break'));
+});
+
+test('campaign courses wait for campaign completion before finalizing', () => {
+  assert.equal(shouldFinalizeTraining({
+    score: {finished: true},
+    campaign: {chapter: 'course_b01', status: 'active'},
+  }), false);
+  assert.equal(shouldFinalizeTraining({
+    score: {finished: true},
+    campaign: {chapter: 'course_b01', status: 'completed'},
+  }), true);
+  assert.equal(shouldFinalizeTraining({
+    score: {finished: true},
+  }), true);
 });
 
 test('leaving real fidelity blocks provisional pass and is recorded', () => {
@@ -101,7 +156,7 @@ test('scorecard HTML is a single printable page with required fields', () => {
   observeState(metrics, {
     score: {elapsed: 40, finished: true, score: 70, objectives: []},
     tether: {contact_nodes: 1, tension_max: 220, snagged_on: ['pile']},
-    events: [{severity: 'touch'}],
+    events: [{t: 1, obstacle: 'pile', severity: 'touch', where: 'hull'}],
     photos: 2,
   });
   const card = buildScorecard({metrics, lesson: findLesson(catalogue, 'course_i01'), student: 'JK'});
@@ -115,4 +170,7 @@ test('scorecard HTML is a single printable page with required fields', () => {
   assert.match(html, /程序照順序/);
   assert.match(html, /擬真設定/);
   assert.ok(!html.includes('<script'));
+  const english = buildScorecardHtml(card, {title: 'Trainee scorecard', contacts: 'Tether contact episodes'});
+  assert.match(english, /Trainee scorecard/);
+  assert.match(english, /Tether contact episodes/);
 });

@@ -36,10 +36,17 @@ function csvEscape(value) {
   return text;
 }
 
+// Scorer publishes "臍帶纜斷裂"; older event copy used "斷纜".
+export function isTetherBreakFailure(failed) {
+  if (typeof failed !== 'string' || !failed) return false;
+  return failed.includes('臍帶纜斷裂') || failed.includes('斷纜')
+    || /tether[_\s-]?break/i.test(failed);
+}
+
 export function evaluatePass(metrics, lesson = {}) {
   // Mirrors curriculum common candidates; every threshold remains provisional.
   const failed = !!(metrics?.failed);
-  const broken = typeof metrics?.failed === 'string' && metrics.failed.includes('斷纜');
+  const broken = isTetherBreakFailure(metrics?.failed);
   const severe = (metrics?.severeCollisions || 0) >= 3;
   const inOrder = metrics?.procedureInOrder !== false;
   const finishedOrAbort = !!(metrics?.finished) || failed;

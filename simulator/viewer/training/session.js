@@ -40,6 +40,17 @@ export function trainingLaunchParams(location = globalThis.location, host = glob
   return {enabled, lessonId: lessonId || query.get('chapter') || ''};
 }
 
+// Campaign courses (tutorial_pool etc.) often have score.finished immediately; wait for
+// campaign.status === 'completed' so the scorecard covers the whole lesson.
+export function shouldFinalizeTraining(state) {
+  if (!state) return false;
+  const campaign = state.campaign;
+  if (campaign && (campaign.chapter || campaign.status)) {
+    return campaign.status === 'completed';
+  }
+  return !!(state.score?.finished || state.score?.failed);
+}
+
 function hydrateLessonFromCatalogue(session) {
   if (!session?.active || !globalThis.fetch) return Promise.resolve(session);
   return fetch('training/courses.json').then(function loadCourses(response) {
@@ -127,9 +138,9 @@ export function installTrainingSession({
   }
 
   function update(state) {
-    observeState(metricsRef.current, state || getState());
-    if (!finalized && (state?.score?.finished || state?.score?.failed
-      || state?.campaign?.status === 'completed')) {
+    const snapshot = state || getState();
+    observeState(metricsRef.current, snapshot);
+    if (!finalized && shouldFinalizeTraining(snapshot)) {
       finalizeNow();
     }
   }

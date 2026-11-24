@@ -48,6 +48,7 @@
   "menu.screens",
   "menu.settings",
   "menu.training",
+  "training.export",
   "training.fidelity_guard",
   "training.map",
   "training.session",
