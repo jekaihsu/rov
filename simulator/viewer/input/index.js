@@ -1,8 +1,6 @@
 // Own keyboard, touch and gamepad input; app retains transport and simulator authority guards.
-import { CHANNELS as CH, radial, curve } from "./actions.js";
+import { CHANNELS as CH, shapeStick, curve } from "./actions.js";
 import {
-  BINDINGS_VERSION,
-  CONTEXTS,
   actionKey,
   axisChannel,
   axisKeys,
@@ -10,8 +8,6 @@ import {
   chordIds,
   createResolver,
   keyRow,
-  menuPadBindings,
-  migrateBindings,
 } from "./bindings.js";
 import { publishKeyRows, rowsFor } from "./keyboard_layout.js";
 import {createFeatureActions} from "./feature_actions.js";
@@ -22,25 +18,15 @@ import { createHaptics } from "./haptics.js";
 import { migratePadHapticsFromInput } from "./haptics_fidelity.js";
 import { installSettings } from "./settings.js";
 import { getFidelity } from "../fidelity.js";
+import { inputPreferences as settings, saveInputPreferences as save } from './preferences.js';
 const database = await fetch(new URL("./controller-db.json", import.meta.url)).then((r) => r.json());
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const desktopSettings = await window.rovDesktop?.readInput?.();
 export function installInput({ blocked, camera, tick, preferred, gain, setMode, arm }) {
   const $ = (id) => document.getElementById(id);
-  let settings = {};
-  try {
-    settings = JSON.parse(localStorage.getItem("rov.input.v1") || "{}");
-  } catch {}
-  if (desktopSettings && Object.keys(desktopSettings).length) settings = desktopSettings;
-  settings.custom ||= {};
-  settings.bindings = migrateBindings(settings.bindings, settings.bindingsVersion);
-  settings.bindingsVersion = BINDINGS_VERSION;
-  settings.channels ||= {};
   const features = createFeatureActions((name, fallback) => settings.bindings[name] ?? fallback);
   const resolver = createResolver();
   const registered = new Map();
-  const everyContext = new Set(CONTEXTS);
-  const settingsChord = chordIds(bindingRow("settings").pad).map((id) => Number(id.slice(1)));
+
   // A context above flight is active while any action registered for it reports itself enabled.
   function activeContexts() {
     const active = new Set(["flight"]);
@@ -60,12 +46,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   installTouchSticks({ element: $("sticks"), preference: $("optSticks") });
   // Assist level, flight profile and pad haptics belong to the fidelity profile.
   const fidelity = getFidelity();
-  if (migratePadHapticsFromInput(settings, fidelity)) {
-    try {
-      localStorage.setItem("rov.input.v1", JSON.stringify(settings));
-    } catch {}
-    window.rovDesktop?.rememberInput?.(settings);
-  }
+  if (migratePadHapticsFromInput(settings, fidelity)) save();
   const haptics = createHaptics(() => frame.pad, settings, fidelity);
   const rc = { rc_lock: 1, keep_depth: 0, left_switch: 0, right_switch: 0 };
   function mirrorFidelity() {
@@ -82,7 +63,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     fidelity.set("flightProfile", profiles[(profiles.indexOf(rc.profile) + 1) % 3]);
   }
   const hold = { photo: new Set(), record: new Set() };
-  const keys = new Set();
+  const keys = new Map();
   // Keyboard rows of the active layout (console sticks or game pilot axes) with the player's rebound keys.
   let rows = rowsFor(settings, fidelity);
   let keyboardAxes = axisKeys(rows);
@@ -90,7 +71,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   let rowsSignature = "";
   function refreshRows() {
     const next = rowsFor(settings, fidelity);
-    const signature = JSON.stringify(next.map((row) => row.keys || []));
+    const signature = JSON.stringify(next.map((row) => [row.keys, row.pad]));
     if (signature !== rowsSignature) {
       // A held key may now mean something else; release everything rather than leave a stuck axis.
       rowsSignature = signature;
@@ -128,6 +109,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     assist: cycleAssist,
     profile: cycleProfile,
     camera,
+    arm,
     photo: function holdPhotoKey() {
       hold.photo.add("kb");
     },
@@ -140,17 +122,26 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     (el.tagName === "SELECT" ||
       el.tagName === "TEXTAREA" ||
       (el.tagName === "INPUT" && !["range", "checkbox"].includes(el.type)));
+  function resolveKey(code) {
+    if (blocked() || document.getElementById("inputSettings")?.open) return null;
+    return keyRow(code, activeContexts(), rows);
+  }
   addEventListener("keydown", (e) => {
-    if (blocked() || document.getElementById("inputSettings")?.open) return;
-    if (isText(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
-    document.dispatchEvent(new CustomEvent("rov-input-device", { detail: "" }));
-    if (e.code.startsWith("Shift")) keys.add(e.code);
+    if (isText(e.target)) return;
+    const modifierKey = /^(Control|Meta|Alt)(Left|Right)$/.test(e.code);
+    if (!modifierKey && (e.ctrlKey || e.metaKey || e.altKey)) return;
     // The table decides which action owns this key in the contexts that are active right now.
-    const row = keyRow(e.code, activeContexts(), rows);
-    if (!row || row.owner || row.modifier) return;
+    const row = resolveKey(e.code);
+    if (!row) return;
+    document.dispatchEvent(new CustomEvent("rov-input-device", { detail: "" }));
+    if (row.owner === "hud") return;
     e.preventDefault();
     if (e.repeat) return;
-    keys.add(e.code);
+    keys.set(e.code, row.action);
+    if (row.owner === "settings") {
+      document.getElementById("inputSettingsButton").click();
+      return;
+    }
     if (!row.axis) {
       if (keyHandlers[row.action]) keyHandlers[row.action]();
       else features.run(row.action);
@@ -158,10 +149,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     tick();
   });
   addEventListener("keyup", (e) => {
+    const action = keys.get(e.code);
     keys.delete(e.code);
-    const row = keyRow(e.code, everyContext, rows);
-    if (row?.action === "photo") hold.photo.delete("kb");
-    if (row?.action === "record") hold.record.delete("kb");
+    const row = bindingRow(action);
+    hold[action]?.delete("kb");
     if (row && !row.owner && !row.modifier && !isText(e.target)) e.preventDefault();
   });
   addEventListener("blur", () => {
@@ -275,15 +266,6 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     b.addEventListener("pointercancel", up);
   }
 
-  function save() {
-    try {
-      localStorage.setItem("rov.input.v1", JSON.stringify(settings));
-    } catch {}
-    window.rovDesktop?.rememberInput?.(settings);
-  }
-  addEventListener("keydown", function openSettings(e) {
-    if (e.code === "F9") document.getElementById("inputSettingsButton").click();
-  });
   const panel = installSettings(settings, save, haptics, setMode, refreshRows);
   refreshRows();
   function readPad() {
@@ -292,38 +274,67 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     featureTime = now;
     hudActions = {};
     frame = devices.poll(panel.selected() || preferred());
+    const editing = panel.open();
     panel.update(frame);
     const padId = frame.pad ? `${frame.pad.index}:${frame.pad.id}` : "";
     if (padId !== lastPadId) previous = {};
     lastPadId = padId;
-    if (settingsChord.every((index) => frame.snapshot?.buttons[index] > 0.5)) {
-      if (!previous.settings) document.getElementById("inputSettingsButton").click();
+    const settingsSource = settings.bindings.settings;
+    const chord = chordIds(settingsSource);
+    const openSettings = chord.length && chord.every(id => frame.snapshot?.buttons[Number(id.slice(1))] > 0.5);
+    if (!editing && !panel.open() && openSettings) {
+      if (!previous.chord) document.getElementById("inputSettingsButton").click();
       resolver.block(frame.snapshot);
-      previous.settings = true;
-    } else previous.settings = false;
-    if (!frame.pad || !frame.snapshot.known || blocked() || panel.open()) {
+      previous.chord = true;
+    } else previous.chord = false;
+    if (editing || panel.open()) {
+      keys.clear();
+      hold.photo.delete("kb");
+      hold.record.delete("kb");
+    }
+    if (blocked() || editing || panel.open()) {
       features.sample(null, 0);
       // Buttons held while a panel owns the pad must be released before flight sees them again.
       resolver.block(frame.snapshot);
-      previous = { settings: previous.settings };
+      previous = { chord: previous.chord };
+      hold.photo.delete("pad");
+      hold.record.delete("pad");
+      return null;
+    }
+    // Keyboard-bound orbit controls, like their analog equivalents, act for the sampled duration.
+    for (const [name, action] of registered) {
+      if (!action.continuous || action.enabled?.() === false) continue;
+      const row = rows.find(row => row.action === name);
+      const direction = Number(keys.get(row.keys?.[0]) === name) - Number(keys.get(row.keys?.[1]) === name);
+      if (direction) action.run(direction, featureDt);
+    }
+    if (!frame.pad || !frame.snapshot.known) {
+      features.sample(null, 0);
+      previous = {};
       hold.photo.delete("pad");
       hold.record.delete("pad");
       return null;
     }
     const snapshot = { ...frame.snapshot, axes: [...frame.snapshot.axes] };
     for (const offset of [0, 2]) {
-      const pair = radial(
-        snapshot.axes[offset] || 0,
-        snapshot.axes[offset + 1] || 0,
-        settings.inner ?? 0.08,
-        settings.outer ?? 0.02,
-      );
+      const side = offset === 0 ? "left" : "right";
+      const pair = shapeStick(snapshot.axes[offset] || 0, snapshot.axes[offset + 1] || 0, {
+        inner: fidelity.get(side + "Deadzone"), outer: settings.outer,
+        expo: fidelity.get(side + "Response"), invert: fidelity.get(side + "Invert"),
+      });
       snapshot.axes.splice(offset, 2, ...pair);
     }
-    // Menu rows are fixed, so they are not in the stored bindings; without them a feature module's menu actions
-    // (deck checklist focus and confirm) would never see the pad.
-    const sources = { ...menuPadBindings(), ...settings.bindings };
-    const actions = resolver.resolve(sources, snapshot, activeContexts(), now);
+    const actions = resolver.resolve(settings.bindings, snapshot, activeContexts(), now);
+    if (actions.settings > 0.5 && !(previous.settings > 0.5)) {
+      document.getElementById("inputSettingsButton").click();
+      resolver.block(snapshot);
+      return null;
+    }
+    for (const row of rows) {
+      if (!row.pilot || !actions[row.action]) continue;
+      const drive = axisChannel(row.action, operationMode);
+      actions[drive.channel] = (actions[drive.channel] || 0) + drive.sign * actions[row.action];
+    }
     const consumed = features.sample(snapshot, featureDt, actions);
     for (const channel of consumed) actions[channel] = 0;
     hudActions = actions;
@@ -344,7 +355,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       if (actions[name] > 0.5) hold[name].add("pad");
       else hold[name].delete("pad");
     }
-    previous = { ...actions, settings: previous.settings };
+    previous = { ...actions, chord: previous.chord };
     const values = JSON.stringify(snapshot);
     if (values !== lastPadValues) {
       document.dispatchEvent(new CustomEvent("rov-input-device", { detail: frame.pad.id }));
@@ -354,13 +365,13 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   }
   function keyAxis(name) {
     const [positive, negative] = keyboardAxes[name] || [];
-    return +keys.has(positive) - +keys.has(negative);
+    return Number(keys.get(positive) === name) - Number(keys.get(negative) === name);
   }
   // Game-layout pilot axes drive the stick channel that moves that axis in the current operation mode.
   function pilotChannels() {
     const result = Object.fromEntries(CH.map((c) => [c, 0]));
     for (const row of rows) {
-      if (!row.pilot || !row.keys?.length) continue;
+      if (!row.pilot) continue;
       const drive = axisChannel(row.action, operationMode);
       if (drive) result[drive.channel] += drive.sign * keyAxis(row.action);
     }
@@ -368,7 +379,8 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   }
   function sample() {
     const pad = readPad();
-    const g = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 1 : gain();
+    const boost = rows.find(row => row.modifier);
+    const g = boost.keys.some(code => keys.get(code) === "boost") || hudActions.boost > 0.5 ? 1 : gain();
     const pilot = pilotChannels();
     CH.forEach((c) => {
       const keyboard = (keyAxis(c) + pilot[c]) * g;
@@ -419,6 +431,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       pulse: haptics.pulse,
       bindings: settings.bindings,
       keyRows: rows,
+      resolveKey,
       operationMode,
     };
   }
@@ -432,7 +445,6 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       registered.set(name, resolved[name]);
     }
     features.register(resolved);
-    panel.registerActions(resolved);
   }
   return {
     rc,

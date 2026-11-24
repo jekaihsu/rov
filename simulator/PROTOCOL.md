@@ -1001,3 +1001,17 @@ Net visual motion is bounded to 0.05 m and never changes server collision shapes
 不採取改寫全房間文字的方案：同一房間可有不同語言玩家。若未來需要伺服器本地化，
 只能以選填、每連線的語言偏好協商，保留既有預設與 fallback，不可改共享狀態的語言。
 本 PR 尚未實作此選填欄位，因此不需要伺服器升級或能力探測。
+
+A host viewer can request directed presentation with optional `beats: true` on
+`campaign_start`. Chapters with a beat script expose `campaign.directed`,
+the current beat in `campaign.node` and wall plate positions in `campaign.plates`
+(NED metres). The host sends `campaign_advance` with the current `beat` ID and
+its declared `next` or timeout destination. Stale IDs are rejected. Node
+checkpoint resumes, company courses and clients omitting the flag use existing nodes.
+
+Directed state also includes `beat_since` (host simulation seconds), `missed`
+(previous condition timed out), `drift` (absolute depth change in metres with
+neutral sticks), `framedPhoto` (this beat has a usable shutter pose) and
+`accepted` (accepted plates this run). Result entries for plate surveys add
+optional `photos_accepted` and `photos_required` counts. The host rechecks
+the condition or deadline before advancing and retains the count across reconnects.

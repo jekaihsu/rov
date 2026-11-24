@@ -191,7 +191,7 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     if (event.target !== panel) focusKey = event.target.dataset.focus || null;
   });
   function wanted() {
-    return !readOnly && !query.has('nointro') && fidelity.get(PROCEDURE_ITEM) === 'full';
+    return !readOnly && query.get('chapter') !== 'prologue' && !query.has('nointro') && fidelity.get(PROCEDURE_ITEM) === 'full';
   }
   function command(action, extra = {}) {
     send({type: 'procedure', action, ...extra});
@@ -407,7 +407,7 @@ export function installProcedure({send, readOnly = false, deck = null}) {
       begunGeneration = state.control_generation;
       pilotLog.clear();
       faultsSeen = 0;
-      if (wanted() && !state.procedure?.active) command('begin', beginFields(query));
+      if (!state.campaign?.directed && wanted() && !state.procedure?.active) command('begin', beginFields(query));
     }
     latestState = state;
     const p = state.procedure;

@@ -142,7 +142,20 @@
             "speaker": {"type": "string"},
             "start": {"type": "string"},
             "done": {"type": "string"},
-            "partial": {"type": "string"}
+            "partial": {"type": "string"},
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["when", "speaker", "text"],
+                "properties": {
+                  "when": {"type": "string", "minLength": 1},
+                  "speaker": {"type": "string", "minLength": 1},
+                  "text": {"type": "string", "minLength": 1}
+                }
+              }
+            }
           }
         },
         "conditions": {"type": "string"},
