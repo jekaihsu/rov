@@ -77,9 +77,10 @@ export function supportsMode(scene, mode) {
   return EXPEDITION_BIOMES.has(scene.world?.biome);
 }
 
-// Scenes reserved for the campaign (incident drills and the onboarding pool) are not free dive sites.
+// Scenes reserved for the campaign (incident drills, the directed prologue site, and the company
+// training pool used by courses) are not free dive sites.
 export function diveSites(scenes, chapters = []) {
-  const reserved = new Set();
+  const reserved = new Set(['tutorial_pool']);
   for (const chapter of chapters) {
     if (chapter.category === 'incident') reserved.add(chapter.scenario);
   }
