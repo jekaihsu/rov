@@ -70,7 +70,7 @@ test('the card never shows in a replay and only before the dive in the real pres
 });
 
 function campaignState(chapter, status = 'active') {
-  const chapters = [{id: 'prologue', title: '序章｜水池'}, {id: 'harbor', title: '第一章｜港灣'}];
+  const chapters = [{id: 'prologue', title: '序章｜見習之前'}, {id: 'harbor', title: '第一章｜港灣'}];
   return {campaign: {status, chapter, chapters}};
 }
 

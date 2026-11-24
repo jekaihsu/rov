@@ -7,7 +7,8 @@
 // it is released, so a confirm press can never leak into the flight action on the same button.
 import { bindingValue } from "./actions.js";
 
-const STRINGS = {
+import { localize } from "../i18n/core.js";
+const STRINGS = localize("input.bindings", {
   contexts: { flight: "飛行", orbit: "環繞視角", tool: "工具啟用中", dialogue: "對話", menu: "選單" },
   actions: {
     left_lr: "左桿左右",
@@ -107,13 +108,13 @@ const STRINGS = {
     Backslash: "\\",
   },
   separator: " · ",
-};
+});
 
 // Lowest to highest priority. `menu` is exclusive: while it is active nothing below it is sampled.
 export const CONTEXTS = ["flight", "orbit", "tool", "dialogue", "menu"];
 export const HOLD_MS = 650;
 // Bump when a default moves, so stored copies of the old default follow it (see migrateBindings).
-export const BINDINGS_VERSION = 2;
+export const BINDINGS_VERSION = 3;
 const LEGACY_DEFAULTS = { profile: "b12" };
 
 // pad: standard-mapping source (`a0`, `-a1`, `b7`, `[positive, negative]`, or a `b8+b9` chord).
@@ -241,10 +242,6 @@ export function axisChannel(axis, mode) {
   return entry ? { channel: entry[0], sign: entry[1] } : null;
 }
 
-// Keyboard rows the player may rebind: flight actions handled by the input layer (not HUD, settings or modifiers).
-export function keyRebindable(row) {
-  return row.context === "flight" && !row.owner && !row.modifier && row.action !== "pause" && !!row.keys;
-}
 
 function sameKeys(a, b) {
   return a.length === b.length && a.every((code, index) => code === b[index]);
@@ -254,9 +251,8 @@ function sameKeys(a, b) {
 export function keyboardRows(layout = "console", overrides = {}) {
   const layoutKeys = LAYOUT_KEYS[layout] || LAYOUT_KEYS.console;
   return BINDINGS.map(function withKeys(row) {
-    if (!keyRebindable(row)) return row;
     const chosen = overrides?.[row.action] ?? layoutKeys[row.action];
-    if (!Array.isArray(chosen) || sameKeys(chosen, row.keys)) return row;
+    if (!Array.isArray(chosen) || sameKeys(chosen, row.keys || [])) return row;
     return { ...row, keys: [...chosen] };
   });
 }
@@ -312,7 +308,7 @@ export function chordIds(binding) {
 }
 
 function claims(row, binding) {
-  if (row.gesture === "chord") return [{ input: `pad:${binding}`, gesture: "chord" }];
+  if (row.gesture === "chord" && chordIds(binding).length) return [{ input: `pad:${binding}`, gesture: "chord" }];
   return inputIds(binding).map((id) => ({ input: `pad:${id}`, gesture: row.gesture || "press" }));
 }
 
@@ -336,7 +332,7 @@ export function findCollisions(rows = BINDINGS, bindings = null) {
       if (row.context !== context) continue;
       const binding = bindings && row.action in bindings ? bindings[row.action] : row.pad;
       for (const claim of claims(row, binding)) use(claim.input, row.action, claim.gesture);
-      for (const code of row.keys || []) use(`key:${code}`, row.action, "press");
+      for (const code of (row.keys || []).filter(Boolean)) use(`key:${code}`, row.action, "press");
     }
     for (const [input, list] of users) {
       if (conflicting(list)) collisions.push({ context, input, actions: list.map((user) => user.action) });
@@ -369,13 +365,23 @@ export function menuPadBindings() {
   return result;
 }
 
-// Stored bindings keep the user's choices; unknown actions and stale copies of moved defaults are dropped.
+// Migrate the original flight-only map; the extended editor adds its other contexts below.
 export function migrateBindings(stored = {}, version = 1) {
   const result = defaultPadBindings();
   for (const [action, binding] of Object.entries(stored || {})) {
     if (!(action in result)) continue;
-    if (version < BINDINGS_VERSION && LEGACY_DEFAULTS[action] === binding) continue;
+    if (version < 2 && LEGACY_DEFAULTS[action] === binding) continue;
     result[action] = binding;
+  }
+  return result;
+}
+
+// Version 3 extends the old flight map to the other contexts while retaining intentional empty bindings.
+export function editablePadBindings(stored, version = 1) {
+  const result = migrateBindings(stored, version);
+  for (const row of BINDINGS) {
+    if (row.action in result) continue;
+    result[row.action] = (version >= 3 ? stored?.[row.action] : undefined) ?? row.pad ?? "";
   }
   return result;
 }
@@ -430,7 +436,7 @@ export function createResolver(rows = BINDINGS) {
   }
   function gestureValue(row, value, owned, shared, now) {
     const gesture = row.gesture || "press";
-    if (gesture === "press" || (gesture === "tap" && !shared)) return value;
+    if (gesture === "press" || gesture === "chord" || (gesture === "tap" && !shared)) return value;
     const pressed = owned && value > 0.5;
     if (pressed) {
       if (!downAt.has(row.action)) downAt.set(row.action, now);
@@ -442,7 +448,8 @@ export function createResolver(rows = BINDINGS) {
   }
   // bindings: action → pad source. active: Set of context names. Returns action → resolved value.
   function resolve(bindings, snapshot, active, now) {
-    const live = rows.filter((row) => active.has(row.context) && row.gesture !== "chord" && bindings[row.action]);
+    const live = rows.filter(row => active.has(row.context) && bindings[row.action]
+      && !(row.gesture === "chord" && chordIds(bindings[row.action]).length));
     const top = new Map();
     const holds = new Set();
     for (const row of live) {

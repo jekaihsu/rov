@@ -1,3 +1,4 @@
+import { installChannelTable } from './input/channel_table.js';
 import { createRenderState, sampleSnapshots } from './state_buffer.js';
 import { createStateMerger, VIEWER_CAPS } from './state_merge.js';
 import { createCameraRig } from './camera_rig.js';
@@ -47,6 +48,7 @@ import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
+import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
 import {installChapterCards} from './brand/chapter_card.js';
@@ -584,6 +586,7 @@ function onState(m) {
   procedurePanel.update(m);
   campaignPanel.update(m);
   coldOpen.update(m, W);
+  if (!REPLAY) prologue.update(m);
   chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -648,27 +651,8 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const CH_NAME = { left_ud: '左搖桿 上下', left_lr: '左搖桿 左右', right_ud: '右搖桿 上下', right_lr: '右搖桿 左右', left_wave: '左滾輪', right_wave: '右滾輪' };
-const CH_KEYS = { left_ud: ['W', 'S'], left_lr: ['D', 'A'], right_ud: ['↑', '↓'], right_lr: ['→', '←'], left_wave: ['E', 'Q'], right_wave: ['C', 'Z'] };
-const MAP = {        // qysim/rc.py _MAP: axis → [channel, sign]
-  ROV_USA: { pitch: ['left_ud', -1], yaw: ['left_lr', 1], surge: ['right_ud', 1], roll: ['right_lr', 1], heave: ['left_wave', 1], sway: ['right_wave', 1] },
-  ROV_JPN: { surge: ['left_ud', 1], yaw: ['left_lr', 1], pitch: ['right_ud', -1], roll: ['right_lr', 1], heave: ['left_wave', 1], sway: ['right_wave', 1] },
-  ROV_CHN: { surge: ['left_ud', 1], roll: ['left_lr', 1], pitch: ['right_ud', -1], yaw: ['right_lr', 1], heave: ['left_wave', 1], sway: ['right_wave', 1] },
-  UAV_USA: { heave: ['left_ud', 1], yaw: ['left_lr', 1], surge: ['right_ud', 1], sway: ['right_lr', 1], pitch: ['left_wave', 1], roll: ['right_wave', 1] },
-  UAV_JPN: { surge: ['left_ud', 1], yaw: ['left_lr', 1], heave: ['right_ud', 1], sway: ['right_lr', 1], pitch: ['left_wave', 1], roll: ['right_wave', 1] },
-  UAV_CHN: { surge: ['left_ud', 1], sway: ['left_lr', 1], heave: ['right_ud', 1], yaw: ['right_lr', 1], pitch: ['left_wave', 1], roll: ['right_wave', 1] },
-};
-const AX = { surge: ['前進', '後退', '前後'], sway: ['右移', '左移', '橫移'], heave: ['上浮', '下潛', '升降'], roll: ['右滾', '左滾', '橫滾'], pitch: ['抬頭', '低頭', '俯仰'], yaw: ['右轉', '左轉', '轉向'] };
-function chanMeaning(mode, ch) {
-  const t = MAP[mode] || MAP.ROV_USA;
-  for (const [axis, [c, sign]] of Object.entries(t)) if (c === ch) {
-    const [p, n, name] = AX[axis];
-    return { axis, name, pos: sign > 0 ? p : n, neg: sign > 0 ? n : p };
-  }
-  return { axis: '', name: '—', pos: '', neg: '' };
-}
-
-const input = installInput({blocked: () => collectionOpen || pauseMenuOpen() || resultsOpen() || feedbackOpen(),
+const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
+    || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
   setMode: mode => { $('opMode').value = mode; $('opMode').dispatchEvent(new Event('change')); },
@@ -752,25 +736,7 @@ function drawSticks(msg) {
   $('bPhoto').classList.toggle('on', hold.photo.size > 0); $('bRec').classList.toggle('on', hold.record.size > 0);
 }
 
-const mapRows = {};
-let mapMode = '';
-function buildMapTable(mode) {
-  if (mode === mapMode) return; mapMode = mode;
-  const tb = $('mapTbl'); tb.innerHTML = '';
-  for (const c of CH) {
-    const m = chanMeaning(mode, c), tr = document.createElement('tr');
-    tr.innerHTML = `<td>${CH_NAME[c]}</td><td>${m.name}<span class="hint"> ${c.endsWith('ud') ? '↑' : '→'}${m.pos}</span></td><td class="bar"><div class="track c"><div class="fill"></div></div></td><td class="pwm">1500</td>`;
-    tb.appendChild(tr); mapRows[c] = { pwm: tr.querySelector('.pwm'), fill: tr.querySelector('.fill') };
-    const kk = CH_KEYS[c];
-    if (c.endsWith('wave')) {
-      $('lbl_' + c).innerHTML = `${m.neg} <kbd>${kk[1]}</kbd> ◀ ${c === 'left_wave' ? '左' : '右'}滾輪 ▶ <kbd>${kk[0]}</kbd> ${m.pos}`;
-    } else {
-      $(`lbl_${c}_p`).innerHTML = `<kbd>${kk[0]}</kbd>${m.pos}`;
-      $(`lbl_${c}_n`).innerHTML = c.endsWith('lr') ? `${m.neg}<kbd>${kk[1]}</kbd>` : `<kbd>${kk[1]}</kbd>${m.neg}`;
-    }
-  }
-}
-buildMapTable('ROV_USA');
+const {meters: mapRows, update: buildMapTable} = installChannelTable();
 
 /* ═════════════════════════ training / panel controls ═════════════════════════ */
 function fillCatalogue(select) {
@@ -1073,6 +1039,7 @@ function endIntroUI() {
 }
 // held: open on the aft deck and wait; the returned function starts the launch (deployment procedure).
 async function startIntro(held = false) {
+  if (params.get('chapter') === 'prologue') return null;
   if (!W || !$('optIntro').checked || params.has('nointro')) return null;
   if (MOVIE && movie.introDone) return;
   const assets = await loadIntroAssets();
@@ -1254,6 +1221,7 @@ const audio = installAudio({
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
+const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
@@ -1322,6 +1290,7 @@ function frame(now) {
   audio.update(renderState.display(S));
   music.update(renderState.display(S));
   coldOpen.frame(dt);
+  prologue.frame();
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);

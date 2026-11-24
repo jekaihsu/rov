@@ -4,17 +4,20 @@
 // card and the pause menu, and settles the dive into the career when the job is done, handed in early or, for a
 // story-chapter contract, when the chapter ends. The results screen then shows the career outcome. An exam
 // (?exam=1) checks the whole time that nothing beyond the real vehicle is on; if something is, the exam is void.
+import { showTitleCard } from '../brand/chapter_card.js';
+import { chapterCardData } from '../brand/chapters.js';
 import { getFidelity } from '../fidelity.js';
 import { blockFor } from '../fleet_names.js';
+import { localize } from '../i18n/index.js';
 import { formatTime } from '../play/results_model.js';
 import { loadCareerData } from './data.js';
 import { createTracker } from './deliverables.js';
 import { PHOTO_VERDICT_ITEM } from './fidelity_item.js';
+import { createCareerRadio } from './radio.js';
 import { contractById, contractView, itemLabel } from './rules.js';
 import { loadCareer, storeCareer } from './save.js';
 import { partialAccepted, payout, DELIVERABLE_KIND_LABELS } from './scoring.js';
 import { settleDive } from './settle.js';
-import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('career.dive', {
   card: 'YX 工單',
@@ -99,15 +102,17 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   let confirmSubmit = false;
   let feedback = '';
   let lastState = null;
+  let doneIds = new Set();
+  let chapterCardShown = false;
+  const careerRadio = createCareerRadio();
   const node = element('div', 'career-checklist');
-  const radio = element('p', 'career-radio');
   const subhead = element('p', 'objective-subhead');
   const list = element('ol', 'objective-steps career-steps');
   const status = element('p', 'career-status');
   const actions = element('div', 'career-card-actions');
   const note = element('p', 'objective-feedback');
   note.setAttribute('role', 'status');
-  node.append(radio, subhead, list, status, actions, note);
+  node.append(careerRadio.element, subhead, list, status, actions, note);
 
   loadCareerData().then(function ready(loaded) {
     data = loaded;
@@ -122,6 +127,21 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   function exam() {
     return !!contract?.exam && examLaunch;
   }
+  function openChapterCard() {
+    // Story-chapter contracts already get a card from brand/chapter_card.js via campaign state.
+    if (chapterCardShown || !contract || !data || contract.runtime === 'chapter') return;
+    const chapter = data.chapters.find(function byId(entry) {
+      return entry.id === contract.chapter;
+    });
+    if (!chapter) return;
+    chapterCardShown = true;
+    const title = String(chapter.title || '').replace(' · ', '｜');
+    showTitleCard(chapterCardData({
+      id: chapter.id,
+      title,
+      scenario: contract.scenario,
+    }));
+  }
   function start() {
     tracker = createTracker(contract, {
       owned: save.owned,
@@ -135,8 +155,10 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     confirmSubmit = false;
     feedback = '';
     dive = null;
-    radio.replaceChildren(element('strong', '', contract.radio?.speaker || ''), contract.radio?.start || '');
-    radio.hidden = !contract.radio?.start;
+    doneIds = new Set();
+    careerRadio.bind(contract.radio || null);
+    if (contract.runtime !== 'chapter') careerRadio.play('start');
+    openChapterCard();
   }
   function openDive(state) {
     const model = state.model_id || 'x1';
@@ -187,6 +209,13 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     save.activeDive = { ...dive, deliverables: tracker.snapshot().items };
     storeCareer(save, { mirror: false });
   }
+  function announceProgress(snapshot) {
+    for (const item of snapshot.items || []) {
+      if (!item.done || doneIds.has(item.id)) continue;
+      doneIds.add(item.id);
+      careerRadio.play(item.id);
+    }
+  }
   function update(state) {
     lastState = state;
     if (!contract || settled || !state || !inScene(state)) return;
@@ -196,6 +225,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     persist();
     if (contract.runtime === 'chapter') return;
     const snapshot = tracker.snapshot();
+    announceProgress(snapshot);
     if (snapshot.tetherBroken) settle(true);
     else if (snapshot.complete) settle(false);
   }
@@ -224,6 +254,9 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     }, { sceneKeys });
     save = result.save;
     storeCareer(save);
+    if (result.summary.exam.passed) careerRadio.play('licence');
+    else if (result.summary.pay.outcome === 'complete') careerRadio.play('done');
+    else if (result.summary.pay.outcome === 'partial') careerRadio.play('partial');
     const outcome = careerOutcome(result.summary, snapshot, chapterOutcome);
     if (!chapterOutcome) showResult?.(outcome);
     return outcome;
@@ -395,7 +428,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
   function retry() {
     if (!contract) return;
     if (contract.runtime === 'chapter') {
-      send({ type: 'operation', action: 'campaign_start', chapter: contract.campaignChapter });
+      send({ type: 'operation', action: 'campaign_start', beats: true, chapter: contract.campaignChapter });
     } else {
       send({ type: 'reset' });
     }

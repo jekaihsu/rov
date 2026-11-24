@@ -1,5 +1,5 @@
-import {glyph, deviceFamily} from './input/glyphs.js';
-import {hintText, actionKey, axisChannel, pilotAxisKeys} from './input/bindings.js';
+import {actionGlyph, deviceFamily, padNames} from './input/glyphs.js';
+import {hintText, actionKey, padLabel, axisChannel, pilotAxisKeys} from './input/bindings.js';
 import {currentKeyRows, currentOperationMode} from './input/keyboard_layout.js';
 import {controlLayoutLabel} from './control_layout.js';
 // Read-only onboarding: every check comes from received simulator telemetry.
@@ -36,29 +36,36 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
     <p class="pilot-context" role="status" aria-live="polite"></p>
     <ol aria-label="首次潛航練習"><li data-step="unlock">解除馬達鎖定</li><li data-step="move">操控移動一小段</li><li data-step="depth">啟用定深</li><li data-step="light">開啟照明</li></ol>
     <details><summary>目前鍵位與視角</summary><p class="pilot-mode"></p><dl></dl>
-      <p class="pilot-shortcuts"><span class="pilot-keys"></span><br>V 切換追蹤、環繞、俯視、機載視角。俯視時以滾輪縮放。<br>需更換手把或控制配置時，返回主選單。</p>
+      <p class="pilot-shortcuts"><span class="pilot-keys"></span><br><span class="pilot-camera-key"></span> 切換追蹤、環繞、俯視、機載視角。俯視時以滾輪縮放。<br>需更換手把或控制配置時，返回主選單。</p>
     </details><button type="button" class="pilot-dismiss" id="pilotGuideDismiss">收起提示，下次不自動展開</button>
   </div>`;
   // Key captions come from the binding table, never from a second hand-written list.
   root.querySelector('.pilot-keys').textContent = hintText();
   let keyRowsVersion = 0;
+  let family = 'keyboard';
   document.addEventListener('rov-key-rows', function keysChanged(event) {
     keyRowsVersion++;
+    updateGlyphs();
     root.querySelector('.pilot-keys').textContent = hintText(event.detail);
   });
   const session = host.querySelector('.session-summary');
   if (session) session.after(root); else host.prepend(root);
-  document.addEventListener('rov-input-device', function updateGlyphs(event) {
+  document.addEventListener('rov-input-device', function deviceChanged(event) {
+    family = deviceFamily(event.detail);
+    updateGlyphs();
+  });
+  function updateGlyphs() {
     let shortcuts = root.querySelector('.input-glyphs');
     if (!shortcuts) {
       shortcuts = document.createElement('span');
       shortcuts.className = 'input-glyphs';
       root.querySelector('.pilot-shortcuts').prepend(shortcuts);
     }
-    shortcuts.innerHTML = glyph(0, deviceFamily(event.detail), 'P') + ' ' +
-      glyph(1, deviceFamily(event.detail), 'R') + ' ' + glyph(2, deviceFamily(event.detail), 'H') + ' ' +
-      glyph(3, deviceFamily(event.detail), 'Space');
-  });
+    root.querySelector(".pilot-camera-key").textContent = actionKey("camera", currentKeyRows());
+    shortcuts.innerHTML = ['photo', 'record', 'depth', 'lock']
+      .map(action => actionGlyph(action, currentKeyRows(), family)).join(' ');
+  }
+  updateGlyphs();
   const body = root.querySelector('#pilotGuideBody'), toggle = root.querySelector('#pilotGuideToggle');
   const context = root.querySelector('.pilot-context'), count = root.querySelector('.pilot-count');
   const modeLabel = root.querySelector('.pilot-mode'), table = root.querySelector('dl');
@@ -85,7 +92,7 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
     lastTime = state.t;
     const usb = !!state.controller, mode = state.operation_mode || currentOperationMode();
     const surgeChannel = axisChannel('surge', mode)?.channel || 'right_ud';
-    const mappingKey = `${mode}:${usb}:${keyRowsVersion}`;
+    const mappingKey = `${mode}:${usb}:${keyRowsVersion}:${family}`;
     if (mappingKey !== lastMapping) {
       lastMapping = mappingKey;
       modeLabel.textContent = `${controlLayoutLabel(mode)} · ${usb ? 'USB 遙控器接管操作軸' : '鍵盤／目前選用的手把'}`;
@@ -93,7 +100,9 @@ export function installPilotGuide({getState, getWorld, readOnly = false}) {
       for (const [axis, label] of AXES) {
         const dt = document.createElement('dt');
         const dd = document.createElement('dd');
-        const pad = CHANNELS[axisChannel(axis, mode)?.channel] || '';
+        const channel = axisChannel(axis, mode)?.channel;
+        const row = currentKeyRows().find(entry => entry.action === channel);
+        const pad = usb ? CHANNELS[channel] : padLabel(row?.pad, padNames(family) || undefined);
         const keys = pilotAxisKeys(axis, currentKeyRows(), mode).join(' / ');
         dt.textContent = label;
         dd.textContent = usb || !keys ? pad : `${keys} · ${pad}`;
