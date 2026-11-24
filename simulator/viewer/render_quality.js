@@ -87,11 +87,31 @@ function ladderFor(hardware) {
 // high, stuttering for several seconds and stepping down again (first launch still starts from the hints above).
 const LEARNED_KEY = 'rov.quality.learned.v1';
 let learnedApplied = false;
+const qualityListeners = new Set();
+
+// Notify presentation consumers (cable tube tier, HUD density, …) when the configured mode changes.
+export function subscribeRenderQuality(listener) {
+  if (typeof listener !== 'function') return () => {};
+  qualityListeners.add(listener);
+  return () => qualityListeners.delete(listener);
+}
+
+function notifyQuality(state) {
+  for (const listener of qualityListeners) {
+    try {
+      listener(state);
+    } catch (error) {
+      console.warn('[render_quality]', error);
+    }
+  }
+}
 
 function readLearned(hardware) {
   try {
     const value = JSON.parse(globalThis.localStorage?.getItem(LEARNED_KEY) || 'null');
-    if (!value || value.renderer !== hardware.renderer || !Number.isFinite(value.ratio)) return null;
+    if (!value || typeof value !== 'object' || value.renderer !== hardware.renderer) return null;
+    if (!Number.isFinite(value.ratio)) return null;
+    // Keep unknown fields (e.g. S3 version) so a later writer does not drop them when merging saves.
     return value;
   } catch {
     return null;
@@ -100,7 +120,9 @@ function readLearned(hardware) {
 
 function writeLearned(state) {
   if (!state.learn) return;
+  const previous = readLearned(state.hardware) || {};
   const value = {
+    ...previous,
     renderer: state.hardware.renderer,
     ratio: state.ratio,
     effectsSuppressed: state.effectsSuppressed,
@@ -140,6 +162,7 @@ export function configureRenderQuality(renderer,mode='auto',{learn=false}={}){
     slowAtFloor: 0, learn, slowFps: ladder.slowFps, fastFps: ladder.fastFps, raiseHold: ladder.raiseHold};
   lastMode=mode;
   profiles.set(renderer,state);renderer.shadowMap.enabled=['medium','high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
+  notifyQuality(state);
   return state;
 }
 

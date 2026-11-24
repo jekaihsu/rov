@@ -19,17 +19,19 @@ export function createWorkQueue({budgetMs = 6} = {}) {
     generation += 1;
   }
 
-  // Returns true when the queue is empty after this turn.
+  // Returns true when the queue is empty after this turn. budgetMs 0 still runs exactly one job so a
+  // caller can drain deliberately (one job per frame) without a busy spin on an empty clock slice.
   function update(now = performance.now()) {
-    const limit = now + Math.max(1, budgetMs);
-    while (jobs.length && performance.now() < limit) {
+    if (!jobs.length) return true;
+    const limit = now + Math.max(0, budgetMs);
+    do {
       const job = jobs.shift();
       try {
         job();
       } catch (error) {
         console.warn('[work_queue]', error);
       }
-    }
+    } while (jobs.length && performance.now() < limit);
     return jobs.length === 0;
   }
 

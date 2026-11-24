@@ -7,32 +7,53 @@
 import * as THREE from 'three';
 
 export class Cable {
-  constructor(material, { radius = 0.0065, segments = 240, radial = 8, colors = false } = {}) {
-    this.radius = radius; this.S = segments; this.R = radial;
+  constructor(material, options = {}) {
+    this.material = material;
+    this.mesh = new THREE.Mesh(new THREE.BufferGeometry(), material);
+    this.mesh.frustumCulled = false;
+    this.mesh.visible = false;
+    this.curve = new THREE.CatmullRomCurve3([], false, 'centripetal');
+    this._t = new THREE.Vector3();
+    this._n = new THREE.Vector3();
+    this._b = new THREE.Vector3();
+    this._c = new THREE.Color();
+    this.setOptions(options);
+  }
+
+  // Rebuild tube buffers when the quality tier changes mid-dive (segments / radial / colours).
+  setOptions({radius = 0.0065, segments = 240, radial = 8, colors = false} = {}) {
+    if (this.radius === radius && this.S === segments && this.R === radial && !!this.col === !!colors
+      && this.geometry) {
+      return;
+    }
+    this.radius = radius;
+    this.S = segments;
+    this.R = radial;
     const nv = (segments + 1) * (radial + 1);
+    const previous = this.geometry;
     const g = (this.geometry = new THREE.BufferGeometry());
-    this.pos = new Float32Array(nv * 3); this.nrm = new Float32Array(nv * 3);
+    this.pos = new Float32Array(nv * 3);
+    this.nrm = new Float32Array(nv * 3);
     g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
     g.setAttribute('normal', new THREE.BufferAttribute(this.nrm, 3).setUsage(THREE.DynamicDrawUsage));
     if (colors) {
       this.col = new Float32Array(nv * 3);
       g.setAttribute('color', new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
+    } else {
+      this.col = null;
     }
     const idx = [];
     for (let i = 0; i < segments; i++) {
       for (let j = 0; j < radial; j++) {
-        const a = i * (radial + 1) + j, b = a + radial + 1;
+        const a = i * (radial + 1) + j;
+        const b = a + radial + 1;
         idx.push(a, b, a + 1, b, b + 1, a + 1);
       }
     }
     g.setIndex(idx);
-    this.mesh = new THREE.Mesh(g, material);
-    this.mesh.frustumCulled = false;
-    this.mesh.visible = false;
-    this.curve = new THREE.CatmullRomCurve3([], false, 'centripetal');
-    this._p = Array.from({ length: segments + 1 }, () => new THREE.Vector3());
-    this._t = new THREE.Vector3(); this._n = new THREE.Vector3(); this._b = new THREE.Vector3();
-    this._c = new THREE.Color();
+    this.mesh.geometry = g;
+    this._p = Array.from({length: segments + 1}, () => new THREE.Vector3());
+    previous?.dispose();
   }
 
   update(points, colorAt = null) {
