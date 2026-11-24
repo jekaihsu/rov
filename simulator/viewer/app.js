@@ -52,7 +52,6 @@ import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
 import {installTrainingSession} from './training/session.js';
-import {normalizeCourse} from './training/catalogue.js';
 import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
@@ -483,18 +482,6 @@ const trainingSession = installTrainingSession({
   getState: () => S,
   student: new URLSearchParams(location.search).get('name') || '',
 });
-if (trainingSession.active) {
-  fetch('training/courses.json').then(function loadCourses(response) {
-    return response.ok ? response.json() : null;
-  }).then(function applyCatalogue(catalogue) {
-    if (!catalogue || !trainingSession.active) return;
-    const lessonId = trainingSession.lesson?.id;
-    const match = [...(catalogue.courses || []), ...(catalogue.incidents || [])]
-      .find(function byId(entry) { return entry.id === lessonId; });
-    const normalized = normalizeCourse(match);
-    if (normalized) Object.assign(trainingSession.lesson, normalized);
-  }).catch(function ignore() {});
-}
 const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
