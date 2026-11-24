@@ -1,0 +1,20 @@
+{
+  "leftDeadzone": "左搖桿死區",
+  "rightDeadzone": "右搖桿死區",
+  "leftResponse": "左搖桿反應曲線",
+  "rightResponse": "右搖桿反應曲線",
+  "leftInvert": "左搖桿 Y 軸反轉",
+  "rightInvert": "右搖桿 Y 軸反轉",
+  "subtitleSize": "字幕字級",
+  "small": "小",
+  "medium": "中",
+  "large": "大",
+  "extraLarge": "特大",
+  "subtitleOpacity": "字幕背景不透明度",
+  "speakerColor": "說話者名稱顏色",
+  "cyan": "青色",
+  "white": "白色",
+  "amber": "琥珀色",
+  "radioDuration": "無線電字幕停留時間（倍數）",
+  "reduceFlashes": "減少拍照與撞擊閃光"
+}

@@ -136,3 +136,6 @@ GLB 以 glTF Transform（MIT）、meshoptimizer（MIT）及 WebP（BSD）壓縮�
 
 R6 船殼格柵、水尺、螺槳截面、HDPE 熔接環與破網邊緣為原創程式幾何（CC0-1.0）。
 塗層沿用本檔所列 coating／rust 掃描材質。網箱養殖群與死魚載入本檔所列 CC0 魚模組的 madai，網外魚群載入 aji。藤壺、格柵小魚、塗層刮痕、卸扣及沉積飼料為原創程式幾何（CC0-1.0）。
+
+The training-pool A/B/C wall plates are original procedural artwork. The viewer draws
+their lettering, border and scale bars on a canvas in `story/prologue.js`.

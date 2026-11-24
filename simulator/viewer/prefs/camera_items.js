@@ -21,7 +21,7 @@ registerFidelityItem({
   defaults: { real: false, assisted: false }, presetNeutral: true,
 }, {
   motionComfort: '動態舒適',
-  motionComfortHelp: '關閉追蹤視角隨速度拉遠與視野放大，並減少介面動畫，降低暈眩。',
+  motionComfortHelp: '關閉追蹤視角的速度拉遠與視野放大、關閉外部鏡頭跟隨晃動，並降低手把震動與介面動畫。',
 });
 
 function markComfort() {

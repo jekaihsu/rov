@@ -11,6 +11,8 @@
 // `snagged` is a held hook of the server's snag model (state.tether.snags), not a tether merely touching steel.
 // A hook that lets go before the back-out call was not cleared by the pilot: the radio calls it luck (`slipped`).
 
+import {beatDecision, idleReminder} from './beat_director.js';
+
 export const TIMING = Object.freeze({
   black: 5.0,              // black screen with the first radio line
   establish: 8.0,          // the cinematic shot, fading in over `fadeIn`
@@ -36,8 +38,20 @@ export const TIMING = Object.freeze({
   stoppedTension: 20,      // N: below this the pilot has stopped pulling
 });
 
-const BEATS = ['black', 'establish', 'handover', 'approach', 'payoff', 'transit', 'incident', 'relief', 'fade',
-  'card', 'done'];
+// Routine cuts, presentation and radio are data. Snag confirmation, tension and retreat stay scene-specific.
+const beats = {
+  black: {limit: TIMING.black, next: 'establish', cinematic: true, radio: 'open'},
+  establish: {limit: TIMING.establish, next: 'handover', cinematic: true, radio: 'crew'},
+  handover: {limit: TIMING.handover, next: 'approach', hud: ['depth', 'heading'], radio: 'task'},
+  approach: {},
+  payoff: {limit: TIMING.payoff, next: 'transit', hud: ['photo']},
+  transit: {hint: 'turn'},
+  incident: {hud: ['tether']},
+  relief: {limit: TIMING.relief, next: 'fade'},
+  fade: {limit: TIMING.fade, next: 'card'},
+  card: {},
+  done: {},
+};
 
 function distance2(a, b) {
   if (!a || !b) return Infinity;
@@ -77,16 +91,11 @@ export function createColdOpenDirector(spots = {}) {
     beat = next;
     since = now;
     nudged = new Set();
-    if (next === 'black') say('open');
-    if (next === 'establish') say('crew');
-    if (next === 'handover') {
-      reveal.add('depth');
-      reveal.add('heading');
-      say('task');
-    }
+    const data = beats[next];
+    if (data.radio) say(data.radio);
+    for (const instrument of data.hud || []) reveal.add(instrument);
     if (next === 'approach') lastMoved = now;
     if (next === 'payoff') {
-      reveal.add('photo');
       say(photoNear ? 'praise' : 'praiseFar');
     }
     if (next === 'transit') {
@@ -94,7 +103,6 @@ export function createColdOpenDirector(spots = {}) {
       say(outcome.photo ? 'toLegB' : 'skipPhoto');
     }
     if (next === 'incident') {
-      reveal.add('tether');
       outcome.snag = true;
       backOutCalled = false;
       stoppedSince = null;
@@ -121,7 +129,7 @@ export function createColdOpenDirector(spots = {}) {
     return now - since;
   }
   function nudge(id, now, after, idleSince) {
-    if (nudged.has(id) || now - idleSince < after) return;
+    if (!idleReminder(id, after, now - idleSince, nudged.has(id))) return;
     nudged.add(id);
     say(id);
   }
@@ -188,9 +196,8 @@ export function createColdOpenDirector(spots = {}) {
       const near = distance2(t.pos, spots.anode) < TIMING.photoHintRange;
       return near || elapsed(now) > TIMING.photoHintAfter ? 'photo' : 'move';
     }
-    if (beat === 'transit') return 'turn';
     if (beat === 'incident') return backOutCalled ? 'reverse' : 'release';
-    return null;
+    return beats[beat].hint || null;
   }
   function step(now, telemetry = {}) {
     said = [];
@@ -199,15 +206,11 @@ export function createColdOpenDirector(spots = {}) {
     const t = telemetry;
     if ((Number(t.input) || 0) > TIMING.stickInput) lastMoved = now;
     const time = elapsed(now);
-    if (beat === 'black' && time >= TIMING.black) enter('establish', now);
-    else if (beat === 'establish' && time >= TIMING.establish) enter('handover', now);
-    else if (beat === 'handover' && time >= TIMING.handover) enter('approach', now);
+    const cut = beatDecision(beats[beat], time, t);
+    if (cut) enter(cut, now);
     else if (beat === 'approach') approach(now, t);
-    else if (beat === 'payoff' && time >= TIMING.payoff) enter('transit', now);
     else if (beat === 'transit') transit(now, t);
     else if (beat === 'incident') incident(now, t);
-    else if (beat === 'relief' && time >= TIMING.relief) enter('fade', now);
-    else if (beat === 'fade' && time >= TIMING.fade) enter('card', now);
     return view(now, t);
   }
   function view(now, t) {
@@ -221,8 +224,8 @@ export function createColdOpenDirector(spots = {}) {
       hint: hint(now, t),
       reveal: [...reveal],
       black,
-      letterbox: beat === 'black' || beat === 'establish',
-      cinematic: beat === 'black' || beat === 'establish',
+      letterbox: !!beats[beat].cinematic,
+      cinematic: !!beats[beat].cinematic,
       said,
       ended: beat === 'card' || beat === 'done',
       outcome: {...outcome},
@@ -251,4 +254,4 @@ export function createColdOpenDirector(spots = {}) {
   };
 }
 
-export const COLD_OPEN_BEATS = Object.freeze(BEATS);
+export const COLD_OPEN_BEATS = Object.freeze(Object.keys(beats));

@@ -30,7 +30,7 @@ class VoiceToolsTests(unittest.TestCase):
             second = json.loads(out.read_text(encoding='utf-8'))
             self.assertEqual([row['id'] for row in manifest['lines']],
                              [row['id'] for row in second['lines']])
-            self.assertEqual(first['speaker'], '林督導')
+            self.assertEqual(first['speaker'], '林岑')
 
     def test_synthesize_requires_api_key(self):
         env = {key: value for key, value in os.environ.items() if key != 'OPENAI_API_KEY'}

@@ -8,7 +8,7 @@ const SCENE_MODES = new Set(['free_explore', 'expedition', 'inspection_coop']);
 export function restartMessages(state) {
   const campaign = state?.campaign;
   if (campaign?.status === 'active' && campaign.chapter) {
-    return [{ type: 'operation', action: 'campaign_start', chapter: campaign.chapter }];
+    return [{ type: 'operation', action: 'campaign_start', ...(campaign.directed ? {beats: true} : {}), chapter: campaign.chapter }];
   }
   const messages = [{ type: 'reset' }];
   const mode = state?.mission?.mode;

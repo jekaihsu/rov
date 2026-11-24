@@ -1001,3 +1001,17 @@ Net visual motion is bounded to 0.05 m and never changes server collision shapes
 
 網箱側網障礙物的選填欄位 `torn_edge` 標出破洞邊緣，值為 `top` 或 `bottom`。省略時按完整網片繪製。
 網箱外的野生魚群在 `world.habitat.fish_schools[]` 附上選填的 `wild: true`。網箱內的魚群沿用原有資料格式。
+
+A host viewer can request directed presentation with optional `beats: true` on
+`campaign_start`. Chapters with a beat script expose `campaign.directed`,
+the current beat in `campaign.node` and wall plate positions in `campaign.plates`
+(NED metres). The host sends `campaign_advance` with the current `beat` ID and
+its declared `next` or timeout destination. Stale IDs are rejected. Node
+checkpoint resumes, company courses and clients omitting the flag use existing nodes.
+
+Directed state also includes `beat_since` (host simulation seconds), `missed`
+(previous condition timed out), `drift` (absolute depth change in metres with
+neutral sticks), `framedPhoto` (this beat has a usable shutter pose) and
+`accepted` (accepted plates this run). Result entries for plate surveys add
+optional `photos_accepted` and `photos_required` counts. The host rechecks
+the condition or deadline before advancing and retains the count across reconnects.
