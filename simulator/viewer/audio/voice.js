@@ -1,10 +1,9 @@
 // Radio dialogue voice clips: play an Opus file when a line appears, duck music via the existing
 // radio UI hold, and fall back to text-only (plus ambient noise) when the clip is missing.
-// Presentation layer only — not a fidelity item. Volume uses the engine `voice` bus.
-// Why no fidelity item: the speakers are the boat crew (supervisor, tether hand, client) talking to the
-// pilot over the deck radio, which a real pilot hears during a dive; it adds no capability the vehicle
-// lacks. A voice that is not crew radio (narrator, AI co-pilot) would need registerFidelityItem().
+// Clip playback is real crew radio. OS speechSynthesis fallback is a separate fidelity toggle (default off).
 import {createHash} from './voice_hash.js';
+import {getFidelity} from '../fidelity.js';
+import '../story/feel_settings.js';
 
 export const VOICE_BASE = new URL('./voice/', import.meta.url).href;
 
@@ -88,6 +87,45 @@ function createController() {
   let sourceNode = null;
   let gainNode = null;
   let currentKey = '';
+  let revision = 0;
+  let utterance = null;
+  let muteWatch = null;
+
+  function voiceLevel() {
+    if (!engine?.ctx || engine.ctx.state !== 'running' || engine.settings.mute || engine.forcedMute ||
+        document.hidden || engine.isPaused()) return 0;
+    return engine.settings.master * engine.settings.voice;
+  }
+
+  function speakLocal(text, language, rate) {
+    if (!getFidelity().get('osVoice')) return false;
+    const synth = globalThis.speechSynthesis;
+    const volume = voiceLevel();
+    if (!volume || !synth || !globalThis.SpeechSynthesisUtterance) return false;
+    const voices = synth.getVoices().filter(voice => voice.localService);
+    const voice = voices.find(entry => entry.lang === language) ||
+      voices.find(entry => entry.lang.split('-')[0] === language.split('-')[0]);
+    if (!voice) return false;
+    const line = new SpeechSynthesisUtterance(text);
+    line.voice = voice;
+    line.lang = language;
+    line.rate = rate;
+    line.volume = volume;
+    utterance = line;
+    function ended() {
+      if (utterance !== line) return;
+      clearInterval(muteWatch);
+      utterance = null;
+    }
+    line.onend = ended;
+    line.onerror = ended;
+    muteWatch = setInterval(function checkMixer() {
+      if (!voiceLevel()) stop();
+    }, 100);
+    synth.speak(line);
+    return true;
+  }
+
 
   function bind(options = {}) {
     if (options.engine) engine = options.engine;
@@ -108,6 +146,12 @@ function createController() {
   }
 
   function stop() {
+    revision++;
+    if (utterance) {
+      clearInterval(muteWatch);
+      utterance = null;
+      globalThis.speechSynthesis.cancel();
+    }
     if (!element) {
       currentKey = '';
       return;
@@ -118,7 +162,7 @@ function createController() {
     currentKey = '';
   }
 
-  async function playLine({speaker, text, language = 'zh-TW'} = {}) {
+  async function playLine({speaker, text, language = 'zh-TW', localRate = null} = {}) {
     const key = `${language}|${speaker}|${text}`;
     if (!speaker || !text) {
       stop();
@@ -127,11 +171,14 @@ function createController() {
     if (key === currentKey && element && !element.paused) {
       return {played: true, missing: false, reused: true};
     }
+    const request = ++revision;
     const index = await loadIndex(base);
+    if (request !== revision) return {played: false, superseded: true};
     const resolved = resolveClip(index, language, speaker, text);
     stop();
     currentKey = key;
     if (resolved.missing || !resolved.url) {
+      if (localRate && speakLocal(text, language, localRate)) return {played: true, local: true};
       // With no clips generated at all the game stays as it was: text only, no static.
       if (Object.keys(index || {}).length) playStaticFallback(engine);
       return {played: false, missing: true, id: resolved?.id};

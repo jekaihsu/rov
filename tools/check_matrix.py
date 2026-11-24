@@ -14,6 +14,7 @@ DEFAULT_CHECKS = (
     'browser_rebind_smoke',
     'browser_menu_gamepad_smoke',
     'browser_feedback_smoke',
+    'browser_feel_smoke',
     'browser_gamepad_matrix_smoke',
     # Four PlayStation profiles (standard and raw, DualSense and DualShock 4), each from title to dive and back.
     'browser_playstation_smoke',

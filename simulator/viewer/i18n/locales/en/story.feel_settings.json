@@ -1,0 +1,14 @@
+{
+  "motorSound": "Thruster sound",
+  "waterSound": "Depth ambience",
+  "contactSound": "Underwater impacts",
+  "strainSound": "Tether strain",
+  "switchSound": "Console switch and shutter sounds",
+  "contactVideo": "Impact video disturbance",
+  "photoFlash": "Shutter flash",
+  "loadReadout": "Show tension under load",
+  "crewCalls": "Crew radio reactions",
+  "idleCalls": "Quiet-period radio",
+  "osVoice": "Operating-system speech",
+  "osVoiceHelp": "When a voice clip is missing, read radio captions with local speech synthesis. Off by default."
+}

@@ -10,6 +10,7 @@ import '../vision/overlay.js';
 import '../fx/beautify.js';
 import '../onboard/camera_look.js';
 import '../audio/fidelity.js';
+import '../story/feel_settings.js';
 import '../audio/music_fidelity.js';
 import '../input/haptics_fidelity.js';
 import '../start_presentation.js';
