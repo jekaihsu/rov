@@ -60,8 +60,15 @@ def play_prologue(page, shots=None, keys=None):
             print(beat, state['p'], flush=True)
             if shots and beat not in ('A', 'B', 'C'):
                 path = shots / f'{len(seen):02}-{beat}.jpg'
-                page.wait_for_timeout(380)
-                capture(page, path)
+                if beat == 'establish':
+                    # Live frames so sternLaunchShot and the letterbox transition settle; stay under the 5 s limit.
+                    skip_render(page, False)
+                    page.wait_for_timeout(800)
+                    capture(page, path)
+                    skip_render(page)
+                else:
+                    page.wait_for_timeout(450)
+                    capture(page, path)
                 frames.append((path, beat))
             if beat == 'report':
                 assert '3/3' in page.locator('#prologue .cold-open-words').inner_text()
@@ -119,6 +126,9 @@ def play_prologue(page, shots=None, keys=None):
 
 
 def run():
+    if OUT.exists():
+        for stale in OUT.glob('*.jpg'):
+            stale.unlink()
     OUT.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as pw:
         browser = launch(pw)

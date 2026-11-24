@@ -14,8 +14,15 @@ import {showTitleCard} from '../brand/chapter_card.js';
 import {chapterCardData} from '../brand/chapters.js';
 
 const MARK_LABELS = Object.freeze({A: '2', B: '籠', C: '卸'});
+// Visual mount points (landmark faces). Beat targets stay on the stand-off poses used by photo_matches.
+const MARK_FACES = Object.freeze({
+  A: [6.0, 0.0, 2.8],
+  B: [5.2, 2.0, 5.2],
+  C: [7.0, -2.8, 2.8],
+});
 
-function wallPlate(id, [north, east, depth]) {
+function wallPlate(id, target) {
+  const [north, east, depth] = MARK_FACES[id] || target;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 256;
   const ctx = canvas.getContext('2d');
@@ -30,8 +37,10 @@ function wallPlate(id, [north, east, depth]) {
   for (let x = 18; x < 240; x += 20) ctx.fillRect(x, 211, 10, 17);
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
-  const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), new THREE.MeshBasicMaterial({map}));
-  plate.position.set(-east, -depth, north);
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.85), new THREE.MeshBasicMaterial({map}));
+  const radial = Math.hypot(north, east) || 1;
+  // Sit on the near face of the landmark so the mark reads as a pile / gear plate, not a free float.
+  plate.position.set(-east + (east / radial) * 0.35, -depth, north - (north / radial) * 0.35);
   plate.lookAt(0, -depth, 0);
   return plate;
 }
@@ -39,15 +48,17 @@ function wallPlate(id, [north, east, depth]) {
 /** Boat-stern establishing shot: from the work-boat transom above the water, looking at the ROV as it settles. */
 function sternLaunchShot(camera, rovG, spool, progress) {
   const k = Math.min(1, Math.max(0, progress));
-  // Three.js: (-east, -depth, north). Spool is the transom; start slightly above the waterline.
-  const stern = new THREE.Vector3(-(spool?.[1] || 0), 1.15 - 0.35 * k, (spool?.[0] || -5) + 0.4);
-  const side = new THREE.Vector3(1.6 - 0.4 * k, 0, 0);
-  const eye = stern.clone().add(side);
-  eye.y = Math.max(0.55, eye.y);
+  // Three.js: (-east, -depth, north). Eye sits on the work-boat deck aft of the spool so the hull, ROV and piles share the frame.
+  const spoolN = spool?.[0] || -5;
+  const eye = new THREE.Vector3(
+    0.35 + 0.4 * k,
+    1.55 - 0.35 * k,
+    spoolN - 1.4 + 0.9 * k,
+  );
   camera.position.copy(eye);
   const look = rovG.position.clone();
-  look.y = Math.min(-0.15, look.y + 0.2);
-  look.z += 1.2 + 1.8 * k;
+  look.y = -0.55 - 0.7 * k;
+  look.z += 3.2 + 2.4 * k;
   camera.up.set(0, 1, 0);
   camera.lookAt(look);
   camera.fov = 48 - 4 * k;

@@ -228,9 +228,9 @@
   ],
   "strings": {
     "zh-TW": {
-      "callsign.text": "向潮－指揮呼叫 R-1。",
+      "callsign.text": "向潮－指揮呼叫 R-1。先在港裡練，不出港。",
       "callsign.speaker": "林岑",
-      "welcome.text": "今天池裡認識搭檔。先檢查。",
+      "welcome.text": "今天港裡認識搭檔。先檢查。",
       "welcome.speaker": "林岑",
       "deck_ready.text": "甲板淨空。尾板就緒。",
       "deck_ready.speaker": "方晴",
@@ -323,7 +323,7 @@
       "condition": {
         "path": "pos.0",
         "op": "gt",
-        "value": 2.8
+        "value": 3.2
       },
       "next": "descend"
     },
@@ -407,7 +407,7 @@
         "photo"
       ],
       "target": [
-        5.5,
+        4.0,
         0.0,
         2.8
       ],
@@ -432,9 +432,9 @@
         "photo"
       ],
       "target": [
-        4.5,
-        2.8,
-        5.2
+        3.6,
+        1.2,
+        4.4
       ],
       "hint": "photo",
       "idle": 15,
@@ -457,8 +457,8 @@
         "photo"
       ],
       "target": [
-        7.0,
-        -2.8,
+        5.4,
+        -1.6,
         2.8
       ],
       "hint": "photo",
