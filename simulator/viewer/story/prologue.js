@@ -36,20 +36,21 @@ function wallPlate(id, [north, east, depth]) {
   return plate;
 }
 
-/** Boat-stern establishing shot: look from the spool / work-boat transom toward the ROV in the water. */
+/** Boat-stern establishing shot: from the work-boat transom above the water, looking at the ROV as it settles. */
 function sternLaunchShot(camera, rovG, spool, progress) {
   const k = Math.min(1, Math.max(0, progress));
-  const boat = new THREE.Vector3(-(spool?.[1] || 0), 0.85 - 0.25 * k, spool?.[0] || -6);
-  const aft = new THREE.Vector3(0, 0.15, -1.4).applyQuaternion(rovG.quaternion);
-  const eye = boat.clone().lerp(rovG.position.clone().add(aft).add(new THREE.Vector3(1.2, 0.9, -0.4)), 0.15 + 0.2 * k);
-  eye.y = Math.max(eye.y, 0.35);
+  // Three.js: (-east, -depth, north). Spool is the transom; start slightly above the waterline.
+  const stern = new THREE.Vector3(-(spool?.[1] || 0), 1.15 - 0.35 * k, (spool?.[0] || -5) + 0.4);
+  const side = new THREE.Vector3(1.6 - 0.4 * k, 0, 0);
+  const eye = stern.clone().add(side);
+  eye.y = Math.max(0.55, eye.y);
   camera.position.copy(eye);
   const look = rovG.position.clone();
-  look.y += 0.1 - 0.35 * k;
-  look.z += 0.8 * (1 - k);
+  look.y = Math.min(-0.15, look.y + 0.2);
+  look.z += 1.2 + 1.8 * k;
   camera.up.set(0, 1, 0);
   camera.lookAt(look);
-  camera.fov = 42 + 4 * k;
+  camera.fov = 48 - 4 * k;
   camera.updateProjectionMatrix();
 }
 

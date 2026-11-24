@@ -126,7 +126,7 @@ def run():
         errors = []
         page.on('pageerror', lambda err: (errors.append(str(err)), print(err, flush=True)))
         page.goto(f'{http_base()}/?play=1&scenario=harbor_shallows&nointro&control=UAV_CHN'
-                  f'&room=harbor{time.time_ns()}&quality=performance&ws={ws_base()}', wait_until='commit')
+                  f'&room=harbor{time.time_ns()}&quality=medium&ws={ws_base()}', wait_until='commit')
         page.wait_for_function('window.__viewer?.S?.campaign?.status === "idle"', timeout=timeout(90000))
         keys = flight_keys(page)
         skip_render(page)

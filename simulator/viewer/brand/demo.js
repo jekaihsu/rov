@@ -22,7 +22,7 @@ export const STRINGS = localize('brand.demo', {
   },
   model: 'MODEL',
   play: '全螢幕播放',
-  sampleTitles: {prologue: '序章｜水池', harbor: '第一章｜港灣', offshore: '第二章｜離岸'},
+  sampleTitles: {prologue: '序章｜港內', harbor: '第一章｜港灣', offshore: '第二章｜離岸'},
   sampleHolder: '林見習',
   sampleSerialPrefix: 'YX-PL-',
 });

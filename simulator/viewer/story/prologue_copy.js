@@ -3,7 +3,7 @@ import {localize} from '../i18n/index.js';
 
 export const STRINGS = localize('story.prologue_copy', {
   "site": "三個月前 · 青嶼港內淺水區",
-  "sub": "晴天上午 · 平潮 · 水深 6 m",
+  "sub": "晴天上午 · 平潮 · 水深 6 m · 能見度 8 m",
   "lin": "林岑 · 向潮指揮",
   "ma": "馬力 · R-2",
   "tender": "周楷 · 纜手",
