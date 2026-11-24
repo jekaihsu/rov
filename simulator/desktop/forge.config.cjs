@@ -2,7 +2,8 @@
 const path = require('node:path');
 const runtimeFiles = new Set([
   '/main.cjs', '/preload.cjs', '/collection_store.cjs', '/backend_lifecycle.cjs', '/gpu_preference.cjs',
-  '/steam_service.cjs', '/window_settings.cjs', '/package.json', '/steam', '/steam/achievements.json'
+  '/steam_service.cjs', '/window_settings.cjs', '/package.json', '/steam', '/steam/achievements.json',
+  '/THIRD_PARTY_NOTICES.txt'
 ]);
 function ignore(file) {
   // Three.js is vendored into the backend viewer; only Steamworks is a Node runtime dependency.

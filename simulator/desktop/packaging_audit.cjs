@@ -11,8 +11,9 @@ const before = inspect(process.argv[2]);
 const after = inspect(process.argv[3]);
 const files = asar.listPackage(process.argv[3]);
 assert.deepEqual(after.firstParty, [
-  '/backend_lifecycle.cjs', '/collection_store.cjs', '/gpu_preference.cjs', '/main.cjs', '/package.json',
-  '/preload.cjs', '/steam/achievements.json', '/steam_service.cjs', '/window_settings.cjs'
+  '/THIRD_PARTY_NOTICES.txt', '/backend_lifecycle.cjs', '/collection_store.cjs', '/gpu_preference.cjs',
+  '/main.cjs', '/package.json', '/preload.cjs', '/steam/achievements.json', '/steam_service.cjs',
+  '/window_settings.cjs'
 ]);
 assert.ok(files.includes('/node_modules/steamworks.js/index.js'));
 assert.ok(files.some(file => file.endsWith('steamworksjs.win32-x64-msvc.node')));

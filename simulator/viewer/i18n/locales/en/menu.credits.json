@@ -1,0 +1,19 @@
+{
+  "tab": "About",
+  "title": "Credits & licences",
+  "open": "Open credits & licences",
+  "openHelp": "Scrollable credits and full third-party licence text. Use the D-pad or left stick to move focus.",
+  "studio": "Credits",
+  "studioBody": "ROV Solution is made by the YX project team. The simulator aims for real ROV operating feel, with optional training assists that can be turned off.",
+  "disclaimer": "Disclaimer",
+  "disclaimerBody": "This simulator is for entertainment and training support only. It is not a real ROV operator certification, professional qualification, or any official licence exam. In-game licences and progress apply only within this title.",
+  "ai": "AI-generated content",
+  "aiBody": "Radio voice lines are pre-made with text-to-speech. Some fish model textures come from a third-party CC0 kit whose textures were pre-generated with AI image tools (not photographs); nothing is generated at runtime. See the store AI disclosure notes.",
+  "privacy": "Privacy",
+  "privacyBody": "The game itself does not collect personal data and does not phone home except through Steam platform features. Progress and collections are stored locally and may sync via Steam Cloud when enabled.",
+  "assets": "Third-party assets",
+  "assetsBody": "Names, versions, licences and sources for scene models, scanned materials, music and controller mappings are in the licence text below and in models/CREDITS.md.",
+  "licenses": "Third-party notices",
+  "licensesLoading": "Loading licence list…",
+  "licensesMissing": "Licence list file not found. Run simulator/tools/third_party_notices.py."
+}

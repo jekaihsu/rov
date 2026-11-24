@@ -9,6 +9,8 @@
 - [截圖與預告片](capture-plan.md)：八張截圖、80 秒分鏡、拍攝依賴。
 - [成就本地化](achievements.md)：15 組 event／api 對照，繁中、簡中與英文名稱及描述。
 - [美術外包需求](art-brief.md)：當前 Steam 尺寸、構圖、交付檔與禁止元素。
+- [EULA／隱私權草稿](legal/)：繁中與英文；標明需法務審閱。
+- [Steam AI 揭露問卷草稿](steam/ai-disclosure.md)：依 `CREDITS.md` 填寫。
 
 ## 編輯與發布條件
 
