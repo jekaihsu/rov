@@ -77,12 +77,19 @@ class PenVariantTest(unittest.TestCase):
     """Site variants the chapter-2 work orders launch: same pen, start point and current setting only."""
 
     def test_variants_share_the_pen_and_lower_the_current(self):
+        from qysim import chapter2 as c2
         from qysim.aquaculture import CENTER, RADIUS
         base = scenarios.build("aquaculture_pen", 0)
         for key in ("aquaculture_pen_slack", "aquaculture_pen_inside", "aquaculture_pen_escape"):
             variant = scenarios.build(key, 0)
-            self.assertEqual(len(variant.obstacles), len(base.obstacles), key)
-            self.assertEqual(variant.seabed_depth, base.seabed_depth, key)
+            if key == "aquaculture_pen_inside":
+                # C2-2 drops the seabed to the net floor and removes floor panels so silt jets hit fluff.
+                self.assertEqual(variant.seabed_depth, c2.INSIDE_SEABED, key)
+                self.assertLess(len(variant.obstacles), len(base.obstacles), key)
+                self.assertFalse(any(str(o.name).startswith("pen-floor-") for o in variant.obstacles), key)
+            else:
+                self.assertEqual(len(variant.obstacles), len(base.obstacles), key)
+                self.assertEqual(variant.seabed_depth, base.seabed_depth, key)
             if key == "aquaculture_pen_escape":
                 self.assertGreater(variant.current.surface_kn, base.current.surface_kn * 0.5, key)
                 self.assertIn("escape", variant.summary()["aquaculture"], key)

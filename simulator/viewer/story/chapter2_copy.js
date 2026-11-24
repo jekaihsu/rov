@@ -1,7 +1,7 @@
 // Chapter 2 radio and location strings (docs/story/lines.csv C21–C23). Presentation only.
 import {localize} from '../i18n/index.js';
 
-export const STRINGS = localize('story.chapter2', {
+export const STRINGS = localize('story.chapter2_copy', {
   site: '折帆灣',
   netSub: '三號圈入口',
   mortSub: '三號圈網底',

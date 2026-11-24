@@ -28,7 +28,8 @@
     "ut": "Ultrasonic thickness (UT)",
     "net": "Net inspection",
     "recovery": "Recovery job",
-    "mooring": "Mooring inspection"
+    "mooring": "Mooring inspection",
+    "escape": "Fish escape"
   },
   "chapters": {
     "prologue": {
@@ -41,7 +42,7 @@
     },
     "ch2": {
       "title": "Chapter 2 · Fish farm",
-      "summary": "Offshore pen nets: nets, morts, and moorings. Requires a Grade 2 pilot licence."
+      "summary": "Qingwan pen: net inspection, mortality recovery, and a torn-net escape emergency. Requires a Class II licence."
     }
   },
   "contracts": {
@@ -238,61 +239,61 @@
     },
     "c2_net_inspection": {
       "title": "Net inspection",
-      "clientName": "East Cove offshore pen farm",
-      "summary": "On slack tide, orbit the pen exterior, find two net holes and photograph them. Too close and thrusters suck net.",
-      "brief": "Farm manager says fish are disappearing daily—suspects torn net. On slack tide, orbit outside the pen (east, north, west, south all required). Stop square-on for photos of any holes. Don't hug the net—thrusters will suck mesh in; keep your tether clear of mooring lines.",
+      "clientName": "Qingwan Pen / Weng",
+      "summary": "工單 YX-AQ-001：沿網外側三個深度環繞，找出兩處破洞拍照並以時鐘方位與深度回報。燈勿過亮。",
+      "brief": "客戶：青灣箱網／翁慈。地點：折帆灣箱網 3 號圈。載具：YX Model R（燈調暗）。工作內容：網外側淺、中、深三層各環繞一圈（覆蓋率計分）；找到破洞後拍照，並回報時鐘方位與深度。海況：流 0.3–0.8 kn；能見度中等；魚群密集。注意：推進器勿吸網；燈勿過亮嚇魚；高速近魚扣分。",
       "radio": {
-        "speaker": "Farm manager · A-Mei",
-        "start": "Fish spook easy. Go slow and they won't scatter.",
-        "done": "Both holes found—we'll patch this afternoon. Thanks.",
-        "partial": "Patch what you found; check the rest next slack tide."
+        "speaker": "翁慈",
+        "start": "網台－翁。三號圈，例行網衣。燈別太亮，魚會瘋。",
+        "done": "座標收到。安排補網。",
+        "partial": "先補找到的洞，剩下改期再查。"
       },
       "deliverables": {
-        "ring_south": "South exterior (7 m depth)",
-        "ring_east": "East exterior",
-        "ring_north": "North exterior",
-        "ring_west": "West exterior",
-        "hole_upper": "Hole · ~7 m depth",
-        "hole_lower": "Hole · ~13 m depth",
-        "recover": "Return to launch for recovery"
+        "lap_shallow": "淺層環繞（約 4–8 m）",
+        "lap_mid": "中層環繞（約 8–12 m）",
+        "lap_deep": "深層環繞（約 12–15 m）",
+        "hole_upper": "破洞 · 水深約 7 m",
+        "hole_upper_report": "回報上破洞方位與深度",
+        "hole_lower": "破洞 · 水深約 13 m",
+        "hole_lower_report": "回報下破洞方位與深度",
+        "recover": "回投放點回收"
       }
     },
     "c2_mort_recovery": {
-      "title": "Mort recovery (Model V)",
-      "clientName": "East Cove offshore pen farm",
-      "summary": "Launch Model V from the pen walkway into the net; gripper lifts morts off the bottom. Needs a manipulator—Model V only.",
-      "brief": "A few morts on the net floor will foul water quality if left. Launch straight into the pen from the walkway. Only Model V has a manipulator, so it goes. Descend to the floor, grip morts one by one and lift clear; trim shifts once you clamp—take it slow. Hitting the floor spooks the whole pen.",
+      "title": "Mortality recovery",
+      "clientName": "Qingwan Pen / Weng",
+      "summary": "工單 YX-AQ-002：從走道放 Model V 進網內，夾取死魚放入收集籃。",
+      "brief": "客戶：青灣箱網。地點：三號圈網底。載具：YX Model V＋夾爪；收集籃在網底交接點。工作內容：夾取指定死魚放入收集籃（至少三尾）。海況同場；網底易揚沙。注意：掉落可重夾；碰網過多扣分。派 Model V：輕作業型已有機械臂，不必在觀測型 R 上另掛輕夾爪。",
       "radio": {
-        "speaker": "Farm manager · A-Mei",
-        "start": "Ugly job. Still matters.",
-        "done": "Floor looks cleaner. Next time, dinner—live fish.",
-        "partial": "Take these; we'll net the rest."
+        "speaker": "翁慈",
+        "start": "底層有死魚。夾上來。",
+        "done": "數量夠。謝謝。",
+        "partial": "先收這些，剩下場方自行。"
       },
       "deliverables": {
-        "first_fish": "Grip one mort and lift clear of the floor",
-        "second_fish": "Recover a second (bonus)",
-        "recover": "Return to in-pen launch for recovery"
+        "lift_fish": "夾起死魚並提離網底（至少三尾）",
+        "basket_fish": "放入網底收集籃（至少三尾）",
+        "extra_fish": "再多收一尾（加分）",
+        "recover": "回到網內下水點回收"
       }
     },
-    "c2_mooring_exam": {
-      "title": "Chapter end: post-typhoon ground lines (pen endorsement exam)",
-      "clientName": "East Cove offshore pen farm",
-      "summary": "Follow the two southern ground lines from buoy to anchor; record line condition. Full realism.",
-      "brief": "Typhoon just passed; manager needs to know the mooring still holds. Drop at the southeast and southwest corner buoys, follow each ground line to the anchor, and shoot a condition photo mid-line. Keep your tether clear of the ground lines. This is the pen-ops endorsement exam.",
+    "c2_escape_event": {
+      "title": "Event: torn-net escape",
+      "clientName": "Qingwan Pen / Weng",
+      "summary": "工單 YX-AQ-009（緊急）：密度異常下降。先找優先破洞拍照回報，確認周邊裂縫，監看至場方到位。",
+      "brief": "客戶：青灣箱網／翁慈。監測發現三號圈密度異常下降。緊急順序：1) 找到主要破洞並拍照定位（方位／深度）；2) 沿破洞周邊確認是否擴大或多處；3) 回報場方補網隊，ROV 監看至場方確認或安全中止。流轉強；魚群躁動。先定位再情緒；勿高速追魚；人機與網衣安全優先。窗口約十二分鐘級。",
       "radio": {
-        "speaker": "Supervisor Lin",
-        "start": "Swell will bounce you up and down—that's normal, not you.",
-        "done": "Endorsement's in. Farms will ask for you by name now.",
-        "partial": "Almost. Retest on the next slack tide."
+        "speaker": "翁慈",
+        "start": "密度掉了！快！燈別太亮！",
+        "done": "補網到位。你們可收。",
+        "partial": "座標已交。先堵住再說情緒。"
       },
       "deliverables": {
-        "east_buoy": "Below SE corner buoy",
-        "east_line": "SE ground line mid-span",
-        "east_anchor": "SE anchor",
-        "west_buoy": "Below SW corner buoy",
-        "west_line": "SW ground line mid-span",
-        "west_anchor": "SW anchor",
-        "recover": "Return to launch for recovery"
+        "priority_hole": "優先破洞拍照定位",
+        "priority_report": "回報主破洞方位與深度",
+        "secondary_hole": "周邊小裂確認拍照",
+        "watch": "破洞前監看至場方確認（約 20 秒）",
+        "recover": "回投放點回收"
       }
     }
   },

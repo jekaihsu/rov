@@ -34,6 +34,7 @@ const STRINGS = localize('career.copy', {
     ut: "超音波測厚（UT）",
     net: "網衣巡檢",
     recovery: "回收作業",
+    escape: "破網逃魚",
     mooring: "繫泊檢查"
   },
   chapters: {
@@ -47,7 +48,7 @@ const STRINGS = localize('career.copy', {
     },
     ch2: {
       title: "第二章 · 養殖場",
-      summary: "外海箱網：網衣、死魚與繫泊。需要二級駕駛員執照。"
+      summary: "青灣箱網：網衣巡檢、死魚回收，與破網逃魚緊急處理。需要二級駕駛員執照。"
     }
   },
   contracts: {
@@ -246,61 +247,61 @@ const STRINGS = localize('career.copy', {
     },
     c2_net_inspection: {
       title: "網衣巡檢",
-      clientName: "東澳外海箱網場",
-      summary: "平潮時沿箱網外側繞一圈，找出兩個網衣破洞並拍照。靠太近推進器會吸網。",
-      brief: "場長說最近每天少魚，懷疑網衣破了。趁平潮從網外側繞一圈（東、北、西、南四個方位都要經過），看到破洞就停下來正對拍照。不要貼網太近，推進器會把網衣吸過來；纜線也別跨過繫泊纜。",
+      clientName: "青灣箱網／翁慈",
+      summary: "工單 YX-AQ-001：沿網外側三個深度環繞，找出兩處破洞拍照並以時鐘方位與深度回報。燈勿過亮。",
+      brief: "客戶：青灣箱網／翁慈。地點：折帆灣箱網 3 號圈。載具：YX Model R（燈調暗）。工作內容：網外側淺、中、深三層各環繞一圈（覆蓋率計分）；找到破洞後拍照，並回報時鐘方位與深度。海況：流 0.3–0.8 kn；能見度中等；魚群密集。注意：推進器勿吸網；燈勿過亮嚇魚；高速近魚扣分。",
       radio: {
-        speaker: "場長 阿美",
-        start: "魚很怕生，你慢一點，牠們就不會亂跑。",
-        done: "兩個洞都找到了，今天下午就補。謝謝你們。",
-        partial: "先補找到的這個，剩下的明天平潮再看。"
+        speaker: "翁慈",
+        start: "網台－翁。三號圈，例行網衣。燈別太亮，魚會瘋。",
+        done: "座標收到。安排補網。",
+        partial: "先補找到的洞，剩下改期再查。"
       },
       deliverables: {
-        ring_south: "南側網外（水深 7 m）",
-        ring_east: "東側網外",
-        ring_north: "北側網外",
-        ring_west: "西側網外",
-        hole_upper: "破洞 · 水深約 7 m",
-        hole_lower: "破洞 · 水深約 13 m",
-        recover: "回投放點回收"
+        "lap_shallow": "淺層環繞（約 4–8 m）",
+        "lap_mid": "中層環繞（約 8–12 m）",
+        "lap_deep": "深層環繞（約 12–15 m）",
+        "hole_upper": "破洞 · 水深約 7 m",
+        "hole_upper_report": "回報上破洞方位與深度",
+        "hole_lower": "破洞 · 水深約 13 m",
+        "hole_lower_report": "回報下破洞方位與深度",
+        "recover": "回投放點回收"
       }
     },
     c2_mort_recovery: {
-      title: "死魚回收（Model V）",
-      clientName: "東澳外海箱網場",
-      summary: "從網邊走道把 Model V 放進網內，用夾爪把網底的死魚夾起來。需要機械臂，只能派 Model V。",
-      brief: "網底積了幾尾死魚，放著會壞水質。這次從箱網走道直接把機子放進網內，只有 Model V 有機械臂，所以派它。下到網底，一尾一尾夾起來提離網底；夾住以後配平會變，慢慢來，碰網底會驚動整箱魚。",
+      title: "死魚回收",
+      clientName: "青灣箱網／翁慈",
+      summary: "工單 YX-AQ-002：從走道放 Model V 進網內，夾取死魚放入收集籃。",
+      brief: "客戶：青灣箱網。地點：三號圈網底。載具：YX Model V＋夾爪；收集籃在網底交接點。工作內容：夾取指定死魚放入收集籃（至少三尾）。海況同場；網底易揚沙。注意：掉落可重夾；碰網過多扣分。派 Model V：輕作業型已有機械臂，不必在觀測型 R 上另掛輕夾爪。",
       radio: {
-        speaker: "場長 阿美",
-        start: "這工作不好看，但很重要。",
-        done: "網底乾淨多了。下次請你吃魚，活的那種。",
-        partial: "先收這些，剩下的我們用撈網。"
+        speaker: "翁慈",
+        start: "底層有死魚。夾上來。",
+        done: "數量夠。謝謝。",
+        partial: "先收這些，剩下場方自行。"
       },
       deliverables: {
-        first_fish: "夾起一尾死魚並提離網底",
-        second_fish: "再回收一尾（加分）",
-        recover: "回到網內下水點回收"
+        "lift_fish": "夾起死魚並提離網底（至少三尾）",
+        "basket_fish": "放入網底收集籃（至少三尾）",
+        "extra_fish": "再多收一尾（加分）",
+        "recover": "回到網內下水點回收"
       }
     },
-    c2_mooring_exam: {
-      title: "章末：颱風過後的錨繩（箱網簽注考核）",
-      clientName: "東澳外海箱網場",
-      summary: "沿南側兩條錨繩從浮標看到錨，記錄錨繩狀況。全程真實模式。",
-      brief: "颱風剛過，場長要確認繫泊還撐得住。從東南、西南兩個角浮標下去，沿錨繩一路看到錨，錨繩中段各拍一張狀況照。自己的纜線不要跨過錨繩。這是箱網作業簽注的考核。",
+    c2_escape_event: {
+      title: "大事件：破網逃魚",
+      clientName: "青灣箱網／翁慈",
+      summary: "工單 YX-AQ-009（緊急）：密度異常下降。先找優先破洞拍照回報，確認周邊裂縫，監看至場方到位。",
+      brief: "客戶：青灣箱網／翁慈。監測發現三號圈密度異常下降。緊急順序：1) 找到主要破洞並拍照定位（方位／深度）；2) 沿破洞周邊確認是否擴大或多處；3) 回報場方補網隊，ROV 監看至場方確認或安全中止。流轉強；魚群躁動。先定位再情緒；勿高速追魚；人機與網衣安全優先。窗口約十二分鐘級。",
       radio: {
-        speaker: "林督導",
-        start: "湧浪會讓你上下晃，那是正常的，不是你的錯。",
-        done: "簽注下來了。你現在是養殖場會指名的駕駛員。",
-        partial: "還差一點，等下一個平潮再考。"
+        speaker: "翁慈",
+        start: "密度掉了！快！燈別太亮！",
+        done: "補網到位。你們可收。",
+        partial: "座標已交。先堵住再說情緒。"
       },
       deliverables: {
-        east_buoy: "東南角浮標下方",
-        east_line: "東南錨繩中段",
-        east_anchor: "東南錨",
-        west_buoy: "西南角浮標下方",
-        west_line: "西南錨繩中段",
-        west_anchor: "西南錨",
-        recover: "回投放點回收"
+        "priority_hole": "優先破洞拍照定位",
+        "priority_report": "回報主破洞方位與深度",
+        "secondary_hole": "周邊小裂確認拍照",
+        "watch": "破洞前監看至場方確認（約 20 秒）",
+        "recover": "回投放點回收"
       }
     }
   },
