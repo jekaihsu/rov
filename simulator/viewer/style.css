@@ -267,6 +267,23 @@ body.movie .viewport{border:0;border-radius:0}
 body.movie .viewport .pip{top:auto;bottom:24px;right:24px;width:320px;height:204px}
 body.movie .viewport .subtitle{bottom:64px;font-size:22px}
 body.movie .sticks{display:none}
+
+/* trailer capture (?trailer=1): clean gameplay frame — no title cards, tools, labels, or debug chrome.
+   Storyboard `hud` lists which flight instruments to keep (data-trailer-hud tokens). */
+body.trailer .card,body.trailer .lower,body.trailer #flightTools,body.trailer #labels,
+body.trailer #meta,body.trailer #engineering,body.trailer .pad-info,body.trailer #padInfo,
+body.trailer .replay,body.trailer .objective-card,body.trailer #flightPeek,body.trailer .banner,
+body.trailer .skip,body.trailer .sticks,body.trailer .pip,body.trailer #xhair,
+body.trailer #flightController,body.trailer .hud.tr{display:none!important}
+body.trailer .flight,body.trailer .hud{display:none!important}
+body.trailer[data-trailer-hud~=depth] #flightDepth{display:flex!important}
+body.trailer[data-trailer-hud~=heading] .hud.tc{display:flex!important}
+body.trailer[data-trailer-hud~=attitude] #flightAttitude{display:block!important}
+body.trailer[data-trailer-hud~=map] #flightMapBox{display:flex!important}
+body.trailer[data-trailer-hud~=status] .hud.tl{display:flex!important}
+body.trailer[data-trailer-hud~=mission] #flightMission,body.trailer[data-trailer-hud~=mission] #flightRange{display:block!important}
+body.trailer[data-trailer-hud~=telemetry] .hud.bc{display:flex!important}
+body.trailer[data-trailer-hud~=warning] #flightWarning{display:block!important}
 .card{position:absolute;inset:0;z-index:var(--z-banner);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;background:rgba(4,10,16,.62);color:#eef8ff;transition:opacity .6s;pointer-events:none}
 .card[hidden]{display:flex!important;opacity:0}
 .card b{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,5vw,64px);letter-spacing:.02em;line-height:1.05;text-wrap:balance}

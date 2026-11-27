@@ -1,0 +1,10 @@
+{
+  "title": "Steam 假後端",
+  "empty": "尚無本機 mock 資料。",
+  "refresh": "重新整理",
+  "backend": "後端：{backend}",
+  "path": "檔案：{path}",
+  "earned": "已解鎖",
+  "presence": "狀態列",
+  "none": "（無）"
+}
