@@ -205,6 +205,17 @@ body .hud, .flight { z-index: var(--z-hud); }
 /* The controller diagnostic page is not part of the replay showcase build; replays need no controller. */
 body.replaying #controllerCheck { display: none; }
 
+/* Local breakup of the onboard video feed. The HUD remains fixed and readable. */
+.impact-noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: repeating-linear-gradient(90deg, #8b9b99aa 0 14px, #253431bb 14px 39px, #afc7b866 39px 64px);
+}
+.osd-load, .readout [data-load] { transition: opacity 240ms ease-out; }
+.quiet-load, .readout [data-load="quiet"] { opacity: 0; }
+.readout [data-load="high"] b { color: var(--hud-warning, #ffb020); }
 /* Keep the alarm visible beside its instrument even when several alarms overlap. */
 #flightDepth small.warn::before, .readout span.warn::before, #flightOsd .warn::before { content: "⚠ "; }
 html.reduce-flashes #flightShutter.fire, html.motion-comfort #flightShutter.fire { animation: none; }

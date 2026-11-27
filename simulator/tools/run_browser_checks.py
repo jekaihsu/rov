@@ -30,7 +30,7 @@ from check_matrix import DEFAULT_CHECKS, SCRIPT_TIMEOUTS, browser_checks, change
 
 def available_scripts():
     names = [path.stem for path in sorted(TOOLS.glob('browser_*.py'))]
-    names.append('observation_smoke')
+    names.extend(['observation_smoke', 'playtest_audit'])
     return names
 
 
@@ -100,7 +100,8 @@ def run_script(name, limit):
     output_path = LOGS / f'{name}.log'
     try:
         with open(output_path, 'w', encoding='utf-8') as output:
-            child = subprocess.Popen([sys.executable, str(TOOLS / f'{name}.py')], cwd=ROOT, stdout=output,
+            args = ['--quick'] if name == 'playtest_audit' else []
+            child = subprocess.Popen([sys.executable, str(TOOLS / f'{name}.py'), *args], cwd=ROOT, stdout=output,
                                      stderr=subprocess.STDOUT, env=script_environment(ports),
                                      start_new_session=True)
             try:
@@ -161,7 +162,8 @@ def main():
     results = []
     for name in names:
         print(f'Running {name} ...', flush=True)
-        status, seconds, detail = run_script(name, max(args.timeout, SCRIPT_TIMEOUTS.get(name, 0)))
+        budget = SCRIPT_TIMEOUTS.get(name, 0)
+        status, seconds, detail = run_script(name, max(args.timeout, budget))
         print(f'  {status} in {seconds:.0f} s', flush=True)
         results.append((name, status, seconds, detail))
     if args.report:

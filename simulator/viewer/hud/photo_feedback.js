@@ -1,6 +1,7 @@
 // What the operator gets when a photo is taken: the topside App's shutter sound (topside cues are real: the operator
 // hears the App, see audio/fidelity.js), a brief white flash of the picture, a 已拍照 toast and a short pad rumble
 // (padHaptics preference). Presentation only; the photo itself, its evidence and scoring are unchanged.
+import {getFidelity} from '../fidelity.js';
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('hud.photo_feedback', {taken: '已拍照'});
@@ -43,8 +44,10 @@ export function installPhotoFeedback({viewport, audio = null, haptics = null}) {
     audio?.cue?.('shutter');
     haptics?.pulse?.('photo');
     flash.classList.remove('fire');
-    void flash.offsetWidth;
-    flash.classList.add('fire');
+    if (getFidelity().get('photoFlash') !== false) {
+      void flash.offsetWidth;
+      flash.classList.add('fire');
+    }
     toast.textContent = STRINGS.taken;
     toast.classList.add('visible');
     hideAt = performance.now() + TOAST_MS;

@@ -15,6 +15,7 @@
 //   'attached'  thin dressing on a collider's surface (within SCENE_TOLERANCE outside it)
 //   'above'     above the waterline, out of the vehicle's reach
 import * as THREE from 'three';
+import {chainSegment, harborStructures} from './harbor.js';
 import {buildPenPart, penMaterial} from './aquaculture.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {aftEnd, halfBreadth, obstacleDistance, shipHullParams, snagCapsule} from './structure_sdf.js';
@@ -909,7 +910,11 @@ function buildOne(set, ob, consumed) {
   }
   if (ob.type !== 'cylinder') return;
   const kind = ob.kind;
-  if (kind === 'anode') {
+  if (kind === 'mooring_chain') {
+    chainSegment(set, ob);
+  } else if (kind === 'hawser') {
+    simpleTube(set, ob, 'rubber', 0);
+  } else if (kind === 'anode') {
     const straps = (world.obstacles || []).filter((o) => o.kind === 'anode_strap' && o.name.startsWith(ob.name));
     for (const s of straps) consumed.add(s.name);
     anodeBar(set, ob, straps);
@@ -956,6 +961,7 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
   const set = new StructureSet(world, detail, paint);
   const consumed = new Set();
   const obstacles = (world.obstacles || []).filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model' && !ob.embedded);
+  harborStructures(set, obstacles, consumed, seeded, boxAt);
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'scour_rock'), 'scour_rock');
   rockArmour(set, obstacles.filter((ob) => ob.kind === 'toe_rock'), 'toe_rock');
   for (const ob of obstacles) {
