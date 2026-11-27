@@ -80,9 +80,23 @@ Backend Python changes still require rebuilding the frozen backend. Set
 saving the preference; relaunch with the same user-data directory and without
 that override to check persistence across launches.
 
-## Steam preparation (T10)
+## Steam preparation (T10 / S4)
 
-See [release configuration and known blockers](steam/RELEASE.md). The current CI
-artifact remains an internal training build; it is not ready for Steam publication.
+See [release configuration and known blockers](steam/RELEASE.md),
+[achievements](../../docs/store/steam/achievements.md) and
+[Auto-Cloud](../../docs/store/steam/cloud.md).
+
+`ROV_BUILD_EDITION=steam` selects Steam packaging settings (product name
+ROV Solution, achievements and Rich Presence enabled in the preload bridge).
+Without a Steam App ID the main process writes a mock backend under
+`userData/steam-mock/`; inspect it from the engineering drawer. Internal builds
+set `window.rovDesktop.edition` to `internal` and do not show achievements.
+
+The Windows workflow is `workflow_dispatch` only (never `pull_request` / `push`).
 IDs are supplied through environment variables or GitHub secrets. Generate preview
 upload descriptors with `node steam/generate_vdf.cjs`; no credentials are stored.
+
+```bash
+node simulator/desktop/test_steam.cjs
+node --test simulator/tests/test_achievements.mjs simulator/tests/test_steam_presence.mjs
+```

@@ -62,6 +62,7 @@ const ROUTES = {
   join: ['multiplayer', 'hangar', 'briefing'],
   story: ['training', 'hangar', 'briefing'],
   scenario: ['training', 'hangar', 'briefing'],
+  team: ['training', 'hangar', 'briefing'],
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
@@ -96,6 +97,14 @@ async function loadJson(path) {
   return response.json();
 }
 
+async function loadTrainingCatalogue() {
+  try {
+    return await loadJson('training/courses.json');
+  } catch {
+    return {courses: [], incidents: [], version: 1};
+  }
+}
+
 installDisplayPrefs();
 document.body.classList.add('menu-open');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -123,11 +132,13 @@ setLoading(0.08, STRINGS.loading.data);
 let scenes = [];
 let catalogue = { vehicles: [], chapters: [] };
 let database = {};
+let trainingCatalogue = { courses: [], incidents: [], version: 1 };
 try {
-  [scenes, catalogue, database] = await Promise.all([
+  [scenes, catalogue, database, trainingCatalogue] = await Promise.all([
     loadJson('scene_previews.json'),
     loadJson('menu_catalogue.json'),
     loadControllerDatabase(),
+    loadTrainingCatalogue(),
   ]);
 } catch (error) {
   setLoading(0, STRINGS.loading.failed);
@@ -154,6 +165,7 @@ const data = {
   sites: diveSites(scenes, catalogue.chapters),
   vehicles: catalogue.vehicles,
   chapters: catalogue.chapters,
+  training: trainingCatalogue,
 };
 if (!data.vehicles.some(function known(vehicle) {
   return vehicle.id === choice.model;
@@ -357,11 +369,21 @@ const ctx = {
   },
   openTraining(tab) {
     screens.training.show(tab);
-    choice.route = tab === 'story' ? 'story' : 'scenario';
+    choice.route = tab === 'story' ? 'story' : tab === 'courses' ? 'team' : 'scenario';
     go('training');
   },
   openCollection() {
     collection.open();
+  },
+  chooseTrainingLesson(lesson) {
+    choice.mission = 'campaign';
+    choice.chapter = lesson.id;
+    choice.scenario = lesson.scenario;
+    choice.route = 'team';
+    choice.training = true;
+    choice.trainingLesson = lesson.id;
+    previewScene(lesson.scenario);
+    go('hangar');
   },
   // Expedition contracts as their own entry: the expedition sea, then vehicle and site as usual.
   openContracts() {
@@ -372,12 +394,16 @@ const ctx = {
     if (mode === 'scenario_training') {
       screens.training.show('scenarios');
       choice.route = 'scenario';
+      choice.training = false;
+      choice.trainingLesson = '';
       go('training');
       return;
     }
     choice.mission = mode;
     choice.chapter = '';
     choice.scenario = firstSupported(mode);
+    choice.training = false;
+    choice.trainingLesson = '';
     go('hangar');
   },
   chooseChapter(chapter) {
@@ -385,6 +411,8 @@ const ctx = {
     choice.chapter = chapter.id;
     choice.scenario = chapter.scenario;
     choice.route = 'story';
+    choice.training = false;
+    choice.trainingLesson = '';
     previewScene(chapter.scenario);
     go('hangar');
   },
@@ -393,6 +421,8 @@ const ctx = {
     choice.chapter = '';
     choice.scenario = key;
     choice.route = 'scenario';
+    choice.training = false;
+    choice.trainingLesson = '';
     previewScene(key);
     go('hangar');
   },
@@ -454,7 +484,7 @@ openRequestedScreen();
 navigator.setActive(true);
 navigator.start();
 
-// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link);
+// ?menu=training&tab=courses|scenarios|drills|story opens a list directly;
 // ?menu=board opens the YX contract board (the results screen's 下一張委託).
 function openRequestedScreen() {
   const query = new URLSearchParams(location.search);
@@ -471,7 +501,7 @@ function openRequestedScreen() {
   }
   if (requested !== 'training') return;
   go('main');
-  ctx.openTraining(query.get('tab') || 'story');
+  ctx.openTraining(query.get('tab') || 'courses');
 }
 
 window.__menu = {

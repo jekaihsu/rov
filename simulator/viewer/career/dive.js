@@ -249,15 +249,17 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     const sceneKeys = catalogue.length ? new Set(catalogue.map(function key(entry) {
       return entry.key;
     })) : null;
+    // Keep the validated flag on the outcome: settleDive only sees a shallow copy of dive.
+    const examValid = exam() && !examVoid;
     const result = settleDive(save, data, contract, {
-      ...dive, snapshot, submitted, examValid: exam() && !examVoid,
+      ...dive, snapshot, submitted, examValid,
     }, { sceneKeys });
     save = result.save;
     storeCareer(save);
     if (result.summary.exam.passed) careerRadio.play('licence');
     else if (result.summary.pay.outcome === 'complete') careerRadio.play('done');
     else if (result.summary.pay.outcome === 'partial') careerRadio.play('partial');
-    const outcome = careerOutcome(result.summary, snapshot, chapterOutcome);
+    const outcome = careerOutcome(result.summary, snapshot, chapterOutcome, examValid);
     if (!chapterOutcome) showResult?.(outcome);
     return outcome;
   }
@@ -282,7 +284,7 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
     }
     return parts.join(' ');
   }
-  function careerOutcome(summary, snapshot, chapterOutcome) {
+  function careerOutcome(summary, snapshot, chapterOutcome, examValid = false) {
     const pay = summary.pay;
     const rows = [{ id: 'deliverables', label: STRINGS.rows.deliverables, detail: `${snapshot.done}/${snapshot.total}`,
       points: Math.round(100 * snapshot.done / Math.max(1, snapshot.total)) }];
@@ -309,8 +311,18 @@ export function installCareerDive({ send, getWorld, getCamMode, showResult, read
       }).length,
       rewards: chapterOutcome?.rewards || [],
       next: null,
-      chapter: contract.runtime === 'chapter' ? contract.campaignChapter : null,
+      chapter: contract.chapter || (contract.runtime === 'chapter' ? contract.campaignChapter : null),
       career: summary,
+      // Steam achievement inputs (S4): visibility, exam flags, tether discipline, medal map.
+      visibility_m: visibility(lastState),
+      measured: snapshot.items.some(function item(entry) {
+        return entry.kind === 'measure' && entry.done;
+      }),
+      examPassed: !!summary.exam?.passed,
+      examValid: !!examValid,
+      tetherDiscipline: lastState?.tether_ops?.discipline_score,
+      tetherBroken: !!snapshot.tetherBroken,
+      contracts: save.contracts,
     };
   }
   function submit() {
