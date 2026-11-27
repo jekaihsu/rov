@@ -140,3 +140,27 @@ test('above water the sun stands in the preset direction and the background is t
   assert.ok(scene.fog.far > 1000, 'air haze, not underwater visibility');
   sky.dispose();
 });
+
+test('weather replay changes tint and sea, then restores the original underwater calibration', function () {
+  const scene = new THREE.Scene();
+  const rig = createDaylight(scene, {base: ''});
+  const camera = new THREE.PerspectiveCamera();
+  const site = world('shelf');
+  camera.position.y = -4;
+  site.scenario.weather = {time_of_day: 'night', rain: 0.6, sea_state: 5};
+  rig.update({world: site, camera});
+  assert.equal(rig.hemi.color.g, 0);
+  assert.equal(scene.userData.weatherLight.b, 0);
+  assert.equal(rig.sea.material.uniforms.uRain.value, 0.6);
+  camera.position.y = 2;
+  rig.update({world: site, camera});
+  assert.equal(rig.sun.intensity, 0);
+  assert.ok(rig.sea.geometry.attributes.position.count > 4);
+  delete site.scenario.weather;
+  camera.position.y = -4;
+  rig.update({world: site, camera});
+  assert.equal(scene.userData.weatherLight, null);
+  assert.equal(rig.hemi.color.getHex(), UNDERWATER_DAYLIGHT.sky);
+  assert.equal(rig.sea.material.uniforms.uWave.value, 0);
+  rig.dispose();
+});

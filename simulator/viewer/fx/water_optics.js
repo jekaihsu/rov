@@ -287,6 +287,11 @@ export function updateWaterOptics(scene, { beauty = false, camera = null } = {})
   waterUniforms.uWaterB.value.fromArray(water.b);
   waterUniforms.uWaterSun.value.set(SURFACE_DAYLIGHT.r, SURFACE_DAYLIGHT.g, SURFACE_DAYLIGHT.b)
     .multiplyScalar(DAYLIGHT_PHASE);
+  const light = scene.userData.weatherLight;
+  if (light) {
+    const sun = waterUniforms.uWaterSun.value;
+    sun.set(sun.x * light.r, sun.y * light.g, sun.z * light.b);
+  }
   waterUniforms.uWaterTime.value = performance.now() / 1000;
   waterUniforms.uWaterBeauty.value = beauty ? 1 : 0;
   const haze = camera && camera.position.y > 0 ? scene.userData.daylightHaze : null;

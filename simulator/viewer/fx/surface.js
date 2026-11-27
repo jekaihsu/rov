@@ -13,7 +13,7 @@ const CRITICAL_COS = Math.cos(Math.asin(1 / 1.333)).toFixed(4);
 
 function surfaceMaterial() {
   return new THREE.ShaderMaterial({
-    uniforms: shareWaterUniforms({}),
+    uniforms: shareWaterUniforms({uWave: {value: 0}}),
     side: THREE.DoubleSide,
     depthWrite: false,
     fog: false,
@@ -25,12 +25,18 @@ function surfaceMaterial() {
       }`,
     fragmentShader: /* glsl */ `
       ${WATER_COMMON}
+      uniform float uWave;
       varying vec3 vWorld;
       void main() {
         vec3 view = normalize(vWorld - cameraPosition);
         vec3 normal = normalize(vec3(0.035 * cos(vWorld.x * 1.2 + uWaterTime),
                                      1.0,
                                      0.025 * sin(vWorld.z * 1.7 - uWaterTime * 0.7)));
+        if (uWave > 0.0) {
+          vec2 slope = vec2(0.46, 0.21) * cos(dot(vWorld.xz, vec2(0.46, 0.21)) - uWaterTime * 1.25)
+            + 0.36 * vec2(-0.26, 0.61) * cos(dot(vWorld.xz, vec2(-0.26, 0.61)) - uWaterTime * 1.55);
+          normal = normalize(normal - vec3(slope.x, 0.0, slope.y) * uWave);
+        }
         float incidence = clamp(dot(view, normal), 0.0, 1.0);
         float window = smoothstep(${CRITICAL_COS} - 0.02, ${CRITICAL_COS} + 0.02, incidence);
         float fresnel = 0.0204 + 0.9796 * pow(1.0 - incidence, 5.0);
@@ -100,6 +106,7 @@ export function updateWaterSurface(surface, camera, scene, low, beauty = false) 
   let data = surfaces.get(surface);
   if (!data && low) return;
   if (!data) data = install(surface, scene);
+  data.material.uniforms.uWave.value = scene.userData.waveAmplitude ?? 0;
   const below = camera.position.y < 0;
   const depth = -camera.position.y;
   data.shafts.visible = !low && beauty && below && depth < 15;

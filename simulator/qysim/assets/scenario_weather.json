@@ -1,0 +1,23 @@
+{
+  "tutorial_pool": {"time_of_day": "morning", "cloud_cover": 0.14, "sea_state": 0, "rain": 0},
+  "open_water": {"time_of_day": "morning", "cloud_cover": 0.14, "sea_state": 1, "rain": 0},
+  "harbor_inspection": {"time_of_day": "morning", "cloud_cover": 0.14, "sea_state": 1, "rain": 0},
+  "cold_open_jacket": {"time_of_day": "morning", "cloud_cover": 0.14, "sea_state": 1, "rain": 0},
+  "aquaculture_pen": {"time_of_day": "day", "cloud_cover": 0.96, "sea_state": 3, "rain": 0},
+  "aquaculture_pen_inside": {"time_of_day": "day", "cloud_cover": 0.96, "sea_state": 3, "rain": 0},
+  "aquaculture_pen_slack": {"time_of_day": "day", "cloud_cover": 0.96, "sea_state": 3, "rain": 0},
+  "jacket_inspection": {"time_of_day": "dawn", "cloud_cover": 0.28, "sea_state": 4, "rain": 0},
+  "monopile_current": {"time_of_day": "dawn", "cloud_cover": 0.28, "sea_state": 4, "rain": 0},
+  "incident_jacket": {"time_of_day": "dawn", "cloud_cover": 0.28, "sea_state": 4, "rain": 0},
+  "sonar_search": {"time_of_day": "night", "cloud_cover": 0.6, "sea_state": 2, "rain": 0},
+  "incident_wreck": {"time_of_day": "night", "cloud_cover": 0.6, "sea_state": 2, "rain": 0},
+  "korean_castle": {"time_of_day": "dusk", "cloud_cover": 0.25, "sea_state": 2, "rain": 0},
+  "wreck_survey": {"time_of_day": "dusk", "cloud_cover": 0.25, "sea_state": 2, "rain": 0},
+  "hull_inspection": {"time_of_day": "day", "cloud_cover": 0.94, "sea_state": 2, "rain": 0.7},
+  "incident_silt": {"time_of_day": "day", "cloud_cover": 0.94, "sea_state": 2, "rain": 0.7},
+  "tether_untangle": {"time_of_day": "day", "cloud_cover": 0.72, "sea_state": 5, "rain": 0},
+  "incident_current": {"time_of_day": "day", "cloud_cover": 0.72, "sea_state": 5, "rain": 0},
+  "coral_reef": {"time_of_day": "day", "cloud_cover": 0.2, "sea_state": 2, "rain": 0},
+  "seagrass_meadow": {"time_of_day": "day", "cloud_cover": 0.2, "sea_state": 2, "rain": 0},
+  "incident_compass": {"time_of_day": "day", "cloud_cover": 0.2, "sea_state": 2, "rain": 0}
+}

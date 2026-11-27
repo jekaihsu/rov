@@ -73,6 +73,7 @@ function renderOptics(state, original, scene, camera) {
   if (fog) {
     state.fogColour.copy(fog);
     horizontalWaterColour(Math.max(0, -camera.position.y), water, fog);
+    if (scene.userData.weatherLight) fog.multiply(scene.userData.weatherLight);
   }
   updateReflections(scene, renderQualityState(renderer)?.mode);
   updateWaterSurface(state.surface, camera, scene, false, beauty);
