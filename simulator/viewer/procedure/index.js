@@ -20,7 +20,10 @@ import {beginFields, createEventWatch} from './deck_flow.js';
 import {deckSignature, renderDeckChecks, renderDeckLaunch} from './deck_steps.js';
 import {createDeckStage} from './deck_stage.js';
 import {callFor, createCrewRadio, faultText} from './crew_radio.js';
+import { checklistNavigable } from './navigable.js';
 import { localize } from '../i18n/index.js';
+
+export { checklistNavigable } from './navigable.js';
 
 const STRINGS = localize('procedure.index', {
   title: '潛前檢查與回收',
@@ -450,7 +453,11 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     render(p);
   }
   function navigable() {
-    return !panel.hidden && !!latest && latest.phase !== 'diving' && focusables().length > 0;
+    return checklistNavigable({
+      hidden: panel.hidden,
+      phase: latest?.phase,
+      focusableCount: focusables().length,
+    });
   }
   function moveFocus(step) {
     const items = focusables();
@@ -516,5 +523,5 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     return {stage: stage?.debug() || null, radio: crewRadio.debug()};
   }
   globalThis.__procedure = debug;
-  return {update, startIntro, bindInput, pauseActions, debug, radio: crewRadio};
+  return {update, startIntro, bindInput, pauseActions, canNavigate: navigable, debug, radio: crewRadio};
 }

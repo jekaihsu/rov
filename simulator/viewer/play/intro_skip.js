@@ -27,6 +27,27 @@ export function introSkippable() {
   return !!button && !button.hidden;
 }
 
+// Bound keyboard codes for the menu `back` action (Escape by default; remappable).
+export function backKeyCodes(rows) {
+  const row = (rows || []).find(function match(entry) {
+    return entry.action === 'back';
+  });
+  return row?.keys || [];
+}
+
+// Esc / bound back only skips while the skip prompt is visible — never while the intro is merely held on deck.
+export function keySkipsIntro(code, { skippable, backKeys }) {
+  return !!skippable && (backKeys || []).includes(code);
+}
+
+// Menu-back while the skip prompt is hidden: keyboard arrives as run(1, 0); pad frames have dt > 0, so fire on
+// the rising edge (wasDown false → pressed). Returns {fire, down} for the next sample's wasDown.
+export function menuBackPulse(value, dt, wasDown = false) {
+  const pressed = value > 0.5;
+  if (!dt) return { fire: pressed, down: false };
+  return { fire: pressed && !wasDown, down: pressed };
+}
+
 function span(className, html) {
   const node = document.createElement('span');
   node.className = className;
@@ -35,11 +56,15 @@ function span(className, html) {
 }
 
 // input: the object installInput returned. button: the #skipIntro element. skip(): skip the cinematic.
-// active(): whether a cinematic is running at all (held on deck included); Esc is consumed then, as before.
-export function installIntroSkip({ input, button, skip, active }) {
+// Esc only skips while the prompt is visible; onMenuBack opens the pause menu when the deck checklist owns back.
+export function installIntroSkip({ input, button, skip, onMenuBack = null }) {
   if (!button) return { refresh() {} };
   let family = '';
   let heldMs = 0;
+  let menuBackDown = false;
+  function menuBackEnabled() {
+    return !!onMenuBack?.enabled?.();
+  }
   function render() {
     const label = labelOverride || STRINGS.label;
     const parts = [];
@@ -60,17 +85,36 @@ export function installIntroSkip({ input, button, skip, active }) {
     button.classList.toggle('holding', value > 0);
   }
   // Called every pad frame while the prompt is up (continuous action); a key press arrives with dt 0 instead and is
-  // handled by the keydown listener below.
+  // handled by the keydown listener below. When the skip prompt is hidden, a key or pad press edge opens the menu hook.
   function hold(value, dt) {
-    if (!dt) return;
-    heldMs = value > 0.5 ? heldMs + dt * 1000 : 0;
-    setProgress(Math.min(1, heldMs / HOLD_MS));
-    if (heldMs < HOLD_MS) return;
-    heldMs = 0;
-    setProgress(0);
-    skipBy('pad');
+    if (introSkippable()) {
+      menuBackDown = false;
+      if (!dt) return;
+      heldMs = value > 0.5 ? heldMs + dt * 1000 : 0;
+      setProgress(Math.min(1, heldMs / HOLD_MS));
+      if (heldMs < HOLD_MS) return;
+      heldMs = 0;
+      setProgress(0);
+      skipBy('pad');
+      return;
+    }
+    if (!menuBackEnabled()) {
+      menuBackDown = false;
+      return;
+    }
+    const pulse = menuBackPulse(value, dt, menuBackDown);
+    menuBackDown = pulse.down;
+    if (pulse.fire) onMenuBack.run();
   }
-  input?.registerActions?.({ back: { continuous: true, enabled: introSkippable, run: hold } });
+  input?.registerActions?.({
+    back: {
+      continuous: true,
+      enabled() {
+        return introSkippable() || menuBackEnabled();
+      },
+      run: hold,
+    },
+  });
   new MutationObserver(function visibility() {
     heldMs = 0;
     setProgress(0);
@@ -87,7 +131,10 @@ export function installIntroSkip({ input, button, skip, active }) {
     skipBy('click');
   });
   addEventListener('keydown', function escape(event) {
-    if (!active() || !input.keyRows().find(row => row.action === 'back')?.keys?.includes(event.code)) return;
+    if (!keySkipsIntro(event.code, {
+      skippable: introSkippable(),
+      backKeys: backKeyCodes(input.keyRows()),
+    })) return;
     event.preventDefault();
     skipBy('key');
   });

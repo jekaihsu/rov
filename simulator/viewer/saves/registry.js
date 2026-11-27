@@ -248,18 +248,15 @@ export const objectiveCardStore = createRecordStore({
   key: 'rov.objectiveCard.v1',
   version: 1,
   defaults() {
-    return { dives: 0, guideHidden: false, collapsed: false };
+    return { collapsed: false };
   },
   migrate(record) {
     return record;
   },
   normalize(record) {
     if (!isObject(record)) return null;
-    return {
-      dives: Math.max(0, Math.round(finite(record.dives))),
-      guideHidden: !!record.guideHidden,
-      collapsed: !!record.collapsed,
-    };
+    // S1 removed the first-dive guide from the card; older dives/guideHidden fields are dropped.
+    return { collapsed: !!record.collapsed };
   },
 });
 
