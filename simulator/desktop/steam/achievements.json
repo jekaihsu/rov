@@ -5,24 +5,69 @@
     "name": "第一次下潛"
   },
   {
-    "event": "inspection",
-    "api": "ACH_INSPECTION",
-    "name": "首次巡檢"
+    "event": "harbor_clean",
+    "api": "ACH_HARBOR_CLEAN",
+    "name": "零接觸港巡"
   },
   {
-    "event": "recovery",
-    "api": "ACH_RECOVERY",
-    "name": "首次回收"
+    "event": "murk_measure",
+    "api": "ACH_MURK_MEASURE",
+    "name": "濁水量測"
   },
   {
-    "event": "deployment",
-    "api": "ACH_DEPLOYMENT",
-    "name": "首次部署"
+    "event": "tether_retrace",
+    "api": "ACH_TETHER_RETRACE",
+    "name": "原路解纜"
   },
   {
-    "event": "scenario",
-    "api": "ACH_SCENARIO",
-    "name": "首次訓練"
+    "event": "chapter1_gold",
+    "api": "ACH_CHAPTER1_GOLD",
+    "name": "第一章金牌"
+  },
+  {
+    "event": "pool_gold",
+    "api": "ACH_POOL_GOLD",
+    "name": "水池金牌"
+  },
+  {
+    "event": "open_water_clean",
+    "api": "ACH_OPEN_WATER_CLEAN",
+    "name": "開放水域完好"
+  },
+  {
+    "event": "hull_loto",
+    "api": "ACH_HULL_LOTO",
+    "name": "軸系上鎖"
+  },
+  {
+    "event": "sonar_find",
+    "api": "ACH_SONAR_FIND",
+    "name": "聲納尋物"
+  },
+  {
+    "event": "cp_survey",
+    "api": "ACH_CP_SURVEY",
+    "name": "陰極巡測"
+  },
+  {
+    "event": "ut_survey",
+    "api": "ACH_UT_SURVEY",
+    "name": "測厚到位"
+  },
+  {
+    "event": "grade2_exam",
+    "api": "ACH_GRADE2_EXAM",
+    "name": "二級考照"
+  },
+  {
+    "event": "real_exam",
+    "api": "ACH_REAL_EXAM",
+    "name": "真實模式過關"
+  },
+  {
+    "event": "cable_discipline",
+    "api": "ACH_CABLE_DISCIPLINE",
+    "name": "放纜紀律"
   },
   {
     "event": "zero_collision",
@@ -30,39 +75,9 @@
     "name": "零碰撞完成"
   },
   {
-    "event": "guide_fish",
-    "api": "ACH_GUIDE_FISH",
-    "name": "魚類觀察"
-  },
-  {
-    "event": "guide_coral",
-    "api": "ACH_GUIDE_CORAL",
-    "name": "珊瑚觀察"
-  },
-  {
-    "event": "guide_seagrass",
-    "api": "ACH_GUIDE_SEAGRASS",
-    "name": "海草觀察"
-  },
-  {
-    "event": "guide_structure",
-    "api": "ACH_GUIDE_STRUCTURE",
-    "name": "結構觀察"
-  },
-  {
-    "event": "guide_other",
-    "api": "ACH_GUIDE_OTHER",
-    "name": "其他觀察"
-  },
-  {
-    "event": "guide_complete",
-    "api": "ACH_GUIDE_COMPLETE",
-    "name": "圖鑑五類集滿"
-  },
-  {
-    "event": "three_pilots",
-    "api": "ACH_THREE_PILOTS",
-    "name": "三人協作"
+    "event": "prologue_done",
+    "api": "ACH_PROLOGUE_DONE",
+    "name": "序章結訓"
   },
   {
     "event": "untangled",
@@ -70,8 +85,28 @@
     "name": "解開纏繞"
   },
   {
-    "event": "first_photo",
-    "api": "ACH_FIRST_PHOTO",
-    "name": "首次拍照"
+    "event": "inspection_coop",
+    "api": "ACH_INSPECTION_COOP",
+    "name": "協作巡檢"
+  },
+  {
+    "event": "recovery_work",
+    "api": "ACH_RECOVERY_WORK",
+    "name": "回收到位"
+  },
+  {
+    "event": "deployment_work",
+    "api": "ACH_DEPLOYMENT_WORK",
+    "name": "部署到位"
+  },
+  {
+    "event": "evidence_photo",
+    "api": "ACH_EVIDENCE_PHOTO",
+    "name": "現場證據"
+  },
+  {
+    "event": "pier_measure",
+    "api": "ACH_PIER_MEASURE",
+    "name": "碼頭量測"
   }
 ]

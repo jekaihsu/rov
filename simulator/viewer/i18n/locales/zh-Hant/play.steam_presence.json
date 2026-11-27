@@ -1,0 +1,27 @@
+{
+  "menu": "主選單",
+  "diving": "下潛中",
+  "chapterFallback": "作業中",
+  "levelFallback": "自由航行",
+  "chapters": {
+    "prologue": "序章 · 見習之前",
+    "ch1": "第一章 · 港口與船舶",
+    "ch2": "第二章 · 養殖場"
+  },
+  "levels": {
+    "p0_induction": "水池操作課",
+    "p1_pool_checkout": "水池檢查潛",
+    "p2_open_water": "開放水域熟悉",
+    "c1_pier_level1": "碼頭 Level I 巡檢",
+    "c1_pier_level2": "碼頭海生物量測",
+    "c1_hull_fouling": "船殼附著評級",
+    "c1_dropped_object": "港內掉落物",
+    "c1_quay_cp": "碼頭陰極巡測",
+    "c1_hull_ut": "船殼測厚",
+    "c1_signoff_exam": "交班前複查",
+    "free_explore": "自由探索",
+    "expedition": "探索接案",
+    "inspection_coop": "協作巡檢",
+    "scenario_training": "場景訓練"
+  }
+}

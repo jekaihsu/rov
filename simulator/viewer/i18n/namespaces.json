@@ -59,6 +59,8 @@
   "play.onboarding_settings",
   "play.results",
   "play.results_model",
+  "play.steam_dev_panel",
+  "play.steam_presence",
   "prefs.accessibility",
   "procedure.crew_radio",
   "procedure.deck_stage",
