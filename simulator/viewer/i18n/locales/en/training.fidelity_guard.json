@@ -1,0 +1,5 @@
+{
+  "leaveReal": "Training mode defaults to real fidelity. Switching to assisted is recorded on the scorecard. Continue?",
+  "banner": "Training mode: real fidelity",
+  "bannerAssist": "Training mode: left real fidelity (will be noted on the scorecard)"
+}

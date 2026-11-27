@@ -105,6 +105,17 @@ test("a chapter outcome shows the rewards and unlocks it earned and the next cha
   assert.equal(drill.kind, "drill");
   assert.equal(drill.next, null, "drills do not chain into the story");
   assert.equal(drill.score, 50);
+  const course = chapterOutcome({
+    campaign: {
+      ...campaign,
+      chapter: "course_b01",
+      next_story: "prologue",
+      results: [{ chapter: "course_b01", elapsed: 40, collisions: 0, tether_broken: false }],
+      chapters: [{ id: "course_b01", title: "B01", category: "course" }],
+    },
+  });
+  assert.equal(course.kind, "chapter");
+  assert.equal(course.next, null, "company courses do not chain into the story");
 });
 
 test("a contract outcome grades by contacts", () => {

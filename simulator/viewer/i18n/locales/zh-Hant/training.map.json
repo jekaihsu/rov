@@ -1,0 +1,19 @@
+{
+  "title": "訓練模式",
+  "help": "內部版課程地圖。通過標準照研究報告與公司課表撰寫，門檻暫定待基準航次校準。紀錄只存本機。",
+  "groupIntro": "入門",
+  "groupOperator": "操作員",
+  "groupAdvanced": "進階",
+  "groupIncident": "事故處置",
+  "minutes": "{n} 分",
+  "goal": "目標技能",
+  "criteria": "通過標準",
+  "start": "開始練習",
+  "records": "本機紀錄",
+  "exportCsv": "匯出全部 CSV",
+  "exportLast": "匯出最近成績單",
+  "noRecords": "尚無本機紀錄",
+  "lastPass": "最近：暫定通過",
+  "lastFail": "最近：需補訓",
+  "steamHidden": "Steam 版不提供訓練模式"
+}

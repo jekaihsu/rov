@@ -52,6 +52,7 @@ import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_qu
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
+import {installTrainingSession} from './training/session.js';
 import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
@@ -480,6 +481,10 @@ const rotorSpin = [];
 const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
   deck: {getIntro: () => intro, rov: rovG, getRotors: () => rotorOf}});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
+const trainingSession = installTrainingSession({
+  getState: () => S,
+  student: new URLSearchParams(location.search).get('name') || '',
+});
 const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
@@ -587,6 +592,7 @@ function onState(m) {
   missionPanel.update(m);
   procedurePanel.update(m);
   campaignPanel.update(m);
+  trainingSession.update(m);
   coldOpen.update(m, W);
   if (!REPLAY) prologue.update(m);
   chapterCards.update(m);
