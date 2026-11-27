@@ -451,13 +451,17 @@ export function buildSites(ctx) {
     const facts = siteFacts(scene);
     hero.kicker.textContent = [STRINGS.sitesTitle, count].join(NAME_SEPARATOR);
     hero.setTitle(siteTitle(scene, ctx));
-    hero.setStats([
-      [STRINGS.depth, depthText(facts), lengthUnit()],
-      [STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()],
-      [STRINGS.current, fixed(facts.current, 1), STRINGS.units2.kn],
-    ]);
+    const stats = [[STRINGS.depth, depthText(facts), lengthUnit()]];
+    const freeDive = ctx.choice.route === 'freeDive';
+    // The independent Bihai visit has different tides and water clarity from its mission preview.
+    if (!freeDive || scene.key !== 'korean_castle') {
+      stats.push([STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()]);
+      stats.push([STRINGS.current, fixed(facts.current, 1), STRINGS.units2.kn]);
+    }
+    hero.setStats(stats);
     const allowed = supportsMode(scene, ctx.choice.mission);
-    hero.setChips(allowed ? facts.activities.slice(0, MAX_CHIPS) : [[STRINGS.notForMode, 'warn']]);
+    const activities = freeDive ? [] : facts.activities.slice(0, MAX_CHIPS);
+    hero.setChips(allowed ? activities : [[STRINGS.notForMode, 'warn']]);
     choose.disabled = !allowed;
     ctx.previewScene(scene.key);
   }
