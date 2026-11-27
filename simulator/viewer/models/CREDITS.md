@@ -146,3 +146,9 @@ R5 港區的藤壺剖面、貽貝殼、海藻葉、岸壁配件、岸吊、天�
 
 The training-pool A/B/C wall plates are original procedural artwork. The viewer draws
 their lettering, border and scale bars on a canvas in `story/prologue.js`.
+
+## V2 港口近景
+
+`harbor/*.glb`、各 GLB 內的 base color／ORM／normal 與 `harbor/pile-*.jpg` 皆由本專案
+`cad/build_harbor_props.py` 以原創幾何、剖面、雜訊與高度場產生，授權 CC0-1.0。
+未使用攝影素材、外部模型或掃描。樁圖一圈對應直徑 0.6 m，垂直範圍自水面上 2 m 到水下 18 m。

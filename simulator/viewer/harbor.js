@@ -1,123 +1,41 @@
 // Harbor construction and attached marine colonies, dimensioned from the collision obstacles.
 import * as THREE from 'three';
 
-// Narrow hinge, swollen umbo, paired valves and a pale growth margin along the shell lip.
-function musselValve() {
-  const profile = [[0, -1], [.44, -.68], [.76, -.19], [1, .43], [.88, .78], [.48, .96], [0, 1]];
-  const shape = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 8);
-  const pos = shape.attributes.position;
-  const colors = [];
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const z = pos.getZ(i);
-    const seam = Math.max(0, 1 - Math.abs(x) * 3.8);
-    pos.setXYZ(i, x + .19 * y * y, y, z * (.84 - seam * .42));
-    const lip = y > .75 ? .32 : 0;
-    const light = .58 + Math.abs(x) * .34 + lip - seam * .20;
-    colors.push(light * (1 + lip * .4), light, light * (1.14 - lip));
-  }
-  shape.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  shape.computeVertexNormals();
-  return shape;
-}
-
-// A folded, tapering ribbon bends away from its holdfast and curls back toward the pile.
-function weedBlade() {
-  const vertices = [];
-  const indices = [];
-  for (let i = 0; i <= 5; i++) {
-    const t = i / 5;
-    const w = Math.sin(Math.PI * t) * .9 + .025;
-    const bend = Math.sin(t * 4.3) * .65;
-    vertices.push(bend - w, .5 - t, t, bend, .5 - t, t + w * .6, bend + w, .5 - t, t);
-    if (i === 0) continue;
-    const k = i * 3;
-    indices.push(k - 3, k, k - 2, k, k + 1, k - 2, k - 2, k + 1, k - 1, k + 1, k + 2, k - 1);
-  }
-  const shape = new THREE.BufferGeometry();
-  shape.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  shape.setIndex(indices);
-  shape.computeVertexNormals();
-  return shape;
-}
+import {prop} from './harbor_props.js';
 
 function colony(set, ob, seeded) {
-  const rng = seeded(ob.name + '-colony');
-  const beds = [[], [], []];
-  const height = ob.p1[2] - ob.p0[2];
-  const middle = (ob.p0[2] + ob.p1[2]) / 2;
-  const item = new THREE.Object3D();
-  for (let patch = 0; patch < 24; patch++) {
-    const randomDepth = Math.max(.1, ob.p0[2]) + rng() * (ob.p1[2] - Math.max(.1, ob.p0[2]));
-    const fixed = ob.name === 'Harbor pile A' && patch < 6;
-    const depth = fixed ? [1.25, 1.55, 5.8, 6.1, 6.3, 6.55][patch] : randomDepth;
-    const bearing = fixed ? 2.65 + (rng() - .5) * .6 : rng() * Math.PI * 2;
-    for (let j = 0; j < 5; j++) {
-      const phi = bearing + (rng() - .5) * 1.5;
-      const zone = depth < 2.4 ? 0 : depth < 8.4 ? 1 : 2;
-      let tint;
-      if (zone === 0) {
-        item.scale.set(.064, .34 + rng() * .23, .032);
-        tint = rng() < .5 ? 0x748132 : 0x464f1f;
-      } else if (zone === 1) {
-        item.scale.set(.054, .105, .047);
-        tint = rng() < .4 ? 0x615575 : 0x343d4d;
-      } else {
-        item.scale.setScalar(.045 + rng() * .04);
-        tint = rng() < .6 ? 0xd9c39c : 0xb19680;
-      }
-      item.position.set(ob.radius * Math.sin(phi), middle - depth + (rng() - .5) * .42, ob.radius * Math.cos(phi));
-      item.rotation.set(0, phi, rng() - .5, 'YXZ');
-      item.updateMatrix();
-      beds[zone].push([item.matrix.clone(), new THREE.Color(tint)]);
-    }
+  const rng = seeded(ob.name);
+  for (let i = 0; i < 9; i++) {
+    const zone = Math.floor(i / 3);
+    const depth = Math.max(ob.p0[2] + .4, [.65, 2.9, 5.9][zone]) + (i % 3 - 1) * .34;
+    if (depth > ob.p1[2]) continue;
+    const angle = Math.PI + (i % 3 - 1) * 1.95 + .3 * (rng() - .5);
+    const name = zone === 2 ? 'filaments-ascidians' : ['barnacles-', 'mussels-'][zone] + [30, 60, 100][i % 3];
+    const at = new THREE.Vector3(-ob.p0[1] + ob.radius * Math.sin(angle), -depth,
+      ob.p0[0] + ob.radius * Math.cos(angle));
+    prop(set, name, at, {radius: ob.radius, obstacles: [ob],
+      rotation: new THREE.Quaternion().setFromAxisAngle(UP, angle)});
   }
-  const profile = [[1, 0], [.7, .65], [.53, 1], [.28, .93], [.26, .35]];
-  const shapes = [weedBlade(), musselValve(),
-    new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 7).rotateX(Math.PI / 2)];
-  const close = new THREE.Group();
-  for (const [i, bed] of beds.entries()) {
-    const material = new THREE.MeshStandardMaterial({roughness: i === 1 ? .48 : .85,
-      vertexColors: i === 1, side: i === 0 ? THREE.DoubleSide : THREE.FrontSide});
-    const relief = new THREE.InstancedMesh(shapes[i], material, bed.length);
-    bed.forEach(([matrix, tint], j) => {
-      relief.setMatrixAt(j, matrix);
-      relief.setColorAt(j, tint);
-    });
-    relief.userData = {role: 'attached', colliders: [ob.name]};
-    close.add(relief);
-  }
-  const lod = new THREE.LOD();
-  lod.position.set(-ob.p0[1], -middle, ob.p0[0]);
-  lod.addLevel(close, 0);
-  lod.addLevel(new THREE.Group(), 6);
-  const eye = new THREE.Vector3();
-  // LOD's default distance to the shaft midpoint keeps entire distant bents active near the bed.
-  // Use the closest point on the vertical shaft so a camera beside either end still sees relief.
-  lod.update = function inspectionRange(camera) {
-    camera.getWorldPosition(eye);
-    this.worldToLocal(eye);
-    eye.y -= THREE.MathUtils.clamp(eye.y, -height / 2, height / 2);
-    close.visible = eye.lengthSq() < (6 + ob.radius) ** 2;
-    this.levels[1].object.visible = !close.visible;
-  };
-  set.group.add(lod);
 }
 
+const UP = new THREE.Vector3(0, 1, 0);
 // The shared unwrap spans depths -2 to 18 m. Geometry UVs select each shaft's actual interval.
 function pileSkin(set) {
   if (typeof document === 'undefined') return set.makeMaterial('pileConcrete');
   const loader = new THREE.TextureLoader();
-  const load = suffix => loader.load(new URL('./models/scan/harbor_growth_' + suffix + '.webp', import.meta.url).href);
-  const map = load('c');
+  const load = suffix => loader.load(new URL('./models/harbor/pile-' + suffix + '.jpg', import.meta.url).href);
+  const map = load('color');
   map.colorSpace = THREE.SRGBColorSpace;
-  const normalMap = load('n');
-  const material = new THREE.MeshStandardMaterial({map, normalMap, roughness: .84});
+  const normalMap = load('normal');
+  const orm = load('orm');
+  for (const texture of [map, orm, normalMap]) texture.wrapS = THREE.RepeatWrapping;
+  const material = new THREE.MeshStandardMaterial({map, normalMap, roughnessMap: orm,
+    metalnessMap: orm, aoMap: orm, metalness: 1});
   material.userData.structureKind = 'pileConcrete';
   material.addEventListener('dispose', function releaseSkin() {
     map.dispose();
     normalMap.dispose();
+    orm.dispose();
   });
   return material;
 }
@@ -129,6 +47,7 @@ function pileRow(set, piles, seeded, material) {
   const bottom = piles[0].p1[2];
   for (let i = 0; i < uv.count; i++) {
     const depth = bottom + (top - bottom) * uv.getY(i);
+    uv.setX(i, uv.getX(i) * piles[0].radius / .3);
     uv.setY(i, (18 - depth) / 20);
   }
   const mesh = new THREE.InstancedMesh(geometry, material, piles.length);
@@ -172,10 +91,22 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
     harborTyre(set, tread);
     for (const ob of tread) consumed.add(ob.name);
   }
+  const parted = obstacles.find(ob => ob.name === 'Hawser tail 0');
+  if (parted) {
+    // The far end of the tail disappears inside the inner pile. Show the parted lay on the exposed end.
+    along(set, 'parted-hawser', parted, .74, 1, true);
+    consumed.add(parted.name);
+  }
+  const debris = obstacles.find(ob => ob.name === 'Harbor mooring block');
+  if (debris) {
+    const point = new THREE.Vector3(-debris.point[1], -debris.point[2], debris.point[0]);
+    prop(set, 'crab-pot', point, {scale: new THREE.Vector3(1, .65, 1), obstacles: [debris]});
+    consumed.add(debris.name);
+  }
   const piles = obstacles.filter(ob => ob.kind === 'pile');
   const rows = new Map();
   for (const ob of piles) {
-    const key = [ob.p0[2], ob.p1[2]].join();
+    const key = [ob.p0[2], ob.p1[2], ob.radius].join();
     if (!rows.has(key)) rows.set(key, []);
     rows.get(key).push(ob);
     consumed.add(ob.name);
@@ -299,38 +230,25 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
   }
 }
 
-export function chainSegment(set, ob) {
-  const start = new THREE.Vector3(-ob.p0[1], -ob.p0[2], ob.p0[0]);
-  const end = new THREE.Vector3(-ob.p1[1], -ob.p1[2], ob.p1[0]);
+function along(set, name, ob, length, repeats, reverse = false) {
+  const [a, b] = reverse ? [ob.p1, ob.p0] : [ob.p0, ob.p1];
+  const start = new THREE.Vector3(-a[1], -a[2], a[0]);
+  const end = new THREE.Vector3(-b[1], -b[2], b[0]);
   const direction = end.clone().sub(start);
-  const links = Math.max(1, Math.round(direction.length() / .19));
-  const step = direction.length() / links;
-  const rotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
-  for (let i = 0; i < links; i++) {
-    const link = new THREE.TorusGeometry(.073, .018, 4, set.detailName === 'high' ? 12 : 8);
-    link.scale(1, step / .12, 1);
-    link.rotateY(i % 2 * Math.PI / 2);
-    link.applyQuaternion(rotation);
-    const c = start.clone().lerp(end, (i + .5) / links);
-    link.translate(c.x, c.y, c.z);
-    set.addBatched('mooring-chain', link, 'steelPlate', [ob.name], 'solid', [ob]);
+  const scale = new THREE.Vector3(1, direction.length() / (length * repeats), 1);
+  const rotation = new THREE.Quaternion().setFromUnitVectors(UP, direction.normalize());
+  for (let i = 0; i < repeats; i++) {
+    prop(set, name, start.clone().lerp(end, i / repeats), {rotation, scale, obstacles: [ob]});
   }
 }
 
-/** A discarded commercial tyre resting on its side in the mud, on its ring of snaggable contact segments. */
+export function chainSegment(set, ob) {
+  const length = new THREE.Vector3(...ob.p0).distanceTo(new THREE.Vector3(...ob.p1));
+  along(set, 'shackle-chain', ob, .63, Math.max(1, Math.round(length / .63)));
+}
+
 function harborTyre(set, tread) {
   const centre = new THREE.Vector3();
-  for (const ob of tread) centre.add(new THREE.Vector3(...ob.p0));
-  centre.divideScalar(tread.length);
-  const [north, east, depth] = centre.toArray();
-  const halfHeight = tread[0].radius;
-  const radius = centre.distanceTo(new THREE.Vector3(...tread[0].p0)) + halfHeight;
-  // Section from the inner bead, over the sidewall to the shoulder and across the tread.
-  const section = [[.51, -.85], [.51, .68], [.57, .95], [.78, 1], [.94, .76], [.99, .53],
-    [.99, .22], [.965, .15], [.99, .09], [.99, -.11], [.965, -.17], [.99, -.24],
-    [.99, -.58], [.9, -.86], [.65, -.98], [.51, -.85]];
-  const profile = section.reverse().map(([r, h]) => new THREE.Vector2(radius * r, halfHeight * h));
-  const tyre = new THREE.LatheGeometry(profile, 28);
-  tyre.translate(-east, -depth, north);
-  set.addBatched('tyre-tread', tyre, 'rubber', tread.map(ob => ob.name), 'solid', tread);
+  for (const ob of tread) centre.add(new THREE.Vector3(-ob.p0[1], -ob.p0[2], ob.p0[0]));
+  prop(set, 'discarded-tyre', centre.divideScalar(tread.length), {obstacles: tread});
 }

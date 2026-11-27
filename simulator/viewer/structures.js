@@ -232,10 +232,18 @@ class StructureSet {
   }
 
   raycastMeshes() {
-    return this.group.children.filter((o) => o.isMesh && o.userData.role !== 'above');
+    const meshes = [];
+    for (const object of this.group.children) {
+      if (object.isMesh && object.userData.role !== 'above') meshes.push(object);
+      if (object.isLOD && object.userData.role === 'solid' && object.levels.length) {
+        meshes.push(object.levels[0].object);
+      }
+    }
+    return meshes;
   }
 
   dispose() {
+    this.group.dispatchEvent({type: 'dispose'});
     this.group.removeFromParent();
     this.group.traverse((o) => {
       if (o.geometry && !rockCacheHas(o.geometry)) o.geometry.dispose();
@@ -949,7 +957,7 @@ function buildOne(set, ob, consumed) {
  * Build the visible structures for a world message. Habitat colliders and GLB models are left to the caller.
  * ``makeMaterial(kind)`` defaults to the procedural structure materials (browser only).
  */
-export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
+export function buildStructures(world, {detail = 'medium', makeMaterial, harborLoader} = {}) {
   const rockHex = siteRockColor(world);
   const baseMaterial = makeMaterial || ((kind) => structureMaterial(kind, detail));
   const paint = (kind) => {
@@ -959,6 +967,8 @@ export function buildStructures(world, {detail = 'medium', makeMaterial} = {}) {
     return material;
   };
   const set = new StructureSet(world, detail, paint);
+  set.harborLoader = harborLoader;
+  if (harborLoader) set.pendingHarbor = [];
   const consumed = new Set();
   const obstacles = (world.obstacles || []).filter((ob) => ob.kind !== 'habitat' && ob.type !== 'model' && !ob.embedded);
   harborStructures(set, obstacles, consumed, seeded, boxAt);

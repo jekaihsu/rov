@@ -11,7 +11,7 @@ import {register} from 'node:module';
 register('./three_resolve_hooks.mjs', import.meta.url);
 
 const THREE = await import('three');
-const {embeddedModelSamples} = await import('./embedded_model_samples.mjs');
+const {embeddedModelSamples, geometryGLTF} = await import('./embedded_model_samples.mjs');
 const {buildStructures, SCENE_TOLERANCE} = await import('../viewer/structures.js');
 
 function readStdin() {
@@ -89,8 +89,16 @@ function describe(mesh, seabed) {
 const input = JSON.parse(await readStdin());
 const result = {tolerance: SCENE_TOLERANCE, spacing: SPACING, worlds: {}};
 for (const [key, world] of Object.entries(input)) {
-  const set = buildStructures(world, {detail: process.env.SCENE_DETAIL || 'medium', makeMaterial: stubMaterial});
+  const set = buildStructures(world, {detail: process.env.SCENE_DETAIL || 'medium', makeMaterial: stubMaterial,
+    harborLoader: geometryGLTF});
+  await Promise.all(set.pendingHarbor);
+  set.group.updateMatrixWorld(true);
   result.worlds[key] = set.group.children.filter((o) => o.isMesh).map((o) => describe(o, world.seabed_depth));
+  for (const child of set.group.children) {
+    if (child.isLOD && child.levels[0]?.object.isMesh) {
+      result.worlds[key].push(describe(child.levels[0].object, world.seabed_depth));
+    }
+  }
   result.worlds[key].push(...await embeddedModelSamples(world, partPoints));
 }
 process.stdout.write(JSON.stringify(result));
