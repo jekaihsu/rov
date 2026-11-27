@@ -75,3 +75,6 @@ python_license=Path(sys.base_prefix)/'LICENSE.txt'
 if python_license.exists():
     shutil.copy2(python_license,licenses/'Python-LICENSE.txt')
 (licenses/'versions.json').write_text(json.dumps(versions,indent=2),encoding='utf8')
+notices = DESKTOP / 'THIRD_PARTY_NOTICES.txt'
+if notices.is_file():
+    shutil.copy2(notices, licenses / 'THIRD_PARTY_NOTICES.txt')

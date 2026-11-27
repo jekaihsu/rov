@@ -60,8 +60,10 @@ Allow at least 2 GB free for a full packaging pass: Forge keeps
 the backend, an expanded Electron package and the ZIP concurrently.
 
 Forge writes the portable folder and ZIP under
-`out/`. Dependency notices are included in `resources/backend/rov-sim/licenses`
-and `resources/backend/rov-sim/_internal/viewer/CREDITS.md`.
+`out/`. Dependency notices are included in `THIRD_PARTY_NOTICES.txt` (packaged next to
+the app entry via Forge), `resources/backend/rov-sim/licenses` (including a copy of
+that file when the backend is built) and `resources/backend/rov-sim/_internal/viewer/CREDITS.md`.
+Regenerate notices with `python simulator/tools/third_party_notices.py`.
 
 Set `ROV_DESKTOP_SMOKE` to an absolute JSON file path before launching the packaged
 executable to run the hidden renderer check. It writes model/state loading results

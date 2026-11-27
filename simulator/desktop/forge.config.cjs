@@ -21,6 +21,7 @@ const runtimeFiles = new Set([
   '/steam/cloud_paths.cjs',
   '/steam/edition.cjs',
   '/steam/build_edition.json',
+  '/THIRD_PARTY_NOTICES.txt',
 ]);
 
 function ignore(file) {

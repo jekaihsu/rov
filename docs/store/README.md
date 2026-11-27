@@ -10,6 +10,8 @@
 - [成就本地化（舊草案）](achievements.md)：早期 15 組文案；**現行規格以 [steam/achievements.md](steam/achievements.md) 為準**（S4，22 項技能成就）。
 - [Steam Auto-Cloud](steam/cloud.md)：同步路徑、檔名樣式、配額與 S3 TODO。
 - [美術外包需求](art-brief.md)：當前 Steam 尺寸、構圖、交付檔與禁止元素。
+- [EULA／隱私權草稿](legal/)：繁中與英文；標明需法務審閱。
+- [Steam AI 揭露問卷草稿](steam/ai-disclosure.md)：依 `CREDITS.md` 填寫。
 
 ## 編輯與發布條件
 

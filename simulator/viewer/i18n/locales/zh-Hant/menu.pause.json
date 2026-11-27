@@ -29,7 +29,8 @@
     "audio": "音訊",
     "quality": "畫質",
     "display": "顯示",
-    "interface": "介面"
+    "interface": "介面",
+    "about": "關於"
   },
   "controller": "開啟手把設定（死區、曲線、綁定）",
   "quality": {

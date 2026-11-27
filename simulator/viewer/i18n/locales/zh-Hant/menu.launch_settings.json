@@ -6,7 +6,8 @@
     "audio": "音訊",
     "quality": "畫質",
     "display": "顯示",
-    "interface": "介面"
+    "interface": "介面",
+    "about": "關於"
   },
   "pad": "輸入裝置",
   "padAuto": "自動偵測手把＋鍵盤",
