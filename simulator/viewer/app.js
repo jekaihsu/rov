@@ -86,6 +86,7 @@ import { createWorldLabels } from './hud/world_labels.js';
 import { elementSize } from './hud/canvas.js';
 import { cssVariable } from './hud/css_variables.js';
 import { createShaderWarmup } from './shader_warmup.js';
+import { installTrailerRecording } from './trailer/recording.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -634,8 +635,10 @@ function updateRoute(nav) {
   const v = new THREE.Vector3();
   for (let i = 0; i < n; i++) { P(r[i], v); a[i * 3] = v.x; a[i * 3 + 1] = v.y; a[i * 3 + 2] = v.z; }
   routeLine.geometry.setDrawRange(0, n); routeLine.geometry.attributes.position.needsUpdate = true;
-  routeLine.visible = n > 1;
-  navTarget.visible = !!nav?.target; if (nav?.target) P(nav.target, navTarget.position);
+  const trailerAidsOff = document.body.classList.contains('trailer');
+  routeLine.visible = n > 1 && !trailerAidsOff;
+  navTarget.visible = !!nav?.target && !trailerAidsOff;
+  if (nav?.target) P(nav.target, navTarget.position);
 }
 
 let lastEvT = null;
@@ -815,6 +818,9 @@ let camMode = cameraRig.mode;
 const cameraLook = installCameraLook({renderer, getMode: () => camMode, fidelity: getFidelity()});
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
+const trailer = installTrailerRecording({
+  params, camera, rovG, setCam, getFidelity, document,
+});
 const updateCamera = dt => cameraRig.update(dt);
 $('camBtn').onclick = () => cameraRig.cycle();
 const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion();
@@ -1259,6 +1265,7 @@ function frame(now) {
     });
   }
   if (!inIntro) updateCamera(dt);
+  if (trailer.enabled) trailer.frame(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   installUnderwaterPipeline(renderer, { surface });
@@ -1270,7 +1277,8 @@ function frame(now) {
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
   spoolStation.update(dt, !!intro?.onScene, camera);           // the intro brings its own boat while it plays
-  objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
+  objG.visible = !inIntro && !(trailer.enabled && trailer.hideTargets());
+  if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
@@ -1290,6 +1298,9 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
+  if (trailer.enabled) {
+    trailer.suppressAids({objG, navTarget, guide, routeLine, labelsCheckbox: $('optLabels')});
+  }
   const displayed = renderState.display(S);
   audio.update(displayed);
   music.update(displayed);
@@ -1322,7 +1333,14 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, touch, toggleLock, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = {
+  cameraLook, THREE, scene, camera, rovG, worldG, siltFx,
+  get W() { return W; }, get S() { return S; },
+  rotors, get rotorOf() { return rotorOf; },
+  setCam, rc, touch, toggleLock,
+  takePhoto: options => photoClient.takePhoto(options),
+  send, trailer,
+};
 Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;
