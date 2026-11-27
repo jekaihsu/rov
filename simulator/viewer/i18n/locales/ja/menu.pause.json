@@ -29,7 +29,8 @@
     "audio": "音声",
     "quality": "画質",
     "display": "表示",
-    "interface": "インターフェース"
+    "interface": "インターフェース",
+    "about": "情報"
   },
   "controller": "コントローラー設定（デッドゾーン、カーブ、割り当て）",
   "quality": {

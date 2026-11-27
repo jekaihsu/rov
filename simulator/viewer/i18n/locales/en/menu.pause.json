@@ -29,7 +29,8 @@
     "audio": "Audio",
     "quality": "Graphics",
     "display": "Display",
-    "interface": "Interface"
+    "interface": "Interface",
+    "about": "About"
   },
   "controller": "Controller settings (deadzone, curves, bindings)",
   "quality": {

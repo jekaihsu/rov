@@ -1,5 +1,6 @@
 /* Line-instrument console; shared palette and stacking scale, no opaque dashboard tiles. */
 @import url('../hud/tokens.css');
+@import url('../training/training.css');
 :root {
   color-scheme: dark;
   font: 13px system-ui, sans-serif;

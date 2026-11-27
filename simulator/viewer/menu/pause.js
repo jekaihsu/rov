@@ -20,6 +20,7 @@ import {
   mountKeyHints,
   mountToggles,
 } from './settings.js';
+import { mountCredits, CREDITS_STRINGS } from './credits.js';
 
 import { localize } from '../i18n/index.js';
 import {
@@ -47,6 +48,7 @@ const STRINGS = localize('menu.pause', {
   replay: ['回放中 · 關閉選單即可繼續', '回放中：關閉選單即可繼續。'],
   tabs: {
     fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
+    about: '關於',
   },
   controller: '開啟手把設定（死區、曲線、綁定）',
   quality: {
@@ -176,6 +178,7 @@ function buildSettings(input) {
           pane.append(hints.reset);
         },
       },
+      { id: 'about', label: STRINGS.tabs.about || CREDITS_STRINGS.tab, mount: mountCredits },
     ],
   });
 }

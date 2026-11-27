@@ -11,6 +11,7 @@ import { installOsd, updateOsd } from './osd.js';
 import { resolveHudStyle } from './hud_style.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
+import { installSteamDevPanel } from '../play/steam_dev_panel.js';
 import { BINDINGS, actionKey, keyRow, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
 import { actionControlLabels, formatActionHint } from '../input/hints.js';
 import { deviceFamily } from '../input/glyphs.js';
@@ -154,6 +155,7 @@ function initialize(resolveKey = standaloneKey) {
   close.onclick = drawer;
   panel.append(close);
   installFidelityPanel(panel);
+  installSteamDevPanel(panel);
   panel.append(document.querySelector('.topbar'), ...document.querySelectorAll('.rack'));
   panel.querySelectorAll('.mission-tools > div[hidden]').forEach(function revealSettings(el) {
     el.hidden = false;

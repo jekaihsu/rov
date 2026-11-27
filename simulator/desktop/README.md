@@ -63,8 +63,10 @@ Allow at least 2 GB free for a full packaging pass: Forge keeps
 the backend, an expanded Electron package and the ZIP concurrently.
 
 Forge writes the portable folder and ZIP under
-`out/`. Dependency notices are included in `resources/backend/rov-sim/licenses`
-and `resources/backend/rov-sim/_internal/viewer/CREDITS.md`.
+`out/`. Dependency notices are included in `THIRD_PARTY_NOTICES.txt` (packaged next to
+the app entry via Forge), `resources/backend/rov-sim/licenses` (including a copy of
+that file when the backend is built) and `resources/backend/rov-sim/_internal/viewer/CREDITS.md`.
+Regenerate notices with `python simulator/tools/third_party_notices.py`.
 
 Set `ROV_DESKTOP_SMOKE` to an absolute JSON file path before launching the packaged
 executable to run the hidden renderer check. It writes model/state loading results
@@ -81,9 +83,23 @@ Backend Python changes still require rebuilding the frozen backend. Set
 saving the preference; relaunch with the same user-data directory and without
 that override to check persistence across launches.
 
-## Steam preparation (T10)
+## Steam preparation (T10 / S4)
 
-See [release configuration and known blockers](steam/RELEASE.md). The current CI
-artifact remains an internal training build; it is not ready for Steam publication.
+See [release configuration and known blockers](steam/RELEASE.md),
+[achievements](../../docs/store/steam/achievements.md) and
+[Auto-Cloud](../../docs/store/steam/cloud.md).
+
+`ROV_BUILD_EDITION=steam` selects Steam packaging settings (product name
+ROV Solution, achievements and Rich Presence enabled in the preload bridge).
+Without a Steam App ID the main process writes a mock backend under
+`userData/steam-mock/`; inspect it from the engineering drawer. Internal builds
+set `window.rovDesktop.edition` to `internal` and do not show achievements.
+
+The Windows workflow is `workflow_dispatch` only (never `pull_request` / `push`).
 IDs are supplied through environment variables or GitHub secrets. Generate preview
 upload descriptors with `node steam/generate_vdf.cjs`; no credentials are stored.
+
+```bash
+node simulator/desktop/test_steam.cjs
+node --test simulator/tests/test_achievements.mjs simulator/tests/test_steam_presence.mjs
+```

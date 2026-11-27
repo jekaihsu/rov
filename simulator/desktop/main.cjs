@@ -11,6 +11,7 @@ if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_DATA){
   fs.mkdirSync(process.env.ROV_DESKTOP_SMOKE_DATA,{recursive:true});app.setPath('userData',process.env.ROV_DESKTOP_SMOKE_DATA);
 }
 const { createSteam } = require('./steam_service.cjs');
+const { resolveEdition } = require('./steam/edition.cjs');
 const { installBackendLifecycle } = require('./backend_lifecycle.cjs');
 const displaySettings = require('./window_settings.cjs');
 const { requestDiscreteGpu } = require('./gpu_preference.cjs');
@@ -55,7 +56,8 @@ app.whenReady().then(async()=>{
   }
   const lifecycle = installBackendLifecycle(app, backend, backendFailed);
   const workArea=screen.getPrimaryDisplay().workAreaSize;
-  const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,preload:path.join(__dirname,'preload.cjs')}});
+  const edition=resolveEdition(process.env);
+  const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,additionalArguments:[`--rov-edition=${edition}`],preload:path.join(__dirname,'preload.cjs')}});
   lifecycle.watchWindow(window);
   const origin = `http://127.0.0.1:${http}`;
   function trusted(event) {
@@ -66,6 +68,8 @@ app.whenReady().then(async()=>{
     if (!trusted(event)) throw Error('Untrusted sender');
     if (method === 'status') return steam.status();
     if (method === 'event') return steam.report(payload?.event, payload?.value);
+    if (method === 'presence') return steam.setPresence(payload || {});
+    if (method === 'mock') return steam.readMock();
     throw Error('Unknown Steam method');
   });
   const windowFile = path.join(data, 'window.json');

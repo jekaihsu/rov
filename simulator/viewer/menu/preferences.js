@@ -143,6 +143,19 @@ function careerParams(url, choice) {
   for (const name of EXAM_CLEARED_PARAMS) url.searchParams.delete(name);
 }
 
+// Internal team-training launches force real fidelity and mark the session for local scorecards.
+function trainingParams(url, choice) {
+  if (!choice.training && !choice.trainingLesson) {
+    url.searchParams.delete('training');
+    url.searchParams.delete('trainingLesson');
+    return;
+  }
+  url.searchParams.set('training', '1');
+  if (choice.trainingLesson) url.searchParams.set('trainingLesson', choice.trainingLesson);
+  url.searchParams.set('fidelity', 'real');
+  for (const name of EXAM_CLEARED_PARAMS) url.searchParams.delete(name);
+}
+
 // The game URL for a choice. Parameters the menu does not own (fidelity, cam, gimbal, …) pass through.
 export function launchUrl(href, choice, pageProtocol = 'http:') {
   const url = new URL(href);
@@ -165,6 +178,7 @@ export function launchUrl(href, choice, pageProtocol = 'http:') {
   if (choice.intro) url.searchParams.delete('nointro');
   else url.searchParams.set('nointro', '1');
   careerParams(url, choice);
+  trainingParams(url, choice);
   return url;
 }
 

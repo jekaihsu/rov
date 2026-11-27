@@ -2,6 +2,7 @@
 import {saveReplay} from './replay_store.js';
 import {configureRenderQuality} from './render_quality.js';
 import {vehicleName, vehicleRole} from './fleet_names.js';
+import {trailerParamEnabled} from './trailer/recording.js';
 const $ = id => document.getElementById(id);
 export function downloadFile(name, blob) {
   const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -156,10 +157,14 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
   $('quality').value=new URLSearchParams(location.search).get('quality')||read('rov.quality','auto');
   // learn: automatic quality remembers what it settled on for this GPU (render_quality.js).
   function quality() {
-    configureRenderQuality(renderer, $('quality').value, {learn: true});
-    try {
-      localStorage.setItem('rov.quality', $('quality').value);
-    } catch { /* Private browsing. */ }
+    // Trailer capture is session-only: its URL quality must not overwrite the player's stored choice.
+    const sessionOnly = trailerParamEnabled(new URLSearchParams(location.search));
+    configureRenderQuality(renderer, $('quality').value, {learn: !sessionOnly});
+    if (!sessionOnly) {
+      try {
+        localStorage.setItem('rov.quality', $('quality').value);
+      } catch { /* Private browsing. */ }
+    }
     window.dispatchEvent(new Event('resize'));
   }
   $('quality').onchange=quality; quality();

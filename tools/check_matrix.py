@@ -37,6 +37,7 @@ DEFAULT_CHECKS = (
     'browser_expedition_smoke',
     'browser_paint_smoke',
     'browser_campaign_smoke',
+    'browser_training_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
     # S1 small-fix: Esc opens pause on the deck checklist; first-dive guide is not duplicated.
@@ -58,6 +59,7 @@ DEFAULT_CHECKS = (
 SCRIPT_TIMEOUTS = {
     'browser_playstation_smoke': 3600,
     'browser_cold_open_smoke': 5400,
+    'browser_training_smoke': 3600,
     # Full career walk with per-beat JPEG captures; quick mode is far shorter.
     'playtest_audit': 2400,
 }
@@ -75,6 +77,7 @@ BROWSER_PATHS = {
     # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
     'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
                                 'browser_campaign_smoke'),
+    'simulator/viewer/training/': ('browser_training_smoke', 'browser_menu_smoke', 'browser_campaign_smoke'),
     'simulator/viewer/feedback/': ('browser_feedback_smoke', 'browser_menu_smoke', 'browser_hud_smoke',
                                    'browser_menu_gamepad_smoke'),
 }

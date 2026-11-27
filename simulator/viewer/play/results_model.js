@@ -215,8 +215,11 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
     return !(start.rewards || []).includes(id);
   }).map(rewardLabel);
   rewards.push(...unlockLabels(start.unlocks, campaign.unlocks));
+  // Incidents and company courses are standalone; they must not chain into the story
+  // (Space during failsafe unlock would otherwise start the next story chapter).
   const drill = chapter.category === 'incident';
-  const nextId = drill ? null : campaign.next_story;
+  const course = chapter.category === 'course';
+  const nextId = (drill || course) ? null : campaign.next_story;
   const next = (campaign.chapters || []).find(function byId(entry) {
     return entry.id === nextId;
   }) || null;
