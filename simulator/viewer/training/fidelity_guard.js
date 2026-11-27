@@ -12,11 +12,14 @@ const STRINGS = localize('training.fidelity_guard', {
   bannerAssist: '訓練模式：已離開真實擬真（將記在成績單）',
 });
 
+// Session-only when the store supports it, so a dive that ends by page navigation (dispose never runs)
+// does not leave the trainee's stored custom settings overwritten in rov.fidelity.v1.
 function forceRealItems(fidelity) {
+  const apply = typeof fidelity.setSession === 'function' ? fidelity.setSession : fidelity.set;
   for (const item of fidelity.items()) {
     if (item.presetNeutral) continue;
     const target = item.defaults.real;
-    if (fidelity.get(item.id) !== target) fidelity.set(item.id, target);
+    if (fidelity.get(item.id) !== target) apply(item.id, target);
   }
 }
 

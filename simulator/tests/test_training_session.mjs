@@ -71,6 +71,19 @@ test('training fidelity override restores the trainee custom settings', () => {
   assert.deepEqual(JSON.parse(storage.data.get(STORAGE_KEY)).overrides.videoDelayMs, 80);
 });
 
+test('training fidelity override does not rewrite stored custom settings', () => {
+  const storage = memoryStorage();
+  const fidelity = createFidelity({storage, edition: 'training'});
+  fidelity.setPreset('assisted');
+  fidelity.set('videoDelayMs', 80);
+  const stored = storage.data.get(STORAGE_KEY);
+  applyTrainingFidelityDefault(fidelity);
+  assert.equal(fidelity.preset, 'real');
+  assert.equal(storage.data.get(STORAGE_KEY), stored, 'page closed mid-dive keeps the trainee settings');
+  const reloaded = createFidelity({storage, edition: 'training'});
+  assert.equal(reloaded.get('videoDelayMs'), 80);
+});
+
 test('fidelity guard dispose restores prior without recording a leave', () => {
   const fidelity = createFidelity({edition: 'training'});
   fidelity.setPreset('assisted');
