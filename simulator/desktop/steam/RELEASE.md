@@ -32,11 +32,14 @@ real Steam App ID yet.
 See `docs/store/steam/cloud.md` and `steam/cloud_paths.cjs`. Windows root: WinAppData;
 subdirectory matches the Electron product name (`ROV Simulator` internal,
 `ROV Solution` Steam). Verify `steamStatus().cloudPath` before enabling Partner
-rules. Include preferences.json, window.json, collection/** and steam-mock/**;
-exclude logs, numba-cache, local-backups/** and reports/**. TODO(S3): add the
-versioned career save folder when S3 lands. Photos dominate size: reserve
+rules. Include preferences.json, window.json, saves/** (versioned localStorage
+mirrors — career, campaign, fidelity, display, audio, input, …; see
+docs/design/saves.md), collection/** and steam-mock/**; exclude logs, numba-cache,
+saves/corrupt/**, local-backups/** and reports/**. Photos dominate size: reserve
 1 GiB / 10,000 files per user initially. No photo deletion, recompression or quota
 enforcement is implemented. Auto-Cloud conflict decisions occur before launch.
+Desktop write path for `saves/*.json`, `preferences.json` and `window.json` is
+atomic (temp file + fsync + rename) via `desktop/save_files.cjs`.
 
 ## Steam Input defaults and checks
 

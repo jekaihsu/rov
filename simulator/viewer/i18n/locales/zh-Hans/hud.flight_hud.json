@@ -12,7 +12,7 @@
   "view": "切换视角 V",
   "locked": "马达锁定",
   "unlocked": "马达解锁",
-  "unlockHint": "按 {key} / 手柄 Y 解锁",
+  "unlockHint": "按 {key} / 手柄 {pad} 解锁",
   "axes": [
     [
       "surge",

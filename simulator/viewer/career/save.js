@@ -6,6 +6,8 @@
 // without changing those records, so nothing the earlier versions saved is lost.
 
 import { localize } from '../i18n/index.js';
+import { CORRUPT_SUFFIX } from '../saves/store.js';
+
 export const CAREER_KEY = 'rov.career.v1';
 export const CAREER_VERSION = 1;
 export const CAMPAIGN_KEY = 'rov.campaign.v1';
@@ -21,6 +23,7 @@ export const LEGACY_BONUS_CAP = 6000;
 // Story chapters of the older versions that are also career contracts.
 export const LEGACY_CHAPTER_CONTRACTS = { prologue: 'p0_induction' };
 const DESKTOP_KIND = 'career-save';
+const CAREER_MAX_BYTES = 512 * 1024;
 
 const STRINGS = localize('career.save', {
   badImport: '這不是 ROV Solution 的職涯存檔。',
@@ -201,11 +204,41 @@ export function normalizeSave(raw, now = Date.now()) {
   };
 }
 
-function readJson(storage, key) {
+function backupCorrupt(storage, key, raw) {
+  if (!storage || raw == null) return;
   try {
-    const value = JSON.parse(storage?.getItem(key) || 'null');
-    return isObject(value) ? value : null;
+    storage.setItem(key + CORRUPT_SUFFIX, String(raw).slice(0, CAREER_MAX_BYTES));
   } catch {
+    // Quota or private mode: continue on defaults.
+  }
+  try {
+    globalThis.window?.rovDesktop?.saves?.backup?.(key, String(raw));
+  } catch {
+    // Desktop bridge is optional.
+  }
+}
+
+function readJson(storage, key) {
+  let raw = null;
+  try {
+    raw = storage?.getItem(key) || null;
+  } catch {
+    return null;
+  }
+  if (raw == null || raw === '') return null;
+  if (typeof TextEncoder !== 'undefined' && new TextEncoder().encode(raw).length > CAREER_MAX_BYTES) {
+    backupCorrupt(storage, key, raw);
+    return null;
+  }
+  try {
+    const value = JSON.parse(raw);
+    if (!isObject(value)) {
+      backupCorrupt(storage, key, raw);
+      return null;
+    }
+    return value;
+  } catch {
+    backupCorrupt(storage, key, raw);
     return null;
   }
 }
@@ -242,8 +275,8 @@ export function migrateLegacy(save, storage, now = Date.now()) {
   });
   let bonus = 0;
   let count = 0;
-  for (const record of Object.values(records || {})) {
-    if (!isObject(record)) continue;
+  for (const [key, record] of Object.entries(records || {})) {
+    if (key === 'version' || !isObject(record)) continue;
     count += 1;
     bonus += LEGACY_BONUS[record.medal] || 0;
   }

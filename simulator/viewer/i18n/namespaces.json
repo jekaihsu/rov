@@ -35,6 +35,7 @@
   "hud.thruster_names",
   "i18n.index",
   "input.bindings",
+  "input.hints",
   "input.settings",
   "menu.big_picture",
   "menu.cards",
@@ -50,6 +51,7 @@
   "menu.screens",
   "menu.settings",
   "menu.training",
+  "pilot_guide",
   "play.connection_notice",
   "play.contracts",
   "play.flight_log",
@@ -78,5 +80,6 @@
   "training.export",
   "training.fidelity_guard",
   "training.map",
-  "training.session"
+  "training.session",
+  "vision.overlay"
 ]

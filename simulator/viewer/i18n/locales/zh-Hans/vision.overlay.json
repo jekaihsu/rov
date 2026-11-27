@@ -1,0 +1,19 @@
+{
+  "toggle": "AI 视觉",
+  "available": "画面中有可登录目标",
+  "mark": "标记检测目标",
+  "confirm": "请先在机载画面确认检测目标再拍照。",
+  "oracle": "Oracle · 模拟真值",
+  "classes": {
+    "coral": "珊瑚",
+    "seastar": "海星",
+    "seagrass": "海草",
+    "kelp": "海藻",
+    "fish_school": "鱼群",
+    "engineering": "作业目标",
+    "cable": "缆线",
+    "unknown": "未知目标"
+  },
+  "aiOverlay": "AI 叠图",
+  "aiOverlayHelp": "在机载画面上标示识别结果（默认为模拟真值，非实际模型）。"
+}
