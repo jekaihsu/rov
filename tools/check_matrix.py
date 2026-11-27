@@ -67,7 +67,7 @@ TIERS = {
         'units': ('test_encoding', 'test_protocol_doc', 'test_vendor_manifest', 'test_power', 'test_thermal'),
         'browser': ('browser_hud_smoke',),
     },
-    'full': {'units': None, 'browser': DEFAULT_CHECKS},
+    'full': {'units': None, 'browser': DEFAULT_CHECKS, 'reports': ('i18n_glossary_check',)},
 }
 # Narrow islands with known coverage. Other viewer changes conservatively run the tier's entire set.
 BROWSER_PATHS = {

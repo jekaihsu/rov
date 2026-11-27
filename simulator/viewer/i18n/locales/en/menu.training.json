@@ -10,7 +10,7 @@
   "storyHelp": "Unlock in order. Chapter progress is saved on this device.",
   "drillHelp": "Independent incident response drills. No unlock required; repeat individually as needed.",
   "scenarioHelp": "Difficulty based on current and visibility; each description explains the training focus.",
-  "coursesHelp": "Internal training mode: intro, operator, advanced and incident response. Defaults to real fidelity.",
+  "coursesHelp": "Internal training mode: intro, operator, advanced and incident response. Real mode is the default.",
   "collectionHelp": "Open the field guide and collection here. Not part of the Steam campaign.",
   "openCollection": "Open collection",
   "steamHidden": "The Steam edition does not include the company course map."
