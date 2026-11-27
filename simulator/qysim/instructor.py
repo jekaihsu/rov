@@ -20,7 +20,8 @@ CURRENT_RAMP_S = 60.0
 MAX_SAMPLES_PER_VEHICLE = 3600
 # Archived reports carry their full trajectory. Only the newest ones are kept.
 MAX_REPORTS = 16
-PHYSICAL_KINDS = ('thruster', 'battery', 'current', 'visibility', 'freeze')
+PHYSICAL_KINDS = ('thruster', 'battery', 'current', 'visibility', 'freeze', 'tether_snag')
+# tether_snag uses Simulator._prewrap (existing helix layout around a cylinder); it is not a new force model.
 # Vehicle-system faults. 'freeze' above pauses physics; 'video_freeze' only freezes the video link.
 SYSTEM_KINDS = ('video_delay', 'video_freeze', 'link_degrade', 'comms_loss', 'power_trip', 'leak', 'overheat')
 # Overheat strength 1 adds this many degrees to motor and driver readings (provisional).
@@ -108,6 +109,16 @@ class Instructor:
             event['original'] = None
             event['ramp_s'], event['rotate_deg'] = ramp_s, rotate_deg
             sim.world.current.inject(strength * CURRENT_MAX_KN, ramp_s, rotate_deg)
+        elif kind == 'tether_snag':
+            pile = self.nearest_wrap_pile(sim)
+            if pile is None:
+                raise ValueError('no wrapable pile near vehicle')
+            turns = 0.75 + strength
+            depth = float(sim.vehicle.s.pos[2])
+            sim._prewrap({'pile': pile.name, 'turns': turns, 'depth': depth})
+            event['original'] = None
+            event['pile'] = pile.name
+            event['turns'] = turns
         elif kind == 'comms_loss':
             event['original'] = dict(sim.link.config)
             self.configure_loss(sim, msg)
@@ -120,6 +131,30 @@ class Instructor:
         self.events.append({k: v for k, v in event.items() if k not in ('original', 'controls')})
         self.enforce(event)
         self.room._snapshot = None
+
+    # Structural kinds the existing prewrap helix is authored for; scour rocks are too short to wrap.
+    WRAP_KINDS = frozenset({'pile', 'monopile', 'jacket_leg', 'brace', 'mast'})
+
+    @classmethod
+    def nearest_wrap_pile(cls, sim, limit_m=80.0):
+        """Closest structural cylinder the existing prewrap helix can use."""
+        pos = np.asarray(sim.vehicle.s.pos, float)
+        best = None
+        best_d = limit_m
+        for obstacle in sim.world.obstacles:
+            if not hasattr(obstacle, 'p0') or not hasattr(obstacle, 'radius'):
+                continue
+            kind = getattr(obstacle, 'kind', '') or ''
+            if kind not in cls.WRAP_KINDS:
+                continue
+            if float(obstacle.radius) < 0.4:
+                continue
+            center = np.asarray(obstacle.p0, float)
+            distance = float(np.linalg.norm(center[:2] - pos[:2]))
+            if distance < best_d:
+                best = obstacle
+                best_d = distance
+        return best
 
     @staticmethod
     def configure_loss(sim, msg):
@@ -188,6 +223,8 @@ class Instructor:
                 vehicle.scenario.visibility_m = max(.1, event['original'] * (1 - strength))
         elif kind == 'current':
             pass                                    # the profile ramps itself (CurrentProfile.inject)
+        elif kind == 'tether_snag':
+            pass                                    # applied once via Simulator._prewrap at inject time
         elif kind == 'freeze':
             sim.paused = True
         elif kind in SENSOR_FAULTS:
@@ -209,6 +246,8 @@ class Instructor:
                 vehicle.scenario.visibility_m = event['original']
         elif kind == 'current':
             sim.world.current.release(event.get('ramp_s', CURRENT_RAMP_S))
+        elif kind == 'tether_snag':
+            pass                                    # wrap persists until the student untangles or the scene resets
         elif kind == 'freeze':
             sim.paused = event['original']
         elif kind in SENSOR_FAULTS:

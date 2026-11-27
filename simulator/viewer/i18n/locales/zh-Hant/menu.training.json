@@ -1,11 +1,17 @@
 {
   "title": "訓練",
   "tabs": {
+    "courses": "課程地圖",
     "story": "劇情與教學",
     "drills": "事故演練",
-    "scenarios": "場景訓練"
+    "scenarios": "場景訓練",
+    "collection": "收藏"
   },
   "storyHelp": "依序解鎖；每章完成後在這台裝置保存進度。",
   "drillHelp": "獨立的事故處置演練，不需要解鎖，可單獨重複練習。",
-  "scenarioHelp": "依洋流與能見度排出的難度；簡介說明練習重點。"
+  "scenarioHelp": "依洋流與能見度排出的難度；簡介說明練習重點。",
+  "coursesHelp": "內部訓練模式：入門、操作員、進階與事故處置。預設真實擬真。",
+  "collectionHelp": "圖鑑與收藏仍可從這裡開啟；不進入 Steam 主線。",
+  "openCollection": "開啟收藏",
+  "steamHidden": "Steam 版不提供公司課程地圖。"
 }

@@ -11,6 +11,8 @@ node_modules/
 *.log
 *.blend1
 simulator/output/
+output/
+simulator/viewer/_trailer_clips/
 simulator/desktop/backend/
 simulator/desktop/out/
 simulator/desktop/steam/logs/

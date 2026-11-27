@@ -1,7 +1,17 @@
-# Manual Windows build: Actions > Windows desktop > Run workflow (main). Artifact: rov-windows-internal.
+# Manual Windows build only (workflow_dispatch). Never on pull_request or push — AGENTS.md CI budget.
+# Artifact name follows ROV_BUILD_EDITION: rov-windows-internal or rov-windows-steam.
 name: Windows desktop
 on:
   workflow_dispatch:
+    inputs:
+      edition:
+        description: Build edition (internal training or steam packaging settings)
+        required: true
+        default: internal
+        type: choice
+        options:
+          - internal
+          - steam
 concurrency:
   group: desktop-${{ github.ref }}
   cancel-in-progress: true
@@ -15,7 +25,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     env:
-      ROV_BUILD_EDITION: internal
+      ROV_BUILD_EDITION: ${{ github.event.inputs.edition || 'internal' }}
       NUMBA_CACHE_DIR: ${{ github.workspace }}/.runtime/numba
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +48,8 @@ jobs:
         working-directory: simulator/desktop
       - run: node test_desktop.cjs
         working-directory: simulator/desktop
+      - run: node test_steam.cjs
+        working-directory: simulator/desktop
       - run: npm run vendor
         working-directory: simulator/desktop
       - run: python -m pip install numpy==1.24.4 numba==0.57.1 llvmlite==0.40.1 websockets==15.0.1 pyinstaller==6.22.3
@@ -54,7 +66,7 @@ jobs:
         working-directory: simulator/desktop
       - uses: actions/upload-artifact@v4
         with:
-          name: rov-windows-internal
+          name: rov-windows-${{ env.ROV_BUILD_EDITION }}
           path: simulator/desktop/out/make/**/*.zip
           if-no-files-found: error
       - name: Generate upload descriptors (manual, secrets required)

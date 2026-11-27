@@ -22,8 +22,10 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'preload.cjs'), 'utf8'),
   require: name => {
     assert.equal(name, 'electron');
     return electron;
-  }
+  },
+  process: { argv: ['electron', '--rov-edition=internal'] },
 });
+assert.equal(bridge.edition, 'internal');
 assert.equal(typeof bridge.readInput, 'function');
 assert.equal(typeof bridge.rememberInput, 'function');
 assert.equal(typeof bridge.saves.readAll, 'function');

@@ -21,6 +21,10 @@
       "YX equipment store",
       "Spend your pay on real accessories (laser scaler, sonar, probe…) and hull liveries. Accessories let you take more kinds of work order."
     ],
+    "teamTraining": [
+      "Team training",
+      "Internal course map, trainee records and incident drills. Not part of the Steam campaign."
+    ],
     "training": [
       "Training scenarios",
       "Incident drills and scenarios ordered by difficulty."

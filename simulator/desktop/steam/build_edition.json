@@ -1,0 +1,4 @@
+{
+  "edition": "internal",
+  "note": "Source default. forge packageAfterCopy bakes ROV_BUILD_EDITION into the staged package copy only."
+}

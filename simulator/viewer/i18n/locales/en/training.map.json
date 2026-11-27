@@ -1,0 +1,19 @@
+{
+  "title": "Team training",
+  "help": "Internal course map. Pass criteria follow the research report and company curriculum; thresholds stay provisional until baseline flights. Records stay on this device.",
+  "groupIntro": "Intro",
+  "groupOperator": "Operator",
+  "groupAdvanced": "Advanced",
+  "groupIncident": "Incident response",
+  "minutes": "{n} min",
+  "goal": "Target skills",
+  "criteria": "Pass criteria",
+  "start": "Start practice",
+  "records": "Local records",
+  "exportCsv": "Export all CSV",
+  "exportLast": "Export latest scorecard",
+  "noRecords": "No local records yet",
+  "lastPass": "Latest: provisional pass",
+  "lastFail": "Latest: needs retraining",
+  "steamHidden": "The Steam edition does not include team training"
+}
