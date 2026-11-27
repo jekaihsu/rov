@@ -60,6 +60,17 @@ contextBridge.exposeInMainWorld('rovDesktop', Object.freeze({
   openReportsFolder() {
     return ipcRenderer.invoke('rov:report-open');
   },
+  saves: Object.freeze({
+    readAll() {
+      return ipcRenderer.invoke('rov:saves-read-all');
+    },
+    write(key, text) {
+      return ipcRenderer.invoke('rov:saves-write', key, text);
+    },
+    backup(key, text) {
+      return ipcRenderer.invoke('rov:saves-backup', key, text);
+    },
+  }),
 }));
 
 // Install in the page world before viewer modules create their sockets.

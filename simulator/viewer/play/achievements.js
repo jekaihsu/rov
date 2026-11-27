@@ -2,6 +2,7 @@
 // `rov-run-result` event) onto the event names of desktop/steam/achievements.json and reports each one once
 // through window.rovDesktop.steamEvent(). Internal training builds (edition !== 'steam') never report or show
 // achievements. Mapping functions are pure so node --test can check them.
+import { achievementsStore } from '../saves/registry.js';
 
 export const ACHIEVEMENT_KEY = 'rov.achievements.v1';
 export const LOW_VISIBILITY_M = 1.5;
@@ -150,15 +151,11 @@ export function outcomeEvents(outcome) {
 }
 
 function readSave(storage) {
-  try {
-    const save = JSON.parse(storage?.getItem(ACHIEVEMENT_KEY) || '{}');
-    return {
-      earned: Array.isArray(save.earned) ? save.earned : [],
-      categories: Array.isArray(save.categories) ? save.categories : [],
-    };
-  } catch {
-    return { earned: [], categories: [] };
-  }
+  const { value } = achievementsStore.load(storage);
+  return {
+    earned: Array.isArray(value.earned) ? value.earned : [],
+    categories: Array.isArray(value.categories) ? value.categories : [],
+  };
 }
 
 // report(event) sends to Steam; storage keeps what this device already reported so each event crosses IPC once.
@@ -168,11 +165,7 @@ export function createAchievements({ report, storage = globalThis.localStorage, 
   const categories = new Set(save.categories);
   let previous = null;
   function persist() {
-    try {
-      storage?.setItem(ACHIEVEMENT_KEY, JSON.stringify({ earned: [...earned], categories: [...categories] }));
-    } catch {
-      // Storage may be unavailable; Steam keeps its own record.
-    }
+    achievementsStore.save({ earned: [...earned], categories: [...categories] }, storage);
   }
   function unlock(events) {
     if (!enabled) return [];

@@ -5,6 +5,7 @@
 // The hints teach this game's own controls and the steps a trainer beside a real pilot would talk through; they
 // reveal nothing a real pilot's console does not show, so they are interface help, not a fidelity item.
 import { axisChannel } from '../input/bindings.js';
+import { onboardingStore } from '../saves/registry.js';
 
 export const ONBOARDING_KEY = 'rov.onboarding.v1';
 // Dispatched on document when the settings change the stored progress, so a running dive reloads it.
@@ -37,26 +38,17 @@ function flags(source, names) {
 
 // Stored progress: {enabled, steps, moves, tips}; unknown or broken records start fresh.
 export function loadProgress(store) {
-  let saved = {};
-  try {
-    saved = JSON.parse(storage(store)?.getItem(ONBOARDING_KEY) || '{}') || {};
-  } catch {
-    saved = {};
-  }
+  const { value } = onboardingStore.load(storage(store));
   return {
-    enabled: saved.enabled !== false,
-    steps: flags(saved.steps, STEPS),
-    moves: flags(saved.moves, MOVES),
-    tips: flags(saved.tips, TIPS),
+    enabled: value.enabled !== false,
+    steps: flags(value.steps, STEPS),
+    moves: flags(value.moves, MOVES),
+    tips: flags(value.tips, TIPS),
   };
 }
 
 export function saveProgress(progress, store) {
-  try {
-    storage(store)?.setItem(ONBOARDING_KEY, JSON.stringify(progress));
-  } catch {
-    // Private windows may refuse storage; the hints then simply show again next time.
-  }
+  onboardingStore.save(progress, storage(store));
 }
 
 // Forget every completed step and tip (settings: 重新顯示新手提示). The hints are switched back on as well.

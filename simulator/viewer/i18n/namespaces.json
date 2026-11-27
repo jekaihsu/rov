@@ -36,6 +36,7 @@
   "hud.thruster_names",
   "i18n.index",
   "input.bindings",
+  "input.hints",
   "input.settings",
   "menu.big_picture",
   "menu.cards",
@@ -51,6 +52,7 @@
   "menu.screens",
   "menu.settings",
   "menu.training",
+  "pilot_guide",
   "training.export",
   "training.fidelity_guard",
   "training.map",
@@ -78,5 +80,6 @@
   "story.cold_open_menu",
   "story.feel_settings",
   "story.flight_feedback",
-  "story.prologue_copy"
+  "story.prologue_copy",
+  "vision.overlay"
 ]
