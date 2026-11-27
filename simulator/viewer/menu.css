@@ -408,3 +408,13 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 
 /* in-game: launch-only controls stay out of the engineering drawer */
 .in-game #scnSel,.in-game #seed,.in-game #btnLoad,.in-game #opMode,.in-game label[for=opMode]{display:none}.in-game .menu-only-settings{display:none}.in-game .session-summary strong{font-size:15px}.in-game .session-summary p{margin:5px 0;color:#8eabb5}.in-game #returnMenu{margin-top:8px;width:100%}
+
+.free-dive-list { position: fixed; bottom: 5rem; right: 1rem; z-index: var(--z-hud);
+  padding: .5rem .85rem; border: 1px solid #6d949a; color: #eaf4f7; background: #102931e0; }
+.free-dive-log { max-height: 75vh; max-width: min(32rem, 85vw); padding: 2rem; overflow: auto;
+  background: #122933; color: #edf4f4; border: 1px solid #70969d; }
+.free-dive-log::backdrop { background: #03121bba; }
+.free-dive-log p { margin: 1em 0 .2em; }
+.free-dive-log button { margin-top: 1.5em; }
+
+.free-dive #objectiveCard, .free-dive #onboardingHint, .free-dive #pilotGuide { display: none; }

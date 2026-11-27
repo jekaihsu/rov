@@ -92,6 +92,18 @@ export function diveSites(scenes, chapters = []) {
   });
 }
 
+export function unlockedDiveSites(scenes, chapters, completed) {
+  const unlocked = new Set();
+  for (const chapter of chaptersByCategory(chapters, 'story')) {
+    const status = chapterStatus(chapter, completed);
+    if (status === 'open' || status === 'done') unlocked.add(chapter.scenario);
+  }
+  if (completed.includes('prologue')) unlocked.add('korean_castle');
+  return scenes.filter(function unlockedSite(scene) {
+    return unlocked.has(scene.key);
+  });
+}
+
 export function siteFacts(scene) {
   const world = scene.world || {};
   const [shallow, deep] = depthRange(world);

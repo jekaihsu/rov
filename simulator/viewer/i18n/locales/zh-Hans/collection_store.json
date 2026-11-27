@@ -4,5 +4,18 @@
   "seagrass": "海草",
   "kelp": "海藻",
   "fish_school": "鱼群",
-  "harbor_tool": "港区遗落工具"
+  "harbor_tool": "港区遗落工具",
+  "bow": "船艏甲板",
+  "chain": "锚链",
+  "hatch": "货舱舱口",
+  "bridge": "驾驶台",
+  "screw": "螺桨",
+  "windlass": "起锚机",
+  "rail": "弯折栏杆",
+  "silt": "舱底沉积物",
+  "frames": "横向肋骨",
+  "poolwall": "池壁",
+  "pile": "码头基桩",
+  "leg": "导管架桩腿",
+  "keel": "舭龙骨"
 }

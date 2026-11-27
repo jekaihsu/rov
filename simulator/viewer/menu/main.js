@@ -7,7 +7,7 @@ import '../career/boot.js';
 import { installCollectionPanel } from '../collection_panel.js';
 import { genericVehicle } from '../asset_config.js';
 import { vehicleDetail, vehicleName, vehicleTitle } from '../fleet_names.js';
-import { diveSites, supportsMode } from './catalogue.js';
+import { diveSites, supportsMode, unlockedDiveSites } from './catalogue.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
 import {
   hasLastSession,
@@ -32,6 +32,7 @@ import { installMusic } from '../audio/music.js';
 import { installCareerMenu } from '../career/menu.js';
 import { installBrandMenu } from '../brand/menu_brand.js';
 import { launchNewGame, routeLaunch, startsNewGame } from '../story/cold_open_menu.js';
+import {isInternalEdition} from '../training/edition.js';
 import { completedChapters } from './training.js';
 
 import { localize } from '../i18n/index.js';
@@ -317,6 +318,7 @@ function firstSupported(mode) {
 function lastSummary() {
   if (!hasLastSession()) return '';
   const last = lastSession();
+  if (last.mission === 'expedition' && !isInternalEdition()) return '';
   const chapter = last.mission === 'campaign' ? chapterFor(last.chapter) : null;
   const site = sceneFor(last.scenario);
   const vehicle = data.vehicles.find(function byId(entry) {
@@ -371,6 +373,18 @@ const ctx = {
     screens.training.show(tab);
     choice.route = tab === 'story' ? 'story' : tab === 'courses' ? 'team' : 'scenario';
     go('training');
+  },
+  openFreeDive() {
+    choice.route = 'freeDive';
+    choice.mission = 'free_explore';
+    choice.training = false;
+    choice.trainingLesson = '';
+    choice.chapter = '';
+    go('sites');
+  },
+  listedSites() {
+    if (choice.route !== 'freeDive') return data.sites;
+    return unlockedDiveSites(scenes, data.chapters, completedChapters());
   },
   openCollection() {
     collection.open();
@@ -431,6 +445,13 @@ const ctx = {
   },
   chooseSite(key) {
     choice.scenario = key;
+    if (choice.route === 'freeDive') {
+      if (!ctx.listedSites().some(site => site.key === key)) return;
+      const scenario = key === 'korean_castle' ? 'free_dive_wreck' : key;
+      const dive = {...choice, scenario, room: 'dive-' + Date.now().toString(36), intro: false};
+      location.assign(launchUrl(location.href, dive, location.protocol));
+      return;
+    }
     go('briefing');
   },
   // Title 開始: a new game goes straight into the cold open and the prologue; anyone else gets the main menu.
@@ -447,6 +468,7 @@ const ctx = {
     launch({ replay: true });
   },
   quickStart() {
+    choice.route = 'dive';
     Object.assign(choice, lastSession());
     choice.intro = introForLaunch(choice);
     launch();

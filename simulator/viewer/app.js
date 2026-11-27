@@ -49,6 +49,7 @@ import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
+import {installFreeDive} from './free_dive.js';
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
@@ -462,6 +463,7 @@ const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopF
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
+  freeDive: () => freeDive,
   onShutter:()=>{photoFeedback?.shutter();careerDive.photo();},
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
@@ -469,8 +471,8 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
     const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
-    const targets=engineeringPhotoTargets();
-    const evidence=inspectObservation({scene,camera,environment:env,state:S,world:W,camMode,targets});
+    const targets = freeDive?.targets(worldG, obstacleMeshes, env) ?? engineeringPhotoTargets();
+    const evidence=inspectObservation({scene, camera, environment:freeDive ? null : env, state:S, world:W, camMode, targets});
     const view=camMode;
     renderer.domElement.toBlob(blob=>resolve({blob,evidence,view}),'image/png');
     restoreCamera();
@@ -661,7 +663,7 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
+const input = installInput({blocked: () => freeDive?.blocked || prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
     || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
@@ -671,7 +673,7 @@ const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed}
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 const onboarding = installOnboarding({input, readOnly: !!REPLAY});
 installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
-  extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
+  extraActions: () => [...(freeDive?.pauseActions() ?? procedurePanel.pauseActions()), ...careerDive.pauseActions()]});
 installFeedbackReport({
   input,
   getState: () => S,
@@ -1237,6 +1239,7 @@ installVoice({engine: audio, music});
 const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
+const freeDive = installFreeDive({params, rc, camera, rovG, setCam, radio: procedurePanel.radio, readOnly: !!REPLAY});
 const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio: procedurePanel.radio,
   onboard: () => camMode === 'onboard'});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
@@ -1310,10 +1313,11 @@ function frame(now) {
   const displayed = renderState.display(S);
   audio.update(displayed);
   music.update(displayed);
-  if (displayed) flightFeedback.update(displayed, W,
+  if (displayed && !freeDive) flightFeedback.update(displayed, W,
     !!(rep || introActive() || pauseMenuOpen() || collectionOpen || resultsOpen()));
   coldOpen.frame(dt);
   prologue.frame();
+  freeDive?.frame(now, W, S, env);
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);
