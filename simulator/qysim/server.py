@@ -44,6 +44,31 @@ VIEWER_DIR = ROOT / "viewer"
 MODEL_FALLBACK = ROOT.parent / "sim"          # repo sim/rov.glb
 
 
+def parse_viewer_message(raw):
+    """Decode one viewer WebSocket text frame into a dict, or return an error reply.
+
+    Bad JSON, non-objects and non-strings must never tear down the connection: the
+    handler replies with ``invalid_command`` (or ignores empty frames) and keeps
+    listening. Oversized frames are rejected by the websockets library before this.
+    """
+    if raw is None or raw == "":
+        return None, None
+    if isinstance(raw, bytes):
+        try:
+            raw = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return None, {"type": "error", "code": "invalid_command", "message": "message must be utf-8 text"}
+    if not isinstance(raw, str):
+        return None, {"type": "error", "code": "invalid_command", "message": "message must be text"}
+    try:
+        msg = json.loads(raw)
+    except (ValueError, TypeError):
+        return None, {"type": "error", "code": "invalid_command", "message": "message must be JSON"}
+    if not isinstance(msg, dict):
+        return None, {"type": "error", "code": "invalid_command", "message": "message must be an object"}
+    return msg, None
+
+
 def _json_default(o):
     if isinstance(o, (np.floating, np.integer)):
         return o.item()
@@ -354,11 +379,13 @@ class SimHost:
             await ws.send(dumps({"type": "world", **self.world_description()}))
             sender = asyncio.create_task(self._viewer_sender(ws))
             async for raw in ws:
-                try:
-                    msg = json.loads(raw)
-                    if not isinstance(msg, dict):
-                        raise ValueError("message must be an object")
-                except ValueError:
+                msg, reply = parse_viewer_message(raw)
+                if msg is None:
+                    if reply:
+                        try:
+                            await ws.send(dumps(reply))
+                        except Exception:
+                            break
                     continue
                 async with self.lock:
                     try:
@@ -409,12 +436,17 @@ class SimHost:
                                                                    controller_bridge=is_bridge)
                                         if is_bridge and reply is None:
                                             bridge["last_input"] = time.monotonic()
-                    except (ValueError, TypeError, KeyError, OverflowError) as exc:
-                        reply = {"type": "error", "code": "invalid_command", "message": str(exc)}
+                    except Exception as exc:
+                        # Command bugs must not kill the socket; the physics loop stays up.
+                        traceback.print_exc()
+                        reply = {"type": "error", "code": "invalid_command", "message": str(exc) or exc.__class__.__name__}
                 if reply:
-                    await ws.send(dumps(reply))
-                    if reply.get("type") == "session":
-                        await ws.send(dumps({"type": "world", **self.world_description(room, player)}))
+                    try:
+                        await ws.send(dumps(reply))
+                        if reply.get("type") == "session":
+                            await ws.send(dumps({"type": "world", **self.world_description(room, player)}))
+                    except Exception:
+                        break
         except Exception:
             pass
         finally:
@@ -592,42 +624,53 @@ class SimHost:
         sonar_pending = None
         sonar_primary = False
         while True:
-            world = None
-            async with self.lock:                 # snapshot under the lock, send outside it
-                session = self.sessions.get(ws)
-                room, player = (session[0], session[1]) if session else (self.room, None)
-                room = self.instructor_sessions.get(ws, room)
-                if seen_version != self.world_version:
-                    seen_version = self.world_version
-                    tracker = self.static_once.get(ws)
-                    if tracker is not None:
-                        tracker.reset()
-                    world = dumps({"type": "world", **self.world_description(room, player)})
-                payload = self.viewer_payload(room, player, ws=ws)
-            settings = self.sonar_subscriptions.get(ws)
-            if settings is not None:
-                if sonar_pending is not None and sonar_pending.done():
-                    sonar_frame = sonar_pending.result()
-                    sonar_pending = None
-                    if sonar_primary:
-                        self.latest_sonar = sonar_frame
-                if sonar_pending is None and time.monotonic() - sonar_time >= 0.2:
-                    from .sonar import snapshot, submit_scan
-                    sim = room.vehicles[player.vehicle_id] if player else room.primary
-                    # The SDK RPC reads the default room's primary vehicle, so only its scans are published there.
-                    sonar_primary = room is self.room and sim is room.primary
-                    world_snapshot, pos, q = snapshot(room, sim)
-                    sonar_pending = submit_scan(world_snapshot, pos, q, settings)
-                    sonar_time = time.monotonic()
-                if sonar_frame is not None:
-                    state = json.loads(payload)
-                    state["sonar"] = sonar_frame
-                    payload = dumps(state)
-            else:
-                sonar_frame = None
-            if world:
-                await ws.send(world)
-            await ws.send(payload)
+            try:
+                world = None
+                async with self.lock:                 # snapshot under the lock, send outside it
+                    session = self.sessions.get(ws)
+                    room, player = (session[0], session[1]) if session else (self.room, None)
+                    room = self.instructor_sessions.get(ws, room)
+                    if seen_version != self.world_version:
+                        seen_version = self.world_version
+                        tracker = self.static_once.get(ws)
+                        if tracker is not None:
+                            tracker.reset()
+                        world = dumps({"type": "world", **self.world_description(room, player)})
+                    payload = self.viewer_payload(room, player, ws=ws)
+                settings = self.sonar_subscriptions.get(ws)
+                if settings is not None:
+                    if sonar_pending is not None and sonar_pending.done():
+                        try:
+                            sonar_frame = sonar_pending.result()
+                        except Exception:
+                            traceback.print_exc()
+                            sonar_frame = None
+                        sonar_pending = None
+                        if sonar_primary and sonar_frame is not None:
+                            self.latest_sonar = sonar_frame
+                    if sonar_pending is None and time.monotonic() - sonar_time >= 0.2:
+                        from .sonar import snapshot, submit_scan
+                        sim = room.vehicles[player.vehicle_id] if player else room.primary
+                        # The SDK RPC reads the default room's primary vehicle, so only its scans are published there.
+                        sonar_primary = room is self.room and sim is room.primary
+                        world_snapshot, pos, q = snapshot(room, sim)
+                        sonar_pending = submit_scan(world_snapshot, pos, q, settings)
+                        sonar_time = time.monotonic()
+                    if sonar_frame is not None:
+                        state = json.loads(payload)
+                        state["sonar"] = sonar_frame
+                        payload = dumps(state)
+                else:
+                    sonar_frame = None
+                if world:
+                    await ws.send(world)
+                await ws.send(payload)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                # A single encode/send fault must not leave the receive loop without state forever.
+                traceback.print_exc()
+                break
             await asyncio.sleep(1.0 / self.view_hz)
 
     def handle_viewer(self, msg: dict, button_values: dict | None = None, *, room=None, player=None, controller_bridge=False):
@@ -792,6 +835,7 @@ class SimHost:
             sim.sdk_call("QYRovControllerManage", "set_remote_control_status", ["OFF"], {})
         if t in ("scenario", "reset", "pause", "current", "model"):
             return {"type": "command_result", "action": t, "ok": True}
+        # Unknown types are ignored for forward compatibility (PROTOCOL / AGENTS.md rule 1).
         return None
 
 

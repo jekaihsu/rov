@@ -5,6 +5,7 @@ import {listCollection, saveResult} from '../collection_store.js';
 import {vehicleName} from '../fleet_names.js';
 import {installVoice} from '../audio/voice.js';
 import {localize} from '../i18n/index.js';
+import {campaignStore} from '../saves/registry.js';
 const STRINGS = localize('story.campaign', {
   menuOption: 'YX 海事服務 · 劇情與新手教學',
   menuBrief: '從水池練習開始，解鎖港灣與船殼巡檢。章節與課程可在任務面板重玩。',
@@ -21,6 +22,7 @@ const STRINGS = localize('story.campaign', {
   },
 });
 export const CAMPAIGN_MENU_STRINGS = {title: STRINGS.menuOption, brief: STRINGS.menuBrief};
+
 const KEY = 'rov.campaign.v1';
 const CHANNELS = STRINGS.channels;
 // The move_ steps of the prologue test these pilot axes, in the order of their condition paths.
@@ -189,9 +191,13 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
     if (host && !restoreSent && collectionReady) {
       restoreSent = true;
       let save = null;
-      try { save = JSON.parse(localStorage.getItem(KEY)); } catch {}
-      save = persisted || save;
-      if (save) command('campaign_restore', {save});
+      const loaded = campaignStore.load();
+      save = persisted || (loaded.reason === 'empty' || loaded.recovered ? null : loaded.value);
+      if (save) {
+        const { version: _version, ...payload } = save;
+        command('campaign_restore', { save: payload });
+        save = payload;
+      }
       // First run enters onboarding; a returning player chooses a chapter in the drawer.
       const launch = new URLSearchParams(location.search);
       const requested = launch.get('mission') === 'campaign';
@@ -214,12 +220,17 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
         }
       }
     }
-    const save = JSON.stringify({completed: campaign.completed, rewards: campaign.rewards,
-      results: campaign.results, checkpoint: campaign.checkpoint});
+    const record = {
+      completed: campaign.completed,
+      rewards: campaign.rewards,
+      results: campaign.results,
+      checkpoint: campaign.checkpoint,
+    };
+    const save = JSON.stringify(record);
     if (host && save !== savedSignature && campaign.status !== 'idle') {
       savedSignature = save;
-      try { localStorage.setItem(KEY, save); } catch {}
-      saveResult({kind: 'campaign-progress', save: JSON.parse(save)}).catch(function saveFailed() {
+      campaignStore.save(record);
+      saveResult({ kind: 'campaign-progress', save: record }).catch(function saveFailed() {
         hint.textContent = STRINGS.saveFailed;
       });
     }
