@@ -1,4 +1,10 @@
-export const COLLECTION_CATEGORIES={coral:'珊瑚',seastar:'海星',seagrass:'海草',kelp:'海藻',fish_school:'魚群'};
+// Local photo collection, field-guide categories, and archive validation.
+import {localize} from './i18n/core.js';
+
+const STRINGS = localize('collection_store', {
+  coral: '珊瑚', seastar: '海星', seagrass: '海草', kelp: '海藻', fish_school: '魚群', harbor_tool: '港區遺落工具',
+});
+export const COLLECTION_CATEGORIES = STRINGS;
 export const COLLECTION_LIMITS={image:12*1024*1024,total:80*1024*1024,index:4*1024*1024,archive:128*1024*1024,photos:500,results:2000};
 const categories=Object.keys(COLLECTION_CATEGORIES),empty=()=>({version:1,photos:[],guides:[],results:[]});
 const uid=()=>globalThis.crypto?.randomUUID?.()||`local-${Date.now()}-${Math.random().toString(36).slice(2)}`;

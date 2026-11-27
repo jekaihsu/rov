@@ -14,6 +14,7 @@ import {createFeatureActions} from "./feature_actions.js";
 import { createDevices } from "./devices.js";
 import { renderKeyHints } from "./hints.js";
 import { installTouchSticks } from "./touch_sticks.js";
+import {linePull} from '../tether/feel.js';
 import { createHaptics } from "./haptics.js";
 import { migratePadHapticsFromInput } from "./haptics_fidelity.js";
 import { installSettings } from "./settings.js";
@@ -397,7 +398,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   function edgePulses(state) {
     const nowLocked = state?.locked;
     const changed = locked !== null && nowLocked !== undefined && nowLocked !== locked;
-    if (changed) haptics.pulse(nowLocked ? "lock" : "unlock");
+    if (changed) {
+      const pattern = state.input_latched ? "failsafe" : "lock";
+      haptics.pulse(nowLocked ? pattern : "unlock");
+    }
     if (nowLocked !== undefined) locked = nowLocked;
     const snag = !!state?.tether?.snagged_on?.length;
     if (snag && !snagged) haptics.pulse("snag");
@@ -417,7 +421,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       lastImpact = JSON.stringify(impact);
       haptics.pulse(impact.severity === "touch" ? "touch" : "hard");
     }
-    const high = !!state?.tether?.warn;
+    const high = linePull(state?.tether, tensionHigh);
     if (high && !tensionHigh) haptics.pulse("tension");
     tensionHigh = high;
   }

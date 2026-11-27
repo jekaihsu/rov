@@ -92,7 +92,7 @@ def stir_silt(sim):
         sim.step(0.01)
 
 
-def build_replay(name, scenario, subject, lamp):
+def build_replay(name, scenario, subject, lamp, pose=None):
     sim = Simulator(scenario, seed=42)
     world = json.loads(json.dumps(sim.world_description(), default=_json_default))
     if subject == 'silt':
@@ -102,7 +102,7 @@ def build_replay(name, scenario, subject, lamp):
         heading = math.degrees(float(sim.vehicle.euler[2]))
         pitch = math.degrees(float(sim.vehicle.euler[1]))
     else:
-        eye, heading, pitch = subject_pose(sim, world, subject)
+        eye, heading, pitch = pose or subject_pose(sim, world, subject)
         sim.vehicle.s.pos[:] = eye
         sim.vehicle.s.q[:] = quaternion(heading, pitch)
     state = json.loads(json.dumps(sim.viewer_state(), default=_json_default))

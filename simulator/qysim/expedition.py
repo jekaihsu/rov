@@ -13,7 +13,8 @@ from .physics import q_rot, q_conj
 SCENES = {'coral_reef', 'seagrass_meadow', 'harbor_inspection'}
 LABELS = {'inspect':'定點巡檢', 'recover':'海底物件回收', 'deploy':'觀測儀部署'}
 _ARM_NEEDED = f'需要一台在線 {vehicle_name("falcon")}（{vehicle_role("falcon")}，機械臂）'
-BIOLOGY = {'coral':'珊瑚', 'seastar':'海星', 'kelp':'海帶', 'seagrass':'海草', 'fish_school':'魚群'}
+OBSERVATION_LABELS = {'coral':'珊瑚', 'seastar':'海星', 'kelp':'海帶', 'seagrass':'海草',
+                      'fish_school':'魚群', 'harbor_tool':'港區遺落工具'}
 
 
 def _vector(value, size):
@@ -291,10 +292,10 @@ class Expedition:
         if ob and expedition and expedition.active and ob.get('task_id')==expedition.active['id']:
             return 'engineering',np.asarray(ob['pos'],float),float(ob['radius'])
         for entity in sim.world.habitat_entities:
-            if entity['id']==entity_id and entity['kind'] in BIOLOGY:
+            if entity['id']==entity_id and entity['kind'] in OBSERVATION_LABELS:
                 pos=np.asarray(entity['pos'],float).copy()
                 scale=float(entity['scale'])
-                pos[2] -= .035 if entity['kind']=='seastar' else scale*.5
+                pos[2] -= .035 if entity['kind'] in ('seastar', 'harbor_tool') else scale*.5
                 return entity['kind'],pos,max(.06,scale*.5)
         for school in sim.world.fish_schools:
             if school['id']==entity_id:
@@ -349,7 +350,7 @@ class Expedition:
                 if sim.world.silt_at(pos)>.75:
                     raise ValueError('揚沙過濃，請等待視野恢復')
                 entry=dict(id=f'{self.dive_id}:{secrets.token_hex(6)}',photo_id=photo_id,entity_id=entity_id,
-                    category=category,label=BIOLOGY.get(category,'工程紀錄'),scene=sim.scenario.key,depth=round(float(target[2]),2),
+                    category=category,label=OBSERVATION_LABELS.get(category,'工程紀錄'),scene=sim.scenario.key,depth=round(float(target[2]),2),
                     created_at=datetime.now(timezone.utc).isoformat(),sim_time=round(sim.t,2),
                     photographer=str(sim.vehicle_id),point=target.round(4).tolist())
                 entry['photographer_player_id']=self._identity(sim)
@@ -387,7 +388,7 @@ class Expedition:
         category,point,_=self._entity(sim,entity_id)
         if np.linalg.norm(point-sim.vehicle.s.pos)>20.:
             raise ValueError('目標離 ROV 太遠，請先靠近再標記')
-        marker=dict(id=f'mark-{entity_id}',entity_id=entity_id,label=BIOLOGY.get(category,'工程目標'),point=point.tolist(),
+        marker=dict(id=f'mark-{entity_id}',entity_id=entity_id,label=OBSERVATION_LABELS.get(category,'工程目標'),point=point.tolist(),
                     marked_by=str(sim.vehicle_id),created_at=round(sim.t,2))
         self.markers=[m for m in self.markers if m['entity_id']!=entity_id][-49:]+[marker]
         return dict(ok=True,action='expedition_mark',marker=marker)

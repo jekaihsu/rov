@@ -196,6 +196,11 @@ export function createColdOpenDirector(spots = {}) {
       const near = distance2(t.pos, spots.anode) < TIMING.photoHintRange;
       return near || elapsed(now) > TIMING.photoHintAfter ? 'photo' : 'move';
     }
+    if (beat === 'transit') {
+      // Leg B lies north along the jacket. Show the next control once the pilot faces along that leg.
+      const angle = (t.heading + 540) % 360 - 180;
+      return Math.abs(angle) <= 20 ? 'forward' : 'turn';
+    }
     if (beat === 'incident') return backOutCalled ? 'reverse' : 'release';
     return beats[beat].hint || null;
   }
