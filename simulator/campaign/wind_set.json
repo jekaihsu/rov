@@ -1,0 +1,69 @@
+{
+  "id": "wind_set",
+  "title": "第三章｜橫走的浮標",
+  "scenario": "wind_set",
+  "mode": "inspection_coop",
+  "category": "story",
+  "order": 41,
+  "requires": "harbor_signoff",
+  "beats": [
+    {
+      "id": "window",
+      "limit": 8,
+      "next": "station",
+      "hud": [],
+      "location": true,
+      "cinematic": true,
+      "radio": "window",
+      "speaker": "deck"
+    },
+    {
+      "id": "station",
+      "limit": 120,
+      "next": "logged",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "align",
+      "condition": {
+        "path": "mission.targets.0.completed",
+        "op": "eq",
+        "value": true
+      },
+      "timeout": "abort",
+      "radio": "station",
+      "speaker": "lin",
+      "idle": 20,
+      "reminder": "again"
+    },
+    {
+      "id": "logged",
+      "limit": 6,
+      "next": "done",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "logged",
+      "speaker": "deck",
+      "outcome": "signed"
+    },
+    {
+      "id": "abort",
+      "limit": 6,
+      "next": "done",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "abort",
+      "speaker": "lin",
+      "outcome": "aborted"
+    }
+  ],
+  "nodes": [],
+  "strings": {
+    "zh-TW": {}
+  }
+}

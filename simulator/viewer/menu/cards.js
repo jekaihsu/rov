@@ -33,6 +33,9 @@ const STRINGS = localize('menu.cards', {
 });
 // Scenes without their own preview image use the closest site's image (same structure or seabed).
 const PREVIEW_FOR = {
+  wind_set: 'jacket_inspection',
+  wind_shadow: 'jacket_inspection',
+  wind_return: 'jacket_inspection',
   incident_jacket: 'jacket_inspection',
   incident_compass: 'jacket_inspection',
   incident_wreck: 'wreck_survey',

@@ -38,7 +38,8 @@
     "reef_badge": "サンゴ礁作業バッジ",
     "wreck_badge": "沈船調査バッジ",
     "ending_open_question": "結末：残された疑問",
-    "ending_evidence_complete": "結末：証拠完備"
+    "ending_evidence_complete": "結末：証拠完備",
+    "wind_grade1": "YX 一級操縦士免許"
   },
   "unlockSticker": "機体ステッカー解放：{name}",
   "unlockVehicle": "作業機体解放：{name}",

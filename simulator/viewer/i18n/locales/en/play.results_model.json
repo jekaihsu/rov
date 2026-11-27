@@ -38,7 +38,8 @@
     "reef_badge": "Reef operations badge",
     "wreck_badge": "Wreck survey badge",
     "ending_open_question": "Ending: questions remain",
-    "ending_evidence_complete": "Ending: evidence complete"
+    "ending_evidence_complete": "Ending: evidence complete",
+    "wind_grade1": "YX Class I pilot licence"
   },
   "unlockSticker": "Hull sticker unlocked: {name}",
   "unlockVehicle": "Work vehicle unlocked: {name}",

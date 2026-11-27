@@ -1019,3 +1019,7 @@ neutral sticks), `framedPhoto` (this beat has a usable shutter pose) and
 `accepted` (accepted plates this run). Result entries for plate surveys add
 optional `photos_accepted` and `photos_required` counts. The host rechecks
 the condition or deadline before advancing and retains the count across reconnects.
+
+季末 directed campaign 的節點可附 `onBreak`（主機確認斷纜後優先跳往的節點），
+`outcome`（signed 或 aborted）與 `reward`（完成該節點才獲得）。
+結算的 `campaign.results[].outcome` 為選填；aborted 仍完成敘事，保留實際照片數與斷纜狀態。

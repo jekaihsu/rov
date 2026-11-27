@@ -20,6 +20,7 @@ from . import site_dressing as dressing
 from .fleet_names import WRECK_NAME
 from .flow import Tide
 from .silt import seabed_type_for as silt_seabed_type
+from .wind_watch import wind_return, wind_set, wind_shadow
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, SnagFeature, Wall
 
 ASSETS = Path(__file__).resolve().parent / "assets"
@@ -617,6 +618,9 @@ def cold_open_jacket() -> Scenario:
 
 
 LIBRARY = {
+    "wind_set": wind_set,
+    "wind_shadow": wind_shadow,
+    "wind_return": wind_return,
     "incident_jacket": incident_jacket,
     "incident_wreck": incident_wreck,
     "incident_silt": incident_silt,
