@@ -262,6 +262,7 @@ function buildWorld() {
   structureSet?.dispose();
   structureSet = buildStructures(W, {detail});
   worldG.add(structureSet.group);
+  scene.userData.armourRocks = structureSet.rocks;
   for (const [name, entry] of structureSet.entries) obstacleMeshes.set(name, entry);
   for (const ob of W.obstacles || []) if (ob.type === 'model') placeSceneModel(ob, worldG, P, detail);
   spoolStation.build(W, startPresentation?.introStart(W, S?.pos || [0, 0, 3]) || W.start_pos || [0, 0, 3]);

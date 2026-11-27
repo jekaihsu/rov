@@ -14,7 +14,7 @@ import { updateReflections, disposeReflections } from './reflections.js';
 import { updateWaterSurface, disposeWaterSurface } from './surface.js';
 import { updateSuspension, hideSuspension } from './suspension.js';
 import { updateWaterOptics, createWaterBackground, horizontalWaterColour, hideLegacyBeams } from './water_optics.js';
-import { AutoExposurePass } from './exposure.js';
+import { AutoExposurePass, EXPOSURE } from './exposure.js';
 import { DAYLIGHT_GRADE } from './daylight.js';
 import { CameraOutputPass, CAMERA_LOOK_FOLD } from './camera_output.js';
 import { beautifyEnabled, BEAUTIFY_ID } from './beautify.js';
@@ -22,6 +22,15 @@ import { getFidelity } from '../fidelity.js';
 import { legacyWaterLook } from '../underwater_lighting.js';
 import { renderQualityState } from '../render_quality.js';
 
+// The unlit camera keeps some of the scene's change in brightness (partial AE)
+// and can open further once less than 1% of surface green daylight remains.
+const ambientMetering = {
+  ...EXPOSURE,
+  compensation: 0.82,
+  reference: EXPOSURE.reference / 2,
+  maximum: EXPOSURE.maximum * 32,
+  balance: 1
+};
 const pipelines = new WeakMap();
 const drawingSize = new THREE.Vector2();
 
@@ -68,7 +77,7 @@ function renderOptics(state, original, scene, camera) {
   if (state.background.parent !== scene) scene.add(state.background);
   state.background.visible = camera.position.y < 0;
   state.scenes.add(scene);
-  const { water } = updateWaterOptics(scene, { beauty, camera });
+  const { water, lamps } = updateWaterOptics(scene, { beauty, camera });
   const fog = scene.fog?.color;
   if (fog) {
     state.fogColour.copy(fog);
@@ -79,8 +88,12 @@ function renderOptics(state, original, scene, camera) {
   updateSuspension(scene, camera, renderQualityState(renderer));
   if (!state.composer) buildComposer(state, renderer, scene, camera);
   // Above water the daylight camera model (fx/daylight.js) replaces the underwater metering.
-  state.exposurePass.metering = camera.position.y > 0 ? scene.userData.daylightMetering ?? null : null;
-  state.gradePass.enabled = !!state.exposurePass.metering;
+  const daylight = camera.position.y > 0 ? scene.userData.daylightMetering : null;
+  // Fraction of green downwelling irradiance relative to the surface, from Beer–Lambert.
+  const greenLight = Math.exp(water.kd[1] * Math.min(camera.position.y, 0));
+  ambientMetering.compensation = 1 - 0.18 * THREE.MathUtils.smoothstep(greenLight, 0.001, 0.01);
+  state.exposurePass.metering = camera.position.y > 0 ? daylight : (lamps.length ? null : ambientMetering);
+  state.gradePass.enabled = !!daylight;
   resizeComposer(state, renderer);
   state.renderPass.scene = scene;
   state.renderPass.camera = camera;
@@ -93,6 +106,15 @@ function renderOptics(state, original, scene, camera) {
   const exposure = renderer.toneMappingExposure;
   renderer.toneMappingExposure = 1;
   const restoreBeams = hideLegacyBeams(scene);
+  // Skip underwater rock batches only when even the clearest band transmits less
+  // than one part in 65536. Restore before picking, observation or another view.
+  const cutoff = Math.log(65536) / Math.min(...water.c);
+  for (const {mesh, bounds} of scene.userData.armourRocks || []) {
+    if (mesh.visible && camera.position.y < 0 && bounds.max.y < 0 && bounds.distanceToPoint(camera.position) > cutoff) {
+      mesh.visible = false;
+      state.hiddenRocks.push(mesh);
+    }
+  }
   state.busy = true;
   // A folded camera pass keeps its place in the pass list but is drawn by the output pass this frame.
   if (folded) look.enabled = false;
@@ -102,6 +124,8 @@ function renderOptics(state, original, scene, camera) {
     if (folded) look.enabled = true;
     state.busy = false;
     restoreBeams();
+    for (const mesh of state.hiddenRocks) mesh.visible = true;
+    state.hiddenRocks.length = 0;
     renderer.toneMappingExposure = exposure;
     if (fog) fog.copy(state.fogColour);
   }
@@ -114,6 +138,7 @@ export function installUnderwaterPipeline(renderer, { surface = null } = {}) {
   if (isLowMode(renderer)) return null;
   const original = renderer.render.bind(renderer);
   const state = {
+    hiddenRocks: [],
     renderer, surface, scenes: new Set(), composer: null, busy: false, cameraPass: null, width: 0, height: 0,
     background: createWaterBackground(), optics: false, fogColour: new THREE.Color(),
     get enhancements() {

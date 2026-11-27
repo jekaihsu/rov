@@ -40,7 +40,7 @@ def near_target_pose(sim):
         return None
     goal = np.asarray(objective.point, float)
     face = np.asarray(getattr(objective, "face_point", None) or objective.point, float)
-    origin = np.asarray(scenario.start_pos, float)
+    origin = np.asarray(scenario.approach_origin or scenario.start_pos, float)
     direction = goal[:2] - origin[:2]
     distance = float(np.linalg.norm(direction))
     if distance < 1e-6:

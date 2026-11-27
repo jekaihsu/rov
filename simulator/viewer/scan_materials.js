@@ -133,7 +133,7 @@ export function rockLod(detail) {
 
 /** Adds the rock atlas (colour and normal, glTF UVs) to a standard material once it has loaded. */
 export function applyRockAtlas(material, detail = 'medium') {
-  const size = detail === 'low' ? 512 : 0;
+  const size = detail === 'high' ? 0 : 512;
   material.map = scanTexture('rocks_c', {flipY: false, size}, function assignMap(texture) {
     material.map = texture;
   });

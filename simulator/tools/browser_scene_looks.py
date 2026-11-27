@@ -113,7 +113,7 @@ def build_replay(name, site, eye, target, lamp):
     return {'format': 1, 'hz': 2, 'clips': [clip]}, meta
 
 
-def capture(page, query, name, replay, view):
+def capture(page, query, name, replay, view, ready=None):
     """Open the replay in capture mode, let camera, exposure and white balance settle, save the JPEG."""
     page.route('**/__shot_replay.json', lambda route: route.fulfill(
         body=json.dumps(replay), content_type='application/json'))
@@ -121,6 +121,8 @@ def capture(page, query, name, replay, view):
     page.wait_for_function('typeof window.__advance === "function" && window.__viewer?.S', timeout=timeout(90000))
     page.add_style_tag(content='#replayBar,#rpSub{display:none!important}')
     page.wait_for_load_state('networkidle', timeout=timeout(90000))
+    if ready:
+        page.wait_for_function(ready, timeout=timeout(90000))
     page.wait_for_timeout(1500)
     if query == THIRD:
         # The vehicle model is hidden when it finishes loading in a replay; switching views shows it again.

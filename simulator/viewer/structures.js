@@ -471,6 +471,15 @@ function rockArmour(set, colliders, kind) {
     mesh.setMatrixAt(i, m);
   });
   mesh.instanceMatrix.needsUpdate = true;
+  // Instances and their scanned replacements fit inside these world-space spheres.
+  const bounds = new THREE.Box3();
+  const sphere = new THREE.Sphere();
+  const box = new THREE.Box3();
+  for (const {centre, rho} of items) {
+    sphere.set(centre, rho).getBoundingBox(box);
+    bounds.union(box);
+  }
+  set.rocks.push({mesh, bounds});
   mesh.userData.colliders = colliders.map((ob) => ob.name);
   mesh.userData.role = 'solid';
   mesh.userData.paintable = true;

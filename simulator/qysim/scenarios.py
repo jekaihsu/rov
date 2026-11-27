@@ -82,6 +82,12 @@ class Scenario:
     # Optional scenario-placed fish schools ({"home": (n, e, d), "count": int}); None: the biome's random schools.
     fish_schools: list | None = None
 
+    # Preserve the seeded benthic layout when moving a launch point horizontally.
+    habitat_origin: tuple | None = None
+    # Bearing origin for the optional assisted approach when the launch faces across a hull.
+    approach_origin: tuple | None = None
+    start_pitch_deg: float = 0.0
+
     def summary(self) -> dict:
         from .aquaculture import layout
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
@@ -175,7 +181,8 @@ def open_water() -> Scenario:
     return Scenario(
         "open_water", "開放水域熟悉", "無結構物，微弱洋流。依序通過 4 個檢查點，熟悉搖桿、A/S 模式和定深。",
         seabed_depth=25.0, current=CurrentProfile(0.3, 45, 0.3, 45, 0.1, 45, TI_SHELTERED),
-        start_pos=(0, 0, 2), tether_length=30.0,
+        start_pos=(-6, 0, 2.8), start_heading_deg=18, start_pitch_deg=12,
+        habitat_origin=(0, 0, 2), tether_length=30.0,
         objectives=[Objective("checkpoint", f"檢查點 {i + 1}", p, radius=1.5) for i, p in enumerate(pts)]
                    + [Objective("surface", "回到投放點上浮", (-2, 0, 0.5), radius=3.0)])
 
@@ -227,7 +234,8 @@ def hull_inspection() -> Scenario:
     return Scenario(
         "hull_inspection", "船殼底部檢查", "80 m 貨輪吃水 8 m。從船底下穿過沿龍骨檢查，再繞到右舷。纜線可能卡在船底邊緣。",
         seabed_depth=sea, obstacles=hull, current=CurrentProfile(0.6, 0, 0.5, 10, 0.2, 20, TI_SHELTERED),
-        visibility_m=7.0, start_pos=(0, 0, 3), spool_pos=(-5, 0, 0), tether_length=70.0,
+        visibility_m=7.0, start_pos=(37, -10.15, 8.2), start_heading_deg=22, start_pitch_deg=17,
+        habitat_origin=(0, 0, 3), approach_origin=(0, 0), spool_pos=(-5, 0, 0), tether_length=70.0,
         objectives=[Objective("checkpoint", f"船底 {i + 1}", p, radius=1.8) for i, p in enumerate(pts)])
 
 
@@ -256,7 +264,8 @@ def wreck_survey() -> Scenario:
         "wreck_survey", "沉船調查", "水深 30 m、能見度 4 m，繞沉船一圈拍攝四個面。碰到海床會揚起泥沙；注意桅桿。",
         seabed_depth=sea, obstacles=[wreck] + snag_features(wreck) + wreck_debris(25.0, 5.0, sea, yaw_deg=35.0),
         current=CurrentProfile(0.8, 200, 0.6, 210, 0.3, 220, TI_OFFSHORE),
-        visibility_m=4.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=80.0,
+        visibility_m=4.0, start_pos=(42.87, 21.67, 25.8), start_heading_deg=-86, start_pitch_deg=-35,
+        habitat_origin=(0, 0, 3), approach_origin=(50, 28), spool_pos=(-4, 0, 0), tether_length=80.0,
         seabed_type="silt", bnl_height_m=1.5, bnl_mg_l=1.0,      # provisional silted wreck site
         objectives=[Objective("checkpoint", n, p, radius=2.0) for n, p in zip(("艏", "左舷", "艉", "右舷"), pts)])
 
@@ -450,7 +459,8 @@ def harbor_inspection() -> Scenario:
                     fish_schools=[{"home": home, "count": count} for home, count in
                                   [((7, -2, 4), 15), ((14, -7, 6), 12), ((24, -8, 8), 18), ((37, 3, 5), 14)]],
                     current=CurrentProfile(.8, 90, .55, 95, .15, 110, TI_SHELTERED, tide=Tide()),
-                    start_pos=(0, 0, 3), tether_length=75,
+                    start_pos=(0.6, -3.1, 2.8), start_heading_deg=61, start_pitch_deg=4,
+                    habitat_origin=(0, 0, 3), tether_length=75,
                     objectives=[Objective("inspect", "港樁 A", (18, -10, 8), 1.5, hold_s=6, face_point=(21,-10,8)),
                                 Objective("inspect", "港樁 B", (18, 10, 8), 1.5, hold_s=6, face_point=(21,10,8)),
                                 Objective("inspect", "碼頭壁面", (39, 0, 10), 1.5, hold_s=6, face_point=(42,0,10)),
@@ -469,7 +479,8 @@ def sonar_search() -> Scenario:
 def tutorial_pool() -> Scenario:
     """Calm indoor commissioning pool, using the unchanged vehicle dynamics."""
     return Scenario("tutorial_pool", STRINGS["pool_name"], STRINGS["pool_brief"],
-                    seabed_depth=8, visibility_m=20, start_pos=(0, 0, 3), tether_length=35, seabed_type="rock",
+                    seabed_depth=8, visibility_m=20, start_pos=(7, -6, 5.8), start_heading_deg=-28, start_pitch_deg=-9,
+                    habitat_origin=(0, 0, 3), tether_length=35, seabed_type="rock",
                     water="fresh", enclosed=True,
                     current=CurrentProfile(0, 0, 0, 0, 0, 0, 0),
                     obstacles=[Wall(STRINGS["pool_walls"][0], (12, 0, 0), 180, 24, 0),
@@ -565,7 +576,8 @@ def aquaculture_pen() -> Scenario:
     return Scenario(
         "aquaculture_pen", pen_strings["name"], pen_strings["brief"],
         seabed_depth=25., obstacles=obstacles, visibility_m=8., biome="aquaculture",
-        seabed_type="mud", water_type="shelf", start_pos=(3., 0., 7.),
+        seabed_type="mud", water_type="shelf", start_pos=(4.8, 0., 1.5), start_heading_deg=46, start_pitch_deg=12,
+        habitat_origin=(3., 0., 7.),
         spool_pos=(-2., 0., 0.), tether_length=150., time_limit_s=2400.,
         current=CurrentProfile(.8, 90, .5, 95, .3, 100, TI_SHELTERED),
         objectives=[Objective("pen_lap", pen_strings["lap"], (3., 0., 7.)),
@@ -592,6 +604,10 @@ def aquaculture_pen_slack() -> Scenario:
     """Same pen and physics at slack water: a weaker current for the career's first pen work orders."""
     sc = aquaculture_pen()
     sc.key = "aquaculture_pen_slack"
+    sc.start_pos = (3., 0., 7.)
+    sc.habitat_origin = None
+    sc.start_heading_deg = 0.
+    sc.start_pitch_deg = 0.
     sc.name, sc.brief = PEN_VARIANT_STRINGS["slack_name"], PEN_VARIANT_STRINGS["slack_brief"]
     sc.current = CurrentProfile(*PEN_SLACK_CURRENT, TI_SHELTERED)
     return sc

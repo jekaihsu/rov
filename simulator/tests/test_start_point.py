@@ -29,6 +29,24 @@ class NearTargetStartTest(unittest.TestCase):
                 goal = np.asarray(next(o.point for o in sim.scenario.objectives if o.point is not None), float)
                 self.assertLess(np.linalg.norm(goal - point), np.linalg.norm(goal - start))
 
+    def test_spawn_pitch_and_heading_reach_the_onboard_state(self):
+        for key in ("hull_inspection", "wreck_survey", "aquaculture_pen", "aquaculture_pen_inside"):
+            with self.subTest(key=key):
+                sim = loaded(key)
+                state = sim.viewer_state()
+                np.testing.assert_allclose(state["pos"], sim.scenario.start_pos)
+                self.assertAlmostEqual(state["euler"][1], sim.scenario.start_pitch_deg, places=1)
+                self.assertAlmostEqual(state["euler"][2], sim.scenario.start_heading_deg % 360, places=1)
+
+    def test_bow_camera_starts_in_free_water_with_a_slack_tether(self):
+        for model in ("x1", "falcon"):
+            with self.subTest(model=model):
+                sim = Simulator("wreck_survey", 42, model_id=model)
+                self.assertGreater(sim.world.sdf(sim.vehicle.s.pos)[0], 1.0)
+                tether = sim.tether.state()
+                self.assertFalse(tether["warn"])
+                self.assertFalse(tether["broken"])
+
     def test_surface_starts_stay_where_the_scenario_puts_them(self):
         for key in ("tutorial_pool", "sonar_search", "incident_silt", "tether_untangle"):
             with self.subTest(key=key):
