@@ -24,6 +24,7 @@
     "frames": "Transverse frames stiffen the hull plating.",
     "poolwall": "A straight pool wall provides a visual reference for station keeping.",
     "pile": "Piles carry pier loads down into the seabed.",
+    "harbor_tool": "A dropped tool can settle into soft harbour mud until only its edges show.",
     "leg": "Braces connect jacket legs so the frame resists lateral loads.",
     "keel": "A bilge keel damps rolling through water resistance.",
     "fish_school": "Schooling helps fish detect predators.",

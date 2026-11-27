@@ -20,7 +20,7 @@ const NODES = {
 const OBSTACLES = {poolwall: 'wall', pile: 'pile', leg: 'jacket_leg', keel: 'bilge_keel', screw: 'propeller'};
 const SUBJECTS = {
   tutorial_pool: ['poolwall'],
-  harbor_inspection: ['pile', 'fish_school'],
+  harbor_inspection: ['pile', 'harbor_tool', 'fish_school'],
   hull_inspection: ['keel', 'screw'],
   jacket_inspection: ['leg', 'fish_school'],
   coral_reef: ['coral', 'seastar', 'fish_school'],

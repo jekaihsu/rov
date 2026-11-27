@@ -4,6 +4,8 @@ import {COLLECTION_CATEGORIES,listCollection,getPhotoBlob,setCover,exportCollect
 
 const element=(tag,text,className)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
 const date=value=>{const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'日期未記錄';};
+// The general wildlife guide shows its empty slots. Site-specific finds appear after the first sighting.
+const wildlife = new Set(['coral', 'seastar', 'seagrass', 'kelp', 'fish_school']);
 const categoryName=value=>COLLECTION_CATEGORIES[value]||'紀念照';
 const valueText=value=>typeof value==='string'||typeof value==='number'?String(value):value?.name||value?.label||'—';
 // Photos store internal keys; show the player-facing fleet and site names (fleet_names.js).
@@ -38,7 +40,7 @@ export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose
     const grid=element('div',undefined,'collection-grid');
     for(const [category,name]of Object.entries(COLLECTION_CATEGORIES)){
       const guide=collection.guides.find(g=>g.category===category),photo=guide&&collection.photos.find(p=>p.id===guide.photoId);
-      if (!guide && DIVE.notes[category] && !['seastar', 'coral', 'fish_school'].includes(category)) continue;
+      if (!guide && !wildlife.has(category)) continue;
       if(photo)grid.append(photoCard(photo,name,`首次觀測 ${date(guide.unlockedAt)}`));
       else{const article=element('article',undefined,'collection-card');article.append(element('div','尚未觀測','collection-locked'),element('h3',name),element('p','切換機載視角，在有效距離內完成拍攝。'));grid.append(article);}
     }
