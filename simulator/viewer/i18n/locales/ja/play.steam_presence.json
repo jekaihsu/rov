@@ -1,0 +1,27 @@
+{
+  "menu": "メインメニュー",
+  "diving": "潜水中",
+  "chapterFallback": "作業中",
+  "levelFallback": "自由航行",
+  "chapters": {
+    "prologue": "序章 · 見習いの前に",
+    "ch1": "第一章 · 港と船舶",
+    "ch2": "第二章 · 養殖場"
+  },
+  "levels": {
+    "p0_induction": "プール操作講習",
+    "p1_pool_checkout": "プール点検潜水",
+    "p2_open_water": "外洋慣れ航",
+    "c1_pier_level1": "桟橋 Level I 点検",
+    "c1_pier_level2": "桟橋の海生付着計測",
+    "c1_hull_fouling": "船底付着物評価",
+    "c1_dropped_object": "港内落下物",
+    "c1_quay_cp": "岸壁の陰極防食計測",
+    "c1_hull_ut": "船体板厚計測",
+    "c1_signoff_exam": "引継ぎ前の再確認",
+    "free_explore": "自由探索",
+    "expedition": "探索の受注",
+    "inspection_coop": "協働点検",
+    "scenario_training": "シナリオ訓練"
+  }
+}

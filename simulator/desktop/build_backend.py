@@ -24,11 +24,13 @@ edition = os.environ.get('ROV_BUILD_EDITION', 'internal')
 if edition not in ('internal', 'steam'):
     parser.error('ROV_BUILD_EDITION must be internal or steam')
 if edition == 'steam':
-    parser.error('Steam content manifest pending review; see desktop/steam/RELEASE.md')
+    # Packaging settings are applied (no instructor UI). Remaining brand/content blockers:
+    # see desktop/steam/RELEASE.md — do not upload until the content manifest is reviewed.
+    print('ROV_BUILD_EDITION=steam: packaging Steam viewer without instructor UI', flush=True)
 
 distpath = options.distpath.resolve()
 
-# Internal supervision UI must not ship in the Steam backend.
+# Steam and internal packages both omit the instructor console from the frozen viewer.
 packaged_viewer = PROJECT / '.runtime' / 'steam-viewer'
 if not options.licenses_only:
     shutil.rmtree(packaged_viewer, ignore_errors=True)
