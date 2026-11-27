@@ -4,6 +4,7 @@
 // temperature, camera tilt) is left out rather than invented. Field labels stay short English abbreviations
 // like real inspection overlays (docs/reference/real-rov-research.md: VideoRay burns in "H" and "D"); the
 // lock and pause lines are instructions to the player, not burn-in, so they are in the player's language.
+import {linePull} from '../tether/feel.js';
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('hud.osd', {
@@ -113,6 +114,13 @@ export function installOsd(viewport) {
   for (const name of ['heading', 'tl', 'tr', 'bl', 'br', 'lock']) {
     parts[name] = root.querySelector(`.osd-${name}`);
   }
+  const tether = document.createElement('div');
+  parts.cable = document.createElement('span');
+  parts.load = document.createElement('span');
+  parts.load.className = 'osd-load';
+  tether.append(parts.cable, parts.load);
+  parts.status = document.createElement('div');
+  parts.br.append(tether, parts.status);
   viewport.append(root);
   return root;
 }
@@ -134,8 +142,11 @@ export function updateOsd(r, s, w, extra) {
   const [roll = 0, pitch = 0] = s.euler || [];
   setHTML(parts.bl, row(STRINGS.pitch, signed(pitch, 1), 5) + row(STRINGS.roll, signed(roll, 1), 5));
   const mode = `${s.ctrl_mode || '—'} · ${STRINGS.levels[extra.assistLevel] || STRINGS.levels[0]}`;
+  setHTML(parts.cable, `<span class="k">${escapeText(STRINGS.tether.padEnd(6))}</span> ${r.cable.toFixed(0)} m`);
+  setHTML(parts.load, ` / ${r.tension.toFixed(0)} N`);
+  parts.load.classList.toggle('quiet-load', !extra.showLoad);
+  parts.load.classList.toggle('warn', linePull(s.tether));
   const bottom = [
-    row(STRINGS.tether, `${r.cable.toFixed(0)} m / ${r.tension.toFixed(0)} N`, 6, s.tether?.warn ? 'warn' : ''),
     row(STRINGS.light, `${r.light} / 2`, 6),
     row(STRINGS.mode, mode, 6),
   ];
@@ -143,7 +154,7 @@ export function updateOsd(r, s, w, extra) {
   if (s.nav?.mode && s.nav.mode !== 'IDLE') bottom.push(row(STRINGS.nav, s.nav.mode, 6));
   if (s.paused) bottom.push(`<div class="warn">${STRINGS.paused}</div>`);
   if (extra.assistStatus) bottom.push(`<div class="warn">${escapeText(extra.assistStatus)}</div>`);
-  setHTML(parts.br, bottom.join(''));
+  setHTML(parts.status, bottom.join(''));
   const lock = s.locked ? STRINGS.locked.replace('{key}', extra.lockKey.toUpperCase()) : '';
   if (parts.lock.textContent !== lock) parts.lock.textContent = lock;
 }

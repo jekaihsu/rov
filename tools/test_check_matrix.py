@@ -10,6 +10,14 @@ class SelectionTests(unittest.TestCase):
         for tier in ('quick', 'full'):
             self.assertEqual(browser_checks(tier, ['simulator/qysim/server.py']), [])
 
+    def test_story_audit_is_local_full_only(self):
+        paths = ['simulator/tools/playtest_probe.js']
+        with patch.dict('os.environ', {'CI': ''}):
+            self.assertEqual(browser_checks('full', paths), ['playtest_audit'])
+            self.assertEqual(browser_checks('quick', paths), [])
+        with patch.dict('os.environ', {'CI': 'true'}):
+            self.assertEqual(browser_checks('full', paths), [])
+
     def test_hud_only(self):
         selected = browser_checks('full', ['simulator/viewer/hud/flight_hud.js'])
         self.assertEqual(selected, ['browser_hud_smoke', 'browser_overlay_smoke', 'browser_attitude_smoke'])
@@ -31,7 +39,9 @@ class SelectionTests(unittest.TestCase):
         selected = browser_checks('full', ['simulator/viewer/input/devices.js'])
         self.assertIn('browser_playstation_smoke', selected)
         self.assertGreater(SCRIPT_TIMEOUTS['browser_playstation_smoke'], 900)
-        self.assertTrue(set(SCRIPT_TIMEOUTS) <= set(DEFAULT_CHECKS))
+        self.assertEqual(SCRIPT_TIMEOUTS['playtest_audit'], 2400)
+        # Named-only scripts (playtest_audit) may also carry an explicit budget.
+        self.assertTrue(set(SCRIPT_TIMEOUTS) - {'playtest_audit'} <= set(DEFAULT_CHECKS))
 
     def test_docs_and_empty_diff(self):
         for paths in ([], ['docs/ci/timings.md']):

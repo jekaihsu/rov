@@ -13,6 +13,7 @@ const MOTION_COMFORT_ITEM = 'motionComfort';
 const PATTERNS = {
   unlock: [100, 0.3, 0.1],
   lock: [60, 0.12, 0.05],
+  failsafe: [300, 0.58, 0.16],
   photo: [45, 0.1, 0.3],
   touch: [80, 0.2, 0.2],
   hard: [250, 0.8, 0.7],
