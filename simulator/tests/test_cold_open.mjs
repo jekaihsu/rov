@@ -65,6 +65,8 @@ test('a full run: photo, snag, back out, card', () => {
   assert.equal(transit.at(-1).beat, 'transit');
   assert.equal(transit.at(-1).hint, 'turn');
   assert.ok(said(transit).includes('toLegB'));
+  assert.equal(director.step(28.01, {...near, heading: 350}).hint, 'forward');
+  assert.equal(director.step(28.02, {...near, heading: 80}).hint, 'turn');
   // A hook that lets go at once is not the incident; one that holds is.
   assert.equal(director.step(28.1, {...near, photos: 1, snagged: true, tension: 30}).beat, 'transit');
   assert.equal(director.step(28.2, {...near, photos: 1, snagged: false}).beat, 'transit');

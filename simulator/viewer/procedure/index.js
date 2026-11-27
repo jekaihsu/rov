@@ -516,5 +516,5 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     return {stage: stage?.debug() || null, radio: crewRadio.debug()};
   }
   globalThis.__procedure = debug;
-  return {update, startIntro, bindInput, pauseActions, debug};
+  return {update, startIntro, bindInput, pauseActions, debug, radio: crewRadio};
 }

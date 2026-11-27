@@ -18,6 +18,7 @@ import {createSharedSchools} from './fish_schools.js';
 import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyle, reefCoralTint} from './reef_life.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
 import {HABITAT_ROCKS, habitatRockGeometry, rockLod, upgradeRockMesh} from './scan_materials.js';
+import {harborToolGeometry} from './harbor_tools.js';
 import {buildSurfaceSet} from './surface_set.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
@@ -273,7 +274,10 @@ export class Environment {
     const matrix = new THREE.Matrix4(), rotation = new THREE.Quaternion();
     for (const entities of buckets.values()) {
       const {kind,variant} = entities[0]; let geo, mat;
-      if (kind === 'coral') {
+      if (kind === 'harbor_tool') {
+        geo = harborToolGeometry(variant);
+        mat = M([0x958574, 0x854a32, 0x8e9289][variant]);
+      } else if (kind === 'coral') {
         geo = reefCoralGeometry(reefCoralStyle(entities[0]), this.detail);
         mat = reefCoralMaterial(reefCoralStyle(entities[0]));
       } else if (kind === 'seastar') {
@@ -286,9 +290,11 @@ export class Environment {
         mat.color.set(kind==='seagrass'?0x53683d:0x5e643a);
       }
       const mesh = new THREE.InstancedMesh(geo,mat,entities.length);
-      if(kind!=='rock')upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
-      else upgradeRockMesh(mesh, (rocks) => habitatRockGeometry(rocks, variant, this.detail), this.detail)
-        .catch(() => false);
+      if (kind === 'rock') {
+        upgradeRockMesh(mesh, rocks => habitatRockGeometry(rocks, variant, this.detail), this.detail).catch(() => false);
+      } else if (kind !== 'harbor_tool') {
+        upgradeMarineMesh(mesh, kind, variant).catch(() => false);
+      }
       mesh.userData.observationEntities = entities.map(e=>({entity_id:e.id,category:e.kind}));
       if(kind==='kelp'||kind==='seagrass') mesh.userData.observationBend = this.uniforms;
       for (let i=0;i<entities.length;i++) {
@@ -299,7 +305,7 @@ export class Environment {
         if(kind==='seagrass') scale.y*=.55;
         matrix.compose(p,rotation,scale);mesh.setMatrixAt(i,matrix);
         if (kind === 'coral') mesh.setColorAt(i, reefCoralTint(item));
-        if(['coral','seastar','kelp','seagrass'].includes(kind))
+        if(['coral','seastar','kelp','seagrass','harbor_tool'].includes(kind))
           this.observationTargets.push({entity_id:item.id,category:kind,mesh,instanceIds:[i]});
       }
       mesh.instanceMatrix.needsUpdate=true;

@@ -30,6 +30,15 @@ class ProcedureTests(unittest.TestCase):
         self.assertEqual(self.sim.rc.rc_lock, 1)
         self.assertFalse(self.p.can_unlock)
 
+    def test_begin_is_idempotent_during_checks(self):
+        first = self.act('begin', flow='deck', defects=True, seed=1)
+        second = self.act('begin', flow='deck', defects=True, seed=1)
+        self.assertEqual(first['procedure']['phase'], 'checks')
+        self.assertEqual(second['procedure']['phase'], 'checks')
+        self.p.phase = 'launch'
+        with self.assertRaises(ValueError):
+            self.act('begin', flow='deck')
+
     def test_sensors_follow_the_vehicle_onto_the_deck_and_into_the_water(self):
         start_reading = self.sim.viewer_state()['sensors']['depth']
         self.assertGreater(start_reading, 1.0)
