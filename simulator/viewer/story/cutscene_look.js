@@ -13,12 +13,12 @@
 //   look.set(true);     // scripted beat: beautification on for the picture
 //   look.set(false);    // player in control, ended or skipped: back to the fidelity settings
 //
-// Music has no override here because it needs none: the cutscene cues of audio/music.js ('cinematic',
+// Music has no override here because it needs none: the cutscene cues of audio/music.js ('openingTension',
 // 'flashback') already play outside the `diveMusic` fidelity item, and cold_open.js hands the music back to the
 // dive rules at the handover. CINEMATIC_MUSIC names those cues for the one caller.
 
 export const CINEMATIC_LOOK_ID = 'waterBeautify';
-export const CINEMATIC_MUSIC = Object.freeze({scripted: 'cinematic', closing: 'flashback'});
+export const CINEMATIC_MUSIC = Object.freeze({scripted: 'openingTension', closing: 'flashback'});
 
 const holders = new Set();
 

@@ -159,3 +159,30 @@ test('the underwater master opens the real-preset mix and preserves per-channel 
   assert.equal(store.get('motorSound'), false);
   unbind();
 });
+
+test('chapter ambience follows the world, the underwater mix and surface position', async () => {
+  const {createAmbience} = await import('../viewer/audio/ambience.js');
+  const requests = [];
+  const original = globalThis.fetch;
+  // Keep loads pending to exercise scene switches before a decoder returns.
+  globalThis.fetch = url => {
+    requests.push(url.pathname.split('/').pop());
+    return new Promise(() => {});
+  };
+  try {
+    const update = createAmbience({}, {});
+    const harbor = {scenario: {biome: 'harbor'}};
+    update(harbor, false, false);
+    update({scenario: {key: 'training_pool'}}, true, false);
+    assert.deepEqual(requests, []);
+    update(harbor, true, false);
+    update(harbor, false, true);
+    update(harbor, false, true);
+    update({scenario: {biome: 'aquaculture'}}, false, true);
+    update({obstacles: [{kind: 'jacket_leg'}]}, false, true);
+    update({obstacles: [{kind: 'wreck'}]}, false, true);
+    assert.deepEqual(requests, ['deck.opus', 'harbor.opus', 'farm.opus', 'wind.opus', 'wreck.opus']);
+  } finally {
+    globalThis.fetch = original;
+  }
+});

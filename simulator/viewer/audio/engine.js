@@ -4,6 +4,7 @@ import {
   clamp, motorPan, freshContacts, impactEnvelope, motorParameters, depthCutoff,
   detectEvents, resolveCue, reelParameters, topsideAmbience, takeContactHit
 } from './mapping.js';
+import {createAmbience} from './ambience.js';
 import {lineLoad} from '../tether/feel.js';
 import {getFidelity} from '../fidelity.js';
 import '../story/feel_settings.js';
@@ -118,6 +119,7 @@ class AudioEngine {
     this.flow = this.noiseLayer(0, 450);
     this.fan = this.noiseLayer(0.03, 900);
     this.deck = this.noiseLayer(0.04, 280);
+    this.ambience = createAmbience(this.ctx, this.buses.environment);
     this.reelMotor = this.motor(this.buses.vehicle);
     this.brake = this.noiseLayer(0, 520, this.buses.vehicle);
     this.fairlead = this.noiseLayer(0, 1400, this.buses.vehicle);
@@ -158,7 +160,7 @@ class AudioEngine {
   }
 
   isPaused() {
-    return !!(this.state?.paused || this.options.isPaused?.());
+    return !!((this.state?.paused && !this.options.deploying?.()) || this.options.isPaused?.());
   }
 
   underwaterOn() {
@@ -331,6 +333,8 @@ class AudioEngine {
     this.updateTopside(state);
     const onboard = this.options.getMode?.() === 'onboard';
     const underwater = this.underwaterOn();
+    const surface = this.options.deploying?.() ? this.options.getCamera()?.position.y >= 0 : state.pos?.[2] <= 0.1;
+    this.ambience(this.options.getWorld?.(), surface, underwater && this.enabled('waterSound'));
     this.updateUnderwater(state, underwater ? (onboard ? 1 : 0.6) : 0);
     if (underwater && this.enabled('motorSound')) this.spatial(state);
     else this.clearPeers();
