@@ -2,6 +2,7 @@
 // Chooses the line instrument or the camera OSD (hud_style.js) and feeds both the same smoothed read-outs
 // taken from the delayed display state.
 import { smoothHeading, drawHeadingTape, headingLabel } from './compass.js';
+import {linePull} from '../tether/feel.js';
 import { forwardRange } from './range.js';
 import { drawFlightAttitude } from './attitude.js';
 import { drawDepthLadder } from './depth_ladder.js';
@@ -304,7 +305,11 @@ function updateLine(r, s, w) {
 function updateReadout(r, s) {
   setText($('rSpd'), r.speed == null ? '—' : r.speed.toFixed(2));
   setText($('flightCable'), lengthIn(r.cable).toFixed(1));
-  setText($('flightTension'), r.tension.toFixed(0));
+  const tension = $('flightTension');
+  setText(tension, r.tension.toFixed(0));
+  const loaded = r.tension >= 5 || s.tether?.warn;
+  tension.parentElement.dataset.load = getFidelity().get('loadReadout') && loaded
+    ? (linePull(s.tether) ? 'high' : 'active') : 'quiet';
   setText($('flightLight'), String(r.light));
   setText($('flightBattery'), r.battery.toFixed(0));
   $('flightCable').parentElement.classList.toggle('warn', !!s.tether?.warn);
@@ -337,6 +342,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   showAssist(s);
   if (hudStyle === 'osd') {
     updateOsd(r, s, w, {
+      showLoad: getFidelity().get('loadReadout') && (r.tension >= 5 || s.tether?.warn),
       assistLevel: getFidelity().get('assistLevel'), assistStatus: $('flightAssistStatus').hidden ? ''
         : $('flightAssistStatus').textContent, lockKey: lockKey(input),
     });

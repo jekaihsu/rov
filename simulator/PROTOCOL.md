@@ -104,6 +104,10 @@ tether, controller, camera, navigation and damage remain independent. Intervehic
 hull contacts currently use a simplified collision proxy; crossed tethers do not
 simulate intervehicle knotting.
 
+In `harbor_inspection`, the existing habitat entity list can include `kind: "harbor_tool"`.
+Its existing `pos`, `yaw`, `scale`, and `variant` fields describe a lost tool on the seabed.
+An accepted onboard observation uses the same category and entity ID in the photo record.
+
 For LAN hosting use `--host 0.0.0.0`; the HTTP and viewer WebSocket listeners use
 that interface, while SDK RPC remains on `127.0.0.1`. Internet deployments need
 an HTTPS/WSS reverse proxy; room codes are grouping identifiers, not passwords.
