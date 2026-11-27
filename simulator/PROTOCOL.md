@@ -1019,3 +1019,16 @@ neutral sticks), `framedPhoto` (this beat has a usable shutter pose) and
 `accepted` (accepted plates this run). Result entries for plate surveys add
 optional `photos_accepted` and `photos_required` counts. The host rechecks
 the condition or deadline before advancing and retains the count across reconnects.
+
+### 情境天候（選填）
+
+`world.scenario.weather` 為選填物件，供各觀點及回放共用。四個成員均可省略。
+
+| 欄位 | 值與作用 |
+|---|---|
+| `time_of_day` | `dawn`、`morning`、`day`、`dusk`、`night`。控制太陽仰角、天空及水下入射光。 |
+| `cloud_cover` | 0 至 1 的雲覆蓋率。 |
+| `sea_state` | 0 至 9 級海況，控制可見的湧浪與白沫。 |
+| `rain` | 0 至 1 的相對降雨強度，0 為無雨。 |
+
+缺省沿用場址天空、水下照明、原有水面與無雨設定。流場與纜力仍由主機的情境物理參數決定。

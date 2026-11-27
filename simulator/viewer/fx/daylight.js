@@ -1,7 +1,7 @@
 // Daylight above the water: one shared sun, sky light, sky dome (gradient, sun aureole, clouds) and open-sea
 // surface for every view whose camera is above the water (deployment intro, surface segments, the chase camera
-// on a surfaced vehicle). Under water the lights keep exactly the values the underwater optics were calibrated
-// with (UNDERWATER_DAYLIGHT), so nothing below the surface changes.
+// on a surfaced vehicle). Scenario weather scales the calibrated underwater rig and the scattered daylight
+// together. The calibration is the default for worlds and recordings without weather.
 //
 // Units: three.js physical light units relative to the rest of the scene. A clear day has a direct sun of about
 // four to five times the sky's irradiance on a horizontal surface (diffuse fraction about 15-20 %), and the
@@ -13,6 +13,7 @@
 //
 //   const daylight = createDaylight(scene, {base: 'models/'});
 //   each frame: daylight.update({camera, world, dt, view: camMode, surface, renderer});
+import { weatherPreset } from './weather.js';
 import * as THREE from 'three';
 import { renderQualityState } from '../render_quality.js';
 
@@ -249,10 +250,21 @@ const SKY_FRAGMENT = /* glsl */ `
   }
 `;
 
+const WAVE_GLSL = /* glsl */ `
+  uniform float uTime;
+  uniform float uWave;
+  float crest(vec2 p) {
+    return sin(dot(p, vec2(0.46, 0.21)) - uTime * 1.25)
+      + 0.36 * sin(dot(p, vec2(-0.26, 0.61)) - uTime * 1.55);
+  }
+`;
+
 const SEA_VERTEX = /* glsl */ `
+  ${WAVE_GLSL}
   varying vec3 vWorld;
   void main() {
     vec4 world = modelMatrix * vec4(position, 1.0);
+    if (uWave > 0.0) world.y += uWave * crest(world.xz);
     vWorld = world.xyz;
     gl_Position = projectionMatrix * viewMatrix * world;
   }
@@ -262,7 +274,9 @@ const SEA_FRAGMENT = /* glsl */ `
   ${SKY_GLSL}
   uniform sampler2D tNormals;
   uniform float uHasNormals;
-  uniform float uTime;
+  ${WAVE_GLSL}
+  uniform float uRain;
+  uniform float uSimple;
   uniform vec3 uBody;
   uniform vec3 uBelow;
   uniform float uHazeRate;
@@ -290,6 +304,25 @@ const SEA_FRAGMENT = /* glsl */ `
     float distance = length(toEye);
     vec3 view = toEye / distance;
     vec3 normal = seaNormal(vWorld.xz, distance);
+    float foam = 0.0;
+    if (uWave > 0.0) {
+      vec2 p = vWorld.xz;
+      float h = crest(p);
+      vec2 slope = vec2(crest(p + vec2(0.1, 0.0)) - h, crest(p + vec2(0.0, 0.1)) - h) * 10.0;
+      normal = normalize(normal - vec3(slope.x, 0.0, slope.y) * uWave);
+      foam = smoothstep(0.75, 1.3, h + normal.z * 0.24) * smoothstep(0.12, 0.9, uWave);
+    }
+    if (uRain > 0.0 && distance < 45.0) {
+      vec2 cell = vWorld.xz * 5.0;
+      float seed = daylightHash(floor(cell));
+      float age = fract(uTime * 1.6 + seed);
+      vec2 delta = fract(cell) - vec2(0.35 + seed * 0.3, 0.65 - seed * 0.3);
+      float radius = length(delta);
+      float ring = 1.0 - smoothstep(0.0, 0.09, abs(radius - age * 0.4));
+      float impact = step(seed, uRain) * (1.0 - age) * (1.0 - smoothstep(12.0, 45.0, distance));
+      foam += impact * mix(ring, step(radius, 0.2), uSimple) * 0.19;
+      if (uSimple < 0.5) normal = normalize(normal + vec3(delta.x, 0.0, delta.y) * impact * ring);
+    }
     float cosView = max(dot(normal, view), 0.0);
     // Wind-roughened sea: near grazing, facets facing away are hidden and the visible ones face the eye, so the
     // mean reflectance stays far below a mirror's (Cox-Munk); capped rather than integrated.
@@ -305,6 +338,7 @@ const SEA_FRAGMENT = /* glsl */ `
     float body = mix(1.0, 0.55, smoothstep(0.35, 0.9, steep));
     float alpha = clamp(fresnel + (1.0 - fresnel) * body, 0.0, 1.0);
     vec3 colour = fresnel * sky + glint + (1.0 - fresnel) * body * uBody;
+    colour = mix(colour, (uHorizon + uZenith) * 0.65, clamp(foam, 0.0, 1.0));
     float haze = 1.0 - exp(-distance * uHazeRate);
     colour = mix(colour, uBelow * alpha, haze);
     gl_FragColor = vec4(colour / max(alpha, 1e-3), alpha);
@@ -356,6 +390,9 @@ function createSea(uniforms) {
       uTime: {value: 0},
       uBody: {value: new THREE.Vector3()},
       uHazeRate: {value: 0},
+      uRain: {value: 0},
+      uWave: {value: 0},
+      uSimple: {value: 0},
       uGlint: {value: 1}
     }),
     vertexShader: SEA_VERTEX,
@@ -372,6 +409,19 @@ function createSea(uniforms) {
   sea.visible = false;
   sea.userData.observationIgnore = true;
   return sea;
+}
+
+// Concentrate vertices near the deck and retain the distant horizon in the same draw.
+function waveGrid(segments) {
+  const grid = new THREE.PlaneGeometry(2, 2, segments, segments);
+  const positions = grid.attributes.position;
+  function stretch(v) {
+    return 45 * v + (SEA_SIZE / 2 - 45) * v ** 9;
+  }
+  for (let i = 0; i < positions.count; i++) {
+    positions.setXY(i, stretch(positions.getX(i)), stretch(positions.getY(i)));
+  }
+  return grid;
 }
 
 function setVector(target, values, scale = 1) {
@@ -424,6 +474,12 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
   const sky = createSky(uniforms);
   const sea = createSea(uniforms);
   scene.add(hemi, sun, sun.target, sky, sea);
+  const flat = sea.geometry;
+  const grids = new Map();
+  const surfaceColours = new WeakMap();
+  const reviewSky = new URLSearchParams(globalThis.location?.search || '').get('sky');
+  let appliedWeather;
+  const waterTint = new THREE.Color();
   const direction = new THREE.Vector3();
   const focus = new THREE.Vector3();
   const forward = new THREE.Vector3();
@@ -447,15 +503,26 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
     sea.material.uniforms.uHasNormals.value = 1;
   }
 
-  function applyPreset(name, waterType) {
-    preset = DAYLIGHT_PRESETS[name];
+  function applyPreset(name, waterType, weather) {
+    const skyWeather = weather && Object.hasOwn(DAYLIGHT_PRESETS, reviewSky)
+      ? {...weather, cloud_cover: DAYLIGHT_PRESETS[reviewSky].overcast} : weather;
+    preset = weatherPreset(DAYLIGHT_PRESETS, name, skyWeather);
+    waterTint.fromArray(preset.underwater ?? [1, 1, 1]);
+    scene.userData.weatherLight = weather ? waterTint : null;
+    sea.material.uniforms.uWave.value = (Math.min(9, Math.max(0, weather?.sea_state ?? 0)) / 5) ** 2;
+    sea.material.uniforms.uRain.value = Math.max(0, Math.min(1, weather?.rain ?? 0));
+    scene.userData.waveAmplitude = sea.material.uniforms.uWave.value;
     sunDirection(preset, direction);
+    if (weather?.time_of_day === 'dusk') {
+      direction.x *= -1;
+      direction.z *= -1;
+    }
     uniforms.uSunDir.value.copy(direction);
     setVector(uniforms.uSunRadiance.value, preset.sunColour, preset.sun);
     setVector(uniforms.uZenith.value, preset.zenith);
     setVector(uniforms.uHorizon.value, preset.horizon);
     uniforms.uOvercast.value = preset.overcast;
-    const below = preset.overcast ? preset.horizon.map((value) => value * 1.6) : preset.horizon;
+    const below = preset.horizon.map(value => value * (1 + 0.6 * preset.overcast));
     setVector(uniforms.uBelow.value, below, 0.82);
     sky.material.uniforms.uCloudCover.value = preset.cloudCover;
     setVector(sky.material.uniforms.uCloudLit.value, preset.cloudLit);
@@ -477,10 +544,10 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
   }
 
   function lightUnderWater() {
-    hemi.color.set(UNDERWATER_DAYLIGHT.sky);
-    hemi.groundColor.set(UNDERWATER_DAYLIGHT.ground);
+    hemi.color.set(UNDERWATER_DAYLIGHT.sky).multiply(waterTint);
+    hemi.groundColor.set(UNDERWATER_DAYLIGHT.ground).multiply(waterTint);
     hemi.intensity = UNDERWATER_DAYLIGHT.hemisphere;
-    sun.color.set(UNDERWATER_DAYLIGHT.sun);
+    sun.color.set(UNDERWATER_DAYLIGHT.sun).multiply(waterTint);
     sun.intensity = UNDERWATER_DAYLIGHT.sunIntensity;
     sun.position.fromArray(UNDERWATER_DAYLIGHT.sunPosition);
     sun.target.position.set(0, 0, 0);
@@ -535,15 +602,25 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
     const name = daylightPresetFor(world);
     const waterType = world?.scenario?.water_type ?? null;
     const key = `${name}|${waterType}`;
-    if (key !== presetName) {
+    const weather = world?.scenario?.weather;
+    if (key !== presetName || appliedWeather !== weather) {
       presetName = key;
-      applyPreset(name, waterType);
+      appliedWeather = weather;
+      applyPreset(name, waterType, weather);
       above = null;
     }
     const nowAbove = camera.position.y > 0 && view !== 'top';
     sky.visible = nowAbove;
     sea.visible = nowAbove;
-    if (surface) surface.visible = view === 'top' ? camera.position.y < 0 : !nowAbove;
+    if (surface) {
+      surface.visible = view === 'top' ? camera.position.y < 0 : !nowAbove;
+      // The fallback draws an unlit cyan plane. Keep its original tint across weather changes.
+      const material = surface.material;
+      if (material?.isMeshBasicMaterial) {
+        if (!surfaceColours.has(material)) surfaceColours.set(material, material.color.clone());
+        material.color.copy(surfaceColours.get(material)).multiply(waterTint);
+      }
+    }
     if (nowAbove !== above) {
       above = nowAbove;
       if (nowAbove) lightAboveWater();
@@ -554,7 +631,23 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
     scene.userData.daylightMetering = nowAbove ? daylightMetering(preset) : null;
     scene.userData.daylightHaze = nowAbove ? {colour: uniforms.uHorizon.value, rate: 1 / preset.hazeDistance}
       : null;
-    if (!nowAbove) return false;
+    if (!nowAbove) {
+      if (weather && view !== 'top') {
+        scene.fog?.color.multiply(waterTint);
+        if (scene.background?.isColor && scene.background !== scene.fog?.color) scene.background.multiply(waterTint);
+      }
+      return false;
+    }
+    const mode = renderer && renderQualityState(renderer)?.mode;
+    const simple = effectsSuppressed || mode === 'low' || mode === 'performance';
+    sea.material.uniforms.uSimple.value = simple ? 1 : 0;
+    sea.geometry = flat;
+    if (sea.material.uniforms.uWave.value > 0) {
+      const calm = sea.material.uniforms.uWave.value < 0.1;
+      const segments = calm || simple ? 20 : 64;
+      if (!grids.has(segments)) grids.set(segments, waveGrid(segments));
+      sea.geometry = grids.get(segments);
+    }
     sky.position.copy(camera.position);
     sea.position.set(camera.position.x, 0, camera.position.z);
     sea.material.uniforms.uTime.value += dt;
@@ -573,7 +666,8 @@ export function createDaylight(scene, {base = 'models/', normals = null} = {}) {
     scene.remove(hemi, sun, sun.target, sky, sea);
     sky.geometry.dispose();
     sky.material.dispose();
-    sea.geometry.dispose();
+    flat.dispose();
+    for (const grid of grids.values()) grid.dispose();
     sea.material.dispose();
     sun.shadow.map?.dispose();
   }

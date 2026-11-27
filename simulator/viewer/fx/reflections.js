@@ -5,7 +5,8 @@ const scenes = new WeakMap();
 
 export function updateReflections(scene, mode, off = false) {
   let data = scenes.get(scene);
-  const enabled = !off && ['high', 'ultra'].includes(mode);
+  const night = scene.userData.weatherLight?.g === 0;
+  const enabled = !night && !off && ['high', 'ultra'].includes(mode);
   if (!data && !enabled) return;
   if (!data) {
     const faces = [];

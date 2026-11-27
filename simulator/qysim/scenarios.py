@@ -82,6 +82,8 @@ class Scenario:
     # Optional scenario-placed fish schools ({"home": (n, e, d), "count": int}); None: the biome's random schools.
     fish_schools: list | None = None
 
+    weather: dict | None = None
+
     def summary(self) -> dict:
         from .aquaculture import layout
         return {"key": self.key, "name": self.name, "brief": self.brief, "seed": self.seed,
@@ -90,6 +92,7 @@ class Scenario:
                 "seabed_type": silt_seabed_type(self.biome, self.seabed_type),
                 "bnl_height_m": self.bnl_height_m, "bnl_mg_l": self.bnl_mg_l,
                 "water_type": water_type_for(self.biome, self.water_type, self.water),
+                **({"weather": dict(self.weather)} if self.weather else {}),
                 **({"aquaculture": layout()[1]}
                    if is_pen_site(self.key) else {})}
 
@@ -642,12 +645,18 @@ LIBRARY = {
 }
 
 
+with (ASSETS / "scenario_weather.json").open(encoding="utf-8") as weather_file:
+    SITE_WEATHER = json.load(weather_file)
+
+
 def build(key: str, seed: int | None = None) -> Scenario:
     if key == "random":
         return random_scenario(seed)
     if key not in LIBRARY:
         raise KeyError(f"unknown scenario {key!r}; choose from {sorted(LIBRARY)} or 'random'")
     scenario = LIBRARY[key]()
+    if key in SITE_WEATHER:
+        scenario.weather = dict(SITE_WEATHER[key])
     scenario.seed = int(seed) if seed is not None else 0
     return scenario
 
