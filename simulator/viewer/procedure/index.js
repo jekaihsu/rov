@@ -120,14 +120,22 @@ function progress(done, total) {
 function createPilotLog(limit = 2000) {
   const rows = [];
   const seen = new Set();
+  function rowKey(row) {
+    return `${row.t}|${row.kind}|${row.text}`;
+  }
   function collect(log) {
     for (const row of log || []) {
-      const key = `${row.t}|${row.kind}|${row.text}`;
+      const key = rowKey(row);
       if (seen.has(key)) continue;
       seen.add(key);
       rows.push(row);
     }
-    if (rows.length > limit) rows.splice(0, rows.length - limit);
+    if (rows.length > limit) {
+      rows.splice(0, rows.length - limit);
+      // Evicted rows must leave `seen`, or the Set grows without bound across a long dive.
+      seen.clear();
+      for (const row of rows) seen.add(rowKey(row));
+    }
   }
   function clear() {
     rows.length = 0;

@@ -22,15 +22,19 @@ No achievement unlock or screenshot has been verified against Steam.
 
 Windows root: WinAppData, subdirectory `ROV Simulator`; verify the actual Electron
 userData path returned by steamStatus before enabling this rule in the partner site.
-Include preferences.json, window.json and collection/** recursively; exclude logs,
-numba-cache and local-backups/**. Configure user-specific root overrides before
-allowing different Steam accounts on the same machine. Photos dominate size: reserve
-1 GiB / 10,000 files per user initially (500 photos at 2 MiB plus metadata).
-No photo deletion, recompression or quota enforcement is implemented. Warn users
-and size real sessions before release. Auto-Cloud conflict decisions occur before
-launch; a launch snapshot preserves only data still present at that time. Steam's
-conflict dialog and a manual collection export remain necessary; this is not a
-complete conflict-recovery guarantee. Snapshots are local and currently unbounded.
+Include preferences.json, window.json, saves/** (versioned localStorage mirrors —
+career, campaign, fidelity, display, audio, input, …; see docs/design/saves.md)
+and collection/** recursively; exclude logs, numba-cache, saves/corrupt/** and
+local-backups/**. Configure user-specific root overrides before allowing different
+Steam accounts on the same machine. Photos dominate size: reserve 1 GiB / 10,000
+files per user initially (500 photos at 2 MiB plus metadata). No photo deletion,
+recompression or quota enforcement is implemented. Warn users and size real
+sessions before release. Auto-Cloud conflict decisions occur before launch; a
+launch snapshot preserves only data still present at that time. Steam's conflict
+dialog and a manual collection export remain necessary; this is not a complete
+conflict-recovery guarantee. Snapshots are local and currently unbounded.
+Desktop write path for `saves/*.json`, `preferences.json` and `window.json` is
+atomic (temp file + fsync + rename) via `desktop/save_files.cjs`.
 
 ## Steam Input defaults and checks
 

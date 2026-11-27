@@ -5,8 +5,8 @@
 import { acceptContract, cancelContract, contractBoard } from './contracts.js';
 import { recordLine } from '../menu/cards.js';
 import { recordFor } from './results_model.js';
-
 import { localize } from '../i18n/index.js';
+import { objectiveCardStore } from '../saves/registry.js';
 
 const STRINGS = localize('play.objective_card', {
   contracts: '工程委託',
@@ -17,6 +17,7 @@ const STRINGS = localize('play.objective_card', {
   expand: '展開',
   meters: '{d} m',
 });
+
 export const CARD_KEY = 'rov.objectiveCard.v1';
 const UPDATE_MS = 200;
 
@@ -36,20 +37,12 @@ function element(tag, className, text) {
 }
 
 function readSave() {
-  try {
-    const save = JSON.parse(localStorage.getItem(CARD_KEY) || '{}');
-    return { collapsed: !!save.collapsed };
-  } catch {
-    return { collapsed: false };
-  }
+  const { value } = objectiveCardStore.load();
+  return { collapsed: !!value.collapsed };
 }
 
 function writeSave(save) {
-  try {
-    localStorage.setItem(CARD_KEY, JSON.stringify(save));
-  } catch {
-    // Storage may be unavailable; the card simply shows again next time.
-  }
+  objectiveCardStore.save(save);
 }
 
 // career: optional career/dive.js runtime; its panel(state) returns {title, count, node} during a work order.

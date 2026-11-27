@@ -4,6 +4,7 @@ const net=require('node:net');
 const fs=require('node:fs');
 const path=require('node:path');
 const {CollectionStore}=require('./collection_store.cjs');
+const {SaveFiles, writeSyncAtomic}=require('./save_files.cjs');
 if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_EXPEDITION==='1'&&!process.env.ROV_DESKTOP_SMOKE_DATA)throw Error('探索收藏驗收需要獨立的 ROV_DESKTOP_SMOKE_DATA 目錄');
 if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_DATA){
   if(!path.isAbsolute(process.env.ROV_DESKTOP_SMOKE_DATA))throw Error('ROV_DESKTOP_SMOKE_DATA 必須是絕對路徑');
@@ -34,12 +35,13 @@ app.whenReady().then(async()=>{
   displaySettings.snapshot(data);
   const steam = createSteam(data);
   const preferencesPath=path.join(data,'preferences.json');
+  const saveFiles=new SaveFiles(path.join(data,'saves'));
   const modelIds=['x1','bluerov2_heavy','falcon'];
   let preferredModel='x1';
   let inputPreferences = {};
   const qualityModes=['auto','performance','medium','high'];let preferredQuality='auto';
   try{const saved=JSON.parse(fs.readFileSync(preferencesPath,'utf8'));inputPreferences=saved.input || {};if(modelIds.includes(saved.model))preferredModel=saved.model;if(qualityModes.includes(saved.quality))preferredQuality=saved.quality;}catch{}
-  const savePreferences=()=>fs.writeFileSync(preferencesPath,JSON.stringify({model:preferredModel,quality:preferredQuality,input:inputPreferences}));
+  const savePreferences=()=>writeSyncAtomic(preferencesPath,JSON.stringify({model:preferredModel,quality:preferredQuality,input:inputPreferences}));
   const cache=path.join(data,'numba-cache');fs.mkdirSync(cache,{recursive:true});
   log=fs.createWriteStream(path.join(data,'backend.log'),{flags:'a'});
   backend=spawn(executable,app.isPackaged?args:['-X','utf8','-m','qysim.server',...args],{cwd:root,windowsHide:true,env:{...process.env,PYTHONUTF8:'1',NUMBA_CACHE_DIR:cache}});
@@ -84,7 +86,7 @@ app.whenReady().then(async()=>{
     }
     const saved = displaySettings.apply(window, screen.getAllDisplays(), value);
     savedWindow = saved;
-    fs.writeFileSync(windowFile, JSON.stringify(saved));
+    writeSyncAtomic(windowFile, JSON.stringify(saved));
     return saved;
   });
   try {
@@ -109,7 +111,7 @@ app.whenReady().then(async()=>{
         display: screen.getDisplayMatching(bounds).id, width: bounds.width, height: bounds.height };
       displaySettings.apply(window, screen.getAllDisplays(), value);
       savedWindow = value;
-      fs.writeFileSync(windowFile, JSON.stringify(value));
+      writeSyncAtomic(windowFile, JSON.stringify(value));
     }
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -143,6 +145,39 @@ app.whenReady().then(async()=>{
     let allowed=false;try{allowed=event.sender===window.webContents&&event.senderFrame===window.webContents.mainFrame&&new URL(event.senderFrame.url).origin===`http://127.0.0.1:${http}`;}catch{}
     if(!allowed||!['list','readPhoto','savePhoto','saveResult','setCover','export','import'].includes(method))return {ok:false,error:'此頁面無法存取本機收藏'};
     try{return {ok:true,value:await collection[method](payload)};}catch(error){return {ok:false,error:error.message||'收藏儲存失敗'};}
+  });
+  function savesTrusted(event) {
+    return event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame &&
+      event.senderFrame.url.startsWith(origin + '/');
+  }
+  ipcMain.handle('rov:saves-read-all', async (event) => {
+    if (!savesTrusted(event)) return {};
+    try {
+      return await saveFiles.readAll();
+    } catch (error) {
+      log.write(`Could not read saves: ${error.message}\n`);
+      return {};
+    }
+  });
+  ipcMain.handle('rov:saves-write', async (event, key, text) => {
+    if (!savesTrusted(event)) return { ok: false };
+    try {
+      await saveFiles.write(key, text);
+      return { ok: true };
+    } catch (error) {
+      log.write(`Could not write save ${key}: ${error.message}\n`);
+      return { ok: false, error: error.message };
+    }
+  });
+  ipcMain.handle('rov:saves-backup', async (event, key, text) => {
+    if (!savesTrusted(event)) return { ok: false };
+    try {
+      const destination = await saveFiles.backup(key, text);
+      return { ok: true, path: destination };
+    } catch (error) {
+      log.write(`Could not backup save ${key}: ${error.message}\n`);
+      return { ok: false, error: error.message };
+    }
   });
   ipcMain.handle('rov:input-read', event => {
     if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) return {};
