@@ -19,3 +19,4 @@ simulator/desktop/steam/logs/
 .env
 .env.local
 docs/showcase/
+/output/playtest-audit/
