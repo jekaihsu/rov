@@ -391,3 +391,14 @@ body:is(.pause-open, .results-open) > :not(.app, .pause-menu, .results-screen, .
   .bp-backdrop, .bp-tile, .bp-link, .bp-primary { transition: none; }
   .bp-backdrop img { animation: none; }
 }
+
+#safeNotice, #recoveryPanel {
+  background: #102732;
+  color: #eef6fa;
+  padding: .9rem 1.2rem;
+  border: 1px solid #64828c;
+  font: 1rem system-ui, sans-serif;
+}
+#safeNotice { position: fixed; top: .5rem; right: .5rem; z-index: var(--z-toast); }
+#safeNotice button, #recoveryPanel button { margin: .25rem; padding: .4rem .7rem; }
+#recoveryPanel::backdrop { background: #081722dd; }

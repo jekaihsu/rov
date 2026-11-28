@@ -14,6 +14,7 @@ const INCLUDE = Object.freeze([
 ]);
 const EXCLUDE = Object.freeze([
   'backend.log',
+  'logs/**',
   'numba-cache/**',
   'saves/corrupt/**',
   'local-backups/**',

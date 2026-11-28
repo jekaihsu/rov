@@ -1,6 +1,7 @@
-const {app,BrowserWindow,dialog,ipcMain,screen,shell}=require('electron');
-const {spawn}=require('node:child_process');
-const net=require('node:net');
+const {app,BrowserWindow,dialog,ipcMain,screen,shell,Menu,MenuItem,clipboard}=require('electron');
+const { startBackend } = require('./backend_start.cjs');
+const { makeDiagnostics } = require('./diagnostics.cjs');
+const { nativeText } = require('./recovery_text.cjs');
 const fs=require('node:fs');
 const path=require('node:path');
 const {CollectionStore}=require('./collection_store.cjs');
@@ -15,22 +16,54 @@ const { resolveEdition } = require('./steam/edition.cjs');
 const { installBackendLifecycle } = require('./backend_lifecycle.cjs');
 const displaySettings = require('./window_settings.cjs');
 const { requestDiscreteGpu } = require('./gpu_preference.cjs');
-requestDiscreteGpu(app);
+const safeLaunch = process.argv.includes('--safe-mode');
+if (!safeLaunch) requestDiscreteGpu(app);
 if (!app.requestSingleInstanceLock()) app.exit(0);
 app.on('second-instance', () => {
   const existing = BrowserWindow.getAllWindows()[0];
   existing?.restore();
   existing?.focus();
 });
-let backend=null,log=null;
-async function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer();s.once('error',reject);s.listen(0,'127.0.0.1',()=>{const port=s.address().port;s.close(()=>resolve(port));});});}
-async function waitReady(port){for(let i=0;i<1200;i++){if(backend.exitCode!==null || backend.signalCode!==null)throw Error('模擬服務啟動失敗，請查看 backend.log');try{const r=await fetch(`http://127.0.0.1:${port}/`,{signal:AbortSignal.timeout(1000)});if(r.ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('模擬服務啟動逾時');}
+let backend;
+let quitting = false;
+let reportStartupFailure;
 app.whenReady().then(async()=>{
+  let window;
+  const strings = nativeText(app.getLocale());
+  const logFolder = path.join(app.getPath('userData'), 'logs');
+  const record = makeDiagnostics(logFolder);
+  let reporting = false;
+  function restart(safe) {
+    const args = process.argv.slice(1);
+    if (safe && !args.includes('--safe-mode')) args.push('--safe-mode');
+    app.relaunch({ args });
+    app.quit();
+  }
+  async function failed(code) {
+    if (reporting || quitting || window?.isDestroyed()) return;
+    reporting = true;
+    record(code);
+    const summary = ['ROV Solution', code, strings[code] || strings.backend].join(' · ');
+    while (!quitting && !window?.isDestroyed()) {
+      const graphics = ['renderer', 'unresponsive'].includes(code);
+      const options = { type: 'error', title: 'ROV Solution',
+        message: strings[code] || strings.backend, detail: 'ROV Solution · ' + code, cancelId: 3,
+        buttons: [graphics ? strings.safe : strings.retry, strings.logs, strings.copy, strings.quit] };
+      const { response } = window ? await dialog.showMessageBox(window, options) : await dialog.showMessageBox(options);
+      if (response === 1) await shell.openPath(logFolder);
+      else if (response === 2) clipboard.writeText(summary);
+      else {
+        if (response === 0) restart(graphics);
+        else app.quit();
+        return;
+      }
+    }
+  }
+  reportStartupFailure = () => failed('storage');
+  const bench = process.env.ROV_DESKTOP_BENCH === '1';
+  if (bench) console.info('Electron ready (ms)', Math.round(process.uptime() * 1000));
   const root=app.isPackaged?path.join(process.resourcesPath,'backend'):path.resolve(__dirname,'..');
   const bundled=path.join(root,'rov-sim','rov-sim.exe');
-  const ports=new Set();while(ports.size<3)ports.add(await freePort());
-  const [http,ws,rpc]=[...ports];
-  const args=['--host','127.0.0.1','--http-port',String(http),'--ws-port',String(ws),'--rpc-port',String(rpc)];
   const executable=app.isPackaged?bundled:(process.env.ROV_PYTHON||'python');
   const data=app.getPath('userData');fs.mkdirSync(data,{recursive:true});
   displaySettings.snapshot(data);
@@ -44,22 +77,47 @@ app.whenReady().then(async()=>{
   try{const saved=JSON.parse(fs.readFileSync(preferencesPath,'utf8'));inputPreferences=saved.input || {};if(modelIds.includes(saved.model))preferredModel=saved.model;if(qualityModes.includes(saved.quality))preferredQuality=saved.quality;}catch{}
   const savePreferences=()=>writeSyncAtomic(preferencesPath,JSON.stringify({model:preferredModel,quality:preferredQuality,input:inputPreferences}));
   const cache=path.join(data,'numba-cache');fs.mkdirSync(cache,{recursive:true});
-  log=fs.createWriteStream(path.join(data,'backend.log'),{flags:'a'});
-  backend=spawn(executable,app.isPackaged?args:['-X','utf8','-m','qysim.server',...args],{cwd:root,windowsHide:true,env:{...process.env,PYTHONUTF8:'1',NUMBA_CACHE_DIR:cache}});
-  backend.stdout.pipe(log,{end:false});backend.stderr.pipe(log,{end:false});
-  async function backendFailed(error) {
-    const result = await dialog.showMessageBox({ type: 'error', title: 'ROV Simulator',
-      message: '模擬服務已停止', detail: `${error}\n${path.join(data, 'backend.log')}`,
-      buttons: ['重試', '結束'] });
-    if (result.response === 0) app.relaunch();
-    app.quit();
-  }
-  const lifecycle = installBackendLifecycle(app, backend, backendFailed);
   const workArea=screen.getPrimaryDisplay().workAreaSize;
   const edition=resolveEdition(process.env);
-  const window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,additionalArguments:[`--rov-edition=${edition}`],preload:path.join(__dirname,'preload.cjs')}});
+  window=new BrowserWindow({width:Math.min(1440,workArea.width),height:Math.min(900,workArea.height),minWidth:Math.min(900,workArea.width),minHeight:Math.min(600,workArea.height),show:!process.env.ROV_DESKTOP_SMOKE,backgroundColor:'#081722',autoHideMenuBar:true,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:!process.env.ROV_DESKTOP_SMOKE,additionalArguments:[`--rov-edition=${edition}`],preload:path.join(__dirname,'preload.cjs')}});
+  const nativeMenu = Menu.getApplicationMenu() || new Menu();
+  nativeMenu.append(new MenuItem({ label: 'ROV Solution', submenu: [
+    { label: strings.safe, click: () => restart(true) },
+  ] }));
+  Menu.setApplicationMenu(nativeMenu);
+  window.on('unresponsive', () => failed('unresponsive'));
+  window.webContents.on('render-process-gone', () => failed('renderer'));
+  const splash = '<meta charset="utf-8"><body style="background:#081722;color:white;font:20px system-ui;' +
+    'display:grid;place-content:center;height:90vh"><h1>ROV Solution</h1><p>' + strings.starting +
+    '</p><progress max="4" value="1"></progress>';
+  const loading = window.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(splash));
+  let http, ws;
+  try {
+    const backendStart = performance.now();
+    const [started] = await Promise.all([startBackend({
+      executable, prefix: app.isPackaged ? [] : ['-X', 'utf8', '-m', 'qysim.server'],
+      options: { cwd: root, windowsHide: true, env: { ...process.env, PYTHONUTF8: '1', NUMBA_CACHE_DIR: cache } },
+      async onRetry(code, attempt) {
+        if (quitting || window.isDestroyed()) throw Error('backend');
+        await loading;
+        const label = strings[code] + ' · ' + strings.retry + ' ' + attempt + '/3';
+        await window.webContents.executeJavaScript('document.querySelector("p").textContent=' + JSON.stringify(label));
+      },
+      onChild: child => { backend = child; }, record,
+    }), loading]);
+    ({ http, ws } = started);
+    if (bench) console.info('Backend ready (ms)', Math.round(performance.now() - backendStart));
+  } catch (error) {
+    await failed(Object.hasOwn(strings, error.message) ? error.message : 'backend');
+    return;
+  }
+  const lifecycle = installBackendLifecycle(app, backend, () => failed('backend'));
   lifecycle.watchWindow(window);
-  const origin = `http://127.0.0.1:${http}`;
+  if (backend.exitCode !== null || backend.signalCode !== null) {
+    await lifecycle.fail('backend');
+    return;
+  }
+  const origin = 'http://127.0.0.1:' + http;
   function trusted(event) {
     return event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame &&
       event.senderFrame.url.startsWith(origin + '/');
@@ -159,7 +217,7 @@ app.whenReady().then(async()=>{
     try {
       return await saveFiles.readAll();
     } catch (error) {
-      log.write(`Could not read saves: ${error.message}\n`);
+      record('storage');
       return {};
     }
   });
@@ -169,7 +227,7 @@ app.whenReady().then(async()=>{
       await saveFiles.write(key, text);
       return { ok: true };
     } catch (error) {
-      log.write(`Could not write save ${key}: ${error.message}\n`);
+      record('storage');
       return { ok: false, error: error.message };
     }
   });
@@ -179,7 +237,7 @@ app.whenReady().then(async()=>{
       const destination = await saveFiles.backup(key, text);
       return { ok: true, path: destination };
     } catch (error) {
-      log.write(`Could not backup save ${key}: ${error.message}\n`);
+      record('storage');
       return { ok: false, error: error.message };
     }
   });
@@ -194,16 +252,16 @@ app.whenReady().then(async()=>{
       inputPreferences = settings;
       savePreferences();
     } catch (error) {
-      log.write(`Could not save input preference: ${error.message}\n`);
+      record('storage');
     }
   });
   ipcMain.on('rov:model-selected',(event,model)=>{
     if(event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!event.senderFrame.url.startsWith(`http://127.0.0.1:${http}/`)||!modelIds.includes(model)||model===preferredModel)return;
-    try{preferredModel=model;savePreferences();}catch(error){log.write(`Could not save model preference: ${error.message}\n`);}
+    try{preferredModel=model;savePreferences();}catch(error){record('storage');}
   });
   ipcMain.on('rov:quality-selected',(event,quality)=>{
     if(event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!event.senderFrame.url.startsWith(`http://127.0.0.1:${http}/`)||!qualityModes.includes(quality))return;
-    try{preferredQuality=quality;savePreferences();}catch(error){log.write(`Could not save quality preference: ${error.message}\n`);}
+    try{preferredQuality=quality;savePreferences();}catch(error){record('storage');}
   });
   const reportsRoot = path.join(data, 'reports');
   fs.mkdirSync(reportsRoot, { recursive: true });
@@ -243,11 +301,25 @@ app.whenReady().then(async()=>{
       return { ok: false, code: 'open_failed' };
     }
   });
-  await window.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent('<html lang="zh-Hant"><meta charset="utf-8"><body style="margin:0;background:#081722;color:#dce8ea;font:18px system-ui;display:grid;place-content:center;height:100vh"><h1>ROV Simulator</h1><p>正在準備模擬環境，首次啟動可能需要一點時間。</p></body></html>'));
-  try { await waitReady(http); } catch (error) { await lifecycle.fail(error.message); return; }
+  ipcMain.on('rov:diagnostic', (event, code) => {
+    if (trusted(event)) record(code);
+  });
+  ipcMain.handle('rov:logs', event => trusted(event) && shell.openPath(logFolder));
+  window.webContents.on('did-fail-load', (_event, code, _detail, url, mainFrame) => {
+    if (mainFrame && code !== -3 && url.startsWith(origin + '/')) failed('timeout');
+  });
+  const gpu = app.getGPUFeatureStatus().webgl;
+  const blocked = /disabled|unavailable|software/.test(gpu || '');
+  if (blocked) record('blocked');
+  const recoveryQuery = blocked ? '&safe=1&recovery=blocked' : safeLaunch ? '&safe=1' : '';
   // The launch menu decides the cinematic per dive (下水動畫 setting and the briefing switch); a ?nointro here would
   // turn it, and the pre-dive procedure, off for every desktop dive.
-  await window.loadURL(`http://127.0.0.1:${http}/?ws=${encodeURIComponent(`ws://127.0.0.1:${ws}`)}&model=${preferredModel}&quality=${preferredQuality}`);
+  try {
+    await window.loadURL(`http://127.0.0.1:${http}/?ws=${encodeURIComponent(`ws://127.0.0.1:${ws}`)}&model=${preferredModel}&quality=${preferredQuality}${recoveryQuery}`);
+  } catch {
+    await failed('timeout');
+    return;
+  }
   if(process.env.ROV_DESKTOP_SMOKE){
     setTimeout(async()=>{
       try {
@@ -319,6 +391,10 @@ app.whenReady().then(async()=>{
       app.quit();
     },2000);
   }
-}).catch(e=>{dialog.showErrorBox('ROV 模擬器',e.message);app.quit();});
-app.on('before-quit',()=>{backend?.stdout?.unpipe(log);backend?.stderr?.unpipe(log);backend?.kill();log?.end();});
+}).catch(() => {
+  if (reportStartupFailure) return reportStartupFailure();
+  dialog.showErrorBox('ROV Solution', nativeText(app.getLocale()).backend);
+  app.quit();
+});
+app.on('before-quit',()=>{quitting = true; backend?.kill();});
 app.on('window-all-closed',()=>app.quit());

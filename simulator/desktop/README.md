@@ -103,3 +103,14 @@ upload descriptors with `node steam/generate_vdf.cjs`; no credentials are stored
 node simulator/desktop/test_steam.cjs
 node --test simulator/tests/test_achievements.mjs simulator/tests/test_steam_presence.mjs
 ```
+
+## Startup recovery
+
+Press Alt to reveal the desktop menu and choose **ROV Solution → Restart in safe mode**.
+In Steam, enter `--safe-mode` in Properties → General → Launch Options. Remove the
+option for the next normal launch. Safe mode uses a 2D menu and the lowest dive
+quality with post-processing and canvas antialiasing disabled.
+
+Recovery dialogs can copy a short event code or open the local `userData/logs` folder.
+The current and preceding log hold up to 64 KiB each. Startup measurements and the
+reproduction command are in [the X7 report](../../docs/design/robustness-x7/README.md).
