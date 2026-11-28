@@ -239,7 +239,8 @@ class Vehicle:
         peak = np.max(np.abs(t))
         return t / peak if peak > 1.0 else t
 
-    def step(self, dt: float, thrust_cmd: np.ndarray, extra_wrench: np.ndarray | None = None) -> None:
+    def step(self, dt: float, thrust_cmd: np.ndarray, extra_wrench: np.ndarray | None = None,
+             *, hull_contact: bool = False) -> None:
         """Advance ``dt`` seconds. ``extra_wrench`` is an external body-frame [F; M]
         (contact forces, tether tension). A non-finite result rolls the state back."""
         p, s = self.p, self.s
@@ -305,7 +306,8 @@ class Vehicle:
             s.pos[2] = 0.0
             if v_world[2] < 0:
                 s.vel = q_rot(q_conj(s.q), v_world * np.array([1, 1, 0]))
-        if s.pos[2] > self.seabed_depth - 0.05:        # anti-tunnelling; contact forces do the work
+        # Standalone vehicles retain their floor stop. The engine resolves the whole swept hull.
+        if not hull_contact and s.pos[2] > self.seabed_depth - 0.05:
             s.pos[2] = self.seabed_depth - 0.05
             if v_world[2] > 0:
                 s.vel = q_rot(q_conj(s.q), v_world * np.array([1, 1, 0]))

@@ -96,7 +96,7 @@ class Box:
         return dist, R @ nl
 
     def aabb(self) -> tuple[np.ndarray, np.ndarray]:
-        c, r = np.asarray(self.center, float), float(np.linalg.norm(self.half))
+        c, r = np.asarray(self.center, float), np.abs(self._rot()) @ self.half
         return c - r, c + r
 
     def sdf_many(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -144,7 +144,13 @@ class Wall:
         return d, n
 
     def aabb(self) -> tuple[np.ndarray, np.ndarray]:
-        return np.full(3, -1e9), np.full(3, 1e9)        # large face: never culled
+        a = math.radians(self.normal_deg)
+        front = np.array([math.cos(a), math.sin(a)])
+        span = self.width / 2 * np.abs(front[::-1])
+        edge = np.asarray(self.point[:2])
+        lo = np.where(front > 1e-12, -np.inf, edge - span)
+        hi = np.where(front < -1e-12, np.inf, edge + span)
+        return np.append(lo, self.top), np.append(hi, np.inf)
 
     def sdf_many(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         a = math.radians(self.normal_deg)
@@ -154,6 +160,23 @@ class Wall:
         d = rel @ n
         off = (np.abs(rel @ t) > self.width / 2) | (X[:, 2] < self.top)
         return np.where(off, 1e3, d), np.tile(n, (len(X), 1))
+
+    def contact_sdf_many(self, points):
+        """Distance to the face, end caps and top of the finite-width half-space."""
+        a = math.radians(self.normal_deg)
+        front = np.array([math.cos(a), math.sin(a), 0.])
+        along = np.array([-front[1], front[0], 0.])
+        rel = points - self.point
+        lateral = rel @ along
+        gaps = np.column_stack((rel @ front, np.abs(lateral) - self.width / 2, self.top - points[:, 2]))
+        outside = np.maximum(gaps, 0.)
+        length = np.linalg.norm(outside, axis=1)
+        local = outside / np.maximum(length[:, None], 1e-12)
+        inside = length == 0.
+        local[inside, gaps[inside].argmax(axis=1)] = 1.
+        normal = local[:, :1] * front + (local[:, 1] * np.sign(lateral))[:, None] * along
+        normal[:, 2] = -local[:, 2]
+        return length + np.minimum(gaps.max(axis=1), 0.), normal
 
     def as_dict(self):
         return {"type": "wall", "name": self.name, "point": list(self.point), "normal_deg": self.normal_deg,
@@ -256,6 +279,20 @@ class ShipHull:
     def world_point(self, local) -> np.ndarray:
         return np.asarray(local, float) @ self.R.T + np.asarray(self.center, float)
 
+    def contact_sdf_many(self, points):
+        """Exact plane on the straight parallel midbody. Tapers, deck and bilge use the full field."""
+        local = self.to_local(points)
+        x, y, z = local.T
+        hp = self.hp
+        half = hp["length"] / 2
+        side = np.abs(y) - hp["beam"] / 2
+        if (x.min() > -half + hp["stern"] + .1 and x.max() < half - hp["bow"] - .1
+                and z.max() < hp["draft"] - hp["bilge"] - .1
+                and np.all(side > np.maximum(z - hp["draft"], hp["top"] - z) + .1)
+                and np.all(side > np.maximum(x - half + hp["rake"], -half + hp["aperture"] - x) + .1)):
+            return side, np.sign(y)[:, None] * self.R[:, 1]
+        return self.sdf_many(points)
+
     def sdf_many(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         L = self.to_local(X)
         d = ship_hull_local_sdf(L, self.hp)
@@ -264,8 +301,10 @@ class ShipHull:
         near = d < 0.6
         if np.any(near):
             Ln, e = L[near], 0.02
-            grad = np.stack([ship_hull_local_sdf(Ln + off, self.hp) - ship_hull_local_sdf(Ln - off, self.hp)
-                             for off in (np.array([e, 0, 0]), np.array([0, e, 0]), np.array([0, 0, e]))], 1)
+            offsets = e * np.eye(3)[:, None, :]
+            pairs = np.concatenate((Ln + offsets, Ln - offsets))
+            samples = ship_hull_local_sdf(pairs.reshape(-1, 3), self.hp).reshape(6, -1)
+            grad = (samples[:3] - samples[3:]).T
             n_local[near] = grad / np.maximum(np.linalg.norm(grad, axis=1), 1e-9)[:, None]
         return d, n_local @ self.R.T
 
@@ -277,7 +316,7 @@ class ShipHull:
         hp = self.hp
         r = math.hypot(hp["length"] / 2, hp["beam"] / 2)
         c = np.asarray(self.center, float)
-        return np.array([c[0] - r, c[1] - r, hp["top"]]), np.array([c[0] + r, c[1] + r, hp["draft"]])
+        return np.array([c[0] - r, c[1] - r, c[2] + hp["top"]]), np.array([c[0] + r, c[1] + r, c[2] + hp["draft"]])
 
     def as_dict(self):
         hp = self.hp
@@ -356,7 +395,7 @@ class FieldMesh:
     def to_local(self, X: np.ndarray) -> np.ndarray:
         return (X - self.origin) @ self.R          # R is orthonormal: inverse = transpose
 
-    def _lookup(self, L: np.ndarray) -> np.ndarray:
+    def _lookup(self, L: np.ndarray, gradient=False):
         g = (L - self.lo) / self.h
         g = np.clip(g, 0.0, self.shape - 1.000001)
         i = np.floor(g).astype(int)
@@ -370,8 +409,22 @@ class FieldMesh:
         c11 = F[x0, y0 + 1, z0 + 1] * (1 - fx) + F[x0 + 1, y0 + 1, z0 + 1] * fx
         d = (c00 * (1 - fy) + c10 * fy) * (1 - fz) + (c01 * (1 - fy) + c11 * fy) * fz
         # outside the grid the field only bounds the distance from below: add the gap to the box
-        gap = np.linalg.norm(np.maximum(self.lo - L, 0) + np.maximum(L - self.hi, 0), axis=1)
-        return d + gap
+        outside = L - np.clip(L, self.lo, self.hi)
+        gap = np.linalg.norm(outside, axis=1)
+        if not gradient:
+            return d + gap
+        # Differentiate the same trilinear interpolant used for distance.
+        dx0 = (F[x0+1, y0, z0] - F[x0, y0, z0]) * (1-fy) + (F[x0+1, y0+1, z0] - F[x0, y0+1, z0]) * fy
+        dx1 = (F[x0+1, y0, z0+1] - F[x0, y0, z0+1]) * (1-fy) + (F[x0+1, y0+1, z0+1] - F[x0, y0+1, z0+1]) * fy
+        grad = np.column_stack((dx0 * (1-fz) + dx1 * fz, (c10-c00) * (1-fz) + (c11-c01) * fz,
+                                (c01-c00) * (1-fy) + (c11-c10) * fy)) / self.h
+        grad[outside != 0] = 0.
+        grad += outside / np.maximum(gap[:, None], 1e-12)
+        return d + gap, grad
+
+    def contact_sdf_many(self, points):
+        distance, grad = self._lookup(self.to_local(points), gradient=True)
+        return distance - self.thickness, grad @ self.R.T
 
     def sdf_many(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         L = self.to_local(np.atleast_2d(X))
@@ -381,8 +434,10 @@ class FieldMesh:
         near = d < 0.5                        # normals only matter for points about to touch
         if np.any(near):
             Ln, e = L[near], 0.5 * self.h
-            grad = np.stack([self._lookup(Ln + off) - self._lookup(Ln - off)
-                             for off in (np.array([e, 0, 0]), np.array([0, e, 0]), np.array([0, 0, e]))], 1)
+            offsets = e * np.eye(3)[:, None, :]
+            pairs = np.concatenate((Ln + offsets, Ln - offsets))
+            samples = self._lookup(pairs.reshape(-1, 3)).reshape(6, -1)
+            grad = (samples[:3] - samples[3:]).T
             n_local[near] = grad / np.maximum(np.linalg.norm(grad, axis=1), 1e-9)[:, None]
         return d, n_local @ self.R.T
 
@@ -660,6 +715,9 @@ class ContactEvent:
     severity: str            # touch / hard / severe
     where: str               # body location label
     vehicle_id: str = "default"
+    material: str | None = None
+    impulse_ns: float | None = None
+    possible_damage: bool = False
 
 
 class World:
@@ -842,7 +900,8 @@ class World:
 
     def _bounds(self):
         cached = getattr(self, "_obstacle_bounds", None)
-        if cached is None or len(cached[0]) != len(self.obstacles):
+        if cached is None or self._bounds_list is not self.obstacles or len(cached[0]) != len(self.obstacles):
+            self._bounds_list = self.obstacles
             bounds = [ob.aabb() for ob in self.obstacles]
             cached = (np.array([b[0] for b in bounds]).reshape(-1, 3),
                       np.array([b[1] for b in bounds]).reshape(-1, 3))
@@ -879,7 +938,8 @@ class World:
         a, b = cached
         return np.flatnonzero(np.all(a <= hi + margin, axis=1) & np.all(b >= lo - margin, axis=1)).tolist()
 
-    def sdf_many(self, X: np.ndarray, candidates: list[int] | None = None, include_seabed: bool = True
+    def sdf_many(self, X: np.ndarray, candidates: list[int] | None = None, include_seabed: bool = True,
+                 *, hull_contact=False
                  ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Vectorised nearest-surface query for many points. Returns (dist, normal, obstacle index; -1 = seabed).
 
@@ -927,7 +987,8 @@ class World:
             if i in far:
                 continue
             ob = self.obstacles[i]
-            d, n = ob.sdf_many(X)
+            query = getattr(ob, "contact_sdf_many", ob.sdf_many) if hull_contact else ob.sdf_many
+            d, n = query(X)
             closer = d < dist
             dist = np.where(closer, d, dist)
             normal[closer] = n[closer]

@@ -21,6 +21,7 @@ import numpy as np
 from . import scenarios as sc_mod
 from .controller import FlightController
 from .navigation import GeoFrame, Navigator, wrap_pi
+from .hull_contact import HullContact
 from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_matrix, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether, TetherParams
@@ -139,6 +140,7 @@ class Simulator:
             self.world.visibility_m = sc.visibility_m
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
+        self.hull_contact = HullContact(self.vehicle)
         self._flow_accel = FlowAccelerometer()
         self._flow_points = hull_flow_points(self.vehicle.definition)
         self._flow_grid = None
@@ -342,12 +344,10 @@ class Simulator:
         thr = self.power.apply(self, thr, rc)
         w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
         n_events = len(self.world.events)
-        w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
-                                               vehicle_id=self.vehicle_id,
-                                               hull_spheres=[(centre, self.vehicle.definition.hull_radius)
-                                                             for centre in self.vehicle.definition.hull_centres])
+        start, q0 = s.pos, s.q
         self.tether_ops.step(dt, self.tether, s.pos, self.yaw)     # observer only: radio, scoring
-        v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
+        v.step(dt, thr, w_tether + self.tool_wrench + operation_wrench, hull_contact=True)
+        self.hull_contact.resolve(self.world, v, start, q0, dt, self.t, self.vehicle_id)
         if update_world:
             self.world.step(dt, vehicles=[self.world_source()])
             from .operations import step_objects
@@ -958,6 +958,7 @@ class Simulator:
         roll, pitch, yaw = self.vehicle.euler
         rc = self.rc
         cur = self.vehicle.current_ned
+        impacts = [e for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id]
         state = {
             "vehicle_id": self.vehicle_id, "model_id": self.model_id,
             "appearance": dict(self.appearance),
@@ -985,7 +986,7 @@ class Simulator:
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
             "tether": self.tether.state(),
             "tether_ops": self.tether_ops.state(),
-            "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
+            "events": [e.__dict__ for e in impacts[-12:]],
             "damage": self.damage_events[-6:],
             "silt": round(self.world.silt_at(s.pos), 2),
             "turbidity": self.camera_turbidity(),
@@ -1002,6 +1003,10 @@ class Simulator:
         # Optional: only a vehicle that opted into the deployment procedure reports it (PROTOCOL.md).
         if self.procedure.active:
             state["procedure"] = self.procedure.state()
+        if impacts:
+            state["score"]["collisions"] = len(impacts)
+        if self.hull_contact.net_load:
+            state["net_contact"] = self.hull_contact.net_load
         return state
 
     def flow_field_state(self) -> dict:

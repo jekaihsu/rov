@@ -261,6 +261,17 @@ log [{t, kind, text, stamp?}]   (last 8 lines, Traditional Chinese; optional `st
      `%Y/%m/%d %H:%M:%S`, same form as photo `create_time` — assumed App dive-log layout)
 ```
 
+Each hull contact onset can add optional fields to an entry in `events`. `material` is steel,
+concrete, net, sand, mud or biofouling. `impulse_ns` is the applied normal impulse in N·s and
+`speed` is the incoming surface-normal contact-point speed in m/s. Sustained scraping on the same
+obstacle counts once. Optional `state.score.collisions` counts all impact onsets for this vehicle in
+the current world, including those older than the 12 displayed events. The host omits it before
+the first contact. A hard impact requires speed > 0.3 m/s and impulse ≥ 1 N·s. A severe impact
+requires speed > 0.8 m/s and impulse ≥ 3 N·s and sets `possible_damage` to true. These thresholds
+and wet contact coefficients are provisional training assumptions pending vehicle impact measurements.
+While the net is loaded, optional `state.net_contact` gives the undeformed `point` and local
+displacement `offset` (both NED metres). The panel relaxes when this field disappears.
+
 ### Optional `power`: tether power budget / battery
 
 `state.power` (and each fleet entry) is an optional addition; existing fields keep their meaning.

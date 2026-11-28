@@ -1303,7 +1303,7 @@ function frame(now) {
   objG.visible = !inIntro && !(trailer.enabled && trailer.hideTargets());
   if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
-  updatePenNet(structureSet, flowField, now / 1000);
+  updatePenNet(structureSet, flowField, now / 1000, S?.net_contact);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
