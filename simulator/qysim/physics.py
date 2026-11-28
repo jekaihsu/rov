@@ -18,7 +18,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 from .model_o import demand_thrust, published_thrust
-from .vehicles import HYDRO_FITS, MODEL_O_ASSIST_GAIN, X1_THRUSTERS, X1_PARAMETERS, VEHICLE_DEFINITIONS, get_vehicle_definition
+from .vehicles import (
+    HYDRO_FITS, MODEL_O_ASSIST_GAIN, VEHICLE_DEFINITIONS, X1_PARAMETERS, X1_THRUSTERS, get_vehicle_definition,
+)
 
 KNOT = 0.514444
 RHO = 1025.0
@@ -216,7 +218,7 @@ class Vehicle:
         transform[:3, 3:] = -skew((0., 0., self.fit.added_centre_z))
         principal = np.diag((*self.p.added_mass, *self.fit.rotary_added))
         self.added_matrix = transform.T @ principal @ transform
-        self.rigid_matrix = np.diag((*([m] * 3), *(self.I - self.fit.rotary_added)))
+        self.rigid_matrix = np.diag([m, m, m, *(self.I - self.fit.rotary_added)])
         self.mass_matrix = self.rigid_matrix + self.added_matrix
         self.shaft = np.zeros(len(self.thrusters))  # signed fraction of rated shaft speed
         self.disks = np.array([position for _, position, _ in self.thrusters])
