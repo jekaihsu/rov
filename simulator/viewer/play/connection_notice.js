@@ -3,11 +3,12 @@
 // countdown and the developer command stay inside a collapsed 技術資訊 section. app.js reports connected() when
 // world or state data arrives and lost() when the socket closes.
 
+import { diagnosticActions } from '../recovery.js';
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('play.connection_notice', {
   title: '無法連線到模擬器',
-  body: '畫面會在連線恢復後自動繼續，不需要重新開始。若持續無法連線，請返回主選單後再試一次。',
+  body: '連線恢復後將自動繼續。若持續離線，請確認模擬服務正在執行，且防火牆允許連線。可返回主選單重新選擇伺服器。',
   menu: '返回主選單',
   details: '技術資訊',
 });
@@ -43,9 +44,11 @@ export function installConnectionNotice({ element, setTimer = setTimeout, clearT
       document.getElementById('returnMenu')?.click();
     });
     card.append(body, menu, technical);
+    diagnosticActions(card, 'offline');
   }
   function show() {
     timer = 0;
+    if (element.hidden) globalThis.rovDesktop?.record?.('offline');
     render();
     element.hidden = false;
   }

@@ -285,6 +285,7 @@ export function createStage(host, { quality = 'auto' } = {}) {
     targetLook.copy(anchor).addScaledVector(right, -shift).addScaledVector(up, lift);
   }
   const skipFrame = createFrameGate();
+  let firstModelFrame = true;
   function frame(now) {
     if (skipFrame(now)) {
       requestAnimationFrame(frame);
@@ -326,7 +327,14 @@ export function createStage(host, { quality = 'auto' } = {}) {
       scene.fog.far = sea[2];
     }
     environment?.update(dt, camera, new THREE.Vector3(0.1, 0, 0));
-    renderer.render(scene, camera);
+    if (state.modelReady && firstModelFrame) {
+      firstModelFrame = false;
+      const start = performance.now();
+      renderer.render(scene, camera);
+      performance.measure('rov-model-first-render', { start });
+    } else {
+      renderer.render(scene, camera);
+    }
     requestAnimationFrame(frame);
   }
   resize();
@@ -352,5 +360,23 @@ export function createStage(host, { quality = 'auto' } = {}) {
     get stickerMeshes() {
       return model?.stickerGroup?.children.length || 0;
     },
+  };
+}
+
+// Keep the full menu navigable on systems where even a minimum WebGL context is unavailable.
+export function staticStage() {
+  const state = { modelReady: true, sceneReady: true, sceneKey: '' };
+  return {
+    state,
+    showcase: false,
+    setScene(entry, options = {}) {
+      state.sceneKey = entry?.key;
+      this.showcase = !!options.showcase;
+    },
+    async setModel() {},
+    setSticker() {},
+    setPose() {},
+    rotate() {},
+    configureQuality() {},
   };
 }

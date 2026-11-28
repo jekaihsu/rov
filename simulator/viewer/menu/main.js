@@ -23,7 +23,7 @@ import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTit
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
-import { SHOWCASE, createStage } from './stage.js';
+import { SHOWCASE, createStage, staticStage } from './stage.js';
 import { createBackdrop } from './big_picture.js';
 import { previewKey } from './cards.js';
 import { installDisplayPrefs } from '../prefs/display.js';
@@ -147,7 +147,7 @@ try {
   throw error;
 }
 setLoading(0.35, STRINGS.loading.scene);
-const stage = createStage(menu, { quality: choice.quality });
+const stage = new URLSearchParams(location.search).has('safe') ? staticStage() : createStage(menu, { quality: choice.quality });
 // The game-rendered site picture that covers the stage while it switches site (big_picture.js).
 const backdrop = createBackdrop(menu, shade);
 // Player-facing YX fleet names come from fleet_names.js; ?assets=generic keeps the name of the art variant
@@ -492,12 +492,10 @@ installBrandMenu({ menu, getModel: () => choice.model });
 stage.setScene(sceneFor(SHOWCASE.scene) || sceneFor(choice.scenario) || data.sites[0], { showcase: true });
 stage.setSticker(choice.sticker);
 setLoading(0.6, STRINGS.loading.model);
-try {
-  await stage.setModel(choice.model);
-} catch (error) {
+stage.setModel(choice.model).catch(function previewFailed(error) {
   setStatus(STRINGS.modelFailed);
   console.error(error);
-}
+});
 setLoading(1, STRINGS.loading.ready);
 ready = true;
 finishLoading();
@@ -505,6 +503,7 @@ show('title');
 openRequestedScreen();
 navigator.setActive(true);
 navigator.start();
+performance.mark('rov-menu-interactive');
 
 // ?menu=training&tab=courses|scenarios|drills|story opens a list directly;
 // ?menu=board opens the YX contract board (the results screen's 下一張委託).

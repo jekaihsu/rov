@@ -9,6 +9,11 @@ const edition = editionConfig(process.env);
 
 const runtimeFiles = new Set([
   '/main.cjs',
+  '/backend_start.cjs',
+  '/diagnostics.cjs',
+  '/recovery_text.cjs',
+  '/save_files.cjs',
+
   '/preload.cjs',
   '/collection_store.cjs',
   '/backend_lifecycle.cjs',

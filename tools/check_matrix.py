@@ -21,6 +21,7 @@ DEFAULT_CHECKS = (
     'browser_playstation_smoke',
     'browser_slow_render_smoke',
     'browser_connection_smoke',
+    'browser_robustness_smoke',
     'browser_hud_smoke',
     'browser_overlay_smoke',
     'browser_camera_smoke',

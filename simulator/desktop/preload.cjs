@@ -17,6 +17,8 @@ const edition = readEditionArg();
 
 contextBridge.exposeInMainWorld('rovDesktop', Object.freeze({
   edition,
+  record(code) { ipcRenderer.send('rov:diagnostic', code); },
+  openLogs() { return ipcRenderer.invoke('rov:logs'); },
   steamStatus() {
     return ipcRenderer.invoke('rov:steam', 'status');
   },

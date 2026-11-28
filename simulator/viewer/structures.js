@@ -43,6 +43,7 @@ const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
  * entry-level GPU, where shading cost grows with every texture read (render_quality.js automaticSceneDetail).
  */
 export function structureDetail(renderer = null) {
+  if (new URLSearchParams(globalThis.location?.search).has('safe')) return 'low';
   let mode = 'auto';
   try {
     mode = globalThis.localStorage?.getItem('rov.quality') || 'auto';

@@ -125,6 +125,8 @@ export function configureRenderQuality(renderer,mode='auto',{learn=false}={}){
   const requested = new URLSearchParams(globalThis.location?.search || '').get('quality');
   if (!mode && ['low', 'ultra'].includes(requested)) mode = requested;
   if(!['auto','performance','low','medium','high','ultra'].includes(mode))mode='auto';
+  const safe = new URLSearchParams(globalThis.location?.search).has('safe');
+  if (safe) mode = 'low';
   const hardware=detectHardware(renderer),dpr=positive(globalThis.devicePixelRatio)||1;
   const limits=mode==='auto'?bounds(renderer,hardware):{ceiling:Math.min(dpr,['high','ultra'].includes(mode)?2:1),floor:Math.min(dpr,.6)};
   let ratio = limits.ceiling;
@@ -132,7 +134,7 @@ export function configureRenderQuality(renderer,mode='auto',{learn=false}={}){
   else if (['performance', 'low'].includes(mode)) ratio = Math.min(dpr, .75);
   // Automatic quality on software GL, integrated and entry-level GPUs starts without the underwater screen effects
   // (optics); software GL has no frame budget for them, the others lose 60 fps (see startsLow).
-  let effectsSuppressed = mode === 'auto' && (hardware.tier === 'software' || hardware.startsLow);
+  let effectsSuppressed = safe || mode === 'auto' && (hardware.tier === 'software' || hardware.startsLow);
   const learned = mode === 'auto' && learn && !learnedApplied ? readLearned(hardware) : null;
   if (learn) learnedApplied = true;
   if (learned) {
@@ -216,6 +218,7 @@ export function assetTextureTier(mode = lastMode ?? storedQualityMode()) {
 // The low class (startsLow: Intel HD / UHD, whose drivers Chrome flags msaa_is_slow) never gets a multisampled
 // canvas either. hints: chooseHardwareProfile hints; by default read from a throwaway WebGL context.
 export function canvasAntialias(mode = storedQualityMode(), hints = null) {
+  if (new URLSearchParams(globalThis.location?.search).has('safe')) return false;
   if (!['performance', 'low'].includes(mode)) return false;
   return !chooseHardwareProfile(hints ?? probeHints()).startsLow;
 }
@@ -245,6 +248,7 @@ export function automaticSceneDetail(renderer) {
 }
 
 function storedQualityMode() {
+  if (new URLSearchParams(globalThis.location?.search).has('safe')) return 'low';
   const fromUrl = new URLSearchParams(globalThis.location?.search || '').get('quality');
   if (fromUrl) return fromUrl;
   try {
