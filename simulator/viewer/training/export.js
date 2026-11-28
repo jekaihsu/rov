@@ -38,7 +38,7 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;');
 }
 
-function downloadBlob(filename, content, type) {
+export function downloadBlob(filename, content, type) {
   const url = URL.createObjectURL(new Blob([content], {type}));
   const link = document.createElement('a');
   link.href = url;

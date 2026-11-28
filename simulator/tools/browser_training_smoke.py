@@ -96,6 +96,15 @@ def run_once(page, label):
 
     assert not errors, errors
     page.screenshot(path=str(OUT / f'{label}-done.png'))
+    if label == 'pass2':
+        page.locator('#resultsDebrief').click()
+        sheet = page.locator('dialog.dive-sheet')
+        sheet.wait_for()
+        assert scorecard['lessonTitle'] in sheet.inner_text()
+        assert sheet.locator('li').filter(has_text='節拍').count() >= len(set(visited))
+        assert page.evaluate("location.search.includes('replay=local') && !window.__training?.active")
+        page.screenshot(path=str(OUT / 'course-debrief.png'))
+        assert not errors, errors
     return dict(visited=visited, scorecard=scorecard, errors=errors)
 
 
