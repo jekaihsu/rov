@@ -1,0 +1,197 @@
+[
+  {
+    "file": "korean_castle.glb",
+    "bytes": 5512088,
+    "triangles": 248341,
+    "draw_calls": 61,
+    "materials": 8,
+    "textures": [
+      {
+        "name": "encrusted_steel_normal",
+        "mime": "image/webp",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 198992,
+        "gpu_rgba8_mips": 5592405
+      },
+      {
+        "name": "encrusted_steel_basecolor",
+        "mime": "image/webp",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 65878,
+        "gpu_rgba8_mips": 5592405
+      },
+      {
+        "name": "encrusted_steel_roughness",
+        "mime": "image/webp",
+        "width": 512,
+        "height": 512,
+        "bytes": 8798,
+        "gpu_rgba8_mips": 1398101
+      },
+      {
+        "name": "I4_growth_normal",
+        "mime": "image/webp",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 17258,
+        "gpu_rgba8_mips": 5592405
+      },
+      {
+        "name": "I4_growth_basecolor",
+        "mime": "image/webp",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 23096,
+        "gpu_rgba8_mips": 5592405
+      },
+      {
+        "name": "I4_rock_basecolor",
+        "mime": "image/webp",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 9370,
+        "gpu_rgba8_mips": 5592405
+      }
+    ],
+    "texture_bytes_with_mips": 29360126,
+    "extensions": [
+      "EXT_meshopt_compression",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization"
+    ],
+    "triangle_budget": 300000,
+    "texture_budget_bytes": 33554432
+  },
+  {
+    "file": "korean_castle_lod1.glb",
+    "bytes": 2521448,
+    "triangles": 73012,
+    "draw_calls": 3,
+    "materials": 3,
+    "textures": [
+      {
+        "name": "encrusted_steel_normal",
+        "mime": "image/webp",
+        "width": 512,
+        "height": 512,
+        "bytes": 76700,
+        "gpu_rgba8_mips": 1398101
+      },
+      {
+        "name": "encrusted_steel_basecolor",
+        "mime": "image/webp",
+        "width": 512,
+        "height": 512,
+        "bytes": 26212,
+        "gpu_rgba8_mips": 1398101
+      },
+      {
+        "name": "encrusted_steel_roughness",
+        "mime": "image/webp",
+        "width": 512,
+        "height": 512,
+        "bytes": 9574,
+        "gpu_rgba8_mips": 1398101
+      },
+      {
+        "name": "I4_growth_normal",
+        "mime": "image/webp",
+        "width": 512,
+        "height": 512,
+        "bytes": 6664,
+        "gpu_rgba8_mips": 1398101
+      },
+      {
+        "name": "I4_growth_basecolor",
+        "mime": "image/webp",
+        "width": 512,
+        "height": 512,
+        "bytes": 9912,
+        "gpu_rgba8_mips": 1398101
+      },
+      {
+        "name": "I4_rock_basecolor",
+        "mime": "image/webp",
+        "width": 512,
+        "height": 512,
+        "bytes": 4034,
+        "gpu_rgba8_mips": 1398101
+      }
+    ],
+    "texture_bytes_with_mips": 8388606,
+    "extensions": [
+      "EXT_meshopt_compression",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization"
+    ],
+    "triangle_budget": 100000,
+    "texture_budget_bytes": 33554432
+  },
+  {
+    "file": "korean_castle_lod2.glb",
+    "bytes": 765144,
+    "triangles": 18628,
+    "draw_calls": 3,
+    "materials": 3,
+    "textures": [
+      {
+        "name": "encrusted_steel_normal",
+        "mime": "image/webp",
+        "width": 256,
+        "height": 256,
+        "bytes": 18466,
+        "gpu_rgba8_mips": 349525
+      },
+      {
+        "name": "encrusted_steel_basecolor",
+        "mime": "image/webp",
+        "width": 256,
+        "height": 256,
+        "bytes": 8294,
+        "gpu_rgba8_mips": 349525
+      },
+      {
+        "name": "encrusted_steel_roughness",
+        "mime": "image/webp",
+        "width": 256,
+        "height": 256,
+        "bytes": 4348,
+        "gpu_rgba8_mips": 349525
+      },
+      {
+        "name": "I4_growth_normal",
+        "mime": "image/webp",
+        "width": 256,
+        "height": 256,
+        "bytes": 2016,
+        "gpu_rgba8_mips": 349525
+      },
+      {
+        "name": "I4_growth_basecolor",
+        "mime": "image/webp",
+        "width": 256,
+        "height": 256,
+        "bytes": 4152,
+        "gpu_rgba8_mips": 349525
+      },
+      {
+        "name": "I4_rock_basecolor",
+        "mime": "image/webp",
+        "width": 256,
+        "height": 256,
+        "bytes": 1702,
+        "gpu_rgba8_mips": 349525
+      }
+    ],
+    "texture_bytes_with_mips": 2097150,
+    "extensions": [
+      "EXT_meshopt_compression",
+      "EXT_texture_webp",
+      "KHR_mesh_quantization"
+    ],
+    "triangle_budget": 20000,
+    "texture_budget_bytes": 33554432
+  }
+]

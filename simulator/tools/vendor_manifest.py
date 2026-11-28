@@ -14,6 +14,12 @@ VIEWER = Path(__file__).resolve().parents[1] / "viewer"
 MANIFEST = Path(__file__).with_name("vendor-manifest.json")
 NPM_THREE = VIEWER.parent / "desktop/node_modules/three"
 THREE_VERSION = "0.160.0"
+# CREDITS keeps these MIT addons vendored even when the ES graph does not import them
+# (daylight reimplements sky/sea; the sources stay for reference and future use).
+KEEP_MODULES = (
+    "examples/jsm/objects/Sky.js",
+    "examples/jsm/objects/Water.js",
+)
 REGENERATE = (
     "Run from the repository root: (cd simulator/desktop && npm ci) && "
     "python simulator/tools/vendor_manifest.py --prune; commit the manifest and vendor files."
@@ -77,7 +83,7 @@ def manifest(check=False):
     files = [p.relative_to(VIEWER / "vendor/three").as_posix()
              for p in visited if p.is_relative_to(VIEWER / "vendor/three")]
     data = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    modules = sorted(["LICENSE", *files])
+    modules = sorted(set(["LICENSE", *files, *KEEP_MODULES]))
     for name in set(modules + data["runtime"]):
         vendor_file(name, check)
     return {**data, "modules": modules}

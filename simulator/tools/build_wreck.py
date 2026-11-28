@@ -71,7 +71,9 @@ def main() -> None:
     print("grid", shape, "cells", int(np.prod(shape)))
     pts = surface_samples(tris, SAMPLE)
     print("surface samples", len(pts))
-    tree = cKDTree(pts)
+    # Non-compacted bounds avoid pathological queries on dense, nearly coplanar hull samples.
+    # This changes the search index only: nearest distances remain exact (eps=0).
+    tree = cKDTree(pts, compact_nodes=False)
     gx, gy, gz = (lo[i] + H * np.arange(shape[i]) for i in range(3))
     field = np.empty(shape, np.uint8)
     for i, x in enumerate(gx):                     # slab by slab keeps memory small
