@@ -43,7 +43,10 @@ for(const name of ['SwiftShader','Intel UHD 620','NVIDIA GeForce MX110','NVIDIA 
   for(let i=0;i<9000;i++)updateRenderQuality(r,1/60);
   assert.ok(Math.abs(r.ratio-s.ceiling)<1e-9);
   assert.equal(renderQualityInfo(r).hardwareTier,s.hardware.tier);
+  configureRenderQuality(r, 'medium');
+  assert.equal(r.shadowMap.enabled, !(s.hardware.startsLow || s.hardware.tier === 'software'));
   configureRenderQuality(r,'high');const fixed=r.ratio;
+  assert.equal(r.shadowMap.enabled, true);
   for(let i=0;i<900;i++)updateRenderQuality(r,1/30);
   assert.equal(r.ratio,fixed);
 }
@@ -114,6 +117,8 @@ assert.equal(canvasAntialias('auto',{renderer:'NVIDIA GeForce RTX 4060'}),false)
   for(let i=0;i<900;i++)updateRenderQuality(first,1/30);
   assert.equal(learned.effectsSuppressed,true);
   const saved=JSON.parse(store.get('rov.quality.learned.v1'));
+  assert.equal(saved.version, 1);
+  assert.equal(saved.slowFps, 50);
   assert.equal(saved.effectsSuppressed,true);
   assert.ok(Math.abs(saved.ratio-learned.floor)<1e-9);
   const source=await readFile(new URL('../viewer/render_quality.js',import.meta.url),'utf8');

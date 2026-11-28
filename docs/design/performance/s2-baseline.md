@@ -70,7 +70,7 @@ python3 tools/browser_gpu_bench.py --profile --attribute \
 
 關閉／降頻的都是**呈現層**：儀表重畫率、網片擺動取樣、纜線管體細緻度、遠距魚剪影更新率、場景美化物件分幀載入。物理、RC 語意、SDK、協定欄位未改。
 
-## 前後對照（同機 `--check` 場景，SwiftShader）
+## 11 月 21 日前後對照（港口更新前，SwiftShader）
 
 | 場景 | draws 前→後 | 三角形 前→後 | 貼圖 MB 前→後 | JS ms 前→後 |
 |---|---:|---:|---:|---:|
@@ -85,3 +85,5 @@ python3 tools/browser_gpu_bench.py --profile --attribute \
 三角形下降主要來自纜線管體分段（240×8 → 96×5／160×6）；JS ms 下降來自 HUD／網片／魚群／纜線降頻。SwiftShader 的 fps 仍遠低於真機，僅作同機對照。
 
 `browser_gpu_bench.py --check`（收緊後的 `simulator/tools/perf_budgets.json`）：**PASS**。
+
+11 月 28 日合併新版港口（main `ad62e04`）後，重新量測了全部十個場景與視角組合。逐次計數、同機 main 對照與新版預算見 [PR #127](https://github.com/jekaihsu/rov/pull/127)。

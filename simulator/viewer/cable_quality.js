@@ -2,6 +2,18 @@
 // rebuilding thousands of vertices every frame on integrated GPUs. Options follow the live render-quality mode so a
 // mid-dive quality change takes effect on the next tube rebuild.
 
+import {detectHardware, renderQualityState, subscribeRenderQuality} from './render_quality.js';
+
+export function installCableTubeGate(cable, renderer) {
+  const gate = createCableTubeGate({
+    cable,
+    getQuality: () => renderQualityState(renderer),
+    detectHardware: () => detectHardware(renderer),
+  });
+  subscribeRenderQuality(gate.sync);
+  return gate;
+}
+
 export function cableTubeOptions(mode = 'auto', {startsLow = false} = {}) {
   if (mode === 'high' || mode === 'ultra') {
     return {radius: 0.0065, segments: 240, radial: 8, colors: true};

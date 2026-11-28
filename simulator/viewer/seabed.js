@@ -123,12 +123,12 @@ export function siteProfile(world) {
 function scanSet(profile, quality) {
   if (profile.tiles) return {};
   const low = quality === 0;
-  const set = {uBaseC: scanUniform(`${profile.base}_c`, {size: low ? 512 : 0})};
+  const set = {uBaseC: scanUniform(`${profile.base}_c`, {size: quality >= 2 ? 0 : 512})};
   if (low) return set;
   // medium: secondary and ripple maps at 512 px (they are seen further off or only as relief)
   const small = quality >= 2 ? 0 : 512;
   set.uSecondC = scanUniform(`${profile.second}_c`, {size: small});
-  set.uBaseN = scanUniform(`${profile.base}_n`);
+  set.uBaseN = scanUniform(`${profile.base}_n`, {size: small});
   set.uRippleN = scanUniform('ripple_n', {size: small});
   if (profile.rockSet) set.uRockC = scanUniform(`${profile.rockSet}_c`, {size: small});
   if (quality >= 2) {

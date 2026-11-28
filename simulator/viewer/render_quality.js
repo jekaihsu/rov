@@ -181,7 +181,10 @@ export function configureRenderQuality(renderer,mode='auto',{learn=false}={}){
   const state = {mode, ...limits, hardware, ratio, elapsed: 0, frames: 0, stable: 0, warmup: 3, effectsSuppressed,
     slowAtFloor: 0, learn, slowFps: ladder.slowFps, fastFps: ladder.fastFps, raiseHold: ladder.raiseHold};
   lastMode=mode;
-  profiles.set(renderer,state);renderer.shadowMap.enabled=['medium','high','ultra'].includes(mode);renderer.setPixelRatio(ratio);
+  profiles.set(renderer, state);
+  const mediumShadows = mode === 'medium' && !hardware.startsLow && hardware.tier !== 'software';
+  renderer.shadowMap.enabled = mediumShadows || mode === 'high' || mode === 'ultra';
+  renderer.setPixelRatio(ratio);
   notifyQuality(state);
   return state;
 }

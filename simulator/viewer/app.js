@@ -48,8 +48,7 @@ import { Fleet } from './fleet.js';
 import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
-import {updateRenderQuality, renderQualityInfo, canvasAntialias, detectHardware, renderQualityState,
-  subscribeRenderQuality} from './render_quality.js';
+import {updateRenderQuality, renderQualityInfo, canvasAntialias} from './render_quality.js';
 import {installFreeDive} from './free_dive.js';
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
@@ -90,7 +89,7 @@ import { elementSize } from './hud/canvas.js';
 import { cssVariable } from './hud/css_variables.js';
 import { createShaderWarmup } from './shader_warmup.js';
 import { createWorldBuildQueue } from './world_build_queue.js';
-import { createCableTubeGate } from './cable_quality.js';
+import { installCableTubeGate } from './cable_quality.js';
 import { isIdleCover } from './idle_cover.js';
 import { installTrailerRecording } from './trailer/recording.js';
 
@@ -243,7 +242,7 @@ const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
 let structureSet = null;                // structures.js: detailed meshes drawn inside the collision shapes
 
-const spoolStation = new SpoolStation(scene, () => loadIntroAssets());
+const spoolStation = new SpoolStation(scene, () => loadIntroAssets(), renderer);
 const worldQueue = createWorldBuildQueue({budgetMs: 8});
 let env = null;
 function buildWorld() {
@@ -317,12 +316,7 @@ const GLAND_LOCAL = new THREE.Vector3(0, .06, -.38);   // tether.py GLAND_BODY (
 let tetherTarget = [], tetherDisp = [], tetherInfo = null;
 const cable = new Cable(tubeMat);
 scene.add(cable.mesh);
-const cableTube = createCableTubeGate({
-  cable,
-  getQuality: () => renderQualityState(renderer),
-  detectHardware: () => detectHardware(renderer),
-});
-subscribeRenderQuality(() => cableTube.sync());
+const cableTube = installCableTubeGate(cable, renderer);
 const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff4757 }), 256);
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);

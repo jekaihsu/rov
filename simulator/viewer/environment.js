@@ -232,28 +232,34 @@ export class Environment {
         const a=n*ne+e,b=a+ne,c=a+1,d=b+1;
         indices.push(a,c,b,c,d,b);
       }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-      geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(indices); geo.computeVertexNormals();
-      const material = seabedMaterial(siteProfile(this.world), this.detail);
-      const terrain = new THREE.Mesh(geo,material);
-      terrain.userData.paintable=true;terrain.receiveShadow=true; this.group.add(terrain);
       // Extend clamped edge depths, matching the server's out-of-grid sampling.
       const edge = (points, outward) => {
-        const vertices=[], triangles=[], tex=[];
+        const offset = pos.length / 3;
         points.forEach(([n,e],i)=>{
           const base=new THREE.Vector3(-(t.origin[1]+e*t.spacing),-t.depths[n][e],t.origin[0]+n*t.spacing);
-          vertices.push(...base.toArray(),...base.clone().add(outward).toArray());tex.push(i,0,i,100);
-          if(i<points.length-1){const k=i*2;triangles.push(k,k+1,k+2,k+1,k+3,k+2);}
+          pos.push(...base.toArray(), ...base.clone().add(outward).toArray());
+          uv.push(i, 0, i, 100);
+          if (i < points.length - 1) {
+            const k = offset + i * 2;
+            indices.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
+          }
         });
-        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-        g.setAttribute('uv',new THREE.Float32BufferAttribute(tex,2));g.setIndex(triangles);g.computeVertexNormals();
-        const m=new THREE.Mesh(g,material);m.userData.paintable=true;m.material.side=THREE.DoubleSide;this.group.add(m);
       };
       edge(Array.from({length:ne},(_,e)=>[0,e]),new THREE.Vector3(0,0,-600));
       edge(Array.from({length:ne},(_,e)=>[nn-1,e]),new THREE.Vector3(0,0,600));
       edge(Array.from({length:nn},(_,n)=>[n,0]),new THREE.Vector3(600,0,0));
       edge(Array.from({length:nn},(_,n)=>[n,ne-1]),new THREE.Vector3(-600,0,0));
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      const material = seabedMaterial(siteProfile(this.world), this.detail);
+      material.side = THREE.DoubleSide;
+      const terrain = new THREE.Mesh(geo,material);
+      terrain.userData.paintable = true;
+      terrain.receiveShadow = true;
+      this.group.add(terrain);
       return;
     }
     // flat where the physics seabed is (the operating area), rising into dunes and banks beyond

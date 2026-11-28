@@ -1,5 +1,6 @@
 // Harbor construction and attached marine colonies, dimensioned from the collision obstacles.
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Narrow hinge, swollen umbo, paired valves and a pale growth margin along the shell lip.
 function musselValve() {
@@ -90,8 +91,9 @@ function colony(set, ob, seeded) {
   }
   const lod = new THREE.LOD();
   lod.position.set(-ob.p0[1], -middle, ob.p0[0]);
+  const reliefRange = set.detailName === 'high' ? 6 : 2.5;
   lod.addLevel(close, 0);
-  lod.addLevel(new THREE.Group(), 6);
+  lod.addLevel(new THREE.Group(), reliefRange);
   const eye = new THREE.Vector3();
   // LOD's default distance to the shaft midpoint keeps entire distant bents active near the bed.
   // Use the closest point on the vertical shaft so a camera beside either end still sees relief.
@@ -99,7 +101,7 @@ function colony(set, ob, seeded) {
     camera.getWorldPosition(eye);
     this.worldToLocal(eye);
     eye.y -= THREE.MathUtils.clamp(eye.y, -height / 2, height / 2);
-    close.visible = eye.lengthSq() < (6 + ob.radius) ** 2;
+    close.visible = eye.lengthSq() < (reliefRange + ob.radius) ** 2;
     this.levels[1].object.visible = !close.visible;
   };
   set.group.add(lod);
@@ -109,7 +111,18 @@ function colony(set, ob, seeded) {
 function pileSkin(set) {
   if (typeof document === 'undefined') return set.makeMaterial('pileConcrete');
   const loader = new THREE.TextureLoader();
-  const load = suffix => loader.load(new URL('./models/scan/harbor_growth_' + suffix + '.webp', import.meta.url).href);
+  function load(suffix) {
+    const url = new URL('./models/scan/harbor_growth_' + suffix + '.webp', import.meta.url);
+    return loader.load(url.href, function sizePileMap(texture) {
+      if (set.detailName === 'high') return;
+      const canvas = document.createElement('canvas');
+      canvas.width = texture.image.width / 2;
+      canvas.height = texture.image.height / 2;
+      canvas.getContext('2d').drawImage(texture.image, 0, 0, canvas.width, canvas.height);
+      texture.image = canvas;
+      texture.needsUpdate = true;
+    });
+  }
   const map = load('c');
   map.colorSpace = THREE.SRGBColorSpace;
   const normalMap = load('n');
@@ -122,26 +135,21 @@ function pileSkin(set) {
   return material;
 }
 
-function pileRow(set, piles, seeded, material) {
-  const geometry = new THREE.CylinderGeometry(1, 1, 1, set.detailName === 'high' ? 24 : 12, 1);
-  const uv = geometry.attributes.uv;
-  const top = piles[0].p0[2];
-  const bottom = piles[0].p1[2];
-  for (let i = 0; i < uv.count; i++) {
-    const depth = bottom + (top - bottom) * uv.getY(i);
-    uv.setY(i, (18 - depth) / 20);
-  }
-  const mesh = new THREE.InstancedMesh(geometry, material, piles.length);
-  mesh.userData = {paintable: true, role: 'solid', colliders: piles.map(ob => ob.name)};
-  const item = new THREE.Object3D();
-  for (const [i, ob] of piles.entries()) {
-    const height = ob.p1[2] - ob.p0[2];
-    item.position.set(-ob.p0[1], -ob.p0[2] - height / 2, ob.p0[0]);
-    item.scale.set(ob.radius, height, ob.radius);
-    item.rotation.y = seeded(ob.name)() * Math.PI * 2;
-    item.updateMatrix();
-    mesh.setMatrixAt(i, item.matrix);
-    set.anchor(ob, mesh);
+function buildPiles(set, piles, seeded) {
+  const radial = set.detailName === 'high' ? 24 : 12;
+  const parts = [];
+  for (const ob of piles) {
+    const [north, east, top] = ob.p0;
+    const bottom = ob.p1[2];
+    const shaft = new THREE.CylinderGeometry(ob.radius, ob.radius, bottom - top, radial, 1);
+    shaft.rotateY(seeded(ob.name)() * Math.PI * 2);
+    shaft.translate(-east, -(top + bottom) / 2, north);
+    const {uv} = shaft.attributes;
+    for (let i = 0; i < uv.count; i++) {
+      const depth = bottom + (top - bottom) * uv.getY(i);
+      uv.setY(i, (18 - depth) / 20);
+    }
+    parts.push(shaft);
     if (ob.p0[2] > 0) {
       // The cut-off dolphins end underwater. Their capsule crown is exposed to the hull and tether.
       const crown = new THREE.SphereGeometry(ob.radius, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -150,6 +158,10 @@ function pileRow(set, piles, seeded, material) {
     }
     colony(set, ob, seeded);
   }
+  const mesh = new THREE.Mesh(mergeGeometries(parts), pileSkin(set));
+  for (const part of parts) part.dispose();
+  mesh.userData = {paintable: true, role: 'solid', colliders: piles.map(ob => ob.name)};
+  for (const ob of piles) set.anchor(ob, mesh);
   set.group.add(mesh);
 }
 export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
@@ -173,17 +185,8 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
     for (const ob of tread) consumed.add(ob.name);
   }
   const piles = obstacles.filter(ob => ob.kind === 'pile');
-  const rows = new Map();
-  for (const ob of piles) {
-    const key = [ob.p0[2], ob.p1[2]].join();
-    if (!rows.has(key)) rows.set(key, []);
-    rows.get(key).push(ob);
-    consumed.add(ob.name);
-  }
-  if (rows.size) {
-    const skin = pileSkin(set);
-    for (const row of rows.values()) pileRow(set, row, seeded, skin);
-  }
+  if (piles.length) buildPiles(set, piles, seeded);
+  for (const ob of piles) consumed.add(ob.name);
   const solids = [];
   const metal = [];
   const roof = [];
