@@ -18,8 +18,8 @@ FLIGHTS = {
 }
 # NED camera stations and subjects in the fictional worksite.
 STATIONS = {
-    'overview': ((-1.45, -.72, 12.73), (0, -.72, 12.89)),
-    'close': ((-1.4, .72, 12.62), (0, .72, 12.79)),
+    'overview': ((-1.85, -.72, 12.43), (0, -.72, 12.89)),
+    'close': ((-1.85, .72, 12.43), (0, .72, 12.79)),
     'haul': ((1, 2, 11.6), (2, 2.9, 11.7)),
     'frame': ((-.45, 2.35, 12.37), (1.3, 2.16, 12.78)),
     'retreat': ((-3.2, 2, 12), (-5, 2, 12)),
@@ -52,19 +52,25 @@ def fly(page, chapter):
                   chapter)
     page.wait_for_function('id=>window.__viewer.S.campaign.chapter === id', arg=chapter, timeout=timeout(90000))
     frames = []
-    held = set()
-    last_press = 0
+    previous_heading = None
+    last_press = -10
+    next_trace = 0
+    channels = page.evaluate("""async () => {
+        const {axisChannel} = await import('/input/bindings.js');
+        const {currentOperationMode} = await import('/input/keyboard_layout.js');
+        return Object.fromEntries(['surge','sway','yaw','heave'].map(axis => [axis, axisChannel(axis, currentOperationMode())]));
+    }""")
     photo_beats = {"frame": "housing", "overview": "shore_end", "close": "sea_end"}
     deadline = time.monotonic() + timeout(420000) / 1000
     while time.monotonic() < deadline:
         state = page.evaluate("""() => {const s=window.__viewer.S;
-          return {beat:s.campaign.node?.id,status:s.campaign.status,pos:s.pos,yaw:s.euler[2],locked:s.locked,
+          return {beat:s.campaign.node?.id,status:s.campaign.status,t:s.t,pos:s.pos,vel:s.vel,yaw:s.euler[2],locked:s.locked,
             light:s.rc.right_switch,report:s.repair_report};}""")
         if state['status'] == 'completed':
             break
         beat = state['beat']
         if beat not in [name for _, name in frames]:
-            print(chapter, beat, state['pos'], flush=True)
+            print(chapter, beat, state['pos'], state['report'], flush=True)
             path = out / (beat + '.jpg')
             if beat in ('watch', 'bay', 'crosscheck') or (chapter == 'c4_frame' and beat == 'receipt'):
                 page.locator(f'[data-beat="{beat}"] .cable-work-order').wait_for()
@@ -76,38 +82,50 @@ def fly(page, chapter):
             elif beat not in photo_beats:
                 capture(page, path)
             frames.append((path, beat))
-        want = set()
+        sticks = dict(surge=0., sway=0., yaw=0., heave=0.)
         tap = None
         if beat in STATIONS:
             station, subject = STATIONS[beat]
             x, y, z = state['pos']
-            travelling = math.hypot(station[0]-x, station[1]-y) > .65
-            n, e, _ = station if travelling else subject
-            error = (math.degrees(math.atan2(e-y, n-x)) - state['yaw'] + 540) % 360 - 180
+            north, east = station[0] - x, station[1] - y
+            yaw = math.radians(state['yaw'])
+            forward = north * math.cos(yaw) + east * math.sin(yaw)
+            right = -north * math.sin(yaw) + east * math.cos(yaw)
+            u, v, w = state['vel']
+            bearing = math.degrees(math.atan2(subject[1] - y, subject[0] - x))
+            error = (bearing - state['yaw'] + 540) % 360 - 180
             if state['locked']:
                 tap = 'lock'
             elif not state['light']:
                 tap = 'light'
             else:
-                if abs(error) > 7:
-                    want.add(keys['yaw'][int(error < 0)])
-                if travelling and abs(error) < 20:
-                    want.add(keys['surge'][0])
-                if abs(z-station[2]) > .15:
-                    want.add(keys['heave'][int(station[2] > z)])
-                if not travelling and abs(error) < 13 and beat in ('frame', 'overview', 'close'):
+                yaw_rate = 0
+                if previous_heading and state['t'] > previous_heading[0]:
+                    turn = (state['yaw'] - previous_heading[1] + 540) % 360 - 180
+                    yaw_rate = turn / (state['t'] - previous_heading[0])
+                sticks.update(surge=.55 * forward - 1.2 * u, sway=.6 * right - 1.3 * v,
+                              yaw=(error - .65 * yaw_rate) / 53, heave=.85 * (z - station[2]) + 1.3 * w)
+                if (beat in photo_beats and math.hypot(north, east) < .72
+                        and abs(z - station[2]) < .3 and abs(error) < 14):
                     tap = 'photo'
-        for key in held - want:
-            page.keyboard.up(key)
-        for key in want - held:
-            page.keyboard.down(key)
-        held = want
-        if tap and time.monotonic() - last_press > .8:
-            page.keyboard.press(keys[tap])
-            last_press = time.monotonic()
-        page.wait_for_timeout(100)
-    for key in held:
-        page.keyboard.up(key)
+        if previous_heading is None or state['t'] > previous_heading[0]:
+            previous_heading = (state['t'], state['yaw'])
+        if beat in STATIONS and state['t'] >= next_trace:
+            next_trace = state['t'] + 10
+            print('pilot', beat, state['t'], state['pos'], state['yaw'], tap, flush=True)
+        # The published viewer harness exposes the touch joystick. Its channels feed the
+        # same input curve, websocket heartbeat, mixer and thrusters as the physical pad.
+        axes = {channels[axis]['channel']: channels[axis]['sign'] * max(-.65, min(.65, value))
+                for axis, value in sticks.items()}
+        page.evaluate('axes => Object.assign(window.__viewer.touch, axes)', axes)
+        if tap and state['t'] - last_press > 1:
+            if tap == 'photo':
+                page.evaluate('() => window.__viewer.takePhoto()')
+            else:
+                page.keyboard.press(keys[tap])
+            last_press = state['t']
+        page.wait_for_timeout(80)
+    page.evaluate('() => { const touch = window.__viewer.touch; for (const key in touch) touch[key] = 0; }')
     assert state['status'] == 'completed', state
     assert [name for _, name in frames] == expected.split(), frames
     print(chapter, state['report'], flush=True)
