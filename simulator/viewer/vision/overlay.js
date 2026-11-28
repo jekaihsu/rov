@@ -100,10 +100,10 @@ export function installVision({send, canvas, getContext}) {
   const api = {detections: [], truth: [], overlay};
   Object.defineProperty(api, 'enabled', {
     get: function enabled() {
-      return fidelity.get(VISION_ITEM) === true;
+      return window.rovDesktop?.edition !== 'steam' && fidelity.get(VISION_ITEM) === true;
     },
     set: function setEnabled(value) {
-      fidelity.set(VISION_ITEM, !!value);
+      if (window.rovDesktop?.edition !== 'steam') fidelity.set(VISION_ITEM, !!value);
     },
   });
   function toggle() {

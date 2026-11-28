@@ -1,5 +1,6 @@
 // Training screen: internal course map (S6), story chapters, incident drills, and
 // scenario training. The course map is hidden on the Steam edition.
+import { internalLabel } from './front_page.js';
 import { chapterStatus, chaptersByCategory, trainingScenarios } from './catalogue.js';
 import { chapterCard, scenarioCard } from './cards.js';
 import { createSettingsPanel } from './settings.js';
@@ -102,8 +103,8 @@ export function buildTraining(ctx) {
     });
   }
 
-  tabs.push(
-    {
+  if (isInternalEdition()) {
+    tabs.push({
       id: 'story',
       label: STRINGS.tabs.story,
       mount: list(STRINGS.storyHelp, function storyRows() {
@@ -111,7 +112,9 @@ export function buildTraining(ctx) {
         if (ctx.replayColdOpen) rows.push(replayCard(rows.length, ctx.replayColdOpen));
         return rows;
       }),
-    },
+    });
+  }
+  tabs.push(
     {
       id: 'drills',
       label: STRINGS.tabs.drills,
@@ -147,6 +150,18 @@ export function buildTraining(ctx) {
     });
   }
 
+  if (isInternalEdition()) {
+    tabs.push({
+      id: 'internal',
+      label: internalLabel(),
+      mount(pane) {
+        const open = element('button', 'bp-primary', internalLabel());
+        open.id = 'openInternal';
+        open.onclick = function openTools() { ctx.go('internal'); };
+        pane.append(open);
+      },
+    });
+  }
   const panel = createSettingsPanel({
     idPrefix: 'training',
     tabs,

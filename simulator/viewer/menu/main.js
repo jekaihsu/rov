@@ -20,6 +20,8 @@ import {
 // Registers the 下水流程 fidelity item so the launch menu's fidelity panel lists it.
 import '../procedure/fidelity_item.js';
 import { buildBriefing, buildHangar, buildMain, buildModes, buildSites, buildTitle } from './screens.js';
+import { assignment, backdropChapter, backdropScene, buildFrontPage, buildStory } from './front_page.js';
+import { steamEdition } from './edition.js';
 import { buildTraining } from './training.js';
 import { buildMultiplayer } from './multiplayer.js';
 import { buildLaunchSettings } from './launch_settings.js';
@@ -67,7 +69,7 @@ const ROUTES = {
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
-const SHOWCASE_SCREENS = new Set(['title', 'main', 'settings', 'multiplayer', 'training', 'shop']);
+const SHOWCASE_SCREENS = new Set(['title', 'internal', 'settings', 'multiplayer', 'training', 'shop']);
 const music = installMusic({ engine: installAudio() });
 
 function element(tag, className, text) {
@@ -248,6 +250,7 @@ const navigator = createMenuNavigator({
 });
 
 function show(name) {
+  if (!screens[name]) return;
   const previous = screens[current];
   previous?.leave?.();
   if (previous) delete previous.element.dataset.active;
@@ -268,7 +271,14 @@ function show(name) {
 }
 // A screen with sceneKey() names the site behind it (the focused contract's); the others keep the chosen site.
 function showBackdrop(name) {
-  if (SHOWCASE_SCREENS.has(name)) {
+  if (name === 'main' || name === 'story') {
+    clearTimeout(previewTimer);
+    backdrop.hide();
+    const next = assignment(ctx.career);
+    const chapter = backdropChapter(ctx.career, next);
+    const key = backdropScene(ctx.career, next);
+    stage.setScene(sceneFor(key), { journal: chapter });
+  } else if (SHOWCASE_SCREENS.has(name)) {
     clearTimeout(previewTimer);
     backdrop.hide();
     stage.setScene(sceneFor(SHOWCASE.scene), { showcase: true });
@@ -276,6 +286,7 @@ function showBackdrop(name) {
   else if (stage.showcase) stage.setScene(sceneFor(choice.scenario) || data.sites[0]);
 }
 function go(name) {
+  if (!screens[name]) return;
   if (current && current !== name) history.push(current);
   show(name);
 }
@@ -328,6 +339,7 @@ function lastSummary() {
 }
 // replay: 重玩開場 from the story list (story/cold_open_menu.js); it does not become the 快速開始 session.
 function launch({ replay = false } = {}) {
+  if (menu.classList.contains('departing')) return;
   let url;
   try {
     const prologue = { mission: 'campaign', chapter: 'prologue', scenario: 'tutorial_pool' };
@@ -340,14 +352,20 @@ function launch({ replay = false } = {}) {
   if (!replay) rememberChoice(choice);
   setStatus(STRINGS.launching);
   menu.classList.add('departing');
+  navigator.setActive(false);
+  installAudio().cue('complete');
   stage.setPose('launch');
   music.setScreen(null);
   setTimeout(function leaveMenu() {
+    // Drop the menu WebGL scene before the navigation so a slow assign does not keep drawing it
+    // beside the dive (software GL then doubles frame time and trips the input failsafe).
+    stage.dispose();
     location.assign(url);
   }, reduced ? 0 : 650);
 }
 
 const ctx = {
+  steamEdition,
   choice,
   data,
   stage,
@@ -477,15 +495,21 @@ const ctx = {
 
 const careerMenu = await installCareerMenu(ctx, screens);
 screens.title = buildTitle(ctx);
-screens.main = buildMain(ctx);
-screens.modes = buildModes(ctx);
+screens.main = buildFrontPage(ctx);
+if (!steamEdition) screens.internal = buildMain(ctx);
+if (!steamEdition) screens.modes = buildModes(ctx);
 screens.hangar = buildHangar(ctx);
 screens.sites = buildSites(ctx);
 screens.briefing = buildBriefing(ctx);
 screens.training = buildTraining(ctx);
-screens.multiplayer = buildMultiplayer(ctx);
+if (!steamEdition) screens.multiplayer = buildMultiplayer(ctx);
 screens.settings = buildLaunchSettings(ctx);
 Object.assign(screens, careerMenu.buildScreens());
+screens.story = buildStory(ctx);
+if (steamEdition) {
+  delete screens.board;
+  choice.sticker = 'none';
+}
 for (const screen of Object.values(screens)) stack.append(screen.element);
 installBrandMenu({ menu, getModel: () => choice.model });
 
@@ -511,6 +535,10 @@ navigator.start();
 function openRequestedScreen() {
   const query = new URLSearchParams(location.search);
   const requested = query.get('menu');
+  if (requested === 'main' || (steamEdition && requested === 'board')) {
+    go('main');
+    return;
+  }
   if (requested === 'shop') {
     go('main');
     ctx.openShop();
@@ -523,7 +551,8 @@ function openRequestedScreen() {
   }
   if (requested !== 'training') return;
   go('main');
-  ctx.openTraining(query.get('tab') || 'courses');
+  if (steamEdition && query.get('tab') === 'story') go('story');
+  else ctx.openTraining(query.get('tab') || 'courses');
 }
 
 window.__menu = {

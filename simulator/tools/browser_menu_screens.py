@@ -14,7 +14,7 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, set_intro, to_briefing, wait_ready, wait_screen
+from _menu import open_internal, open_main, set_intro, to_briefing, wait_ready, wait_screen
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'docs' / 'design' / 'menu-redesign'
@@ -98,6 +98,7 @@ def run():
         wait_screen(page, 'main')
         press(page, 13)
         save(page, '02-main-gamepad-focus')
+        open_internal(page)
         page.click('#entry-dive')
         wait_screen(page, 'modes')
         save(page, '03-modes')
@@ -118,7 +119,8 @@ def run():
         wait_screen(page, 'briefing')
         save(page, '07-briefing', settle=2500)
         open_main(page)
-        page.click('#entry-story')
+        page.click('#entry-training')
+        page.click('#training-tab-story')
         wait_screen(page, 'training')
         save(page, '08-training-story')
         page.click('#training-tab-drills')
@@ -131,7 +133,7 @@ def run():
         for index, tab in enumerate(['fidelity', 'controls', 'audio', 'quality', 'interface']):
             page.click(f'#menuSettings-tab-{tab}')
             save(page, f'{11 + index}-settings-{tab}')
-        open_main(page)
+        open_internal(page)
         page.click('#menuCollection')
         page.wait_for_selector('dialog.collection-panel[open]')
         save(page, '16-collection')
@@ -142,7 +144,7 @@ def run():
         mate.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room={ROOM}&play=1&nointro&name=%E9%9A%8A%E5%8F%8BA'
                   '&model=bluerov2_heavy&quality=performance')
         mate.wait_for_function('window.__viewer?.S?.vehicle_id', timeout=timeout(120000))
-        open_main(page)
+        open_internal(page)
         page.click('#entry-multiplayer')
         wait_screen(page, 'multiplayer')
         page.wait_for_selector('#mpPlayers li', timeout=timeout(30000))

@@ -182,7 +182,7 @@ export function buildTitle(ctx) {
 }
 
 export function buildMain(ctx) {
-  const root = screen('main', STRINGS.title);
+  const root = screen('internal', STRINGS.title);
   root.classList.add('bp-screen');
   const list = element('nav', 'menu-list');
   const targets = {
@@ -221,7 +221,7 @@ export function buildMain(ctx) {
     if (key === 'teamTraining' && !internal) return;
     const button = element('button', 'menu-entry');
     button.type = 'button';
-    button.id = ids[key] || `entry-${key}`;
+    button.id = ids[key] || (['story', 'training', 'settings'].includes(key) ? 'internal-' : 'entry-') + key;
     button.dataset.entry = key;
     button.title = help;
     if (MINOR_ENTRIES.has(key)) button.classList.add('menu-entry-minor');
@@ -375,7 +375,7 @@ export function buildHangar(ctx) {
   next.addEventListener('click', function proceed() {
     ctx.afterHangar();
   });
-  hero.chips.replaceWith(picker, stickers);
+  hero.chips.replaceWith(picker, ...(ctx.steamEdition ? [] : [stickers]));
   hero.actions.append(next, detailButton('hangarDetails', sheet));
   root.append(hero.element);
   function render() {

@@ -508,6 +508,12 @@ function rowLabel(row, mode) {
   return STRINGS.meanings[meaning.axis][meaning.sign < 0 ? 1 : 0];
 }
 
+// Retail builds omit bindings for internal inspection tools from the player-facing controls.
+export function visibleAction(action) {
+  const internal = ['engineering', 'visionToggle', 'visionMark'];
+  return globalThis.window?.rovDesktop?.edition !== 'steam' || !internal.includes(action);
+}
+
 // One entry per action for on-screen help: every key and pad source that the table declares.
 // rows: the binding table with the active keyboard layout (keyboardRows); operationMode names the stick channels.
 export function hintItems({
@@ -516,7 +522,7 @@ export function hintItems({
 } = {}) {
   const items = [];
   for (const row of rows) {
-    if (!contexts.includes(row.context) || (!axes && row.axis)) continue;
+    if (!visibleAction(row.action) || !contexts.includes(row.context) || (!axes && row.axis)) continue;
     const keys = [...new Set((row.keys || []).map(keyLabel))];
     const source = bindings && row.action in bindings ? bindings[row.action] : row.pad;
     let pad = source ? padLabel(source, faces) : "";

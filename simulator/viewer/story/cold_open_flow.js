@@ -66,7 +66,7 @@ export function isNewGame(profile = {}, record = loadColdOpen()) {
 
 /**
  * The game URL that plays the cold open, from the URL that would have launched the follow-up (the prologue).
- * replay: plays it again from the story list; it may be skipped and returns to that list afterwards.
+ * A first play keeps that follow-up in `next` (三個月前 → prologue). A replay returns to the main menu.
  */
 export function coldOpenUrl(followUp, {replay = false} = {}) {
   const url = new URL(followUp);
@@ -81,10 +81,11 @@ export function coldOpenUrl(followUp, {replay = false} = {}) {
   for (const name of ['contract', 'exam', 'procedure']) url.searchParams.delete(name);
   if (replay) {
     for (const name of [...next.searchParams.keys()]) next.searchParams.delete(name);
-    next.searchParams.set('menu', 'training');
-    next.searchParams.set('tab', 'story');
+    next.searchParams.set('menu', 'main');
     const ws = url.searchParams.get('ws');
     if (ws) next.searchParams.set('ws', ws);
+    const lang = url.searchParams.get('lang');
+    if (lang) next.searchParams.set('lang', lang);
   }
   url.searchParams.set(NEXT, next.search);
   return url;
@@ -101,6 +102,6 @@ export function followUpUrl(href) {
   const next = url.searchParams.get(NEXT);
   const target = new URL(url.pathname, url.origin);
   if (next && next.startsWith('?')) target.search = next;
-  else target.search = '?menu=training&tab=story';
+  else target.search = '?menu=main';
   return target.href;
 }
