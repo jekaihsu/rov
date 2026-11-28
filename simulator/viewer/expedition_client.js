@@ -41,7 +41,8 @@ export function installExpeditionClient({send,capture,getState,getWorld,getSessi
           reason=result?.reason||response.message||'已保存照片。';
         }
       }else if(!readOnly&&recordCamera&&!freeDive?.()){
-        send({type:'operation',action:'mission_photo'});
+        const repair = world?.scenario?.key === 'cable_repair' || world?.scenario?.key === 'cable_perimeter';
+        send({type:'operation',action:'mission_photo', ...(repair && globalThis.crypto?.randomUUID ? {photo_id: photoId} : {})});
       }
       function store(entry) {
         observation = entry;

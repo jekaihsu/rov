@@ -1,10 +1,12 @@
 // Stage the training watch against the host's active beat and live vehicle telemetry.
+import {showCableHandover} from './cable_handover.js';
 import * as THREE from 'three';
 import {playBoard} from './cinematic/player.js';
 import {beatDecision, idleReminder} from './beat_director.js';
 import {createBeatStage, establishingShot, presentStage} from './beat_stage.js';
 import {createCinematicLook} from './cutscene_look.js';
-import {STRINGS} from './prologue_copy.js';
+import {STRINGS as POOL} from './prologue_copy.js';
+import {STRINGS as CABLE} from './cable_copy.js';
 import {actionCaps, axisCaps} from '../play/onboarding.js';
 import {deviceFamily} from '../input/glyphs.js';
 import {installVoice} from '../audio/voice.js';
@@ -52,6 +54,9 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   let playback;
   let filmEnded;
   let stage;
+  let chapter;
+  let removeInsert;
+  let STRINGS = POOL;
   let beat;
   let entered;
   let reminded;
@@ -86,6 +91,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     playback?.abort();
     playback = null;
     filmEnded = false;
+    removeInsert?.();
+    removeInsert = s.repair_report && node.cinematic ? showCableHandover(stage, s) : null;
     beat = node;
     entered = s.campaign.beat_since;
     lastInput = s.t;
@@ -117,7 +124,11 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
       playBoard(beat.storyboard, {signal: playback.signal, onEnd() { filmEnded = true; }});
       return;
     }
-    if (s.campaign.missed && !beat.card) {
+    if (beat.id === 'receipt' && s.repair_report) {
+      const records = s.repair_report.observations;
+      const complete = chapter === 'c4_frame' ? records.housing : records.shore_end && records.sea_end;
+      say(complete ? beat.radio : 'partial', s.t);
+    } else if (s.campaign.missed && !beat.card) {
       say('miss', s.t);
       nextLineAt = s.t + 2.6;
     } else if (!beat.card) say(beat.radio, s.t, s.campaign.accepted);
@@ -137,6 +148,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     playback?.abort();
     playback = null;
     if (!stage) return;
+    removeInsert?.();
+    removeInsert = null;
     if (look.active) setCam('onboard');
     look.release();
     music.cue(null);
@@ -163,10 +176,16 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   function update(s) {
     const c = s.campaign;
     if (!c?.directed || c.status !== 'active') return clear();
+    if (chapter !== c.chapter) clear();
     if (!stage) {
-      stage = createBeatStage('prologue', [STRINGS.site, STRINGS.sub], '');
+      chapter = c.chapter;
+      const cable = chapter === 'c4_sheets' || chapter === 'c4_frame';
+      STRINGS = cable ? {...POOL, ...CABLE} : POOL;
+      const index = chapter === 'c4_sheets' ? '1' : '2';
+      const location = cable ? [CABLE['site' + index], CABLE['sub' + index]] : [POOL.site, POOL.sub];
+      stage = createBeatStage(cable ? chapter : 'prologue', location, '');
       plates = c.plates.map(({id, target}) => wallPlate(id, target));
-      scene.add(...plates);
+      if (plates.length) scene.add(...plates);
     }
     if (beat?.id !== c.node.id || s.t < entered) enter(c.node, s);
     if (beat.storyboard && !filmEnded) return;
@@ -218,7 +237,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     stage.stamp.classList.toggle('visible', s.t < stampedUntil);
     stage.radio.classList.toggle('speaking', s.t < radioUntil && !beat.card);
     const next = beat.storyboard ? beat.next
-      : beatDecision(beat, age, {...s, drift: c.drift, framedPhoto: c.framedPhoto});
+      : beatDecision(beat, age, {...s, drift: c.drift, framedPhoto: c.framedPhoto, surveyPhotos: c.surveyPhotos});
     if (next && host && s.t >= retryAt) {
       retryAt = s.t + 0.4;
       send({type: 'operation', action: 'campaign_advance', beat: beat.id, next});

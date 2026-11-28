@@ -77,10 +77,12 @@
   "procedure.index",
   "story.campaign",
   "story.cinematic",
+  "story.cable_copy",
   "story.cold_open",
   "story.cold_open_menu",
   "story.feel_settings",
   "story.flight_feedback",
   "story.prologue_copy",
+  "story.repair_report",
   "vision.overlay"
 ]

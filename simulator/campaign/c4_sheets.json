@@ -1,0 +1,273 @@
+{
+  "id": "c4_sheets",
+  "title": "第四章｜兩頁底片",
+  "scenario": "cable_repair",
+  "mode": "scenario_training",
+  "category": "story",
+  "order": 90,
+  "requires": "finale",
+  "nodes": [
+    {
+      "id": "watch",
+      "type": "dialogue",
+      "text_key": "watch",
+      "speaker_key": "gu"
+    },
+    {
+      "id": "overview",
+      "type": "dialogue",
+      "text_key": "overview",
+      "speaker_key": "yu"
+    },
+    {
+      "id": "overview_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "overview"
+    },
+    {
+      "id": "overview_pass",
+      "type": "branch",
+      "condition": {
+        "path": "repair_report.observations.shore_end.t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "close"
+    },
+    {
+      "id": "overview_until",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "lt",
+        "value": 85
+      },
+      "target": "overview_poll"
+    },
+    {
+      "id": "close",
+      "type": "dialogue",
+      "text_key": "close",
+      "speaker_key": "tender"
+    },
+    {
+      "id": "close_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "close"
+    },
+    {
+      "id": "close_pass",
+      "type": "branch",
+      "condition": {
+        "path": "repair_report.observations.sea_end.t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "haul"
+    },
+    {
+      "id": "close_until",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "lt",
+        "value": 165
+      },
+      "target": "close_poll"
+    },
+    {
+      "id": "haul",
+      "type": "dialogue",
+      "text_key": "haul",
+      "speaker_key": "gu"
+    },
+    {
+      "id": "haul_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "haul"
+    },
+    {
+      "id": "haul_pass",
+      "type": "branch",
+      "condition": {
+        "path": "repair_report.recovery_seen",
+        "op": "eq",
+        "value": true
+      },
+      "target": "receipt_check"
+    },
+    {
+      "id": "haul_until",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "lt",
+        "value": 205
+      },
+      "target": "haul_poll"
+    },
+    {
+      "id": "receipt_check",
+      "type": "branch",
+      "condition": {
+        "path": "repair_report.observations.sea_end.t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "receipt"
+    },
+    {
+      "id": "partial",
+      "type": "dialogue",
+      "text_key": "partial",
+      "speaker_key": "gu"
+    },
+    {
+      "id": "after_partial",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "crosscheck"
+    },
+    {
+      "id": "receipt",
+      "type": "dialogue",
+      "text_key": "receipt",
+      "speaker_key": "gu"
+    },
+    {
+      "id": "crosscheck",
+      "type": "dialogue",
+      "text_key": "crosscheck",
+      "speaker_key": "gu"
+    }
+  ],
+  "beats": [
+    {
+      "id": "watch",
+      "radio": "line1",
+      "speaker": "gu",
+      "limit": 5,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "location": true,
+      "cinematic": true,
+      "next": "overview"
+    },
+    {
+      "id": "overview",
+      "radio": "overview",
+      "speaker": "yu",
+      "limit": 80,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "condition": {
+        "path": "surveyPhotos.shore_end.t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint": "photo",
+      "idle": 14,
+      "reminder": "again",
+      "next": "close"
+    },
+    {
+      "id": "close",
+      "radio": "close",
+      "speaker": "tender",
+      "limit": 80,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "condition": {
+        "path": "surveyPhotos.sea_end.t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint": "photo",
+      "idle": 14,
+      "reminder": "again",
+      "next": "haul"
+    },
+    {
+      "id": "haul",
+      "radio": "haul",
+      "speaker": "gu",
+      "limit": 40,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "surge",
+      "condition": {
+        "path": "repair_report.recovery_seen",
+        "op": "eq",
+        "value": true
+      },
+      "next": "receipt",
+      "idle": 14,
+      "reminder": "haul"
+    },
+    {
+      "id": "receipt",
+      "radio": "signed",
+      "speaker": "gu",
+      "limit": 6,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "next": "crosscheck"
+    },
+    {
+      "id": "crosscheck",
+      "radio": "followup",
+      "speaker": "gu",
+      "limit": 7,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "cinematic": true,
+      "next": "done"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "watch": "風場那頁收好了。電信方已隔離，船方放行。",
+      "overview": "看泥脊走向。把岸側斷端和溝邊收進同一張。",
+      "close": "海側外皮也要近照。橫流在推，留一點離底高度。",
+      "haul": "看見回收繩了，到繩外側報位。吊重交給甲板。",
+      "receipt": "時間對上了。這頁我簽。",
+      "crosscheck": "翌班核對回收段與海事紀錄。事故單已填「船錨拖斷」。",
+      "lin": "林岑",
+      "tender": "周楷",
+      "gu": "谷弦",
+      "yu": "余禾",
+      "partial": "原片交存。未查區圈起來，補查班另署名。"
+    }
+  }
+}

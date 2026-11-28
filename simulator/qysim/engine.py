@@ -157,6 +157,8 @@ class Simulator:
         self.operation_mode = "ROV_USA"
         self.shaping = Shaping()
         self.camera = CameraState()
+        self.repair_evidence = {}
+        self.deck_fix_interval = []
         self.battery = 100.0
         self.link = CommsLink(getattr(sc, "link", None))
         self.power = PowerSystem(self.model_id)
@@ -440,11 +442,13 @@ class Simulator:
         self.camera.files.append(f)
         return f
 
-    def _take_photo(self) -> dict:
+    def _take_photo(self, photo_id=None) -> dict:
         f = self._new_file("SING", "JPG")
         ensure_mission(self).photo(self)
         from .aquaculture import photo
         photo(self)
+        if self.scenario.biome == "cable_repair":
+            sc_mod.cable_repair.record_survey_photo(self, f["name"], photo_id)
         self._log("photo", f"拍照 {f['name']} @ {self.depth:.1f} m")
         return f
 
@@ -981,6 +985,8 @@ class Simulator:
             "depth_hold": None if self.controller.depth_hold is None else round(self.controller.depth_hold, 2),
             "battery": round(self.battery_percent, 1), "power": self.power.state(self), "recording": self.camera.recording_since is not None,
             "photos": sum(1 for f in self.camera.files if f["name"].endswith("JPG")),
+            **({"repair_report": sc_mod.cable_repair.survey_report(self)}
+               if self.scenario.biome == "cable_repair" else {}),
             "current_here": [round(float(x), 3) for x in cur],
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
             "tether": self.tether.state(),

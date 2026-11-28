@@ -136,6 +136,16 @@
       "number": "Advanced course / A04",
       "client": "YX · Training Centre",
       "sub": "COURSE · FINAL ASSESSMENT"
+    },
+    "c4_sheets": {
+      "number": "Chapter 4 / 01",
+      "client": "Telecom · Deck watch",
+      "sub": "CABLE · DAMAGE SURVEY"
+    },
+    "c4_frame": {
+      "number": "Chapter 4 / 02",
+      "client": "Repair vessel · Safety team",
+      "sub": "CABLE · PERIMETER SURVEY"
     }
   }
 }

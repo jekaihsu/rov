@@ -3,5 +3,5 @@
 const ACOUSTIC_SEARCH = 'sonar_search';
 
 export function hidesTargets(world) {
-  return world?.scenario?.key === ACOUSTIC_SEARCH;
+  return [ACOUSTIC_SEARCH, 'cable_repair', 'cable_perimeter'].includes(world?.scenario?.key);
 }

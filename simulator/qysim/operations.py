@@ -133,7 +133,13 @@ class VehicleOperations:
                 return ensure_expedition(sim).command(sim, action, msg)
             elif action == "mission_photo":
                 from .mission_modes import ensure_mission
-                photo = sim._take_photo()
+                from uuid import UUID
+                photo_id = msg.get("photo_id")
+                if photo_id is not None and sim.scenario.biome == "cable_repair":
+                    photo_id = str(UUID(str(photo_id)))
+                else:
+                    photo_id = None
+                photo = sim._take_photo(photo_id)
                 return {"ok": True, "action": action, "file": photo, "mission": ensure_mission(sim).state(sim)}
             elif action == "paint":
                 return self._paint(msg)

@@ -180,6 +180,15 @@ const CHAPTERS = {
       path('mast', 'M56 94L68 38L88 48', 'fine'),
     ],
   },
+  // Broken armoured cable in profile, with a transverse scour under the gap.
+  cable: {
+    accent: [64, 60],
+    parts: [
+      path('sheath', 'M7 80L46 60L49 65L10 85ZM76 48L109 32L112 38L79 54Z'),
+      path('armour', 'M46 60L51 53L57 51M48 62L57 57M49 65L58 66M76 48L67 46M78 51L70 55M79 54L75 62', 'fine'),
+      path('bed', 'M8 92L44 75Q54 74 57 79T71 79Q77 72 82 71L111 62', 'fine'),
+    ],
+  },
   // Night recovery: the waterline, the lift line with its hook, the moon.
   night: {
     accent: [60, 88],

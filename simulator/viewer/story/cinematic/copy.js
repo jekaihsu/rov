@@ -2,6 +2,9 @@
 import {localize} from '../../i18n/index.js';
 
 export const STRINGS = localize('story.cinematic', {
+  "cable_night": "夜班交接",
+  "innerBay": "礫環海峽 · 內灣",
+  "nextLift": "船影又繞回來了。明早吊班順延。",
   "harbor": "重看過場 · 清晨出港",
   "strait": "重看過場 · 海峽航圖",
   "port": "外港錨地",

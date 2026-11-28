@@ -172,3 +172,8 @@ their lettering, border and scale bars on a canvas in `story/prologue.js`.
 
 港景、分區窗燈、四型船影、ROV、纜線、浮標、虛構海峽圖與「潮窗」播報圖形皆由
 `story/cinematic/` 以程式繪製。環境聲由既有環境音軌合成，配樂沿用上列遊戲曲目。
+
+### K4 海纜修復現場
+
+海床高度場、斷纜鋼線、保護套、無標記外殼及回收佈置均為本專案原創程序幾何（CC0）。
+場景使用既有船殼、鏈環、附著生物及材質，原素材授權見本文件各項。

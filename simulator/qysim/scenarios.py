@@ -16,6 +16,7 @@ import numpy as np
 import json
 from pathlib import Path
 
+from . import cable_repair
 from . import site_dressing as dressing
 from .fleet_names import WRECK_NAME
 from .flow import Tide
@@ -623,6 +624,8 @@ LIBRARY = {
     "incident_compass": incident_compass,
     "incident_current": incident_current,
 
+    "cable_perimeter": cable_repair.perimeter_site,
+    "cable_repair": cable_repair.repair_site,
     "tutorial_pool": tutorial_pool,
     "sonar_search": sonar_search,
     "open_water": open_water,
@@ -717,6 +720,9 @@ class Scorer:
         if ob.kind.startswith("pen_"):
             from .aquaculture import update_objective
             update_objective(self, ob, sim)
+        elif ob.kind == "survey_photo":
+            ob.done = ob.target in sim.repair_evidence
+            ob.progress = float(ob.done)
         elif ob.kind in ("checkpoint", "surface"):
             if np.linalg.norm(pos - np.asarray(ob.point)) < ob.radius:
                 ob.done, ob.progress = True, 1.0

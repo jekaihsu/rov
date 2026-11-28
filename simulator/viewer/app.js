@@ -9,6 +9,7 @@ import { cableTensionColor } from './tether/snag_focus.js';
 import { installProcedure } from './procedure/index.js';
 import { rotorRate } from './procedure/deck_flow.js';
 import { createSonar } from './sonar/panel.js';
+import {updateRepairReport} from './story/repair_report.js';
 import { hidesTargets } from './sonar/scenario.js';
 import {visionTargets} from './vision/targets.js';
 import {installVision} from './vision/overlay.js';
@@ -589,6 +590,7 @@ function onState(m) {
     if (activeStoryboard(m)) ws?.release?.();
     else if (activeStoryboard(S)) needResync = true;
   }
+  updateRepairReport(m.repair_report);
   sonarPanel.receive(m);
   if(m.model_id !== S?.model_id)needResync=true;
   if(m.control_generation !== S?.control_generation)needResync=true;
