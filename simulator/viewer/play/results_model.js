@@ -231,6 +231,7 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
   return {
     kind: drill ? 'drill' : 'chapter',
     id: chapterId,
+    instructorCourse: !!custom,
     recordKey: `chapter:${chapterId}`,
     title: chapter.title || chapterId,
     success,
