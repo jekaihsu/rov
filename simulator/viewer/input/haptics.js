@@ -34,12 +34,22 @@ export function hapticMagnitude(settings, fidelity, prefs = getDisplayPrefs()) {
 export function createHaptics(getPad, settings, fidelity) {
   function pulse(name) {
     if (!padHapticsEnabled(fidelity)) return;
-    const actuator = getPad()?.vibrationActuator;
-    if (!actuator?.playEffect) return;
+    const pad = getPad();
+    const actuator = pad?.vibrationActuator;
     const [duration, strong, weak] = PATTERNS[name] || PATTERNS.touch;
     const strength = hapticMagnitude(settings, fidelity);
     if (strength <= 0) return;
-    const effect = actuator.effects?.includes('trigger-rumble') ? 'trigger-rumble' : 'dual-rumble';
+    if (!actuator?.playEffect) {
+      const motors = actuator?.pulse ? [actuator] : pad?.hapticActuators || [];
+      for (const motor of motors) {
+        try {
+          Promise.resolve(motor.pulse(Math.max(strong, weak) * strength, duration)).catch(function ignore() {});
+        } catch {}
+      }
+      return;
+    }
+    const effect = actuator.effects?.includes('trigger-rumble') && !actuator.effects.includes('dual-rumble')
+      ? 'trigger-rumble' : 'dual-rumble';
     try {
       Promise.resolve(
         actuator.playEffect(effect, {

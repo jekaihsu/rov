@@ -7,10 +7,12 @@ import {
   bindingRow,
   chordIds,
   createResolver,
+  familyMenuBindings,
   keyRow,
 } from "./bindings.js";
 import { publishKeyRows, rowsFor } from "./keyboard_layout.js";
 import {createFeatureActions} from "./feature_actions.js";
+import {deviceFamily} from "./glyphs.js";
 import { createDevices } from "./devices.js";
 import { renderKeyHints } from "./hints.js";
 import { installTouchSticks } from "./touch_sticks.js";
@@ -40,6 +42,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
   let featureTime = performance.now();
   const devices = createDevices(database, settings.custom);
   let frame = { devices: [], pad: null };
+  let connectionObserver;
   let previous = {};
   let hudActions = {};
   let lastPadValues = "";
@@ -274,7 +277,10 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     const featureDt = Math.min(.25, (now - featureTime) / 1000);
     featureTime = now;
     hudActions = {};
-    frame = devices.poll(panel.selected() || preferred());
+    const previousPad = frame.pad;
+    const selection = panel.selected() || preferred();
+    frame = devices.poll(selection);
+    connectionObserver?.(previousPad, frame, selection);
     const editing = panel.open();
     panel.update(frame);
     const padId = frame.pad ? `${frame.pad.index}:${frame.pad.id}` : "";
@@ -309,7 +315,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       const direction = Number(keys.get(row.keys?.[0]) === name) - Number(keys.get(row.keys?.[1]) === name);
       if (direction) action.run(direction, featureDt);
     }
-    if (!frame.pad || !frame.snapshot.known) {
+    if (!frame.pad) {
       features.sample(null, 0);
       previous = {};
       hold.photo.delete("pad");
@@ -325,7 +331,8 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
       });
       snapshot.axes.splice(offset, 2, ...pair);
     }
-    const actions = resolver.resolve(settings.bindings, snapshot, activeContexts(), now);
+    const bindings = familyMenuBindings(settings.bindings, deviceFamily(frame.pad.id));
+    const actions = resolver.resolve(bindings, snapshot, activeContexts(), now);
     if (actions.settings > 0.5 && !(previous.settings > 0.5)) {
       document.getElementById("inputSettingsButton").click();
       resolver.block(snapshot);
@@ -429,7 +436,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     return {
       actions: hudActions,
       active:
-        !!frame.snapshot?.known &&
+        !!frame.snapshot &&
         (frame.snapshot.axes.some((value) => Math.abs(value) > 0.15) ||
           frame.snapshot.buttons.some((value) => value > 0.5)),
       pulse: haptics.pulse,
@@ -465,6 +472,9 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     feedback,
     hudState,
     registerActions,
+    observeController(listener) {
+      connectionObserver = listener;
+    },
     keyRows: () => rows,
     keyFor: (action) => actionKey(action, rows),
   };

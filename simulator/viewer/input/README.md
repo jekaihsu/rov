@@ -37,6 +37,9 @@ the controller dialog (鍵盤按鍵: click, press the new key, Esc cancels); cho
 `keys[layout]`, and a key already used in the same context is refused (`keyCollisions`). Help tables name stick
 channels by what they do (前進／後退), not by the stick.
 
+Switch-layout pads confirm on the right and go back on the bottom when the menu pair is at its defaults.
+The photo and record actions always follow the same physical positions in flight.
+
 Menu defaults (launch menu, pause menu, settings): D-pad or arrow keys and the left stick move focus, A / Enter
 confirms, B / Esc goes back, LB / RB or Q / E switch tabs, the right stick turns the hangar turntable. These rows can be rebound and are read by `../menu/navigator.js`; the same sources drive the deck checklist. The editor itself retains the standard D-pad,
 confirm and back controls for recovery. Clear a conflicting assignment before reusing its source.
@@ -47,13 +50,13 @@ Assist level and flight profile belong to the fidelity profile (`../fidelity.js`
 at assist 0. Both RC fields are omitted until telemetry advertises an assist object. Selecting the drone
 preset also selects UAV_USA channel interpretation; current selects ROV_USA. No PWM meaning changes.
 
-Unknown controllers are neutral until calibrated (`input/calibrate.js`). In the wizard
+Unknown controllers use standard positional indices and can be calibrated (`input/calibrate.js`). In the wizard
 move the first four requested controls in the positive directions (right/down/right/down),
 then press each requested standard button. Release between steps. Extra axes and
 buttons may be assigned to any requested control; optional buttons may be skipped.
 The profile is saved under `rov.input.v1` → `custom[pad.id]`. Calibrate again when
 changing driver/browser: SDL indices vary across platforms, especially hat switches.
-The compact database contains Linux axis records. `devices.js` decodes their hat
+The compact database contains Linux records and Windows overrides for the supported controller families. `devices.js` decodes their hat
 descriptors (`h0.1` up, `.2` right, `.4` down, `.8` left: the stepped axis 9 that
 Chromium reports on Windows/macOS, or the x/y axis pair after the plain axes on Linux)
 and scales a bare full-range axis on a trigger slot to 0..1; calibrate a custom profile

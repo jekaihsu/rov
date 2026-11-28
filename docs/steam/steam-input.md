@@ -2,6 +2,8 @@
 
 本遊戲透過瀏覽器 Gamepad API 讀手把（Electron 內嵌 Chromium），**尚未呼叫 Steam Input API**。Partner 站仍應上傳動作集範本，讓 Steam 客戶端在「Steam Input 開啟」時把各家手把正規成標準手把佈局。
 
+預設的傳統手把輸出設定與匯入步驟見 [Steam Input 配置](../../simulator/desktop/steam/input/README.md)。
+
 ## 檔案
 
 | 檔案 | 用途 |
@@ -34,7 +36,7 @@
 | Steam Input | Chromium 通常看到 | 本遊戲路徑 |
 |---|---|---|
 | **開啟**（官方 Gamepad 範本） | `mapping === "standard"` 的虛擬手把 | 直接用 standard 索引；不查 `controller-db.json` |
-| **關閉** | 驅動原始布局；可能 `mapping === ""` | vendor:product 查 DB；未知則對應精靈，存 `rov.input.v1` → `custom` |
+| **關閉** | 驅動原始布局；可能 `mapping === ""` | vendor:product 查 DB；未知先用標準位置，可在設定中啟動對應精靈，存 `rov.input.v1` → `custom` |
 | Steam Deck | 多半經 Steam Input | 同「開啟」；實機仍需驗證 |
 
 遊戲**不會**讀取 Steam Input 的 action set 名稱；VDF 是給 Steam 客戶端做重映射與建議組態用。若日後接 Steam Input API，可把 `Flight`／`Menu` 兩個 set 接到同一套語意動作，無需改 bindings 語意。

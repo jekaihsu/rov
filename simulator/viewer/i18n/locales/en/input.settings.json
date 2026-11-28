@@ -17,7 +17,7 @@
   "skip": "Skip",
   "done": "Mapping saved",
   "bind": "Controller bindings (select and press a control, or type a0, -a1, b0 or a pair separated by a comma)",
-  "unknown": "Unknown device — calibrate first",
+  "unknown": "Standard layout active. Remap controls in settings.",
   "collision": "Conflicting controls: ",
   "keyboard": "Keyboard bindings",
   "keyboardHelp": "Layout: {layout}. Select a binding and press the new key.",

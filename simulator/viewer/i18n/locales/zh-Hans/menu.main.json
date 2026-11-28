@@ -32,5 +32,6 @@
     "free_explore": "自由探索",
     "inspection_coop": "协作巡检",
     "scenario_training": "场景训练"
-  }
+  },
+  "standardLayout": "已使用标准配置，可在设置中改键。"
 }

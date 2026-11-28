@@ -78,5 +78,6 @@
     "accept": "Confirm",
     "back": "Back",
     "tabs": "Tabs"
-  }
+  },
+  "disconnected": "Controller disconnected. Reconnect and centre the controls to resume."
 }

@@ -168,3 +168,17 @@ test('legacy rov.input.v1 haptics mute migrates into padHaptics once', () => {
   const saved = JSON.parse(storage.getItem(STORAGE_KEY));
   assert.equal(saved.overrides.padHaptics, false);
 });
+
+test('handheld pulse actuators use the event envelope and obey mute', () => {
+  const store = createFidelity({edition: null});
+  const pulses = [];
+  const motor = {pulse(strength, duration) { pulses.push([strength, duration]); }};
+  const pad = {hapticActuators: [motor, motor]};
+  const haptics = createHaptics(() => pad, {strength: 0.5}, store);
+  store.set(PAD_HAPTICS_ID, false);
+  haptics.pulse('hard');
+  assert.deepEqual(pulses, []);
+  store.set(PAD_HAPTICS_ID, true);
+  haptics.pulse('hard');
+  assert.deepEqual(pulses, [[0.4, 250], [0.4, 250]]);
+});

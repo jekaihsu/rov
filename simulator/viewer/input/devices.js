@@ -49,7 +49,9 @@ export function deviceKey(id) {
 }
 export function normalize(pad, database, custom = {}) {
   const raw = { axes: Array.from(pad.axes), buttons: Array.from(pad.buttons, (b) => b.value || +b.pressed) };
-  const mapping = custom[pad.id] || database[deviceKey(pad.id)];
+  const key = deviceKey(pad.id);
+  const windows = /Win/i.test(globalThis.navigator?.platform || "");
+  const mapping = custom[pad.id] || (windows && database["win:" + key]) || database[key];
   if (pad.mapping === "standard") return { ...raw, known: true };
   if (!custom[pad.id]) {
     const sony = normalizePlayStation(pad);

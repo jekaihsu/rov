@@ -32,5 +32,6 @@
     "free_explore": "自由探索",
     "inspection_coop": "協力点検",
     "scenario_training": "シナリオ訓練"
-  }
+  },
+  "standardLayout": "標準配置を使用中です。設定でボタンを変更できます。"
 }

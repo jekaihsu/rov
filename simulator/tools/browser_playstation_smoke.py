@@ -310,6 +310,8 @@ def walk_checklist(page, results):
                                    arg=before, timeout=timeout(15000))
             steps += 1
         except Exception:
+            print('Checklist waiting', focused(page), procedure_signature(page),
+                  page.locator('#procedurePanel').inner_text(), flush=True)
             # Nothing happened: the focus is on a control with nothing to do; step it with the D-pad.
             press(page, DOWN, hold_ms=120)
     assert page.evaluate('window.__viewer.S.procedure.phase') == 'diving', procedure_signature(page)
