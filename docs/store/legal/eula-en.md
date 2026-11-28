@@ -29,7 +29,7 @@ Progress, settings and collections are stored on your device and may sync throug
 
 ## 6. AI-generated content
 
-The software includes pre-made AI-generated content (for example synthesised radio voice lines, and textures from a third-party CC0 fish kit that were pre-generated with AI image tools). At runtime the game does not call external AI services to regenerate that content. See `simulator/viewer/models/CREDITS.md` and the store AI disclosure notes.
+The software includes pre-made AI-generated content (for example synthesised radio voice lines, and textures from a third-party CC0 fish kit that were pre-generated with AI image tools). At runtime the game does not call external AI services to regenerate that content. See the in-game Credits & Licences screen and the store AI disclosure notes.
 
 ## 7. Disclaimer
 
