@@ -540,8 +540,9 @@ class SimHost:
 
     def sonar_subscribe(self, ws, msg):
         """Start, retune or stop background sonar scans for one viewer connection."""
+        from .sonar import DEFAULT_MULTIPATH, DEFAULT_NOISE, DEFAULT_RANGE_M
         settings = {key: float(msg.get(key, default)) for key, default in
-                    (("range_m", 30), ("noise", 0.02), ("multipath", 0.05))}
+                    (("range_m", DEFAULT_RANGE_M), ("noise", DEFAULT_NOISE), ("multipath", DEFAULT_MULTIPATH))}
         if not (2 <= settings["range_m"] <= 50 and 0 <= settings["noise"] <= 1 and 0 <= settings["multipath"] <= 1):
             raise ValueError("invalid sonar settings")
         if msg.get("enabled", True):
@@ -654,7 +655,7 @@ class SimHost:
                         # The SDK RPC reads the default room's primary vehicle, so only its scans are published there.
                         sonar_primary = room is self.room and sim is room.primary
                         world_snapshot, pos, q = snapshot(room, sim)
-                        sonar_pending = submit_scan(world_snapshot, pos, q, settings)
+                        sonar_pending = submit_scan(world_snapshot, pos, q, {**settings, "ideal": sim.sensors.ideal})
                         sonar_time = time.monotonic()
                     if sonar_frame is not None:
                         state = json.loads(payload)

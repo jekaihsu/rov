@@ -49,7 +49,7 @@ def _inv_mass_dot(ms, ma, tx, ty, tz, ax, ay, az, bx, by, bz):
 
 def _advance(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, broken, h, ea, c_int,
              diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
-             pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension):
+             pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension, ei=0.0):
     n = len(x) - 1
     x[0] = spool
     v[0] = 0.0
@@ -114,6 +114,21 @@ def _advance(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, 
         force[j, 0] += fk * ax + ma[j] * (ax - a_t * t[j, 0])
         force[j, 1] += fk * ay + ma[j] * (ay - a_t * t[j, 1])
         force[j, 2] += fk * az + ma[j] * (az - a_t * t[j, 2])
+    # Gradient of EI * (1 - dot(u_left, u_right)) / dual rest length.
+    bend_end = np.zeros(3)
+    for j in range(1, n):
+        cosine = 0.0
+        for axis in range(3):
+            cosine += u[j - 1, axis] * u[j, axis]
+        stiffness = ei / lw[j]
+        for axis in range(3):
+            left = stiffness * (u[j, axis] - cosine * u[j - 1, axis]) / max(length[j - 1], 1e-9)
+            right = stiffness * (u[j - 1, axis] - cosine * u[j, axis]) / max(length[j], 1e-9)
+            force[j - 1, axis] -= left
+            force[j, axis] += left - right
+            force[j + 1, axis] += right
+            if j == n - 1:
+                bend_end[axis] = right
     # snag pins: a point of the cable held by a feature, force capped at the holding force
     for k in range(len(pin_seg)):
         i = pin_seg[k]
@@ -292,9 +307,9 @@ def _advance(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, 
     reel[REEL_TENSION] = tension[0]
     out = np.zeros(3)
     if not broken:
-        out[0] = -tension[n - 1] * u[n - 1, 0]
-        out[1] = -tension[n - 1] * u[n - 1, 1]
-        out[2] = -tension[n - 1] * u[n - 1, 2]
+        out[0] = bend_end[0] - tension[n - 1] * u[n - 1, 0]
+        out[1] = bend_end[1] - tension[n - 1] * u[n - 1, 1]
+        out[2] = bend_end[2] - tension[n - 1] * u[n - 1, 2]
     return out
 
 
@@ -433,7 +448,7 @@ def _batch(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, br
            diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
            pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension,
            substeps, pt_seg, pt_s, anchor, dist0, normal, pt_hard, cache_distance, radius,
-           mu_static, mu_kinetic, stribeck_v, regular_v, chafe, rov_force, peaks):
+           mu_static, mu_kinetic, stribeck_v, regular_v, chafe, rov_force, peaks, ei=0.0):
     """Every substep of one tick with cached contact planes; False asks for the reference loop.
 
     ``rov_force`` returns the substep-averaged pull on the gland, ``peaks`` the highest segment
@@ -450,7 +465,7 @@ def _batch(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, br
             point[axis] = gland[axis] + gland_vel[axis] * h * (step + 1)
         out = advance(x, v, water, water_accel, l0, ms, ma, lw, spool, point, gland_vel, broken, h, ea, c_int,
                       diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
-                      pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension)
+                      pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension, ei)
         for k in range(len(pin_seg)):
             pin_peak[k] = max(pin_peak[k], pin_force[k])
         for axis in range(3):
@@ -473,7 +488,7 @@ def _batch_resume(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_
            diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
            pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension,
            substeps, pt_seg, pt_s, anchor, dist0, normal, pt_hard, cache_distance, radius,
-           mu_static, mu_kinetic, stribeck_v, regular_v, chafe, rov_force, peaks, start_step, pin_peak):
+           mu_static, mu_kinetic, stribeck_v, regular_v, chafe, rov_force, peaks, start_step, pin_peak, ei=0.0):
     """Run until contact planes expire; return the pending substep, or substeps when done.
 
     The caller refreshes geometry and finishes that contact pass, then resumes without
@@ -486,7 +501,7 @@ def _batch_resume(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_
             point[axis] = gland[axis] + gland_vel[axis] * h * (step + 1)
         out = advance(x, v, water, water_accel, l0, ms, ma, lw, spool, point, gland_vel, broken, h, ea, c_int,
                       diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
-                      pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension)
+                      pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension, ei)
         for k in range(len(pin_seg)):
             pin_peak[k] = max(pin_peak[k], pin_force[k])
         for axis in range(3):

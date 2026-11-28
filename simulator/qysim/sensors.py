@@ -37,7 +37,8 @@ import numpy as np
 
 from .navigation import wrap_pi
 from .silt import seabed_type_for
-from .physics import KNOT, q_from_axis_angle, q_mul, q_rot
+from .thermal import water_temperature
+from .physics import G, KNOT, cross3, q_to_euler, q_from_axis_angle, q_mul, q_rot
 
 STRINGS = {
     "realigned": "航向估計重新對準（磁場異常）",
@@ -95,6 +96,14 @@ class SensorConfig:
     depth_quantum_m: float = 0.002             # [datasheet] Bar30 resolution 0.2 mbar
     depth_zero_sigma_m: float = 0.03           # surface zero error [assumption]; FIFISH FAQ: >1 m possible
     water_setting: str | None = None           # "fresh"/"salt"; None = the site's own water
+    # Provisional engineering assumptions; identify against temperature bath and manoeuvre logs.
+    depth_reference_c: float = 26.0
+    depth_temp_m_per_c: float = 0.0004
+    vertical_rate_tau_s: float = 0.15
+    tilt_tau_s: float = 0.7
+    tilt_max_deg: float = 8.0
+    dvl_max_tilt_deg: float = 45.0
+    dvl_silt_limit: float = 0.85
     # Echo sounders (altimeter and forward range)
     echo_rate_hz: float = 5.0                  # [assumption] not on the Ping2 page; bounds server cost
     echo_cone_deg: float = 25.0                # [datasheet] Ping2 beamwidth
@@ -128,6 +137,7 @@ class SensorFrame:
     vz: float
     vel_world: np.ndarray
     pos: np.ndarray
+    omega: np.ndarray
     altitude: float | None = None
     altitude_blind: bool = False
     range: float | None = None
@@ -354,12 +364,14 @@ class SensorSuite:
         self.steel = steel_field_for(sim.world, cfg)
         yaw = sim.vehicle.euler[2]
         self._last_yaw = yaw
+        self.tilt_error = np.zeros(2)
+        self.depth_sample_time = 0.0
         self.yaw_est = wrap_pi(yaw - self.magnetic_deviation(s.pos)[0])
         self._dvl_good = 0
         self._dvl_last_valid = 0.0
         self._dvl_low = False
         self.frame = SensorFrame(q=s.q.copy(), yaw=self.yaw_est, depth=self._depth_reading(sim, noise=False),
-                                 vz=float(sim.vehicle.world_velocity()[2]), vel_world=np.zeros(3),
+                                 omega=s.omega.copy(), vz=0.0, vel_world=np.zeros(3),
                                  pos=s.pos.copy(), dvl_vel=np.zeros(3))
         self.frame.q = self._estimated_q(s.q, yaw)
         self._sample_echo(sim)
@@ -405,6 +417,7 @@ class SensorSuite:
     def _depth_reading(self, sim, noise: bool = True) -> float:
         cfg = self.config
         value = float(sim.vehicle.s.pos[2]) * self.density_ratio + self.zero_offset + self.fault_depth_offset
+        value += cfg.depth_temp_m_per_c * (water_temperature(sim.depth) - cfg.depth_reference_c)
         if noise:
             value += float(self.rng.normal(0.0, cfg.depth_noise_m))
         return round(value / cfg.depth_quantum_m) * cfg.depth_quantum_m
@@ -432,12 +445,28 @@ class SensorSuite:
         if self._due("mag", dt, cfg.mag_rate_hz):
             self._fuse_magnetometer(sim, yaw, 1.0 / cfg.mag_rate_hz)
         f.yaw = self.yaw_est
-        f.q = self._estimated_q(s.q, yaw)
+        f.omega = s.omega.copy()
+        f.omega[2] += self.gyro_bias
+        # A horizontal acceleration tilts apparent down away from the acceleration.
+        acc = q_rot(s.q, s.accel + cross3(s.omega, s.vel))
+        target = np.array([-acc[1], acc[0]])
+        magnitude = math.hypot(*target)
+        if magnitude:
+            angle = min(math.atan2(magnitude, G), math.radians(cfg.tilt_max_deg))
+            target *= angle / magnitude
+        self.tilt_error += -math.expm1(-dt / cfg.tilt_tau_s) * (target - self.tilt_error)
+        tilt = q_from_axis_angle(np.append(self.tilt_error, 0.0), math.hypot(*self.tilt_error))
+        tilted = q_mul(tilt, s.q)
+        f.q = self._estimated_q(tilted, q_to_euler(tilted)[2])
         if "depth_sensor" in self.faults:
             self.fault_depth_offset += 0.02 * self.faults["depth_sensor"] * dt
         if self._due("depth", dt, cfg.depth_rate_hz):
-            f.depth = self._depth_reading(sim)
-        f.vz = float(v.world_velocity()[2])     # inertially aided vertical rate [assumption]
+            sample = self._depth_reading(sim)
+            elapsed = self.time - self.depth_sample_time
+            rate = (sample - f.depth) / elapsed
+            f.vz += -math.expm1(-elapsed / cfg.vertical_rate_tau_s) * (rate - f.vz)
+            self.depth_sample_time = self.time
+            f.depth = sample
         if self._due("echo", dt, cfg.echo_rate_hz):
             self._sample_echo(sim)
         altitude = f.dvl_altitude if f.dvl_altitude is not None else 10.0
@@ -548,15 +577,22 @@ class SensorSuite:
             alt = r * math.cos(beam)
             ranges.append(r)
             altitudes.append(alt)
+            if index[k] >= 0 and sim.world.obstacles[index[k]].kind == "pen_net":
+                reasons.append("net")
+                continue
             slope = math.degrees(math.acos(max(-1.0, min(1.0, float(np.dot(normal[k], -down))))))
             limit = float(np.interp(alt, (2.0, 10.0), cfg.dvl_slope_deg))
             if slope > limit:
                 reasons.append("slope")
                 continue
             point = origin + dirs[k] * r
+            cloud = max(silt_here, sim.world.silt_at(point))
+            if cloud >= cfg.dvl_silt_limit:
+                reasons.append("silt")
+                continue
             causes = {"range": min(1.0, max(0.0, (alt / cfg.dvl_max_alt_m - cfg.dvl_range_fade)
                                             / (1.0 - cfg.dvl_range_fade))),
-                      "aeration": aeration, "silt": min(0.95, max(silt_here, sim.world.silt_at(point)))}
+                      "aeration": aeration, "silt": min(0.95, cloud)}
             if index[k] < 0:
                 causes[self.seabed_type] = SEABED_DROPOUT.get(self.seabed_type, 0.0)
                 canopy = self._canopy(point) if len(self.vegetation) else None
@@ -576,12 +612,14 @@ class SensorSuite:
         reason = None
         if "dvl" in self.faults:
             reason = "fault"
+        elif down[2] < math.cos(math.radians(cfg.dvl_max_tilt_deg)):
+            reason = "tilt"
         elif f.dvl_altitude is None or f.dvl_altitude > cfg.dvl_max_alt_m:
             reason = "too_high"
         elif f.dvl_altitude < cfg.dvl_min_alt_m:
             reason = "too_low"
         elif valid < 3:
-            reason = max(set(r for r in reasons if r), key=reasons.count)
+            reason = max((r for r in reasons if r), key=reasons.count)
         self._ping_reason = reason
         if reason is not None:
             return
@@ -615,7 +653,7 @@ class SensorSuite:
             f.dvl_status, f.dvl_reason = "locked", None
         elif reason is not None or self.time - self._dvl_last_valid > self.config.dvl_coast_s:
             # Leaving the altitude window ends the lock at once; coasting only bridges beam dropouts.
-            window = reason in ("too_low", "too_high")
+            window = reason in ("too_low", "too_high", "net", "tilt")
             if window or self.time - self._dvl_last_valid > self.config.dvl_coast_s:
                 f.dvl_status, f.dvl_reason = "lost", reason
                 self._dvl_low = reason == "too_low"
@@ -643,8 +681,7 @@ class SensorSuite:
         return sim.vehicle.euler[2] if self.ideal else self.frame.yaw
 
     def attitude(self, sim) -> tuple[float, float, float]:
-        roll, pitch, yaw = sim.vehicle.euler
-        return (roll, pitch, yaw) if self.ideal else (roll, pitch, self.frame.yaw)
+        return sim.vehicle.euler if self.ideal else q_to_euler(self.frame.q)
 
     def depth(self, sim) -> float:
         return sim.depth if self.ideal else self.frame.depth
@@ -722,7 +759,9 @@ class SensorSuite:
                     "pos_est": [round(float(x), 3) for x in sim.vehicle.s.pos], "realigned_t": None, "faults": []}
         f = self.frame
         lost = f.dvl_status == "lost"
-        return {"ideal": False, "heading": round(math.degrees(f.yaw) % 360, 1) % 360, "depth": round(f.depth, 2),
+        roll, pitch, _ = self.attitude(sim)
+        return {"roll": round(math.degrees(roll), 2), "pitch": round(math.degrees(pitch), 2),
+                "ideal": False, "heading": round(math.degrees(f.yaw) % 360, 1) % 360, "depth": round(f.depth, 2),
                 "altitude": None if f.altitude is None else round(f.altitude, 2), "altitude_blind": f.altitude_blind,
                 "range": None if f.range is None else round(f.range, 2), "range_blind": f.range_blind,
                 "dvl": {"status": f.dvl_status, "reason": f.dvl_reason,

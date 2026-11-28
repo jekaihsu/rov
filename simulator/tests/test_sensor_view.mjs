@@ -54,3 +54,9 @@ test('assisted preset and old servers keep the truth presentation', function () 
   assert.equal(showsTruth(legacy, createFidelity({})), true);
   assert.equal(pilotReadings(legacy, world, createFidelity({})).heading, 90);
 });
+
+test('attitude instruments select estimated roll and pitch and accept older frames', function () {
+  const measured = { ...state, sensors: { ...sensors, roll: -1.2, pitch: 3.4 } };
+  assert.deepEqual(pilotReadings(measured, world, createFidelity({})).attitude, [-1.2, 3.4, 87.5]);
+  assert.deepEqual(pilotReadings(state, world, createFidelity({})).attitude, [0, 0, 87.5]);
+});

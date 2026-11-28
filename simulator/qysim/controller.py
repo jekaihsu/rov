@@ -109,7 +109,10 @@ class FlightController:
             target = q_rot(q_conj(frame), 0.8 * error + 0.15 * self.position_integral)
             target -= 0.25 * velocity
             target = np.clip(target, -limits, limits)
-        jerk_command = 256.0 * (target - self.velocity_target) - 32.0 * self.acceleration
+        # Small speed caps need a faster reference only for high-acceleration
+        # profiles. Preserve critical damping as the natural frequency changes.
+        follow = max(1., getattr(v, "assist_speed_gain", 1.) * accel)
+        jerk_command = 256.0 * follow * (target - self.velocity_target) - 32.0 * follow ** 0.5 * self.acceleration
         self.acceleration = np.clip(
             self.acceleration + np.clip(jerk_command, -amax * jerk, amax * jerk) * dt, -amax, amax)
         self.velocity_target += self.acceleration * dt
@@ -204,7 +207,8 @@ class FlightController:
             yaw_target = np.clip(rate_des[2], -yaw_max, yaw_max)
             self.yaw_rate += float(np.clip(yaw_target - self.yaw_rate, -yaw_max * dt, yaw_max * dt))
             rate_des[2] = self.yaw_rate
-        torque = np.clip(np.array(g.rate_d) * (rate_des - s.omega), -1, 1)
+        omega = s.omega if measured is None else measured.omega
+        torque = np.clip(np.array(g.rate_d) * (rate_des - omega), -1, 1)
 
         # ── translation ───────────────────────────────────────────────────
         force = np.array([c["surge"], c["sway"], 0.0])
