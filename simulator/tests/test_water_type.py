@@ -8,7 +8,7 @@ class WaterTypeTests(unittest.TestCase):
     def test_biome_defaults(self):
         expected = {"coral_reef": "oceanic", "seagrass_meadow": "coastal", "harbor_inspection": "harbour",
                     "monopile_current": "shelf", "jacket_inspection": "shelf", "korean_castle": "shelf",
-                    "open_water": "shelf", "tutorial_pool": "fresh_clear"}
+                    "open_water": "oceanic", "tutorial_pool": "fresh_clear"}
         for key, water_type in expected.items():
             self.assertEqual(scenarios.build(key).summary()["water_type"], water_type, key)
 

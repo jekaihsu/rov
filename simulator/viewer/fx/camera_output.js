@@ -71,6 +71,10 @@ const FRAGMENT = /* glsl */ `
       c = texture2D(tDiffuse, vUv);
       c.rgb = expose(c.rgb, gain);
     }
+    // At the top stop of low-light gain, suppress noisy chroma while preserving luminance.
+    float chromaLoss = 0.55 * smoothstep(log(400.0), log(800.0), logExposure);
+    float luma = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+    c.rgb = mix(c.rgb, vec3(luma), chromaLoss);
     // fx/pipeline.js beautify finish: a gentle vignette on the exposed linear image.
     float edge = smoothstep(0.25, 0.8, length(vUv - 0.5));
     c.rgb *= 1.0 - uVignette * 0.28 * edge;

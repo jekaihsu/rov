@@ -23,12 +23,12 @@ import { legacyWaterLook } from '../underwater_lighting.js';
 import { renderQualityState } from '../render_quality.js';
 
 // The unlit camera keeps some of the scene's change in brightness (partial AE)
-// and can open further once less than 1% of surface green daylight remains.
+// with a finite low-light gain ceiling (twice the lamp setting).
 const ambientMetering = {
   ...EXPOSURE,
   compensation: 0.82,
   reference: EXPOSURE.reference / 2,
-  maximum: EXPOSURE.maximum * 32,
+  maximum: EXPOSURE.maximum * 2,
   balance: 1
 };
 const pipelines = new WeakMap();
@@ -89,9 +89,6 @@ function renderOptics(state, original, scene, camera) {
   if (!state.composer) buildComposer(state, renderer, scene, camera);
   // Above water the daylight camera model (fx/daylight.js) replaces the underwater metering.
   const daylight = camera.position.y > 0 ? scene.userData.daylightMetering : null;
-  // Fraction of green downwelling irradiance relative to the surface, from Beer–Lambert.
-  const greenLight = Math.exp(water.kd[1] * Math.min(camera.position.y, 0));
-  ambientMetering.compensation = 1 - 0.18 * THREE.MathUtils.smoothstep(greenLight, 0.001, 0.01);
   state.exposurePass.metering = camera.position.y > 0 ? daylight : (lamps.length ? null : ambientMetering);
   state.gradePass.enabled = !!daylight;
   resizeComposer(state, renderer);

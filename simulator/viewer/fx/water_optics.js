@@ -40,7 +40,7 @@ export const DAYLIGHT_PHASE = 0.015;
 // docs/design/underwater-look. Green is the reference band for visibility.
 const DAYLIGHT_SCATTER = Object.freeze({
   harbour: [0.58, 1, 0.48],
-  shelf: [0.34, 1, 0.68],
+  shelf: [0.38, 0.46, 1],
   oceanic: [0.18, 0.50, 1],
   fresh_clear: [0.42, 0.90, 1],
   coastal: [0.44, 0.93, 0.91]
@@ -300,7 +300,7 @@ export function updateWaterOptics(scene, { beauty = false, camera = null } = {})
   waterUniforms.uWaterB.value.fromArray(water.b);
   waterUniforms.uWaterSun.value.set(SURFACE_DAYLIGHT.r, SURFACE_DAYLIGHT.g, SURFACE_DAYLIGHT.b)
     .multiplyScalar(DAYLIGHT_PHASE);
-  const spectrum = DAYLIGHT_SCATTER[scene.userData.scatterType] || DAYLIGHT_SCATTER.shelf;
+  const spectrum = DAYLIGHT_SCATTER[scene.userData.waterType] || DAYLIGHT_SCATTER.shelf;
   waterUniforms.uDayScatter.value.fromArray(spectrum).multiply(waterUniforms.uWaterSun.value).multiplyScalar(0.5);
   waterUniforms.uWaterTime.value = performance.now() / 1000;
   waterUniforms.uWaterBeauty.value = beauty ? 1 : 0;

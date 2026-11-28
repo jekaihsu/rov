@@ -1004,7 +1004,7 @@ function updateUI() {
   const bn = $('banner');
   if (sc.failed) { bn.className = 'banner fail'; bn.innerHTML = `任務失敗<small>${esc(sc.failed)}</small>`; bn.hidden = false; }
   else if (t.broken) { bn.className = 'banner fail'; bn.innerHTML = '纜線斷裂<small>ROV 失去連線，請重置情境</small>'; bn.hidden = false; }
-  else if (sc.finished) { bn.className = 'banner win'; bn.innerHTML = `任務完成 · ${sc.score} 分<small>用時 ${fmtT(sc.elapsed)}，扣分 ${sc.penalty_total || 0}</small>`; bn.hidden = false; }
+  else if (sc.finished && objs.length) { bn.className = 'banner win'; bn.innerHTML = `任務完成 · ${sc.score} 分<small>用時 ${fmtT(sc.elapsed)}，扣分 ${sc.penalty_total || 0}</small>`; bn.hidden = false; }
   else if (t.warn) { bn.className = 'banner warn'; bn.innerHTML = `纜線張力 ${Math.round(t.tension_max || 0)} N<small>減少拉扯、檢查纏繞</small>`; bn.hidden = false; }
   else bn.hidden = true;
   drawProfile();

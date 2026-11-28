@@ -148,7 +148,6 @@ export class SiltRenderer {
     this.visibilityM = world?.scenario?.visibility_m || 12;
     this.seabed = world?.seabed_depth ?? 30;
     this.waterType = world?.scenario?.water_type ?? null;
-    scene.userData.scatterType = world?.scenario?.key === 'open_water' ? 'oceanic' : this.waterType;
     if (rov) {
       this._lamp.set(0, 0, 0.36).applyQuaternion(rov.quaternion).add(rov.position);
       this._lampDir.set(0, 0, 1).applyQuaternion(rov.quaternion);

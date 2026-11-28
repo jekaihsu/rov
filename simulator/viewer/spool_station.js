@@ -12,7 +12,7 @@
 //   each frame: station.update(dt, introBoatShown, camera)   // camera: hide it while the water hides it
 //   station.labelPosition(world)             // where the "spool" label sits: the boat's stern
 import * as THREE from 'three';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {deinterleaveGeometry, mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {assetTextureTier} from './render_quality.js';
 import {Humanoid} from './humanoid.js';
 import {placeWorkBoat} from './deploy_intro.js';
@@ -68,8 +68,11 @@ function batchFarDeck(level) {
   const batches = [];
   for (const [material, meshes] of groups) {
     if (meshes.length < 2) continue;
-    const parts = meshes.map(mesh => mesh.geometry.clone()
-      .applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, mesh.matrixWorld)));
+    const parts = meshes.map(function deckPart(mesh) {
+      const geometry = mesh.geometry.clone();
+      deinterleaveGeometry(geometry);
+      return geometry.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, mesh.matrixWorld));
+    });
     const merged = mergeGeometries(parts);
     for (const part of parts) part.dispose();
     if (!merged) continue;
