@@ -12,7 +12,7 @@
   "view": "Change view V",
   "locked": "Disarmed",
   "unlocked": "Armed",
-  "unlockHint": "Press {key} / controller Y to arm",
+  "unlockHint": "Press {key} / controller {pad} to arm",
   "axes": [
     [
       "surge",

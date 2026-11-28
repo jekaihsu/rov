@@ -1,6 +1,5 @@
 // Steam Auto-Cloud / local save folder layout for the desktop shell.
-// TODO(S3): when task/S3-stability-saves lands, point ROOT_REL and INCLUDE at the versioned save folder
-// documented in docs/design/saves.md and keep Auto-Cloud in sync (see docs/store/steam/cloud.md).
+// Versioned saves live in saves/*.json (see docs/design/saves.md); corrupt copies stay local.
 
 const path = require('node:path');
 
@@ -10,12 +9,13 @@ const INCLUDE = Object.freeze([
   'preferences.json',
   'window.json',
   'collection/**',
-  // TODO(S3): career/progress save files once the desktop file store exists.
+  'saves/**',
   'steam-mock/**',
 ]);
 const EXCLUDE = Object.freeze([
   'backend.log',
   'numba-cache/**',
+  'saves/corrupt/**',
   'local-backups/**',
   'reports/**',
 ]);

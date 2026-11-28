@@ -1,0 +1,51 @@
+{
+  "title": "操作提示",
+  "practice": "首次潜航练习",
+  "steps": {
+    "unlock": "解除马达锁定",
+    "move": "操控移动一小段",
+    "depth": "启用定深",
+    "light": "开启照明"
+  },
+  "bindingsSummary": "目前键位与视角",
+  "cameraHelp": " 切换跟踪、环绕、俯视、机载视角。俯视时以滚轮缩放。",
+  "rebindHelp": "需更换手柄或控制配置时，返回主菜单。",
+  "dismiss": "收起提示，下次不自动展开",
+  "waiting": "等待连线；收到机器状态后会显示操作步骤。",
+  "replay": "回放",
+  "done": "已完成",
+  "open": "未完成",
+  "stepLabel": "{label}：{status}",
+  "modeUsb": "USB 遥控器接管操作轴",
+  "modeLocal": "键盘／目前选用的手柄",
+  "modeLine": "{layout} · {device}",
+  "channels": {
+    "left_ud": "左杆上下",
+    "left_lr": "左杆左右",
+    "right_ud": "右杆上下",
+    "right_lr": "右杆左右",
+    "left_wave": "左滚轮",
+    "right_wave": "右滚轮"
+  },
+  "axes": {
+    "surge": "前进／后退",
+    "sway": "右移／左移",
+    "heave": "上升／下潜",
+    "yaw": "右转／左转"
+  },
+  "hints": {
+    "replay": "正在回放录制状态。可用 {camera} 查看不同视角；驾驶练习在即时潜航中进行。",
+    "usbLost": "USB 遥控器尚未连线。请先恢复连线，或返回主菜单更换输入装置。",
+    "paused": "潜航已暂停。由房主恢复后再继续操作。",
+    "latched": "控制中断后已自动锁定。等状态同步，再用 {lock} 明确解除锁定。",
+    "locked": "先确认前方净空，再按 {lock} 解除马达锁定；停止操作时可再次锁定。",
+    "remote": "目前由自动航线或 SDK 控制。先停止巡航，再练习手动驾驶。",
+    "move": "使用 {drive} 缓慢前后移动一小段，再回中。洋流仍会使机器漂移。",
+    "depth": "按 {depth} 启用定深并回中升降杆。定深维持深度，水平方向仍可能漂移。",
+    "light": "按 {light} 开启照明，再用 {camera} 切到机载视角观察前方。",
+    "snagged": "缆线已接触障碍；停止加速，观察缆线路径再退回。",
+    "current": "目前洋流较强。使用小幅持续修正，避免反复大幅推杆。",
+    "done": "{scenario}：基础操作已完成。可收起提示，依任务指引继续探索。",
+    "scenarioFallback": "本次潜航"
+  }
+}
