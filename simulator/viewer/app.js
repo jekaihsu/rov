@@ -910,8 +910,8 @@ const setTxt = (id, v) => { const el = $(id); if (el.textContent !== String(v)) 
 const setHTML = (id, v) => { const el = $(id); if (el._h !== v) { el.innerHTML = v; el._h = v; } };
 function updateUI() {
   const s = S; if (!s) return;
-  const [roll, pitch] = s.euler || [0, 0, 0];
   const reading = pilotReadings(s, W);
+  const [roll, pitch] = reading.attitude;
   const hdg = reading.heading;
   const depth = reading.depth;
   const alt = reading.altitude;

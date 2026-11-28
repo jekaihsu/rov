@@ -204,7 +204,8 @@ class FlightController:
             yaw_target = np.clip(rate_des[2], -yaw_max, yaw_max)
             self.yaw_rate += float(np.clip(yaw_target - self.yaw_rate, -yaw_max * dt, yaw_max * dt))
             rate_des[2] = self.yaw_rate
-        torque = np.clip(np.array(g.rate_d) * (rate_des - s.omega), -1, 1)
+        omega = s.omega if measured is None else measured.omega
+        torque = np.clip(np.array(g.rate_d) * (rate_des - omega), -1, 1)
 
         # ── translation ───────────────────────────────────────────────────
         force = np.array([c["surge"], c["sway"], 0.0])

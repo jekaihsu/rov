@@ -319,6 +319,7 @@ function setData(el, key, value) {
 function readings(s, w, dt, sensed) {
   const alt = sensed.altitude;
   return {
+    attitude: sensed.attitude,
     alt: alt == null ? null : smooth('alt', alt, dt),
     altWarn: alt != null && alt < 1.5,
     depth: smooth('depth', sensed.depth, dt),
@@ -339,7 +340,7 @@ function updateLine(r, s, w) {
   drawDepthLadder($('flightLadder'), {
     depth: r.depth, seabed: w?.seabed_depth ?? null, hold: s.keep_depth ? s.depth_hold : null, warn: r.altWarn,
   });
-  if (density > 0) drawFlightAttitude($('flightADI'), s.euler);
+  if (density > 0) drawFlightAttitude($('flightADI'), r.attitude);
 }
 function updateReadout(r, s) {
   setText($('rSpd'), r.speed == null ? '—' : r.speed.toFixed(2));

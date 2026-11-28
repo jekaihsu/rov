@@ -312,6 +312,8 @@ class Simulator:
         elif not locked and (self.nav.mode != "IDLE" or self.nav.hold is not None):
             if measured is None:
                 out = self.nav.step(dt, s.pos, self.yaw, v.world_velocity(), pilot, v.p.vmax[0])
+            elif not measured.dvl_valid and self.nav.mode != "VCCM":
+                out = None
             else:
                 out = self.nav.step(dt, measured.pos, measured.yaw, measured.vel_world, pilot, v.p.vmax[0])
             if out is not None:
@@ -510,11 +512,12 @@ class Simulator:
         depth = self.sensors.depth(self)
         ts = int(time.time() * 1000)
         if which == "50hz":
+            omega = s.omega if self.sensors.ideal else self.sensors.frame.omega
             specific = s.accel - q_rot(np.array([s.q[0], -s.q[1], -s.q[2], -s.q[3]]), np.array([0, 0, 9.81]))
             return {"status": "ok", "status_code": "", "type": "50hz", "data": {
                 "timestamp": ts,
                 "acceleration": {k: round(float(val), 2) for k, val in zip("xyz", specific)},
-                "gyroscope": {k: round(math.degrees(float(val)), 2) for k, val in zip("xyz", s.omega)},
+                "gyroscope": {k: round(math.degrees(float(val)), 2) for k, val in zip("xyz", omega)},
                 "quaternion": {k: float(val) for k, val in zip("wxyz", self.sensors.quaternion(self))},
                 "depth": int(round(depth * 100))}}
         lat, lng = self.sensors.latlng(self)
@@ -777,7 +780,8 @@ class Simulator:
     def _sdk_QYRovNavigationManage__get_h_navi_status(self):
         dist = None
         if self.nav.target is not None:
-            dist = round(math.hypot(self.nav.target.n - self.vehicle.s.pos[0], self.nav.target.e - self.vehicle.s.pos[1]), 2)
+            pos = self.sensors.position(self)
+            dist = round(math.hypot(self.nav.target.n - pos[0], self.nav.target.e - pos[1]), 2)
         return ok(data={
             "float_up_calibrate": {"status": 0},
             "v_navi": {"running": self.nav.mode == "V_NAVI", "index": self.nav.route_i, "total": len(self.nav.route),
@@ -796,8 +800,9 @@ class Simulator:
         if str(scene).upper() not in ("GENERAL", "BRIDGE", "TANK") or str(route_type).upper() not in ("LONGITUDINAL", "LATERAL") \
                 or str(direction).upper() not in ("LEFT", "RIGHT") or float(interval) <= 0:
             return err("Please pass in the correct parameters")
-        self.nav.start_v(self.vehicle.s.pos, self.yaw, scene, route_type, direction, float(length),
-                         float(start_depth), float(end_depth), float(interval), float(distance), float(diameter))
+        self.nav.start_v(self.sensors.position(self), self.sensors.heading(self), scene, route_type, direction,
+                         float(length), float(start_depth), float(end_depth), float(interval),
+                         float(distance), float(diameter))
         self._log("nav", f"V_NAVI {scene}/{route_type}/{direction} {start_depth}→{end_depth} m, {len(self.nav.route)} 航點")
         return ok()
 

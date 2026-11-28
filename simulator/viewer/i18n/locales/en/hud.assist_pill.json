@@ -74,6 +74,16 @@
       "DVL fault",
       "DVL reports a fault",
       "Switch to manual control and inspect after the dive."
+    ],
+    "net": [
+      "Net returns",
+      "DVL beams hit the pen net",
+      "Move over visible seabed."
+    ],
+    "tilt": [
+      "Excessive tilt",
+      "Vehicle tilt exceeds the DVL operating range",
+      "Level the vehicle."
     ]
   },
   "dvlLost": "DVL bottom lock lost"

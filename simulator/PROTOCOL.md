@@ -492,12 +492,13 @@ provisional and labelled with their sources in `qysim/sensors.py`; none is an X1
 ```text
 ideal bool              true when imperfections are off (values are then truth)
 heading deg 0-360       estimated heading (gyro + magnetometer fusion, steel deviation)
-depth m                 pressure depth (zero offset, density setting, 2 mm quantisation, noise)
+roll, pitch deg         optional attitude estimates including acceleration-induced tilt
+depth m                 pressure depth (thermal and zero offsets, density setting, 2 mm quantisation, noise)
 altitude m|null         altimeter: nearest echo in a 25 deg cone; null = no echo or blind zone
 altitude_blind bool     true when the nearest echo is inside the 0.3 m blind zone (realistic layer only)
 range m|null            forward echo sounder, same cone model; range_blind as above
 dvl {status: locked|coasting|lost, reason: null|too_high|too_low|slope|vegetation|silt|aeration|mud|
-     pool|range|fault|window, altitude m|null, ground_speed_kn kn|null (null while lost)}
+     pool|range|fault|window|net|tilt, altitude m|null, ground_speed_kn kn|null (null while lost)}
 pos_est [n,e,d]         dead-reckoned position (DVL velocity x estimated heading; frozen while lost;
                         reset to the GPS fix at the surface)
 realigned_t s|null      time of the last "yaw re-aligned" jump of the heading estimator
@@ -517,7 +518,11 @@ is `"OnLine"` while bottom lock holds and `"OffLine"` while it is lost; `QDVL`/`
 0.0 while lost. `Altitude`/`Distance` read the echo sounders, with the maximum range (100 / 50 m) for
 no echo and 0.3 for an echo inside the blind zone. `get_rov_data.dvl` adds optional `velocity_valid`
 (bool) and `lock` (status string), sets `position_valid` false while lock is lost, and reports per-beam
-slant ranges (0.0 for a beam without return). Pitch, roll, `Temp` and power fields are unchanged.
+slant ranges (0.0 for a beam without return). Pitch and roll come from the same attitude estimate as
+the quaternion. The rate loop and 50 Hz gyro share the yaw gyro bias. The depth controller damps on
+a filtered pressure-depth derivative. DVL-based waypoint control suspends horizontal guidance while
+lock is lost. USBL and UQPS continue to report offline. Video delay and compression artefacts use the
+existing camera and link settings (X1 暫定).
 
 Scenarios may name `water` (`salt` default, `fresh` for the pool) and `seabed_type`
 (`sand`, `mud`, `rock`, `pool`; default from the biome). The depth sensor's density setting defaults to
@@ -841,6 +846,9 @@ of physics. Each frame contains Unix `timestamp`, `range_m`, `fov_deg:120`, `bea
 Beam indices run from -60° (port) to +60° (starboard), relative to body forward.
 Distances are slant ranges in metres; range limit means no return. First surfaces occlude
 later targets. `ghost_m` is a weak synthetic multipath return (range limit means none).
+Realistic scans quantise first-return range in 0.05 m bins. Optional paired arrays `sidelobe_m` and
+`sidelobe_intensity` give the strongest neighbouring off-axis echo (same units as primary returns).
+Ideal sensor mode uses the legacy scan with its original noise and multipath settings.
 Noise, attenuation, target sizes and multipath are illustrative training assumptions,
 not measurements of a specific instrument. This is a horizontal slice, without elevation resolution.
 The SDK RPC `{"type":"sonar_latest"}` reads the latest subscribed primary vehicle frame,
