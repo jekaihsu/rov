@@ -370,7 +370,8 @@ class Vehicle:
         wake = self.forward_wake @ np.maximum(shaft, 0) + self.reverse_wake @ np.maximum(-shaft, 0)
         # Fully ventilated one radius above water, fully immersed one diameter below.
         depth = s.pos[2] + self.disks @ q_matrix(s.q)[2]
-        immersion = np.clip((depth / self.fit.diameter + .5) / 1.5, 0., 1.)
+        wet_range = self.fit.wet_depth_d - self.fit.dry_depth_d
+        immersion = np.clip((depth / self.fit.diameter - self.fit.dry_depth_d) / wet_range, 0., 1.)
         gain = np.clip(1 - self.fit.kt_slope * np.maximum(advance, 0), 0., 1.)
         gain *= immersion * np.maximum(0., 1 - self.fit.hull_loss - self.fit.wake_loss * wake)
         return shaft, p.thruster_max * shaft * abs(shaft) * gain

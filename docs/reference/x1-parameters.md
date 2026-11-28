@@ -1,6 +1,6 @@
 # X1 暫定參數
 
-唯一數值來源：`simulator/qysim/vehicles.py:X1_PARAMETERS`。
+參數及來源集中於 `simulator/qysim/vehicles.py`。
 實測後只改該表，再執行 `python docs/reference/export_x1_parameters.py`。
 目前沒有 measured；official 是廠商宣稱，reseller 是單一經銷商，estimated 是假設。
 
@@ -12,11 +12,11 @@
 | added_mass | `(15.0, 25.0, 30.0)` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
 | inertia | `(1.1, 1.6, 1.8)` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
 | thruster_max | `148.0` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
-| motor_tau | `0.08` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
+| motor_tau | `0.05047196008277468` | estimated | 暫定：沿用原繫樁推力上升時間 0.08 s，以 T ∝ n² 換算槳軸時間常數；待同步記錄轉速／推力 |
 | vmax | `(2.314998, 1.28611, 0.771666)` | reseller | real-rov-research.md: 經銷商分軸速度；前進亦有官網宣稱 |
 | wmax | `(2.0943951023931953, 1.5707963267948966, 1.5707963267948966)` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
 | quadratic_drag | `None` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
-| reverse_ratio | `1.0` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
+| reverse_ratio | `0.9` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
 | thrust_asymmetry | `True` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
 | linear_drag | `(8.0, 12.0, 15.0, 1.0, 1.0, 1.0)` | estimated | 暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單 |
 | thrusters | `(('T1 PORT_FRONT', (0.25, -0.193, 0.032), (0.32, -0.54, -0.78)), ('T2 STBD_FRONT', (0.25, 0.193, 0.032), (0.32, 0.54, -0.78)), ('T3 PORT_AFT', (-0.251, -0.171, -0.035), (-0.28, -0.48, 0.83)), ('T4 STBD_AFT', (-0.251, 0.171, -0.035), (-0.28, 0.48, 0.83)), ('T5 PORT_LONG', (-0.061, -0.205, 0.068), (-1.0, 0.0, 0.0)), ('T6 STBD_LONG', (-0.061, 0.205, 0.068), (-1.0, 0.0, 0.0)))` | estimated | Blender 重建／工程假設，非實測；見 real-rov-research.md 幾何缺口 |
@@ -80,3 +80,12 @@
 | tether.substeps | `10` | estimated | 數值求解設定，非物理量；見 tether_solver.py |
 | tether.contact_cache_m | `0.01` | estimated | 數值求解設定，非物理量；見 tether_solver.py |
 | tether.accelerated | `True` | estimated | 數值求解設定，非物理量；見 tether_solver.py |
+| hydro.added_centre_z | `-0.015` | estimated | 暫定：流體慣性中心取 CG 上方半個 GM |
+| hydro.rotary_added | `(0.275, 0.4, 0.45)` | estimated | 暫定：原有效轉動慣量的四分之一歸於附加慣量 |
+| hydro.diameter | `0.11` | estimated | 暫定：依重建導管外形估算槳徑，m |
+| hydro.rated_rps | `65.0` | estimated | 暫定：設計工作點轉速假設，rev/s，待光學轉速計校正 |
+| hydro.kt_slope | `0.3` | estimated | 暫定：以線性開水域近似，一單位前進比損失三成靜推力 |
+| hydro.hull_loss | `0.015` | estimated | 暫定：機身裝機遮蔽造成的靜推力損失比例 |
+| hydro.wake_loss | `0.12` | estimated | 暫定：同軸近距離雙槳損失比例上界，再依軸距與橫距衰減 |
+| hydro.dry_depth_d | `-0.5` | estimated | 暫定：槳心高於水面半個槳徑時全槳離水 |
+| hydro.wet_depth_d | `1.0` | estimated | 暫定：槳心在水面下一個槳徑時吸氣消失 |

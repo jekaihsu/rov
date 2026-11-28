@@ -12,6 +12,11 @@ from .model_o import (
     ADDED_INERTIA, COMBINED_INERTIA, MEASURED_RATE, MEASURED_SPEED, MOTOR_TAU, NET_BUOYANCY_N, NOMINAL_FORWARD_N,
 )
 
+def shaft_time_constant(force_tau):
+    """Match the original bollard-force 63.2% step time with T proportional to n²."""
+    return -force_tau / math.log1p(-math.sqrt(-math.expm1(-1.0)))
+
+
 # Keys are the VehicleParams fields this entry overrides. Every value is traced in the calibration note.
 MODEL_O_ASSIST_GAIN = 3.0  # Reference-filter stiffness scale at full acceleration fraction.
 MODEL_O_PARAMS = {
@@ -21,7 +26,7 @@ MODEL_O_PARAMS = {
     "added_mass": (6.36, 7.12, 18.68),
     "inertia": COMBINED_INERTIA,
     "thruster_max": NOMINAL_FORWARD_N,
-    "motor_tau": -MOTOR_TAU / math.log1p(-math.sqrt(-math.expm1(-1.0))),
+    "motor_tau": shaft_time_constant(MOTOR_TAU),
     "vmax": MEASURED_SPEED,
     "wmax": MEASURED_RATE,
     "linear_drag": (13.7, 0.0, 33.0, 0.0, 0.8, 0.0),
@@ -63,7 +68,8 @@ X1_PARAMETERS = {'mass': {'value': 30.0, 'level': 'official', 'source': 'real-ro
  'thruster_max': {'value': 148.0,
                   'level': 'estimated',
                   'source': '暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單'},
- 'motor_tau': {'value': 0.08, 'level': 'estimated', 'source': '暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單'},
+ 'motor_tau': {'value': shaft_time_constant(.08), 'level': 'estimated',
+               'source': '暫定：沿用原繫樁推力上升時間 0.08 s，以 T ∝ n² 換算槳軸時間常數；待同步記錄轉速／推力'},
  'vmax': {'value': (2.314998, 1.28611, 0.771666),
           'level': 'reseller',
           'source': 'real-rov-research.md: 經銷商分軸速度；前進亦有官網宣稱'},
@@ -208,6 +214,8 @@ class HydroFit:
     kt_slope: float       # fractional bollard loss per unit positive advance ratio
     hull_loss: float      # estimated blocked fraction of disk thrust
     wake_loss: float      # additional fraction for unit coincident downstream disk
+    dry_depth_d: float = -.5   # hub half a diameter above the surface: even the lowest blade is dry
+    wet_depth_d: float = 1.    # assumed immersion for ventilation-free operation, in diameters
 
 
 HYDRO_FITS = {
@@ -216,6 +224,20 @@ HYDRO_FITS = {
     # Table A1 uses coincident principal axes. Published in-water coefficients
     # already include installation effects; allow only residual losses on this fit.
     "bluerov2_heavy": HydroFit(0., ADDED_INERTIA, .076, 65., .08, .002, .03),
+}
+
+# All catalogue fit values for X1 are provisional; evidence inventory export reads
+# the actual HydroFit so corrections need only be made in one place.
+X1_HYDRO_SOURCES = {
+    "added_centre_z": "暫定：流體慣性中心取 CG 上方半個 GM",
+    "rotary_added": "暫定：原有效轉動慣量的四分之一歸於附加慣量",
+    "diameter": "暫定：依重建導管外形估算槳徑，m",
+    "rated_rps": "暫定：設計工作點轉速假設，rev/s，待光學轉速計校正",
+    "kt_slope": "暫定：以線性開水域近似，一單位前進比損失三成靜推力",
+    "hull_loss": "暫定：機身裝機遮蔽造成的靜推力損失比例",
+    "wake_loss": "暫定：同軸近距離雙槳損失比例上界，再依軸距與橫距衰減",
+    "dry_depth_d": "暫定：槳心高於水面半個槳徑時全槳離水",
+    "wet_depth_d": "暫定：槳心在水面下一個槳徑時吸氣消失",
 }
 
 X1_THRUSTERS = X1_PARAMETERS["thrusters"]["value"]
@@ -283,7 +305,7 @@ VEHICLE_DEFINITIONS = {
         (-.20, 0., -.15), (.245, 0., -.015), ((.24, -.18, -.09), (.24, .18, -.09)), (.18, 0., .15)),
     "falcon": VehicleDefinition("falcon", "Falcon", "models/falcon.glb",
         dict(mass=60., reverse_ratio=.9, net_buoyancy=5., gm=.095, added_mass=(30., 45., 55.),
-             inertia=(4., 7., 8.), thruster_max=110., motor_tau=.18,
+             inertia=(4., 7., 8.), thruster_max=110., motor_tau=shaft_time_constant(.18),
              vmax=(1.5, 1., .6), wmax=(.5, .5, .8), linear_drag=(18., 28., 35., 3., 4., 4.)),
         tuple((f"T{i+1} HORIZONTAL", (x*.29, y*.16, .075), (.86, -x*y*.51, 0.))
               for i, (x,y) in enumerate(((1,-1),(1,1),(-1,-1),(-1,1))))
