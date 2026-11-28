@@ -55,7 +55,7 @@ class Hook:
     since: float
     sense: float             # sign of the horizontal bend when it hooked
     gland_at_hook: np.ndarray
-    approach: np.ndarray
+    approach: np.ndarray | None
     force_n: float = 0.0
     tension_n: float = 0.0
     slack_clock: float = 0.0
@@ -160,7 +160,8 @@ class SnagTracker:
             node = seg + (1 if frac > 0.5 else 0)
             bend = chord_bend(x, l0, node)
             unwound = hook.sense * bend < math.radians(p.release_angle_deg)
-            backed_out = np.dot(x[-1] - hook.gland_at_hook, hook.approach) < -tether.p.diameter
+            backed_out = (hook.approach is None
+                          or np.dot(x[-1] - hook.gland_at_hook, hook.approach) < -tether.p.diameter)
             if backed_out and unwound and hook.tension_n < 0.5 * hook.hold_n:
                 hook.slack_clock += dt
             else:
@@ -225,9 +226,10 @@ class SnagTracker:
             # Remember the direction of entry. Slack can straighten the local bend
             # while the pilot is stationary on the trapped side.
             approach = v[-1].copy()
-            if np.linalg.norm(approach) < p.hook_speed:
-                approach = x[-1] - point
-            approach /= max(np.linalg.norm(approach), 1e-9)
+            speed = np.linalg.norm(approach)
+            # A stationary vehicle can have its line swept onto a feature by
+            # current or settling. Only the cable bend records entry in that case.
+            approach = approach / speed if speed > max(p.hook_speed, 1e-9) else None
             self.hooks.append(Hook(index, ob.name, point.copy(), s_rov, base, base, round(t_now, 2),
                                    sense, x[-1].copy(), approach))
             held.add(ob.name)
