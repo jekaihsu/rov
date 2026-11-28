@@ -205,7 +205,7 @@ t                sim seconds            paused        bool
 pos [n,e,d]      NED m                  q [w,x,y,z]   body→world
 euler [roll,pitch,yaw_0_360] deg        vel [u,v,w]   body m/s
 speed_kn         speed through water
-thrust [6]       -1..1 per thruster (order = world.thrusters)
+thrust [6]       -1..1 delivered thrust / nominal forward bollard thrust, in world.thrusters order
 health [6]       0..1 thruster health (impact damage)
 rc {...}         active RC (SDK when remote_control) — same keys as the rc message, plus the
                  requested `assist` (0/1/2) and `profile` (optional additions; `state.assist`
@@ -261,6 +261,17 @@ log [{t, kind, text, stamp?}]   (last 8 lines, Traditional Chinese; optional `st
      `%Y/%m/%d %H:%M:%S`, same form as photo `create_time` — assumed App dive-log layout)
 ```
 
+Each hull contact onset can add optional fields to an entry in `events`. `material` is steel,
+concrete, net, sand, mud or biofouling. `impulse_ns` is the applied normal impulse in N·s and
+`speed` is the incoming surface-normal contact-point speed in m/s. Sustained scraping on the same
+obstacle counts once. Optional `state.score.collisions` counts all impact onsets for this vehicle in
+the current world, including those older than the 12 displayed events. The host omits it before
+the first contact. A hard impact requires speed > 0.3 m/s and impulse ≥ 1 N·s. A severe impact
+requires speed > 0.8 m/s and impulse ≥ 3 N·s and sets `possible_damage` to true. These thresholds
+and wet contact coefficients are provisional training assumptions pending vehicle impact measurements.
+While the net is loaded, optional `state.net_contact` gives the undeformed `point` and local
+displacement `offset` (both NED metres). The panel relaxes when this field disappears.
+
 ### Optional `power`: tether power budget / battery
 
 `state.power` (and each fleet entry) is an optional addition; existing fields keep their meaning.
@@ -278,9 +289,24 @@ power {type: tether|battery, available_w W|null, demand_w W, thruster_w W, light
   removes all thrust and lights and drops the vehicle link until reset. The legacy `battery` field
   stays at 100 so old clients see a full, non-draining value. An instructor `battery` injection on a
   tether vehicle lowers `available_w` (supply sag) instead.
-* `type:"battery"`: the existing state-of-charge drain is unchanged. At 0% motors and lights are
-  cut off (`cutoff:true`) and re-enabled above 2%. `voltage_v` is a linear 4S estimate.
+* `type:"battery"`: SOC integrates total supply current over pack capacity, calibrated to the legacy idle drain.
+  A depleted pack cuts off. Restart requires SOC above 2% and sufficient voltage. `voltage_v` is a linear 4S estimate.
 * `lights_on:false` means the lamps are unpowered even though `rc.right_switch` is on.
+
+Additional optional fields in `power`:
+
+| Field | Meaning |
+|---|---|
+| `bus_v` | Loaded vehicle input voltage (V), null before the first electrical step. At cutoff it reads the unloaded source. An instructor trip reads zero. |
+| `current_a` | Total vehicle input current (A), including accessories. |
+| `aux_w` | Delivered watts by camera (including recording), gimbal holding load, sensors and remaining electronics. Lamp draw is in `lights_w`. |
+| `voltage_limited` | The low-voltage thrust ceiling constrained the available command. `limited` also covers branch and total input-current limiting. |
+
+The source model uses `V = E − IR` and `P = VI`. For tether power, the effective loop resistance
+is proportional to paid-out length. For a battery, `E` is the original SOC-based `voltage_v`.
+Both supplies progressively lower the maximum thrust as bus voltage falls. When even the
+accessories bring voltage to the cutoff threshold, the supply disconnects and checks the
+prospective accessory-loaded voltage against a higher threshold before restarting.
 
 SDK compatibility: `QYRovNavigationManage.get_rov_data` `rov.power` keeps exactly
 `{type:"battery", battery_cap_1, battery_cap_2}` for battery vehicles. Tether vehicles report
@@ -303,7 +329,9 @@ leak {detected bool}
 A first-order model: heat follows electrical load, cooling is strong in water and weak in air.
 `dry_run` is raised after 30 s of running thrusters out of water (vendor rule; the vehicle is out
 of water only in a deck state, `on_deck` server-side, which current scenarios never use). Sustained
-full thrust in water reaches `motor_hot` after several minutes. Warnings only, no derating. Each new
+full thrust in water reaches `motor_hot` after several minutes. The optional `derated` flag and `scale` (0–1) report thermal protection.
+Thrust commands are reduced uniformly before electrical allocation as the hottest component
+exceeds its warning temperature, reaching zero 20 °C above that threshold. Each new
 warning is also written to `log` (kind `thermal`). Thresholds are provisional assumptions.
 `QYRovCheckManage.ego_self_test` now reports the modelled `temp` (housing) and `mos_temp` instead of
 the constants 31 / 38 (the model starts at those values in 26 °C surface water) and `leak: 0` while a
@@ -492,12 +520,13 @@ provisional and labelled with their sources in `qysim/sensors.py`; none is an X1
 ```text
 ideal bool              true when imperfections are off (values are then truth)
 heading deg 0-360       estimated heading (gyro + magnetometer fusion, steel deviation)
-depth m                 pressure depth (zero offset, density setting, 2 mm quantisation, noise)
+roll, pitch deg         optional attitude estimates including acceleration-induced tilt
+depth m                 pressure depth (thermal and zero offsets, density setting, 2 mm quantisation, noise)
 altitude m|null         altimeter: nearest echo in a 25 deg cone; null = no echo or blind zone
 altitude_blind bool     true when the nearest echo is inside the 0.3 m blind zone (realistic layer only)
 range m|null            forward echo sounder, same cone model; range_blind as above
 dvl {status: locked|coasting|lost, reason: null|too_high|too_low|slope|vegetation|silt|aeration|mud|
-     pool|range|fault|window, altitude m|null, ground_speed_kn kn|null (null while lost)}
+     pool|range|fault|window|net|tilt, altitude m|null, ground_speed_kn kn|null (null while lost)}
 pos_est [n,e,d]         dead-reckoned position (DVL velocity x estimated heading; frozen while lost;
                         reset to the GPS fix at the surface)
 realigned_t s|null      time of the last "yaw re-aligned" jump of the heading estimator
@@ -517,7 +546,11 @@ is `"OnLine"` while bottom lock holds and `"OffLine"` while it is lost; `QDVL`/`
 0.0 while lost. `Altitude`/`Distance` read the echo sounders, with the maximum range (100 / 50 m) for
 no echo and 0.3 for an echo inside the blind zone. `get_rov_data.dvl` adds optional `velocity_valid`
 (bool) and `lock` (status string), sets `position_valid` false while lock is lost, and reports per-beam
-slant ranges (0.0 for a beam without return). Pitch, roll, `Temp` and power fields are unchanged.
+slant ranges (0.0 for a beam without return). Pitch and roll come from the same attitude estimate as
+the quaternion. The rate loop and 50 Hz gyro share the yaw gyro bias. The depth controller damps on
+a filtered pressure-depth derivative. DVL-based waypoint control suspends horizontal guidance while
+lock is lost. USBL and UQPS continue to report offline. Video delay and compression artefacts use the
+existing camera and link settings (X1 暫定).
 
 Scenarios may name `water` (`salt` default, `fresh` for the pool) and `seabed_type`
 (`sand`, `mud`, `rock`, `pool`; default from the biome). The depth sensor's density setting defaults to
@@ -676,7 +709,7 @@ training acceptance.
 ## Ocean current model
 
 The host is authoritative for the water flow; the viewer only displays it. `current_here` (§3) is the
-full local flow at the vehicle. The ambient flow is the three-layer mean profile plus turbulence:
+full local flow at the vehicle. The ambient flow combines the three-layer mean profile, turbulence and any configured wave.
 
 * **Turbulence** is a smooth, anisotropic, spatially varying field (`qysim/flow.py`,
   `TurbulenceField`): σu = `turbulence` × local mean speed, cross-stream and vertical σ in the ratio
@@ -702,6 +735,14 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   `minor_ratio`·(sine terms) across the flood axis, turning clockwise, and never reaches slack.
   A pure M2 tide reproduces the NOAA Table 4A slack windows (≈ 23.8 min below 0.1 kn at a 1 kn
   maximum, ≈ 5.9 min at 4 kn).
+* Optional `current.tide.period_s` replaces the principal constituent period (1 second to 7 days).
+  S2 keeps its 12-hour period. Without an override the principal period remains 12.4206012 hours.
+* Optional scenario `current.wave` describes one regular Airy wave, for example
+  `{"height_m":0.45,"period_s":4,"direction_deg":75}`. Height is crest to trough, period is in seconds,
+  and direction is propagation clockwise from north. Orbital speed decays with positive-down depth
+  as (πH/T) exp(−kz), k = (2π/T)²/g. With this field absent there is no orbital velocity.
+* Optional scenario `current.bypass_flow` (default false) enables hull shoulder acceleration and
+  porous net-pen shelter and bypass. The grid and vehicle current carry these effects in the existing NED units.
 * **Time-of-tide selector**: `{"type":"scenario",...,"tide_start":"slack_before_flood"}` (or hours,
   −13..13) starts a tidal scenario at that stage; host `current` messages also accept
   `"tide":{...}` (replace; `null` removes it) and `"tide_start"`. Invalid values are rejected with
@@ -841,6 +882,9 @@ of physics. Each frame contains Unix `timestamp`, `range_m`, `fov_deg:120`, `bea
 Beam indices run from -60° (port) to +60° (starboard), relative to body forward.
 Distances are slant ranges in metres; range limit means no return. First surfaces occlude
 later targets. `ghost_m` is a weak synthetic multipath return (range limit means none).
+Realistic scans quantise first-return range in 0.05 m bins. Optional paired arrays `sidelobe_m` and
+`sidelobe_intensity` give the strongest neighbouring off-axis echo (same units as primary returns).
+Ideal sensor mode uses the legacy scan with its original noise and multipath settings.
 Noise, attenuation, target sizes and multipath are illustrative training assumptions,
 not measurements of a specific instrument. This is a horizontal slice, without elevation resolution.
 The SDK RPC `{"type":"sonar_latest"}` reads the latest subscribed primary vehicle frame,

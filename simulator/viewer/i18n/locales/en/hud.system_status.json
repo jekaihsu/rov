@@ -29,5 +29,8 @@
   "leak": "Leak alarm",
   "seconds": "s",
   "watts": "W",
-  "volts": "V"
+  "volts": "V",
+  "undervoltage": "Low-voltage cutoff",
+  "lowVoltage": "Low-voltage derating",
+  "hotLimit": "Thermal derating"
 }

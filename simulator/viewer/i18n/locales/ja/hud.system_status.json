@@ -29,5 +29,8 @@
   "leak": "浸水警報",
   "seconds": "s",
   "watts": "W",
-  "volts": "V"
+  "volts": "V",
+  "undervoltage": "低電圧遮断",
+  "lowVoltage": "低電圧出力制限",
+  "hotLimit": "過熱出力制限"
 }

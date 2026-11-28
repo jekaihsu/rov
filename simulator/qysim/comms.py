@@ -220,7 +220,7 @@ class CommsLink:
         self.frozen_rc = None
         self.rearm_required = True
         self.rearm_seen_lock = False
-        self.failsafe_target = float(sim.vehicle.s.pos[2])
+        self.failsafe_target = sim.sensors.depth(sim)
         lock_vehicle(sim)
         names = {"disarm": "解除武裝", "depth_hold": "定深", "surface": "上浮"}
         sim._log("link", f"通訊中斷保護：{names[action]}")
@@ -272,7 +272,7 @@ class CommsLink:
             return None
         if self.failsafe == "surface":
             target = max(0.0, (self.failsafe_target or 0.0))
-            if sim.depth > SURFACE_DEPTH_M:
+            if sim.sensors.depth(sim) > SURFACE_DEPTH_M:
                 return {"heave": 1.0, "depth": None}
             return {"heave": 0.0, "depth": min(target, SURFACE_DEPTH_M)}
         return {"heave": 0.0, "depth": self.failsafe_target}

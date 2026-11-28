@@ -49,6 +49,7 @@ class ReelParams:
     auto_slack_rate: float       # slow haul-in when slack, m/s
     stall_speed: float           # m/s below which a commanded haul counts as stalled
     stall_time: float            # s
+    deck_drag_n: float = 0.0
 
 
 class Reel:
@@ -145,8 +146,8 @@ class Reel:
         state = self.state
         state[REEL_INV_MASS] = 1.0 / inertia
         state[REEL_DRIVE] = drive
-        state[REEL_STATIC] = static
-        state[REEL_KINETIC] = kinetic
+        state[REEL_STATIC] = static + p.deck_drag_n
+        state[REEL_KINETIC] = kinetic + p.deck_drag_n
         state[REEL_VISCOUS] = viscous
         lower_limit = MIN_LENGTH_M if self.target is None else max(MIN_LENGTH_M, min(self.target, current_length))
         upper_limit = self.max_length if self.target is None else max(self.target, current_length)

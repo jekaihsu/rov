@@ -1,18 +1,10 @@
-"""Vehicle power: a tether power budget for surface-powered vehicles, battery cutoff for the rest.
+"""Supply resistance, protected thruster allocation and vehicle electrical loads.
 
-Tether-powered vehicles (X1) have no battery. Thrusters, lights and the electronics ("hotel")
-share an available-power budget; when the demand exceeds it, all thruster commands are scaled
-down together so they cannot all reach their individual maxima at once. A power trip (ground
-fault / insulation monitor, instructor injection) removes all power until it is reset.
-
-Battery vehicles keep the simulator's existing state-of-charge drain and add a hard cutoff of
-motors and lights at empty, re-enabled above a small hysteresis.
-
-All numbers are provisional engineering assumptions, labelled with their source. X1 supply
-voltage and power, light wattage and thruster current are unpublished (see
-``research_notes/感測器_揚沙_通訊/comms_and_power.md``, Part C item 3).
+All estimated X1 parameters await the electrical and thermal measurement checklist.
 """
 from __future__ import annotations
+
+import math
 
 import numpy as np
 
@@ -20,7 +12,7 @@ ASSUMED_THRUST_PER_WATT = 0.115    # N/W at full thrust for small electric thrus
 LIGHT_LEVELS = (0.0, 0.55, 1.0)    # right_switch 0/1/2, same fractions as the viewer's lamps
 BATTERY_RESTART_PERCENT = 2.0      # cutoff hysteresis (assumption)
 
-_ASSUMPTION = "工程假設；非實測"
+_ASSUMPTION = "暫定工程假設；非實測"
 POWER_PROFILES = {
     "x1": {
         "type": {"value": "tether", "source": "real-rov-research.md: X1 由纜線供電、無電池"},
@@ -51,6 +43,40 @@ POWER_PROFILES = {
 }
 
 
+def loaded_voltage(source, resistance, watts):
+    """High-voltage operating point of P = V (E - V) / R, or zero on collapse."""
+    discriminant = source * source - 4.0 * resistance * watts
+    return (source + math.sqrt(discriminant)) / 2.0 if discriminant >= 0 else 0.0
+
+
+# Current limits refer to the vehicle input bus, including equivalent branch currents
+# upstream of the onboard converters. Cable resistance is for BOTH conductors per paid-out metre.
+for model, profile in POWER_PROFILES.items():
+    battery = profile["type"]["value"] == "battery"
+    estimates = {
+        "cutoff_v": 12.0 if battery else 180.0,
+        "derate_v": 14.0 if battery else 270.0,
+        "restart_margin_v": 0.1 if battery else 10.0,
+        "branch_limit_a": 28.0 if battery else 4.4,
+        "total_limit_a": 90.0 if battery else profile["available_w"]["value"] / 300.0,
+        "camera_w": 6.0 if battery else 12.0,
+        "record_w": 2.0,
+        "gimbal_w": 2.0,
+        "sensors_w": 5.0 if battery else 10.0,
+    }
+    if battery:
+        estimates["internal_ohm"] = 0.010
+        # Match 0.004 percent/s at the legacy full-charge, lamps-off idle operating point.
+        idle = profile["hotel_w"]["value"]
+        voltage = profile["voltage_full"]["value"]
+        idle_bus = loaded_voltage(voltage, estimates["internal_ohm"], idle)
+        estimates["capacity_ah"] = (idle / idle_bus) * 100 / (0.004 * 3600)
+    else:
+        estimates.update(source_v=300.0, loop_ohm_m=0.018)
+    for key, value in estimates.items():
+        profile[key] = {"value": value, "source": _ASSUMPTION + "；見 x1-measurement-checklist.md PF"}
+
+
 def profile_values(model_id: str) -> dict:
     profile = POWER_PROFILES.get(model_id, POWER_PROFILES["bluerov2_heavy"])
     return {key: item["value"] for key, item in profile.items()}
@@ -68,6 +94,10 @@ class PowerSystem:
         self.thruster_w = 0.0
         self.lights_w = 0.0
         self.lights_on = True
+        self.bus_v = None
+        self.current_a = 0.0
+        self.aux_w = {}
+        self.voltage_limited = False
 
     @property
     def tether(self) -> bool:
@@ -86,39 +116,83 @@ class PowerSystem:
         supply = max(0.0, min(1.0, sim.battery / 100.0))
         return self.values["available_w"] * supply
 
-    def _battery_cutoff(self, sim) -> None:
-        if self.tether:
-            self.cutoff = False
-        elif sim.battery <= 0.0:
-            self.cutoff = True
-        elif sim.battery > BATTERY_RESTART_PERCENT:
-            self.cutoff = False
-
     def apply(self, sim, thr: np.ndarray, rc) -> np.ndarray:
-        """Return the thruster commands the power system can deliver this step."""
-        self._battery_cutoff(sim)
-        powered = not self.tripped and not self.cutoff
-        self.lights_on = powered
-        level = LIGHT_LEVELS[max(0, min(2, int(rc.right_switch)))] if powered else 0.0
-        self.lights_w = self.values["light_w"] * self.values["lights"] * level
-        hotel = self.values["hotel_w"] if not self.tripped else 0.0
-        if not powered:
-            thr = np.zeros_like(thr)
-        fraction = np.abs(np.asarray(thr, float))
-        self.thruster_w = float(self.values["thruster_full_w"] * np.sum(fraction ** 1.5))
-        self.limited = False
-        self.scale = 1.0
+        """Reserve accessories first, then preserve signed thrust ratios under all limits."""
+        p = self.values
         available = self.available_w(sim)
-        if available is not None and powered:
-            budget = max(0.0, available - self.lights_w - hotel)
-            if self.thruster_w > budget:
-                # Power ~ thrust^1.5, so a uniform thrust scale k changes power by k^1.5.
-                self.scale = (budget / self.thruster_w) ** (2.0 / 3.0) if self.thruster_w > 0 else 0.0
-                thr = thr * self.scale
-                self.thruster_w = budget
-                self.limited = True
-        self.demand_w = self.thruster_w + self.lights_w + hotel
-        return thr
+        if self.tether:
+            source = p["source_v"] * available / p["available_w"]
+            resistance = p["loop_ohm_m"] * getattr(getattr(sim, "tether", None), "length", 0.0)
+        else:
+            source = self.voltage(sim)
+            resistance = p["internal_ohm"]
+
+        recording = getattr(getattr(sim, "camera", None), "recording_since", None) is not None
+        self.aux_w = {
+            "camera": p["camera_w"] + recording * p["record_w"],
+            "gimbal": p["gimbal_w"],
+            "sensors": p["sensors_w"],
+            "electronics": p["hotel_w"] - p["camera_w"] - p["gimbal_w"] - p["sensors_w"],
+        }
+        self.lights_w = p["light_w"] * p["lights"] * LIGHT_LEVELS[max(0, min(2, int(rc.right_switch)))]
+        auxiliary = self.lights_w + sum(self.aux_w.values())
+        idle_v = loaded_voltage(source, resistance, auxiliary)
+        if idle_v <= p["cutoff_v"]:
+            self.cutoff = True
+        elif (idle_v >= p["cutoff_v"] + p["restart_margin_v"]
+              and (self.tether or sim.battery > BATTERY_RESTART_PERCENT)):
+            self.cutoff = False
+        self.lights_on = not (self.cutoff or self.tripped)
+        self.voltage_limited = False
+        self.scale = 1.0
+        self.limited = False
+        if not self.lights_on:
+            self.bus_v = 0.0 if self.tripped else source
+            self.aux_w = dict.fromkeys(self.aux_w, 0.0)
+            self.current_a = 0.0
+            self.thruster_w = 0.0
+            self.demand_w = 0.0
+            self.lights_w = 0.0
+            return np.zeros_like(thr)
+
+        magnitude = np.abs(thr)
+        peak = float(magnitude.max())
+        full_w = p["thruster_full_w"]
+        requested = full_w * float(np.sum(magnitude ** 1.5))
+        # Stay on the stable branch of the source load line.
+        limit_a = p["total_limit_a"]
+        if resistance > 0:
+            limit_a = min(limit_a, source / (2.0 * resistance))
+        budget = limit_a * (source - limit_a * resistance)
+        budget = min(budget, available) if available is not None else budget
+        self.thruster_w = min(requested, max(0.0, budget - auxiliary))
+
+        if requested:
+            # All branch powers scale together. Find the largest feasible motor power
+            # below the shared budget. Lower power raises bus voltage monotonically.
+            def feasible(watts):
+                voltage = loaded_voltage(source, resistance, auxiliary + watts)
+                fraction = peak * (watts / requested) ** (2.0 / 3.0)
+                cap = min(1.0, max(0.0, (voltage - p["cutoff_v"]) / (p["derate_v"] - p["cutoff_v"])))
+                return fraction <= cap, full_w * fraction ** 1.5 <= voltage * p["branch_limit_a"]
+
+            voltage_ok, current_ok = feasible(self.thruster_w)
+            if not (voltage_ok and current_ok):
+                low, high = 0.0, self.thruster_w
+                for _ in range(36):
+                    mid = (low + high) / 2
+                    if all(feasible(mid)):
+                        low = mid
+                    else:
+                        high = mid
+                self.voltage_limited = not feasible(high)[0]
+                self.thruster_w = low
+            self.scale = (self.thruster_w / requested) ** (2.0 / 3.0)
+        self.limited = self.scale < 1.0
+        self.demand_w = auxiliary + self.thruster_w
+        self.bus_v = loaded_voltage(source, resistance, self.demand_w)
+        self.current_a = self.demand_w / self.bus_v
+        return thr * self.scale
 
     def voltage(self, sim) -> float | None:
         if self.tether:
@@ -142,5 +216,9 @@ class PowerSystem:
             "cutoff": self.cutoff,
             "lights_on": self.lights_on,
             "voltage_v": None if voltage is None else round(voltage, 2),
+            "bus_v": None if self.bus_v is None else round(self.bus_v, 3),
+            "current_a": round(self.current_a, 3),
+            "aux_w": self.aux_w.copy(),
+            "voltage_limited": self.voltage_limited,
             "soc": None if self.tether else round(sim.battery, 1),
         }

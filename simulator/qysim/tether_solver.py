@@ -58,7 +58,7 @@ def _thomas(lower, diag, upper, rhs, active, tension):
 
 def advance(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, broken, h, ea, c_int,
             diameter, cd_normal, cd_tangent, wet_n_per_m, rho, cap, reel,
-            pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension):
+            pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension, ei=0.0):
     """Reference substep; same arguments and in-place updates as ``_cable_accel._advance``."""
     n = len(x) - 1
     x[0], v[0] = spool, 0.0
@@ -88,6 +88,13 @@ def advance(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, b
     acc_t = np.einsum("ij,ij->i", water_accel, t)[:, None] * t
     froude_krylov = rho * 0.25 * math.pi * diameter * diameter * lw
     force += froude_krylov[:, None] * water_accel + ma[:, None] * (water_accel - acc_t)
+    cosine = np.einsum("ij,ij->i", u[:-1], u[1:])[:, None]
+    stiffness = ei / lw[1:-1, None]
+    left = stiffness * (u[1:] - cosine * u[:-1]) / np.maximum(length[:-1, None], 1e-9)
+    bend_right = stiffness * (u[:-1] - cosine * u[1:]) / np.maximum(length[1:, None], 1e-9)
+    force[:-2] -= left
+    force[1:-1] += left - bend_right
+    force[2:] += bend_right
     for k in range(len(pin_seg)):
         i, s = int(pin_seg[k]), float(pin_s[k])
         p = (1.0 - s) * x[i] + s * x[i + 1]
@@ -184,7 +191,7 @@ def advance(x, v, water, water_accel, l0, ms, ma, lw, spool, gland, gland_vel, b
     reel[REEL_TENSION] = tension[0]
     if broken:
         return np.zeros(3)
-    return -tension[n - 1] * u[n - 1]
+    return -tension[n - 1] * u[n - 1] + (bend_right[-1] if n > 1 else 0.0)
 
 
 def contact_points(x, pt_seg, pt_s):

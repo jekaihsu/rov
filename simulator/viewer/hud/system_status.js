@@ -18,6 +18,9 @@ const STRINGS = localize('hud.system_status', {
   powerLimited: '功率受限',
   tripped: '電源跳脫',
   cutoff: '電池耗盡，馬達與燈光已切斷',
+  undervoltage: '低電壓保護',
+  lowVoltage: '低壓降載',
+  hotLimit: '過熱降載',
   temperature: '溫度',
   warnings: {dry_run: '馬達離水運轉過久', motor_hot: '馬達過熱', electronics_hot: '電子艙過熱'},
   leak: '漏水警報',
@@ -109,6 +112,13 @@ function failsafeText(link) {
 function powerText(power) {
   if (!power) return ['', ''];
   if (power.tripped) return [STRINGS.tripped, 'danger'];
+  if (Number.isFinite(power.bus_v) && Number.isFinite(power.current_a)) {
+    const bus = `${power.bus_v.toFixed(1)} V · ${power.current_a.toFixed(1)} A`;
+    if (power.cutoff) return [`${bus} · ${STRINGS.undervoltage}`, 'danger'];
+    const watts = power.type === 'tether' ? ` · ${power.demand_w}/${power.available_w} W` : '';
+    const reason = power.voltage_limited ? STRINGS.lowVoltage : STRINGS.powerLimited;
+    return power.limited ? [`${bus}${watts} · ${reason}`, 'warn'] : [bus + watts, ''];
+  }
   if (power.cutoff) return [STRINGS.cutoff, 'danger'];
   if (power.type === 'tether') {
     const text = `${STRINGS.power} ${power.demand_w} / ${power.available_w} ${STRINGS.watts}`;
@@ -120,6 +130,7 @@ function powerText(power) {
 function temperatureText(thermal) {
   if (!thermal) return [['', ''], ['', '']];
   const warnings = (thermal.warnings || []).map(code => STRINGS.warnings[code]).filter(Boolean);
+  if (thermal.derated) warnings.push(STRINGS.hotLimit);
   const reading = `${STRINGS.temperature} ${Math.round(thermal.motor_c)} / ${Math.round(thermal.mos_c)} °C`;
   return [[reading, warnings.length ? 'warn' : ''], [warnings.join(' · '), 'warn']];
 }

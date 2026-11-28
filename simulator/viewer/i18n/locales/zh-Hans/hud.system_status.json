@@ -29,5 +29,8 @@
   "leak": "漏水警报",
   "seconds": "s",
   "watts": "W",
-  "volts": "V"
+  "volts": "V",
+  "undervoltage": "低电压保护",
+  "lowVoltage": "低压降载",
+  "hotLimit": "过热降载"
 }
