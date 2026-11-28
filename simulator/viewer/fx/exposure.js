@@ -262,6 +262,7 @@ export class AutoExposurePass extends Pass {
   applyMetering() {
     const metering = this.metering;
     const compensation = metering ? metering.compensation : EXPOSURE.compensation;
+    this.adaptMaterial.uniforms.uRange.value.z = metering?.maximum ?? EXPOSURE.maximum;
     const reference = metering ? metering.reference : EXPOSURE.reference;
     this.adaptMaterial.uniforms.uPartial.value.set(compensation, Math.log(reference));
     // The daylight camera above water keeps its fixed gain unless its override names a highlight level.

@@ -132,7 +132,8 @@ class Simulator:
             self.world.obstacles = list(sc.obstacles)
             self.world.current = sc.current
             self.world.current.reseed(sc.seed or 0)
-            clear = [sc.start_pos, sc.spool_pos] + [o.point for o in sc.objectives if o.point is not None]
+            clear = [sc.habitat_origin or sc.start_pos, sc.spool_pos]
+            clear.extend(o.point for o in sc.objectives if o.point is not None)
             self.world.configure_habitat(getattr(sc, "biome", "temperate"), sc.seed or 0, keep_clear=clear,
                                          schools=getattr(sc, "fish_schools", None))
             self.world.configure_silt(sc_mod.silt_seabed_type(sc.biome, sc.seabed_type), sc.bnl_height_m, sc.bnl_mg_l)
@@ -145,7 +146,7 @@ class Simulator:
         self._flow_grid_seq = getattr(self, "_flow_grid_seq", 0)
         self.vehicle.seabed_depth = sc.seabed_depth
         self.vehicle.s.pos = np.array(sc.start_pos, float)
-        self.vehicle.s.q = q_from_euler(0.0, 0.0, math.radians(sc.start_heading_deg))
+        self.vehicle.s.q = q_from_euler(0.0, math.radians(sc.start_pitch_deg), math.radians(sc.start_heading_deg))
         self.health = np.ones(len(self.vehicle.thrusters))
         self.controller = FlightController(self.vehicle)
         self.nav = Navigator(self.geo)

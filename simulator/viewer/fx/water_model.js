@@ -49,16 +49,28 @@ export function waterCoefficients(visibility, silt = 0, type = null) {
   const yellow = WATER_TYPES[type] ?? 0;
   const green = VISIBILITY_CONTRAST / range;
   const rest = Math.max(0.01, green - PURE_WATER_ABSORPTION[1] - yellow * YELLOW_SUBSTANCE_SPECTRUM[1]);
-  const b = SCATTER_SHARE * rest;
+  // Shelf haze includes suspended mineral grains. Their grey absorption can grow with
+  // turbidity without treating all additional extinction as blue-absorbing organic matter.
+  const shelf = type === 'shelf';
+  const b = (shelf ? 0.92 : SCATTER_SHARE) * rest;
+  const particleAbsorption = rest - b;
+  const colouredAbsorption = shelf ? Math.min(0.025, particleAbsorption) : particleAbsorption;
+  // A turbid shelf station measures local horizontal contrast. For downwelling light
+  // approximate the clearer overlying column with at most 0.5/m non-water extinction.
+  const columnFraction = shelf ? Math.min(1, 0.5 / rest) : 1;
   const a = [];
   const c = [];
   const kd = [];
   for (let i = 0; i < 3; i++) {
     const spectrum = PARTICLE_ABSORPTION_SPECTRUM[i] + cloud * SILT_ABSORPTION_SPECTRUM[i];
-    a[i] = PURE_WATER_ABSORPTION[i] + yellow * YELLOW_SUBSTANCE_SPECTRUM[i] + (1 - SCATTER_SHARE) * rest * spectrum;
+    a[i] = PURE_WATER_ABSORPTION[i] + yellow * YELLOW_SUBSTANCE_SPECTRUM[i]
+      + particleAbsorption + colouredAbsorption * (spectrum - 1);
     c[i] = a[i] + b;
     // Diffuse light is mostly absorbed on the way down; only a little is scattered out of the beam.
-    kd[i] = 1.1 * a[i] + 0.15 * b;
+    // Lee et al. (2005), with a 20 degree sun zenith and Petzold bb/b = 0.0183.
+    const absorption = PURE_WATER_ABSORPTION[i] + columnFraction * (a[i] - PURE_WATER_ABSORPTION[i]);
+    const backscatter = 0.0183 * b * columnFraction;
+    kd[i] = 1.1 * absorption + 4.18 * (1 - 0.52 * Math.exp(-10.8 * absorption)) * backscatter;
   }
   return {c, b, a, kd};
 }
@@ -108,7 +120,7 @@ export function waterRadianceAtInfinity(depth, up, coefficients) {
   const b = channels(coefficients.b);
   return coefficients.c.map(function channel(c, i) {
     const k = Math.max(0.02, c - coefficients.kd[i] * up);
-    return b[i] * light[i] / k;
+    return (1 + 0.85 * up) * b[i] * light[i] / k;
   });
 }
 

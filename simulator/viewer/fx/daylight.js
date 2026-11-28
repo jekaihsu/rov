@@ -20,9 +20,9 @@ import { renderQualityState } from '../render_quality.js';
 export const UNDERWATER_DAYLIGHT = Object.freeze({
   sky: 0xa8dcf0,
   ground: 0x1a2a22,
-  hemisphere: 1.5,
+  hemisphere: 0.85,
   sun: 0xdff4ff,
-  sunIntensity: 1.6,
+  sunIntensity: 2.25,
   sunPosition: Object.freeze([20, 60, 10])
 });
 

@@ -123,13 +123,14 @@ export function siteProfile(world) {
 function scanSet(profile, quality) {
   if (profile.tiles) return {};
   const low = quality === 0;
-  const set = {uBaseC: scanUniform(`${profile.base}_c`, {size: low ? 512 : 0})};
-  if (low) return set;
-  // medium: secondary and ripple maps at 512 px (they are seen further off or only as relief)
   const small = quality >= 2 ? 0 : 512;
+  const set = {uBaseC: scanUniform(`${profile.base}_c`, {size: small})};
+  if (low) return set;
+  // Keep the colour detail on medium. The filtered relief maps modulate only the bed normal.
+  const reliefSize = quality >= 2 ? 0 : 256;
   set.uSecondC = scanUniform(`${profile.second}_c`, {size: small});
-  set.uBaseN = scanUniform(`${profile.base}_n`);
-  set.uRippleN = scanUniform('ripple_n', {size: small});
+  set.uBaseN = scanUniform(`${profile.base}_n`, {size: reliefSize});
+  set.uRippleN = scanUniform('ripple_n', {size: reliefSize});
   if (profile.rockSet) set.uRockC = scanUniform(`${profile.rockSet}_c`, {size: small});
   if (quality >= 2) {
     set.uSecondN = scanUniform(`${profile.second}_n`);

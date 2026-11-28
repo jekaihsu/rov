@@ -44,8 +44,8 @@ Per channel R, G, B (about 620 / 540 / 470 nm):
 | Symbol | Meaning | Source in the frame |
 |---|---|---|
 | `c` | beam attenuation, direct signal (lamp -> object, object -> camera) | green: `4.8 / visibility`; red adds pure-water absorption |
-| `b` | scattering, drives in-scatter and backscatter | 80 % of the non-water part of `c` |
-| `Kd` | diffuse attenuation of daylight going down | `1.1 a + 0.15 b` |
+| `b` | scattering, drives in-scatter and backscatter | 92 % of residual extinction on the shelf, 80 % elsewhere |
+| `Kd` | diffuse attenuation of daylight going down | Lee et al. (2005) with a 20° sun and a backscatter fraction of 0.0183 |
 
 The clean-water `visibility` is published by the silt module (`scene.userData.waterVisibility`: the
 scenario's visibility, or the legacy silt-reduced value when the server sends no turbidity field, or the
@@ -59,9 +59,9 @@ absorption `a_g(440)`, spectrum `exp(-0.015 (lambda - 440))`, taken out of the s
 
 | `water_type` | Sites (default from biome) | `a_g(440)` 1/m | Look |
 |---|---|---|---|
-| `oceanic` | reef (Jerlov I-III) | 0.015 | blue-cyan |
+| `oceanic` | reef and open-water training site (Jerlov I-III) | 0.015 | blue-cyan |
 | `coastal` | seagrass (Jerlov coastal 1-3) | 0.08 | cyan-green |
-| `shelf` | temperate: offshore wind, jackets, wrecks, open water (coastal 3-7) | 0.2 | green / teal-green |
+| `shelf` | temperate: offshore wind, jackets, wrecks (coastal 3-7) | 0.2 | blue-green, subdued at depth |
 | `harbour` | harbor (coastal 7-9) | 0.35 | yellow-green |
 | `fresh_clear` | pool | 0 | clear |
 
@@ -78,12 +78,11 @@ depth while daylit objects lose red with depth plus distance, as described in
 ### Exposure (`exposure.js`)
 
 The scene is metered on the GPU (32 x 18 grid, centre-weighted log-average luminance), the log exposure
-moves towards its target with a first-order lag (`tau` 0.35 s, symmetric in stops) and is clamped to
-`[0.3, 400]`. The target corrects only 65 % of the metered error in stops around a reference gain of 50
-(`compensation`, `reference`): a video camera's AE does not fully normalise a scene, so lamp level 2 is
-visibly brighter than level 1 and the near-field lamp pool is not flattened to mid-grey. The upper clamp is the
-camera's maximum gain: at 25-32 m with the lamps off the image stays dark and objects read as silhouettes against
-slightly brighter water. No pixel is read back for rendering (`state.exposure()` is a synchronous diagnostic for
+moves towards its target with a first-order lag (`tau` 0.35 s, symmetric in stops). With lamps on, the meter
+corrects 65 % of the error in stops around a reference gain of 50, within `[0.3, 400]`. With lamps off, it
+corrects 82 % around a reference gain of 25 and caps the gain at 800. Between gains of 400 and 800 the
+output gradually mixes up to 55 % equal-luminance grey into the colour, modelling low-light chroma reduction.
+No pixel is read back for rendering (`state.exposure()` is a synchronous diagnostic for
 tools only).
 
 **Highlight protection** (`metering.js`, pure, mirrored by the GPU adaptation pass, tested by

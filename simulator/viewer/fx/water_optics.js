@@ -36,6 +36,15 @@ export const LAMP_SCALE = LAMP_ASSUMED.lumens / LAMP_SOLID_ANGLE / LAMP_ASSUMED.
 // single-scatter integral here, with the lamps at the lens and the near-lamp 1/d^2 limited at 0.5 m, buries a hull at
 // 1 m in 4 m water (docs/design/lamp-exposure/README.md).
 export const DAYLIGHT_PHASE = 0.015;
+// Relative daylight scattered towards the camera, fitted to the water patches in
+// docs/design/underwater-look. Green is the reference band for visibility.
+const DAYLIGHT_SCATTER = Object.freeze({
+  harbour: [0.58, 1, 0.48],
+  shelf: [0.38, 0.46, 1],
+  oceanic: [0.18, 0.50, 1],
+  fresh_clear: [0.42, 0.90, 1],
+  coastal: [0.44, 0.93, 0.91]
+});
 const LAMP_PHASE = 0.00025;
 // Daylight reaching the surface, as the radiance factor used by the in-scatter integral.
 const SURFACE_DAYLIGHT = new THREE.Color(0.93, 1.0, 1.0).multiplyScalar(3.1);
@@ -59,6 +68,7 @@ export const waterUniforms = {
   uWaterC: { value: new THREE.Vector3(0.6, 0.33, 0.3) },
   uWaterKd: { value: new THREE.Vector3(0.4, 0.15, 0.13) },
   uWaterB: { value: new THREE.Vector3(0.25, 0.25, 0.25) },
+  uDayScatter: { value: new THREE.Vector3() },
   uWaterSun: { value: new THREE.Vector3() },
   uWaterTime: { value: 0 },
   uWaterBeauty: { value: 0 },
@@ -79,6 +89,7 @@ export const WATER_COMMON = /* glsl */ `
   uniform vec3 uWaterC;
   uniform vec3 uWaterKd;
   uniform vec3 uWaterB;
+  uniform vec3 uDayScatter;
   uniform vec3 uWaterSun;
   uniform float uWaterTime;
   uniform float uWaterBeauty;
@@ -114,7 +125,9 @@ export const WATER_COMMON = /* glsl */ `
   // An infinite ray gives the water colour seen in that direction, so distant objects end in exactly it.
   vec3 waterInscatter(vec3 origin, vec3 dir, float len) {
     vec3 k = max(uWaterC - uWaterKd * dir.y, vec3(0.02));
-    return uWaterSun * uWaterB * waterDaylight(origin) * (1.0 - exp(-k * len)) / k;
+    // First angular moment of a diffuse downwelling field. Preserve horizontal calibration.
+    float phase = 1.0 + 0.85 * dir.y;
+    return phase * uDayScatter * uWaterB * waterDaylight(origin) * (1.0 - exp(-k * len)) / k;
   }
   // Lamp light scattered back into the camera (backscatter): quadratic sample spacing puts most samples
   // in the first metres where the lamp is bright. Inverse-square, beam cone and extinction both ways.
@@ -287,6 +300,8 @@ export function updateWaterOptics(scene, { beauty = false, camera = null } = {})
   waterUniforms.uWaterB.value.fromArray(water.b);
   waterUniforms.uWaterSun.value.set(SURFACE_DAYLIGHT.r, SURFACE_DAYLIGHT.g, SURFACE_DAYLIGHT.b)
     .multiplyScalar(DAYLIGHT_PHASE);
+  const spectrum = DAYLIGHT_SCATTER[scene.userData.waterType] || DAYLIGHT_SCATTER.shelf;
+  waterUniforms.uDayScatter.value.fromArray(spectrum).multiply(waterUniforms.uWaterSun.value).multiplyScalar(0.5);
   waterUniforms.uWaterTime.value = performance.now() / 1000;
   waterUniforms.uWaterBeauty.value = beauty ? 1 : 0;
   const haze = camera && camera.position.y > 0 ? scene.userData.daylightHaze : null;
@@ -312,10 +327,9 @@ function updateLampGlow(water) {
 // (lines, unlit helpers), so they fade into the same colour as the background.
 export function horizontalWaterColour(depth, water, out = new THREE.Color()) {
   const radiance = waterRadianceAtInfinity(depth, 0, water);
-  const r = radiance[0] * SURFACE_DAYLIGHT.r * DAYLIGHT_PHASE;
-  const g = radiance[1] * SURFACE_DAYLIGHT.g * DAYLIGHT_PHASE;
-  const b = radiance[2] * SURFACE_DAYLIGHT.b * DAYLIGHT_PHASE;
-  return out.setRGB(r, g, b, THREE.LinearSRGBColorSpace);
+  const scatter = waterUniforms.uDayScatter.value;
+  return out.setRGB(radiance[0] * scatter.x, radiance[1] * scatter.y, radiance[2] * scatter.z,
+    THREE.LinearSRGBColorSpace);
 }
 
 // Draw order of the water background: after every other opaque mesh (it sits on the far plane and is depth
