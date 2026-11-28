@@ -21,6 +21,7 @@ import numpy as np
 from . import scenarios as sc_mod
 from .controller import FlightController
 from .navigation import GeoFrame, Navigator, wrap_pi
+from .hull_contact import HullContact
 from .physics import KNOT, THRUSTERS, Vehicle, q_from_euler, q_matrix, q_rot
 from .rc import OPERATION_MODES, RCState, Shaping, ctrl_mode, pilot_command
 from .tether import GLAND_BODY, Tether, TetherParams
@@ -139,6 +140,7 @@ class Simulator:
             self.world.visibility_m = sc.visibility_m
         self.geo = GeoFrame()
         self.vehicle = Vehicle(model_id=self.model_id)
+        self.hull_contact = HullContact(self.vehicle)
         self._flow_accel = FlowAccelerometer()
         self._flow_points = hull_flow_points(self.vehicle.definition)
         self._flow_grid = None
@@ -312,6 +314,8 @@ class Simulator:
         elif not locked and (self.nav.mode != "IDLE" or self.nav.hold is not None):
             if measured is None:
                 out = self.nav.step(dt, s.pos, self.yaw, v.world_velocity(), pilot, v.p.vmax[0])
+            elif not measured.dvl_valid and self.nav.mode != "VCCM":
+                out = None
             else:
                 out = self.nav.step(dt, measured.pos, measured.yaw, measured.vel_world, pilot, v.p.vmax[0])
             if out is not None:
@@ -340,14 +344,15 @@ class Simulator:
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist,
                                      rc.profile, dvl_valid=dvl_valid, measured=measured) * self.health
         thr = self.power.apply(self, thr * self.thermal.thrust_scale, rc)
-        w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
+        w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity(), s.omega)
         n_events = len(self.world.events)
-        w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
-                                               vehicle_id=self.vehicle_id,
-                                               hull_spheres=[(centre, self.vehicle.definition.hull_radius)
-                                                             for centre in self.vehicle.definition.hull_centres])
+        start, q0 = s.pos, s.q
         self.tether_ops.step(dt, self.tether, s.pos, self.yaw)     # observer only: radio, scoring
-        v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
+        supply = self.power.voltage(self)
+        if supply is not None:
+            v.supply_voltage = supply
+        v.step(dt, thr, w_tether + self.tool_wrench + operation_wrench, hull_contact=True)
+        self.hull_contact.resolve(self.world, v, start, q0, dt, self.t, self.vehicle_id)
         if update_world:
             self.world.step(dt, vehicles=[self.world_source()])
             from .operations import step_objects
@@ -510,11 +515,12 @@ class Simulator:
         depth = self.sensors.depth(self)
         ts = int(time.time() * 1000)
         if which == "50hz":
+            omega = s.omega if self.sensors.ideal else self.sensors.frame.omega
             specific = s.accel - q_rot(np.array([s.q[0], -s.q[1], -s.q[2], -s.q[3]]), np.array([0, 0, 9.81]))
             return {"status": "ok", "status_code": "", "type": "50hz", "data": {
                 "timestamp": ts,
                 "acceleration": {k: round(float(val), 2) for k, val in zip("xyz", specific)},
-                "gyroscope": {k: round(math.degrees(float(val)), 2) for k, val in zip("xyz", s.omega)},
+                "gyroscope": {k: round(math.degrees(float(val)), 2) for k, val in zip("xyz", omega)},
                 "quaternion": {k: float(val) for k, val in zip("wxyz", self.sensors.quaternion(self))},
                 "depth": int(round(depth * 100))}}
         lat, lng = self.sensors.latlng(self)
@@ -777,7 +783,8 @@ class Simulator:
     def _sdk_QYRovNavigationManage__get_h_navi_status(self):
         dist = None
         if self.nav.target is not None:
-            dist = round(math.hypot(self.nav.target.n - self.vehicle.s.pos[0], self.nav.target.e - self.vehicle.s.pos[1]), 2)
+            pos = self.sensors.position(self)
+            dist = round(math.hypot(self.nav.target.n - pos[0], self.nav.target.e - pos[1]), 2)
         return ok(data={
             "float_up_calibrate": {"status": 0},
             "v_navi": {"running": self.nav.mode == "V_NAVI", "index": self.nav.route_i, "total": len(self.nav.route),
@@ -796,8 +803,9 @@ class Simulator:
         if str(scene).upper() not in ("GENERAL", "BRIDGE", "TANK") or str(route_type).upper() not in ("LONGITUDINAL", "LATERAL") \
                 or str(direction).upper() not in ("LEFT", "RIGHT") or float(interval) <= 0:
             return err("Please pass in the correct parameters")
-        self.nav.start_v(self.vehicle.s.pos, self.yaw, scene, route_type, direction, float(length),
-                         float(start_depth), float(end_depth), float(interval), float(distance), float(diameter))
+        self.nav.start_v(self.sensors.position(self), self.sensors.heading(self), scene, route_type, direction,
+                         float(length), float(start_depth), float(end_depth), float(interval),
+                         float(distance), float(diameter))
         self._log("nav", f"V_NAVI {scene}/{route_type}/{direction} {start_depth}→{end_depth} m, {len(self.nav.route)} 航點")
         return ok()
 
@@ -958,6 +966,7 @@ class Simulator:
         roll, pitch, yaw = self.vehicle.euler
         rc = self.rc
         cur = self.vehicle.current_ned
+        impacts = [e for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id]
         state = {
             "vehicle_id": self.vehicle_id, "model_id": self.model_id,
             "appearance": dict(self.appearance),
@@ -985,7 +994,7 @@ class Simulator:
             "current_kn": round(float(np.linalg.norm(cur)) / KNOT, 2),
             "tether": self.tether.state(),
             "tether_ops": self.tether_ops.state(),
-            "events": [e.__dict__ for e in self.world.events if getattr(e, "vehicle_id", "default") == self.vehicle_id][-12:],
+            "events": [e.__dict__ for e in impacts[-12:]],
             "damage": self.damage_events[-6:],
             "silt": round(self.world.silt_at(s.pos), 2),
             "turbidity": self.camera_turbidity(),
@@ -1002,6 +1011,10 @@ class Simulator:
         # Optional: only a vehicle that opted into the deployment procedure reports it (PROTOCOL.md).
         if self.procedure.active:
             state["procedure"] = self.procedure.state()
+        if impacts:
+            state["score"]["collisions"] = len(impacts)
+        if self.hull_contact.net_load:
+            state["net_contact"] = self.hull_contact.net_load
         return state
 
     def flow_field_state(self) -> dict:

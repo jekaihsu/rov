@@ -67,11 +67,13 @@ def ensure_objects(sim):
 
 def step_objects(world, dt, t):
     """Called once per room tick, never once per vehicle."""
-    for ob in getattr(world, "work_objects", {}).values():
-        if ob["held_by"] is not None or ob.get("anchored"):
-            continue
+    free = [ob for ob in getattr(world, "work_objects", {}).values()
+            if ob["held_by"] is None and not ob.get("anchored")]
+    if not free:
+        return
+    flows = world.current_at_many([ob["pos"] for ob in free], t)
+    for ob, current in zip(free, flows):
         pos, vel = ob["pos"], ob["vel"]
-        current = world.current_at(pos, t)
         relative = vel - current
         force = -3. * relative * np.linalg.norm(relative)
         force[2] += (ob["mass"] - ob["buoyancy_kg"]) * G

@@ -58,6 +58,12 @@ function drawGrid(ctx, frame, origin, radius) {
 function drawReturns(ctx, frame, origin, radius, gain, palette) {
   for (let beam = 0; beam < frame.beams; beam++) {
     const angle = (-60 + 120 * beam / (frame.beams - 1)) * Math.PI / 180;
+    if (frame.sidelobe_m?.[beam] < frame.range_m) {
+      const side = frame.sidelobe_m[beam] / frame.range_m * radius;
+      const value = Math.min(255, frame.sidelobe_intensity[beam] * gain);
+      ctx.fillStyle = palette === 'amber' ? `rgb(${value},${value * .7},0)` : `rgb(0,${value * .85},${value})`;
+      ctx.fillRect(origin.x + Math.sin(angle) * side, origin.y - Math.cos(angle) * side, 2, 2);
+    }
     const intensity = Math.min(255, frame.intensity[beam] * gain);
     const amber = `rgb(${intensity},${intensity * .7},0)`;
     ctx.fillStyle = palette === 'amber' ? amber : `rgb(0,${intensity * .85},${intensity})`;

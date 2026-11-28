@@ -139,7 +139,7 @@ export function updateOsd(r, s, w, extra) {
   const dive = diveLine(s, w);
   if (dive) right.push(`<div class="k">${escapeText(dive)}</div>`);
   setHTML(parts.tr, right.join(''));
-  const [roll = 0, pitch = 0] = s.euler || [];
+  const [roll = 0, pitch = 0] = r.attitude || [];
   setHTML(parts.bl, row(STRINGS.pitch, signed(pitch, 1), 5) + row(STRINGS.roll, signed(roll, 1), 5));
   const mode = `${s.ctrl_mode || '—'} · ${STRINGS.levels[extra.assistLevel] || STRINGS.levels[0]}`;
   setHTML(parts.cable, `<span class="k">${escapeText(STRINGS.tether.padEnd(6))}</span> ${r.cable.toFixed(0)} m`);

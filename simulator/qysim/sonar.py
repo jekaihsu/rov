@@ -4,7 +4,17 @@ import numpy as np
 from .physics import q_rot
 
 
-def scan(world, pos, q, range_m=30.0, noise=0.02, multipath=0.05, seed=None):
+# X1 暫定 engineering assumptions for the existing 120 degree training fan.
+DEFAULT_RANGE_M = 30.0
+DEFAULT_NOISE = 0.02
+DEFAULT_MULTIPATH = 0.05
+RANGE_BIN_M = 0.05
+SIDELOBE_OFFSET_BEAMS = 4
+SIDELOBE_GAIN = 0.12
+
+
+def scan(world, pos, q, range_m=DEFAULT_RANGE_M, noise=DEFAULT_NOISE, multipath=DEFAULT_MULTIPATH,
+         seed=None, ideal=False):
     """120 degree, 256 beam fan. First surfaces occlude all objects behind them."""
     range_m = float(range_m)
     if not 2 <= range_m <= 50 or not 0 <= noise <= 1 or not 0 <= multipath <= 1:
@@ -33,9 +43,22 @@ def scan(world, pos, q, range_m=30.0, noise=0.02, multipath=0.05, seed=None):
         active[distance >= range_m] = False
     distance[active] = range_m
     distance = np.minimum(distance, range_m)
+    extras = {}
+    if not ideal:
+        hit = distance < range_m
+        distance[hit] = np.minimum(range_m, np.rint(distance[hit] / RANGE_BIN_M) * RANGE_BIN_M)
+        # Display the stronger of two off-axis echoes at its own range. Never wrap fan edges.
+        offset = SIDELOBE_OFFSET_BEAMS
+        padded = np.pad(strength, offset)
+        left = padded[:-2 * offset]
+        right = padded[2 * offset:]
+        source = np.arange(len(distance)) + np.where(left > right, -offset, offset)
+        level = np.maximum(left, right) * SIDELOBE_GAIN
+        side = np.where(level > 0, distance[source.clip(0, len(distance) - 1)], range_m)
+        extras = {"sidelobe_m": side.round(3).tolist(), "sidelobe_intensity": (255 * level).astype(int).tolist()}
     intensity = np.clip(strength + rng.normal(0, noise, 256), 0, 1)
     ghost = np.where(rng.random(256) < multipath, np.minimum(range_m, distance * 1.6), range_m)
-    return {"timestamp": time.time(), "range_m": range_m, "fov_deg": 120, "beams": 256,
+    return {**extras, "timestamp": time.time(), "range_m": range_m, "fov_deg": 120, "beams": 256,
             "distance_m": distance.round(3).tolist(), "intensity": (intensity * 255).astype(int).tolist(),
             "ghost_m": ghost.round(3).tolist()}
 

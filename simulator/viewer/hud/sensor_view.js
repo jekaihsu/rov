@@ -34,6 +34,7 @@ export function showsTruth(state, fidelity = getFidelity()) {
 function truthReadings(state, world) {
   return {
     truth: true,
+    attitude: state.euler ?? [0, 0, 0],
     depth: state.pos[2],
     heading: state.euler?.[2] || 0,
     altitude: world ? world.seabed_depth - state.pos[2] : null,
@@ -58,6 +59,7 @@ export function pilotReadings(state, world, fidelity = getFidelity()) {
   const dvl = sensors.dvl || {};
   return {
     truth: false,
+    attitude: [sensors.roll ?? state.euler?.[0] ?? 0, sensors.pitch ?? state.euler?.[1] ?? 0, sensors.heading],
     depth: sensors.depth,
     heading: sensors.heading,
     altitude: sensors.altitude ?? null,

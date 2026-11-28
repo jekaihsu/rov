@@ -1,6 +1,6 @@
 # ROV dynamics review — 2026-10-02
 
-This is an implementation audit and a source record, not a certification of a Falcon or BlueROV2 digital twin. The catalogue explicitly marks all reconstructions and their hydrodynamics as estimated. No manufacturer calibration data has been supplied for this simulator's specific payload, tether or trim.
+This is an implementation audit and a source record, not a certification of a Falcon or BlueROV2 digital twin. X1 and Falcon hydrodynamics remain estimates. The heavy catalogue entry is the published set recorded in [model-o-calibration.md](reference/model-o-calibration.md); its mesh and thruster positions are still a reconstruction. No manufacturer calibration data has been supplied for this simulator's specific payload, tether or trim.
 
 ## Sources checked
 
@@ -15,7 +15,7 @@ This is an implementation audit and a source record, not a certification of a Fa
 
 Before this change, inertial translation was `-M * (ω × v)` with elementwise diagonal `M`. For anisotropic added mass, moving `M` outside the cross product is not equivalent to momentum transport. The paired translational-added-mass moment was missing. A direct local reproduction for Heavy with `v=(1,.6,.2)`, `ω=(.3,.4,.5)` produced −0.528 W of spurious inertial power, independent of drag.
 
-The catalogue's Heavy values remain estimates: combined inertia `(0.7,0.9,1.0)`, added mass `(7,10,13)`, CB height 0.055 m, symmetric 50 N motors. Its automatically derived quadratic translational damping is approximately `(58.19,131.42,297.5)`. This differs from the benchmark above, but differences alone do not justify replacing values without matching payload/geometry/voltage.
+The catalogue Heavy entry now uses the published coefficients in [model-o-calibration.md](reference/model-o-calibration.md): Table A1 damping, added mass and CB, with the public bollard sheet inverted so a normalised command is a force demand and bus voltage clips it. The loaded thruster positions are still the visual frame, not the CAD loci. Falcon is unchanged. `BENCHMARK_HEAVY` remains the offline linear profile.
 
 Falcon's current allocation gives approximately `(378.46,224.43,110)` N axis thrust. These correspond to about `(38.58,22.88,11.21)` kgf, below the published standard-vehicle figures. Current 110 N uniform motor authority, CG, GM, damping and motor time constants are not measured. In particular, a manipulator skid changes drag, mass, CG and trim. Do not silently scale the entire dynamics to a brochure maximum.
 

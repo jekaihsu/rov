@@ -115,7 +115,7 @@ export function buildPenPart(set, ob) {
   let geometry;
   if (ob.type === 'box') {
     if (ob.kind === 'pen_net' && ob.half[2] < .1) {
-      geometry = new THREE.PlaneGeometry(ob.half[0] * 2, ob.half[1] * 2, 4, 2);
+      geometry = new THREE.PlaneGeometry(ob.half[0] * 2, ob.half[1] * 2, Math.ceil(2 * ob.half[0]), 2);
       geometry.rotateX(-Math.PI / 2);
       geometry.rotateY(Math.PI / 2);
     } else if (ob.kind === 'pen_net') {
@@ -160,8 +160,10 @@ export function buildPenPart(set, ob) {
   set.addBatched(ob.kind, geometry, ob.kind, [ob.name], 'solid', [ob]);
 }
 
-export function updatePenNet(set, flow, time) {
-  if (!set || !flow?.ready) return;
+export function updatePenNet(set, flow, time, contact) {
+  if (!set) return;
+  const point = contact && P(contact.point);
+  const offset = contact && P(contact.offset);
   const velocity = [0, 0, 0];
   const now = performance.now();
   for (const mesh of set.group.children) {
@@ -172,10 +174,12 @@ export function updatePenNet(set, flow, time) {
       const x = rest[i * 3];
       const y = rest[i * 3 + 1];
       const z = rest[i * 3 + 2];
-      flow.sample(z, -x, -y, now, velocity);
+      if (flow?.ready) flow.sample(z, -x, -y, now, velocity);
       const amplitude = .035 * Math.sin(Math.PI * Math.max(0, Math.min(16, -y)) / 16);
       const wave = amplitude * Math.sin(time * .7 + z * .3 + x * .2);
-      position.setXYZ(i, x - wave * Math.tanh(velocity[1]), y, z + wave * Math.tanh(velocity[0]));
+      const load = point ? Math.max(0, 1 - ((x - point.x) ** 2 + (y - point.y) ** 2 + (z - point.z) ** 2) / 2.25) : 0;
+      position.setXYZ(i, x - wave * Math.tanh(velocity[1]) + (offset?.x || 0) * load,
+        y + (offset?.y || 0) * load, z + wave * Math.tanh(velocity[0]) + (offset?.z || 0) * load);
     }
     position.needsUpdate = true;
   }
