@@ -339,7 +339,7 @@ class Simulator:
             dvl_valid = measured.dvl_valid
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist,
                                      rc.profile, dvl_valid=dvl_valid, measured=measured) * self.health
-        thr = self.power.apply(self, thr, rc)
+        thr = self.power.apply(self, thr * self.thermal.thrust_scale, rc)
         w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
         n_events = len(self.world.events)
         w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
@@ -357,8 +357,8 @@ class Simulator:
         self._log_tether_and_environment()
 
         if not self.power.tether:
-            load = float(np.mean(np.abs(s.thrust))) / v.p.thruster_max
-            self.battery = max(0.0, self.battery - dt * (0.004 + 0.05 * load ** 1.5))
+            used_ah = self.power.current_a * dt / 3600.0
+            self.battery = max(0.0, self.battery - 100.0 * used_ah / self.power.values["capacity_ah"])
         self.t += dt
         self.scorer.update(dt, self)
         ensure_mission(self).update(self, dt)

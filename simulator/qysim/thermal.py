@@ -1,8 +1,7 @@
 """First-order thermal model of thrusters, motor drivers (MOS) and the electronics housing.
 
-Heat is proportional to electrical load; cooling is strong in water and weak in air. Warnings
-only, no derating: the open-source sub autopilot's temperature failsafe is warn-only, and no X1
-behaviour is published. Out of water, running thrusters for more than ~30 s raises a dry-run
+Heat is proportional to electrical load; cooling is strong in water and weak in air. Out of water,
+running thrusters for more than ~30 s raises a dry-run
 warning (vendor rule for an earlier vehicle of the same family, and common practice for small
 electric thrusters).
 
@@ -10,6 +9,8 @@ The vehicle is in water unless ``sim.on_deck`` is set (a deck / pre-dive state; 
 scenarios always start in water). All temperatures and thresholds are provisional assumptions.
 """
 from __future__ import annotations
+
+import math
 
 import numpy as np
 
@@ -28,6 +29,7 @@ THERMAL_PARAMETERS = {
     "housing_rise_c": {"value": 12.0, "source": "工程假設"},
     "housing_tau_s": {"value": 300.0, "source": "工程假設"},
     "housing_warn_c": {"value": 55.0, "source": "工程假設；非 X1 規格"},
+    "derate_band_c": {"value": 20.0, "source": "暫定工程假設：超過告警溫度後線性降載至零"},
     "air_c": {"value": 30.0, "source": "工程假設：甲板氣溫"},
 }
 RUNNING_THRESHOLD = 0.05      # fraction of full thrust that counts as running a motor
@@ -58,12 +60,15 @@ class ThermalModel:
         else:
             rise, tau = self.p["motor_rise_air_c"], self.p["motor_tau_air_s"]
         target = ambient + rise * load ** 1.5
-        self.motor_c += (target - self.motor_c) * min(1.0, dt / tau)
+        self.motor_c += (target - self.motor_c) * (-math.expm1(-dt / tau))
         mean_load = float(np.mean(load)) if len(load) else 0.0
-        mos_target = ambient + self.p["mos_offset_c"] + self.p["mos_rise_c"] * mean_load
-        self.mos_c += (mos_target - self.mos_c) * min(1.0, dt / self.p["mos_tau_s"])
-        housing_target = ambient + self.p["housing_offset_c"] + self.p["housing_rise_c"] * mean_load
-        self.housing_c += (housing_target - self.housing_c) * min(1.0, dt / self.p["housing_tau_s"])
+        power = getattr(sim, "power", None)
+        powered = power is None or power.lights_on
+        hotel_load = sum(power.aux_w.values()) / power.values["hotel_w"] if power else 1.0
+        mos_target = ambient + self.p["mos_offset_c"] * powered + self.p["mos_rise_c"] * mean_load
+        self.mos_c += (mos_target - self.mos_c) * (-math.expm1(-dt / self.p["mos_tau_s"]))
+        housing_target = ambient + self.p["housing_offset_c"] * hotel_load + self.p["housing_rise_c"] * mean_load
+        self.housing_c += (housing_target - self.housing_c) * (-math.expm1(-dt / self.p["housing_tau_s"]))
         running = bool(np.any(load > RUNNING_THRESHOLD))
         if self.in_water:
             self.dry_run_s = 0.0
@@ -77,6 +82,12 @@ class ThermalModel:
     @property
     def mos_reading_c(self) -> float:
         return self.mos_c + self.injected_c
+
+    @property
+    def thrust_scale(self) -> float:
+        excess = max(0.0, self.motor_max_c - self.p["motor_warn_c"],
+                     self.mos_reading_c - self.p["mos_warn_c"], self.housing_c - self.p["housing_warn_c"])
+        return max(0.0, 1.0 - excess / self.p["derate_band_c"])
 
     def warnings(self) -> list:
         found = []
@@ -95,5 +106,7 @@ class ThermalModel:
             "housing_c": round(self.housing_c, 1),
             "in_water": self.in_water,
             "dry_run_s": round(self.dry_run_s, 1),
+            "derated": self.thrust_scale < 1.0,
+            "scale": round(self.thrust_scale, 3),
             "warnings": self.warnings(),
         }

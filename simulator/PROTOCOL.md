@@ -278,9 +278,24 @@ power {type: tether|battery, available_w W|null, demand_w W, thruster_w W, light
   removes all thrust and lights and drops the vehicle link until reset. The legacy `battery` field
   stays at 100 so old clients see a full, non-draining value. An instructor `battery` injection on a
   tether vehicle lowers `available_w` (supply sag) instead.
-* `type:"battery"`: the existing state-of-charge drain is unchanged. At 0% motors and lights are
-  cut off (`cutoff:true`) and re-enabled above 2%. `voltage_v` is a linear 4S estimate.
+* `type:"battery"`: SOC integrates total supply current over pack capacity, calibrated to the legacy idle drain.
+  A depleted pack cuts off. Restart requires SOC above 2% and sufficient voltage. `voltage_v` is a linear 4S estimate.
 * `lights_on:false` means the lamps are unpowered even though `rc.right_switch` is on.
+
+Additional optional fields in `power`:
+
+| Field | Meaning |
+|---|---|
+| `bus_v` | Loaded vehicle input voltage (V), null before the first electrical step. At cutoff it reads the unloaded source. An instructor trip reads zero. |
+| `current_a` | Total vehicle input current (A), including accessories. |
+| `aux_w` | Delivered watts by camera (including recording), gimbal holding load, sensors and remaining electronics. Lamp draw is in `lights_w`. |
+| `voltage_limited` | The low-voltage thrust ceiling constrained the available command. `limited` also covers branch and total input-current limiting. |
+
+The source model uses `V = E − IR` and `P = VI`. For tether power, the effective loop resistance
+is proportional to paid-out length. For a battery, `E` is the original SOC-based `voltage_v`.
+Both supplies progressively lower the maximum thrust as bus voltage falls. When even the
+accessories bring voltage to the cutoff threshold, the supply disconnects and checks the
+prospective accessory-loaded voltage against a higher threshold before restarting.
 
 SDK compatibility: `QYRovNavigationManage.get_rov_data` `rov.power` keeps exactly
 `{type:"battery", battery_cap_1, battery_cap_2}` for battery vehicles. Tether vehicles report
@@ -303,7 +318,9 @@ leak {detected bool}
 A first-order model: heat follows electrical load, cooling is strong in water and weak in air.
 `dry_run` is raised after 30 s of running thrusters out of water (vendor rule; the vehicle is out
 of water only in a deck state, `on_deck` server-side, which current scenarios never use). Sustained
-full thrust in water reaches `motor_hot` after several minutes. Warnings only, no derating. Each new
+full thrust in water reaches `motor_hot` after several minutes. The optional `derated` flag and `scale` (0–1) report thermal protection.
+Thrust commands are reduced uniformly before electrical allocation as the hottest component
+exceeds its warning temperature, reaching zero 20 °C above that threshold. Each new
 warning is also written to `log` (kind `thermal`). Thresholds are provisional assumptions.
 `QYRovCheckManage.ego_self_test` now reports the modelled `temp` (housing) and `mos_temp` instead of
 the constants 31 / 38 (the model starts at those values in 26 °C surface water) and `leak: 0` while a
