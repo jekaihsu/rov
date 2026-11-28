@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import {beatDecision, idleReminder} from './beat_director.js';
 import {createBeatStage, establishingShot, presentStage} from './beat_stage.js';
 import {createCinematicLook} from './cutscene_look.js';
-import {STRINGS as WIND} from './wind_copy.js';
 import {STRINGS} from './prologue_copy.js';
 import {actionCaps, axisCaps} from '../play/onboarding.js';
 import {deviceFamily} from '../input/glyphs.js';
@@ -44,10 +43,6 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   const look = createCinematicLook();
   const voice = installVoice();
   let stage;
-  let wind = false;
-  function copy(key) {
-    return (wind && WIND[key]) || STRINGS[key];
-  }
   let beat;
   let entered;
   let reminded;
@@ -67,10 +62,10 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   });
 
   function say(key, now, count = 0) {
-    const text = copy(key);
+    const text = STRINGS[key];
     if (!text) return;
     const words = text.replace('{n}', count);
-    const speaker = copy(wind && key === 'again' ? 'lin' : beat.speaker);
+    const speaker = STRINGS[beat.speaker];
     stage.words.textContent = words;
     stage.speaker.textContent = speaker;
     stage.radio.classList.add('speaking');
@@ -90,10 +85,6 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
       stage.stamp.textContent = lastPlate + '  ✓';
       stampedUntil = s.t + 2.6;
     }
-    if (wind && ['logged', 'evidence', 'north'].includes(beat.id) && s.mission?.targets?.[0]?.completed) {
-      stage.stamp.textContent = WIND.recorded;
-      stampedUntil = s.t + 2.6;
-    }
     lastCount = s.campaign.accepted;
     lastPlate = beat.target ? beat.id : null;
     stage.root.dataset.beat = beat.id;
@@ -108,21 +99,18 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     look.set(!!beat.cinematic);
     music.cue(beat.cue || null);
     nextLineAt = null;
-    if (!wind && s.campaign.missed && !beat.card) {
+    if (s.campaign.missed && !beat.card) {
       say('miss', s.t);
       nextLineAt = s.t + 2.6;
     } else if (!beat.card) say(beat.radio, s.t, s.campaign.accepted);
-    if (beat.card === 'licence' || beat.card === 'grade1') {
+    if (beat.card === 'licence') {
       const holder = s.room.players.find(player => player.vehicle_id === s.vehicle_id)?.name || 'R-1';
       card = showLicenceAward({
-        grade: wind ? 'grade1' : 'trainee',
+        grade: 'trainee',
         holderName: holder,
         issuedOn: new Date().toISOString(),
         serial: licenceSerial({createdAt: holder}),
       });
-    }
-    if (beat.card === 'end') {
-      card = showTitleCard({...chapterCardData({id: s.campaign.chapter, title: WIND.end}), sub: WIND.sub}, {duration: 6000});
     }
     if (beat.card === 'harbor') card = showTitleCard(chapterCardData({id: 'harbor', title: STRINGS.harbor}));
   }
@@ -155,14 +143,10 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   function update(s) {
     const c = s.campaign;
     if (!c?.directed || c.status !== 'active') return clear();
-    if (stage && stage.root.dataset.chapter !== c.chapter) clear();
     if (!stage) {
-      wind = Object.hasOwn(WIND, c.chapter);
-      stage = createBeatStage(wind ? 'windWatch' : 'prologue',
-        wind ? [WIND[c.chapter], WIND.sub] : [STRINGS.site, STRINGS.sub], '');
-      stage.root.dataset.chapter = c.chapter;
+      stage = createBeatStage('prologue', [STRINGS.site, STRINGS.sub], '');
       plates = c.plates.map(({id, target}) => wallPlate(id, target));
-      for (const plate of plates) scene.add(plate);
+      scene.add(...plates);
     }
     if (beat?.id !== c.node.id || s.t < entered) enter(c.node, s);
     const presented = performance.now() / 1000 - shotStart;
@@ -194,25 +178,6 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
         control = 'surge';
       }
     }
-    if (wind) {
-      if (beat.location && host) {
-        input.rc.right_switch = 2;
-        input.rc.keep_depth = 1;
-        input.rc.rc_lock = s.input_latched ? 1 : 0;
-      }
-      if (hint === 'align') {
-        control = 'surge';
-        if (s.mission?.targets?.[0]?.ready) hint = control = 'photo';
-      }
-      if (hint === 'turnNorth') control = 'yaw';
-      if (hint === 'retreat') control = 'surge';
-      const tension = ['catch', 'reverse'].includes(beat.id);
-      stage.tension.classList.toggle('visible', tension);
-      if (tension) {
-        stage.tension.textContent = Math.round(s.tether.tension_rov) + ' N';
-        stage.tension.dataset.tone = s.tether.tension_rov >= 40 ? 'warn' : '';
-      }
-    }
     if (flying && s.locked) hint = control = 'lock';
     stage.body.dataset.coldHint = hint || '';
     stage.hint.classList.toggle('visible', !!hint);
@@ -221,7 +186,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
       const controls = {bindings: hud.bindings, rows: hud.keyRows, operationMode: s.operation_mode};
       const caps = ['surge', 'heave', 'yaw'].includes(control) ? axisCaps(control, family, controls)
         : hint === 'neutral' ? '' : actionCaps(control, family, controls);
-      const html = caps + ' ' + copy(hint);
+      const html = caps + ' ' + STRINGS[hint];
       if (stage.hint.innerHTML !== html) stage.hint.innerHTML = html;
     }
     if (Object.values(input.out).some(value => Math.abs(value) > 0.15)) lastInput = s.t;

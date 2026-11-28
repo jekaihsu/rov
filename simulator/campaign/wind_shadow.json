@@ -10,11 +10,22 @@
     {
       "id": "veil",
       "limit": 8,
-      "next": "edge",
+      "next": "standby",
       "hud": [],
       "location": true,
       "cinematic": true,
       "radio": "veil",
+      "speaker": "ma"
+    },
+    {
+      "id": "standby",
+      "limit": 4,
+      "next": "edge",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "standby",
       "speaker": "ma"
     },
     {

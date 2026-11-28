@@ -10,12 +10,23 @@
     {
       "id": "window",
       "limit": 8,
-      "next": "station",
+      "next": "transitMark",
       "hud": [],
       "location": true,
       "cinematic": true,
       "radio": "window",
       "speaker": "deck"
+    },
+    {
+      "id": "transitMark",
+      "limit": 4,
+      "next": "station",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "transitMark",
+      "speaker": "tender"
     },
     {
       "id": "station",

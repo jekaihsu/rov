@@ -8,7 +8,7 @@
   "slack": "R-1, Control. Twenty minutes of slack left.",
   "anode": "Photograph the anode on C first. Straight ahead.",
   "north": "Good. North along the west face to B. Hold depth.",
-  "catch": "Snag! The line bends around C. Sticks neutral.",
+  "catch": "{n} newtons! Line bent around C. Sticks neutral.",
   "reverse": "Don’t pull. Retrace south, back past the anode.",
   "clear": "Line’s running. Open the log to May. Your way out is still pencilled in.",
   "parted": "Tether parted. Log the last position. Strike out B. I’ll call shore.",
@@ -25,5 +25,8 @@
   "align": "Face the anode and approach",
   "turnNorth": "Turn north along the west face",
   "recorded": "Inspection photo logged",
-  "photo": "Photograph anode"
+  "photo": "Photograph anode",
+  "tension": "Tether tension",
+  "transitMark": "Deck, particles are crossing the leg. Against the anode I can see the eastward set down here too.",
+  "standby": "Zhou, I have the riser bracket in sight. Which side do you want the standby line on?"
 }

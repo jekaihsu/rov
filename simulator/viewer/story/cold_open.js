@@ -15,7 +15,7 @@
 //   const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide], music});
 //   coldOpen.update(state, world);   // every server state
 //   coldOpen.frame(dt);              // every frame, after the camera rig and before the render
-import {createBeatStage, element, establishingShot, presentStage} from './beat_stage.js';
+import {createBeatStage, createTensionMeter, element, establishingShot, presentStage} from './beat_stage.js';
 import { TIMING, createColdOpenDirector } from './cold_open_model.js';
 import { CHAPTER, FLAG, followUpUrl, markColdOpenSeen } from './cold_open_flow.js';
 import { CINEMATIC_MUSIC, createCinematicLook, isScriptedBeat } from './cutscene_look.js';
@@ -90,7 +90,6 @@ const CARD_MS = 4800;
 // vehicle drifts with the slack-water current through the opening, so a page drawing a frame a second must not
 // stretch those fifteen seconds into minutes. A page that stalls for longer still does not skip beats.
 const CLOCK_STEP_MAX_S = 1.0;
-const TENSION_HOLD_S = 3;
 const CUT_SETTLE_S = 0.6;
 
 function isCjk(language) {
@@ -310,19 +309,7 @@ export function installColdOpen({
     const flying = ['approach', 'payoff', 'transit', 'incident'].includes(next.beat);
     return flying && unlockedOnce && state?.locked ? 'unlock' : null;
   }
-  // The read-out holds its peak for a few seconds, like a deck tension meter, so a spike is readable.
-  const peaks = [];
-  function renderTension(s) {
-    const time = now();
-    peaks.push([time, s?.tether?.tension_rov || 0]);
-    while (peaks.length && time - peaks[0][0] > TENSION_HOLD_S) peaks.shift();
-    const value = Math.round(peaks.reduce(function highest(most, [, tension]) {
-      return Math.max(most, tension);
-    }, 0));
-    const text = `${STRINGS.tension} ${value} N`;
-    if (tension.textContent !== text) tension.textContent = text;
-    tension.dataset.tone = value >= TIMING.pullTension ? 'warn' : '';
-  }
+  const tensionMeter = createTensionMeter(tension, STRINGS.tension, TIMING.pullTension);
   // Mid-job state at the handover; asserted until the server echoes it once, then left to the player.
   function midJob(s) {
     const rc = input?.rc;
@@ -458,7 +445,7 @@ export function installColdOpen({
     applyView(director.step(now(), telemetry(state)));
     if (ended) return;
     updateRadio(now());
-    if (view?.reveal?.includes('tether')) renderTension(state);
+    if (view?.reveal?.includes('tether')) tensionMeter(now(), state?.tether?.tension_rov || 0);
     shot();
   }
   return {

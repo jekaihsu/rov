@@ -50,7 +50,8 @@ import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
 import {installFreeDive} from './free_dive.js';
-import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
+import {installDirectedWatches} from './story/wind_watch.js';
+import {prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
 import {installTrainingSession} from './training/session.js';
@@ -603,7 +604,7 @@ function onState(m) {
   campaignPanel.update(m);
   trainingSession.update(m);
   coldOpen.update(m, W);
-  if (!REPLAY) prologue.update(m);
+  if (!REPLAY) watches.update(m);
   chapterCards.update(m);
   expeditionPanel.update(m);photoClient.update(m);
   pilotGuide.update(m);
@@ -1250,9 +1251,10 @@ const audio = installAudio({
 installAudioSettings(audio, document.querySelector('.rack.left'));
 const music = installMusic({engine: audio});
 installVoice({engine: audio, music});
-const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
-const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
-  music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
+const surveyView = {hidden: [objG, guide, curArrow, wrapG, contactMesh],
+  plain: () => structureSet?.highlight(new Set())};
+const watches = installDirectedWatches({input, send, camera, scene, rovG, setCam, music, ...surveyView});
+const coldOpen = installColdOpen({input, setCam, camera, rovG, music, readOnly: !!REPLAY, ...surveyView});
 const freeDive = installFreeDive({params, rc, camera, rovG, setCam, radio: procedurePanel.radio, readOnly: !!REPLAY});
 const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio: procedurePanel.radio,
   onboard: () => camMode === 'onboard'});
@@ -1330,7 +1332,7 @@ function frame(now) {
   if (displayed && !freeDive) flightFeedback.update(displayed, W,
     !!(rep || introActive() || pauseMenuOpen() || collectionOpen || resultsOpen()));
   coldOpen.frame(dt);
-  prologue.frame();
+  watches.frame();
   freeDive?.frame(now, W, S, env);
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing

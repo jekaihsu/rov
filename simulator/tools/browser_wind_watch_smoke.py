@@ -1,4 +1,5 @@
 """Fly the three season-end watches using touch sticks and the onboard shutter, including both endings."""
+import argparse
 import time
 from pathlib import Path
 
@@ -19,8 +20,8 @@ def capture(page, path):
 
 OUT = Path(__file__).resolve().parents[2] / 'docs/design/chapter3-u1'
 ROUTES = {
-    'wind_set': 'window station logged',
-    'wind_shadow': 'veil edge evidence',
+    'wind_set': 'window transitMark station logged',
+    'wind_shadow': 'veil standby edge evidence',
     'wind_return': 'slack anode north catch reverse clear sign licence end',
 }
 # Drive the viewer's touch channels. Positions, camera evidence, hooks and failure all come back from the host.
@@ -59,7 +60,7 @@ FLY = """async hard => {
       axes.sway = clip(axes.sway,.30);
     }
     if (hard && beat === 'reverse') axes.surge=1;
-    if (target.ready && !target.completed && performance.now() > (window.lastShot || 0)+1500) {
+    if (window.framedBeat === beat && target.ready && !target.completed && performance.now() > (window.lastShot || 0)+1500) {
       window.lastShot = performance.now();
       v.takePhoto();
     }
@@ -76,7 +77,8 @@ FLY = """async hard => {
 def fly(browser, chapter, hard=False):
     page = browser.new_page(viewport={'width': 1600, 'height': 900})
     print('launch', chapter, 'hard pull' if hard else 'survey', flush=True)
-    page.on('pageerror', lambda error: print('PAGE ERROR', error, flush=True))
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
     page.add_init_script("""window.__skipRender=true; localStorage.setItem('rov.campaign.v1',JSON.stringify({
       completed:['prologue','harbor','hull','harbor_signoff','wind_set','wind_shadow']}))""")
     page.goto(f'{http_base()}/?play=1&mission=campaign&chapter={chapter}&scenario={chapter}&nointro'
@@ -118,7 +120,9 @@ def fly(browser, chapter, hard=False):
                 assert page.locator('.brand-card-title').last.inner_text() == '完'
             suffix = '-pull' if hard else ''
             path = folder / f'{len(seen):02}-{beat}{suffix}.jpg'
+            assert page.locator("#windWatch").get_attribute("data-beat") == beat
             capture(page, path)
+            page.evaluate("beat => { window.framedBeat = beat; }", beat)
             frames.append((path, beat))
         page.wait_for_timeout(100)
     assert seen == expected and state['status'] == 'completed' and state['completed'], state
@@ -128,20 +132,25 @@ def fly(browser, chapter, hard=False):
     assert result['outcome'] == ('aborted' if hard else 'signed'), result
     assert result['photos_accepted'] == result['photos_required'] == 1, result
     assert ('wind_grade1' in campaign['rewards']) == (chapter == 'wind_return' and not hard)
+    assert not errors, errors
     page.close()
     return frames
 
 
-def main():
+def main(chapters):
     with sync_playwright() as pw:
         browser = launch(pw)
-        for chapter in ROUTES:
+        for chapter in chapters:
             frames = fly(browser, chapter)
             if chapter == 'wind_return':
                 frames.extend(fly(browser, chapter, True)[-2:])
-            contact_sheet(frames, OUT / chapter / 'contact-sheet.jpg')
+            reference = OUT.parent / 'cold-open/05-snag-incident-1600x900-none.jpg'
+            contact_sheet([(reference, 'Cold open / snag')] + frames, OUT / chapter / 'contact-sheet.jpg')
         browser.close()
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--chapter", choices=ROUTES)
+    chapter = parser.parse_args().chapter
+    main([chapter] if chapter else ROUTES)
