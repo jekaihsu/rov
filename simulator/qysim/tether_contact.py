@@ -6,7 +6,7 @@ round near-vertical cylinders. Here contact acts on "contact points": every free
 inside any segment that could reach an obstacle. A segment is sampled only when the obstacle
 distances of its end nodes allow it to touch (distance fields are 1-Lipschitz, so a segment of
 length L whose ends are d_a and d_b away cannot reach a surface when d_a + d_b > L + 2r), so the
-cost stays close to node-only contact far from structures. The seabed plane needs no samples: a
+cost stays close to node-only contact far from structures. Terrain relief is sampled too. A flat seabed needs no samples: a
 segment between two nodes above a plane is above it.
 
 Each point carries a tangent plane (anchor, distance, normal) refreshed when it moves more than
@@ -59,8 +59,6 @@ def build(world, x: np.ndarray, cand: list[int], broken: bool, radius: float, sp
     """Contact points with fresh tangent planes for the cable shape ``x``."""
     n = len(x) - 1
     seg, s = node_points(n, broken)
-    if n <= 1:
-        seg, s = np.zeros(0, np.int64), np.zeros(0)
     node = seg + np.round(s).astype(np.int64)
     floor = world.sdf_many(x, [])
     if cand:
@@ -72,10 +70,16 @@ def build(world, x: np.ndarray, cand: list[int], broken: bool, radius: float, sp
     pts = x[node]
     dist, normal, idx = dist[node], normal[node], idx[node]
     node_count = len(seg)
-    if far is not None:
+    relief = world.terrain.relief if world.terrain is not None else 0.0
+    if far is not None or relief:
         length = np.linalg.norm(x[1:] - x[:-1], axis=1)
         # 0.1 m margin per node covers CLEAR_TRAVEL_M of travel before the set is rebuilt
-        reach = far[0][:-1] + far[0][1:] < length + 2.0 * (radius + 0.1)
+        reach = np.zeros(n, dtype=bool)
+        if far is not None:
+            reach = far[0][:-1] + far[0][1:] < length + 2.0 * (radius + 0.1)
+        if relief:
+            crest = world.seabed_depth - relief
+            reach |= np.maximum(x[:-1, 2], x[1:, 2]) >= crest - radius - 0.1
         count = np.where(reach, np.ceil(length / spacing).astype(np.int64), 1)
         extra = np.maximum(count - 1, 0)
         seg_extra = np.repeat(np.arange(n, dtype=np.int64), extra)
