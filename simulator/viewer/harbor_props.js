@@ -10,7 +10,8 @@ function wrapPile(geometry, radius) {
   const n = geometry.attributes.normal;
   for (let i = 0; i < p.count; i++) {
     const a = p.getX(i) / radius;
-    const r = radius + p.getY(i);
+    // Seat the holdfast in the coating, including the largest projecting valve lips.
+    const r = radius + p.getY(i) - .008;
     const c = Math.cos(a);
     const s = Math.sin(a);
     const nx = n.getX(i);
@@ -38,8 +39,47 @@ function sway(material, current) {
       float drift = w*w * (0.65 + 0.35*sin(harborTime*1.8 + origin.x + w*2.0));
       mvPosition.xyz += mat3(viewMatrix) * harborFlow * drift;
       gl_Position = projectionMatrix * mvPosition;`);
-    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', '');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `
+      float tunic = step(.375, vMapUv.y) * step(vMapUv.y, .5);
+      // Screen-door transmission keeps the softer tunic partially see-through without sorting patches.
+      float sampleId = fract(dot(floor(gl_FragCoord.xy), vec2(.75488,.56984)));
+      if (tunic > .5 && sampleId < .24) discard;
+    `);
   };
+}
+
+// Neighbouring meshes cover complementary screen samples over a one-metre transition.
+const transitions = [4, 6, 7.5];
+const eye = new THREE.Vector3();
+const centre = new THREE.Vector3();
+
+function fadeRelief(material, level) {
+  const previous = material.onBeforeCompile;
+  const variant = material.customProgramCacheKey();
+  material.customProgramCacheKey = () => variant + '/relief' + level;
+  material.onBeforeCompile = function compileRelief(shader, renderer) {
+    previous.call(this, shader, renderer);
+    shader.vertexShader = 'varying float reliefDistance;\n' + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `
+      #include <begin_vertex>
+      reliefDistance = length((modelViewMatrix * vec4(0., 0., 0., 1.)).xyz);`);
+    shader.fragmentShader = 'varying float reliefDistance;\n' + shader.fragmentShader;
+    const start = level ? transitions[level - 1] : -2;
+    shader.fragmentShader = shader.fragmentShader.replace('#include <alphatest_fragment>', `
+      #include <alphatest_fragment>
+      float grain = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056,.00583715))));
+      if (grain > smoothstep(${start.toFixed(1)}, ${(start+1).toFixed(1)}, reliefDistance)
+          || grain <= smoothstep(${transitions[level].toFixed(1)}, ${(transitions[level]+1).toFixed(1)},
+                                 reliefDistance)) discard;`);
+  };
+}
+
+function updateRelief(camera) {
+  const distance = eye.setFromMatrixPosition(camera.matrixWorld)
+    .distanceTo(centre.setFromMatrixPosition(this.matrixWorld));
+  this.levels.forEach(({object}, level) => {
+    object.visible = distance < transitions[level] + 1 && (!level || distance >= transitions[level - 1]);
+  });
 }
 
 function source(set, name, radius) {
@@ -55,7 +95,7 @@ function source(set, name, radius) {
     cache.set(name, (set.harborLoader || loadGLTF)(url.href).then(({scene}) => {
       const levels = [0, 1, 2].map(i => scene.getObjectByName('LOD' + i));
       const material = levels[0].material;
-      // All eleven files embed the same atlas for standalone use. Upload each map once in the game.
+      // Standalone props embed their atlas. Share each named surface or hardware map across the set.
       for (const key of ['map', 'normalMap', 'metalnessMap', 'roughnessMap', 'aoMap']) {
         const texture = material[key];
         if (!texture) continue;
@@ -64,9 +104,17 @@ function source(set, name, radius) {
         material[key] = cache.get(id);
         if (material[key] !== texture) texture.dispose();
       }
-      if (name === 'filaments-ascidians') sway(material, set.world.current);
+      const attached = /^(barnacles|mussels|filaments)/.test(name);
+      if (attached) levels.forEach((mesh, i) => {
+        mesh.material = material.clone();
+        if (name === 'filaments-ascidians') sway(mesh.material, set.world.current);
+        fadeRelief(mesh.material, i);
+      });
       function release() {
-        for (const mesh of levels) mesh.geometry.dispose();
+        for (const mesh of levels) {
+          mesh.geometry.dispose();
+          if (attached) mesh.material.dispose();
+        }
         for (const texture of new Set(Object.values(material).filter(value => value?.isTexture))) texture.dispose();
         material.dispose();
       }
@@ -80,6 +128,7 @@ function source(set, name, radius) {
     const bent = mesh.clone();
     bent.geometry = mesh.geometry.clone();
     wrapPile(bent.geometry, radius);
+    set.group.addEventListener('dispose', () => bent.geometry.dispose());
     return bent;
   })));
   return cache.get(key);
@@ -102,12 +151,13 @@ export function prop(set, name, position, {radius = 0, rotation, scale, obstacle
       mesh.userData.role = radius ? 'attached' : 'solid';
       mesh.userData.paintable = !radius;
       mesh.userData.colliders = obstacles.map(ob => ob.name);
-      lod.addLevel(mesh, [0, 2.5, 5][i]);
+      lod.addLevel(mesh, (radius ? [0, 4, 6] : [0, 2.5, 5])[i]);
       if (!i && !radius) {
         for (const ob of obstacles) set.anchor(ob, mesh);
       }
     });
-    lod.addLevel(new THREE.Group(), radius ? 7 : 14);
+    if (radius) lod.update = updateRelief;
+    else lod.addLevel(new THREE.Group(), 14);
   });
   if (set.harborLoader) set.pendingHarbor.push(ready);
   else ready.catch(error => console.error('Harbor prop', name, error));

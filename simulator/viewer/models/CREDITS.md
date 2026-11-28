@@ -168,7 +168,11 @@ their lettering, border and scale bars on a canvas in `story/prologue.js`.
 
 `harbor/*.glb`、各 GLB 內的 base color／ORM／normal 與 `harbor/pile-*.jpg` 皆由本專案
 `cad/build_harbor_props.py` 以原創幾何、剖面、雜訊與高度場產生，授權 CC0-1.0。
-未使用攝影素材、外部模型或掃描。樁圖一圈對應直徑 0.6 m，垂直範圍自水面上 2 m 到水下 18 m。
+未使用攝影素材、外部模型或掃描。樁圖每次水平重複對應約 0.94 m 周長，垂直範圍自水面上 2 m 到水下 18 m。
+
+V2 修訂的樁面色圖、法線、ORM 與高度圖皆以公尺為單位，從原創藤壺板片、雙殼瓣、
+細藻及海鞘剖面烘焙。鐵件鏽蝕、沉積膜、貽貝足絲與雙水管海鞘也由同一支 Blender
+腳本產生。獨立的 `harbor/chain-links.glb` 提供連續鏈環。以上資產皆為 CC0-1.0。
 
 ### 自由潛水的碧海號螺槳
 

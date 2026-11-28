@@ -5,12 +5,14 @@ import {prop} from './harbor_props.js';
 
 function colony(set, ob, seeded) {
   const rng = seeded(ob.name);
-  for (let i = 0; i < 9; i++) {
-    const zone = Math.floor(i / 3);
-    const depth = Math.max(ob.p0[2] + .4, [.65, 2.9, 5.9][zone]) + (i % 3 - 1) * .34;
-    if (depth > ob.p1[2]) continue;
-    const angle = Math.PI + (i % 3 - 1) * 1.95 + .3 * (rng() - .5);
-    const name = zone === 2 ? 'filaments-ascidians' : ['barnacles-', 'mussels-'][zone] + [30, 60, 100][i % 3];
+  const top = Math.max(-.35, ob.p0[2] + .18);
+  const phase = rng() * Math.PI * 2;
+  for (let depth = top; depth < ob.p1[2] - .2; depth += (.5 + rng()) * (depth > 7 ? 1.8 : .75)) {
+    const angle = phase + depth * 2.4 + rng() * 1.8;
+    const size = [30, 60, 100][Math.floor(rng() * 3)];
+    const kind = depth < 1.45 ? 'barnacles' : depth < 4.6 ? 'mussels' : 'filaments';
+    const species = depth > 7 ? ['barnacles', 'mussels', 'filaments'][Math.floor(rng() * 3)] : kind;
+    const name = species === 'filaments' ? 'filaments-ascidians' : species + '-' + size;
     const at = new THREE.Vector3(-ob.p0[1] + ob.radius * Math.sin(angle), -depth,
       ob.p0[0] + ob.radius * Math.cos(angle));
     prop(set, name, at, {radius: ob.radius, obstacles: [ob],
@@ -28,26 +30,33 @@ function pileSkin(set) {
   map.colorSpace = THREE.SRGBColorSpace;
   const normalMap = load('normal');
   const orm = load('orm');
-  for (const texture of [map, orm, normalMap]) texture.wrapS = THREE.RepeatWrapping;
+  const displacementMap = load('height');
+  for (const texture of [map, orm, normalMap, displacementMap]) texture.wrapS = THREE.RepeatWrapping;
   const material = new THREE.MeshStandardMaterial({map, normalMap, roughnessMap: orm,
-    metalnessMap: orm, aoMap: orm, metalness: 1});
+    aoMap: orm, metalness: 0, displacementMap, displacementScale: .055});
+  // Scale only radial relief. The instance stretches vertically to the full pile length.
+  material.onBeforeCompile = shader => {
+    shader.vertexShader = shader.vertexShader.replace('#include <displacementmap_vertex>',
+      'if (abs(objectNormal.y) < .5) {\n#include <displacementmap_vertex>\n}');
+  };
   material.userData.structureKind = 'pileConcrete';
   material.addEventListener('dispose', function releaseSkin() {
     map.dispose();
     normalMap.dispose();
+    displacementMap.dispose();
     orm.dispose();
   });
   return material;
 }
 
 function pileRow(set, piles, seeded, material) {
-  const geometry = new THREE.CylinderGeometry(1, 1, 1, set.detailName === 'high' ? 24 : 12, 1);
+  const geometry = new THREE.CylinderGeometry(1, 1, 1, set.detailName === 'high' ? 32 : 18, set.detailName === 'high' ? 36 : 9);
   const uv = geometry.attributes.uv;
   const top = piles[0].p0[2];
   const bottom = piles[0].p1[2];
   for (let i = 0; i < uv.count; i++) {
     const depth = bottom + (top - bottom) * uv.getY(i);
-    uv.setX(i, uv.getX(i) * piles[0].radius / .3);
+    uv.setX(i, uv.getX(i) * Math.max(1, Math.round(piles[0].radius / .15)));
     uv.setY(i, (18 - depth) / 20);
   }
   const mesh = new THREE.InstancedMesh(geometry, material, piles.length);
@@ -238,13 +247,14 @@ function along(set, name, ob, length, repeats, reverse = false) {
   const scale = new THREE.Vector3(1, direction.length() / (length * repeats), 1);
   const rotation = new THREE.Quaternion().setFromUnitVectors(UP, direction.normalize());
   for (let i = 0; i < repeats; i++) {
-    prop(set, name, start.clone().lerp(end, i / repeats), {rotation, scale, obstacles: [ob]});
+    const asset = name === 'chain-links' && !i && ob.name.endsWith('2') ? 'shackle-chain' : name;
+    prop(set, asset, start.clone().lerp(end, i / repeats), {rotation, scale, obstacles: [ob]});
   }
 }
 
 export function chainSegment(set, ob) {
   const length = new THREE.Vector3(...ob.p0).distanceTo(new THREE.Vector3(...ob.p1));
-  along(set, 'shackle-chain', ob, .63, Math.max(1, Math.round(length / .63)));
+  along(set, 'chain-links', ob, .60, Math.max(1, Math.round(length / .60)));
 }
 
 function harborTyre(set, tread) {

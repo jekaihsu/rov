@@ -6,6 +6,7 @@ The three meshes have independent topology and share one packed surface atlas pe
 
 import math
 import random
+import sys
 import tempfile
 from functools import partial
 from pathlib import Path
@@ -24,9 +25,9 @@ PALETTE = [
     (179, 159, 133),
     (33, 42, 57),
     (66, 71, 34),
-    (149, 100, 65),
-    (78, 67, 56),
-    (117, 106, 77),
+    (139, 125, 101),
+    (52, 34, 25),
+    (81, 78, 53),
     (46, 48, 46),
     (99, 88, 62),
 ]
@@ -61,7 +62,7 @@ def textures(folder):
     slots = y // 64
     color = np.array(PALETTE)[slots].astype(float)
     oxide = np.clip((cloud - 0.45) * 3, 0, 1)
-    color[slots == IRON] += oxide[slots == IRON, None] * [47, -5, -23]
+    color[slots == IRON] += oxide[slots == IRON, None] * [40, 8, -3]
     ridges = np.choose(
         slots,
         [
@@ -92,40 +93,94 @@ def textures(folder):
     color[valve] += wear[valve, None] * [39, 31, 17] + bands[valve, None] * [8, 6, 7]
     rubber = slots == RUBBER
     silt = np.clip((patina + cloud * 0.36 - 0.79) * 2.7, 0, 1)
-    color[rubber] += silt[rubber, None] * [39, 29, 15]
+    film = silt * (slots >= IRON)
+    color += film[..., None] * (np.array([93, 88, 63]) - color) * .65
+    height += film * 1.6
+    color[rubber] += silt[rubber, None] * [12, 10, 6]
     color[slots == MUD] *= 0.62 + 0.69 * patina[slots == MUD, None]
 
     color *= (1 + 0.27 * (cloud - 0.5) + 0.05 * ridges)[:, :, None]
     rough = np.choose(slots, [0.83, 0.44, 0.61, 0.52, 0.63, 0.89, 0.81, 0.95]) + 0.08 * (cloud - 0.5)
     write_maps(folder, 'surface', color, height, rough, (slots == IRON) * (0.8 - 0.73 * oxide))
 
-    # A full-depth unwrap. Elongated corrosion runs under calcareous pits and layered shell beds.
-    w, h = 512, 1024
-    y, x = np.indices((h, w))
-    depth = y * 20 / h - 2
-    streak = noise(rng, w, h, 134, 9)
-    fine = noise(rng, w, h, 230, 380)
-    depth += 0.32 * np.sin(TAU * x / w) + 0.30 * fine
-    color = np.full((h, w, 3), [66.0, 65.0, 59.0])
-    rust = np.clip((streak - 0.48) * 2.7, 0, 1)
-    color += rust[:, :, None] * [51, -2, -23]
-    height = fine * 0.9
-    for band, centre, width, tint in [
-        (SHELL, 0.35, 1.1, PALETTE[SHELL]),
-        (MUSSEL, 2.7, 1.6, PALETTE[MUSSEL]),
-        (WEED, 5.6, 1.8, PALETTE[WEED]),
-    ]:
-        mask = np.exp(-(((depth - centre) / width) ** 4)) * (0.7 + 0.28 * fine)
-        if band == SHELL:
-            ring = np.sin(x * 0.65 + 6 * fine) ** 2 + np.cos(y * 0.92 + 3 * fine) ** 2
-            relief = np.exp(-(((ring - 0.95) / 0.32) ** 2))
+    # The broad sidewall and forged stock have much more surface per UV than net cord.
+    # Fine pitting and a low-contrast tide of silt keep both legible under the inspection lamp.
+    hardware_color = color.copy()
+    grit = noise(np.random.default_rng(45), w, h, 187, 170)
+    rubber_tone = 7*grit + 4*patina + 7*silt
+    hardware_color[rubber] = np.array([33, 35, 33]) + rubber_tone[rubber, None]
+    iron = slots == IRON
+    bloom = oxide*patina
+    hardware_color[iron] = np.array([40, 26, 20]) + bloom[iron, None]*[49, 22, 8] + 8*grit[iron, None]
+    crust = height.copy()
+    crust[rubber] = .46*grit[rubber] + .23*silt[rubber]
+    crust[iron] = 1.7*bloom[iron] + grit[iron]
+    write_maps(folder, 'hardware', hardware_color, crust, np.maximum(rough, .79), iron*(.19-.15*oxide))
+
+    # The unwrap covers 0.942 m by 20 m. Evaluate every animal in metres so valves
+    # retain their proportions on different diameter piles and across the UV seam.
+    w, h = 256, 2560
+    circumference = .3 * math.pi
+    fine = noise(rng, w, h, 190, 1100)
+    mat = noise(rng, w, h, 15, 105)
+    height = (.3 * fine + .7 * mat).astype('f')
+    color = np.array([51, 54, 41]) + (32 * mat + 13 * fine)[..., None]
+    for _ in range(18000):
+        x, y = rng.integers(w), rng.integers(h)
+        depth = y * 20 / h - 2
+        zone = depth + .22 * math.sin(TAU * x / w) + .45 * (mat[y, x] - .5)
+        if zone < -.5 or (zone > 7 and rng.random() > .16 + .38 * mat[y, x]):
+            continue
+        kind = SHELL if zone < 1.45 else MUSSEL if zone < 4.6 else WEED
+        if rng.random() < (.8 if zone > 7 else .045):
+            kind = rng.choice([SHELL, MUSSEL, WEED, SQUIRT])
+        if kind == WEED and rng.random() < .18:
+            kind = SQUIRT
+        radius = rng.uniform(.009, .034)
+        length = radius * {SHELL: 1, MUSSEL: 2.4, WEED: 4, SQUIRT: 1.5}[kind]
+        width = radius * {SHELL: 1, MUSSEL: .82, WEED: .16, SQUIRT: .7}[kind]
+        angle = rng.normal(.9 + 3 * mat[y, x], .65)
+        dx = np.arange(-math.ceil(length*w/circumference), math.ceil(length*w/circumference)+1)
+        dy = np.arange(-math.ceil(length*h/20), math.ceil(length*h/20)+1)
+        rows = y + dy
+        rows = rows[(rows >= 0) & (rows < h)]
+        idx = np.ix_(rows, (x + dx) % w)
+        u = dx[None, :] * circumference/w
+        v = (rows[:, None] - y) * 20/h
+        a = (u*math.cos(angle) + v*math.sin(angle))/length
+        b = (v*math.cos(angle) - u*math.sin(angle))/width
+        pigment = rng.uniform(.74, 1.2)
+        if kind == SHELL:
+            theta = np.arctan2(b, a)
+            r = np.hypot(a, b) * (1 + .09*np.cos(6*theta))
+            plate = np.maximum(0, np.cos(6*theta))**10
+            relief = np.clip((1-r)*1.8, 0, 1) - .63*np.clip((.47-r)*7, 0, 1) - .12*plate
+            shade = .64 + .47*relief - .13*plate - .25*((r < .4) & (abs(b) < .09))
+            tint = [161, 152, 129]
+        elif kind == MUSSEL:
+            r = np.hypot(a, (b + .14*a*a) / np.clip(.85 + .27*a, .35, 1.2))
+            relief = np.sqrt(np.maximum(0, 1-r*r)) * (.77 + .23*a)
+            lip = np.exp(-(b/.07)**2) * np.clip(a+.4, 0, 1)
+            nacre = np.exp(-((b+.33+.15*a*a)/.17)**2) * np.maximum(0, 1-a*a)
+            shade = .43 + .85*relief + .17*np.cos(32*r + 3*a) - .54*lip + .91*nacre
+            tint = [33, 41, 52]
         else:
-            relief = np.cos(x * (0.42 if band == MUSSEL else 0.23) + 7 * streak + y * 0.14) ** 4
-        mix = mask * (0.28 + 0.72 * relief)
-        color += mix[:, :, None] * (np.array(tint) - color)
-        height += mix * 2
-    color *= (0.84 + 0.3 * fine)[:, :, None]
-    write_maps(OUT, 'pile', color, height, 0.64 + 0.28 * fine, 0.55 * (1 - rust) * (depth > 8))
+            b = b - (.85*np.sin(3*a+angle) if kind == WEED else .18*a*a)
+            r = np.hypot(a, b)
+            relief = np.sqrt(np.maximum(0, 1-r*r))
+            pore = np.exp(-30*((a-.63)**2 + b*b))
+            shade = .62 + .44*relief - .46*pore
+            tint = [64, 75, 42] if kind == WEED else [132, 118, 85]
+        edge = np.clip((1-r)*7, 0, 1)
+        # Local contact shadow under the overlapping shell margin, baked at the same scale as the valve.
+        shadow = np.exp(-((r-1)/.19)**2) * np.clip(.45+.55*b, .12, 1)
+        color[idx] *= (1-.46*shadow[..., None])
+        color[idx] += edge[..., None] * (np.asarray(tint)*pigment*shade[..., None] - color[idx])
+        height[idx] += edge * (radius*200*relief + .23*height[idx] - height[idx])
+    rough = np.clip(.89 - .055*height + .10*(fine-.5), .37, .95)
+    write_maps(OUT, 'pile', color, height, rough, np.zeros_like(height))
+    relief_map = Image.fromarray(np.uint8(np.clip(height*32, 0, 255)))
+    relief_map.resize((96, 768), Image.Resampling.BOX).save(OUT / 'pile-height.jpg', quality=93)
 
 
 class Surface:
@@ -204,6 +259,12 @@ def shell(m, x, y, z, r, n, phase):
             )
         rings.append(ring)
     m.rings(rings, SHELL)
+    # The paired opercular plates sit recessed under the asymmetric rim.
+    for side in (-1, 1):
+        lid = [(x+r*(.10+u), y+r*side*v, z+r*h) for u,v,h in
+               [(-.30,.02,.62), (.29,.025,.66), (.14,.24,.58), (-.15,.23,.56)]]
+        ridge = (x+.1*r, y+side*.1*r, z+.7*r)
+        m.rings([lid, [tuple(.03*p+.97*q for p,q in zip(vertex,ridge)) for vertex in lid]], SHELL)
 
 
 def bed(m, kind, size, lod, rng):
@@ -212,13 +273,17 @@ def bed(m, kind, size, lod, rng):
     for i in range(count):
         # Satellite shells gather around a handful of holdfasts, leaving irregular gaps.
         a = i % 5 * 2.4
-        x = (0.26 * math.cos(a) + rng.uniform(-0.13, 0.13)) * size
-        y = (0.26 * math.sin(a) + rng.uniform(-0.13, 0.13)) * size
+        x = (0.13 * math.cos(a) + rng.uniform(-0.105, 0.105)) * size
+        y = (0.13 * math.sin(a) + rng.uniform(-0.105, 0.105)) * size
         r = rng.uniform(0.055, 0.105) * min(size, 0.64)
         if kind == 'barnacles':
             shell(m, x, y, 0, r, n, rng.random() * TAU)
             continue
         bearing = a + rng.uniform(-0.8, 0.8)
+        for k in range(3 if lod == 0 else 1):
+            twist = bearing + rng.uniform(-1.4, 1.4)
+            m.tube([(x,y,.006), (x+r*math.cos(twist), y+r*math.sin(twist),.003)],
+                   .0018, 3, CORD)
         # Two opposing valves meet on a narrow dorsal ridge, with a slight gape near the broad end.
         for side in [-1, 1]:
             rings = []
@@ -228,14 +293,14 @@ def bed(m, kind, size, lod, rng):
                 for j in range(steps):
                     p = math.pi * j / (steps - 1)
                     bow = width * math.sin(p)
-                    lateral = r * (side * (0.016 + 0.46 * bow) + 0.17 * t**2)
+                    lateral = r * (side * (0.012 + .058*t*t + 0.46 * bow) + 0.17 * t**2)
                     along = r * ((t - 0.5) * 2.3 + 0.23 * width * math.cos(p))
                     h = 0.035 + width * (0.43 + 0.41 * math.cos(p)) + 0.10 * t
                     ring.append(
                         (
                             x + along * math.cos(bearing) - lateral * math.sin(bearing),
                             y + along * math.sin(bearing) + lateral * math.cos(bearing),
-                            r * h,
+                            r * (h + .28*t + .21*(i%3)),
                         )
                     )
                 rings.append(ring[::-1] if side > 0 else ring)
@@ -251,7 +316,7 @@ def growth(m, lod, rng):
         path = []
         for j in range(steps + 1):
             t = j / steps
-            bend = (0.4 * t + 0.28 * math.sin(t * 5 + a) * t) * length
+            bend = (0.23 * t + 0.49 * math.sin(t * 5 + a) * t) * length
             path.append(
                 (
                     x + length * t * t * 0.58 + bend * math.cos(a),
@@ -259,33 +324,47 @@ def growth(m, lod, rng):
                     length * (t - 0.68 * t * t),
                 )
             )
-        m.tube(path, [0.0038 * (1 - 0.88 * j / steps) for j in range(steps + 1)], 3, WEED, True)
+        m.tube(path, [0.0022 * (1 - 0.88 * j / steps) for j in range(steps + 1)], 3, WEED, True)
     for i in range([7, 4, 2][lod]):
         x, y = rng.uniform(-0.09, 0.09), rng.uniform(-0.09, 0.09)
         h = rng.uniform(0.056, 0.12)
-        rings = [
-            [
-                (x + h * (r * math.cos(a) + 0.28 * t), y + h * r * 0.86 * math.sin(a), h * t)
-                for a in angles([10, 7, 5][lod])
-            ]
-            for t, r in [(0, 0.12), (0.24, 0.25), (0.60, 0.22), (0.88, 0.12), (1, 0.14), (0.96, 0.08)]
-        ]
+        bearing = rng.random() * TAU
+        sides = [12, 9, 6][lod]
+        # One irregular, leaning tunic tapers to its oral siphon.
+        rings = []
+        for t, r in [(0,.17), (.15,.33), (.39,.36), (.68,.25), (.86,.14), (.97,.105), (.90,.059)]:
+            ring = []
+            for a in angles(sides):
+                rib = r * (1 + .10*math.sin(3*a+bearing) + .04*math.sin(6*a+t))
+                ring.append((x+h*(rib*math.cos(a)+.4*t*t), y+h*rib*.71*math.sin(a),
+                             h*(t+.09*r*math.cos(a))))
+            rings.append(ring)
+        m.rings(rings, SQUIRT, True)
+        # A shorter atrial siphon emerges obliquely from the same body.
+        rings = [[(x+h*(offset+r*math.cos(a)), y+h*r*math.sin(a), h*(t-.35*r*math.cos(a)))
+                  for a in angles(sides)] for offset,t,r in [(.25,.51,.15), (.36,.65,.12),
+                                                             (.42,.74,.09), (.40,.70,.048)]]
         m.rings(rings, SQUIRT, True)
 
 
-def chain(m, lod, rng):
+def chain(m, lod, rng, terminal=True):
     # Four interlocking oval links along Z; the shackle replaces the first link.
     n, sides = [(24, 8), (16, 5), (9, 3)][lod]
     for i in range(4):
         path = []
-        sweep = [TAU * j / n for j in range(n + 1)] if i else [math.pi * (-0.30 + 1.60 * j / n) for j in range(n + 1)]
+        sweep = [TAU * j / n for j in range(n + 1)] if i or not terminal else [math.pi * (-0.30 + 1.60 * j / n) for j in range(n + 1)]
         for a in sweep:
             x = 0.058 * math.cos(a)
             z = i * 0.15 + 0.09 + 0.104 * math.sin(a)
             path.append((x if i % 2 == 0 else 0, x if i % 2 else 0, z))
-        m.tube(path, 0.014 if i else 0.018, sides, IRON)
-        if not i:
+        stock = .014 if i or not terminal else .018
+        gauges = [stock*(1+.048*math.sin(3*a+i)+.039*math.cos(7*a-i)) for a in sweep]
+        m.tube(path, gauges, sides, IRON)
+        if not i and terminal:
             z = path[0][2]
+            for sign in (-1, 1):
+                # Forged bosses carry the transverse pin at both ends of the bow.
+                m.tube([(sign*d, 0, z) for d in (.042,.053,.066)], [.019,.025,.023], sides, IRON)
             m.tube(
                 [(-0.076, 0, z), (0.059, 0, z), (0.065, 0, z), (0.077, 0, z)], [0.015, 0.015, 0.023, 0.023], sides, IRON
             )
@@ -316,8 +395,14 @@ def tyre(m, lod, rng):
     if lod:
         section = [section[i] for i in [0, 1, 3, 5, 6, 13, 15, 16]]
     rings = [[(r * math.cos(a), r * math.sin(a), h) for a in angles([52, 32, 16][lod])] for r, h in section[::-1]]
-    for j in range(len(rings) - 1):
-        m.rings(rings[j : j + 2], MUD if j < 4 else RUBBER)
+    # A continuous UV along the sidewall avoids repeating the same silt at every shoulder.
+    start = len(m.uvs)
+    m.rings(rings, RUBBER)
+    m.uvs[start:] = [(u*4, v) for u,v in m.uvs[start:]]
+    if lod < 2:
+        for r,z in [(.25,.104), (.265,.109), (.376,.108)]:
+            path = [(r*math.cos(a), r*math.sin(a), z) for a in angles(48) + [0]]
+            m.tube(path, .0025, 3, RUBBER)
     # Paired angled shoulder cuts repeat around the circumference.
     for i in range([46, 22, 8][lod]):
         a = TAU * i / [46, 22, 8][lod]
@@ -367,7 +452,7 @@ def trap(m, lod, rng):
             for j in range([5, 3, 2][lod] + 1):
                 t = j / [5, 3, 2][lod]
                 b = a + direction * t * 0.82
-                r = 0.37 - 0.05 * t
+                r = 0.37 - 0.05 * t - .053 * math.sin(math.pi*t) * (.55+.45*math.sin(3*b))
                 path.append((r * math.cos(b), r * math.sin(b), 0.29 * t))
             m.tube(path, 0.003, 3, CORD)
         m.tube(
@@ -485,11 +570,11 @@ def pile_samples():
         samples.rings(rings, SHELL)
         # Wrap the height interval about the selected centre depth. V=0.9 is the waterline.
         samples.uvs[-4 * sides :] = [
-            (u, (18 - depth + z - 0.5) / 20)
+            (2*u, (18 - depth + z - 0.5) / 20)
             for j in range(sides)
             for u, z in [(j / sides, 0), ((j + 1) / sides, 0), ((j + 1) / sides, 1), (j / sides, 1)]
         ]
-    obj = samples.object('Steel pile coupons', coating, False)
+    obj = samples.object('Concrete pile coupons', coating, False)
     photograph('pile-bands', obj)
 
 
@@ -499,6 +584,7 @@ def build():
     builders = {
         'filaments-ascidians': growth,
         'shackle-chain': chain,
+        'chain-links': partial(chain, terminal=False),
         'discarded-tyre': tyre,
         'parted-hawser': rope,
         'crab-pot': trap,
@@ -509,10 +595,14 @@ def build():
     with tempfile.TemporaryDirectory() as temp:
         folder = Path(temp)
         textures(folder)
+        selected = sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
         for name, builder in builders.items():
+            if selected and name not in selected:
+                continue
             bpy.ops.wm.read_factory_settings(use_empty=True)
             bpy.context.scene.world = bpy.data.worlds.new('Studio')
-            mat = atlas(folder)
+            stock = name in ('shackle-chain', 'chain-links', 'discarded-tyre')
+            mat = atlas(folder, 'hardware' if stock else 'surface')
             levels = []
             for lod, limit in enumerate([3000, 1000, 300]):
                 m = Surface()
@@ -541,7 +631,8 @@ def build():
             if (OUT / f'{name}.glb').stat().st_size > 1_000_000:
                 raise ValueError(f'{name} exceeds the storage budget')
             photograph(name, levels[0])
-    pile_samples()
+    if not selected:
+        pile_samples()
 
 
 if __name__ == '__main__':
