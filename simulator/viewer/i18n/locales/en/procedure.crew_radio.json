@@ -5,7 +5,7 @@
     "supervisor": "Lin Cen"
   },
   "roles": {
-    "tender": "Tether hand",
+    "tender": "Tether tender",
     "deck": "Deck",
     "supervisor": "Supervisor"
   },
@@ -20,11 +20,11 @@
     ],
     "communication": [
       "tender",
-      "Comms good. Telemetry and video are both ticking."
+      "Comms good. Telemetry and video are live."
     ],
     "tender": [
       "tender",
-      "Tether's sorted, plenty of line. Ready to lower whenever."
+      "Tether clear. Plenty of slack. Ready to lower."
     ]
   },
   "found": [
@@ -50,7 +50,7 @@
     ],
     "connector_unlocked": [
       "tender",
-      "Locking collar turned home and locked."
+      "Locking collar fully engaged."
     ]
   },
   "faults": {

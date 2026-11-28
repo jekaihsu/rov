@@ -89,8 +89,23 @@ function workerLink(url) {
     if (!fallback) worker.postMessage({ op: "release" });
   };
   link.close = function close() {
-    if (fallback) fallback.close();
-    else worker.postMessage({ op: "close" });
+    if (fallback) {
+      fallback.close();
+      return;
+    }
+    try {
+      worker.postMessage({ op: "close" });
+    } catch {
+      // Worker may already be gone.
+    }
+    // Ensure the worker cannot outlive a reconnect that opens a new link immediately.
+    setTimeout(function terminateWorker() {
+      try {
+        worker.terminate();
+      } catch {
+        // ignore
+      }
+    }, 250);
   };
   worker.postMessage({ op: "open", url });
   return link;

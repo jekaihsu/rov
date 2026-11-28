@@ -1,9 +1,9 @@
 {
   "brand": "ROV Solution",
   "loading": {
-    "data": "海域と機体データを読込中…",
+    "data": "海域と機体データを読み込み中…",
     "scene": "水中シーンを構築中…",
-    "model": "機体モデルを読込中…",
+    "model": "機体モデルを読み込み中…",
     "ready": "準備完了",
     "failed": "開始データを読み込めません。再読み込みしてください。"
   },
@@ -27,7 +27,7 @@
     "close": "閉じる"
   },
   "modes": {
-    "campaign": "ストーリーとチュートリアル",
+    "campaign": "ストーリー・入門",
     "expedition": "海洋探索と水中作業",
     "free_explore": "自由探索",
     "inspection_coop": "協力点検",

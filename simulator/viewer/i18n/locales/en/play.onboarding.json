@@ -24,7 +24,7 @@
   ],
   "steps": {
     "unlock": [
-      "Unlock the thrusters",
+      "Arm thrusters",
       "Unlock",
       "Locked thrusters give no thrust. Check the way ahead is clear, then unlock; lock again whenever you want to stop."
     ],

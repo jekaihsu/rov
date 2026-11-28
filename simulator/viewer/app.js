@@ -49,6 +49,7 @@ import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
+import {installFreeDive} from './free_dive.js';
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
@@ -449,7 +450,7 @@ let launchControl=params.get('control')||storedControlLayout();
 let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
-let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
+let ws = null, wsOpen = false, retry = 0, retryAt = 0, retryTimer = null, needResync = true, lastT = -1;
 const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, fidelity: getFidelity(),
   link: createLinkPresenter()});
 const videoLinkOverlay = installVideoLinkOverlay(vp);
@@ -462,6 +463,7 @@ const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopF
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
+  freeDive: () => freeDive,
   onShutter:()=>{photoFeedback?.shutter();careerDive.photo();},
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
@@ -469,8 +471,8 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
     const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
-    const targets=engineeringPhotoTargets();
-    const evidence=inspectObservation({scene,camera,environment:env,state:S,world:W,camMode,targets});
+    const targets = freeDive?.targets(worldG, obstacleMeshes, env) ?? engineeringPhotoTargets();
+    const evidence=inspectObservation({scene, camera, environment:freeDive ? null : env, state:S, world:W, camMode, targets});
     const view=camMode;
     renderer.domElement.toBlob(blob=>resolve({blob,evidence,view}),'image/png');
     restoreCamera();
@@ -526,6 +528,12 @@ const linkInbox = createLinkInbox({
 });
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
+  if (retryTimer != null) { clearTimeout(retryTimer); retryTimer = null; }
+  // Drop any previous link before opening another (reconnect storms after a server restart).
+  if (ws) {
+    try { ws.onclose = null; ws.close(); } catch { }
+    ws = null;
+  }
   setConn('wait', '連線中…');
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
@@ -548,9 +556,10 @@ function connect() {
   ws.onerror = () => { };
 }
 function scheduleRetry() {
+  if (retryTimer != null) clearTimeout(retryTimer);
   const d = Math.min(5000, 800 * 2 ** retry++);
   retryAt = performance.now() + d;
-  setTimeout(connect, d);
+  retryTimer = setTimeout(connect, d);
 }
 setInterval(() => {
   const r = retryAt - performance.now();
@@ -661,7 +670,7 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
+const input = installInput({blocked: () => freeDive?.blocked || prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
     || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
@@ -670,8 +679,8 @@ const input = installInput({blocked: () => prologueControlsBlocked(S) || collect
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 const onboarding = installOnboarding({input, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
-  extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
+const pauseMenu = installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
+  extraActions: () => [...(freeDive?.pauseActions() ?? procedurePanel.pauseActions()), ...careerDive.pauseActions()]});
 installFeedbackReport({
   input,
   getState: () => S,
@@ -1079,7 +1088,13 @@ async function startIntro(held = false) {
     heldIntro.release();
   };
 }
-installIntroSkip({input, button: $('skipIntro'), skip: () => intro?.skip(), active: introActive});
+installIntroSkip({
+  input, button: $('skipIntro'), skip: () => intro?.skip(),
+  onMenuBack: {
+    enabled: () => !!procedurePanel.canNavigate?.(),
+    run: () => pauseMenu.show(),
+  },
+});
 let introStarts = 0;
 window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 async function ensurePip() {
@@ -1229,6 +1244,7 @@ window.__movieDone = false;
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 const audio = installAudio({
+  deploying: introActive,
   getWorld: () => W, getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
@@ -1237,6 +1253,7 @@ installVoice({engine: audio, music});
 const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
+const freeDive = installFreeDive({params, rc, camera, rovG, setCam, radio: procedurePanel.radio, readOnly: !!REPLAY});
 const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio: procedurePanel.radio,
   onboard: () => camMode === 'onboard'});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
@@ -1310,10 +1327,11 @@ function frame(now) {
   const displayed = renderState.display(S);
   audio.update(displayed);
   music.update(displayed);
-  if (displayed) flightFeedback.update(displayed, W,
+  if (displayed && !freeDive) flightFeedback.update(displayed, W,
     !!(rep || introActive() || pauseMenuOpen() || collectionOpen || resultsOpen()));
   coldOpen.frame(dt);
   prologue.frame();
+  freeDive?.frame(now, W, S, env);
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);

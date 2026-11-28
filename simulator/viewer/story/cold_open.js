@@ -387,6 +387,7 @@ export function installColdOpen({
     // or a skip, the picture and the music are the player's own fidelity settings again.
     look.set(isScriptedBeat(next));
     if (isScriptedBeat(next)) cue(CINEMATIC_MUSIC.scripted);
+    else if (next.outcome?.released && ['relief', 'fade'].includes(next.beat)) cue('relief');
     else if (next.ended) cue(CINEMATIC_MUSIC.closing);
     else cue(null);
     if (skipButton && skippable) skipButton.hidden = next.ended;

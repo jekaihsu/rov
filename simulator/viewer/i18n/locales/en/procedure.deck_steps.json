@@ -61,8 +61,8 @@
   "lampsLit": "Both lit — lights off",
   "feedOk": "Video OK",
   "lower": "Lower into water",
-  "waitTender": "Wait for the tether hand to report the tether ready.",
-  "waitTenderAction": "Waiting for tether hand",
+  "waitTender": "Wait for the tender to confirm the tether is ready.",
+  "waitTenderAction": "Waiting for tender",
   "lowerNote": "Pick an upstream launch point and lower on the lift line; arm only after the vehicle is in the water and personnel are clear.",
   "skip": "Skip remaining checks (penalty; undiscovered defects go into the water)"
 }

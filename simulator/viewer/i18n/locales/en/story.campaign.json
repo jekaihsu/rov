@@ -18,11 +18,11 @@
   "retry": "Hold on. Let's try that step again.",
   "replay": "Replay prologue",
   "channels": {
-    "left_ud": "Left stick up/down",
-    "left_lr": "Left stick left/right",
-    "right_ud": "Right stick up/down",
-    "right_lr": "Right stick left/right",
-    "left_wave": "Left dial",
-    "right_wave": "Right dial"
+    "left_ud": "Left stick vertical",
+    "left_lr": "Left stick horizontal",
+    "right_ud": "Right stick vertical",
+    "right_lr": "Right stick horizontal",
+    "left_wave": "Left wheel",
+    "right_wave": "Right wheel"
   }
 }
