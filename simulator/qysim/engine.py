@@ -340,7 +340,7 @@ class Simulator:
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist,
                                      rc.profile, dvl_valid=dvl_valid, measured=measured) * self.health
         thr = self.power.apply(self, thr, rc)
-        w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
+        w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity(), s.omega)
         n_events = len(self.world.events)
         w_contact = self.world.vehicle_contact(self.t, s.pos, s.q, s.vel, s.omega,
                                                vehicle_id=self.vehicle_id,

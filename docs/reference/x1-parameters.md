@@ -44,6 +44,10 @@
 | tether.breaking_n | `2943.0` | reseller | real-rov-research.md: 經銷商頁 350 m × 9.5 mm × 300 kgf。X1 實纜暫定，非實測 |
 | tether.termination_ratio | `0.3022222222222222` | estimated | TP §2: VideoRay 應力釋放 136 kg ÷ 纜 450 kg；X1 接頭強度未公開 |
 | tether.working_load_ratio | `0.5` | estimated | TP §2: VideoRay「工作負載不得超過斷裂強度一半」；Fathom 為 23% |
+| tether.float_area | `0.0` | estimated | 暫定：均布浮套每米增加的排水體積，預設裸纜 (m²) |
+| tether.float_density | `300.0` | estimated | 暫定：浮套材料模型假設 (kg/m³)，待量測 |
+| tether.ei | `0.004` | estimated | 暫定：柔性纜等效 EI；假設 10 MPa × πd⁴/64，待 X1 三點彎曲試驗 |
+| tether.deck_drag_n | `1.0` | estimated | 暫定：甲板平放段的滑動阻力；待 X1 導纜路線拉力量測 |
 | tether.reel_drum_mass_kg | `5.0` | estimated | SH §1：無公開纜盤慣量；空盤等效線慣量假設，捲上纜線另以 ρA×未放出長度計 |
 | tether.reel_free_drag_n | `20.0` | estimated | SH §1 Gaps：無公開纜盤阻力；自由轉動軸承與滑環阻力假設 |
 | tether.reel_brake_hold_n | `1471.5` | estimated | SH §2/§3：Imenco 離合器防過拉；取纜線工作負載，煞住的纜盤在纜線過載前打滑 |
