@@ -73,8 +73,14 @@ function pileRow(set, piles, seeded, material) {
     if (ob.p0[2] > 0) {
       // The cut-off dolphins end underwater. Their capsule crown is exposed to the hull and tether.
       const crown = new THREE.SphereGeometry(ob.radius, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2);
+      const crownUV = crown.attributes.uv;
+      for (let vertex = 0; vertex < crownUV.count; vertex++) {
+        const depth = ob.p0[2] - crown.attributes.position.getY(vertex);
+        crownUV.setXY(vertex, crownUV.getX(vertex) * Math.max(1, Math.round(ob.radius / .15)), (18 - depth) / 20);
+      }
+      crown.rotateY(item.rotation.y);
       crown.translate(-ob.p0[1], -ob.p0[2], ob.p0[0]);
-      set.addBatched('pile-crowns', crown, 'pileConcrete', [ob.name], 'solid', [ob]);
+      set.addBatched('pile-crowns', crown, 'pileCrown', [ob.name], 'solid', [ob]);
     }
     colony(set, ob, seeded);
   }
@@ -82,8 +88,10 @@ function pileRow(set, piles, seeded, material) {
 }
 export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
   if (set.world.scenario?.key !== 'harbor_inspection') return;
+  let skin;
   const makeMaterial = set.makeMaterial;
   set.makeMaterial = function harborMaterial(kind) {
+    if (kind === 'pileCrown') return skin;
     if (kind === 'fenderMarker' || kind === 'quayRunoff') {
       const color = kind === 'fenderMarker' ? 0xc6a34c : 0x924a27;
       const paint = new THREE.MeshStandardMaterial({color, roughness: .93});
@@ -121,7 +129,7 @@ export function harborStructures(set, obstacles, consumed, seeded, boxAt) {
     consumed.add(ob.name);
   }
   if (rows.size) {
-    const skin = pileSkin(set);
+    skin = pileSkin(set);
     for (const row of rows.values()) pileRow(set, row, seeded, skin);
   }
   const solids = [];

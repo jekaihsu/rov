@@ -24,14 +24,14 @@
 | [barnacles-100](barnacles-100.jpg) | 2998 | 998 | 298 | 191,540 |
 | [barnacles-30](barnacles-30.jpg) | 2997 | 998 | 298 | 191,612 |
 | [barnacles-60](barnacles-60.jpg) | 2998 | 998 | 298 | 191,392 |
-| [chain-links](chain-links.jpg) | 1816 | 752 | 272 | 171,752 |
+| [chain-links](chain-links.jpg) | 1816 | 752 | 272 | 95,188 |
 | [crab-pot](crab-pot.jpg) | 2676 | 998 | 298 | 188,364 |
-| [discarded-tyre](discarded-tyre.jpg) | 2998 | 997 | 298 | 239,996 |
+| [discarded-tyre](discarded-tyre.jpg) | 2998 | 997 | 298 | 163,440 |
 | [filaments-ascidians](filaments-ascidians.jpg) | 2997 | 997 | 297 | 206,484 |
 | [mussels-100](mussels-100.jpg) | 2998 | 998 | 298 | 186,268 |
 | [mussels-30](mussels-30.jpg) | 2998 | 998 | 298 | 186,336 |
 | [mussels-60](mussels-60.jpg) | 2998 | 997 | 298 | 186,172 |
 | [parted-hawser](parted-hawser.jpg) | 2784 | 960 | 234 | 159,768 |
-| [shackle-chain](shackle-chain.jpg) | 1928 | 822 | 298 | 178,728 |
+| [shackle-chain](shackle-chain.jpg) | 1928 | 822 | 298 | 102,160 |
 
 兩版的拍攝程序見 [capture_harbor_props.py](../../../simulator/tools/capture_harbor_props.py)。[第一輪審查紀錄](https://github.com/jekaihsu/rov/tree/a6a6053a3dff9cea1b4f7d81f02346749e5f9433/docs/design/harbor-props-v2)。

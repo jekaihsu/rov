@@ -46,7 +46,9 @@ def write_maps(folder, prefix, color, height, rough, metal):
     for suffix, values in [('color', color), ('normal', (normals + 1) * 127.5), ('orm', orm * 255)]:
         im = Image.fromarray(np.uint8(np.clip(values, 0, 255)))
         # Roughness, corrosion and sediment masks vary on a coarser scale than shell ridges.
-        if suffix == 'orm':
+        if prefix == 'hardware':
+            im = im.resize((128, 128), Image.Resampling.LANCZOS)
+        elif suffix == 'orm':
             im = im.resize((im.width // 4, im.height // 4), Image.Resampling.LANCZOS)
         elif suffix == 'normal' or prefix == 'surface':
             im = im.resize((im.width // 2, im.height // 2), Image.Resampling.LANCZOS)
