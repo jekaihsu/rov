@@ -126,10 +126,11 @@ function scanSet(profile, quality) {
   const small = quality >= 2 ? 0 : 512;
   const set = {uBaseC: scanUniform(`${profile.base}_c`, {size: small})};
   if (low) return set;
-  // Standard-quality seabed colour and relief share the same 512 px texel density.
+  // Keep the colour detail on medium. The filtered relief maps modulate only the bed normal.
+  const reliefSize = quality >= 2 ? 0 : 256;
   set.uSecondC = scanUniform(`${profile.second}_c`, {size: small});
-  set.uBaseN = scanUniform(`${profile.base}_n`, {size: small});
-  set.uRippleN = scanUniform('ripple_n', {size: small});
+  set.uBaseN = scanUniform(`${profile.base}_n`, {size: reliefSize});
+  set.uRippleN = scanUniform('ripple_n', {size: reliefSize});
   if (profile.rockSet) set.uRockC = scanUniform(`${profile.rockSet}_c`, {size: small});
   if (quality >= 2) {
     set.uSecondN = scanUniform(`${profile.second}_n`);
