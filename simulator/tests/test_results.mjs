@@ -192,3 +192,16 @@ test("the best score is kept per run and only replaced by a better successful ru
   assert.equal(recordFor("scenario:open_water", storage).medal, "gold");
   assert.equal(recordFor("scenario:other", storage), null);
 });
+
+test("a short local course settles once even when its active frame was missed", () => {
+  const watcher = createOutcomeWatcher();
+  const campaign = {
+    chapter: "custom_pool", status: "completed", chapters: [], results: [{chapter:"custom_pool"}],
+    instructor: {passed:false, score:25},
+  };
+  const world = {scenario: {key:"tutorial_pool", seed:42}};
+  const outcome = watcher.observe({campaign}, world);
+  assert.equal(outcome.success, false);
+  assert.equal(outcome.score, 25);
+  assert.equal(watcher.observe({campaign}, world), null);
+});

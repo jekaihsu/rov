@@ -184,6 +184,10 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
       element.dispatchEvent(new Event('change', { bubbles: true }));
       return true;
     }
+    if (element.type === 'number' && handlers.adjustNumber) {
+      handlers.adjustNumber(element, sign);
+      return true;
+    }
     if (element.type === 'range') {
       const step = Number(element.step) || 1;
       element.value = String(Number(element.value) + sign * step);

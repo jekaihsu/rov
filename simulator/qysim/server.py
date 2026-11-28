@@ -883,6 +883,16 @@ class _Static(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
         super().__init__(*a, directory=str(VIEWER_DIR), **k)
 
+    def do_GET(self):
+        from .campaign.editor_http import handle
+        if not handle(self):
+            super().do_GET()
+
+    def do_POST(self):
+        from .campaign.editor_http import handle
+        if not handle(self):
+            self.send_error(404)
+
     def translate_path(self, path):
         p = super().translate_path(path)
         if not os.path.exists(p):

@@ -6,6 +6,7 @@
 // input/bindings.js through the menu navigator. Retry and next chapter send the same commands the drawer
 // already sends (reset, mission_mode, campaign_start); nothing here changes physics. Every outcome is also
 // announced as a `rov-run-result` event.
+import {labels as editorLabels} from '../training/editor_strings.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from '../menu/navigator.js';
 import {
   DETAILS_LABEL,
@@ -214,7 +215,9 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     actions.replaceChildren();
     const lead = host();
     const kind = outcome.kind;
-    if (kind === 'career') {
+    if (outcome.instructorCourse) {
+      button('resultsNext', editorLabels.map, () => toList('courses'), {primary:true});
+    } else if (kind === 'career') {
       button('resultsNext', STRINGS.nextWorkOrder, function nextWorkOrder() {
         location.assign(menuUrl(location.href, 'board'));
       }, { primary: true });
@@ -250,7 +253,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     actions.insertBefore(details, actions.children[2] || null);
     const notes = [];
     if (!lead && kind !== 'contract') notes.push(STRINGS.hostOnly);
-    if (kind === 'chapter' && !outcome.next) notes.push(STRINGS.storyDone);
+    if (kind === 'chapter' && !outcome.next && !outcome.instructorCourse) notes.push(STRINGS.storyDone);
     note.textContent = notes.join(' ');
   }
   function renderRows() {
@@ -276,7 +279,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     const record = recordResult(outcome);
     root.dataset.kind = outcome.kind;
     root.dataset.success = String(outcome.success);
-    kicker.textContent = [kindLabel(outcome.kind), formatTime(outcome.elapsed)].join(' · ');
+    kicker.textContent = [outcome.instructorCourse ? editorLabels.courses : kindLabel(outcome.kind), formatTime(outcome.elapsed)].join(' · ');
     let headingText = outcome.success ? STRINGS.success : STRINGS.failure;
     if (outcome.heading) headingText = outcome.heading;
     else if (outcome.kind === 'contract') headingText = STRINGS.contractDone;

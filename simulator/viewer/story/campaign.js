@@ -206,7 +206,10 @@ export function installCampaign({send, readOnly = false, voice = null} = {}) {
         // A chapter picked in the launch menu (story or incident drill) wins; the server still enforces locks.
         const picked = campaign.chapters.find(entry => entry.id === launch.get('chapter') && !entry.placeholder);
         // Incident drills are launched from the list only; a server without categories is all story.
-        const chapter = picked || campaign.chapters.find(entry => !entry.placeholder
+        const customId = launch.get('trainingLesson');
+        const localCourse = customId?.startsWith('custom_') && customId === launch.get('chapter')
+          ? {id:customId, category:'course'} : null;
+        const chapter = picked || localCourse || campaign.chapters.find(entry => !entry.placeholder
           && (entry.category || 'story') === 'story' && !completed.includes(entry.id) && (!entry.requires || completed.includes(entry.requires)));
         if (chapter) {
           const training = launch.get('training') === '1'

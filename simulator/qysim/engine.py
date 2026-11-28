@@ -119,9 +119,14 @@ class Simulator:
         self.load_scenario(scenario, seed, shared_world=shared_world)
 
     # ── setup ─────────────────────────────────────────────────────────────
-    def load_scenario(self, key: str, seed: int | None = None, *, shared_world=None) -> None:
+    def load_scenario(self, key: str, seed: int | None = None, *, shared_world=None, instructor=None) -> None:
         mission_mode = getattr(getattr(getattr(self, "world", None), "mission_run", None), "mode", "scenario_training")
         sc = sc_mod.build(key, seed)
+        if shared_world is not None:
+            instructor = getattr(shared_world, "instructor_course", None)
+        if instructor:
+            from .campaign.custom import configure
+            configure(sc, instructor)
         self.rng = np.random.default_rng(sc.seed)
         self.current_rng = np.random.default_rng(sc.seed)
         self.scenario = sc
@@ -129,6 +134,8 @@ class Simulator:
         self.paused = False
         self.world = shared_world if shared_world is not None else World(sc.seabed_depth)
         if shared_world is None:
+            if instructor:
+                self.world.instructor_course = instructor
             self.world.obstacles = list(sc.obstacles)
             self.world.current = sc.current
             self.world.current.reseed(sc.seed or 0)

@@ -17,6 +17,7 @@ import socket
 import subprocess
 import sys
 import time
+import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -40,12 +41,12 @@ def free_port():
         return probe.getsockname()[1]
 
 
-def start_server(log_path):
+def start_server(log_path, env=None):
     ports = {'http': free_port(), 'ws': free_port(), 'rpc': free_port()}
     command = [sys.executable, '-m', 'qysim.server', '--http-port', str(ports['http']),
                '--ws-port', str(ports['ws']), '--rpc-port', str(ports['rpc'])]
     log = open(log_path, 'w', encoding='utf-8')
-    process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, env=env)
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         if process.poll() is not None:
@@ -91,10 +92,17 @@ def script_environment(ports):
 
 
 def run_script(name, limit):
+    if name == 'browser_mission_editor_smoke':
+        with tempfile.TemporaryDirectory() as directory:
+            return run_with_server(name, limit, dict(os.environ, ROV_MISSION_DIR=directory))
+    return run_with_server(name, limit)
+
+
+def run_with_server(name, limit, env=None):
     """Run one script against its own server. Returns (status, seconds, detail)."""
     started = time.monotonic()
     try:
-        process, log, ports = start_server(LOGS / f'{name}.server.log')
+        process, log, ports = start_server(LOGS / f'{name}.server.log', env)
     except RuntimeError as error:
         return 'ERROR', time.monotonic() - started, str(error)
     output_path = LOGS / f'{name}.log'

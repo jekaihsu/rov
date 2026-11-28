@@ -82,6 +82,9 @@ class Campaign:
         self.room = room
         self.scripts = {p.stem: validate(json.loads(p.read_text(encoding='utf-8')))
                         for p in sorted(DATA.glob('*.json')) if p.name != 'schema.json'}
+        from .custom import courses
+        self.scripts.update((s["id"], s) for s in courses())
+        self.custom_run = None
         self.directed = None
         self.chapter = None
         self.index = 0
@@ -126,13 +129,25 @@ class Campaign:
         action = msg.get('action')
         if action == 'campaign_start':
             key = msg.get('chapter', 'prologue')
-            script = self.scripts.get(key)
+            if isinstance(key, str) and key.startswith('custom_'):
+                from .custom import load
+                script = load(key)
+                if script:
+                    self.scripts[key] = script
+            else:
+                script = self.scripts.get(key) if isinstance(key, str) else None
             if not script or script.get('placeholder'):
                 return dict(ok=False, message='unavailable')
             if script.get('requires') and script['requires'] not in self.completed:
                 return dict(ok=False, message='locked')
             modes = {vid: sim.operation_mode for vid, sim in self.room.vehicles.items()}
-            self.room.reset(script['scenario'], 42)
+            if 'instructor' in script:
+                from .custom import CourseRun
+                self.custom_run = CourseRun(script)
+                self.room.reset(script['scenario'], 42, instructor=script['instructor'])
+            else:
+                self.custom_run = None
+                self.room.reset(script['scenario'], 42)
             for vid, mode in modes.items():
                 self.room.vehicles[vid].operation_mode = mode
             from ..mission_modes import MissionRun
@@ -144,7 +159,7 @@ class Campaign:
             if self.resumed:
                 self.index = checkpoint['index']
             self.directed = None
-            if script.get('beats') and msg.get('beats') and not self.resumed and not msg.get('course'):
+            if not self.custom_run and script.get('beats') and msg.get('beats') and not self.resumed and not msg.get('course'):
                 self.directed = BeatRun(script['beats'], self.room.vehicles[player.vehicle_id])
             self.pilot = player.vehicle_id
             self.started = 0
@@ -203,6 +218,8 @@ class Campaign:
                 self.status = 'interrupted'
             return
         self.started += dt
+        if self.custom_run and (dt == 0 or not self.custom_run.step(sim, dt)):
+            return
         self.peak_tension = max(self.peak_tension, float(sim.tether.tension_max))
         # The full viewer state is expensive: build it lazily and share it between every
         # condition of this update. Only a script effect on the world invalidates it.
@@ -291,6 +308,8 @@ class Campaign:
     def state(self):
         sim = self.room.vehicles.get(self.pilot)
         beat = self.directed.state(sim, self.node) if self.directed and sim is not None else {}
+        if self.custom_run:
+            beat["instructor"] = self.custom_run.state()
         return deepcopy(dict(**beat, chapter=self.chapter, index=self.index, node=self.node, status=self.status,
                              objective=self.objective, dialogue=self.history[-30:], completed=self.completed,
                              rewards=self.rewards, results=self.results, checkpoint=self.checkpoint,

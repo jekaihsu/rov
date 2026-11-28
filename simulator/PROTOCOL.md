@@ -538,6 +538,12 @@ cold open, `cold_open`) likewise starts only through an explicit `campaign_start
 and does not unlock or require any story chapter. Clients that do not know the category can ignore it.
 The default is idle; existing mission modes and SDK semantics are unchanged.
 
+Internal instructor-authored courses use IDs prefixed with `custom_`. For these courses
+`state.campaign.instructor` carries the title, weighted percentage score, threshold verdict
+(`passed`), and reached/total objective counts (`done`, `total`). During a beat it includes
+`target` (kind, NED point, radius in metres, points) and `lines` by language in radio/hint/reminder order.
+The host checks position, shutter evidence and simulation time. Each beat advances on success or expiry.
+
 Host-only operation actions (reply: `operation_result` with `ok` and `action`):
 
 * `campaign_start`: optional `chapter` (default `prologue`), `course` (default false), `resume` (default false; starts at the saved checkpoint in a freshly loaded scene).

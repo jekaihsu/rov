@@ -12,7 +12,9 @@ import {listRecords} from './records.js';
 import {findLesson, normalizeCourse} from './catalogue.js';
 import {installTrainingFidelityGuard} from './fidelity_guard.js';
 import {isInternalEdition} from './edition.js';
-import {localize} from '../i18n/index.js';
+import {createPhotoMarker} from './photo_marker.js';
+import {labels as editorLabels} from './editor_strings.js';
+import {getLanguage, localize} from '../i18n/index.js';
 
 const STRINGS = localize('training.session', {
   exportCsv: '匯出 CSV',
@@ -69,6 +71,8 @@ function hydrateLessonFromCatalogue(session) {
 }
 
 export function installTrainingSession({
+  THREE = null,
+  scene = null,
   catalogue = null,
   getState = () => null,
   student = '',
@@ -84,12 +88,16 @@ export function installTrainingSession({
   const metricsRef = {current: createSessionMetrics({lessonId: lesson.id})};
   let finalized = null;
   let banner = null;
+  let readout = null;
+  const marker = createPhotoMarker(THREE, scene);
 
   const style = document.createElement('style');
   style.textContent = `
     #trainingBanner{position:fixed;left:12px;bottom:12px;z-index:var(--z-notice);
       background:rgba(8,18,26,.78);color:#e8f1f5;padding:8px 12px;font-size:12px;
       border-left:2px solid #dfbc61;max-width:min(420px,70vw)}
+    #trainingObjective{position:fixed;top:18%;left:1rem;background:#102127;color:white;
+      padding:.6rem;z-index:var(--z-notice);max-width:min(32rem,80vw);overflow-wrap:anywhere}
     #trainingBanner.assist{border-left-color:#e07a5f}
     #trainingBanner button{margin-left:8px;font-size:11px}
   `;
@@ -139,7 +147,42 @@ export function installTrainingSession({
 
   function update(state) {
     const snapshot = state || getState();
+    const active = snapshot?.campaign?.status === 'active' && snapshot.campaign.chapter === lesson.id;
+    marker.update(active ? snapshot.campaign.instructor?.target : null);
+    if (lesson.id.startsWith('custom_') && snapshot?.campaign?.chapter !== lesson.id) {
+      readout?.remove();
+      readout = null;
+      return;
+    }
+    if (finalized && lesson.id.startsWith('custom_') && snapshot.campaign.status === 'active') {
+      finalized = null;
+      metricsRef.current = createSessionMetrics({lessonId:lesson.id});
+    }
     observeState(metricsRef.current, snapshot);
+    const custom = snapshot?.campaign?.instructor;
+    if (custom && snapshot.campaign.chapter === lesson.id) {
+      lesson.title = custom.title;
+      metricsRef.current.elapsedS = snapshot.t;
+      metricsRef.current.objectivesDone = custom.done;
+      metricsRef.current.objectivesTotal = custom.total;
+      if (!readout) {
+        readout = element('div');
+        readout.id = 'trainingObjective';
+        banner.after(readout);
+      }
+      const lines = custom.lines || {};
+      const local = lines[getLanguage()] || [];
+      const target = custom.target;
+      const text = (lines['zh-TW'] || []).map((line,i) => local[i] || line).filter(Boolean);
+      if (target) text.unshift(editorLabels[target.kind] + ' · N/E/D ' + target.point.join(' / ') + ' m');
+      if (snapshot.campaign.status === 'completed') {
+        metricsRef.current.finished = true;
+        metricsRef.current.score = custom.score;
+        lesson.instructorPassed = custom.passed;
+        text.push(editorLabels[custom.passed ? 'passLabel' : 'failLabel'] + ' · ' + custom.score + '%');
+      }
+      readout.textContent = text.join(' · ');
+    }
     if (!finalized && shouldFinalizeTraining(snapshot)) {
       finalizeNow();
     }
@@ -168,7 +211,9 @@ export function installTrainingSession({
       return finalized;
     },
     dispose() {
+      marker.dispose();
       guard.dispose();
+      readout?.remove();
       banner?.remove();
       style.remove();
       if (globalThis.window?.__training === api) delete globalThis.window.__training;

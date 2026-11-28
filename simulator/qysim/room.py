@@ -169,7 +169,7 @@ class Room:
             if p.connected and now - p.last_input > self.input_timeout and p.vehicle_id != usb_vehicle:
                 self.lock(self.vehicles[p.vehicle_id])
 
-    def reset(self, key=None, seed=None):
+    def reset(self, key=None, seed=None, *, instructor=None):
         self.instructor.finish()
         if self.campaign.status != "idle":
             self.campaign.status = "interrupted"
@@ -177,7 +177,7 @@ class Room:
         base = self.primary
         for sim in self.vehicles.values():
             sim.operations.release()
-        base.load_scenario(key or base.scenario.key, base.scenario.seed if seed is None else seed)
+        base.load_scenario(key or base.scenario.key, base.scenario.seed if seed is None else seed, instructor=instructor)
         for vid, sim in self.vehicles.items():
             if sim is not base:
                 sim.load_scenario(base.scenario.key, base.scenario.seed, shared_world=base.world)
