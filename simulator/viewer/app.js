@@ -1242,6 +1242,7 @@ window.__movieDone = false;
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 const audio = installAudio({
+  deploying: introActive,
   getWorld: () => W, getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));

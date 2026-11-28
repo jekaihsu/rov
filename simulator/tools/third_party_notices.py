@@ -240,6 +240,10 @@ def collect_audio(report: Report) -> None:
         ('tension_peer_gynt_aase.opus', 'Public Domain Mark 1.0',
          'https://archive.org/details/musopen-dvd-in-lossless-flac-format'),
     ]
+    sources = json.loads((SIM / 'tools/audio_u3_sources.json').read_text(encoding='utf8'))
+    for source in sources.values():
+        if source['page'].startswith('https://freesound.org/'):
+            music.append((source['title'] + ' — ' + source['author'], source['license'], source['page']))
     for name, license_text, source in music:
         notice = Notice(name, 'asset', license_text, source, 'audio', allowed=license_allowed(license_text))
         report.notices.append(notice)
