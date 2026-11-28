@@ -5,7 +5,7 @@
     "supervisor": "林岑"
   },
   "roles": {
-    "tender": "缆线手",
+    "tender": "缆手",
     "deck": "甲板",
     "supervisor": "督导"
   },
@@ -20,7 +20,7 @@
     ],
     "communication": [
       "tender",
-      "通讯正常，遥测和图像都在刷新。"
+      "通信正常，遥测和图像都在刷新。"
     ],
     "tender": [
       "tender",

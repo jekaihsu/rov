@@ -649,6 +649,11 @@ LIBRARY = {
 def build(key: str, seed: int | None = None) -> Scenario:
     if key == "random":
         return random_scenario(seed)
+    if key == "free_dive_wreck":
+        from .free_dive import wreck_visit
+        scenario = wreck_visit()
+        scenario.seed = int(seed or 0)
+        return scenario
     if key not in LIBRARY:
         raise KeyError(f"unknown scenario {key!r}; choose from {sorted(LIBRARY)} or 'random'")
     scenario = LIBRARY[key]()

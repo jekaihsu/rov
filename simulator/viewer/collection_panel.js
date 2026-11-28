@@ -1,8 +1,11 @@
+import {STRINGS as DIVE} from './free_dive_copy.js';
 import {FLEET_IDS, siteName, vehicleName} from './fleet_names.js';
 import {COLLECTION_CATEGORIES,listCollection,getPhotoBlob,setCover,exportCollection,importCollection,downloadCollectionFile} from './collection_store.js';
 
 const element=(tag,text,className)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
 const date=value=>{const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'日期未記錄';};
+// The general wildlife guide shows its empty slots. Site-specific finds appear after the first sighting.
+const wildlife = new Set(['coral', 'seastar', 'seagrass', 'kelp', 'fish_school']);
 const categoryName=value=>COLLECTION_CATEGORIES[value]||'紀念照';
 const valueText=value=>typeof value==='string'||typeof value==='number'?String(value):value?.name||value?.label||'—';
 // Photos store internal keys; show the player-facing fleet and site names (fleet_names.js).
@@ -10,7 +13,7 @@ function modelText(value) {
   return FLEET_IDS.includes(value) ? vehicleName(value) : valueText(value);
 }
 function sceneText(value) {
-  return siteName(value) || valueText(value);
+  return DIVE[value] || siteName(value) || valueText(value);
 }
 
 export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose=()=>{}}={}){
@@ -37,6 +40,7 @@ export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose
     const grid=element('div',undefined,'collection-grid');
     for(const [category,name]of Object.entries(COLLECTION_CATEGORIES)){
       const guide=collection.guides.find(g=>g.category===category),photo=guide&&collection.photos.find(p=>p.id===guide.photoId);
+      if (!guide && !wildlife.has(category)) continue;
       if(photo)grid.append(photoCard(photo,name,`首次觀測 ${date(guide.unlockedAt)}`));
       else{const article=element('article',undefined,'collection-card');article.append(element('div','尚未觀測','collection-locked'),element('h3',name),element('p','切換機載視角，在有效距離內完成拍攝。'));grid.append(article);}
     }
@@ -52,6 +56,7 @@ export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose
     const back=element('button','← 返回收藏');back.onclick=()=>{selected=null;render();};content.append(back);
     const detail=element('div',undefined,'collection-detail'),media=element('div'),info=element('section');media.append(picture(photo.id,'collection-original',categoryName(photo.observation?.category)));
     const category=photo.observation?.category;info.append(element('h3',categoryName(category)));
+    if (DIVE.notes[category]) info.append(element('p', DIVE.notes[category]));
     const facts=element('dl');
     const row=(label,value)=>{facts.append(element('dt',label),element('dd',value));};
     row('拍攝時間',date(photo.createdAt));row('分類',category?'機載有效觀測':'紀念照');

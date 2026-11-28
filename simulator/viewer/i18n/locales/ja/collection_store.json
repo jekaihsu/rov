@@ -4,5 +4,18 @@
   "seagrass": "海草",
   "kelp": "海藻",
   "fish_school": "魚群",
-  "harbor_tool": "港の落とし物"
+  "harbor_tool": "港の落とし物",
+  "bow": "船首甲板",
+  "chain": "錨鎖",
+  "hatch": "貨物倉口",
+  "bridge": "船橋",
+  "screw": "プロペラ",
+  "windlass": "揚錨機",
+  "rail": "曲がった手すり",
+  "silt": "船倉の堆積物",
+  "frames": "横肋骨",
+  "poolwall": "プールの壁",
+  "pile": "桟橋の杭",
+  "leg": "ジャケット脚柱",
+  "keel": "ビルジキール"
 }

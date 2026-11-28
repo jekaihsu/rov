@@ -10,12 +10,12 @@
     "task": "Shoot the leg C anode first. Dead ahead of you.",
     "nudgeMove": "R-One, push forward a little. The anode's right in front of you.",
     "nudgePhoto": "Close to about two metres. One shot is all we need.",
-    "praise": "Clean. You can read the anode wastage clearly.",
+    "praise": "Good shot. We can see how much of the anode is left.",
     "praiseFar": "Got it. Get closer next time.",
     "skipPhoto": "Leave the photo for now. Move on to leg B.",
     "toLegB": "Good. North along the west face to leg B. Hold your depth.",
     "nudgeLegB": "R-One, leg B is north of you. Turn and go.",
-    "tension": "Tension {n}! We're caught!",
+    "tension": "Tension at {n} newtons. We're snagged!",
     "stop": "Stop! Do you know your way out?",
     "backOut": "Don't pull. Back out the way you came — south, past the anode.",
     "dontPull": "Still pulling! {n} newtons, don't force it!",
@@ -35,7 +35,7 @@
     "forward": "Forward",
     "release": "Let go of the sticks",
     "reverse": "Back up",
-    "unlock": "Unlock the thrusters"
+    "unlock": "Arm thrusters"
   },
   "location": [
     "Offshore wind farm · Jacket leg C",

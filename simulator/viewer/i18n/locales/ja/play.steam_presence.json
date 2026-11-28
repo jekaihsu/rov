@@ -10,18 +10,18 @@
   },
   "levels": {
     "p0_induction": "プール操作講習",
-    "p1_pool_checkout": "プール点検潜水",
-    "p2_open_water": "外洋慣れ航",
+    "p1_pool_checkout": "プールでの潜航試験",
+    "p2_open_water": "開放水域での慣熟訓練",
     "c1_pier_level1": "桟橋 Level I 点検",
     "c1_pier_level2": "桟橋の海生付着計測",
-    "c1_hull_fouling": "船底付着物評価",
+    "c1_hull_fouling": "船体付着物評価",
     "c1_dropped_object": "港内落下物",
     "c1_quay_cp": "岸壁の陰極防食計測",
     "c1_hull_ut": "船体板厚計測",
     "c1_signoff_exam": "引継ぎ前の再確認",
     "free_explore": "自由探索",
-    "expedition": "探索の受注",
-    "inspection_coop": "協働点検",
+    "expedition": "探索と受注",
+    "inspection_coop": "協力点検",
     "scenario_training": "シナリオ訓練"
   }
 }
