@@ -10,6 +10,21 @@ let panel;
 let body;
 let last;
 
+export function repairReportLines(report) {
+  const rows = Object.entries(report.observations);
+  const lines = rows.map(function formatObservation([id, row]) {
+    const label = row.from_rock_ned_m ? STRINGS.relative : STRINGS.position;
+    const position = row.from_rock_ned_m || row.pos_ned_m;
+    return `${STRINGS[id]} · ${row.photo} · T+${row.t} s · ${row.depth_m} m · ${label} ${position.join(' / ')}`;
+  });
+  if (!lines.length) lines.push(STRINGS.empty);
+  const reference = rows.find(([, row]) => row.reference_od_m);
+  if (reference) lines.push(`${STRINGS.scale} ${reference[1].reference_od_m * 100} cm`);
+  if (report.deck_fix_interval_s) lines.push(`${STRINGS.fix} · T+${report.deck_fix_interval_s.join(' – ')} s`);
+  if (report.end_separation_m != null) lines.push(`${STRINGS.gap} ${report.end_separation_m} m`);
+  return lines;
+}
+
 export function updateRepairReport(report) {
   if (!report) {
     if (panel) panel.hidden = true;
@@ -24,17 +39,7 @@ export function updateRepairReport(report) {
     document.querySelector('.mission-tools').append(panel);
   }
   panel.hidden = false;
-  const rows = Object.entries(report.observations);
-  const lines = rows.map(function formatObservation([id, row]) {
-    const label = row.from_rock_ned_m ? STRINGS.relative : STRINGS.position;
-    const position = row.from_rock_ned_m || row.pos_ned_m;
-    return `${STRINGS[id]} · ${row.photo} · T+${row.t} s · ${row.depth_m} m · ${label} ${position.join(' / ')}`;
-  });
-  if (!lines.length) lines.push(STRINGS.empty);
-  const reference = rows.find(([, row]) => row.reference_od_m);
-  if (reference) lines.push(`${STRINGS.scale} ${reference[1].reference_od_m * 100} cm`);
-  if (report.deck_fix_interval_s) lines.push(`${STRINGS.fix} · T+${report.deck_fix_interval_s.join(' – ')} s`);
-  if (report.end_separation_m != null) lines.push(`${STRINGS.gap} ${report.end_separation_m} m`);
+  const lines = repairReportLines(report);
   const signature = lines.join('\n');
   if (signature === last) return;
   last = signature;

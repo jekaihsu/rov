@@ -48,6 +48,7 @@ DEFAULT_CHECKS = (
     'browser_cold_open_smoke',
     'browser_cinematic_smoke',
     'browser_prologue_smoke',
+    'browser_chapter4_smoke',
     'browser_career_smoke',
     'observation_smoke',
     # Starts its own server with a private instructor code so it can inject link faults.
@@ -60,6 +61,7 @@ DEFAULT_CHECKS = (
 SCRIPT_TIMEOUTS = {
     'browser_playstation_smoke': 3600,
     'browser_cold_open_smoke': 5400,
+    'browser_chapter4_smoke': 1800,
     'browser_training_smoke': 3600,
     # Full career walk with per-beat JPEG captures; quick mode is far shorter.
     'playtest_audit': 2400,

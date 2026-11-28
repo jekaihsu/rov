@@ -87,3 +87,11 @@ body.cold-open-cinematic #vp > .flight, body.cold-open-cinematic #xhair { visibi
   box-shadow: 0 1.3rem 4rem #071418aa;
 }
 .cold-open-layer:has(.cable-work-order) .cold-open-super { visibility: hidden; }
+
+.cable-work-order .cable-evidence-log {
+  padding: 0 8%;
+  color: #243638;
+  font: 500 clamp(.8rem, 1.2vw, 1.4rem)/1.4 var(--f-mono, monospace);
+  text-align: start;
+}
+.cable-evidence-log p { border-bottom: 1px solid #89918a; padding-bottom: .35em; margin: .45em 0; }

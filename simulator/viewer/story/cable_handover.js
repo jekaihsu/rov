@@ -1,4 +1,5 @@
 // Work-order insert shown only while the directed watch has handed controls to the crew.
+import {repairReportLines} from './repair_report.js';
 import {getPhotoBlob} from '../collection_store.js';
 import {titleCard} from '../brand/chapter_card.js';
 import {chapterCardData} from '../brand/chapters.js';
@@ -21,6 +22,16 @@ export function showCableHandover(stage, state) {
   // An unlinked camera record still has a valid log entry. Leave the photo side as line art.
   if (closing) sheet.scenario = '';
   const insert = titleCard(sheet);
+  if (closing) {
+    const log = document.createElement('div');
+    log.className = 'cable-evidence-log';
+    for (const line of repairReportLines(state.repair_report)) {
+      const row = document.createElement('p');
+      row.textContent = line;
+      log.append(row);
+    }
+    insert.querySelector('.brand-card-symbol').replaceChildren(log);
+  }
   insert.classList.add('cable-work-order');
   stage.root.insertBefore(insert, stage.bars);
   let objectUrl;
