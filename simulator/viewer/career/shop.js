@@ -55,9 +55,14 @@ function paragraph(text) {
   return element('p', 'bp-sheet-text', text);
 }
 
+export function shopTitle() {
+  return STRINGS.title;
+}
+
 /** The shop screen. ctx.career: career/menu.js context. */
 export function buildShop(ctx) {
   const career = ctx.career;
+
   const root = element('section', 'menu-screen bp-screen career-board career-shop');
   root.dataset.screen = 'shop';
   root.setAttribute('aria-label', STRINGS.title);
@@ -207,7 +212,7 @@ export function buildShop(ctx) {
   hero.actions.append(buyButton, detailButton('shopDetails', sheet, fillSheet));
   const panel = createSettingsPanel({
     idPrefix: 'shop',
-    tabs: [pane('equipment'), pane('cosmetic')],
+    tabs: ctx.steamEdition ? [pane('equipment')] : [pane('equipment'), pane('cosmetic')],
     onSelect: selected,
   });
   root.append(summary, panel.element, hero.element);

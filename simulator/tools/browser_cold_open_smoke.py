@@ -41,11 +41,11 @@ const fakePad = {
 };
 Object.defineProperty(navigator, 'getGamepads', {value: () => [fakePad, null, null, null], configurable: true});
 """
-BEAT = 'window.__coldOpen?.debug?.().beat || ""'
+BEAT = '(window.__coldOpen?.debug?.().beat || "")'
 STATE = '''() => {
   const s = window.__viewer?.S || {};
   const d = window.__coldOpen?.debug?.() || {};
-  return {pos: s.pos, heading: (s.euler || [0, 0, 0])[2], locked: s.locked, latched: s.input_latched,
+  return {pos: s.pos, velocity: s.vel, sim_time: s.t, heading: (s.euler || [0, 0, 0])[2], locked: s.locked, latched: s.input_latched,
           tension: s.tether?.tension_rov || 0, snags: (s.tether?.snags || []).map(h => h.name),
           photos: s.photos || 0, length: s.tether?.length || 0, reel: s.tether?.reel?.mode || '',
           touching: s.tether?.snagged_on || [],
@@ -161,6 +161,7 @@ class Run:
             self.trace = (self.shots / f'trace-{self.suffix}.jsonl').open('w', encoding='utf-8')
             self.started = time.monotonic()
         sample = {'t': round(time.monotonic() - self.started, 2), 'pos': state['pos'], 'heading': state['heading'],
+                  'sim_time': state['sim_time'], 'velocity': state['velocity'],
                   'tension': state['tension'], 'snags': state['snags'], 'beat': state['beat'],
                   'locked': state['locked'], 'length': state['length'], 'reel': state['reel'],
                   'touching': state['touching']}
@@ -248,9 +249,8 @@ def start_new_game(run, quality):
     else:
         page.wait_for_timeout(800)
         page.evaluate('() => { window.__pad.buttons[0] = 1; }')
-        time.sleep(0.35)
-        page.evaluate('() => { window.__pad.buttons[0] = 0; }')
-    page.wait_for_url('**coldOpen=1**', timeout=timeout(60000))
+        # The pad is polled per frame. The new document initializes its own neutral pad.
+    page.wait_for_url('**coldOpen=1**', wait_until='commit', timeout=timeout(60000))
     query = parse_qs(urlparse(page.url).query)
     assert query['chapter'] == ['cold_open'] and query['scenario'] == ['cold_open_jacket'], query
     follow = parse_qs(urlparse(query['next'][0]).query)
@@ -268,16 +268,15 @@ LOOK = '''() => {
 def opening(run):
     page = run.page
     # One look for the whole beat (it lasts five seconds, and a busy host can take that long between two looks).
-    page.wait_for_function(f'''{BEAT} === "black" && !!document.querySelector(".cold-open-radio.speaking")
-      && getComputedStyle(document.querySelector(".cold-open-black")).opacity === "1"''', timeout=timeout(180000))
+    before = page.wait_for_function(f'''{BEAT} === "black" && !!document.querySelector(".cold-open-radio.speaking")
+      && getComputedStyle(document.querySelector(".cold-open-black")).opacity === "1" && ({LOOK})()''',
+                                    timeout=timeout(180000)).json_value()
     run.shot('01-black')
     # The scripted beats hold the beautified picture on (owner-approved cutscene exception) without touching the
     # player's fidelity settings; `before` is what those settings must still be once the player has control.
-    before = page.evaluate(LOOK)
     assert before['cinematic'] and before['beautify'], before
     assert before['stored'] is None, ('a fresh profile has no stored fidelity', before)
-    run.wait_beat('establish')
-    page.wait_for_function('document.querySelector(".cold-open-super.visible") && '
+    page.wait_for_function(f'{BEAT} === "establish" && document.querySelector(".cold-open-super.visible") && '
                            'Number(getComputedStyle(document.querySelector(".cold-open-black")).opacity) < 0.05',
                            timeout=timeout(60000))
     run.shot('02-establish')
@@ -318,12 +317,18 @@ def photo(run, pilot):
         face(run, pilot, facing, done=flown)
         crab(run, pilot, stand, flown, 30, radius=0.5, top=CRUISE, heading=facing, lead=LEAD_S, settle=True)
         face(run, pilot, facing, done=flown)
-    page.wait_for_selector('#coldOpenHint.visible[data-hint="photo"]', timeout=timeout(60000))
-    pilot.photo()
-    run.wait_beat('payoff', 60000)
-    page.wait_for_selector('.cold-open-stamp.visible', timeout=timeout(30000))
-    page.wait_for_timeout(600)
-    run.shot('04-photo-payoff')
+        # Keep the input loop running through the shutter/readback. The photo itself renders
+        # the camera; queueing full-screen software draws here can starve RC for the whole payoff.
+        page.wait_for_selector('#coldOpenHint.visible[data-hint="photo"]', timeout=timeout(60000))
+        pilot.photo()
+        run.wait_beat('payoff', 60000)
+        page.wait_for_selector('.cold-open-stamp.visible', timeout=timeout(30000))
+        page.wait_for_timeout(600)
+        page.evaluate('''() => {
+          const {renderer, scene, camera} = window.__viewer;
+          renderer.render(scene, camera);
+        }''')
+        run.shot('04-photo-payoff')
     return stand, facing
 
 
@@ -341,7 +346,10 @@ def snag(run, pilot, stand, facing):
     # heading and side-stepping keeps the track off the steel even when a busy host delays the controls.
     moved_on = lambda s: s['beat'] != 'transit'  # noqa: E731
     with without_render(page):
-        face(run, pilot, 0, done=moved_on)
+        # Turn onto the west-face track where the vehicle actually is. Returning south
+        # to the old photo position can unbend a tether that already brushed the anode.
+        turn_at = [run.state()['pos'][0], leg_b[1]]
+        crab(run, pilot, turn_at, moved_on, 40, radius=0.6, top=CRUISE, heading=0, lead=LEAD_S, settle=True)
         # Short legs along the line due south of leg B's photo spot (about 1.6 m outside the west face), so the
         # track does not wander out to sea: the further out the vehicle flies, the less the tether bends round
         # leg C.
@@ -385,25 +393,23 @@ def crab(run, pilot, target, done, limit_s, radius=0.6, top=1.0, heading=None, l
     only there once it has also stopped."""
     deadline = time.monotonic() + timeout(int(limit_s * 1000)) / 1000
     state = run.state()
-    before = (time.monotonic(), state['pos'])
     while time.monotonic() < deadline:
         state = run.state()
         if done(state):
             break
         ensure_unlocked(run, pilot)
-        now = time.monotonic()
-        elapsed = max(now - before[0], 0.05)
-        speed = [(state['pos'][k] - before[1][k]) / elapsed for k in range(2)]
-        before = (now, state['pos'])
-        there = math.hypot(target[0] - state['pos'][0], target[1] - state['pos'][1]) < radius
-        if there and (not settle or math.hypot(*speed) < 0.25):
-            break
-        north = target[0] - state['pos'][0] - lead * speed[0]
-        east = target[1] - state['pos'][1] - lead * speed[1]
-        bow = math.radians(state['heading'])
-        ahead = math.cos(bow) * north + math.sin(bow) * east
-        right = -math.sin(bow) * north + math.cos(bow) * east
+        # Position and body velocity come from the same server tick. Two page reads may see
+        # the very same tick even while the ROV is coasting past the photo station.
+        surge_speed, sway_speed = state['velocity'][:2]
+        north = target[0] - state['pos'][0]
+        east = target[1] - state['pos'][1]
         error = 0.0 if heading is None else (heading - state['heading'] + 540) % 360 - 180
+        settled = math.hypot(surge_speed, sway_speed) < 0.25 and abs(error) <= 8
+        if math.hypot(north, east) < radius and (not settle or settled):
+            break
+        bow = math.radians(state['heading'])
+        ahead = math.cos(bow) * north + math.sin(bow) * east - lead * surge_speed
+        right = -math.sin(bow) * north + math.cos(bow) * east - lead * sway_speed
         # One scale for both axes, so a capped stick still points at the target; a quarter of the cap is a dead
         # band (a key is all or nothing, and would otherwise zigzag across the track).
         scale = min(1.0, top / max(abs(ahead) / 2, abs(right) / 2, 1e-6))
@@ -478,24 +484,36 @@ def once_only(run):
 
 
 def replay(run):
-    """重玩開場 from the story list: the cold open again, skippable with Esc, back to the story list."""
+    """重玩開場 from the story list: the cold open again, skippable with Esc, back to the main menu."""
     page = run.page
-    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=coldreplay{time.time_ns()}&quality=performance'
-              '&menu=training&tab=story')
+    page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=coldreplay{time.time_ns()}&quality=performance&menu=main')
     wait_ready(page)
-    page.wait_for_function('window.__menu.screen === "training"', timeout=timeout(30000))
-    page.click('#coldOpenReplay')
-    page.wait_for_url('**coldOpen=replay**', timeout=timeout(60000))
+    page.click('#entry-story')
+    page.click('#journalReplay')
+    page.wait_for_url('**coldOpen=replay**', wait_until='commit', timeout=timeout(60000))
     page.wait_for_function('window.__coldOpen && window.__viewer?.S', timeout=timeout(120000))
     run.wait_beat(['black', 'establish'], 120000)
     page.wait_for_selector('#skipIntro:not([hidden])', timeout=timeout(30000))
     assert '跳過開場' in (page.get_attribute('#skipIntro', 'aria-label') or ''), 'the skip prompt names the opening'
+    # Observe the short closing card in its own document. Adopting an element handle
+    # after the intended return navigation can miss a card Playwright already saw.
+    page.evaluate('''() => {
+      sessionStorage.removeItem('smoke.replayCard');
+      const observer = new MutationObserver(() => {
+        const card = document.querySelector('.brand-card-overlay[data-card="cold_open_flashback"]');
+        if (!card || !card.checkVisibility({visibilityProperty: true})) return;
+        const bounds = card.getBoundingClientRect();
+        if (bounds.width <= 0 || bounds.height <= 0) return;
+        sessionStorage.setItem('smoke.replayCard', window.__coldOpen.report.skipped);
+        observer.disconnect();
+      });
+      observer.observe(document.body, {childList: true, subtree: true});
+    }''')
     page.keyboard.press('Escape')
-    page.wait_for_selector('.brand-card-overlay', timeout=timeout(60000))
-    assert page.evaluate('window.__coldOpen.report.skipped') == 'key'
-    page.wait_for_url('**menu=training**', timeout=timeout(90000))
+    page.wait_for_url('**menu=main**', timeout=timeout(90000))
+    assert page.evaluate("sessionStorage.getItem('smoke.replayCard')") == 'key'
     wait_ready(page)
-    page.wait_for_function('window.__menu.screen === "training"', timeout=timeout(30000))
+    page.wait_for_function('window.__menu.screen === "main"', timeout=timeout(30000))
 
 
 def contact_sheet(frames, path):
@@ -532,6 +550,13 @@ def fly(browser, pad, shots, size, quality):
         page.add_init_script(FAKE_PAD % PADS[pad])
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
+    documents = []
+
+    def navigation(request):
+        if request.is_navigation_request() and request.frame == page.main_frame:
+            documents.append(request.url)
+
+    page.on('request', navigation)
     run = Run(page, pad, shots, f'{size}-{pad}')
     start_new_game(run, quality)
     opening(run)
@@ -540,6 +565,10 @@ def fly(browser, pad, shots, size, quality):
     caught = snag(run, pilot, stand, facing)
     back_out(run, pilot, caught)
     report = ending(run)
+    routes = [parse_qs(urlparse(url).query) for url in documents]
+    assert len(routes) == 3, documents
+    assert routes[1].get('coldOpen') == ['1'] and routes[2].get('contract') == ['p0_induction'], documents
+    print(pad, 'document requests: title -> cold open -> prologue', flush=True)
     contact_sheet(run.frames, shots / f'contact-sheet-{run.suffix}.jpg')
     once_only(run)
     if pad == 'none':

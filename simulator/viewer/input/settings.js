@@ -2,8 +2,8 @@
 import "../prefs/accessibility.js";
 import { CHANNELS, PRESETS, curve, radial, bindingValue } from "./actions.js";
 import {
-  BINDINGS, actionLabel, contextLabel, bindingRow, editablePadBindings, findCollisions, hintItems, inputIds, keyCollisions, keyLabel,
-  layoutLabel,
+  BINDINGS, actionLabel, bindingRow, contextLabel, editablePadBindings, findCollisions, hintItems, inputIds,
+  keyCollisions, keyLabel, layoutLabel, visibleAction,
 } from "./bindings.js";
 import { keyboardLayout, rowsFor, publishKeyRows } from "./keyboard_layout.js";
 import { getFidelity } from "../fidelity.js";
@@ -193,6 +193,7 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     let context;
     for (const definition of BINDINGS) {
       const name = definition.action;
+      if (!visibleAction(name)) continue;
       const binding = settings.bindings[name];
       if (context !== definition.context) {
         context = definition.context;
@@ -440,6 +441,7 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       list.replaceChildren();
       let context;
       for (const row of rows) {
+        if (!visibleAction(row.action)) continue;
         if (context !== row.context) {
           context = row.context;
           element("h3", contextLabel(context), list);

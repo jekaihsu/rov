@@ -13,7 +13,7 @@ import time
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import to_briefing, wait_screen, wait_title_card_gone
+from _menu import open_internal, to_briefing, wait_screen, wait_title_card_gone
 
 BASE_URL = http_base()
 WS_URL = ws_base()
@@ -220,7 +220,11 @@ def menu(browser, size):
     reachable(page, label + ' title', ['#titleStart'])
     page.click('#titleStart')
     wait_screen(page, 'main')
-    for selector in ['#entry-dive', '#entry-settings', '#menuCollection']:
+    centred(page, '#entry-resume')
+    first_level = ['#entry-resume', '#entry-story', '#entry-training', '#entry-settings', '#entry-exit']
+    reachable(page, label + ' main', first_level)
+    open_internal(page)
+    for selector in ['#entry-dive', '#internal-settings', '#menuCollection']:
         centred(page, selector)
         reachable(page, label + ' main', [selector])
     page.locator('#menuCollection').click()

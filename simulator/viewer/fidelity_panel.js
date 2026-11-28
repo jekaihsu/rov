@@ -137,7 +137,7 @@ export function installFidelityPanel(parent, fidelity = getFidelity()) {
   let rows = [];
   let built = '';
   function render() {
-    const items = fidelity.items();
+    const items = fidelity.items().filter(item => window.rovDesktop?.edition !== 'steam' || item.id !== 'aiOverlay');
     const signature = items.map(function itemId(item) {
       return item.id;
     }).join('|');

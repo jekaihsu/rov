@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, Error
 from _browser import launch, http_base, ws_base, timeout
-from _menu import open_main, set_intro, wait_screen, wait_title_card_gone
+from _menu import open_internal, set_intro, wait_screen, wait_title_card_gone
 from _campaign_drive import hold_until_advanced, wait_left
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'training-validation'
@@ -22,7 +22,7 @@ def run_once(page, label):
         wait_until='domcontentloaded',
     )
     page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
-    open_main(page)
+    open_internal(page)
     page.click('#entry-team-training')
     wait_screen(page, 'training')
     page.wait_for_selector('[data-group="intro"] [data-lesson="course_b01"]')

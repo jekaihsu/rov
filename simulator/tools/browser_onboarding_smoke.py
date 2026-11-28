@@ -18,7 +18,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeout, sync_playwrig
 
 from _browser import http_base, launch, timeout, without_render, ws_base
 from _campaign_drive import unlock_again
-from _menu import open_main, soft_click, to_briefing, wait_screen
+from _menu import open_internal, soft_click, to_briefing, wait_screen
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'onboarding'
 PADS = {
@@ -217,7 +217,7 @@ def first_dive(run, base):
 def second_dive(run, base):
     page = run.page
     page.goto(f'{base}&room=onboard{time.time_ns()}')
-    open_main(page)
+    open_internal(page)
     soft_click(page, '#quickStart')
     wait_cinematic(run)
     run.shot('07-second-dive-intro')

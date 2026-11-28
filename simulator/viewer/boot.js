@@ -1,6 +1,8 @@
 // Entry: hydrate desktop file saves, then open the launch menu or jump straight into a dive.
 import { installSaves } from './saves/bootstrap.js';
+import { steamEdition } from './menu/edition.js';
 
+if (steamEdition) document.documentElement.dataset.edition = 'steam';
 await installSaves();
 
 const query = new URLSearchParams(location.search);

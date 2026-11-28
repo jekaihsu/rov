@@ -17,7 +17,7 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, wait_ready, wait_screen
+from _menu import open_internal, open_main, wait_ready, wait_screen
 
 ROOT = Path(__file__).resolve().parents[2]
 PREFIX = sys.argv[1] if len(sys.argv) > 1 else 'after'
@@ -89,6 +89,7 @@ def launch_flow(page):
     shot(page, 'title')
     open_main(page)
     shot(page, 'main')
+    open_internal(page)
     page.click('#entry-dive')
     wait_screen(page, 'modes')
     shot(page, 'modes')
@@ -106,7 +107,7 @@ def launch_flow(page):
 
 
 def career_flow(page):
-    open_main(page)
+    open_internal(page)
     page.click('#entry-contracts')
     wait_screen(page, 'board')
     page.hover('[data-contract="p2_open_water"]')
@@ -135,7 +136,7 @@ def career_flow(page):
     details_shot(page, '#resultsDetails', 'results-details')
     page.click('#resultsNext')
     page.wait_for_function('window.__menu?.ready && window.__menu.screen === "board"', timeout=timeout(120000))
-    open_main(page)
+    open_internal(page)
     page.click('#entry-shop')
     wait_screen(page, 'shop')
     page.hover('[data-item="laser_scaler"]')

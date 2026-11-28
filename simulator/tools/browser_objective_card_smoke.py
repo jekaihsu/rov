@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, set_intro, wait_screen
+from _menu import open_internal, set_intro, wait_screen
 
 OUT = Path(__file__).resolve().parents[1] / 'output' / 'objective-card-validation'
 OUT.mkdir(parents=True, exist_ok=True)
@@ -25,7 +25,7 @@ def run():
         page.goto(f'{http_base(8092)}/?ws={ws_base(8792)}&room=card{time.time_ns()}&quality=performance'
                   '&fidelity=assisted')
         page.wait_for_function('window.__menu?.ready', timeout=timeout(90000))
-        open_main(page)
+        open_internal(page)
         page.click('#entry-contracts')
         wait_screen(page, 'board')
         page.click('#board-tab-other')

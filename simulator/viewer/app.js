@@ -1333,7 +1333,7 @@ function frame(now) {
   prologue.frame();
   freeDive?.frame(now, W, S, env);
   cameraLook.update();
-  if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
+  if (!window.__skipRender && !coldOpen.coversCamera) renderer.render(scene, camera);
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);
   vision.update(now);
   if (pip && !$('pip').hidden) pip.update(dt, S?.rc || rc);

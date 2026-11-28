@@ -10,7 +10,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, set_intro, wait_ready, wait_screen
+from _menu import open_internal, open_main, set_intro, wait_ready, wait_screen
 
 DOCS = Path(__file__).resolve().parents[2] / 'docs' / 'i18n' / 'screenshots' / 'n4'
 RUN = Path(__file__).resolve().parents[1] / 'output' / 'n4-i18n-screenshots'
@@ -70,6 +70,7 @@ def run():
             page.wait_for_timeout(500)
             shot(page, language, 'menu')
 
+            open_internal(page)
             page.click('#entry-contracts')
             wait_screen(page, 'board')
             page.wait_for_timeout(600)

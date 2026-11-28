@@ -1,0 +1,18 @@
+{
+  "resume": "继续",
+  "story": "剧情",
+  "training": "训练",
+  "settings": "设置",
+  "exit": "离开",
+  "internal": "内部工具",
+  "locked": "完成前一关",
+  "locations": {
+    "tutorial_pool": "清晨 · 室内水池",
+    "open_water": "日间 · 港外",
+    "harbor_inspection": "日间 · 港口",
+    "aquaculture_pen": "阴天 · 养殖场外海",
+    "prologue": "清晨 · 室内水池",
+    "ch1": "日间 · 港口",
+    "ch2": "阴天 · 养殖场外海"
+  }
+}
