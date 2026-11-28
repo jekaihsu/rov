@@ -1,0 +1,51 @@
+{
+  "title": "Pilot tips",
+  "practice": "First-dive practice",
+  "steps": {
+    "unlock": "Unlock the thrusters",
+    "move": "Move a short distance",
+    "depth": "Enable depth hold",
+    "light": "Turn on the lights"
+  },
+  "bindingsSummary": "Current bindings and camera",
+  "cameraHelp": " Cycle track, orbit, top-down and onboard views. Scroll to zoom in top-down.",
+  "rebindHelp": "To change the pad or control layout, return to the main menu.",
+  "dismiss": "Hide tips; do not auto-open next time",
+  "waiting": "Waiting for a link; tips appear once vehicle state arrives.",
+  "replay": "Replay",
+  "done": "Done",
+  "open": "Open",
+  "stepLabel": "{label}: {status}",
+  "modeUsb": "USB controller owns the pilot axes",
+  "modeLocal": "Keyboard / selected gamepad",
+  "modeLine": "{layout} · {device}",
+  "channels": {
+    "left_ud": "Left stick up/down",
+    "left_lr": "Left stick left/right",
+    "right_ud": "Right stick up/down",
+    "right_lr": "Right stick left/right",
+    "left_wave": "Left wheel",
+    "right_wave": "Right wheel"
+  },
+  "axes": {
+    "surge": "Forward / back",
+    "sway": "Strafe right / left",
+    "heave": "Up / down",
+    "yaw": "Yaw right / left"
+  },
+  "hints": {
+    "replay": "Replaying a recording. Use {camera} for other views; flight practice is for live dives.",
+    "usbLost": "USB controller is offline. Reconnect it, or return to the main menu to change input.",
+    "paused": "Dive paused. Wait for the host to resume before flying.",
+    "latched": "Controls auto-locked after a drop. Wait for sync, then press {lock} to unlock.",
+    "locked": "Clear the way ahead, then press {lock} to unlock; lock again when you want to stop.",
+    "remote": "An auto route or the SDK has control. Stop the cruise before practising manual flight.",
+    "move": "Use {drive} to move a short way forward and back, then centre. Current still drifts the vehicle.",
+    "depth": "Press {depth} for depth hold and centre heave. Depth stays put; horizontal drift can continue.",
+    "light": "Press {light} for lights, then {camera} for the onboard view ahead.",
+    "snagged": "The tether touched an obstacle; stop thrusting, watch the path, then back out.",
+    "current": "Current is strong. Use small steady corrections instead of large stick swings.",
+    "done": "{scenario}: basics done. You can hide the tips and follow the mission.",
+    "scenarioFallback": "This dive"
+  }
+}

@@ -449,7 +449,7 @@ let launchControl=params.get('control')||storedControlLayout();
 let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
-let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
+let ws = null, wsOpen = false, retry = 0, retryAt = 0, retryTimer = null, needResync = true, lastT = -1;
 const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, fidelity: getFidelity(),
   link: createLinkPresenter()});
 const videoLinkOverlay = installVideoLinkOverlay(vp);
@@ -526,6 +526,12 @@ const linkInbox = createLinkInbox({
 });
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
+  if (retryTimer != null) { clearTimeout(retryTimer); retryTimer = null; }
+  // Drop any previous link before opening another (reconnect storms after a server restart).
+  if (ws) {
+    try { ws.onclose = null; ws.close(); } catch { }
+    ws = null;
+  }
   setConn('wait', '連線中…');
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
@@ -548,9 +554,10 @@ function connect() {
   ws.onerror = () => { };
 }
 function scheduleRetry() {
+  if (retryTimer != null) clearTimeout(retryTimer);
   const d = Math.min(5000, 800 * 2 ** retry++);
   retryAt = performance.now() + d;
-  setTimeout(connect, d);
+  retryTimer = setTimeout(connect, d);
 }
 setInterval(() => {
   const r = retryAt - performance.now();
@@ -670,7 +677,7 @@ const input = installInput({blocked: () => prologueControlsBlocked(S) || collect
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 const onboarding = installOnboarding({input, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
+const pauseMenu = installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
   extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
 installFeedbackReport({
   input,
@@ -1079,7 +1086,13 @@ async function startIntro(held = false) {
     heldIntro.release();
   };
 }
-installIntroSkip({input, button: $('skipIntro'), skip: () => intro?.skip(), active: introActive});
+installIntroSkip({
+  input, button: $('skipIntro'), skip: () => intro?.skip(),
+  onMenuBack: {
+    enabled: () => !!procedurePanel.canNavigate?.(),
+    run: () => pauseMenu.show(),
+  },
+});
 let introStarts = 0;
 window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 async function ensurePip() {

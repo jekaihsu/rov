@@ -1,7 +1,8 @@
-"""Contracts and the first-dive checklist are reachable without the engineering drawer.
+"""Expedition contracts on the objective card are reachable without the engineering drawer.
 
-Main menu YX 委託看板 → 海洋探索委託 → expedition sea → dive; the in-flight objective card lists the contracts on offer and the
-first-dive checklist, accepting a contract from the card starts it, and the drawer is never opened.
+Main menu YX 委託看板 → 海洋探索委託 → expedition sea → dive; the in-flight objective card lists the contracts
+on offer (the first-dive practice list lives only in onboarding). Accepting a contract from the card starts it,
+and the drawer is never opened.
 """
 import time
 from pathlib import Path
@@ -39,7 +40,7 @@ def run():
         page.click('#startDive')
         page.wait_for_function('window.__viewer?.S?.mission?.mode === "expedition"', timeout=timeout(90000))
         page.wait_for_selector('#objectiveCard:not([hidden]) [data-contract="inspect"]', timeout=timeout(30000))
-        assert page.locator('#objectiveCard .objective-guide li').count() == 4, 'first-dive checklist'
+        assert page.locator('#objectiveCard .objective-guide').count() == 0, 'no duplicate first-dive checklist'
         assert page.locator('#engineering').is_hidden(), 'the drawer stays closed'
         page.click('#objectiveCard [data-contract="inspect"]')
         page.wait_for_function('window.__viewer.S.expedition.active?.kind === "inspect"', timeout=timeout(30000))

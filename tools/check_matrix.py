@@ -40,6 +40,8 @@ DEFAULT_CHECKS = (
     'browser_training_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
+    # S1 small-fix: Esc opens pause on the deck checklist; first-dive guide is not duplicated.
+    'browser_s1_smoke',
     # Fresh profile: launch cinematic and its pad skip, then the new-player hints over two dives.
     'browser_onboarding_smoke',
     # Fresh profile: the title's 開始 plays the new-game cold open, flown by keyboard and by pad, into the prologue.

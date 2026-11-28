@@ -28,6 +28,9 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'preload.cjs'), 'utf8'),
 assert.equal(bridge.edition, 'internal');
 assert.equal(typeof bridge.readInput, 'function');
 assert.equal(typeof bridge.rememberInput, 'function');
+assert.equal(typeof bridge.saves.readAll, 'function');
+assert.equal(typeof bridge.saves.write, 'function');
+assert.equal(typeof bridge.saves.backup, 'function');
 const socket = new page.window.WebSocket();
 function send(seq) {
   socket.send(JSON.stringify({ type: 'rc', seq, controller_generation: 7,

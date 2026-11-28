@@ -12,7 +12,7 @@
   "view": "視点切替 V",
   "locked": "ディスアーム",
   "unlocked": "アーム",
-  "unlockHint": "{key} / コントローラー Y でアーム",
+  "unlockHint": "{key} / コントローラー {pad} でアーム",
   "axes": [
     [
       "surge",

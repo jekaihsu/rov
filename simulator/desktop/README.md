@@ -38,6 +38,9 @@ Enter `ws://HOST:8765` for a LAN server, or `https://YOUR-DOMAIN` for the suppli
 Caddy deployment, then choose the same room code as the other players and join.
 The last accepted vehicle selection is saved in `preferences.json` in user data,
 so changing local server ports on the next launch does not lose that preference.
+Player progress and settings (`rov.*` keys) are mirrored into `userData/saves/`
+with atomic writes (`save_files.cjs`); Steam Auto-Cloud syncs that folder — see
+`docs/design/saves.md` and `steam/RELEASE.md`.
 
 ## Rebuild
 

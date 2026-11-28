@@ -13,5 +13,7 @@
     "engineering": "作業目標",
     "cable": "纜線",
     "unknown": "未知目標"
-  }
+  },
+  "aiOverlay": "AI 疊圖",
+  "aiOverlayHelp": "在機載畫面上標示辨識結果（預設為模擬真值，非實際模型）。"
 }
