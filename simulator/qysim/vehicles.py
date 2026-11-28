@@ -1,10 +1,52 @@
-"""Vehicle catalogue. FRD metres about CG; hydrodynamics are engineering estimates.
+"""Vehicle catalogue. FRD metres about CG.
 
-Topology references: Blue Robotics Heavy configuration (four vectored + four
-vertical), Saab Seaeye Falcon (four horizontal + one vertical). These models
-are visual reconstructions, not manufacturer CAD or certified digital twins.
+X1 hydrodynamics are provisional. The heavy catalogue entry uses the published
+coefficients in ``model_o.py``. The remaining entry is still an engineering
+estimate. These models are visual reconstructions, not certified digital twins.
 """
 from dataclasses import asdict, dataclass, replace
+
+import math
+
+from .model_o import (
+    ADDED_INERTIA, COMBINED_INERTIA, MEASURED_RATE, MEASURED_SPEED, MOTOR_TAU, NET_BUOYANCY_N, NOMINAL_FORWARD_N,
+)
+
+# Keys are the VehicleParams fields this entry overrides. Every value is traced in the calibration note.
+MODEL_O_ASSIST_GAIN = 3.0  # Reference-filter stiffness scale at full acceleration fraction.
+MODEL_O_PARAMS = {
+    "mass": 13.5,
+    "net_buoyancy": NET_BUOYANCY_N,
+    "gm": 0.01,
+    "added_mass": (6.36, 7.12, 18.68),
+    "inertia": COMBINED_INERTIA,
+    "thruster_max": NOMINAL_FORWARD_N,
+    "motor_tau": -MOTOR_TAU / math.log1p(-math.sqrt(-math.expm1(-1.0))),
+    "vmax": MEASURED_SPEED,
+    "wmax": MEASURED_RATE,
+    "linear_drag": (13.7, 0.0, 33.0, 0.0, 0.8, 0.0),
+    "quadratic_drag": (141.0, 217.0, 190.0, 1.19, 0.47, 1.5),
+}
+
+# Level is "published": the number is taken from a public paper or the public bollard sheet,
+# including values that paper itself marks as CAD or an empirical estimate.
+MODEL_O_SOURCES = {
+    "mass": "von Benzon 2022 Table A1，實驗，13.5 kg。DOI 10.3390/jmse10121898",
+    "displaced_volume": "同表，實驗排水量 0.0134 m³。淨浮力改以本模擬器海水密度 1025 kg/m³、g=9.81 計算",
+    "gm": "同表，CAD 浮心 (0, 0, −0.01) m，重心在原點，故 GM 0.01 m",
+    "added_mass": "同表，Eidsvik／DNV 經驗式。平移不確定度 10–20%，旋轉 30–100%（第 4.3 節）",
+    "inertia": "剛體慣量 CAD (0.26, 0.23, 0.37) 加附加慣量 (0.189, 0.135, 0.222)，模擬器的慣性欄是兩者之和",
+    "linear_drag": "同表，水池開迴路實驗：(13.7, 0, 33, 0, 0.8, 0)",
+    "quadratic_drag": "同表，水池開迴路實驗：(141, 217, 190, 1.19, 0.47, 1.5)",
+    "thruster_max": "2019 公開繫樁表 16 V、1900 µs 正向推力，已換算為牛頓（g=9.81）",
+    "motor_tau": "Eq. 19 轉移函數的實極點，推力時間常數約 0.076 s；由 T ∝ n² 換算相同 63.2% 推力上升時間的轉速極點",
+    "vmax": "Table 4 實測 0.72／0.63／0.71 m/s（85 N、85 N、120 N）。16 V 滿推會更高，輔助速度上限用此實測",
+    "wmax": "Table 4 的 5.2／4.9／3.6。表頭印 m/s，與力矩單位不合，依 rad/s 採用",
+    "thrust_curve": "2019 公開繫樁表，PWM 1100–1900 µs，電壓 10–20 V，線性內插。死區已在資料裡",
+}
+
+
+
 
 # Canonical provisional X1 values and evidence levels; no measured data yet.
 X1_PARAMETERS = {'mass': {'value': 30.0, 'level': 'official', 'source': 'real-rov-research.md: X1 官方 ≤30 kg（此處取上限）'},
@@ -31,7 +73,7 @@ X1_PARAMETERS = {'mass': {'value': 30.0, 'level': 'official', 'source': 'real-ro
  'quadratic_drag': {'value': None,
                     'level': 'estimated',
                     'source': '暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單'},
- 'reverse_ratio': {'value': 1.0,
+ 'reverse_ratio': {'value': 0.9,
                    'level': 'estimated',
                    'source': '暫定工程估算；非 X1 實測，見 real-rov-research.md 對齊清單'},
  'thrust_asymmetry': {'value': True,
@@ -154,6 +196,28 @@ X1_TETHER_PARAMETERS = {
  'contact_cache_m': {'value': 0.01, 'level': 'estimated', 'source': _NUMERIC},
  'accelerated': {'value': True, 'level': 'estimated', 'source': _NUMERIC}}
 
+# 暫定工程估算。Added-fluid principal axes parallel FRD; vertical offset is half
+# the nominal CB elevation for estimated hulls. Added rotary inertia is allocated
+# from the existing wet inertia (one quarter), or Table A1 for the published hull.
+@dataclass(frozen=True)
+class HydroFit:
+    added_centre_z: float
+    rotary_added: tuple
+    diameter: float       # estimated duct bore [m] from reconstructed frame scale
+    rated_rps: float      # assumed unloaded operating point [rev/s]
+    kt_slope: float       # fractional bollard loss per unit positive advance ratio
+    hull_loss: float      # estimated blocked fraction of disk thrust
+    wake_loss: float      # additional fraction for unit coincident downstream disk
+
+
+HYDRO_FITS = {
+    "x1": HydroFit(-.015, (.275, .4, .45), .11, 65., .30, .015, .12),
+    "falcon": HydroFit(-.0475, (1., 1.75, 2.), .14, 50., .30, .015, .12),
+    # Table A1 uses coincident principal axes. Published in-water coefficients
+    # already include installation effects; allow only residual losses on this fit.
+    "bluerov2_heavy": HydroFit(0., ADDED_INERTIA, .076, 65., .08, .002, .03),
+}
+
 X1_THRUSTERS = X1_PARAMETERS["thrusters"]["value"]
 
 def vectored(length, width):
@@ -212,15 +276,13 @@ VEHICLE_DEFINITIONS = {
         **{key: item["value"] for key, item in X1_PARAMETERS.items()
            if key not in X1_PHYSICS_KEYS}),
     "bluerov2_heavy": VehicleDefinition("bluerov2_heavy", "BlueROV2 Heavy", "models/bluerov2_heavy.glb",
-        dict(mass=13.5, net_buoyancy=1.5, gm=.055, added_mass=(7., 10., 13.),
-             inertia=(.7, .9, 1.), thruster_max=50., motor_tau=.12,
-             vmax=(1.5, 1.0, .8), wmax=(1.1, 1., 1.2), linear_drag=(7., 10., 12., 1., 1., 1.)),
+        dict(MODEL_O_PARAMS),
         vectored(.18, .20) + tuple((f"T{i+5} VERTICAL", (x*.13, y*.24, -.11), (0., 0., -1.))
                                   for i, (x, y) in enumerate(((1, -1), (1, 1), (-1, -1), (-1, 1)))),
         ((-.17, 0., 0.), (.17, 0., 0.)), .24,
         (-.20, 0., -.15), (.245, 0., -.015), ((.24, -.18, -.09), (.24, .18, -.09)), (.18, 0., .15)),
     "falcon": VehicleDefinition("falcon", "Falcon", "models/falcon.glb",
-        dict(mass=60., net_buoyancy=5., gm=.095, added_mass=(30., 45., 55.),
+        dict(mass=60., reverse_ratio=.9, net_buoyancy=5., gm=.095, added_mass=(30., 45., 55.),
              inertia=(4., 7., 8.), thruster_max=110., motor_tau=.18,
              vmax=(1.5, 1., .6), wmax=(.5, .5, .8), linear_drag=(18., 28., 35., 3., 4., 4.)),
         tuple((f"T{i+1} HORIZONTAL", (x*.29, y*.16, .075), (.86, -x*y*.51, 0.))
@@ -247,6 +309,7 @@ def vehicle_catalogue():
 # Offline reference profile, deliberately excluded from the operator catalogue.
 # Source: von Benzon 2022 Appendix A (see docs/rov-dynamics-research.md).
 # Motor axis signs are paired, unlike the visually reoriented legacy geometry.
+# Must stay a distinct object: only the catalogue instance uses the published PWM map.
 _heavy = VEHICLE_DEFINITIONS["bluerov2_heavy"]
 BENCHMARK_HEAVY = replace(
     _heavy,
