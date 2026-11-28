@@ -46,6 +46,7 @@ DEFAULT_CHECKS = (
     'browser_onboarding_smoke',
     # Fresh profile: the title's 開始 plays the new-game cold open, flown by keyboard and by pad, into the prologue.
     'browser_cold_open_smoke',
+    'browser_cinematic_smoke',
     'browser_prologue_smoke',
     'browser_career_smoke',
     'observation_smoke',

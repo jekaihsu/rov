@@ -1,0 +1,245 @@
+{
+  "shots": [
+    {
+      "scene": "harbor",
+      "duration": 18,
+      "camera": {
+        "path": [
+          {
+            "t": 0,
+            "position": [
+              800,
+              450
+            ]
+          },
+          {
+            "t": 18,
+            "position": [
+              835,
+              443
+            ]
+          }
+        ],
+        "focalLength": 40,
+        "focus": 1
+      },
+      "actors": [
+        {
+          "kind": "cargo",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                1000,
+                500
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                980,
+                500
+              ]
+            }
+          ],
+          "scale": 0.45,
+          "depth": 2
+        },
+        {
+          "kind": "fishing",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                530,
+                530
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                490,
+                530
+              ]
+            }
+          ],
+          "scale": 0.65,
+          "depth": 1
+        },
+        {
+          "kind": "repair",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                550,
+                610
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                875,
+                610
+              ]
+            }
+          ],
+          "scale": 1.35,
+          "depth": 1
+        },
+        {
+          "kind": "buoy",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                1270,
+                640
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                1265,
+                640
+              ]
+            }
+          ],
+          "scale": 1,
+          "depth": 1
+        }
+      ],
+      "location": "port",
+      "date": "date",
+      "bars": 65,
+      "fade": 1.2,
+      "cue": "flashback",
+      "ambient": 580,
+      "subtitle": [
+        "radio",
+        "departure"
+      ]
+    },
+    {
+      "scene": "harbor",
+      "duration": 16,
+      "camera": {
+        "path": [
+          {
+            "t": 0,
+            "position": [
+              800,
+              450
+            ]
+          },
+          {
+            "t": 16,
+            "position": [
+              835,
+              443
+            ]
+          }
+        ],
+        "focalLength": 40,
+        "focus": 1
+      },
+      "actors": [
+        {
+          "kind": "repair",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                870,
+                560
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                1050,
+                560
+              ]
+            }
+          ],
+          "scale": 0.82,
+          "depth": 1
+        },
+        {
+          "kind": "patrol",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                320,
+                595
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                490,
+                595
+              ]
+            }
+          ],
+          "scale": 0.9,
+          "depth": 1
+        },
+        {
+          "kind": "rov",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                540,
+                690
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                560,
+                690
+              ]
+            }
+          ],
+          "scale": 0.65,
+          "depth": 1
+        },
+        {
+          "kind": "tether",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                540,
+                690
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                560,
+                690
+              ]
+            }
+          ],
+          "scale": 0.65,
+          "depth": 1
+        }
+      ],
+      "location": "port",
+      "date": "date",
+      "bars": 65,
+      "fade": 1.2,
+      "cue": "cinematic",
+      "ambient": 420,
+      "news": [
+        "station",
+        "anchor",
+        "ticker"
+      ]
+    }
+  ]
+}

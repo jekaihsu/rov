@@ -1,0 +1,120 @@
+{
+  "shots": [
+    {
+      "scene": "chart",
+      "duration": 21,
+      "camera": {
+        "path": [
+          {
+            "t": 0,
+            "position": [
+              800,
+              450
+            ]
+          },
+          {
+            "t": 21,
+            "position": [
+              835,
+              443
+            ]
+          }
+        ],
+        "focalLength": 40,
+        "focus": 1
+      },
+      "actors": [],
+      "location": "map",
+      "date": "date",
+      "bars": 65,
+      "fade": 1.2,
+      "cue": "cinematic",
+      "subtitle": [
+        "narrator",
+        "survey"
+      ],
+      "map": {
+        "cable": "M299 446 C510 380 561 581 795 483 S1003 405 1174 422",
+        "track": [
+          [
+            374,
+            255
+          ],
+          [
+            540,
+            310
+          ],
+          [
+            795,
+            483
+          ]
+        ],
+        "arrival": 16,
+        "breakPoint": [
+          795,
+          483
+        ],
+        "breakAt": 6
+      }
+    },
+    {
+      "scene": "night",
+      "duration": 15,
+      "camera": {
+        "path": [
+          {
+            "t": 0,
+            "position": [
+              800,
+              450
+            ]
+          },
+          {
+            "t": 15,
+            "position": [
+              835,
+              443
+            ]
+          }
+        ],
+        "focalLength": 40,
+        "focus": 1
+      },
+      "actors": [
+        {
+          "kind": "fishing",
+          "path": [
+            {
+              "t": 0,
+              "position": [
+                890,
+                545
+              ]
+            },
+            {
+              "t": 20,
+              "position": [
+                940,
+                545
+              ]
+            }
+          ],
+          "scale": 0.6,
+          "depth": 1
+        }
+      ],
+      "location": "city",
+      "date": "date",
+      "bars": 65,
+      "fade": 1.2,
+      "blackout": true,
+      "news": [
+        "station",
+        "anchor",
+        "ticker"
+      ],
+      "cue": "openingTension",
+      "ambient": 320
+    }
+  ]
+}

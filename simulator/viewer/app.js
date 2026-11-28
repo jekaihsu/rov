@@ -50,7 +50,7 @@ import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
 import {installFreeDive} from './free_dive.js';
-import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
+import {activeStoryboard, installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
 import {installTrainingSession} from './training/session.js';
@@ -585,6 +585,10 @@ function onWorld(m) {
 }
 
 function onState(m) {
+  if (activeStoryboard(m) !== activeStoryboard(S)) {
+    if (activeStoryboard(m)) ws?.release?.();
+    else if (activeStoryboard(S)) needResync = true;
+  }
   sonarPanel.receive(m);
   if(m.model_id !== S?.model_id)needResync=true;
   if(m.control_generation !== S?.control_generation)needResync=true;
@@ -722,7 +726,7 @@ function inputTick() {
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage();
   // Replay must not send RC or keep the worker repeating a packet (AGENTS.md input heartbeat).
-  const live = !REPLAY && !document.hidden && !!session && !needResync;
+  const live = !REPLAY && !document.hidden && !!session && !needResync && !activeStoryboard(S);
   rcPump.offer(msg, { live, generation: S?.controller?.generation });
   $('padInfo').textContent = S?.controller
     ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
@@ -1261,7 +1265,9 @@ const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   linkInbox.flush();
-  if (!CAPTURE && skipFrame(now)) {
+  const inStoryboard = activeStoryboard(S);
+  if (inStoryboard) last = now;
+  if (!CAPTURE && (inStoryboard || skipFrame(now))) {
     requestAnimationFrame(frame);
     return;
   }
