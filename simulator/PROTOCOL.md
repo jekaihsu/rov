@@ -205,7 +205,7 @@ t                sim seconds            paused        bool
 pos [n,e,d]      NED m                  q [w,x,y,z]   body→world
 euler [roll,pitch,yaw_0_360] deg        vel [u,v,w]   body m/s
 speed_kn         speed through water
-thrust [6]       -1..1 per thruster (order = world.thrusters)
+thrust [6]       -1..1 delivered thrust / nominal forward bollard thrust, in world.thrusters order
 health [6]       0..1 thruster health (impact damage)
 rc {...}         active RC (SDK when remote_control) — same keys as the rc message, plus the
                  requested `assist` (0/1/2) and `profile` (optional additions; `state.assist`

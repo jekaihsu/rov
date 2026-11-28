@@ -475,6 +475,7 @@ class Procedure:
             return False
         sim = self.sim
         sim.vehicle.s.thrust[:] = 0
+        sim.vehicle.shaft[:] = 0
         sim.vehicle.s.vel[:] = 0
         if self.diagnostic_left > 0:
             sim.vehicle.s.thrust[self.diagnostic] = .05 * sim.vehicle.p.thruster_max

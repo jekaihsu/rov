@@ -129,15 +129,22 @@ class TetherParams:
     contact_cache_m: float = _x1("contact_cache_m")
     accelerated: bool = _x1("accelerated")
 
+    float_area: float = _x1("float_area")
+    float_density: float = _x1("float_density")
+    ei: float = _x1("ei")
+    deck_drag_n: float = _x1("deck_drag_n")
+
     # ── derived values ────────────────────────────────────────────────────
     @property
     def area(self) -> float:
-        return math.pi * (self.diameter / 2) ** 2
+        return math.pi * (self.diameter / 2) ** 2 + self.float_area
 
     @property
     def mass(self) -> float:
         """Mass per metre in air (kg/m)."""
-        return self.density * self.area if self.mass_per_m is None else self.mass_per_m
+        if self.mass_per_m is not None:
+            return self.mass_per_m
+        return self.density * math.pi * (self.diameter / 2) ** 2 + self.float_density * self.float_area
 
     @property
     def wet_weight(self) -> float:
@@ -169,7 +176,7 @@ class TetherParams:
                           self.reel_feed_rate, self.reel_feed_force_n, self.reel_haul_rate,
                           self.reel_pull_cap_n, self.reel_servo_tau, self.auto_setpoint_n,
                           self.auto_deadband_n, self.auto_gain, self.auto_slack_rate,
-                          self.stall_speed, self.stall_time)
+                          self.stall_speed, self.stall_time, self.deck_drag_n)
 
     def snag_params(self) -> SnagParams:
         return SnagParams(self.snag_hook_tension_n, self.snag_hook_speed, self.snag_hook_angle_deg,
@@ -419,11 +426,13 @@ class Tether:
 
     # ── simulation ───────────────────────────────────────────────────────
     def step(self, dt: float, t_now: float, rov_pos: np.ndarray, rov_q: np.ndarray,
-             rov_vel_world: np.ndarray) -> np.ndarray:
+             rov_vel_world: np.ndarray, omega_body: np.ndarray | None = None) -> np.ndarray:
         """Advance the cable; returns the body-frame wrench [F; M] the tether applies to the ROV."""
         p = self.p
         gland = rov_pos + q_rot(rov_q, self.gland_body)
         gland_vel = np.asarray(rov_vel_world, float)
+        if omega_body is not None:
+            gland_vel = gland_vel + q_rot(rov_q, cross3(omega_body, self.gland_body))
         h = dt / p.substeps
         self._reseat(gland)
         # Full local flow (ambient + turbulence + structure wakes) and its filtered rate of change.
@@ -520,8 +529,9 @@ class Tether:
 
     def _solver_scalars(self):
         p = self.p
-        return (p.ea, p.internal_damping, p.diameter, p.cd_normal, p.cd_tangent, p.wet_weight * G, RHO,
-                2.0 * p.breaking_n)
+        diameter = math.sqrt(4.0 * p.area / math.pi)
+        return (p.ea, p.internal_damping, diameter, p.cd_normal, p.cd_tangent,
+                p.wet_weight * G, RHO, 2.0 * p.breaking_n)
 
     def _friction(self):
         p = self.p
@@ -544,7 +554,7 @@ class Tether:
                 self.broken, h, ea, damping, diameter, cdn, cdt, wet, rho, cap, reel,
                 pin_seg, pin_s, pin_target, pin_k, pin_c, pin_cap, pin_force, tension,
                 p.substeps, c.seg, c.s, c.anchor, c.dist0, c.normal, c.hard, p.contact_cache_m,
-                radius, mu_s, mu_k, v_s, v_reg, self.chafe, f_rov, peaks, start, pin_peak)
+                radius, mu_s, mu_k, v_s, v_reg, self.chafe, f_rov, peaks, start, pin_peak, p.ei)
             if pending == p.substeps:
                 break
             self.last_batch_refreshes += 1
@@ -577,7 +587,7 @@ class Tether:
             point = gland + gland_vel * h * (step + 1)
             out = advance(self.x, self.v, water, water_accel, self.l0, ms, ma, lw, self.spool, point, gland_vel,
                           self.broken, h, ea, damping, diameter, cdn, cdt, wet, rho, cap, reel, pin_seg, pin_s, pin_target,
-                          pin_k, pin_c, pin_cap, pin_force, tension)
+                          pin_k, pin_c, pin_cap, pin_force, tension, p.ei)
             pin_peak = np.maximum(pin_peak, pin_force)
             f_rov += out / p.substeps
             peaks[0] = max(peaks[0], float(tension.max()))

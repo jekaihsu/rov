@@ -52,26 +52,34 @@ class TestPhysicsValidation(unittest.TestCase):
         for enabled in (True, False):
             vehicle = Vehicle(definition=BENCHMARK_HEAVY)
             vehicle.p.thrust_asymmetry = enabled
-            vehicle.step(vehicle.p.motor_tau, -np.ones(8))
+            vehicle.s.pos[2] = 10
+            command = -np.eye(8)[0]
+            vehicle.step(vehicle.p.motor_tau, command)
             ratio = 4.1 / 5.25 if enabled else 1.
-            np.testing.assert_allclose(vehicle.s.thrust, -vehicle.p.thruster_max * ratio)
+            expected = command * vehicle.p.thruster_max * ratio * (1 - np.exp(-1))**2
+            np.testing.assert_allclose(vehicle.s.thrust, expected * (1 - vehicle.fit.hull_loss))
 
     def test_legacy_force_and_drag_unchanged(self):
-        for model in ('x1', 'bluerov2_heavy', 'falcon'):
+        # The heavy catalogue entry is calibrated in test_model_o_literature.
+        for model in ('x1', 'falcon'):
             vehicle = Vehicle(model_id=model)
-            self.assertEqual(vehicle.p.reverse_ratio, 1.)
+            self.assertEqual(vehicle.p.reverse_ratio, .9)
             self.assertIsNone(vehicle.p.quadratic_drag)
             p = vehicle.p
             expected = np.maximum((vehicle.authority[:3] - np.array(p.linear_drag[:3]) * p.vmax)
                                   / np.array(p.vmax) ** 2, 1.)
             np.testing.assert_array_equal(vehicle.quad_drag, expected)
-            vehicle.step(p.motor_tau, -np.ones(len(vehicle.thrusters)))
-            np.testing.assert_allclose(vehicle.s.thrust, -p.thruster_max)
+            vehicle.s.pos[2] = 10
+            command = -np.eye(len(vehicle.thrusters))[0]
+            vehicle.step(p.motor_tau, command)
+            expected = command * p.thruster_max * .9 * (1 - np.exp(-1))**2
+            np.testing.assert_allclose(vehicle.s.thrust, expected * (1 - vehicle.fit.hull_loss))
 
     def test_legacy_trajectory_with_asymmetry_switch_is_identical(self):
         for model in ('x1', 'bluerov2_heavy', 'falcon'):
             enabled = Vehicle(model_id=model)
             disabled = Vehicle(model_id=model)
+            enabled.p.reverse_ratio = disabled.p.reverse_ratio = 1.0
             disabled.p.thrust_asymmetry = False
             enabled.s.pos[2] = disabled.s.pos[2] = 10
             for i in range(200):
