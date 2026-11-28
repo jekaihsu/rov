@@ -1,5 +1,7 @@
 # qysea mock（模擬器後端的 SDK 相容層）
 
+快速開始、控制權、常見問題與六個實作範例見 [SDK 開發沙盒指南](../../docs/sdk/README.md)。
+
 純 Python 的 `qysea` 替身，模組／類別／方法簽名對齊 OpenSDK `qysea.sdk.manage.*`（V1.2.1），
 每個呼叫轉發到 qysim。既有工具只要改成 import 這份 `qysea`，即可連上模擬器開發。
 僅需 numpy。下載照片需要 OpenCV（`opencv-python-headless`）或 Pillow；OpenCV 另提供較順的
