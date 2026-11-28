@@ -1,8 +1,9 @@
 # T20 物理對標
 
 依據 [研究報告](real-rov-research.md)「BlueROV2 Heavy 是唯一有完整實測係數的參考載具」及
-[動力學審查](../rov-dynamics-research.md)。對標 profile 是離線用 `BENCHMARK_HEAVY`，
-不新增操作介面品牌，不覆寫既有三個機型。
+[動力學審查](../rov-dynamics-research.md)。離線對標 profile 仍是 `BENCHMARK_HEAVY`
+（線性馬達、淡水浮力、推進器正負交錯）。操作目錄裡的同一台現在直接採用
+[Model O 文獻校準](model-o-calibration.md)，不再沿用當初的估算阻尼。
 
 ## 來源與模型
 

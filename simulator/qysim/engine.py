@@ -342,10 +342,13 @@ class Simulator:
         thr = self.controller.update(dt, pilot, mode, locked, keep_depth, heading, assist,
                                      rc.profile, dvl_valid=dvl_valid, measured=measured) * self.health
         thr = self.power.apply(self, thr, rc)
-        w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity())
+        w_tether = self.tether.step(dt, self.t, s.pos, s.q, v.world_velocity(), s.omega)
         n_events = len(self.world.events)
         start, q0 = s.pos, s.q
         self.tether_ops.step(dt, self.tether, s.pos, self.yaw)     # observer only: radio, scoring
+        supply = self.power.voltage(self)
+        if supply is not None:
+            v.supply_voltage = supply
         v.step(dt, thr, w_tether + self.tool_wrench + operation_wrench, hull_contact=True)
         self.hull_contact.resolve(self.world, v, start, q0, dt, self.t, self.vehicle_id)
         if update_world:

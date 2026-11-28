@@ -142,13 +142,16 @@ def placed_schools(specs, rng) -> list:
 
 
 def step_schools(world, dt, vehicles):
-    for school in world.fish_schools:
+    if not world.fish_schools:
+        return
+    flows = world.current_at_many([school["pos"] for school in world.fish_schools], world.time)
+    for school, flow in zip(world.fish_schools, flows):
         p, phase = school["pos"], school["phase"]
         angle = world.time * .06 + phase
         radius = 10 if school.get("pen") else 5
         target = school["home"] + np.array([math.cos(angle) * radius, math.sin(angle) * radius, math.sin(angle*.7)*.6])
         desired = (target - p) * .25
-        desired += world.current_at(p, world.time) * .35
+        desired += flow * .35
         for vehicle in vehicles:
             away = p - np.asarray(vehicle["pos"], float)
             distance = np.linalg.norm(away)

@@ -17,7 +17,10 @@ import math
 from dataclasses import dataclass, field
 
 import numpy as np
-from .vehicles import X1_THRUSTERS, X1_PARAMETERS, get_vehicle_definition
+from .model_o import demand_thrust, published_thrust
+from .vehicles import (
+    HYDRO_FITS, MODEL_O_ASSIST_GAIN, VEHICLE_DEFINITIONS, X1_PARAMETERS, X1_THRUSTERS, get_vehicle_definition,
+)
 
 KNOT = 0.514444
 RHO = 1025.0
@@ -151,6 +154,21 @@ def coriolis_wrench(mass, added_mass, inertia, velocity, omega, relative_velocit
     return np.concatenate((force, moment))
 
 
+def skew(vector):
+    """Matrix S such that S(a)b = a × b."""
+    x, y, z = vector
+    return np.array(((0., -z, y), (z, 0., -x), (-y, x, 0.)))
+
+
+def momentum_coriolis(momentum):
+    """Fossen C in the body frame, using linear and angular momenta at CG."""
+    matrix = np.zeros((6, 6))
+    matrix[:3, 3:] = -skew(momentum[:3])
+    matrix[3:, :3] = matrix[:3, 3:]
+    matrix[3:, 3:] = -skew(momentum[3:])
+    return matrix
+
+
 @dataclass
 class VehicleState:
     pos: np.ndarray = field(default_factory=lambda: np.zeros(3))          # NED m
@@ -180,6 +198,13 @@ class Vehicle:
         self.B_pinv = np.zeros((len(self.thrusters), 6))
         self.B_pinv[:, controlled] = np.linalg.pinv(self.B[controlled, :])
         self.s = VehicleState(thrust=np.zeros(len(self.thrusters)))
+        # The published PWM map belongs only to the catalogue object. The offline benchmark
+        # is a different instance with the same id and must keep the linear motor model.
+        catalogue = VEHICLE_DEFINITIONS.get(self.model_id)
+        uses_published_map = self.model_id == "bluerov2_heavy" and catalogue is self.definition
+        self.thrust_map = published_thrust if uses_published_map else None
+        self.supply_voltage = 16.0
+        self.assist_speed_gain = MODEL_O_ASSIST_GAIN if uses_published_map else 1.
         self.current_ned = np.zeros(3)      # water current, world m/s
         self.current_accel_ned = np.zeros(3)  # water acceleration along the path, world m/s^2
         self.current_points = None          # optional (body points (k,3), world currents (k,3))
@@ -187,6 +212,24 @@ class Vehicle:
         m = self.p.mass
         self.M = np.array([m + a for a in self.p.added_mass])
         self.I = np.array(self.p.inertia)
+        self.fit = HYDRO_FITS[self.model_id]
+        # Transform added-fluid kinetic energy from its principal centre to CG.
+        transform = np.eye(6)
+        transform[:3, 3:] = -skew((0., 0., self.fit.added_centre_z))
+        principal = np.diag((*self.p.added_mass, *self.fit.rotary_added))
+        self.added_matrix = transform.T @ principal @ transform
+        self.rigid_matrix = np.diag([m, m, m, *(self.I - self.fit.rotary_added)])
+        self.mass_matrix = self.rigid_matrix + self.added_matrix
+        self.shaft = np.zeros(len(self.thrusters))  # signed fraction of rated shaft speed
+        self.disks = np.array([position for _, position, _ in self.thrusters])
+        self.axes = self.B[:3].T
+        # i is the receiving disk, j the source. Positive thrust sheds a jet along -axis.
+        delta = self.disks[:, None, :] - self.disks[None, :, :]
+        axial = np.sum(delta * self.axes, axis=2)
+        radial = np.linalg.norm(delta - axial[:, :, None] * self.axes, axis=2)
+        overlap = np.exp(-(radial / self.fit.diameter) ** 2) / (1 + abs(axial) / self.fit.diameter)
+        self.forward_wake = overlap * (axial < 0)
+        self.reverse_wake = overlap * (axial > 0)
         # authority per wrench axis with every thruster at full scale
         self.authority = self._authority()
         f_max = self.authority[:3]
@@ -244,19 +287,16 @@ class Vehicle:
         """Advance ``dt`` seconds. ``extra_wrench`` is an external body-frame [F; M]
         (contact forces, tether tension). A non-finite result rolls the state back."""
         p, s = self.p, self.s
-        saved = (s.pos.copy(), s.q.copy(), s.vel.copy(), s.omega.copy())
-        target = np.clip(np.asarray(thrust_cmd, float), -1, 1) * p.thruster_max
-        if p.thrust_asymmetry:
-            target = np.where(target < 0, target * p.reverse_ratio, target)
-        s.thrust += (target - s.thrust) * min(1.0, dt / p.motor_tau)
-        wrench = self.B @ s.thrust
-        if extra_wrench is not None:
-            wrench = wrench + extra_wrench
-        F, Mt = wrench[:3], wrench[3:]
-
+        saved_q = s.q
         q_inv = q_conj(s.q)
         current_body = q_rot(q_inv, self.current_ned)
         v_rel = s.vel - current_body
+        shaft, thrust = self._installed_thrust(dt, thrust_cmd, v_rel)
+        wrench = self.B @ thrust
+        if extra_wrench is not None:
+            wrench += extra_wrench
+        F, Mt = wrench[:3], wrench[3:]
+
         lin = np.array(p.linear_drag)
         F_drag = -lin[:3] * v_rel - self.quad_drag * v_rel * np.abs(v_rel)
         M_drag = -lin[3:] * s.omega - self.quad_rdrag * s.omega * np.abs(s.omega)
@@ -272,21 +312,24 @@ class Vehicle:
         r_cb = np.array([0.0, 0.0, -p.gm])                   # CB above CG in body frame
         M_right = cross3(r_cb, up_body * (weight + p.net_buoyancy))
 
-        F_tot = F + F_drag + F_buoy
-        inertial = coriolis_wrench(p.mass, p.added_mass, self.I, s.vel, s.omega, v_rel)
-        F_tot += inertial[:3]
-        # The locally frozen NED current still rotates in body coordinates:
-        # M_A * d(v_c_body)/dt = -M_A * (omega x v_c_body).
-        F_tot -= np.asarray(p.added_mass) * cross3(s.omega, current_body)
-        # Fluid acceleration (Froude-Krylov + added mass): (rho V + M_A) * dv_c/dt in body axes.
-        # The engine supplies dv_c/dt along the vehicle path, filtered and bounded (flow.py).
-        if np.any(self.current_accel_ned):
-            displaced = p.mass + p.net_buoyancy / G
-            F_tot += (displaced + np.asarray(p.added_mass)) * q_rot(q_inv, self.current_accel_ned)
-        s.accel = F_tot / self.M
-        s.vel = s.vel + s.accel * dt
-        M_tot = Mt + M_drag + M_right + inertial[3:]
-        s.omega = s.omega + M_tot / self.I * dt
+        nu = np.concatenate((s.vel, s.omega))
+        relative = np.concatenate((v_rel, s.omega))
+        rigid_c = momentum_coriolis(self.rigid_matrix @ nu)
+        added_c = momentum_coriolis(self.added_matrix @ relative)
+        loads = np.concatenate((F + F_drag + F_buoy, Mt + M_drag + M_right))
+        loads -= rigid_c @ nu + added_c @ relative
+        fluid_accel = q_rot(q_inv, self.current_accel_ned)
+        loads += self.added_matrix[:, :3] @ (fluid_accel - cross3(s.omega, current_body))
+        loads[:3] += (p.mass + p.net_buoyancy / G) * fluid_accel
+
+        # Semi-implicit Euler. Freeze momenta and drag magnitudes, solve for the
+        # new velocity. Skew C does no work and the drag diagonal is nonnegative.
+        damping = lin + np.concatenate((self.quad_drag, self.quad_rdrag)) * abs(relative)
+        lhs = self.mass_matrix + dt * (rigid_c + added_c + np.diag(damping))
+        acceleration = np.linalg.solve(lhs, loads)
+        s.accel = acceleration[:3]
+        s.vel = s.vel + dt * s.accel
+        s.omega = s.omega + dt * acceleration[3:]
 
         # integrate attitude and position
         wn = np.linalg.norm(s.omega)
@@ -294,8 +337,13 @@ class Vehicle:
             s.q = q_mul(s.q, q_from_axis_angle(s.omega, wn * dt))
             s.q /= np.linalg.norm(s.q)
         if not (np.all(np.isfinite(s.vel)) and np.all(np.isfinite(s.omega)) and np.all(np.isfinite(s.q))):
-            s.pos, s.q, s.vel, s.omega = saved[0], saved[1], np.zeros(3), np.zeros(3)
+            s.q = saved_q
+            s.accel = np.zeros(3)
+            s.vel = np.zeros(3)
+            s.omega = np.zeros(3)
             return
+        self.shaft = shaft
+        s.thrust = thrust
         # ``vel`` is the body-frame velocity over ground (drag acts on vel - current), so the
         # current must not be added again here
         v_world = q_rot(s.q, s.vel)
@@ -311,6 +359,39 @@ class Vehicle:
             s.pos[2] = self.seabed_depth - 0.05
             if v_world[2] > 0:
                 s.vel = q_rot(q_conj(s.q), v_world * np.array([1, 1, 0]))
+
+    def _installed_thrust(self, dt, thrust_cmd, v_rel):
+        """First-order shaft speed and instantaneous installed propeller force."""
+        p, s = self.p, self.s
+        target = self._thrust_target(thrust_cmd) / p.thruster_max
+        rpm_target = np.sign(target) * np.sqrt(abs(target))
+        shaft = self.shaft + (rpm_target - self.shaft) * -math.expm1(-dt / p.motor_tau)
+        inflow = self.axes @ v_rel + self.B[3:].T @ s.omega
+        advance = np.sign(shaft) * inflow / (np.maximum(abs(shaft), 1e-12)
+                                                   * self.fit.rated_rps * self.fit.diameter)
+        wake = self.forward_wake @ np.maximum(shaft, 0) + self.reverse_wake @ np.maximum(-shaft, 0)
+        # Fully ventilated one radius above water, fully immersed one diameter below.
+        depth = s.pos[2] + self.disks @ q_matrix(s.q)[2]
+        wet_range = self.fit.wet_depth_d - self.fit.dry_depth_d
+        immersion = np.clip((depth / self.fit.diameter - self.fit.dry_depth_d) / wet_range, 0., 1.)
+        gain = np.clip(1 - self.fit.kt_slope * np.maximum(advance, 0), 0., 1.)
+        gain *= immersion * np.maximum(0., 1 - self.fit.hull_loss - self.fit.wake_loss * wake)
+        return shaft, p.thruster_max * shaft * abs(shaft) * gain
+
+    def _thrust_target(self, thrust_cmd: np.ndarray) -> np.ndarray:
+        """Newtons commanded from each thruster.
+
+        Other vehicles stay linear in the normalised demand. The heavy catalogue
+        entry inverts its published PWM sheet, so the demand is a force fraction
+        of ``thruster_max`` and the bus voltage clips that force.
+        """
+        command = np.clip(np.asarray(thrust_cmd, dtype=float), -1.0, 1.0)
+        if self.thrust_map is None:
+            target = command * self.p.thruster_max
+            if self.p.thrust_asymmetry:
+                target = np.where(target < 0.0, target * self.p.reverse_ratio, target)
+            return target
+        return demand_thrust(command, self.supply_voltage, self.p.thruster_max)
 
     # convenience ------------------------------------------------------------
     @property
