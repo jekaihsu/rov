@@ -1,12 +1,9 @@
 {
-  "guide": "首次潜航练习",
-  "guideDone": "基本操作完成，开始探索吧！",
-  "hideGuide": "不再显示练习",
   "contracts": "工程委托",
   "accept": "接取",
   "cancel": "取消委托",
   "active": "进行中",
-  "collapse": "收起",
+  "collapse": "收合",
   "expand": "展开",
   "meters": "{d} m"
 }

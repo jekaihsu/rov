@@ -35,7 +35,7 @@
   "progress": "{done} / {total}",
   "confirm": "Confirm",
   "skip": "Skip unfinished checks (may cause faults and penalties)",
-  "tender": "Confirm ready with tether hand",
+  "tender": "Confirm the tether tender is ready",
   "lower": "Pick an upstream point and lower into the water on the tether",
   "lowerAction": "Lower into water",
   "waterTitle": "In-water check",

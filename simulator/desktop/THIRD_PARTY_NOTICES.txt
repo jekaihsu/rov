@@ -120,6 +120,34 @@ Items outside the allow-list are retained here for legal review; the generator d
   License: Public Domain Mark 1.0
   Source: https://archive.org/details/musopen-dvd-in-lossless-flac-format
 
+- surf waves seagulls australia — moto_harmony asset
+  License: CC0 1.0
+  Source: https://freesound.org/people/moto_harmony/sounds/201284/
+
+- Engine Ship Ambience — Wakerone asset
+  License: CC0 1.0
+  Source: https://freesound.org/people/Wakerone/sounds/417555/
+
+- Belle of Cincinnati docked and idling.wav — OverlookHotelRecords asset
+  License: CC0 1.0
+  Source: https://freesound.org/people/OverlookHotelRecords/sounds/271533/
+
+- Motor and bubbles in a petting tank at an aquarium — RavenWolfProds asset
+  License: CC0 1.0
+  Source: https://freesound.org/people/RavenWolfProds/sounds/503656/
+
+- Underwater Beneath Waterfall or Rain (Loopable).wav — Osiruswaltz asset
+  License: CC0 1.0
+  Source: https://freesound.org/people/Osiruswaltz/sounds/530167/
+
+- Creaking Metal - Slow — EagleStealthTeam asset
+  License: CC0 1.0
+  Source: https://freesound.org/people/EagleStealthTeam/sounds/172411/
+
+- Void Monolith Subharmonic Drone by Mantice — bassimat asset
+  License: CC0 1.0
+  Source: https://freesound.org/people/bassimat/sounds/854874/
+
 - Radio voice lines (AI text-to-speech) asset
   License: original (synthesised; see CREDITS.md)
   Source: simulator/viewer/audio/voice/

@@ -19,7 +19,7 @@
   "jobs": {
     "training": "In-house training",
     "checkout": "In-water checkout dive",
-    "familiarization": "Open-water familiarization",
+    "familiarization": "Open-water familiarisation",
     "gvi": "General visual inspection (GVI)",
     "marine_growth": "Marine growth survey (Level II)",
     "fouling": "Hull fouling rating",
@@ -32,27 +32,27 @@
   },
   "chapters": {
     "prologue": {
-      "title": "Prologue · Before trainee status",
+      "title": "Prologue · Before qualifying",
       "summary": "Qualify in the Qingyu harbour pool and sheltered water offshore."
     },
     "ch1": {
-      "title": "Chapter 1 · Harbour and vessels",
-      "summary": "Fishing pier, freighter hull, and in-harbour search. The chapter sign-off is the Grade 2 pilot exam."
+      "title": "Chapter 1 · Harbours and ships",
+      "summary": "Fishing pier, freighter hull, and in-harbour search. The chapter sign-off is the Class II pilot exam."
     },
     "ch2": {
-      "title": "Chapter 2 · Fish farm",
-      "summary": "Offshore pen nets: nets, morts, and moorings. Requires a Grade 2 pilot licence."
+      "title": "Chapter 2 · Fish farms",
+      "summary": "Offshore pen nets: nets, morts, and moorings. Requires a Class II pilot licence."
     }
   },
   "contracts": {
     "p0_induction": {
-      "title": "New-hire induction: pool ops class",
+      "title": "Pool induction",
       "clientName": "YX Marine Services · Training",
       "summary": "Ma Li flies alongside. Observe depth drift at the north wall, then photograph three plates.",
-      "brief": "Qingyu training pool. Fresh water, no current. Zhou tends the tether while Ma coaches. Bring Lin one photo from each of the north, east and south walls.",
+      "brief": "Qingyu training pool. Fresh water, no current. Zhou Kai has the tether and Ma Li is coaching. Photograph the north, east and south wall plates in that order. Lin Cen will check the shots.",
       "radio": {
         "speaker": "Lin Cen",
-        "start": "Control calling R-1. First watch together. Check in.",
+        "start": "R-One, Tide Control. First watch together. Check in.",
         "done": "Secure the deck. Procedure complete."
       }
     },
@@ -60,7 +60,7 @@
       "title": "Pool checkout dive",
       "clientName": "YX Marine Services · Training",
       "summary": "Arm, hover, photograph three pool walls and return to launch. About 15–20 min.",
-      "brief": "YX-TR-001, Model R. Complete the pre-dive check, arm in water, hover for 20 seconds, photograph three walls and return to launch. Keep thrusters locked on deck.",
+      "brief": "YX-TR-001 · YX Model R. Complete the pre-dive checklist. Arm the thrusters only after launch. Hover in the centre of the pool for 20 seconds. Take one photo with the instrument overlay on each wall: north, east and south. Return to the launch point for recovery.",
       "radio": {
         "speaker": "Lin Cen",
         "start": "In water. Arm when the platform is clear.",
@@ -78,10 +78,10 @@
       }
     },
     "p2_open_water": {
-      "title": "Open-water familiarization (trainee exam)",
+      "title": "Open-water trainee exam",
       "clientName": "YX Marine Services · Training",
       "summary": "Four buoys, depth hold, and a drift check with sticks released. Real mode, 15–20 min.",
-      "brief": "YX-TR-002. In sheltered water outside Qingyu harbour, visit four checkpoints, hold depth, release the sticks to observe drift, then steady up and return. Mild current. Real mode is required for the trainee licence exam.",
+      "brief": "YX-TR-002. In sheltered water outside Qingyu Harbour, pass four checkpoints in order with depth hold engaged. Release the sticks to see how the vehicle drifts in the light current. Steady it, then return to launch. Stick input controls thrust, not speed. Pass in Real mode to earn your trainee pilot licence.",
       "radio": {
         "speaker": "Lin Cen",
         "start": "R-1, four buoy checkpoints, in order.",
@@ -102,8 +102,8 @@
     "c1_pier_level1": {
       "title": "First work order outside the dock",
       "clientName": "North Quay Fishing Harbour Authority",
-      "summary": "Level I walkthrough: one pile-body photo per six jetty piles; keep the tether clear of piles.",
-      "brief": "Authority wants a Level I walkthrough before typhoon season—coverage only, no measurements. Six piles under the jetty in rows A and B; one pile-body photo per pile at about 6 m depth. If you can see the pile, it counts. Cross-current sets east—plan your exit before you wrap a pile. Don't snag the tether on recovery. Grab a quay-wall overview if you have slack; they'll appreciate it (they won't pay extra).",
+      "summary": "Level I inspection. Photograph each of the six jetty piles and keep the tether clear.",
+      "brief": "The port authority needs a visual survey before typhoon season. No measurements this time. Under the jetty, photograph each of the six piles in rows A and B at about 6 m depth. The pile just needs to be visible. The cross-current runs east. Plan your way back before rounding a pile, and keep the tether clear for recovery. A quay wall overview would be welcome if you have time. Same pay, though.",
       "radio": {
         "speaker": "Supervisor Lin",
         "start": "First outdoor ticket. A-He's on deck watching the line—you watch the piles.",
@@ -150,7 +150,7 @@
       "brief": "Fleet ops need to decide whether to clean the bottom this call. One photo each of port and starboard bilge keels, propeller blades, and rudder for fouling rating. At the prop, confirm main engine stopped and shaft locked out (LOTO) with the ship before you close in—inside three metres without confirmation is a safety fail. Under the hull there's no surface reference; watch your depth and tether.",
       "radio": {
         "speaker": "A-He",
-        "start": "Chief says the main's stopped—but you still need him to say the lockout himself.",
+        "start": "The chief says the main engine is stopped. Get his confirmation that the shaft is locked out.",
         "done": "Ops says the rating's clear enough; they'll clean next week. You just saved the company money.",
         "partial": "Send what you've got. Prop area next time."
       },
@@ -164,10 +164,10 @@
       }
     },
     "c1_dropped_object": {
-      "title": "In-harbour dropped object",
+      "title": "Lost equipment in harbour",
       "clientName": "North Quay dredging crew",
-      "summary": "Visibility under a metre: find the dropped survey unit on sonar, then close for camera confirm.",
-      "brief": "The crew's survey unit went overboard from the workboat—likely within twenty metres northeast of launch. Water's thick; camera won't see a metre. Sit on bottom, sweep with imaging sonar, read bearing, turn, creep onto the return, then close for a clear confirm photo. Don't thrash silt with the thrusters—you'll blind yourself.",
+      "summary": "Visibility is less than a metre. Locate the lost survey instrument with sonar, then confirm it on camera.",
+      "brief": "The survey crew lost an instrument overboard, probably within 20 metres northeast of the launch point. Visibility is less than a metre. Settle on the bottom and sweep with imaging sonar. Read the bearing, turn towards the return and approach slowly. Take a photo once you can identify the instrument. Keep thrust low to avoid stirring up silt.",
       "radio": {
         "speaker": "Works crew · Old Cai",
         "start": "That unit costs more than my car. Please.",
@@ -201,8 +201,8 @@
     "c1_hull_ut": {
       "title": "Hull thickness spot checks",
       "clientName": "Seagull Shipping — Fleet Ops",
-      "summary": "Side job: four side-shell UT points for class annual survey.",
-      "brief": "Fleet ops need side-shell spot thickness for the class annual. Port and starboard, forward and aft of midships—about 4 m depth. Gauge must seat on steel and hold steady or the reading's junk. Stay off the prop this time; under the hull you still have no surface reference.",
+      "summary": "Side job: four side-shell UT points for the annual class survey.",
+      "brief": "The annual class survey needs four thickness readings from the hull plating. On each side, take one forward and one aft of midships, at about 4 m depth. Hold the probe steady against the steel for a reliable reading. Stay clear of the propeller. Under the hull you have no surface reference.",
       "radio": {
         "speaker": "A-He",
         "start": "Four points, then we're done. Deck lunch is pork chop today.",
@@ -218,28 +218,28 @@
       }
     },
     "c1_signoff_exam": {
-      "title": "Chapter end: pre-handover recheck (Grade 2 exam)",
+      "title": "Chapter end: pre-handover recheck (Class II exam)",
       "clientName": "North Quay Fishing Harbour Authority",
-      "summary": "Grade 2 exam: revisit three prior anomalies, re-shoot from the original angles so the next shift can find them. Full realism.",
-      "brief": "Grade 2 pilot exam and a real ticket: authority wants to know if three logged anomalies got worse. Crack on pile A2 at 10 m, concrete spall on B3 at 14 m, chip on the south quay wall at 12 m—re-shoot square-on from the original stand-off (about 1–2.5 m); then a 6-second station-keep visual on mid quay wall. Keep the tether off the piles; finish everything before recovery.",
+      "summary": "Class II exam: revisit three prior anomalies, re-shoot from the original angles so the next shift can find them. Full realism.",
+      "brief": "This port job is your Class II pilot exam. The port authority needs an update on three defects. Crack on pile A2 at 10 m, concrete spall on B3 at 14 m, chip on the south quay wall at 12 m—re-shoot square-on from the original stand-off (about 1–2.5 m); then hold position for a 6-second visual check at the middle of the quay wall. Keep the tether off the piles; finish everything before recovery.",
       "radio": {
         "speaker": "Supervisor Lin",
         "start": "Still me examining. Photos the next shift can read—that's the test.",
-        "done": "Pass. Grade 2 card ships to the company; next month you can take fish-farm work.",
+        "done": "Pass. Class II card ships to the company; next month you can take fish-farm work.",
         "partial": "Close. Work the camera angles; retest next week."
       },
       "deliverables": {
         "a2_crack": "Pile A2 · crack at 10 m",
         "b3_spall": "Pile B3 · spall at 14 m",
         "quay_chip": "South quay wall · chip at 12 m",
-        "quay_station": "Mid quay wall · 6 s station visual",
+        "quay_station": "Mid quay wall · 6 s visual check in position",
         "recover": "Return to launch for recovery"
       }
     },
     "c2_net_inspection": {
       "title": "Net inspection",
       "clientName": "East Cove offshore pen farm",
-      "summary": "On slack tide, orbit the pen exterior, find two net holes and photograph them. Too close and thrusters suck net.",
+      "summary": "At slack water, circle the outside of the pen. Find and photograph two holes. Keep the netting clear of the thrusters.",
       "brief": "Farm manager says fish are disappearing daily—suspects torn net. On slack tide, orbit outside the pen (east, north, west, south all required). Stop square-on for photos of any holes. Don't hug the net—thrusters will suck mesh in; keep your tether clear of mooring lines.",
       "radio": {
         "speaker": "Farm manager · A-Mei",
@@ -260,7 +260,7 @@
     "c2_mort_recovery": {
       "title": "Mort recovery (Model V)",
       "clientName": "East Cove offshore pen farm",
-      "summary": "Launch Model V from the pen walkway into the net; gripper lifts morts off the bottom. Needs a manipulator—Model V only.",
+      "summary": "Launch Model V from the pen walkway. Use its manipulator to lift dead fish from the net floor, one at a time.",
       "brief": "A few morts on the net floor will foul water quality if left. Launch straight into the pen from the walkway. Only Model V has a manipulator, so it goes. Descend to the floor, grip morts one by one and lift clear; trim shifts once you clamp—take it slow. Hitting the floor spooks the whole pen.",
       "radio": {
         "speaker": "Farm manager · A-Mei",
@@ -308,13 +308,13 @@
       "opens": "Simple in-harbour jobs: pier Level I, hull, harbour search"
     },
     "grade2": {
-      "label": "Grade 2 pilot",
-      "short": "Grade 2",
+      "label": "Class II pilot",
+      "short": "Class II",
       "opens": "Detailed pier and hull work, fish farms"
     },
     "grade1": {
-      "label": "Grade 1 pilot",
-      "short": "Grade 1",
+      "label": "Class I pilot",
+      "short": "Class I",
       "opens": "SAR, reservoirs, offshore wind (later chapters)"
     },
     "senior": {

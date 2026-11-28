@@ -1,0 +1,19 @@
+{
+  "toggle": "AIビジョン",
+  "available": "登録可能な目標が画面内にあります",
+  "mark": "検出目標をマーク",
+  "confirm": "写真を撮る前に機載画面で検出目標を確認してください。",
+  "oracle": "Oracle · シミュレート真値",
+  "classes": {
+    "coral": "サンゴ",
+    "seastar": "ヒトデ",
+    "seagrass": "海草",
+    "kelp": "海藻",
+    "fish_school": "魚群",
+    "engineering": "作業目標",
+    "cable": "テザー",
+    "unknown": "不明な目標"
+  },
+  "aiOverlay": "AIオーバーレイ",
+  "aiOverlayHelp": "機載画面に認識結果を重ね表示します（既定はシミュレート真値で、実モデルではありません）。"
+}

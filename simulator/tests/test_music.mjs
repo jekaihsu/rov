@@ -73,17 +73,17 @@ test('changing context crossfades: the old layer fades out while the new one fad
   const director = createMusicDirector({fadeSeconds: 2});
   director.setContext('title');
   let output = director.step(0);
-  assert.deepEqual(output.started.map(track => track.id), ['title_goldberg_aria']);
+  assert.deepEqual(output.started.map(track => track.id), ['title_drone']);
   output = director.step(2);
   assert.equal(output.layers[0].gain, 1);
   assert.equal(director.setContext('title'), false);
   director.setContext('briefing');
   output = director.step(3);
   const gains = Object.fromEntries(output.layers.map(layer => [layer.track.id, layer.gain]));
-  assert.equal(gains.title_goldberg_aria, 0.5);
+  assert.equal(gains.title_drone, 0.5);
   assert.equal(gains.briefing_wtc_prelude1, 0.5);
   output = director.step(4);
-  assert.deepEqual(output.stopped.map(track => track.id), ['title_goldberg_aria']);
+  assert.deepEqual(output.stopped.map(track => track.id), ['title_drone']);
   assert.deepEqual(output.layers.map(layer => [layer.track.id, layer.gain]), [['briefing_wtc_prelude1', 1]]);
 });
 
@@ -97,7 +97,7 @@ test('returning to a fading track picks it back up without restarting it', () =>
   director.setContext('title');
   const output = director.step(3.5);
   assert.equal(output.started.length, 0);
-  const title = output.layers.find(layer => layer.track.id === 'title_goldberg_aria');
+  const title = output.layers.find(layer => layer.track.id === 'title_drone');
   assert.equal(title.gain, 0.75);
   assert.equal(title.target, 1);
 });
@@ -154,4 +154,19 @@ test('every track file exists, is under 2 MB, and the set stays under 8 MB', () 
     }
   }
   assert.ok(total < 8 * 1024 * 1024, String(total));
+});
+
+test('all shipped music and ambience fit the decimal U3 audio budget', async () => {
+  const {readdir} = await import('node:fs/promises');
+  let total = 0;
+  for (const folder of ['music', 'ambience']) {
+    const base = new URL('../viewer/audio/' + folder + '/', import.meta.url);
+    for (const file of await readdir(base)) {
+      if (!file.endsWith('.opus')) continue;
+      const size = statSync(new URL(file, base)).size;
+      assert.ok(size > 0 && size <= 1_500_000, file);
+      total += size;
+    }
+  }
+  assert.ok(total <= 15_000_000, String(total));
 });

@@ -19,7 +19,7 @@
     ],
     "shop": [
       "YX equipment store",
-      "Spend your pay on real accessories (laser scaler, sonar, probe…) and hull liveries. Accessories let you take more kinds of work order."
+      "Buy sonar, laser scalers, probes and liveries with your pay. New equipment unlocks more jobs."
     ],
     "teamTraining": [
       "Team training",
@@ -40,6 +40,10 @@
     "settings": [
       "Settings",
       "Realism, controls, audio, graphics and interface."
+    ],
+    "freeDive": [
+      "Free dive",
+      "Revisit unlocked sites and photograph underwater discoveries."
     ]
   },
   "quick": "Quick start",
@@ -47,7 +51,7 @@
   "modesTitle": "Choose mode",
   "modes": {
     "expedition": [
-      "Ocean exploration & engineering",
+      "Exploration & engineering",
       "Explore, photograph wildlife and take contracts freely. Recovery and deployment require a manipulator.",
       "1–3",
       [
@@ -106,7 +110,7 @@
     "speed": "Speed",
     "thrust": "Total thrust",
     "yaw": "Yaw",
-    "axes": "Controlled degrees of freedom"
+    "axes": "Controllable axes"
   },
   "about": "About",
   "performance": "Performance",

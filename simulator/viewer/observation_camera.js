@@ -108,7 +108,7 @@ export function inspectObservation({scene,camera,environment,state={},world={},c
   // Keep fog physically limiting observations even when the display fog toggle
   // is off. Retain at least 20% contrast in the renderer's linear fog model.
   const fogLimit=.3+.8*Math.max(0,range*1.35-.3);
-  const candidates=[...targets.map(t=>({...t,priority:0})),...(environment?.observationTargets||[]).map(t=>({...t,priority:1}))];
+  const candidates=[...targets.map(t=>({priority:0,...t})),...(environment?.observationTargets||[]).map(t=>({...t,priority:1}))];
   const blockers=[],proxies=[],replacement=new Map();
   scene.traverse(o=>{
     if(!physical(o,camera))return;

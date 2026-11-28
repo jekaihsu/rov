@@ -80,9 +80,9 @@ The head and gill-cover images of the kit (`*_head.webp`, `*_cover.webp`) drive 
 viewer does not use; they are not vendored. Credit is not required by CC0; it is given here for provenance.
 
 ### Music (`../audio/music/`)
-Every recording below is public domain or CC0 — the *performance*, not only the composition. Files were trimmed,
+Every recording below is public domain or CC0 — the *performance*, not only the composition. The original game edits were trimmed,
 loudness-normalised to about −18 LUFS (ffmpeg `loudnorm`, linear two-pass) and encoded as Ogg Opus 80–96 kbps;
-no other changes. Sourcing notes and rejected candidates: `research_notes/音樂/sources.md`.
+the two piano edits were subsequently looped and re-encoded for U3 (below). Sourcing notes and rejected candidates: `research_notes/音樂/sources.md`.
 
 | File | Work | Performer / author | Source | License evidence | Changes |
 |---|---|---|---|---|---|
@@ -94,6 +94,23 @@ no other changes. Sourcing notes and rejected candidates: `research_notes/音樂
 | `tension_peer_gynt_aase.opus` | E. Grieg, Peer Gynt Suite No. 1 — II. Åse's Death | same Musopen recording | same item | same | 0.6–66.9 s (first phrase, cut in a rest) |
 
 Credit is not required by any of these licences; it is given here for provenance.
+
+### U3 選單與場景環境底
+
+下表使用 Freesound 作者發佈的高品質預覽。甲板將前兩筆混合；港口收窄頻帶以呈現遠船，
+養殖場保留水槽氣泡，風場使用洪水錄音的水下效果，沉船使用放慢的金屬聲。
+兩首既有巴哈鋼琴曲的錄音授權見上表；U3 另行製作循環接縫並以 −23 LUFS、64 kbps Opus 重編。
+精確的來源雜湊、取樣區間及增益見 `simulator/tools/audio_u3_sources.json` 與 `build_audio_u3.py`。
+
+| 發行檔 | 原素材標題 | 作者 | 錄音授權證明 |
+|---|---|---|---|
+| `ambience/deck.opus` | surf waves seagulls australia | moto_harmony | [CC0 1.0](https://freesound.org/people/moto_harmony/sounds/201284/) |
+| `ambience/deck.opus` | Engine Ship Ambience | Wakerone | [CC0 1.0](https://freesound.org/people/Wakerone/sounds/417555/) |
+| `ambience/harbor.opus` | Belle of Cincinnati docked and idling.wav | OverlookHotelRecords | [CC0 1.0](https://freesound.org/people/OverlookHotelRecords/sounds/271533/) |
+| `ambience/farm.opus` | Motor and bubbles in a petting tank at an aquarium | RavenWolfProds | [CC0 1.0](https://freesound.org/people/RavenWolfProds/sounds/503656/) |
+| `ambience/wind.opus` | Underwater Beneath Waterfall or Rain (Loopable).wav | Osiruswaltz | [CC0 1.0](https://freesound.org/people/Osiruswaltz/sounds/530167/) |
+| `ambience/wreck.opus` | Creaking Metal - Slow | EagleStealthTeam | [CC0 1.0](https://freesound.org/people/EagleStealthTeam/sounds/172411/) |
+| `music/title_drone.opus` | Void Monolith Subharmonic Drone by Mantice | bassimat | [CC0 1.0](https://freesound.org/people/bassimat/sounds/854874/) |
 
 ### Radio voice (`../audio/voice/`)
 
@@ -146,3 +163,7 @@ R5 港區的藤壺剖面、貽貝殼、海藻葉、岸壁配件、岸吊、天�
 
 The training-pool A/B/C wall plates are original procedural artwork. The viewer draws
 their lettering, border and scale bars on a canvas in `story/prologue.js`.
+
+### 自由潛水的碧海號螺槳
+
+原創程序幾何，使用本專案既有的螺槳輪轂、槳葉繪製與碰撞形狀。自由潛水情境將脫落的螺槳放在船艉外側。

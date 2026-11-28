@@ -4,6 +4,7 @@
 // stage shows its site. A tile, or the primary button, opens the contract detail screen (contract_screen.js).
 // Tiles stay focusable when locked, so a gamepad player can still read why. The last tab holds the open-sea
 // expedition contracts and the career save backup. Data and rules come from the career context (career/menu.js).
+import { isInternalEdition } from '../training/edition.js';
 import { createSettingsPanel } from '../menu/settings.js';
 import { previewKey } from '../menu/cards.js';
 import { siteFacts } from '../menu/catalogue.js';
@@ -229,6 +230,10 @@ export function buildBoard(ctx) {
     label: STRINGS.otherTab,
     title: STRINGS.otherTitle,
     mount(container) {
+      if (!isInternalEdition()) {
+        container.append(backupRow(career));
+        return;
+      }
       const strip = createTileStrip(showTile);
       strips.set('other', strip);
       const card = tile({ name: STRINGS.expedition[0], image: previewImage(EXPEDITION_SCENE) });
@@ -244,6 +249,7 @@ export function buildBoard(ctx) {
   });
   function selected(id) {
     activeTab = id;
+    hero.element.hidden = id === 'other' && !isInternalEdition();
     const card = activeStrip()?.current;
     if (card) showTile(card);
   }
