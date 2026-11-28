@@ -10,8 +10,11 @@ export const MUSIC_BASE = new URL('./music/', import.meta.url).href;
 
 // Every file is public domain or CC0; see simulator/viewer/models/CREDITS.md and research_notes/音樂/sources.md.
 export const MUSIC_TRACKS = Object.freeze({
-  title: [{id: 'title_goldberg_aria', file: 'title_goldberg_aria.opus', loop: true, level: 0.8}],
-  briefing: [{id: 'briefing_wtc_prelude1', file: 'briefing_wtc_prelude1.opus', loop: true, level: 0.75}],
+  title: [{id: 'title_drone', file: 'title_drone.opus', loop: true, level: 0.8}],
+  briefing: [
+    {id: 'briefing_wtc_prelude1', file: 'briefing_wtc_prelude1.opus', loop: true, level: 0.75},
+    {id: 'title_goldberg_aria', file: 'title_goldberg_aria.opus', loop: true, level: 0.75}
+  ],
   dive: [
     {id: 'dive_underwater_theme_ii', file: 'dive_underwater_theme_ii.opus', loop: true, level: 0.45},
     {id: 'dive_underwater_theme', file: 'dive_underwater_theme.opus', loop: true, level: 0.4}
@@ -20,17 +23,17 @@ export const MUSIC_TRACKS = Object.freeze({
   tension: [{id: 'tension_peer_gynt_aase', file: 'tension_peer_gynt_aase.opus', loop: true, level: 0.55}]
 });
 
-// Score of the cold open's non-interactive shots (story/cold_open.js): the black opening and establishing shot, and
-// the flash-back title card. Cutscene music like the menu's, not dive music: it plays only while the player is not
-// flying. The same files and ids as the dive and results tracks, so a cue that hands over to the dive bed (when
-// `diveMusic` allows it) keeps playing instead of restarting.
+// The prologue and cold open share the director. Relief uses the dive gate until the closing card;
+// sharing a track id lets the card continue the same phrase after a successful release.
 export const CINEMATIC_TRACKS = Object.freeze({
   cinematic: [MUSIC_TRACKS.dive[0]],
+  openingTension: [MUSIC_TRACKS.tension[0]],
+  relief: [MUSIC_TRACKS.results[0]],
   flashback: [MUSIC_TRACKS.results[0]]
 });
 
 // Contexts heard while the vehicle is in the water; a real operator does not hear them.
-export const IN_DIVE_CONTEXTS = new Set(['dive', 'tension']);
+export const IN_DIVE_CONTEXTS = new Set(['dive', 'tension', 'relief']);
 
 const BRIEFING_SCREENS = new Set(['hangar', 'sites', 'briefing']);
 const DUCKING_CUES = new Set(['warn', 'broken', 'hard', 'severe']);
