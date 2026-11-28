@@ -35,7 +35,7 @@
   "progress": "{done} / {total}",
   "confirm": "確認",
   "skip": "未完了の点検をスキップ（故障と減点の恐れあり）",
-  "tender": "テザーハンドと準備完了を確認",
+  "tender": "テザー担当に準備状況を確認",
   "lower": "上流側を選び、テザーでゆっくり着水",
   "lowerAction": "ゆっくり着水",
   "waterTitle": "着水確認",

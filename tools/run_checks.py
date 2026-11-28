@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-from check_matrix import ROOT, changed_paths, unit_checks
+from check_matrix import ROOT, TIERS, changed_paths, unit_checks
 
 
 def main():
@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--report', type=Path)
     args = parser.parse_args()
     paths = changed_paths(args.base) if args.changed else None
+    reports = TIERS[args.tier].get('reports', ())
     commands = []
     if args.kind in ('all', 'unit'):
         commands.append(('check_matrix', [sys.executable, '-m', 'unittest', 'discover',
@@ -25,6 +26,8 @@ def main():
     if args.kind in ('all', 'unit'):
         for name in unit_checks(args.tier, paths):
             commands.append((name, [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-p', f'{name}.py']))
+        for report in reports:
+            commands.append((report, [sys.executable, f'tools/{report}.py']))
     if args.kind in ('all', 'node') and (paths is None or any(
         p.startswith(('simulator/viewer/', 'simulator/desktop/', 'simulator/tests/', 'tools/', '.github/'))
         for p in paths
@@ -51,7 +54,7 @@ def main():
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps(results, indent=2) + '\n')
-    return int(any(row['code'] for row in results))
+    return int(any(row['code'] for row in results if row['name'] not in reports))
 
 
 if __name__ == '__main__':

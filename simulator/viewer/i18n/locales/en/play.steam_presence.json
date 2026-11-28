@@ -4,7 +4,7 @@
   "chapterFallback": "On a job",
   "levelFallback": "Free flight",
   "chapters": {
-    "prologue": "Prologue · Before the trainee ticket",
+    "prologue": "Prologue · Before qualifying",
     "ch1": "Chapter 1 · Harbours and ships",
     "ch2": "Chapter 2 · Fish farms"
   },
@@ -15,7 +15,7 @@
     "c1_pier_level1": "Pier Level I inspection",
     "c1_pier_level2": "Pier marine-growth survey",
     "c1_hull_fouling": "Hull fouling rating",
-    "c1_dropped_object": "Harbour dropped object",
+    "c1_dropped_object": "Lost equipment in harbour",
     "c1_quay_cp": "Quay CP survey",
     "c1_hull_ut": "Hull thickness survey",
     "c1_signoff_exam": "Handover re-check",

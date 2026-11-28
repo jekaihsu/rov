@@ -20,7 +20,7 @@
     "Ocean exploration contracts",
     "Pick up inspection, recovery and deploy jobs freely in the exploration area; accept them from the top-right mission card after you dive."
   ],
-  "expeditionKicker": "Open jobs",
+  "expeditionKicker": "Open contracts",
   "expeditionChips": [
     "Inspect",
     "Recover",

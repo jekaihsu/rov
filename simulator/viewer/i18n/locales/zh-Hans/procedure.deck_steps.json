@@ -61,8 +61,8 @@
   "lampsLit": "两盏都亮，关灯",
   "feedOk": "影像正常",
   "lower": "缓放入水",
-  "waitTender": "等缆线手回报缆线就绪。",
-  "waitTenderAction": "等待缆线手",
+  "waitTender": "等缆手回报缆线就绪。",
+  "waitTenderAction": "等待缆手",
   "lowerNote": "选上游下水点，以吊放索缓放；入水、人员离开后才解锁。",
   "skip": "跳过剩下的检查（扣分，未发现的异常会带下水）"
 }

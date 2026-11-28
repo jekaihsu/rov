@@ -53,27 +53,27 @@
       "sub": "NIGHT RECOVERY"
     },
     "incident_jacket": {
-      "number": "事故訓練 / E1",
+      "number": "事故対応訓練 / E1",
       "client": "YX · 事故対応訓練",
       "sub": "DRILL · TRAPPED IN JACKET"
     },
     "incident_wreck": {
-      "number": "事故訓練 / E2",
+      "number": "事故対応訓練 / E2",
       "client": "YX · 事故対応訓練",
       "sub": "DRILL · TETHER SNAG"
     },
     "incident_silt": {
-      "number": "事故訓練 / E3",
+      "number": "事故対応訓練 / E3",
       "client": "YX · 事故対応訓練",
       "sub": "DRILL · ZERO VISIBILITY"
     },
     "incident_compass": {
-      "number": "事故訓練 / E4",
+      "number": "事故対応訓練 / E4",
       "client": "YX · 事故対応訓練",
       "sub": "DRILL · COMPASS DEVIATION"
     },
     "incident_current": {
-      "number": "事故訓練 / E5",
+      "number": "事故対応訓練 / E5",
       "client": "YX · 事故対応訓練",
       "sub": "DRILL · CURRENT OVER LIMIT"
     },

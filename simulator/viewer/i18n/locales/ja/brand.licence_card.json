@@ -1,9 +1,9 @@
 {
-  "heading": "ROV 操縦者ライセンス",
+  "heading": "ROV 操縦士免許",
   "headingCaption": "REMOTELY OPERATED VEHICLE · PILOT LICENCE",
   "issuer": "YX 発行",
   "issuerCaption": "ISSUED BY YX",
-  "cardLabel": "YX 操縦者ライセンス",
+  "cardLabel": "YX 操縦士免許",
   "gradeCaption": "GRADE",
   "fields": {
     "holder": "所持者",
@@ -17,23 +17,23 @@
   "stub": "YX · PILOT LICENCE · RETAIN THIS STUB",
   "grades": {
     "trainee": {
-      "title": "見習い操縦者",
+      "title": "見習い操縦士",
       "short": "見習い",
       "caption": "TRAINEE PILOT"
     },
     "grade2": {
-      "title": "二級操縦者",
+      "title": "二級操縦士",
       "short": "二級",
       "caption": "PILOT · CLASS II"
     },
     "grade1": {
-      "title": "一級操縦者",
+      "title": "一級操縦士",
       "short": "一級",
       "caption": "PILOT · CLASS I"
     },
     "senior": {
-      "title": "シニア操縦者",
-      "short": "シニア",
+      "title": "上級操縦士",
+      "short": "上級",
       "caption": "SENIOR PILOT"
     },
     "supervisor": {
