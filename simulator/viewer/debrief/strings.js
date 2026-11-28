@@ -1,4 +1,5 @@
 /* Debrief UI and export copy. Keep labels aligned with qysim/debrief.py STRINGS. */
+import {STRINGS as photo} from '../photo_settings.js';
 export const STRINGS = {
   title: '教官講評',
   subtitle: '訓練講評 / DEBRIEF',
@@ -29,6 +30,7 @@ export const STRINGS = {
   sensedHeading: '讀值航向',
   truthCurrent: '真值洋流',
   instructor_inject: '教官注入',
+  get photo() { return photo.photo; },
   collision: '碰撞',
   tether_warn: '纜線警示',
   tether_snag: '纜線勾纏',

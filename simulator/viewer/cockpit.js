@@ -18,7 +18,7 @@ function vehicleOptions() {
     return `<option value="${id}">${vehicleLabel(id)}</option>`;
   }).join('');
 }
-export function installCockpit({send, getState, getWorld, getSession, wsUrl, canvas, renderer, capturePhoto, takePhoto, openCollection, rememberVehicle=true, readOnly=false}) {
+export function installCockpit({send, getState, getWorld, getSession, wsUrl, canvas, renderer, capturePhoto, takePhoto, openCollection, archive, rememberVehicle=true, readOnly=false}) {
   const rack = document.querySelector('aside');
   const section = document.createElement('div'); section.className = 'sec mission-tools';
   section.innerHTML = `<div class="session-summary"><strong id="activeVehicleName">ROV</strong><p class="hint" id="activeRoomName"></p><button id="returnMenu">返回主選單</button></div><div hidden>
@@ -57,9 +57,10 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
   $('vehicleSelect').value=preferredModel;
   const notify = text => { $('operationNotice').textContent = text; };
   const collectionButton=document.createElement('button');collectionButton.id='openCollection';collectionButton.textContent='照片、圖鑑與工程紀錄';collectionButton.onclick=()=>openCollection?.();document.querySelector('.session-summary').append(collectionButton);
-  $('returnMenu').onclick=()=>{
+  $('returnMenu').onclick=async()=>{
     if(flight)finishFlight();
     if(recorder?.state==='recording'){notify('請先停止並下載錄影，再返回主選單。');return;}
+    if (!readOnly) await archive?.().catch(() => {});
     const url=new URL(location.href);url.searchParams.delete('play');url.searchParams.delete('replay');url.searchParams.delete('nointro');url.searchParams.set('model',preferredModel);location.assign(url);
   };
   const op = (action, extra={}) => send({type:'operation',action,...extra});

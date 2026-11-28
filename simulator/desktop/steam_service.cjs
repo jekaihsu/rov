@@ -152,4 +152,4 @@ function createSteam(userData, options = {}) {
   return { status, report, setPresence, readMock, edition, paths };
 }
 
-module.exports = { createSteam, EVENT_BY_ID };
+module.exports = { createSteam, readAppId, EVENT_BY_ID };

@@ -465,6 +465,7 @@ export function installInput({ blocked, camera, tick, preferred, gain, setMode, 
     feedback,
     hudState,
     registerActions,
+    padSnapshot: () => frame.snapshot,
     keyRows: () => rows,
     keyFor: (action) => actionKey(action, rows),
   };

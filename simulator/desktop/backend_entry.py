@@ -12,6 +12,11 @@ cache = Path(os.environ.get('NUMBA_CACHE_DIR', str(default_cache)))
 cache.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault('NUMBA_CACHE_DIR', str(cache))
 
+if sys.argv[1:2] == ['--steam-screenshot']:
+    from steam_screenshot import register
+    register(*sys.argv[2:])
+    sys.exit(0)
+
 from qysim.server import main
 
 if __name__ == '__main__':

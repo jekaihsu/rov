@@ -16,6 +16,9 @@ import {
   primaryButton,
   stat,
 } from '../menu/big_picture.js';
+import {STRINGS as photoStrings} from '../photo_settings.js';
+import {diveUrl} from '../replay_store.js';
+import {linkTrainingReplay} from '../training/records.js';
 import { createFlightLog } from './flight_log.js';
 import { awardLicenceFromSummary } from '../brand/licence_award.js';
 import { DELIVERABLES_TITLE, careerHeadline, deliverableLines, renderCareerPanel } from '../career/results_panel.js';
@@ -106,7 +109,7 @@ function buildMedal() {
 // career: optional career/dive.js runtime; it turns a story-chapter outcome of a work order into a career outcome
 // (decorate) and restarts a work order (retry). Career outcomes (kind 'career') also come straight from it.
 export function installResults({ send, getState, getWorld, getSession, onContracts, onVisible, readOnly = false,
-  career = null }) {
+  career = null, training = null }) {
   const watcher = createOutcomeWatcher();
   const log = createFlightLog({ getWorld });
   const root = element('section', 'results-screen');
@@ -147,6 +150,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   const footer = element('footer', 'pause-footer results-footer');
   root.append(card, footer);
   document.body.append(root);
+  let recording;
   let outcome = null;
   let navigator = null;
 
@@ -189,7 +193,9 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   }
   async function debrief() {
     try {
-      await log.openDebrief(outcome.title);
+      const id = await recording || await log.persist(outcome?.title);
+      if (!id) throw Error(STRINGS.noReplay);
+      location.assign(diveUrl(id));
     } catch (error) {
       note.textContent = error.message || STRINGS.noReplay;
     }
@@ -272,7 +278,13 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     if (!outcome.rewards.length && !career.length) rewards.append(element('li', 'menu-help', STRINGS.noRewards));
   }
   function show(next) {
+    for (const node of [medal, reason, scoreRow, best, progress, unlocks]) node.hidden = false;
     outcome = next;
+    const card = training?.scorecard;
+    recording = log.persist(outcome.title, card || undefined).then(id => {
+      if (card) linkTrainingReplay(card, id);
+      return id;
+    }).catch(() => null);
     const record = recordResult(outcome);
     root.dataset.kind = outcome.kind;
     root.dataset.success = String(outcome.success);
@@ -326,6 +338,26 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     });
     document.dispatchEvent(new CustomEvent('rov-run-result', { detail: outcome }));
   }
+  function finishDive() {
+    recording = log.persist().catch(() => null);
+    title.textContent = getWorld()?.scenario?.name || '';
+    fitTitle(heading, STRINGS.debrief);
+    kicker.textContent = formatTime(getState()?.score?.elapsed ?? getState()?.t);
+    for (const node of [medal, reason, scoreRow, best, progress, unlocks]) node.hidden = true;
+    actions.replaceChildren();
+    note.textContent = '';
+    button('resultsDebrief', STRINGS.debrief, debrief, {primary:true});
+    button('resultsMenu', STRINGS.menu, toMenu);
+    open = true;
+    root.hidden = false;
+    root.dataset.kind = 'review';
+    document.body.classList.add(OPEN_CLASS);
+    onVisible?.(true);
+    navigator?.setActive(true);
+    navigator?.start();
+    requestAnimationFrame(() => actions.firstElementChild?.focus());
+    prompts();
+  }
   function update(state) {
     if (readOnly) return;
     log.update(state);
@@ -349,6 +381,12 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     }
   });
   const api = {
+    archive: log.archive,
+    photo: log.photo,
+    pauseActions() {
+      if (log.frames < 2 || getState()?.campaign?.status === 'active') return [];
+      return [{id:'review-dive', label:photoStrings.endDive, run:finishDive}];
+    },
     update,
     show,
     hide,

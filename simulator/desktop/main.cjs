@@ -10,7 +10,7 @@ if(process.env.ROV_DESKTOP_SMOKE&&process.env.ROV_DESKTOP_SMOKE_DATA){
   if(!path.isAbsolute(process.env.ROV_DESKTOP_SMOKE_DATA))throw Error('ROV_DESKTOP_SMOKE_DATA 必須是絕對路徑');
   fs.mkdirSync(process.env.ROV_DESKTOP_SMOKE_DATA,{recursive:true});app.setPath('userData',process.env.ROV_DESKTOP_SMOKE_DATA);
 }
-const { createSteam } = require('./steam_service.cjs');
+const { createSteam, readAppId } = require('./steam_service.cjs');
 const { resolveEdition } = require('./steam/edition.cjs');
 const { installBackendLifecycle } = require('./backend_lifecycle.cjs');
 const displaySettings = require('./window_settings.cjs');
@@ -154,6 +154,45 @@ app.whenReady().then(async()=>{
     return event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame &&
       event.senderFrame.url.startsWith(origin + '/');
   }
+  const dives = require('./dive_store.cjs').createDiveStore(path.join(data, 'replays'));
+  ipcMain.handle('rov:dive', (event, method, payload) => {
+    if (!trusted(event) || !['read','write','list'].includes(method)) throw Error('Invalid replay request');
+    return dives[method](payload);
+  });
+  ipcMain.handle('rov:screenshot', async (event, bytes) => {
+    if (!savesTrusted(event) || !(bytes instanceof ArrayBuffer) || bytes.byteLength > 48 * 1024 * 1024) {
+      throw Error('Invalid screenshot');
+    }
+    const png = Buffer.from(bytes);
+    if (png.length < 24 || png.readUInt32BE(0) !== 0x89504e47) throw Error('Invalid PNG');
+    const folder = path.join(data, 'screenshots');
+    await fs.promises.mkdir(folder, {recursive:true});
+    const file = path.join(folder, require('node:crypto').randomUUID() + '.png');
+    await fs.promises.writeFile(file, png, {flag:'wx'});
+    if (!steam.status().available) return {steam:'offline'};
+    // steamworks.js 0.4 includes ISteamScreenshots in its native library but has no JS binding for it.
+    const libraries = {win32:['win64','steam_api64.dll'], linux:['linux64','libsteam_api.so'],
+      darwin:['osx','libsteam_api.dylib']};
+    const jpeg = file + '.jpg';
+    try {
+      const library = path.join(path.dirname(require.resolve('steamworks.js')), 'dist', ...libraries[process.platform])
+        .replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
+      const image = require('electron').nativeImage.createFromBuffer(png);
+      const {width,height} = image.getSize();
+      await fs.promises.writeFile(jpeg, image.toJPEG(97), {flag:'wx'});
+      const helper = app.isPackaged ? '--steam-screenshot' : path.join(__dirname, 'steam_screenshot.py');
+      const appId = String(readAppId(process.env, process.execPath));
+      await require('node:util').promisify(require('node:child_process').execFile)(
+        executable, [helper, library, jpeg, String(width), String(height)],
+        {windowsHide:true, timeout:15000, env:{...process.env, SteamAppId:appId, SteamGameId:appId}});
+      return {steam:'saved'};
+    } catch (error) {
+      log.write('Steam screenshot: ' + error.message + '\n');
+      return {steam:'failed'};
+    } finally {
+      await fs.promises.rm(jpeg, {force:true});
+    }
+  });
   ipcMain.handle('rov:saves-read-all', async (event) => {
     if (!savesTrusted(event)) return {};
     try {

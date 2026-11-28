@@ -49,3 +49,11 @@ export function finalizeSession({metrics, lesson, student, endedAt, host} = {}) 
   saveRecord(scorecard, host);
   return scorecard;
 }
+
+export function linkTrainingReplay(card, replayId, host = globalThis) {
+  const records = listRecords(host);
+  const match = records.findLast(row => row.startedAt === card.startedAt && row.lessonId === card.lessonId);
+  if (!match) return;
+  match.replayId = replayId;
+  storage(host)?.setItem(STORAGE_KEY, JSON.stringify(records));
+}

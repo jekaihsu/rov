@@ -1,0 +1,31 @@
+/* Compose against an unobstructed image. The control strip scales down on handheld displays. */
+#photoStudio {
+  padding: 0;
+  border: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+  background: #071820;
+  color: #edf6f6;
+}
+#photoStudio::backdrop { background: #071820; }
+#photoStudio canvas {
+  display: block;
+  width: min(100vw, 180vh);
+  max-height: 100vh;
+  object-fit: contain;
+}
+#photoStudio section {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .65rem 1rem;
+  padding: .85rem 1rem;
+  background: #08232df2;
+}
+#photoStudio label { display: inline-grid; grid-template-columns: auto auto; align-items: center; gap: .2rem; }
+#photoStudio input { grid-column: 1; width: clamp(6rem, 13vw, 11rem); }
+#photoStudio output { grid-column: 2; font-variant-numeric: tabular-nums; }
+#photoStudio small { flex-basis: 100%; }
+#photoStudio :focus-visible { outline: 2px solid #edcb64; outline-offset: 2px; }

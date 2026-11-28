@@ -3,6 +3,7 @@
 // objective and, in the expedition sea, the contracts on offer (play/contracts.js). While it is open the input
 // layer is blocked, so the pilot's own sticks are centred and held buttons released. A solo host also pauses the simulation; in a shared room the simulation
 // keeps running for everyone else. Settings reuse the launch menu's tabs over the in-game controls.
+import {getFidelity} from '../fidelity.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
 import { acceptContract, contractBoard } from '../play/contracts.js';
 import { objectiveSummary } from '../play/mission_text.js';
@@ -188,7 +189,7 @@ function buildSettings(input) {
 // order's confirmations and early hand-in from career/dive.js, recovery during a dive from procedure/index.js), so
 // a pad player reaches them without the mouse. A disabled entry shows its title as the reason.
 // tutorial: optional {tutorialLabel, renderTutorial(container)} (play/onboarding.js), listed as 操作教學.
-export function installPauseMenu({ input, send, state, replay = false, extraActions = null, tutorial = null }) {
+export function installPauseMenu({ input, send, state, replay = false, extraActions = null, tutorial = null, studio = null }) {
   const root = element('section', 'pause-menu');
   root.id = 'pauseMenu';
   root.hidden = true;
@@ -265,6 +266,17 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
       });
       offers.append(button);
     }
+    if (!replay && studio && getFidelity().get('photoMode') && state() && solo(state()) && isHost(state())
+        && !state().controller && !state().remote_control) {
+      const photo = element('button', 'menu-chip menu-chip-small', studio.label);
+      photo.id = 'enterPhotoMode';
+      photo.onclick = () => {
+        if (!getFidelity().get('photoMode')) return;
+        hide(true);
+        studio.open();
+      };
+      offers.append(photo);
+    }
     for (const action of replay ? [] : extraActions?.() || []) {
       const button = element('button', 'menu-chip menu-chip-small', action.label);
       button.type = 'button';
@@ -284,6 +296,9 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     }
     objective.hidden = objective.hidden && !offers.children.length;
   }
+  getFidelity().subscribe(() => {
+    if (open) renderObjective();
+  });
   function renderRestart() {
     const current = state();
     restart.disabled = replay || !host(current);
@@ -332,13 +347,16 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     navigator?.start();
     showList();
   }
-  function hide() {
+  function hide(transfer = false) {
     if (!open) return;
     open = false;
     root.hidden = true;
     document.body.classList.remove(OPEN_CLASS);
     navigator?.setActive(false);
     navigator?.stop();
+    if (transfer !== true) releasePause();
+  }
+  function releasePause() {
     if (pausedByMenu) send({ type: 'pause', value: false });
     pausedByMenu = false;
   }
@@ -425,6 +443,7 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
   return {
     show,
     hide,
+    releasePause,
     get open() {
       return open;
     },

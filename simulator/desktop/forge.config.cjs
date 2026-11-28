@@ -11,6 +11,8 @@ const runtimeFiles = new Set([
   '/main.cjs',
   '/preload.cjs',
   '/collection_store.cjs',
+  '/dive_store.cjs',
+  '/save_files.cjs',
   '/backend_lifecycle.cjs',
   '/gpu_preference.cjs',
   '/steam_service.cjs',
