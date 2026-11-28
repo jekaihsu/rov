@@ -1,0 +1,27 @@
+{
+  "menu": "主菜单",
+  "diving": "下潜中",
+  "chapterFallback": "作业中",
+  "levelFallback": "自由航行",
+  "chapters": {
+    "prologue": "序章 · 见习之前",
+    "ch1": "第一章 · 港口与船舶",
+    "ch2": "第二章 · 养殖场"
+  },
+  "levels": {
+    "p0_induction": "水池操作课",
+    "p1_pool_checkout": "水池潜航考核",
+    "p2_open_water": "开放水域适应训练",
+    "c1_pier_level1": "码头 Level I 巡检",
+    "c1_pier_level2": "码头附着生物测量",
+    "c1_hull_fouling": "船壳附着评级",
+    "c1_dropped_object": "港内掉落物",
+    "c1_quay_cp": "码头阴极保护检测",
+    "c1_hull_ut": "船壳测厚",
+    "c1_signoff_exam": "交班前复查",
+    "free_explore": "自由探索",
+    "expedition": "探索接单",
+    "inspection_coop": "协作巡检",
+    "scenario_training": "场景训练"
+  }
+}

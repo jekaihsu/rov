@@ -35,7 +35,7 @@
   "progress": "{done} / {total}",
   "confirm": "确认",
   "skip": "跳过未完成检查（可能引发故障并扣分）",
-  "tender": "与缆线手确认就绪",
+  "tender": "与缆手确认就绪",
   "lower": "选上游点，以缆线缓放入水",
   "lowerAction": "缓放入水",
   "waterTitle": "入水确认",

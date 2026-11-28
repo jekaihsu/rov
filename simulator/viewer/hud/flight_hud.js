@@ -2,6 +2,7 @@
 // Chooses the line instrument or the camera OSD (hud_style.js) and feeds both the same smoothed read-outs
 // taken from the delayed display state.
 import { smoothHeading, drawHeadingTape, headingLabel } from './compass.js';
+import {linePull} from '../tether/feel.js';
 import { forwardRange } from './range.js';
 import { drawFlightAttitude } from './attitude.js';
 import { drawDepthLadder } from './depth_ladder.js';
@@ -10,7 +11,10 @@ import { installOsd, updateOsd } from './osd.js';
 import { resolveHudStyle } from './hud_style.js';
 import { getFidelity, fidelityText } from '../fidelity.js';
 import { installFidelityPanel } from '../fidelity_panel.js';
+import { installSteamDevPanel } from '../play/steam_dev_panel.js';
 import { BINDINGS, actionKey, keyRow, hintText, layoutLabel, pilotAxisKeys } from '../input/bindings.js';
+import { actionControlLabels, formatActionHint } from '../input/hints.js';
+import { deviceFamily } from '../input/glyphs.js';
 import { currentKeyRows, keyboardLayout } from '../input/keyboard_layout.js';
 import { assistPill, dvlReason } from './assist_pill.js';
 import { updateSystemStatus, batteryApplies } from './system_status.js';
@@ -23,7 +27,7 @@ const STRINGS = localize('hud.flight_hud', {
   close: '收起工程面板', depth: '深度', altitude: '離底', engineering: '工程 Tab',
   density: ['極簡', '標準', '完整'],
   view: '切換視角 V', locked: '馬達鎖定', unlocked: '馬達解鎖',
-  unlockHint: '按 {key} / 手把 Y 解鎖',
+  unlockHint: '按 {key} / 手把 {pad} 解鎖',
   axes: [['surge', '前進／後退'], ['sway', '右移／左移'], ['heave', '上升／下潛'], ['yaw', '右轉／左轉']],
   hide: '切換 HUD', north: '北朝上', head: '機頭朝上',
   cards: ['任務與目標', '載具系統', '地圖與隊友', '鍵位提示'],
@@ -33,6 +37,13 @@ const STRINGS = localize('hud.flight_hud', {
   forward: '前方估距', controller: 'USB 控制器已連線', dvlLost: '注意：DVL 失去底鎖',
   fidelity: {real: 'presetReal', assisted: 'presetAssisted', custom: 'presetCustom'},
 });
+let inputFamily = 'keyboard';
+if (typeof document !== 'undefined') {
+  document.addEventListener('rov-input-device', function deviceChanged(event) {
+    const detail = event.detail;
+    inputFamily = detail && detail !== 'touch' ? deviceFamily(detail) : 'keyboard';
+  });
+}
 const $ = id => document.getElementById(id);
 let ready = false;
 let active = -1;
@@ -148,6 +159,7 @@ function initialize(resolveKey = standaloneKey) {
   close.onclick = drawer;
   panel.append(close);
   installFidelityPanel(panel);
+  installSteamDevPanel(panel);
   panel.append(document.querySelector('.topbar'), ...document.querySelectorAll('.rack'));
   panel.querySelectorAll('.mission-tools > div[hidden]').forEach(function revealSettings(el) {
     el.hidden = false;
@@ -229,8 +241,36 @@ function keyCardText(input) {
   lines.push(hintText({ bindings: input.bindings, rows, operationMode: mode }));
   return lines.filter(Boolean).join('\n');
 }
+function lockControls(input) {
+  return actionControlLabels('lock', {
+    family: inputFamily,
+    rows: input.keyRows || BINDINGS,
+    bindings: input.bindings,
+  });
+}
 function lockKey(input) {
-  return actionKey('lock', input.keyRows || BINDINGS) || 'Space';
+  return lockControls(input).key || 'Space';
+}
+function unlockHintText(input) {
+  return formatActionHint(STRINGS.unlockHint, lockControls(input));
+}
+// Engineering-drawer tool tips follow the same bindings as the HUD unlock line.
+const TOOL_ACTIONS = [
+  ['bLock', 'lock'], ['bDepth', 'depth'], ['bMode', 'mode'],
+  ['bLed', 'light'], ['bPhoto', 'photo'], ['bRec', 'record'],
+];
+function syncToolTitles(input) {
+  for (const [id, action] of TOOL_ACTIONS) {
+    const el = $(id);
+    if (!el) continue;
+    const parts = actionControlLabels(action, {
+      family: inputFamily,
+      rows: input.keyRows || BINDINGS,
+      bindings: input.bindings,
+    });
+    const label = [parts.key, parts.pad].filter(Boolean).join(' / ');
+    if (el.title !== label) el.title = label;
+  }
 }
 function currentStyle() {
   const fidelity = getFidelity();
@@ -311,7 +351,11 @@ function updateLine(r, s, w) {
 function updateReadout(r, s) {
   setText($('rSpd'), r.speed == null ? '—' : r.speed.toFixed(2));
   setText($('flightCable'), lengthIn(r.cable).toFixed(1));
-  setText($('flightTension'), r.tension.toFixed(0));
+  const tension = $('flightTension');
+  setText(tension, r.tension.toFixed(0));
+  const loaded = r.tension >= 5 || s.tether?.warn;
+  tension.parentElement.dataset.load = getFidelity().get('loadReadout') && loaded
+    ? (linePull(s.tether) ? 'high' : 'active') : 'quiet';
   setText($('flightLight'), String(r.light));
   setText($('flightBattery'), r.battery.toFixed(0));
   $('flightCable').parentElement.classList.toggle('warn', !!s.tether?.warn);
@@ -326,8 +370,8 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   applyStyle();
   toolIcon($('camBtn'), 'camera', $('camBtn').dataset.label || STRINGS.view);
   setText($('lockBadge').querySelector('b'), s.locked ? STRINGS.locked : STRINGS.unlocked);
-  const unlockHint = s.locked ? STRINGS.unlockHint.replace('{key}', lockKey(input)) : '';
-  setText($('lockBadge').querySelector('span'), unlockHint);
+  setText($('lockBadge').querySelector('span'), s.locked ? unlockHintText(input) : '');
+  syncToolTitles(input);
   $('flightTools').classList.toggle('controller-visible', !!input.active);
   const sensed = pilotReadings(s, w);
   // One forward range: the imaging sonar's centre beams while it is scanning (labelled as such), otherwise the
@@ -344,6 +388,7 @@ export function updateFlightHUD(s, w, dt, input = {}) {
   showAssist(s);
   if (hudStyle === 'osd') {
     updateOsd(r, s, w, {
+      showLoad: getFidelity().get('loadReadout') && (r.tension >= 5 || s.tether?.warn),
       assistLevel: getFidelity().get('assistLevel'), assistStatus: $('flightAssistStatus').hidden ? ''
         : $('flightAssistStatus').textContent, lockKey: lockKey(input),
     });

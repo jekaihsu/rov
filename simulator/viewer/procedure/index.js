@@ -20,7 +20,10 @@ import {beginFields, createEventWatch} from './deck_flow.js';
 import {deckSignature, renderDeckChecks, renderDeckLaunch} from './deck_steps.js';
 import {createDeckStage} from './deck_stage.js';
 import {callFor, createCrewRadio, faultText} from './crew_radio.js';
+import { checklistNavigable } from './navigable.js';
 import { localize } from '../i18n/index.js';
+
+export { checklistNavigable } from './navigable.js';
 
 const STRINGS = localize('procedure.index', {
   title: '潛前檢查與回收',
@@ -117,14 +120,22 @@ function progress(done, total) {
 function createPilotLog(limit = 2000) {
   const rows = [];
   const seen = new Set();
+  function rowKey(row) {
+    return `${row.t}|${row.kind}|${row.text}`;
+  }
   function collect(log) {
     for (const row of log || []) {
-      const key = `${row.t}|${row.kind}|${row.text}`;
+      const key = rowKey(row);
       if (seen.has(key)) continue;
       seen.add(key);
       rows.push(row);
     }
-    if (rows.length > limit) rows.splice(0, rows.length - limit);
+    if (rows.length > limit) {
+      rows.splice(0, rows.length - limit);
+      // Evicted rows must leave `seen`, or the Set grows without bound across a long dive.
+      seen.clear();
+      for (const row of rows) seen.add(rowKey(row));
+    }
   }
   function clear() {
     rows.length = 0;
@@ -442,7 +453,11 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     render(p);
   }
   function navigable() {
-    return !panel.hidden && !!latest && latest.phase !== 'diving' && focusables().length > 0;
+    return checklistNavigable({
+      hidden: panel.hidden,
+      phase: latest?.phase,
+      focusableCount: focusables().length,
+    });
   }
   function moveFocus(step) {
     const items = focusables();
@@ -508,5 +523,5 @@ export function installProcedure({send, readOnly = false, deck = null}) {
     return {stage: stage?.debug() || null, radio: crewRadio.debug()};
   }
   globalThis.__procedure = debug;
-  return {update, startIntro, bindInput, pauseActions, debug};
+  return {update, startIntro, bindInput, pauseActions, canNavigate: navigable, debug, radio: crewRadio};
 }

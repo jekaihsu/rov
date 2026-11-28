@@ -6,7 +6,7 @@
 // the caption waits while campaign dialogue is on screen, so the two never overlap.
 import { getFidelity } from '../fidelity.js';
 import {installVoice} from '../audio/voice.js';
-import { localize } from '../i18n/index.js';
+import { getLanguage, localize } from '../i18n/index.js';
 
 const STRINGS = localize('procedure.crew_radio', {
   speakers: {tender: '周楷', deck: '方晴', supervisor: '林岑'},
@@ -76,8 +76,10 @@ export function createCrewRadio() {
   const queue = [];
   let timer = null;
   let busyUntil = 0;
+  let flight = false;
   function showNext() {
     timer = null;
+    flight = false;
     if (!queue.length) {
       root.hidden = true;
       root.removeAttribute(OPEN_ATTRIBUTE);
@@ -87,14 +89,17 @@ export function createCrewRadio() {
       timer = setTimeout(showNext, 500);
       return;
     }
-    const [role, line] = queue.shift();
+    const [role, line, localRate] = queue.shift();
+    root.toggleAttribute('data-flight', !!localRate);
     const name = STRINGS.speakers[role];
     speaker.textContent = `${name} · ${STRINGS.roles[role]}`;
     text.textContent = line;
     root.dataset.role = role;
     root.hidden = false;
     root.setAttribute(OPEN_ATTRIBUTE, '');
-    Promise.resolve(voice.playLine({speaker: name, text: line, language: 'zh-TW'})).catch(function ignore() {});
+    const locale = localRate ? getLanguage() : 'zh-Hant';
+    const language = {'zh-Hant': 'zh-TW', 'zh-Hans': 'zh-CN'}[locale] || locale;
+    Promise.resolve(voice.playLine({speaker: name, text: line, language, localRate})).catch(function ignore() {});
     const duration = LINE_MS * (getFidelity().get("radioDuration") ?? 1);
     busyUntil = performance.now() + duration;
     timer = setTimeout(showNext, duration + (queue.length ? GAP_MS : 0));
@@ -116,5 +121,21 @@ export function createCrewRadio() {
   function debug() {
     return {open: !root.hidden, speaker: speaker.textContent, text: text.textContent, queued: queue.length};
   }
-  return {say, clear, debug};
+  function busy() {
+    return !!timer || campaignTalking();
+  }
+  function sayFlight(call) {
+    if (busy()) return;
+    const [role, text] = call;
+    say([role, text, {supervisor: 0.92, tender: 1.06, deck: 1}[role]]);
+    flight = true;
+  }
+  function clearFlight() {
+    if (!flight) return;
+    voice.stop();
+    clearTimeout(timer);
+    busyUntil = 0;
+    showNext();
+  }
+  return {say, clear, debug, busy, sayFlight, clearFlight};
 }

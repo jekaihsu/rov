@@ -18,6 +18,7 @@ import {createSharedSchools} from './fish_schools.js';
 import {installReefDressing, reefCoralGeometry, reefCoralMaterial, reefCoralStyle, reefCoralTint} from './reef_life.js';
 import {seabedMaterial, siteProfile} from './seabed.js';
 import {HABITAT_ROCKS, habitatRockGeometry, rockLod, upgradeRockMesh} from './scan_materials.js';
+import {harborToolGeometry} from './harbor_tools.js';
 import {buildSurfaceSet} from './surface_set.js';
 
 const P = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);          // NED -> three
@@ -284,7 +285,10 @@ export class Environment {
     const matrix = new THREE.Matrix4(), rotation = new THREE.Quaternion();
     for (const entities of buckets.values()) {
       const {kind,variant} = entities[0]; let geo, mat;
-      if (kind === 'coral') {
+      if (kind === 'harbor_tool') {
+        geo = harborToolGeometry(variant);
+        mat = M([0x958574, 0x854a32, 0x8e9289][variant]);
+      } else if (kind === 'coral') {
         geo = reefCoralGeometry(reefCoralStyle(entities[0]), this.detail);
         mat = reefCoralMaterial(reefCoralStyle(entities[0]));
       } else if (kind === 'seastar') {
@@ -297,9 +301,11 @@ export class Environment {
         mat.color.set(kind==='seagrass'?0x53683d:0x5e643a);
       }
       const mesh = new THREE.InstancedMesh(geo,mat,entities.length);
-      if(kind!=='rock')upgradeMarineMesh(mesh,kind,variant).catch(()=>false);
-      else upgradeRockMesh(mesh, (rocks) => habitatRockGeometry(rocks, variant, this.detail), this.detail)
-        .catch(() => false);
+      if (kind === 'rock') {
+        upgradeRockMesh(mesh, rocks => habitatRockGeometry(rocks, variant, this.detail), this.detail).catch(() => false);
+      } else if (kind !== 'harbor_tool') {
+        upgradeMarineMesh(mesh, kind, variant).catch(() => false);
+      }
       mesh.userData.observationEntities = entities.map(e=>({entity_id:e.id,category:e.kind}));
       if(kind==='kelp'||kind==='seagrass') mesh.userData.observationBend = this.uniforms;
       for (let i=0;i<entities.length;i++) {
@@ -310,7 +316,7 @@ export class Environment {
         if(kind==='seagrass') scale.y*=.55;
         matrix.compose(p,rotation,scale);mesh.setMatrixAt(i,matrix);
         if (kind === 'coral') mesh.setColorAt(i, reefCoralTint(item));
-        if(['coral','seastar','kelp','seagrass'].includes(kind))
+        if(['coral','seastar','kelp','seagrass','harbor_tool'].includes(kind))
           this.observationTargets.push({entity_id:item.id,category:kind,mesh,instanceIds:[i]});
       }
       mesh.instanceMatrix.needsUpdate=true;
@@ -491,4 +497,31 @@ export class Environment {
     for(const m of materials){for(const value of Object.values(m))if(value?.isTexture)textures.add(value);m.dispose();}
     for(const g of geometries)g.dispose();for(const t of textures)t.dispose();
   }
+}
+
+export function createFallbackSeabed(scene) {
+  const group = new THREE.Group();
+  const sand = new THREE.MeshStandardMaterial({color: 0x4a4636, roughness: 1});
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), sand);
+  plane.rotation.x = -Math.PI / 2;
+  plane.userData.paintable = true;
+  group.userData.plane = plane;
+  const grid = new THREE.GridHelper(200, 100, 0x6a7a66, 0x39443a);
+  grid.position.y = 0.02;
+  const big = new THREE.GridHelper(800, 40, 0x7d8a70, 0x7d8a70);
+  big.position.y = 0.03;
+  group.add(plane, grid, big);
+  group.position.y = -30;
+  scene.add(group);
+  return group;
+}
+
+export function buildDiveEnvironment(scene, world, detail, seabed, queue, noEnvironment) {
+  queue.beginBuild();
+  const env = noEnvironment ? null : new Environment(scene, world, {detail, deferHeavy: true});
+  seabed.visible = !env;
+  seabed.userData.plane.visible = !env;
+  seabed.position.y = -world.seabed_depth;
+  queue.scheduleFinishHeavy(env);
+  return env;
 }

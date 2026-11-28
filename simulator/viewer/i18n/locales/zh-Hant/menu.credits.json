@@ -1,0 +1,19 @@
+{
+  "tab": "關於",
+  "title": "製作名單與授權",
+  "open": "開啟製作名單與授權",
+  "openHelp": "可捲動的製作名單與第三方授權全文；手把可用方向鍵或左搖桿移動焦點。",
+  "studio": "製作",
+  "studioBody": "ROV Solution 由 YX 專案團隊製作。模擬器以真實遙控潛水器操作為體驗基準，並提供可關閉的訓練輔助。",
+  "disclaimer": "免責聲明",
+  "disclaimerBody": "本模擬器僅供娛樂與訓練輔助，不是真實遙控潛水器操作認證、職業資格或任何官方考照。遊戲內考照與進度僅適用於本作品。",
+  "ai": "AI 生成內容",
+  "aiBody": "無線電語音以文字轉語音合成預先製作。部分魚類模型貼圖取自第三方 CC0 素材包，該包貼圖為預先以 AI 圖像生成，並非實拍；執行時不會再生成。詳見商店 AI 揭露說明。",
+  "privacy": "隱私",
+  "privacyBody": "遊戲本身不收集個人資料，除 Steam 平台功能外不主動連網。進度與收藏保存在本機，並可透過 Steam 雲端同步（若啟用）。",
+  "assets": "第三方資產",
+  "assetsBody": "場景模型、掃描材質、音樂與手把對應資料的名稱、版本、授權與來源見下方授權全文，以及 models/CREDITS.md。",
+  "licenses": "第三方授權全文",
+  "licensesLoading": "正在載入授權清單…",
+  "licensesMissing": "找不到授權清單檔案。請確認已執行 simulator/tools/third_party_notices.py。"
+}

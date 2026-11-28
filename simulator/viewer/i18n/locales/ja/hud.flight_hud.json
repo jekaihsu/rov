@@ -3,7 +3,7 @@
   "close": "技術パネルを閉じる",
   "depth": "深度",
   "altitude": "対底高度",
-  "engineering": "技術 Tab",
+  "engineering": "技術パネル Tab",
   "density": [
     "最小",
     "標準",
@@ -12,7 +12,7 @@
   "view": "視点切替 V",
   "locked": "ディスアーム",
   "unlocked": "アーム",
-  "unlockHint": "{key} / コントローラー Y でアーム",
+  "unlockHint": "{key} / コントローラー {pad} でアーム",
   "axes": [
     [
       "surge",

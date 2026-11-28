@@ -252,6 +252,16 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 .menu-tab-cap .menu-prompt span:empty { display: none; }
 .menu-tab-body { flex: 1; overflow: auto; padding: 16px 12px 16px 0; scrollbar-width: thin; }
 .menu-tab-pane[hidden] { display: none; }
+.menu-credits { display: grid; gap: 12px; align-content: start; max-width: 72ch; }
+.menu-credits-block { padding: 10px 0 10px 12px; border-left: 2px solid var(--line); }
+.menu-credits-block:focus, .menu-credits-block:focus-visible { border-left-color: var(--accent); }
+.menu-credits-notices {
+  margin: 0; max-width: 100%; max-height: min(50vh, 420px); overflow: auto; padding: 12px;
+  background: rgba(4, 9, 13, .55); border: 1px solid var(--line); color: var(--text-dim);
+  font: 12px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; white-space: pre-wrap;
+  word-break: break-word;
+}
+.menu-credits-sheet .menu-credits-notices { max-height: min(60vh, 560px); }
 .menu-rows { display: grid; }
 .menu-row { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 18px; padding: 14px 6px;
   border-bottom: 1px solid var(--line); transition: background .16s ease-out; }
@@ -398,3 +408,13 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 
 /* in-game: launch-only controls stay out of the engineering drawer */
 .in-game #scnSel,.in-game #seed,.in-game #btnLoad,.in-game #opMode,.in-game label[for=opMode]{display:none}.in-game .menu-only-settings{display:none}.in-game .session-summary strong{font-size:15px}.in-game .session-summary p{margin:5px 0;color:#8eabb5}.in-game #returnMenu{margin-top:8px;width:100%}
+
+.free-dive-list { position: fixed; bottom: 5rem; right: 1rem; z-index: var(--z-hud);
+  padding: .5rem .85rem; border: 1px solid #6d949a; color: #eaf4f7; background: #102931e0; }
+.free-dive-log { max-height: 75vh; max-width: min(32rem, 85vw); padding: 2rem; overflow: auto;
+  background: #122933; color: #edf4f4; border: 1px solid #70969d; }
+.free-dive-log::backdrop { background: #03121bba; }
+.free-dive-log p { margin: 1em 0 .2em; }
+.free-dive-log button { margin-top: 1.5em; }
+
+.free-dive #objectiveCard, .free-dive #onboardingHint, .free-dive #pilotGuide { display: none; }

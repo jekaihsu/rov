@@ -1,6 +1,6 @@
 {
   "deployProcedure": "下水流程",
-  "deployProcedureHelp": "真实作业先做潜前检查、与缆线手确认再缓放入水；快速下水直接从水中开始。下次加载场景时生效；?nointro 一律跳过。",
+  "deployProcedureHelp": "真实作业先做潜前检查、与缆手确认再缓放入水；快速下水直接从水中开始。下次加载场景时生效；?nointro 一律跳过。",
   "procedureFull": "完整作业流程",
   "procedureQuick": "快速下水"
 }

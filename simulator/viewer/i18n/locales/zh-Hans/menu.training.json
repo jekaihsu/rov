@@ -1,11 +1,17 @@
 {
   "title": "训练",
   "tabs": {
+    "courses": "课程地图",
     "story": "剧情与教学",
     "drills": "事故演练",
-    "scenarios": "场景训练"
+    "scenarios": "场景训练",
+    "collection": "收藏"
   },
-  "storyHelp": "依序解锁；每章完成后在这台设备保存进度。",
-  "drillHelp": "独立的事故处置演练，不需要解锁，可单独重复练习。",
-  "scenarioHelp": "依洋流与能见度排出的难度；简介说明练习重点。"
+  "storyHelp": "按顺序解锁；每章完成后在本机保存进度。",
+  "drillHelp": "独立的事故处置演练，无需解锁，可单独重复练习。",
+  "scenarioHelp": "按洋流与能见度排出的难度；简介说明练习重点。",
+  "coursesHelp": "内部训练模式：入门、操作员、进阶与事故处置。默认真实拟真。",
+  "collectionHelp": "图鉴与收藏仍可从这里打开；不进入 Steam 主线。",
+  "openCollection": "打开收藏",
+  "steamHidden": "Steam 版不提供公司课程地图。"
 }

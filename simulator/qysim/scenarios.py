@@ -386,14 +386,53 @@ def seagrass_meadow() -> Scenario:
 def harbor_obstacles(sea: float) -> list:
     """Quay wall with its fittings, two rows of jetty piles under a deck, and debris off the quay toe."""
     quay = Wall("Quay", (42, 0, 0), 180, 70, -2, "quay")
-    obs = [quay,
-           Cylinder("Harbor pile A", (21, -10, -2), (21, -10, sea), .65),
-           Cylinder("Harbor pile B", (21, 10, -2), (21, 10, sea), .65)]
-    for row, y in (("A", -10), ("B", 10)):
-        for k, x in ((2, 27), (3, 33)):
-            obs.append(Cylinder(f"Harbor pile {row}{k}", (x, y, -2), (x, y, sea), .65))
-        obs.append(Box(f"Jetty deck {row}", (30.5, y, -2.4), (11.5, 2.2, .4), 0, "deck"))
+    obs = [quay]
+    # Remnants of the old berth flank the launch approach, clear of the inspection track.
+    for name, n, e, top, radius in (("Outer dolphin", 3.6, -.45, -0.8, .48),
+                                    ("Outer dolphin twin", 4.4, 1.15, -.8, .39),
+                                    ("Cutwater", 11, -4, 2.1, .72), ("Cutwater twin", 12, -3, 2.4, .58),
+                                    ("Old lead pile", 16, -7, .6, .44)):
+        obs.append(Cylinder(name, (n, e, top), (n, e, sea), radius))
+    # Splayed cross-braces and an old access ladder give the entry dolphin a recognizable profile.
+    for i, (a, b) in enumerate([((3.6, -.45, 1.0), (4.4, 1.15, 5.2)),
+                                ((4.4, 1.15, 1.0), (3.6, -.45, 5.2)),
+                                ((11, -4, 3.1), (12, -3, 7.4))]):
+        obs.append(Cylinder(f"Dolphin brace {i}", a, b, .115, "brace"))
+    # Two slack, retired hawsers hang along the starboard side of the inbound lane.
+    for span, (start, end, sag) in enumerate([((3.6, -.75, 1.5), (11, -4.55, 2.9), 2.8),
+                                              ((11, -4.55, 3.2), (16, -7.35, 1.4), 4.0)]):
+        previous = start
+        for i in range(1, 9):
+            t = i / 8
+            node = tuple(a + (b - a) * t for a, b in zip(start, end))
+            node = (*node[:2], node[2] + 4 * sag * t * (1 - t))
+            obs.append(Cylinder(f"Retired mooring line {span}-{i}", previous, node, .092, "hawser"))
+            previous = node
+    obs.append(Box("Dolphin access ladder", (3.1, -.45, 1.75), (.09, .28, 2.95), 180, "ladder"))
+    for label, east in (("A", -10), ("B", 10)):
+        for bay, north in enumerate(range(21, 42, 5)):
+            # The inspected outer pile retains its name and face point.
+            for offset in (0, 4):
+                name = f"Harbor pile {label}" + (str(bay + 1) if bay else "")
+                if offset:
+                    name += " inner"
+                y = east + offset
+                obs.append(Cylinder(name, (north, y, -1.45), (north, y, sea), .6))
+            obs.append(Box(f"Cap {label}{bay}", (north, east + 2, -1.55), (.58, 2.85, .45), 0, "deck"))
+        for offset in (0, 4):
+            obs.append(Box(f"Stringer {label}{offset}", (30.5, east + offset, -2.15),
+                           (11.5, .32, .28), 0, "deck"))
+        obs.append(Box(f"Jetty deck {label}", (30.5, east + 2, -2.6), (11.5, 3.1, .22), 0, "deck"))
+        # A fixed hanging chain loop secured to the two outer bents; each chord is a cable contact surface.
+        nodes = [(21 + i, east - .15, -1.4 + .43 * i * (5 - i)) for i in range(6)]
+        for i, (a, b) in enumerate(zip(nodes, nodes[1:])):
+            obs.append(Cylinder(f"Mooring chain {label}{i}", a, b, .09, "mooring_chain"))
     obs += dressing.dress_quay(quay, sea, keep_clear=(0.0,))
+    obs += dressing.discarded_tyre(38.8, 6.5, sea)
+    # Parted hawser trailing from the mooring block; the cut end lies on the mud.
+    tail = [(24, -6, sea - .7), (24.8, -6.2, sea - .18), (25.6, -6, sea - .035), (26.2, -6.4, sea)]
+    for i, (a, b) in enumerate(zip(tail, tail[1:])):
+        obs.append(Cylinder(f"Hawser tail {i}", a, b, .035, "hawser"))
     # snaggable debris off the quay (mooring block, rope, rubble), placed on main with the tether snag model
     obs += [SnagFeature("Harbor mooring block", (24, -6, sea), .5, .6, item="debris"),
             SnagFeature("Harbor rope tangle", (30, 4, sea), .25, .3, item="rope"),
@@ -408,6 +447,8 @@ def harbor_inspection() -> Scenario:
                     # Provisional near-bed turbid layer: about half the mid-water visibility at 0.5 m altitude.
                     bnl_height_m=2.0, bnl_mg_l=2.0,
                     obstacles=harbor_obstacles(sea),
+                    fish_schools=[{"home": home, "count": count} for home, count in
+                                  [((7, -2, 4), 15), ((14, -7, 6), 12), ((24, -8, 8), 18), ((37, 3, 5), 14)]],
                     current=CurrentProfile(.8, 90, .55, 95, .15, 110, TI_SHELTERED, tide=Tide()),
                     start_pos=(0, 0, 3), tether_length=75,
                     objectives=[Objective("inspect", "港樁 A", (18, -10, 8), 1.5, hold_s=6, face_point=(21,-10,8)),
@@ -604,6 +645,11 @@ LIBRARY = {
 def build(key: str, seed: int | None = None) -> Scenario:
     if key == "random":
         return random_scenario(seed)
+    if key == "free_dive_wreck":
+        from .free_dive import wreck_visit
+        scenario = wreck_visit()
+        scenario.seed = int(seed or 0)
+        return scenario
     if key not in LIBRARY:
         raise KeyError(f"unknown scenario {key!r}; choose from {sorted(LIBRARY)} or 'random'")
     scenario = LIBRARY[key]()

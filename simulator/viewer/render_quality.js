@@ -107,26 +107,46 @@ function notifyQuality(state) {
 }
 
 function readLearned(hardware) {
+  // Inline parse so this file stays free of relative imports (data-URL unit tests).
   try {
-    const value = JSON.parse(globalThis.localStorage?.getItem(LEARNED_KEY) || 'null');
+    const raw = globalThis.localStorage?.getItem(LEARNED_KEY);
+    if (!raw) return null;
+    if (raw.length > 8192) {
+      try {
+        globalThis.localStorage?.setItem(LEARNED_KEY + '.corrupt', raw.slice(0, 8192));
+      } catch {
+        /* ignore */
+      }
+      return null;
+    }
+    const value = JSON.parse(raw);
     if (!value || typeof value !== 'object' || value.renderer !== hardware.renderer) return null;
     if (!Number.isFinite(value.ratio)) return null;
-    // Keep unknown fields (e.g. S3 version) so a later writer does not drop them when merging saves.
-    return value;
+    return {
+      renderer: value.renderer,
+      ratio: value.ratio,
+      effectsSuppressed: !!value.effectsSuppressed,
+      ...(Number.isFinite(value.slowFps) && {slowFps: value.slowFps}),
+      version: 1,
+    };
   } catch {
+    try {
+      const raw = globalThis.localStorage?.getItem(LEARNED_KEY);
+      if (raw) globalThis.localStorage?.setItem(LEARNED_KEY + '.corrupt', raw.slice(0, 8192));
+    } catch {
+      /* ignore */
+    }
     return null;
   }
 }
 
 function writeLearned(state) {
   if (!state.learn) return;
-  const previous = readLearned(state.hardware) || {};
   const value = {
-    ...previous,
+    version: 1,
     renderer: state.hardware.renderer,
     ratio: state.ratio,
     effectsSuppressed: state.effectsSuppressed,
-    // Recorded so a later page can start at the same low-end ladder without rediscovering it.
     slowFps: state.slowFps,
   };
   try {

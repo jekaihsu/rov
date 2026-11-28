@@ -1,4 +1,23 @@
-export const COLLECTION_CATEGORIES={coral:'珊瑚',seastar:'海星',seagrass:'海草',kelp:'海藻',fish_school:'魚群'};
+// Local photo collection, field-guide categories, and archive validation.
+import {localize} from './i18n/core.js';
+
+const STRINGS = localize('collection_store', {
+  coral: '珊瑚', seastar: '海星', seagrass: '海草', kelp: '海藻', fish_school: '魚群', harbor_tool: '港區遺落工具',
+  bow: '船艏甲板',
+  chain: '錨鏈',
+  hatch: '貨艙艙口',
+  bridge: '駕駛台',
+  screw: '螺槳',
+  windlass: '起錨機',
+  rail: '彎折欄杆',
+  silt: '艙底沉積物',
+  frames: '橫向肋骨',
+  poolwall: '池壁',
+  pile: '碼頭基樁',
+  leg: '導管架樁腿',
+  keel: '舭龍骨',
+});
+export const COLLECTION_CATEGORIES = STRINGS;
 export const COLLECTION_LIMITS={image:12*1024*1024,total:80*1024*1024,index:4*1024*1024,archive:128*1024*1024,photos:500,results:2000};
 const categories=Object.keys(COLLECTION_CATEGORIES),empty=()=>({version:1,photos:[],guides:[],results:[]});
 const uid=()=>globalThis.crypto?.randomUUID?.()||`local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -75,13 +94,21 @@ function imageToBlob(image){
 export function downloadCollectionFile(filename,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
 function photoFallback(input,error){
   if(!(input.blob instanceof Blob))return;
+  // One toast at a time: stacked fallbacks keep PNG blobs and beforeunload guards forever.
+  for(const prior of document.querySelectorAll('.collection-save-fallback')){
+    prior.dispatchEvent(new Event('rov-fallback-dismiss'));
+    prior.remove();
+  }
   const toast=document.createElement('section');toast.className='collection-save-fallback';toast.setAttribute('role','alert');
   Object.assign(toast.style,{position:'fixed',bottom:'18px',right:'18px',maxWidth:'380px',padding:'18px',background:'#172932',border:'1px solid #edcb64',color:'#eff5ed',zIndex:'var(--z-toast)',font:'14px/1.6 system-ui',boxShadow:'0 8px 30px #0008'});
   const text=document.createElement('p');text.textContent=`照片尚未存入收藏：${error.message}。請先下載原圖備份。`;toast.append(text);
   const button=document.createElement('button');button.textContent='下載原圖與拍攝資料';toast.append(button);
   const guard=e=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',guard);
-  button.onclick=()=>{const name=input.id||uid();downloadCollectionFile(`${name}.${input.blob.type==='image/jpeg'?'jpg':'png'}`,input.blob);downloadCollectionFile(`${name}.json`,new Blob([JSON.stringify({metadata:input.metadata,observation:input.observation??null},null,2)],{type:'application/json'}));window.removeEventListener('beforeunload',guard);toast.remove();};
+  const dismiss=()=>{window.removeEventListener('beforeunload',guard);toast.remove();};
+  toast.addEventListener('rov-fallback-dismiss',dismiss);
+  button.onclick=()=>{const name=input.id||uid();downloadCollectionFile(`${name}.${input.blob.type==='image/jpeg'?'jpg':'png'}`,input.blob);downloadCollectionFile(`${name}.json`,new Blob([JSON.stringify({metadata:input.metadata,observation:input.observation??null},null,2)],{type:'application/json'}));dismiss();};
   document.body.append(toast);
+  setTimeout(dismiss,60000);
 }
 export async function savePhoto(input){
   try{return await serial(async()=>{const image=await photo(input);let saved;

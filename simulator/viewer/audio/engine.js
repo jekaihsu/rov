@@ -1,9 +1,15 @@
 // Synthesized topside and underwater buses with gesture-safe browser lifecycle.
 // Topside (reel, deck, App cues) is always available; underwater thrusters and impacts follow fidelity.
 import {
-  clamp, motorParameters, depthCutoff, detectEvents, resolveCue, reelParameters, topsideAmbience
+  clamp, motorPan, freshContacts, impactEnvelope, motorParameters, depthCutoff,
+  detectEvents, resolveCue, reelParameters, topsideAmbience, takeContactHit
 } from './mapping.js';
+import {createAmbience} from './ambience.js';
+import {lineLoad} from '../tether/feel.js';
+import {getFidelity} from '../fidelity.js';
+import '../story/feel_settings.js';
 import {underwaterAudioEnabled} from './fidelity.js';
+import { audioStore } from '../saves/registry.js';
 
 const STRINGS = {
   title: '音效',
@@ -19,6 +25,7 @@ const STRINGS = {
 const DEFAULTS = {
   master: 0.65, vehicle: 0.7, environment: 0.5, ui: 0.55, warning: 0.65, music: 0.5, voice: 0.8, mute: false
 };
+
 const KEY = 'rov.audio';
 let sharedEngine;
 
@@ -31,13 +38,13 @@ export function installAudio(options = {}) {
 class AudioEngine {
   constructor(options) {
     this.options = options;
-    this.settings = {...DEFAULTS};
-    try {
-      const saved = JSON.parse(localStorage.getItem(KEY));
+    this.settings = { ...DEFAULTS };
+    const loaded = audioStore.load();
+    if (!loaded.recovered && loaded.reason !== 'empty') {
       for (const key of Object.keys(DEFAULTS)) {
-        if (typeof saved?.[key] === typeof DEFAULTS[key]) this.settings[key] = saved[key];
+        if (typeof loaded.value?.[key] === typeof DEFAULTS[key]) this.settings[key] = loaded.value[key];
       }
-    } catch {}
+    }
     this.forcedMute = new URLSearchParams(location.search).has('mute');
     this.controls = [];
     this.cueListeners = [];
@@ -63,9 +70,7 @@ class AudioEngine {
 
   set(key, value) {
     this.settings[key] = key === 'mute' ? !!value : clamp(value);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(this.settings));
-    } catch {}
+    audioStore.save(this.settings);
     for (const control of this.controls) {
       control.input.value = this.settings[control.key];
       control.input.checked = this.settings.mute;
@@ -108,11 +113,13 @@ class AudioEngine {
       brown = (brown + (Math.random() * 2 - 1) * 0.02) / 1.02;
       samples[i] = brown * 3.5;
     }
+    this.strain = this.noiseLayer(0, 720, this.buses.vehicle);
     this.water = this.noiseLayer(0, 1000);
     this.waves = this.noiseLayer(0, 1800);
     this.flow = this.noiseLayer(0, 450);
     this.fan = this.noiseLayer(0.03, 900);
     this.deck = this.noiseLayer(0.04, 280);
+    this.ambience = createAmbience(this.ctx, this.buses.environment);
     this.reelMotor = this.motor(this.buses.vehicle);
     this.brake = this.noiseLayer(0, 520, this.buses.vehicle);
     this.fairlead = this.noiseLayer(0, 1400, this.buses.vehicle);
@@ -153,7 +160,7 @@ class AudioEngine {
   }
 
   isPaused() {
-    return !!(this.state?.paused || this.options.isPaused?.());
+    return !!((this.state?.paused && !this.options.deploying?.()) || this.options.isPaused?.());
   }
 
   underwaterOn() {
@@ -173,16 +180,29 @@ class AudioEngine {
     this.mixTargets = targets;
   }
 
-  cue(kind, layer = 'topside') {
+  enabled(id) {
+    return (this.options.fidelity || getFidelity()).get(id);
+  }
+
+  cue(kind, layer = 'topside', hit = null) {
     if (!this.ctx || this.ctx.state !== 'running' || document.hidden || this.isPaused()) return;
     if (layer === 'underwater' && !this.underwaterOn()) return;
+    if (hit && !this.enabled('contactSound')) return;
+    if (['switch', 'shutter'].includes(kind) && !this.enabled('switchSound')) return;
     for (const listener of this.cueListeners) listener(kind);
+    if (hit) {
+      this.impact(impactEnvelope(hit, this.options.getWorld?.()?.obstacles));
+      return;
+    }
+    if (kind === 'switch') {
+      this.impact({gain: 0.09, cutoff: 1800, decay: 0.045}, this.buses.ui);
+      return;
+    }
     if (kind === 'shutter') {
       this.shutter();
       return;
     }
     const severity = {touch: 1, hard: 2, severe: 3, warn: 2, broken: 3}[kind];
-    if (['touch', 'hard', 'severe', 'photos'].includes(kind)) this.impact(severity || 0.5, layer);
     const frequency = severity ? 320 - severity * 45
       : kind === 'move' ? 420
         : kind === 'back' ? 300
@@ -234,12 +254,11 @@ class AudioEngine {
     }
   }
 
-  impact(severity, layer = 'underwater') {
-    if (layer === 'underwater' && !this.underwaterOn()) return;
-    const layerRef = this.noiseLayer(0, 300 + severity * 180, this.buses.warning);
+  impact({gain, cutoff, decay}, bus = this.buses.vehicle) {
+    const layerRef = this.noiseLayer(0, cutoff, bus);
     const at = this.ctx.currentTime;
-    layerRef.level.gain.setValueAtTime(severity * 0.12, at);
-    layerRef.level.gain.exponentialRampToValueAtTime(0.0001, at + 0.15 + severity * 0.06);
+    layerRef.level.gain.setValueAtTime(gain, at);
+    layerRef.level.gain.exponentialRampToValueAtTime(0.0001, at + decay);
     layerRef.source.stop(at + 0.4);
     layerRef.source.onended = function disconnect() {
       layerRef.source.disconnect();
@@ -264,25 +283,39 @@ class AudioEngine {
 
   updateUnderwater(state, scale) {
     const thrust = state.thrust || [];
-    while (this.motors.length < thrust.length) this.motors.push(this.motor(this.buses.vehicle));
+    const world = this.options.getWorld?.();
+    const vehicle = world?.vehicle_catalogue?.find(entry => entry.id === state.model_id);
+    const mounts = vehicle?.thrusters || world?.thrusters;
+    while (this.motors.length < thrust.length) {
+      const pan = this.ctx.createStereoPanner();
+      pan.connect(this.buses.vehicle);
+      this.motors.push({...this.motor(pan), pan});
+    }
     this.motors.forEach((motor, index) => {
-      const output = state.locked || scale <= 0 ? 0 : thrust[index] || 0;
+      motor.pan.pan.value = motorPan(mounts?.[index]);
+      const output = state.locked || !this.enabled('motorSound') || scale <= 0 ? 0 : thrust[index] || 0;
       this.drive(motor, output, scale / Math.sqrt(thrust.length || 1));
     });
     const depth = state.pos?.[2] || 0;
-    const wet = scale > 0 ? 1 : 0;
+    const wet = scale > 0 && this.enabled('waterSound') ? 1 : 0;
+    const tether = state.tether;
+    const load = clamp(lineLoad(tether) / 120);
+    const strain = this.enabled('strainSound') && !tether?.broken ? scale * clamp((load - 0.12) / 0.88) : 0;
+    this.smooth(this.strain.level.gain, strain * 0.38, 0.06);
+    this.smooth(this.strain.filter.frequency, 450 + load * 1950);
     this.smooth(this.water.filter.frequency, depthCutoff(depth));
     this.smooth(this.water.level.gain, 0.15 * (1 - Math.exp(-Math.max(0, depth) / 1.5)) * wet);
     this.smooth(this.waves.level.gain, 0.22 * Math.exp(-Math.max(0, depth) / 1.5) * wet);
     this.smooth(this.flow.level.gain, clamp(Math.hypot(...(state.current_here || [])) / 2) * 0.22 * wet);
-    if (scale > 0 && this.ctx.currentTime > this.nextLife && !this.isPaused()) {
+    if (wet && this.ctx.currentTime > this.nextLife && !this.isPaused()) {
       this.nextLife = this.ctx.currentTime + 14 + Math.random() * 25;
       this.cue('life', 'underwater');
     }
   }
 
   update(state) {
-    const events = state ? detectEvents(this.previous, state) : [];
+    const hits = state ? freshContacts(this.previous, state) : [];
+    const events = state ? detectEvents(this.previous, state, hits) : [];
     this.previous = state;
     this.state = state;
     if (!this.ctx || !state) return;
@@ -293,13 +326,17 @@ class AudioEngine {
     }
     for (const event of events) {
       const resolved = resolveCue(event, state);
-      this.cue(resolved.kind, resolved.layer);
+      const hit = takeContactHit(hits, event);
+      const mechanical = event === 'light' || (event === 'locked' && !state.locked);
+      this.cue(mechanical ? 'switch' : resolved.kind, resolved.layer, hit);
     }
     this.updateTopside(state);
     const onboard = this.options.getMode?.() === 'onboard';
     const underwater = this.underwaterOn();
+    const surface = this.options.deploying?.() ? this.options.getCamera()?.position.y >= 0 : state.pos?.[2] <= 0.1;
+    this.ambience(this.options.getWorld?.(), surface, underwater && this.enabled('waterSound'));
     this.updateUnderwater(state, underwater ? (onboard ? 1 : 0.6) : 0);
-    if (underwater) this.spatial(state);
+    if (underwater && this.enabled('motorSound')) this.spatial(state);
     else this.clearPeers();
   }
 

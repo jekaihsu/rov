@@ -1,0 +1,19 @@
+{
+  "title": "訓練モード",
+  "help": "社内コースマップ。合格基準は調査報告と社内カリキュラムに沿い、閾値は基準航次まで暫定です。記録はこの端末のみです。",
+  "groupIntro": "入門",
+  "groupOperator": "オペレーター",
+  "groupAdvanced": "上級",
+  "groupIncident": "事故対応",
+  "minutes": "{n} 分",
+  "goal": "目標技能",
+  "criteria": "合格基準",
+  "start": "練習を開始",
+  "records": "端末内の記録",
+  "exportCsv": "すべて CSV 出力",
+  "exportLast": "直近の成績表を出力",
+  "noRecords": "まだ端末内の記録がありません",
+  "lastPass": "直近：暫定合格",
+  "lastFail": "直近：再訓練が必要",
+  "steamHidden": "Steam 版に訓練モードはありません"
+}

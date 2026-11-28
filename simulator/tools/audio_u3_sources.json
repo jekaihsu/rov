@@ -1,0 +1,74 @@
+{
+  "deck": {
+    "title": "surf waves seagulls australia",
+    "author": "moto_harmony",
+    "page": "https://freesound.org/people/moto_harmony/sounds/201284/",
+    "url": "https://cdn.freesound.org/previews/201/201284_3734677-hq.mp3",
+    "sha256": "f82d87000fcb0b116eb74668a397a680bc7514d47513acc5c70ad3c4ec3922df",
+    "license": "CC0 1.0"
+  },
+  "idle": {
+    "title": "Engine Ship Ambience",
+    "author": "Wakerone",
+    "page": "https://freesound.org/people/Wakerone/sounds/417555/",
+    "url": "https://cdn.freesound.org/previews/417/417555_7399650-hq.mp3",
+    "sha256": "e1cc3aa70e449649e0e62bdd238d75dedb1451e0c44a913d494efec92158296e",
+    "license": "CC0 1.0"
+  },
+  "harbor": {
+    "title": "Belle of Cincinnati docked and idling.wav",
+    "author": "OverlookHotelRecords",
+    "page": "https://freesound.org/people/OverlookHotelRecords/sounds/271533/",
+    "url": "https://cdn.freesound.org/previews/271/271533_4709749-hq.mp3",
+    "sha256": "d50b56285e09b1652434592038d951a05c59d80cf1e72a1aad583e65f33e3097",
+    "license": "CC0 1.0"
+  },
+  "farm": {
+    "title": "Motor and bubbles in a petting tank at an aquarium",
+    "author": "RavenWolfProds",
+    "page": "https://freesound.org/people/RavenWolfProds/sounds/503656/",
+    "url": "https://cdn.freesound.org/previews/503/503656_9619518-hq.mp3",
+    "sha256": "77bd8b23b0767a25239c23dd5792a23c5a81b51362004e91852a93295589c6bc",
+    "license": "CC0 1.0"
+  },
+  "wind": {
+    "title": "Underwater Beneath Waterfall or Rain (Loopable).wav",
+    "author": "Osiruswaltz",
+    "page": "https://freesound.org/people/Osiruswaltz/sounds/530167/",
+    "url": "https://cdn.freesound.org/previews/530/530167_4574070-hq.mp3",
+    "sha256": "1dd6f1c526132d8f4c5070253569877dc3cbad80fc3061bf850e98a17e876e25",
+    "license": "CC0 1.0"
+  },
+  "wreck": {
+    "title": "Creaking Metal - Slow",
+    "author": "EagleStealthTeam",
+    "page": "https://freesound.org/people/EagleStealthTeam/sounds/172411/",
+    "url": "https://cdn.freesound.org/previews/172/172411_2915633-hq.mp3",
+    "sha256": "f1edfa30cc07e09ff6aa26bbcce556ec33810b7c4b7e7497b10529ead198267d",
+    "license": "CC0 1.0"
+  },
+  "menu": {
+    "title": "Void Monolith Subharmonic Drone by Mantice",
+    "author": "bassimat",
+    "page": "https://freesound.org/people/bassimat/sounds/854874/",
+    "url": "https://cdn.freesound.org/previews/854/854874_15636277-hq.mp3",
+    "sha256": "e5e111cdea883a4955e75d881404f0637e146d29dd4f84c8e5e4a77262a8f007",
+    "license": "CC0 1.0"
+  },
+  "title_goldberg_aria": {
+    "author": "Kimiko Ishizaka",
+    "title": "Goldberg Variations — Aria",
+    "license": "CC0 1.0",
+    "page": "https://archive.org/details/OpenGoldbergVariations",
+    "url": "https://raw.githubusercontent.com/jekaihsu/rov/372eefc05849b0a4b1806188c6165fae8338e43a/simulator/viewer/audio/music/title_goldberg_aria.opus",
+    "sha256": "1e1bde34095fa605d84857f0d8321c34c35a5de737deaabedab4de8d0d2e2713"
+  },
+  "briefing_wtc_prelude1": {
+    "author": "Kimiko Ishizaka",
+    "title": "Well-Tempered Clavier I — Prelude No. 1",
+    "license": "CC0 1.0",
+    "page": "https://archive.org/details/bach-well-tempered-clavier-book-1",
+    "url": "https://raw.githubusercontent.com/jekaihsu/rov/372eefc05849b0a4b1806188c6165fae8338e43a/simulator/viewer/audio/music/briefing_wtc_prelude1.opus",
+    "sha256": "cddf006930022f8efaea6c7213b4d2430d6f2418c7c12127b9c20b2dab1ee639"
+  }
+}

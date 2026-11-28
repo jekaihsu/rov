@@ -1,6 +1,7 @@
 """Shared local/CI test tiers and conservative path selection."""
 from pathlib import Path
 import subprocess
+import os
 
 ROOT = Path(__file__).resolve().parents[1]
 # Standard automated checks. Performance and visual review scripts are not pass/fail checks
@@ -14,6 +15,7 @@ DEFAULT_CHECKS = (
     'browser_rebind_smoke',
     'browser_menu_gamepad_smoke',
     'browser_feedback_smoke',
+    'browser_feel_smoke',
     'browser_gamepad_matrix_smoke',
     # Four PlayStation profiles (standard and raw, DualSense and DualShock 4), each from title to dive and back.
     'browser_playstation_smoke',
@@ -35,8 +37,11 @@ DEFAULT_CHECKS = (
     'browser_expedition_smoke',
     'browser_paint_smoke',
     'browser_campaign_smoke',
+    'browser_training_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
+    # S1 small-fix: Esc opens pause on the deck checklist; first-dive guide is not duplicated.
+    'browser_s1_smoke',
     # Fresh profile: launch cinematic and its pad skip, then the new-player hints over two dives.
     'browser_onboarding_smoke',
     # Fresh profile: the title's 開始 plays the new-game cold open, flown by keyboard and by pad, into the prologue.
@@ -51,14 +56,20 @@ DEFAULT_CHECKS = (
 )
 
 # Per-script time limits above run_browser_checks' --timeout default, for checks that walk several full dives.
-SCRIPT_TIMEOUTS = {'browser_playstation_smoke': 3600, 'browser_cold_open_smoke': 5400}
+SCRIPT_TIMEOUTS = {
+    'browser_playstation_smoke': 3600,
+    'browser_cold_open_smoke': 5400,
+    'browser_training_smoke': 3600,
+    # Full career walk with per-beat JPEG captures; quick mode is far shorter.
+    'playtest_audit': 2400,
+}
 
 TIERS = {
     'quick': {
         'units': ('test_encoding', 'test_protocol_doc', 'test_vendor_manifest', 'test_power', 'test_thermal'),
         'browser': ('browser_hud_smoke',),
     },
-    'full': {'units': None, 'browser': DEFAULT_CHECKS},
+    'full': {'units': None, 'browser': DEFAULT_CHECKS, 'reports': ('i18n_glossary_check',)},
 }
 # Narrow islands with known coverage. Other viewer changes conservatively run the tier's entire set.
 BROWSER_PATHS = {
@@ -66,6 +77,7 @@ BROWSER_PATHS = {
     # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
     'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
                                 'browser_campaign_smoke'),
+    'simulator/viewer/training/': ('browser_training_smoke', 'browser_menu_smoke', 'browser_campaign_smoke'),
     'simulator/viewer/feedback/': ('browser_feedback_smoke', 'browser_menu_smoke', 'browser_hud_smoke',
                                    'browser_menu_gamepad_smoke'),
 }
@@ -81,22 +93,26 @@ def changed_paths(base='origin/main'):
 
 def browser_checks(tier, paths=None):
     names = list(TIERS[tier]['browser'])
+    audit_files = ('simulator/tools/playtest_', 'simulator/tests/test_playtest_audit',
+                   'simulator/viewer/story/', 'simulator/viewer/career/', 'simulator/campaign/')
+    audit = ['playtest_audit'] if tier == 'full' and not os.environ.get('CI') and (
+        paths is None or any(p.startswith(audit_files) for p in paths)) else []
     if paths is None:
-        return names
+        return names + audit
     viewer = [p for p in paths if p.startswith('simulator/viewer/')]
     if not viewer:
-        return []
+        return audit
     shared = ('simulator/qysim/', 'simulator/sdk_mock/', 'simulator/requirements')
     if any(path.startswith(shared) for path in paths):
-        return names
+        return names + audit
     selected = set()
     for path in viewer:
         matches = [checks for prefix, checks in BROWSER_PATHS.items() if path.startswith(prefix)]
         if not matches:
-            return names
+            return names + audit
         for checks in matches:
             selected.update(checks)
-    return [name for name in names if name in selected]
+    return [name for name in names if name in selected] + audit
 
 
 def inert_for_python(path):

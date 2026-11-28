@@ -1,0 +1,10 @@
+{
+  "title": "Steam モック",
+  "empty": "ローカルのモックデータはまだありません。",
+  "refresh": "更新",
+  "backend": "バックエンド：{backend}",
+  "path": "ファイル：{path}",
+  "earned": "解除済み",
+  "presence": "Rich Presence",
+  "none": "（なし）"
+}

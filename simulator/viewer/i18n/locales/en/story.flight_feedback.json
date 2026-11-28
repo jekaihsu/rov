@@ -1,0 +1,12 @@
+{
+  "impact": "Tide Control. Hull contact. Steady there.",
+  "snag": "Tide Cable. Line snagged. Back out along your track.",
+  "tension": "Tide Cable. Line tight. Stop thrust.",
+  "battery": "Tide Deck. Battery low. Prepare for recovery.",
+  "near": "Tide Control. Target close. Approach slowly.",
+  "idle": "Tide Cable. Line is clear here. How is your end?",
+  "harbor": "Tide Control. On the pile survey, mind which side your line is on.",
+  "pen": "Tide Control. Leave room to back away from the net.",
+  "openWater": "Tide Control. Do you have the next checkpoint in sight?",
+  "check": "Tide Deck. Still logging here. Do you read me?"
+}

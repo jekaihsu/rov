@@ -29,7 +29,8 @@
     "audio": "音频",
     "quality": "画质",
     "display": "显示",
-    "interface": "界面"
+    "interface": "界面",
+    "about": "关于"
   },
   "controller": "打开手柄设置（死区、曲线、绑定）",
   "quality": {

@@ -1,0 +1,14 @@
+{
+  "motorSound": "推進器聲",
+  "waterSound": "深度環境聲",
+  "contactSound": "水下撞擊聲",
+  "strainSound": "纜線拉扯聲",
+  "switchSound": "控制台機械聲",
+  "contactVideo": "碰撞影像干擾",
+  "photoFlash": "拍照閃光",
+  "loadReadout": "受力時顯示張力",
+  "crewCalls": "船員即時通報",
+  "idleCalls": "任務空檔通話",
+  "osVoice": "作業系統語音合成",
+  "osVoiceHelp": "缺配音片段時用本機語音朗讀無線電字幕。預設關閉。"
+}

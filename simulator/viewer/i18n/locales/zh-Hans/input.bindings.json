@@ -4,7 +4,7 @@
     "orbit": "环绕视角",
     "tool": "工具启用中",
     "dialogue": "对话",
-    "menu": "选单"
+    "menu": "菜单"
   },
   "actions": {
     "left_lr": "左杆左右",
@@ -35,15 +35,15 @@
     "down": "键位速览",
     "arm": "手臂操作模式",
     "settings": "手把设定",
-    "reportBug": "回报问题",
-    "pause": "暂停选单",
+    "reportBug": "反馈问题",
+    "pause": "暂停菜单",
     "cameraGimbal": "镜头稳定",
     "cameraPitchUp": "镜头上仰",
     "cameraPitchDown": "镜头下俯",
     "cameraOrbitX": "环绕水平",
     "cameraOrbitY": "环绕垂直",
     "paintSpray": "喷漆标记",
-    "sonarPeek": "声纳速览",
+    "sonarPeek": "声呐速览",
     "visionToggle": "AI 视觉叠图",
     "visionMark": "标记侦测目标",
     "dialogueAccept": "继续对话",

@@ -3,7 +3,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
   motorParameters, depthCutoff, detectEvents, resolveCue, eventLayer,
-  reelParameters, topsideAmbience, layerGains
+  reelParameters, topsideAmbience, layerGains, takeContactHit
 } from '../viewer/audio/mapping.js';
 import {createFidelity} from '../viewer/fidelity.js';
 import {UNDERWATER_AUDIO_ID, underwaterAudioEnabled} from '../viewer/audio/fidelity.js';
@@ -114,4 +114,75 @@ test('underwaterAudio fidelity is off in real and on in assisted', () => {
 test('a photo plays the topside App shutter, never an underwater cue', () => {
   assert.deepEqual(resolveCue('photos', {}), {kind: 'shutter', layer: 'topside'});
   assert.equal(eventLayer('photos'), 'topside');
+});
+
+test('contact hits pair by severity, not FIFO against non-contact underwater edges', () => {
+  const hits = [
+    {t: 1, severity: 'touch', obstacle: 'net'},
+    {t: 2, severity: 'hard', obstacle: 'pile', id: 'a'}
+  ];
+  assert.equal(takeContactHit(hits, 'warn'), null);
+  assert.equal(takeContactHit(hits, 'life'), null);
+  assert.deepEqual(takeContactHit(hits, 'hard'), {t: 2, severity: 'hard', obstacle: 'pile', id: 'a'});
+  assert.deepEqual(hits, [{t: 1, severity: 'touch', obstacle: 'net'}]);
+  assert.deepEqual(takeContactHit(hits, 'touch'), {t: 1, severity: 'touch', obstacle: 'net'});
+  assert.equal(takeContactHit(hits, 'touch'), null);
+});
+
+test('each mount pans in FRD; each contact material has a separate envelope', async () => {
+  const {motorPan, impactEnvelope} = await import('../viewer/audio/mapping.js');
+  assert.ok(motorPan({pos: [0, -0.2, 0]}) < 0);
+  assert.ok(motorPan({pos: [0, 0.2, 0]}) > 0);
+  assert.equal(motorPan(), 0);
+  const kinds = ['jacket_leg', 'quay', 'pen_net', 'seabed'];
+  const obstacles = kinds.map(kind => ({name: kind, kind}));
+  const envelopes = kinds.map(obstacle => impactEnvelope({obstacle, speed: 0.5}, obstacles));
+  assert.deepEqual(envelopes.map(hit => hit.material), ['steel', 'concrete', 'net', 'sand']);
+  assert.equal(new Set(envelopes.map(hit => hit.cutoff)).size, 4);
+  assert.ok(impactEnvelope({obstacle: 'seabed', speed: 1}).gain > envelopes[3].gain);
+});
+
+test('the underwater master opens the real-preset mix and preserves per-channel mutes', async () => {
+  const {bindUnderwaterMix} = await import('../viewer/story/feel_settings.js');
+  const store = createFidelity();
+  const unbind = bindUnderwaterMix(store);
+  assert.equal(store.get('contactSound'), false);
+  store.set(UNDERWATER_AUDIO_ID, true);
+  assert.equal(store.get('contactSound'), true);
+  store.set('contactSound', false);
+  store.set(UNDERWATER_AUDIO_ID, false);
+  store.set(UNDERWATER_AUDIO_ID, true);
+  assert.equal(store.get('contactSound'), false);
+  store.setPreset('real');
+  store.set('strainSound', true);
+  assert.equal(store.get(UNDERWATER_AUDIO_ID), true);
+  assert.equal(store.get('motorSound'), false);
+  unbind();
+});
+
+test('chapter ambience follows the world, the underwater mix and surface position', async () => {
+  const {createAmbience} = await import('../viewer/audio/ambience.js');
+  const requests = [];
+  const original = globalThis.fetch;
+  // Keep loads pending to exercise scene switches before a decoder returns.
+  globalThis.fetch = url => {
+    requests.push(url.pathname.split('/').pop());
+    return new Promise(() => {});
+  };
+  try {
+    const update = createAmbience({}, {});
+    const harbor = {scenario: {biome: 'harbor'}};
+    update(harbor, false, false);
+    update({scenario: {key: 'training_pool'}}, true, false);
+    assert.deepEqual(requests, []);
+    update(harbor, true, false);
+    update(harbor, false, true);
+    update(harbor, false, true);
+    update({scenario: {biome: 'aquaculture'}}, false, true);
+    update({obstacles: [{kind: 'jacket_leg'}]}, false, true);
+    update({obstacles: [{kind: 'wreck'}]}, false, true);
+    assert.deepEqual(requests, ['deck.opus', 'harbor.opus', 'farm.opus', 'wind.opus', 'wreck.opus']);
+  } finally {
+    globalThis.fetch = original;
+  }
 });

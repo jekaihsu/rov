@@ -16,7 +16,7 @@
 const CHECK_MS = 1000;
 const IDLE_FORCE_MS = 400;
 
-export function createShaderWarmup({renderer, scene, camera, getLamps = null, getFishRoots = null}) {
+export function createShaderWarmup({renderer, scene, camera, getLamps = null, getEnvironment = null}) {
   let nextCheck = 0;
   let signature = -1;
   let warmed = 0;
@@ -39,8 +39,9 @@ export function createShaderWarmup({renderer, scene, camera, getLamps = null, ge
   }
 
   function revealFish(visible) {
-    const roots = getFishRoots?.() || [];
-    for (const root of roots) {
+    const env = getEnvironment?.();
+    for (const school of env?.fishSchools?.schools ?? env?.schools ?? []) {
+      const root = school.mesh;
       if (!root) continue;
       root.userData._warmupWasVisible = root.userData._warmupWasVisible ?? root.visible;
       root.visible = visible ? true : root.userData._warmupWasVisible;

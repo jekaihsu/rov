@@ -1,0 +1,321 @@
+{
+  "format": "rov-trailer-1",
+  "title": "ROV Solution — 80 s store trailer (素材分鏡，非成片)",
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "shots": [
+    {
+      "id": "01-harbor-fpv-drift",
+      "title": "港灣 FPV：鬆桿仍漂移",
+      "duration": 5,
+      "scenario": "harbor_inspection",
+      "seed": 7,
+      "hud": ["depth", "heading"],
+      "hero_at": 2.0,
+      "weather": {"current_kn": 1.1, "surface_dir": 90, "visibility_m": 7},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.5, "yaw": -0.35, "keep_depth": true, "led": 2, "locked": false},
+        {"t": 1.5, "surge": 0.15, "yaw": 0.4},
+        {"t": 3.0, "surge": 0.45, "yaw": -0.2},
+        {"t": 4.2, "surge": 0.3, "yaw": 0.15}
+      ],
+      "cards": {
+        "zh-Hant": "鬆桿，不代表停住。",
+        "en": "Release the stick. You still drift.",
+        "zh-Hans": "松开摇杆，不代表停住。",
+        "ja": "手を離しても、流される。"
+      },
+      "notes": "trailer.md 鏡頭 01／00–05"
+    },
+    {
+      "id": "02-harbor-fpv-current",
+      "title": "港灣 FPV：讀水流",
+      "duration": 7,
+      "scenario": "harbor_inspection",
+      "seed": 7,
+      "hud": ["depth", "heading"],
+      "hero_at": 3.5,
+      "weather": {"current_kn": 1.1, "surface_dir": 90, "visibility_m": 7},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.4, "yaw": 0.25, "sway": -0.15, "keep_depth": true, "led": 2},
+        {"t": 2.5, "surge": 0.55, "yaw": -0.3, "sway": 0.1},
+        {"t": 5.0, "surge": 0.3, "yaw": 0.1, "sway": 0.0}
+      ],
+      "cards": {
+        "zh-Hant": "控制推力，判斷水流。",
+        "en": "Control thrust. Read the current.",
+        "zh-Hans": "控制推力，判断水流。",
+        "ja": "推力を操り、流れを読む。"
+      },
+      "notes": "trailer.md 鏡頭 02／05–12"
+    },
+    {
+      "id": "03a-harbor-tether-follow",
+      "title": "港灣第三人稱：纜線施力（訓練視角）",
+      "duration": 4,
+      "scenario": "harbor_inspection",
+      "seed": 11,
+      "hud": false,
+      "hero_at": 2.0,
+      "weather": {"current_kn": 0.85, "surface_dir": 95, "visibility_m": 8},
+      "camera": {
+        "mode": "follow",
+        "keyframes": [
+          {"t": 0.0, "offset": [2.0, 1.6, -3.5], "lookOffset": [0, 0.2, 1.0], "fov": 52},
+          {"t": 4.0, "offset": [2.8, 1.9, -2.4], "lookOffset": [0, 0.25, 0.8], "fov": 50}
+        ]
+      },
+      "drive": [
+        {"t": 0.0, "surge": 0.4, "yaw": 0.3, "keep_depth": true, "led": 2},
+        {"t": 2.0, "surge": 0.45, "yaw": -0.15}
+      ],
+      "cards": {
+        "zh-Hant": "纜線，也在施力。",
+        "en": "The tether pulls back.",
+        "zh-Hans": "缆线，也在施力。",
+        "ja": "テザーも、機体を引く。"
+      },
+      "notes": "trailer.md 鏡頭 03 前半；第三人稱訓練視角"
+    },
+    {
+      "id": "03b-harbor-fpv-return",
+      "title": "港灣切回 FPV",
+      "duration": 4,
+      "scenario": "harbor_inspection",
+      "seed": 11,
+      "hud": true,
+      "hero_at": 2.0,
+      "weather": {"current_kn": 0.85, "surface_dir": 95, "visibility_m": 8},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.35, "yaw": -0.2, "keep_depth": true, "led": 2},
+        {"t": 2.0, "surge": 0.45, "yaw": 0.15}
+      ],
+      "notes": "trailer.md 鏡頭 03 後半"
+    },
+    {
+      "id": "04-pool-sensors",
+      "title": "水池感測限制",
+      "duration": 8,
+      "scenario": "tutorial_pool",
+      "seed": 4,
+      "hud": true,
+      "hero_at": 4.0,
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.35, "heave": -0.1, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.2, "yaw": 0.25},
+        {"t": 5.5, "surge": 0.4, "sway": 0.1, "yaw": -0.1}
+      ],
+      "cards": {
+        "zh-Hant": "讀數有誤差。判斷不能省。",
+        "en": "Sensors have limits. Judgment matters.",
+        "zh-Hans": "读数有误差。判断不能省。",
+        "ja": "センサーには限界がある。判断はあなたに。"
+      },
+      "notes": "trailer.md 鏡頭 04；DVL 失鎖若尚未可重現，僅拍感測讀數觀察"
+    },
+    {
+      "id": "05a-pool-descent",
+      "title": "序章水池下潛",
+      "duration": 4,
+      "scenario": "tutorial_pool",
+      "seed": 2,
+      "hud": true,
+      "hero_at": 2.0,
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "heave": -0.45, "surge": 0.15, "keep_depth": false, "led": 1},
+        {"t": 2.0, "heave": -0.25, "surge": 0.3, "keep_depth": true, "led": 2}
+      ],
+      "cards": {
+        "zh-Hant": "每次下潛，從程序開始。",
+        "en": "Every dive starts with procedure.",
+        "zh-Hans": "每次下潜，从程序开始。",
+        "ja": "潜航は、手順から始まる。"
+      },
+      "notes": "trailer.md 鏡頭 05 下潛段；預潛介面另以 UI 鏡補拍"
+    },
+    {
+      "id": "05b-cold-open-establish",
+      "title": "倒敘開場建立鏡頭（重用 cold open）",
+      "duration": 3,
+      "scenario": "cold_open_jacket",
+      "seed": 1,
+      "hud": false,
+      "hero_at": 1.5,
+      "weather": {"current_kn": 0.15, "surface_dir": 345, "visibility_m": 22},
+      "camera": {
+        "mode": "orbit",
+        "keyframes": [
+          {"t": 0.0, "azimuth": 0.5, "radius": 5.0, "height": 1.3, "fov": 48},
+          {"t": 3.0, "azimuth": 1.4, "radius": 4.2, "height": 1.0, "fov": 46}
+        ]
+      },
+      "drive": [
+        {"t": 0.0, "surge": 0.0, "keep_depth": true, "led": 2, "locked": false}
+      ],
+      "notes": "開場可重用倒敘開場；此鏡作程序段切鏡／建立感備用"
+    },
+    {
+      "id": "06-hull-document",
+      "title": "船殼接近與記錄",
+      "duration": 8,
+      "scenario": "hull_inspection",
+      "seed": 5,
+      "hud": true,
+      "hero_at": 4.0,
+      "weather": {"current_kn": 0.45, "visibility_m": 10},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.45, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.25, "sway": 0.12, "yaw": 0.08},
+        {"t": 5.5, "surge": 0.15, "heave": 0.05, "yaw": -0.05}
+      ],
+      "cards": {
+        "zh-Hant": "靠近。量測。留下證據。",
+        "en": "Approach. Measure. Document.",
+        "zh-Hans": "靠近。测量。留下证据。",
+        "ja": "近づき、測り、記録する。"
+      },
+      "notes": "trailer.md 鏡頭 06；量測未交付時改拍穩定記錄"
+    },
+    {
+      "id": "07-pen-inspect",
+      "title": "養殖網衣巡檢",
+      "duration": 8,
+      "scenario": "aquaculture_pen",
+      "seed": 9,
+      "hud": true,
+      "hero_at": 4.0,
+      "weather": {"current_kn": 0.35, "visibility_m": 8},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.35, "sway": 0.12, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.3, "yaw": 0.2},
+        {"t": 5.5, "surge": 0.2, "yaw": -0.1, "sway": -0.05}
+      ],
+      "cards": {
+        "zh-Hant": "一片網衣，一次完整巡檢。",
+        "en": "Inspect the net. Cover the task.",
+        "zh-Hans": "一片网衣，一次完整巡检。",
+        "ja": "網を点検し、見落としを防ぐ。"
+      },
+      "notes": "trailer.md 鏡頭 07"
+    },
+    {
+      "id": "08-pen-approach",
+      "title": "養殖場精準接近",
+      "duration": 8,
+      "scenario": "aquaculture_pen_slack",
+      "seed": 12,
+      "hud": true,
+      "hero_at": 5.0,
+      "weather": {"current_kn": 0.25, "visibility_m": 8},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.3, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.18, "yaw": 0.12, "heave": -0.05},
+        {"t": 5.5, "surge": 0.1, "yaw": -0.05}
+      ],
+      "cards": {
+        "zh-Hant": "精準，落在每一次接近。",
+        "en": "Precision in every approach.",
+        "zh-Hans": "精准，落在每一次接近。",
+        "ja": "一度の接近にも、精度を。"
+      },
+      "notes": "trailer.md 鏡頭 08；夾爪若未穩定可只拍接近"
+    },
+    {
+      "id": "09-harbor-next-job",
+      "title": "講評後下一次港灣作業",
+      "duration": 8,
+      "scenario": "harbor_inspection",
+      "seed": 15,
+      "hud": true,
+      "hero_at": 5.0,
+      "weather": {"current_kn": 0.7, "surface_dir": 100, "visibility_m": 8},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.4, "yaw": 0.1, "keep_depth": true, "led": 2},
+        {"t": 4.0, "surge": 0.35, "yaw": -0.15}
+      ],
+      "cards": {
+        "zh-Hant": "交付成果，不只抵達。",
+        "en": "Deliver evidence, not just arrival.",
+        "zh-Hans": "交付成果，不只抵达。",
+        "ja": "到達の先に、成果がある。"
+      },
+      "notes": "trailer.md 鏡頭 09 後半；講評 UI 另鏡補拍"
+    },
+    {
+      "id": "10a-montage-pool",
+      "title": "蒙太奇：水池",
+      "duration": 2,
+      "scenario": "tutorial_pool",
+      "seed": 2,
+      "hud": true,
+      "hero_at": 1.0,
+      "camera": {"mode": "onboard"},
+      "drive": [{"t": 0.0, "surge": 0.4, "keep_depth": true, "led": 2}],
+      "notes": "trailer.md 鏡頭 10／2 s"
+    },
+    {
+      "id": "10b-montage-harbor",
+      "title": "蒙太奇：港灣",
+      "duration": 2,
+      "scenario": "harbor_inspection",
+      "seed": 7,
+      "hud": true,
+      "hero_at": 1.0,
+      "weather": {"current_kn": 0.9, "visibility_m": 7},
+      "camera": {"mode": "onboard"},
+      "drive": [{"t": 0.0, "surge": 0.4, "yaw": -0.2, "keep_depth": true, "led": 2}],
+      "notes": "trailer.md 鏡頭 10／2 s"
+    },
+    {
+      "id": "10c-montage-pen",
+      "title": "蒙太奇：養殖場",
+      "duration": 3,
+      "scenario": "aquaculture_pen",
+      "seed": 9,
+      "hud": true,
+      "hero_at": 1.5,
+      "weather": {"current_kn": 0.3, "visibility_m": 8},
+      "camera": {"mode": "onboard"},
+      "drive": [{"t": 0.0, "surge": 0.35, "sway": 0.1, "keep_depth": true, "led": 2}],
+      "cards": {
+        "zh-Hant": "搶先體驗規劃：序章＋兩章，約 10 關",
+        "en": "Early Access plan: Prologue + 2 chapters, ~10 missions",
+        "zh-Hans": "抢先体验规划：序章＋两章，约 10 关",
+        "ja": "早期アクセス予定：序章＋2章、約10ミッション"
+      },
+      "notes": "trailer.md 鏡頭 10／3 s"
+    },
+    {
+      "id": "11-harbor-cta",
+      "title": "港灣平穩觀測＋字標 CTA",
+      "duration": 6,
+      "scenario": "harbor_inspection",
+      "seed": 21,
+      "hud": true,
+      "hero_at": 3.0,
+      "weather": {"current_kn": 0.5, "surface_dir": 85, "visibility_m": 9},
+      "camera": {"mode": "onboard"},
+      "drive": [
+        {"t": 0.0, "surge": 0.2, "yaw": 0.05, "keep_depth": true, "led": 2},
+        {"t": 3.0, "surge": 0.15, "yaw": -0.05}
+      ],
+      "cards": {
+        "zh-Hant": "加入願望清單",
+        "en": "Wishlist on Steam",
+        "zh-Hans": "加入愿望单",
+        "ja": "ウィッシュリストに追加"
+      },
+      "notes": "trailer.md 鏡頭 11；字標／CTA 於後製疊加，此鏡只出背景 FPV"
+    }
+  ]
+}
