@@ -51,6 +51,10 @@ body.replaying .osd-bl, body.replaying .osd-br, body.replaying .osd-lock { botto
 body.replaying[data-hud-style=osd] #flightMission { bottom: 184px; }
 body.replaying[data-hud-style=osd] #flightMapBox { bottom: 212px; }
 
+@media (min-width: 721px) and (max-width: 1050px) {
+  .osd-heading { top: 1%; }
+  .osd-tr, .osd-tl { top: calc(1% + 2em); }
+}
 @media (max-width: 720px) {
   #flightOsd { font-size: 11px; }
   .osd-frame i { width: 18px; height: 18px; }

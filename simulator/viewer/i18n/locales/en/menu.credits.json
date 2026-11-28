@@ -10,9 +10,9 @@
   "ai": "AI-generated content",
   "aiBody": "Radio voice lines are pre-made with text-to-speech. Some fish model textures come from a third-party CC0 kit whose textures were pre-generated with AI image tools (not photographs); nothing is generated at runtime. See the store AI disclosure notes.",
   "privacy": "Privacy",
-  "privacyBody": "The game itself does not collect personal data and does not phone home except through Steam platform features. Progress and collections are stored locally and may sync via Steam Cloud when enabled.",
+  "privacyBody": "The game itself does not collect personal data. The internal edition supports LAN multiplayer. Progress and collections are stored locally and may sync via Steam Cloud when enabled.",
   "assets": "Third-party assets",
-  "assetsBody": "Names, versions, licences and sources for scene models, scanned materials, music and controller mappings are in the licence text below and in models/CREDITS.md.",
+  "assetsBody": "Names, versions, licences and sources for scene models, scanned materials, music and controller mappings are in the licence text below.",
   "licenses": "Third-party notices",
   "licensesLoading": "Loading licence list…",
   "licensesMissing": "Licence list file not found. Run simulator/tools/third_party_notices.py."

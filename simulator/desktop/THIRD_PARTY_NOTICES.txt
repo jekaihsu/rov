@@ -9,68 +9,75 @@ Items outside the allow-list are retained here for legal review; the generator d
 
 - @electron-forge/cli 8.0.1
   License: MIT
-  Source: https://github.com/electron/forge
+  Source: https://registry.npmjs.org/@electron-forge/cli/-/cli-8.0.1.tgz
 
 - @electron-forge/maker-zip 8.0.1
   License: MIT
-  Source: https://github.com/electron/forge
+  Source: https://registry.npmjs.org/@electron-forge/maker-zip/-/maker-zip-8.0.1.tgz
 
 - electron 44.5.1
   License: MIT
-  Source: https://github.com/electron/electron
+  Source: https://registry.npmjs.org/electron/-/electron-44.5.1.tgz
   Notes: npm package field is MIT; the packaged runtime includes Chromium and Node with additional third-party notices (some LGPL components). Review before Steam ship.
 
 - steamworks.js 0.4.0
   License: MIT
-  Source: https://github.com/ceifa/steamworks.js
+  Source: https://registry.npmjs.org/steamworks.js/-/steamworks.js-0.4.0.tgz
 
 - three 0.160.0
   License: MIT
-  Source: https://github.com/mrdoob/three.js
+  Source: https://registry.npmjs.org/three/-/three-0.160.0.tgz
+
+=== native runtime ===
+
+- steam_api64.dll bundled with steamworks.js  [OUTSIDE ALLOW-LIST]
+  License: Valve Steamworks SDK licence
+  Source: https://partner.steamgames.com/doc/sdk/api
 
 === python ===
 
-- numpy 1.26.4
+- numpy 1.24.4
   License: BSD-3-Clause
-  Source: https://numpy.org
+  Source: https://pypi.org/project/numpy/
 
-- numba 0.68.1
-  License: BSD
-  Source: https://numba.pydata.org
+- numba 0.57.1
+  License: BSD-2-Clause
+  Source: https://pypi.org/project/numba/
 
-- llvmlite 0.50.0
+- llvmlite 0.40.1
   License: BSD-2-Clause AND Apache-2.0 WITH LLVM-exception
-  Source: http://llvmlite.readthedocs.io
+  Source: https://pypi.org/project/llvmlite/
 
-- websockets 17.4
+- websockets 15.0.1
   License: BSD-3-Clause
-  Source: https://github.com/python-websockets/websockets
+  Source: https://pypi.org/project/websockets/
 
-- pyinstaller 6.x (packaging env)  [OUTSIDE ALLOW-LIST]
+- pyinstaller 6.22.3  [OUTSIDE ALLOW-LIST]
   License: GPL-2.0-or-later with Bootloader exception
-  Source: https://pyinstaller.org/
-  Notes: Used only to freeze the backend; output redistributable under the bootloader exception.
+  Source: https://pypi.org/project/pyinstaller/
+  Notes: Used to freeze the backend under the bootloader exception.
 
-- jsonschema 4.26.0
+- jsonschema >=4.18,<5
   License: MIT
-  Source: https://github.com/python-jsonschema/jsonschema
+  Source: https://pypi.org/project/jsonschema/
 
-- jsonschema-specifications 2025.9.1
+- jsonschema-specifications (transitive, unpinned)
   License: MIT
-  Source: https://github.com/python-jsonschema/jsonschema-specifications
+  Source: https://pypi.org/project/jsonschema-specifications/
 
-- referencing 0.37.0
+- referencing (transitive, unpinned)
   License: MIT
-  Source: https://github.com/python-jsonschema/referencing
+  Source: https://pypi.org/project/referencing/
 
-- rpds-py 2026.9.1
+- rpds-py (transitive, unpinned)
   License: MIT
-  Source: https://github.com/crate-py/rpds
+  Source: https://pypi.org/project/rpds-py/
 
-- attrs 26.1.0
+- attrs (transitive, unpinned)
   License: MIT
+  Source: https://pypi.org/project/attrs/
 
-- Python 3.12  [OUTSIDE ALLOW-LIST]
+- Python 3.11 (desktop build)  [OUTSIDE ALLOW-LIST]
   License: PSF License (Python Software Foundation)
   Source: https://www.python.org/
   Notes: Frozen backend embeds the CPython runtime.
@@ -196,9 +203,10 @@ Items outside the allow-list are retained here for legal review; the generator d
 
 - electron (runtime bundle) 44.5.1: mixed (Chromium/Node; includes non-MIT components)
   Notes: npm package field is MIT; the packaged runtime includes Chromium and Node with additional third-party notices (some LGPL components). Review before Steam ship.
-- pyinstaller 6.x (packaging env): GPL-2.0-or-later with Bootloader exception
-  Notes: Used only to freeze the backend; output redistributable under the bootloader exception.
-- Python 3.12: PSF License (Python Software Foundation)
+- steam_api64.dll bundled with steamworks.js: Valve Steamworks SDK licence
+- pyinstaller 6.22.3: GPL-2.0-or-later with Bootloader exception
+  Notes: Used to freeze the backend under the bootloader exception.
+- Python 3.11 (desktop build): PSF License (Python Software Foundation)
   Notes: Frozen backend embeds the CPython runtime.
 - DejaVu Sans (build-time rasterisation only) n/a: Bitstream Vera License
   Notes: Used when baking deck monitor glyphs into workboat textures; the font file is not distributed.

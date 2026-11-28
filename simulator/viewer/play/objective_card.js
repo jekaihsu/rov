@@ -18,7 +18,6 @@ const STRINGS = localize('play.objective_card', {
   meters: '{d} m',
 });
 
-export const CARD_KEY = 'rov.objectiveCard.v1';
 const UPDATE_MS = 200;
 
 // Which body sections the card mounts. Never includes a first-dive guide — that list lives in onboarding.

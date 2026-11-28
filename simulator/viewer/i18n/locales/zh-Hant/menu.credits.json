@@ -10,9 +10,9 @@
   "ai": "AI 生成內容",
   "aiBody": "無線電語音以文字轉語音合成預先製作。部分魚類模型貼圖取自第三方 CC0 素材包，該包貼圖為預先以 AI 圖像生成，並非實拍；執行時不會再生成。詳見商店 AI 揭露說明。",
   "privacy": "隱私",
-  "privacyBody": "遊戲本身不收集個人資料，除 Steam 平台功能外不主動連網。進度與收藏保存在本機，並可透過 Steam 雲端同步（若啟用）。",
+  "privacyBody": "遊戲本身不收集個人資料。內部版支援區域網路多人遊戲。進度與收藏保存在本機，並可透過 Steam 雲端同步（若啟用）。",
   "assets": "第三方資產",
-  "assetsBody": "場景模型、掃描材質、音樂與手把對應資料的名稱、版本、授權與來源見下方授權全文，以及 models/CREDITS.md。",
+  "assetsBody": "場景模型、掃描材質、音樂與手把對應資料的名稱、版本、授權與來源見下方授權全文。",
   "licenses": "第三方授權全文",
   "licensesLoading": "正在載入授權清單…",
   "licensesMissing": "找不到授權清單檔案。請確認已執行 simulator/tools/third_party_notices.py。"

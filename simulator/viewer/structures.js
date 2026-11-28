@@ -668,7 +668,8 @@ function propeller(set, obs) {
     const b = edges.find((o) => o.name === a.name.slice(0, -1) + 'b');
     if (b) parts.push(bladeGeometry(a, b));
   }
-  const mesh = set.add(merged(parts), 'bronze', [hub.name, ...edges.map((o) => o.name)], 'solid', [hub, ...edges]);
+  const material = set.world.scenario?.key === 'free_dive_wreck' ? 'steelPlate' : 'bronze';
+  const mesh = set.add(merged(parts), material, [hub.name, ...edges.map((o) => o.name)], 'solid', [hub, ...edges]);
   mesh.material.side = THREE.DoubleSide;
 }
 

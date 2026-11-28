@@ -154,13 +154,15 @@ export function installCockpit({send, getState, getWorld, getSession, wsUrl, can
       const page=new URL(location.href);page.searchParams.set('replay','local:'+id);page.searchParams.set('nointro','1');location.assign(page);
     }catch(e){notify(e.message);}
   };
-  $('quality').value=new URLSearchParams(location.search).get('quality')||read('rov.quality','auto');
+  const requestedQuality = new URLSearchParams(location.search).get('quality');
+  $('quality').value = requestedQuality || read('rov.quality', 'auto');
+  if (!requestedQuality && !$('quality').value) $('quality').value = 'auto';
   // learn: automatic quality remembers what it settled on for this GPU (render_quality.js).
   function quality() {
     // Trailer capture is session-only: its URL quality must not overwrite the player's stored choice.
     const sessionOnly = trailerParamEnabled(new URLSearchParams(location.search));
     configureRenderQuality(renderer, $('quality').value, {learn: !sessionOnly});
-    if (!sessionOnly) {
+    if (!sessionOnly && $('quality').value) {
       try {
         localStorage.setItem('rov.quality', $('quality').value);
       } catch { /* Private browsing. */ }
