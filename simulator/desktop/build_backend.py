@@ -47,6 +47,8 @@ args = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
         '--add-data', f'{packaged_viewer}:viewer',
         '--add-data', f'{SIM / "campaign"}:campaign',
         '--add-data', f'{SIM / "qysim" / "assets"}:qysim/assets',
+        # model_o.py reads this sheet at import, so the frozen backend needs it beside the module.
+        '--add-data', f'{SIM / "qysim" / "model_o_thrust.csv"}:qysim',
         '--add-data', f'{SIM / "qysim" / "_cable_accel.py"}:qysim',
         '--collect-all', 'numba', '--collect-all', 'llvmlite',
         '--collect-all', 'jsonschema_specifications',

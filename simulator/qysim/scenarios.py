@@ -18,7 +18,7 @@ from pathlib import Path
 
 from . import site_dressing as dressing
 from .fleet_names import WRECK_NAME
-from .flow import Tide
+from .flow import AiryWave, Tide
 from .silt import seabed_type_for as silt_seabed_type
 from .world import Box, Cylinder, CurrentProfile, FieldMesh, SnagFeature, Wall
 
@@ -189,7 +189,8 @@ def jacket_inspection() -> Scenario:
     return Scenario(
         "jacket_inspection", "導管架樁腿巡檢", "四腳導管架＋水平/X 斜撐，表層 1.5 kn 洋流。逐一在 0.8–2.5 m 距離內面向樁腿陽極塊停留 5 秒。注意斜撐會卡纜。",
         seabed_depth=sea, obstacles=obs, current=CurrentProfile(1.5, 80, 1.0, 95, 0.4, 110, TI_OFFSHORE,
-                                                              tide=Tide(kind="rotary", minor_ratio=0.3)),
+                                                              tide=Tide(kind="rotary", minor_ratio=0.3),
+                                                              wave=AiryWave(0.45, 4.0, 75)),
         visibility_m=8.0, start_pos=(0, 0, 3), spool_pos=(-4, 0, 0), tether_length=60.0,
         objectives=objs + [Objective("surface", "回收上浮", (-3, 0, 0.5), radius=3.0)], time_limit_s=1200)
 
@@ -226,7 +227,8 @@ def hull_inspection() -> Scenario:
     pts = [(18, 0, 9.5), (45, 0, 9.5), (70, -6, 9.5), (70, 6, 9.5), (50, 12, 5)]
     return Scenario(
         "hull_inspection", "船殼底部檢查", "80 m 貨輪吃水 8 m。從船底下穿過沿龍骨檢查，再繞到右舷。纜線可能卡在船底邊緣。",
-        seabed_depth=sea, obstacles=hull, current=CurrentProfile(0.6, 0, 0.5, 10, 0.2, 20, TI_SHELTERED),
+        seabed_depth=sea, obstacles=hull,
+        current=CurrentProfile(0.6, 0, 0.5, 10, 0.2, 20, TI_SHELTERED, bypass_flow=True),
         visibility_m=7.0, start_pos=(0, 0, 3), spool_pos=(-5, 0, 0), tether_length=70.0,
         objectives=[Objective("checkpoint", f"船底 {i + 1}", p, radius=1.8) for i, p in enumerate(pts)])
 
@@ -567,7 +569,7 @@ def aquaculture_pen() -> Scenario:
         seabed_depth=25., obstacles=obstacles, visibility_m=8., biome="aquaculture",
         seabed_type="mud", water_type="shelf", start_pos=(3., 0., 7.),
         spool_pos=(-2., 0., 0.), tether_length=150., time_limit_s=2400.,
-        current=CurrentProfile(.8, 90, .5, 95, .3, 100, TI_SHELTERED),
+        current=CurrentProfile(.8, 90, .5, 95, .3, 100, TI_SHELTERED, bypass_flow=True),
         objectives=[Objective("pen_lap", pen_strings["lap"], (3., 0., 7.)),
                     Objective("pen_photo", pen_strings["photo"], (3., 0., 7.), target="hole-0"),
                     Objective("pen_recover", pen_strings["recover"], (9., 1., 15.), target="mort-0")])
@@ -593,7 +595,7 @@ def aquaculture_pen_slack() -> Scenario:
     sc = aquaculture_pen()
     sc.key = "aquaculture_pen_slack"
     sc.name, sc.brief = PEN_VARIANT_STRINGS["slack_name"], PEN_VARIANT_STRINGS["slack_brief"]
-    sc.current = CurrentProfile(*PEN_SLACK_CURRENT, TI_SHELTERED)
+    sc.current = CurrentProfile(*PEN_SLACK_CURRENT, TI_SHELTERED, bypass_flow=True)
     return sc
 
 

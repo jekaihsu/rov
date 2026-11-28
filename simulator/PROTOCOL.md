@@ -205,7 +205,7 @@ t                sim seconds            paused        bool
 pos [n,e,d]      NED m                  q [w,x,y,z]   body→world
 euler [roll,pitch,yaw_0_360] deg        vel [u,v,w]   body m/s
 speed_kn         speed through water
-thrust [6]       -1..1 per thruster (order = world.thrusters)
+thrust [6]       -1..1 delivered thrust / nominal forward bollard thrust, in world.thrusters order
 health [6]       0..1 thruster health (impact damage)
 rc {...}         active RC (SDK when remote_control) — same keys as the rc message, plus the
                  requested `assist` (0/1/2) and `profile` (optional additions; `state.assist`
@@ -260,6 +260,17 @@ score {score 0..100, elapsed, failed "", finished, current_index,
 log [{t, kind, text, stamp?}]   (last 8 lines, Traditional Chinese; optional `stamp` is wall-clock
      `%Y/%m/%d %H:%M:%S`, same form as photo `create_time` — assumed App dive-log layout)
 ```
+
+Each hull contact onset can add optional fields to an entry in `events`. `material` is steel,
+concrete, net, sand, mud or biofouling. `impulse_ns` is the applied normal impulse in N·s and
+`speed` is the incoming surface-normal contact-point speed in m/s. Sustained scraping on the same
+obstacle counts once. Optional `state.score.collisions` counts all impact onsets for this vehicle in
+the current world, including those older than the 12 displayed events. The host omits it before
+the first contact. A hard impact requires speed > 0.3 m/s and impulse ≥ 1 N·s. A severe impact
+requires speed > 0.8 m/s and impulse ≥ 3 N·s and sets `possible_damage` to true. These thresholds
+and wet contact coefficients are provisional training assumptions pending vehicle impact measurements.
+While the net is loaded, optional `state.net_contact` gives the undeformed `point` and local
+displacement `offset` (both NED metres). The panel relaxes when this field disappears.
 
 ### Optional `power`: tether power budget / battery
 
@@ -681,7 +692,7 @@ training acceptance.
 ## Ocean current model
 
 The host is authoritative for the water flow; the viewer only displays it. `current_here` (§3) is the
-full local flow at the vehicle. The ambient flow is the three-layer mean profile plus turbulence:
+full local flow at the vehicle. The ambient flow combines the three-layer mean profile, turbulence and any configured wave.
 
 * **Turbulence** is a smooth, anisotropic, spatially varying field (`qysim/flow.py`,
   `TurbulenceField`): σu = `turbulence` × local mean speed, cross-stream and vertical σ in the ratio
@@ -707,6 +718,14 @@ full local flow at the vehicle. The ambient flow is the three-layer mean profile
   `minor_ratio`·(sine terms) across the flood axis, turning clockwise, and never reaches slack.
   A pure M2 tide reproduces the NOAA Table 4A slack windows (≈ 23.8 min below 0.1 kn at a 1 kn
   maximum, ≈ 5.9 min at 4 kn).
+* Optional `current.tide.period_s` replaces the principal constituent period (1 second to 7 days).
+  S2 keeps its 12-hour period. Without an override the principal period remains 12.4206012 hours.
+* Optional scenario `current.wave` describes one regular Airy wave, for example
+  `{"height_m":0.45,"period_s":4,"direction_deg":75}`. Height is crest to trough, period is in seconds,
+  and direction is propagation clockwise from north. Orbital speed decays with positive-down depth
+  as (πH/T) exp(−kz), k = (2π/T)²/g. With this field absent there is no orbital velocity.
+* Optional scenario `current.bypass_flow` (default false) enables hull shoulder acceleration and
+  porous net-pen shelter and bypass. The grid and vehicle current carry these effects in the existing NED units.
 * **Time-of-tide selector**: `{"type":"scenario",...,"tide_start":"slack_before_flood"}` (or hours,
   −13..13) starts a tidal scenario at that stage; host `current` messages also accept
   `"tide":{...}` (replace; `null` removes it) and `"tide_start"`. Invalid values are rejected with

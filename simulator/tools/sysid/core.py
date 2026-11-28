@@ -82,8 +82,8 @@ def thrust(u, curves):
     return a*u + b*u*abs(u)
 
 
-def trajectory(time, command, initial, parameters, curves, motor_tau, bias):
-    """Euler integration at <= 0.01 s, matching physics.py motor lag and drag ordering.
+def trajectory(time, command, initial, parameters, curves, motor_tau, bias, implicit_drag=False):
+    """Isolated force-actuator rig at <= 0.01 s, including archived explicit-Euler records.
 
     command[i] is held until time[i+1]; every run starts with settled zero thrust.
     """
@@ -97,12 +97,14 @@ def trajectory(time, command, initial, parameters, curves, motor_tau, bias):
         target = thrust(u, curves)
         for _ in range(count):
             force += (target-force)*min(1.0, dt/motor_tau)
-            velocity += dt*(force + bias - linear*velocity - quadratic*velocity*abs(velocity))/mass
+            damping = linear + quadratic * abs(velocity)
+            denominator = mass + dt * damping if implicit_drag else mass
+            velocity += dt * (force + bias - damping * velocity) / denominator
         output.append(velocity)
     return np.array(output)
 
 
-def fit_axis(rows, calibration, dry_mass, motor_tau, bias=0.0):
+def fit_axis(rows, calibration, dry_mass, motor_tau, bias=0.0, implicit_drag=False):
     time, velocity, command = numeric(rows, ('time_s', 'velocity_m_s', 'command'))
     time_check(time)
     if dry_mass <= 0 or motor_tau <= 0 or not np.isfinite([dry_mass, motor_tau, bias]).all():
@@ -112,7 +114,7 @@ def fit_axis(rows, calibration, dry_mass, motor_tau, bias=0.0):
     curves = fit_thrust(calibration)
 
     def residual(parameters):
-        return trajectory(time, command, velocity[0], parameters, curves, motor_tau, bias) - velocity
+        return trajectory(time, command, velocity[0], parameters, curves, motor_tau, bias, implicit_drag) - velocity
 
     fit = least_squares(residual, [dry_mass*1.5, 10, 100],
                         bounds=([dry_mass, 0, 0], [np.inf]*3), x_scale='jac')
@@ -219,7 +221,7 @@ def analyze(source, output):
         rows = [r for r in traces if r['axis'] == axis]
         anchor = [r for r in calibration if r['axis'] == axis]
         fitted, simulated, residual = fit_axis(
-            rows, anchor, meta['dry_mass_kg'], meta['motor_tau_s'], meta['bias_force_n'][axis])
+            rows, anchor, meta['dry_mass_kg'], meta['motor_tau_s'], meta['bias_force_n'][axis], meta.get('implicit_drag', False))
         result['axes'][axis] = fitted
         time, velocity = numeric(rows, ('time_s', 'velocity_m_s'))
         plot(output/f'{axis}-overlay.png', time, velocity, simulated, STRINGS['velocity'])
