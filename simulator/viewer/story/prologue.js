@@ -237,7 +237,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     stage.stamp.classList.toggle('visible', s.t < stampedUntil);
     stage.radio.classList.toggle('speaking', s.t < radioUntil && !beat.card);
     const next = beat.storyboard ? beat.next
-      : beatDecision(beat, age, {...s, drift: c.drift, framedPhoto: c.framedPhoto});
+      : beatDecision(beat, age, {...s, drift: c.drift, framedPhoto: c.framedPhoto, surveyPhotos: c.surveyPhotos});
     if (next && host && s.t >= retryAt) {
       retryAt = s.t + 0.4;
       send({type: 'operation', action: 'campaign_advance', beat: beat.id, next});

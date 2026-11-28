@@ -1022,6 +1022,8 @@ the condition or deadline before advancing and retains the count across reconnec
 
 ### 海纜修復現場
 
+第四章的取證節拍另有選填的 `campaign.surveyPhotos`，只列本節拍按下快門且通過取景檢查的證物與模擬時間。早一班或前一個節拍的照片仍保存在報告中。
+
 在 `cable_repair`，viewer state 的選填 `repair_report.observations` 按
 `shore_end`、`sea_end` 記錄最近一次合格照片。每筆包含相機檔名 `photo`、
 模擬秒數 `t`、場景局部北東下座標 `pos_ned_m`（公尺）。兩個斷面都有觀測後才提供

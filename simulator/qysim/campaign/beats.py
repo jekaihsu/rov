@@ -40,7 +40,12 @@ class BeatRun:
         framed = bool(beat and beat.get('target') and any(
             photo_matches(beat['target'], photo) for photo in sim.camera.files[self.files:]))
         drift = abs(self.depth - sim.depth) if sim.t - self.neutral_since >= 1 else 0
-        return dict(framedPhoto=framed, drift=round(drift, 3))
+        evidence = dict(framedPhoto=framed, drift=round(drift, 3))
+        if beat and beat.get('condition', {}).get('path', '').startswith('surveyPhotos.'):
+            files = {photo['name'] for photo in sim.camera.files[self.files:]}
+            evidence['surveyPhotos'] = {subject: {'t': row['t']} for subject, row in sim.repair_evidence.items()
+                                       if row['photo'] in files}
+        return evidence
 
     def advance(self, node, msg, sim, matches):
         if not node or msg.get('beat') != node['id']:

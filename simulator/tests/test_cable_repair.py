@@ -37,6 +37,20 @@ class RepairSiteTests(unittest.TestCase):
                 self.assertNotIn("end_separation_m", report)
         self.assertAlmostEqual(report["end_separation_m"], 1.44, places=2)
 
+    def test_next_beat_requires_a_new_exposure_of_the_requested_end(self):
+        from qysim.campaign.beats import BeatRun
+        sim = Simulator("cable_repair", 4)
+        end = next(ob for ob in sim.scenario.obstacles if ob.name == "armoured run 1 1")
+        sim.vehicle.s.pos[:] = np.array(end.p0) - [1.8, -.2, .5]
+        sim.vehicle.s.q[:] = q_from_euler(0, 0, 0)
+        sim._take_photo()
+        beat = {"id": "close", "condition": {"path": "surveyPhotos.sea_end.t"}}
+        run = BeatRun([beat], sim)
+        self.assertEqual(run.evidence(sim, beat)["surveyPhotos"], {})
+        self.assertIn("sea_end", sim.repair_evidence)
+        sim._take_photo()
+        self.assertIn("sea_end", run.evidence(sim, beat)["surveyPhotos"])
+
     def test_perimeter_records_a_relative_fix_and_requires_visible_rock(self):
         sim = Simulator("cable_perimeter", 42)
         sim.vehicle.s.pos[:] = [-.45, 2.35, 12.64]

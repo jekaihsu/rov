@@ -21,10 +21,10 @@ for (const chapter of ['c4_sheets', 'c4_frame']) {
   });
   test(chapter + ' advances the photograph beat only on its specified subject', () => {
     const beat = script.beats.find(item => item.hint === 'photo');
-    const subject = beat.condition.path.split('.')[2];
-    const report = {observations: {other: {t: 1}}};
-    assert.equal(beatDecision(beat, 1, {repair_report: report}), null);
-    report.observations[subject] = {t: 2};
-    assert.equal(beatDecision(beat, 2, {repair_report: report}), beat.next);
+    const subject = beat.condition.path.split('.')[1];
+    const surveyPhotos = {other: {t: 1}};
+    assert.equal(beatDecision(beat, 1, {surveyPhotos}), null);
+    surveyPhotos[subject] = {t: 2};
+    assert.equal(beatDecision(beat, 2, {surveyPhotos}), beat.next);
   });
 }

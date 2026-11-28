@@ -184,7 +184,7 @@
         "heading"
       ],
       "condition": {
-        "path": "repair_report.observations.shore_end.t",
+        "path": "surveyPhotos.shore_end.t",
         "op": "gt",
         "value": -1
       },
@@ -203,7 +203,7 @@
         "heading"
       ],
       "condition": {
-        "path": "repair_report.observations.sea_end.t",
+        "path": "surveyPhotos.sea_end.t",
         "op": "gt",
         "value": -1
       },

@@ -148,7 +148,7 @@
         "heading"
       ],
       "condition": {
-        "path": "repair_report.observations.housing.t",
+        "path": "surveyPhotos.housing.t",
         "op": "gt",
         "value": -1
       },
