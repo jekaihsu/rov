@@ -20,13 +20,13 @@ const files = JSON.parse(fs.readFileSync(0, 'utf8'));
 const output = {};
 for (const file of files) {
   const source = fs.readFileSync(file, 'utf8');
-  const match = source.match(/const STRINGS\s*=\s*(?:localize\([^,]+,\s*)?(\{[\s\S]*?\})\)?;/);
+  const match = source.match(/const STRINGS\s*=\s*(?:localize\(\s*['"]([^'"]+)['"],\s*)?(\{[\s\S]*?\})\)?;/);
   if (!match) continue;
   const context = {
     vehicleName: function vehicleName(id) { return fleet.models[id]?.name || id; },
     vehicleRole: function vehicleRole(id) { return fleet.models[id]?.role || id; },
   };
-  output[file] = vm.runInNewContext('(' + match[1] + ')', context, {timeout: 1000});
+  output[file] = {namespace: match[1], strings: vm.runInNewContext('(' + match[2] + ')', context, {timeout: 1000})};
 }
 process.stdout.write(JSON.stringify(output));
 """
@@ -34,8 +34,10 @@ process.stdout.write(JSON.stringify(output));
     result = subprocess.run(['node', '-e', script, str(ROOT / 'viewer/fleet_names.js')],
                             input=json.dumps(files), text=True,
                             capture_output=True, check=True)
-    tables = {str(Path(p).relative_to(ROOT / 'viewer').with_suffix('')).replace('/', '.'):
-              value for p, value in json.loads(result.stdout).items()}
+    tables = {}
+    for path, entry in json.loads(result.stdout).items():
+        default = Path(path).relative_to(ROOT / 'viewer').with_suffix('')
+        tables[entry.get('namespace') or '.'.join(default.parts)] = entry['strings']
     for path in sorted((ROOT / 'qysim').rglob('*.py')):
         for node in ast.walk(ast.parse(path.read_text(encoding='utf8'))):
             if not isinstance(node, ast.Assign):

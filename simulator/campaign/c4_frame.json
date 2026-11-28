@@ -185,19 +185,17 @@
         "depth",
         "heading"
       ],
-      "next": "night"
+      "next": "night",
+      "cinematic": true
     },
     {
       "id": "night",
       "radio": "delay",
       "speaker": "gu",
-      "limit": 6,
-      "hud": [
-        "depth",
-        "heading"
-      ],
-      "cinematic": true,
-      "next": "done"
+      "limit": 12,
+      "hud": [],
+      "next": "done",
+      "storyboard": "cable_night"
     }
   ],
   "strings": {

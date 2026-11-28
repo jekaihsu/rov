@@ -14,5 +14,8 @@
   "ticker": "Coastal observations   /   Demonstration area update",
   "pause": "Pause",
   "resume": "Resume",
-  "skip": "Skip  Esc  /  Hold ○"
+  "skip": "Skip  Esc  /  Hold ○",
+  "cable_night": "Night handover",
+  "innerBay": "Shingle Strait · Inner bay",
+  "nextLift": "The vessel is back. Morning lift postponed."
 }

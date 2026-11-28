@@ -1,4 +1,5 @@
 """Fly both chapter-four deployments via browser controls, saving each directed beat."""
+import base64
 import math
 import os
 import time
@@ -8,7 +9,7 @@ from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, skip_render, timeout, ws_base
 from browser_cold_open_smoke import contact_sheet
-from browser_prologue_smoke import capture, flight_keys
+from browser_prologue_smoke import flight_keys
 
 OUT = Path(__file__).resolve().parents[2] / 'docs/design/chapter4-k4'
 FLIGHTS = {
@@ -23,6 +24,14 @@ STATIONS = {
     'frame': ((-.45, 2.35, 12.37), (1.3, 2.16, 12.78)),
     'retreat': ((-3.2, 2, 12), (-5, 2, 12)),
 }
+
+
+def capture(page, path):
+    # Present two real frames, then leave their composited image up during JPEG readback.
+    skip_render(page, False)
+    page.evaluate('new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))')
+    skip_render(page)
+    page.screenshot(path=str(path), quality=84, timeout=timeout(90000))
 
 
 def fly(page, chapter):
@@ -45,7 +54,7 @@ def fly(page, chapter):
     frames = []
     held = set()
     last_press = 0
-    photo_frames = set()
+    photo_beats = {"frame": "housing", "overview": "shore_end", "close": "sea_end"}
     deadline = time.monotonic() + timeout(420000) / 1000
     while time.monotonic() < deadline:
         state = page.evaluate("""() => {const s=window.__viewer.S;
@@ -57,8 +66,15 @@ def fly(page, chapter):
         if beat not in [name for _, name in frames]:
             print(chapter, beat, state['pos'], flush=True)
             path = out / (beat + '.jpg')
-            page.wait_for_timeout(400)
-            capture(page, path)
+            if beat in ('watch', 'bay', 'crosscheck') or (chapter == 'c4_frame' and beat == 'receipt'):
+                page.locator(f'[data-beat="{beat}"] .cable-work-order').wait_for()
+                page.screenshot(path=str(path), quality=84, timeout=timeout(90000))
+            elif beat == 'night':
+                page.locator('#cinematicPlayer[data-shot="0"]').wait_for()
+                page.wait_for_timeout(900)
+                page.screenshot(path=str(path), quality=84, timeout=timeout(90000))
+            elif beat not in photo_beats:
+                capture(page, path)
             frames.append((path, beat))
         want = set()
         tap = None
@@ -87,9 +103,6 @@ def fly(page, chapter):
             page.keyboard.down(key)
         held = want
         if tap and time.monotonic() - last_press > .8:
-            if tap == 'photo' and beat not in photo_frames:
-                capture(page, out / (beat + '.jpg'))
-                photo_frames.add(beat)
             page.keyboard.press(keys[tap])
             last_press = time.monotonic()
         page.wait_for_timeout(100)
@@ -97,7 +110,6 @@ def fly(page, chapter):
         page.keyboard.up(key)
     assert state['status'] == 'completed', state
     assert [name for _, name in frames] == expected.split(), frames
-    contact_sheet(frames, out / 'contact-sheet.jpg')
     print(chapter, state['report'], flush=True)
     observations = state['report']['observations']
     if chapter == 'c4_sheets':
@@ -106,6 +118,21 @@ def fly(page, chapter):
     else:
         assert 'from_rock_ned_m' in observations['housing'], state
         assert len(state['report']['deck_fix_interval_s']) == 2, state
+    # The camera's own archived picture has the exposure and pose at shutter time.
+    for beat, subject in photo_beats.items():
+        if beat not in expected.split():
+            continue
+        original = page.evaluate("""async id => {
+          const {getPhotoBlob} = await import('/collection_store.js');
+          const bitmap = await createImageBitmap(await getPhotoBlob(id));
+          const canvas = document.createElement('canvas');
+          canvas.width = 1600; canvas.height = 900;
+          canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+          bitmap.close();
+          return canvas.toDataURL('image/jpeg', .9).split(',')[1];
+        }""", observations[subject]['collection_id'])
+        (out / (beat + '.jpg')).write_bytes(base64.b64decode(original))
+    contact_sheet(frames, out / 'contact-sheet.jpg')
 
 
 def main():
