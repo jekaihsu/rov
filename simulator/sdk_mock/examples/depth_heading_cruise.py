@@ -35,7 +35,14 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.1, target_depth: float | No
 
     Returns a summary dict for tests and CLI output.
     """
-    take_remote(bridge)
+    try:
+        take_remote(bridge)
+        return cruise(bridge, seconds, dt, target_depth, inject_dvl_loss_at)
+    finally:
+        release_remote(bridge)
+
+
+def cruise(bridge, seconds, dt, target_depth, inject_dvl_loss_at):
     status = get_status(bridge)
     if target_depth is None:
         target_depth = float(status["Depth"])
@@ -97,7 +104,6 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.1, target_depth: float | No
         bridge.sleep_or_advance(dt)
         elapsed = bridge.sim_time() - t0
 
-    release_remote(bridge)
     final = get_status(bridge)
     mean_err = sum(depth_errors) / max(1, len(depth_errors))
     # Steady-state window: last 5 s of samples.
@@ -107,6 +113,7 @@ def run(bridge, seconds: float = 30.0, dt: float = 0.1, target_depth: float | No
         "seconds": round(elapsed, 2),
         "mode_final": mode,
         "mode_events": mode_events,
+        "heading_error_final_deg": round(abs(angle_error_deg(target_heading, float(final["Compass"]))), 2),
         "target_depth_m": round(target_depth, 3),
         "final_depth_m": round(float(final["Depth"]), 3),
         "depth_error_mean_m": round(mean_err, 4),

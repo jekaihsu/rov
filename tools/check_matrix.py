@@ -146,5 +146,7 @@ def unit_checks(tier, paths=None):
     changed = {changed_test_module(p) for p in paths} - {None}
     product = [p for p in paths if not inert_for_python(p) and changed_test_module(p) is None]
     selected = set(names) if product else set()
+    if tier == "full" and any(p.startswith("docs/sdk/") for p in paths):
+        selected.update(("test_sdk_field_examples", "test_sdk_sandbox_examples"))
     selected.update(name for name in changed if name in all_names)
     return [n for n in all_names if n in selected]

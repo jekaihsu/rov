@@ -46,6 +46,7 @@ class SdkSandboxExamplesTest(unittest.TestCase):
             bridge.sim.step()
         result = mod.run(bridge, seconds=30.0, dt=0.1, target_depth=5.0, inject_dvl_loss_at=8.0)
         self.assertLess(result["depth_error_tail_m"], 0.1)
+        self.assertLess(result["heading_error_final_deg"], 8)
         self.assertTrue(result["switched_to_depth_only"])
         self.assertEqual(result["mode_final"], "depth_only")
         self.assertEqual(result["dvl_final"], "OffLine")

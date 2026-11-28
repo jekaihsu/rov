@@ -48,6 +48,11 @@ class SelectionTests(unittest.TestCase):
             self.assertEqual(unit_checks('full', paths), [])
             self.assertEqual(browser_checks('full', paths), [])
 
+    def test_sdk_guide_selects_its_examples_in_full_tier(self):
+        path = ["docs/sdk/README.md"]
+        self.assertEqual(unit_checks("full", path), ["test_sdk_field_examples", "test_sdk_sandbox_examples"])
+        self.assertEqual(unit_checks("quick", path), [])
+
     def test_changed_test_selected(self):
         self.assertEqual(unit_checks('full', ['simulator/tests/test_core.py']), ['test_core'])
 
