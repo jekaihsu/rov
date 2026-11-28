@@ -1,3 +1,5 @@
+import {listDives, diveUrl} from './replay_store.js';
+import {STRINGS as photoCopy} from './photo_settings.js';
 import {STRINGS as DIVE} from './free_dive_copy.js';
 import {FLEET_IDS, siteName, vehicleName} from './fleet_names.js';
 import {COLLECTION_CATEGORIES,listCollection,getPhotoBlob,setCover,exportCollection,importCollection,downloadCollectionFile} from './collection_store.js';
@@ -25,6 +27,7 @@ export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose
   const exportButton=element('button','匯出備份'),importButton=element('button','匯入備份'),file=document.createElement('input');file.type='file';file.accept='application/json,.json';file.hidden=true;actions.append(exportButton,importButton,file);toolbar.append(tabs,actions);
   const notice=element('p','', 'collection-notice');notice.setAttribute('role','status');const content=element('div',undefined,'collection-content');dialog.append(header,toolbar,notice,content);host.append(dialog);
   let tab='guides',selected=null,collection=null,pageSize=24,isOpen=false,destroyed=false,loadGeneration=0,previousFocus=null;
+  let dives = [];
   const urls=new Map(),pending=new Map();
   const notify=(text,error=false)=>{notice.textContent=text;notice.dataset.error=String(error);};
   const revoke=()=>{loadGeneration++;for(const url of urls.values())URL.revokeObjectURL(url);urls.clear();pending.clear();};
@@ -83,10 +86,42 @@ export function installCollectionPanel({host=document.body,onOpen=()=>{},onClose
   }
   function render(){if(!isOpen||!collection)return;content.replaceChildren();for(const button of tabs.children)button.setAttribute('aria-selected',String(button.dataset.tab===tab));
     if(selected){const photo=collection.photos.find(p=>p.id===selected);if(photo){renderPhoto(photo);return;}selected=null;}
+    if (tab === 'dives') {
+      if (!dives.length) content.textContent = photoCopy.empty;
+      for (const id of dives) {
+        const button = element('button', new Date(Number(id.split('-')[1])).toLocaleString());
+        button.onclick = () => location.assign(diveUrl(id));
+        content.append(button);
+      }
+      return;
+    }
     if(tab==='guides')renderGuides();else if(tab==='photos')renderPhotos();else renderResults();
   }
-  async function refresh(){const generation=loadGeneration;try{const value=await listCollection();if(generation!==loadGeneration||!isOpen)return;collection=value;render();}catch(error){notify(`收藏無法讀取：${error.message}`,true);}}
-  for(const [key,label]of [['guides','圖鑑'],['photos','照片'],['results','工程紀錄']]){const button=element('button',label);button.type='button';button.dataset.tab=key;button.setAttribute('role','tab');button.onclick=()=>{tab=key;selected=null;render();};tabs.append(button);}
+  async function refresh() {
+    const generation = loadGeneration;
+    try {
+      const [value, recordings] = await Promise.all([listCollection(), listDives().catch(() => [])]);
+      if (generation !== loadGeneration || !isOpen) return;
+      collection = value;
+      dives = recordings;
+      render();
+    } catch (error) {
+      notify(`收藏無法讀取：${error.message}`, true);
+    }
+  }
+  const categories = [['guides','圖鑑'], ['photos','照片'], ['results','工程紀錄'], ['dives',photoCopy.replays]];
+  for (const [key,label] of categories) {
+    const button = element('button', label);
+    button.type = 'button';
+    button.dataset.tab = key;
+    button.setAttribute('role','tab');
+    button.onclick = () => {
+      tab = key;
+      selected = null;
+      render();
+    };
+    tabs.append(button);
+  }
   exportButton.onclick=async()=>{exportButton.disabled=true;notify('正在整理原圖與紀錄…');try{downloadCollectionFile(`ROV-collection-${new Date().toISOString().slice(0,10)}.json`,await exportCollection());notify('備份已準備下載，內含完整原圖。');}catch(error){notify(error.message,true);}finally{exportButton.disabled=false;}};
   importButton.onclick=()=>file.click();file.onchange=async()=>{if(!file.files[0])return;importButton.disabled=true;notify('正在檢查備份並合併收藏…');try{const result=await importCollection(file.files[0]);notify(`已新增 ${result.addedPhotos} 張照片、${result.addedResults} 筆工程紀錄。`);await refresh();}catch(error){notify(`匯入未完成：${error.message}`,true);}finally{file.value='';importButton.disabled=false;}};
   const changed=()=>{if(isOpen)refresh();};window.addEventListener('rov:collection-changed',changed);

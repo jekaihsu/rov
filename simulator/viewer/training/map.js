@@ -2,6 +2,7 @@
 // and provisional pass criteria from the curriculum / research report.
 
 import {lessonsByGroup} from './catalogue.js';
+import {diveUrl, listDives} from '../replay_store.js';
 import {listRecords} from './records.js';
 import {downloadTrainingCsv, downloadScorecardPdf} from './export.js';
 import {localize} from '../i18n/index.js';
@@ -72,6 +73,7 @@ export function buildCourseMap({catalogue, onChoose, showRecords = true} = {}) {
     root.append(tools);
   }
 
+  const available = listDives().catch(() => []);
   for (const group of lessonsByGroup(catalogue)) {
     const section = element('section', 'training-group');
     section.dataset.group = group.id;
@@ -92,6 +94,13 @@ export function buildCourseMap({catalogue, onChoose, showRecords = true} = {}) {
         card.append(element('p', 'training-record',
           latest.passProvisional ? STRINGS.lastPass : STRINGS.lastFail));
       }
+      if (latest?.replayId) available.then(ids => {
+        if (!ids.includes(latest.replayId)) return;
+        const replay = element('a', 'menu-link', '▶');
+        replay.href = diveUrl(latest.replayId);
+        replay.setAttribute('aria-label', latest.lessonTitle + ' ▶');
+        card.append(replay);
+      });
       const start = element('button', 'menu-primary', STRINGS.start);
       start.type = 'button';
       start.onclick = function choose() {

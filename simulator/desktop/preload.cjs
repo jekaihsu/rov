@@ -17,6 +17,12 @@ const edition = readEditionArg();
 
 contextBridge.exposeInMainWorld('rovDesktop', Object.freeze({
   edition,
+  dive(method, payload) {
+    return ipcRenderer.invoke('rov:dive', method, payload);
+  },
+  saveScreenshot(bytes) {
+    return ipcRenderer.invoke('rov:screenshot', bytes);
+  },
   steamStatus() {
     return ipcRenderer.invoke('rov:steam', 'status');
   },

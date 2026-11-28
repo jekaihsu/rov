@@ -66,7 +66,9 @@ import { installUnderwaterPipeline } from './fx/pipeline.js';
 import { applyUnderwaterLighting } from './underwater_lighting.js';
 import { SiltRenderer } from './fx/silt.js';
 import { createDaylight } from './fx/daylight.js';
-import { readReplay } from './replay_store.js';
+import { guardPlayback, replayFailure } from './replay_guard.js';
+import { installPhotoMode } from './photo_mode.js';
+import { readReplay, validateReplay } from './replay_store.js';
 import { installDebrief } from './debrief/install.js';
 import {storedControlLayout, rememberControlLayout} from './control_layout.js';
 import { openRcLink, createRcPump } from './input/rc_link.js';
@@ -464,7 +466,7 @@ const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({r
 let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
   freeDive: () => freeDive,
-  onShutter:()=>{photoFeedback?.shutter();careerDive.photo();},
+  onShutter:()=>{results.photo(S?.t);photoFeedback?.shutter();careerDive.photo();},
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
     vision.assertPhoto();
@@ -477,7 +479,7 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
     renderer.domElement.toBlob(blob=>resolve({blob,evidence,view}),'image/png');
     restoreCamera();
   })});
-const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
+const cockpit = installCockpit({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,wsUrl:WS_URL,canvas:renderer.domElement,renderer,capturePhoto:callback=>{renderer.render(scene,camera);renderer.domElement.toBlob(callback);},takePhoto:options=>photoClient.takePhoto(options),openCollection:()=>collectionPanel.open(),archive:()=>results.archive(),rememberVehicle:!REPLAY,readOnly:!!REPLAY});
 const surfacePaint=installSurfacePaint({THREE,scene,camera,renderer,getState:()=>S,getTargets:()=>[worldG,seabed,...(env?[env.group]:[])],send,readOnly:!!REPLAY});
 const rotorSpin = [];
 const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
@@ -485,6 +487,7 @@ const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const trainingSession = installTrainingSession({
   getState: () => S,
+  location: REPLAY ? {search:""} : location,
   student: new URLSearchParams(location.search).get('name') || '',
 });
 const chapterCards = installChapterCards({readOnly: !!REPLAY});
@@ -499,7 +502,7 @@ const careerDive = installCareerDive({send, getWorld: () => W, getCamMode: () =>
 const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY, career: careerDive});
 const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
   readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open),
-  career: careerDive});
+  career: careerDive, training: trainingSession});
 const achievements = installAchievements({readOnly: !!REPLAY});
 const steamPresence = installSteamPresence({
   getState: () => S,
@@ -527,7 +530,7 @@ const linkInbox = createLinkInbox({
   },
 });
 function connect() {
-  if (REPLAY) { startReplay(REPLAY); return; }
+  if (REPLAY) { startReplay(REPLAY).catch(replayFailure); return; }
   if (retryTimer != null) { clearTimeout(retryTimer); retryTimer = null; }
   // Drop any previous link before opening another (reconnect storms after a server restart).
   if (ws) {
@@ -670,7 +673,13 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const input = installInput({blocked: () => freeDive?.blocked || prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
+const studio = installPhotoMode({scene, camera, renderer, vehicle: rovG, world: () => W,
+  obstacles: () => [...(structureSet?.raycastMeshes() || []), ...(env ? [env.group] : [])],
+  onPhoto: () => results.photo(S?.t),
+  aids: () => [guide, objG, routeLine, navTarget, curArrow, topMark],
+  pad: () => input.padSnapshot(), model: () => activeModel?.model || placeholder,
+  resume: () => pauseMenu.releasePause()});
+const input = installInput({blocked: () => studio.active || freeDive?.blocked || prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
     || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
@@ -679,8 +688,8 @@ const input = installInput({blocked: () => freeDive?.blocked || prologueControls
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 const onboarding = installOnboarding({input, readOnly: !!REPLAY});
-const pauseMenu = installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
-  extraActions: () => [...(freeDive?.pauseActions() ?? procedurePanel.pauseActions()), ...careerDive.pauseActions()]});
+const pauseMenu = installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding, studio,
+  extraActions: () => [...(freeDive?.pauseActions() ?? procedurePanel.pauseActions()), ...careerDive.pauseActions(), ...results.pauseActions()]});
 installFeedbackReport({
   input,
   getState: () => S,
@@ -722,7 +731,7 @@ function inputTick() {
   if (rep && S?.rc) for (const c of CH) out[c] = clamp(((S.rc[c] ?? 1500) - 1500) / 500, -1, 1);   // replay: recorded sticks
   const msg = rcMessage();
   // Replay must not send RC or keep the worker repeating a packet (AGENTS.md input heartbeat).
-  const live = !REPLAY && !document.hidden && !!session && !needResync;
+  const live = !REPLAY && !studio.active && !document.hidden && !!session && !needResync;
   rcPump.offer(msg, { live, generation: S?.controller?.generation });
   $('padInfo').textContent = S?.controller
     ? (S.controller.connected ? 'Q-iRC USB 已連接 · 搖桿、波輪、模式、燈光與功能鍵可用' : S.controller.reason)
@@ -1132,8 +1141,8 @@ function setReplayTime(t, {pause} = {}) {
 }
 async function startReplay(url) {
   setConn('wait', '載入回放…'); connectionNotice.connected();
-  let data;
-  try { data = url.startsWith('local:')?await readReplay(url.slice(6)):await (await fetch(url)).json(); } catch (e) { setConn('stop', '回放檔載入失敗');cockpit.message({message:e.message}); return; }
+  const source = url.startsWith('local:') ? await readReplay(url.slice(6)) : await (await fetch(url)).json();
+  const data = validateReplay(source);
   rep = { data, ci: 0, t: 0, playing: true, speed: 1, endHold: 0 };
   document.body.classList.add('replaying');
   data.clips.forEach(prepClip);
@@ -1259,7 +1268,8 @@ const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
 const shaderWarmup = createShaderWarmup({renderer, scene, camera});
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
-function frame(now) {
+const frame = REPLAY ? guardPlayback(renderFrame) : renderFrame;
+function renderFrame(now) {
   linkInbox.flush();
   if (!CAPTURE && skipFrame(now)) {
     requestAnimationFrame(frame);
@@ -1267,6 +1277,10 @@ function frame(now) {
   }
   const frameSeconds=Math.max(0,(now-last)/1000);
   const dt = Math.min(.25, frameSeconds); last = now;
+  if (studio.frame(dt)) {
+    requestAnimationFrame(frame);
+    return;
+  }
   updateRenderQuality(renderer,frameSeconds,{suspended:CAPTURE||!!cockpit.recording||introActive()});
   // pose (smoothed toward latest state)
   replayTick(dt);

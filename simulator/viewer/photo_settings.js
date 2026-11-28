@@ -1,0 +1,36 @@
+// Shared photo-mode labels and fidelity registration for the menu and dive viewer.
+import {registerFidelityItem} from './fidelity.js';
+import {localize} from './i18n/index.js';
+
+export const STRINGS = localize('photo_mode', {
+  "photoMode": "拍照模式",
+  "photoModeHelp": "暫停單人潛航，自由取景。",
+  "lens": "焦距 (mm)",
+  "aperture": "光圈直徑 (cm)",
+  "exposure": "曝光 (EV)",
+  "tone": "色調",
+  "doc": "紀錄片",
+  "clear": "清澈",
+  "night": "夜間",
+  "save": "儲存 PNG",
+  "close": "返回潛航",
+  "hud": "隱藏控制介面",
+  "hint": "WASD／左桿移動 · 方向鍵／右桿轉向 · Q E／肩鍵升降 · H／Y 顯示介面 · 方向十字鍵調整 · A 拍照 · B 返回",
+  "failed": "無法儲存照片",
+  "photo": "拍照",
+  "saved": "已儲存 PNG",
+  "steamFailed": "PNG 已儲存，Steam 截圖庫同步失敗。",
+  "corrupt": "無法讀取這段重播",
+  "menu": "返回主選單",
+  "endDive": "結束潛航並回放",
+  "replays": "潛水重播",
+  "empty": "尚無潛水重播。"
+});
+
+registerFidelityItem({
+  id: 'photoMode', descriptionKey: 'photoModeHelp', type: 'toggle',
+  defaults: {real: false, assisted: true}, exceedsReal: true,
+}, {
+  get photoMode() { return STRINGS.photoMode; },
+  get photoModeHelp() { return STRINGS.photoModeHelp; },
+});
