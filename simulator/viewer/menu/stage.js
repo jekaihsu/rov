@@ -286,7 +286,9 @@ export function createStage(host, { quality = 'auto' } = {}) {
   }
   const skipFrame = createFrameGate();
   function frame(now) {
-    if (skipFrame(now)) {
+    const covered = document.getElementById('cinematicPlayer');
+    if (covered) last = now;
+    if (covered || skipFrame(now)) {
       requestAnimationFrame(frame);
       return;
     }

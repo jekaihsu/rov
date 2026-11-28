@@ -48,9 +48,9 @@ class BeatRun:
         evidence = self.evidence(sim, node)
         condition = node.get('condition')
         passed = condition and matches(condition, {**sim.viewer_state(), **evidence})
-        if not passed and sim.t - self.since < node['limit']:
+        if not node.get('storyboard') and not passed and sim.t - self.since < node['limit']:
             return None
-        target = node['next'] if passed else node.get('timeout', node['next'])
+        target = node['next'] if passed or node.get('storyboard') else node.get('timeout', node['next'])
         if msg.get('next') != target:
             return None
         self.missed = bool(condition and not passed)

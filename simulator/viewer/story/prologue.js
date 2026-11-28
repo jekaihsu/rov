@@ -1,6 +1,7 @@
 // Stage the training watch against the host's active beat and live vehicle telemetry.
 import {showCableHandover} from './cable_handover.js';
 import * as THREE from 'three';
+import {playBoard} from './cinematic/player.js';
 import {beatDecision, idleReminder} from './beat_director.js';
 import {createBeatStage, establishingShot, presentStage} from './beat_stage.js';
 import {createCinematicLook} from './cutscene_look.js';
@@ -36,14 +37,22 @@ function wallPlate(id, [north, east, depth]) {
   return plate;
 }
 
+export function activeStoryboard(state) {
+  const campaign = state?.campaign;
+  return campaign?.directed && campaign.status === 'active' && campaign.node?.storyboard;
+}
+
 export function prologueControlsBlocked(state) {
   const campaign = state?.campaign;
-  return campaign?.directed && campaign.status === 'active' && (campaign.node?.cinematic || campaign.node?.card);
+  return campaign?.directed && campaign.status === 'active'
+    && (campaign.node?.cinematic || campaign.node?.card || campaign.node?.storyboard);
 }
 
 export function installPrologue({input, send, camera, scene, rovG, setCam, music}) {
   const look = createCinematicLook();
   const voice = installVoice();
+  let playback;
+  let filmEnded;
   let stage;
   let chapter;
   let removeInsert;
@@ -79,13 +88,11 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   }
 
   function enter(node, s) {
+    playback?.abort();
+    playback = null;
+    filmEnded = false;
     removeInsert?.();
     removeInsert = s.repair_report && node.cinematic ? showCableHandover(stage, s) : null;
-    if (chapter === 'c4_frame' && node.id === 'night') {
-      document.dispatchEvent(new CustomEvent('rov-chapter-handover', {
-        detail: {chapter: 'c4_frame', report: s.repair_report},
-      }));
-    }
     beat = node;
     entered = s.campaign.beat_since;
     lastInput = s.t;
@@ -111,6 +118,12 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     look.set(!!beat.cinematic);
     music.cue(beat.cue || null);
     nextLineAt = null;
+    if (beat.storyboard) {
+      voice.stop();
+      playback = new AbortController();
+      playBoard(beat.storyboard, {signal: playback.signal, onEnd() { filmEnded = true; }});
+      return;
+    }
     if (beat.id === 'receipt' && s.repair_report) {
       const records = s.repair_report.observations;
       const complete = chapter === 'c4_frame' ? records.housing : records.shore_end && records.sea_end;
@@ -132,6 +145,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   }
 
   function clear() {
+    playback?.abort();
+    playback = null;
     if (!stage) return;
     removeInsert?.();
     removeInsert = null;
@@ -173,6 +188,7 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
       if (plates.length) scene.add(...plates);
     }
     if (beat?.id !== c.node.id || s.t < entered) enter(c.node, s);
+    if (beat.storyboard && !filmEnded) return;
     const presented = performance.now() / 1000 - shotStart;
     const age = beat.cinematic || beat.card ? Math.min(presented, s.t - entered) : s.t - entered;
     if (nextLineAt !== null && s.t >= nextLineAt) {
@@ -220,7 +236,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     }
     stage.stamp.classList.toggle('visible', s.t < stampedUntil);
     stage.radio.classList.toggle('speaking', s.t < radioUntil && !beat.card);
-    const next = beatDecision(beat, age, {...s, drift: c.drift, framedPhoto: c.framedPhoto});
+    const next = beat.storyboard ? beat.next
+      : beatDecision(beat, age, {...s, drift: c.drift, framedPhoto: c.framedPhoto});
     if (next && host && s.t >= retryAt) {
       retryAt = s.t + 0.4;
       send({type: 'operation', action: 'campaign_advance', beat: beat.id, next});
