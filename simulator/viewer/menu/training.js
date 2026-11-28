@@ -1,6 +1,6 @@
-import { internalLabel } from './front_page.js';
 // Training screen: internal course map (S6), story chapters, incident drills, and
 // scenario training. The course map is hidden on the Steam edition.
+import { internalLabel } from './front_page.js';
 import { chapterStatus, chaptersByCategory, trainingScenarios } from './catalogue.js';
 import { chapterCard, scenarioCard } from './cards.js';
 import { createSettingsPanel } from './settings.js';

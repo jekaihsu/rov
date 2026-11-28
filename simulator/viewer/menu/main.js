@@ -339,6 +339,7 @@ function lastSummary() {
 }
 // replay: 重玩開場 from the story list (story/cold_open_menu.js); it does not become the 快速開始 session.
 function launch({ replay = false } = {}) {
+  if (menu.classList.contains('departing')) return;
   let url;
   try {
     const prologue = { mission: 'campaign', chapter: 'prologue', scenario: 'tutorial_pool' };
@@ -351,6 +352,7 @@ function launch({ replay = false } = {}) {
   if (!replay) rememberChoice(choice);
   setStatus(STRINGS.launching);
   menu.classList.add('departing');
+  navigator.setActive(false);
   installAudio().cue('complete');
   stage.setPose('launch');
   music.setScreen(null);

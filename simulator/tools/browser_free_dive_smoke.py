@@ -4,13 +4,13 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from _browser import http_base, launch, timeout, ws_base
-from _menu import open_main, soft_click, wait_screen
+from _menu import open_internal, soft_click, wait_screen
 
 
 def run(page):
     page.on("pageerror", lambda error: print("page error:", error, flush=True))
     page.goto(f"{http_base(8092)}/?ws={ws_base(8792)}&quality=performance")
-    open_main(page)
+    open_internal(page)
     soft_click(page, "#entry-freeDive")
     wait_screen(page, "sites")
     assert page.locator('[data-site="korean_castle"]').count() == 0

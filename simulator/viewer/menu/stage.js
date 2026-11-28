@@ -275,11 +275,6 @@ export function createStage(host, { quality = 'auto' } = {}) {
   let raf = 0;
   let crewLib = null;
   let crewTicket = 0;
-  Humanoid.load('models/worker.glb').then(function ready(lib) {
-    if (!disposed) crewLib = lib;
-  }).catch(function ignored() {
-    crewLib = null;
-  });
   // The fog set by setSea (SEA or SHOWCASE.fog); site cards widen it per frame and other poses restore it.
   let sea = SEA;
   // Large vehicles push the hangar camera back so they are never cropped (1 = the size the poses were set for).
@@ -459,8 +454,8 @@ export function createStage(host, { quality = 'auto' } = {}) {
   }
   function dressJournal(world) {
     clearDressing();
-    if (!journal) return;
     const ticket = ++crewTicket;
+    if (!journal) return;
     const floorY = seabed + 0.03;
     layWorksite(floorY);
     const deck = (world.obstacles || []).find(function jetty(obstacle) {

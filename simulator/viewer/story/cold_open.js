@@ -464,6 +464,10 @@ export function installColdOpen({
   return {
     update,
     frame,
+    // The opaque opening and closing card cover the camera. Radio, input and the director still tick.
+    get coversCamera() {
+      return !view || view.beat === 'black' || ended;
+    },
     get active() {
       return !ended;
     },
