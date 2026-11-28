@@ -3,7 +3,9 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-from _browser import http_base, launch, timeout, ws_base
+from _browser import http_base, launch, timeout, without_render, ws_base
+from _campaign_drive import unlock_again
+from browser_prologue_smoke import flight_keys
 from _menu import open_main, soft_click, wait_screen
 
 
@@ -27,11 +29,22 @@ def run(page):
     print("first", first, flush=True)
     assert first and first["observation"]
     assert not page.evaluate("window.__viewer.S.tether.broken")
-    if page.evaluate("window.__viewer.S.locked"):
-        page.keyboard.press("Space")
-    page.keyboard.down("w")
-    page.wait_for_timeout(700)
-    page.keyboard.up("w")
+    keys = flight_keys(page)
+    with without_render(page):
+        if page.evaluate("window.__viewer.S.locked"):
+            unlock_again(page, keys["lock"])
+        page.wait_for_function("window.__viewer.S.locked === false")
+        start = page.evaluate("window.__viewer.S.pos.slice()")
+        page.keyboard.down(keys["surge"][0])
+        try:
+            moved = page.wait_for_function("""p => {
+                const s = window.__viewer.S;
+                const distance = Math.hypot(s.pos[0] - p[0], s.pos[1] - p[1]);
+                return !s.locked && s.thrust.some(v => Math.abs(v) > 0.01) && distance > 0.1 && distance;
+            }""", arg=start, timeout=timeout(20000))
+            print(f"Unlocked horizontal displacement: {moved.json_value():.3f} m", flush=True)
+        finally:
+            page.keyboard.up(keys["surge"][0])
     second = page.evaluate("window.__viewer.takePhoto()")
     print("second", second, flush=True)
     assert second and second["observation"]

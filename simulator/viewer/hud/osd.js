@@ -4,6 +4,7 @@
 // temperature, camera tilt) is left out rather than invented. Field labels stay short English abbreviations
 // like real inspection overlays (docs/reference/real-rov-research.md: VideoRay burns in "H" and "D"); the
 // lock and pause lines are instructions to the player, not burn-in, so they are in the player's language.
+import {STRINGS as FREE_DIVE} from '../free_dive_copy.js';
 import {linePull} from '../tether/feel.js';
 import { localize } from '../i18n/index.js';
 
@@ -98,7 +99,8 @@ function diveLine(s, w) {
   const items = [];
   const dive = s.expedition?.dive_id;
   if (dive) items.push(`${STRINGS.dive} ${String(dive).slice(0, 6).toUpperCase()}`);
-  if (w?.scenario?.name) items.push(w.scenario.name);
+  if (document.body.classList.contains('free-dive')) items.push(FREE_DIVE.title);
+  else if (w?.scenario?.name) items.push(w.scenario.name);
   return items.join(' · ');
 }
 

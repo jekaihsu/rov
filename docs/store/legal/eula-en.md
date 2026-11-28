@@ -21,7 +21,7 @@ In-game companies, licences, progress and scores apply only within this title an
 
 ## 4. Privacy and networking
 
-The game itself does not collect personal data. Apart from Steam platform features (sign-in, achievements, cloud saves, anti-cheat or store services), the game does not initiate connections to developer servers. See the Privacy Policy draft.
+The game itself does not collect personal data. Apart from Steam platform features (sign-in, achievements, cloud saves or store services), the game does not initiate connections to developer servers. The internal edition supports multiplayer over a local network. See the Privacy Policy draft.
 
 ## 5. Saves
 

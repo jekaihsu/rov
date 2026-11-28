@@ -411,6 +411,9 @@ html[data-menu-input] .menu-toggle input:focus + .menu-switch { outline: 1px sol
 
 .free-dive-list { position: fixed; bottom: 5rem; right: 1rem; z-index: var(--z-hud);
   padding: .5rem .85rem; border: 1px solid #6d949a; color: #eaf4f7; background: #102931e0; }
+@media (max-width: 1050px) {
+  .free-dive-list { bottom: 1%; right: 4%; }
+}
 .free-dive-log { max-height: 75vh; max-width: min(32rem, 85vw); padding: 2rem; overflow: auto;
   background: #122933; color: #edf4f4; border: 1px solid #70969d; }
 .free-dive-log::backdrop { background: #03121bba; }

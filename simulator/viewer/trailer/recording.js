@@ -4,9 +4,11 @@
 
 import {evaluateCameraPath} from './camera_path.js';
 
-const STRINGS = {
+import {localize} from '../i18n/core.js';
+
+const STRINGS = localize('trailer.recording', {
   recording: '錄影模式',
-};
+});
 
 /** HUD parts a storyboard may keep on screen. Tools / cards / target aids stay off. */
 export const TRAILER_HUD_PARTS = Object.freeze([
@@ -187,7 +189,9 @@ export function installTrailerRecording({
 
   const api = {
     enabled: true,
-    label: STRINGS.recording,
+    get label() {
+      return STRINGS.recording;
+    },
     frame,
     suppressAids,
     hideTargets() {

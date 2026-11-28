@@ -95,14 +95,16 @@ the two piano edits were subsequently looped and re-encoded for U3 (below). Sour
 
 Credit is not required by any of these licences; it is given here for provenance.
 
-### U3 選單與場景環境底
+### U3 menu and site ambience
 
-下表使用 Freesound 作者發佈的高品質預覽。甲板將前兩筆混合；港口收窄頻帶以呈現遠船，
-養殖場保留水槽氣泡，風場使用洪水錄音的水下效果，沉船使用放慢的金屬聲。
-兩首既有巴哈鋼琴曲的錄音授權見上表；U3 另行製作循環接縫並以 −23 LUFS、64 kbps Opus 重編。
-精確的來源雜湊、取樣區間及增益見 `simulator/tools/audio_u3_sources.json` 與 `build_audio_u3.py`。
+The tracks below use the high-quality previews published by their Freesound authors. The deck mixes
+surf and engine recordings. The harbor uses a narrow frequency band to suggest a distant ship.
+The farm retains the tank bubbles, the wind farm uses the underwater effect from the waterfall recording,
+and the wreck uses slowed metal creaks. The two Bach recordings credited above were edited for seamless
+loops and re-encoded as 64 kbps Opus at −23 LUFS. Source hashes, sample intervals and gain settings are
+in `simulator/tools/audio_u3_sources.json` and `build_audio_u3.py`.
 
-| 發行檔 | 原素材標題 | 作者 | 錄音授權證明 |
+| Shipped file | Source title | Author | Recording licence evidence |
 |---|---|---|---|
 | `ambience/deck.opus` | surf waves seagulls australia | moto_harmony | [CC0 1.0](https://freesound.org/people/moto_harmony/sounds/201284/) |
 | `ambience/deck.opus` | Engine Ship Ambience | Wakerone | [CC0 1.0](https://freesound.org/people/Wakerone/sounds/417555/) |

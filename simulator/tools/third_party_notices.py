@@ -8,9 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 from dataclasses import dataclass, field
-from importlib import metadata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,10 +23,18 @@ PACKAGE_JSON = DESKTOP / 'package.json'
 LOCK_JSON = DESKTOP / 'package-lock.json'
 
 # Backend packages copied into the frozen desktop build (build_backend.py).
-PYTHON_PACKAGES = (
-    'numpy', 'numba', 'llvmlite', 'websockets', 'pyinstaller', 'jsonschema',
-    'jsonschema-specifications', 'referencing', 'rpds-py', 'attrs',
-)
+PYTHON_LICENSES = {
+    'numpy': 'BSD-3-Clause',
+    'numba': 'BSD-2-Clause',
+    'llvmlite': 'BSD-2-Clause AND Apache-2.0 WITH LLVM-exception',
+    'websockets': 'BSD-3-Clause',
+    'pyinstaller': 'GPL-2.0-or-later with Bootloader exception',
+    'jsonschema': 'MIT',
+    'jsonschema-specifications': 'MIT',
+    'referencing': 'MIT',
+    'rpds-py': 'MIT',
+    'attrs': 'MIT',
+}
 
 # Project allow-list: MIT / BSD / Apache / zlib / CC0 / public domain (AGENTS.md).
 STRICT_ALLOWED_PATTERNS = (
@@ -80,52 +86,17 @@ def license_allowed(text: str) -> bool:
     return False
 
 
-def _pkg_meta(name: str) -> tuple[str, str, str]:
-    try:
-        dist = metadata.distribution(name)
-    except metadata.PackageNotFoundError:
-        return 'missing', 'unknown', ''
-    version = dist.version
-    license_text = dist.metadata.get('License-Expression') or dist.metadata.get('License') or 'unknown'
-    source = dist.metadata.get('Home-page') or ''
-    if not source:
-        for row in dist.metadata.get_all('Project-URL') or []:
-            if ',' in row:
-                label, url = row.split(',', 1)
-                if label.strip().lower() in ('homepage', 'source', 'repository'):
-                    source = url.strip()
-                    break
-            elif row.startswith('http'):
-                source = row.strip()
-                break
-    return version, _norm_license(license_text)[:200], source
-
-
 def collect_npm(report: Report) -> None:
     package = json.loads(PACKAGE_JSON.read_text(encoding='utf8'))
-    lock = json.loads(LOCK_JSON.read_text(encoding='utf8')) if LOCK_JSON.is_file() else {}
-    packages = lock.get('packages') or {}
+    packages = json.loads(LOCK_JSON.read_text(encoding='utf8'))['packages']
     declared = {}
     declared.update(package.get('dependencies') or {})
     declared.update(package.get('devDependencies') or {})
-    for name, range_ in sorted(declared.items()):
-        key = f'node_modules/{name}'
-        entry = packages.get(key) or {}
-        version = entry.get('version') or str(range_).lstrip('^~')
-        license_text = entry.get('license') or 'unknown'
-        source = ''
-        local = DESKTOP / 'node_modules' / name / 'package.json'
-        if local.is_file():
-            meta = json.loads(local.read_text(encoding='utf8'))
-            version = meta.get('version') or version
-            license_text = meta.get('license') or license_text
-            repo = meta.get('repository')
-            if isinstance(repo, dict):
-                source = repo.get('url') or ''
-            elif isinstance(repo, str):
-                source = repo
-            source = source or meta.get('homepage') or ''
-        source = source.replace('git+', '').replace('git://', 'https://').rstrip('.git')
+    for name in sorted(declared):
+        entry = packages[f'node_modules/{name}']
+        version = entry['version']
+        license_text = entry.get('license', 'unknown')
+        source = entry.get('resolved') or f'https://www.npmjs.com/package/{name}'
         notice = Notice(name, version, _norm_license(str(license_text)), source, 'npm')
         notice.allowed = license_allowed(notice.license)
         report.notices.append(notice)
@@ -153,16 +124,17 @@ def collect_npm(report: Report) -> None:
 
 
 def collect_python(report: Report) -> None:
-    for name in PYTHON_PACKAGES:
-        version, license_text, source = _pkg_meta(name)
-        notice = Notice(name, version, license_text, source, 'python')
-        if name == 'pyinstaller' and version == 'missing':
-            notice.version = '6.x (packaging env)'
-            notice.license = 'GPL-2.0-or-later with Bootloader exception'
-            notice.source = 'https://pyinstaller.org/'
-            notice.notes = 'Used only to freeze the backend; output redistributable under the bootloader exception.'
-        if name == 'numpy' and 'redistribution and use' in notice.license.lower():
-            notice.license = 'BSD-3-Clause'
+    versions = {}
+    for filename in ('requirements-server.txt', 'requirements-desktop.txt'):
+        for line in (SIM / filename).read_text(encoding='utf8').splitlines():
+            match = re.fullmatch(r'([\w-]+)([<>=!~].*)', line.strip())
+            if match:
+                versions[match[1]] = match[2].removeprefix('==')
+    for name, license_text in PYTHON_LICENSES.items():
+        version = versions.get(name, '(transitive, unpinned)')
+        notice = Notice(name, version, license_text, f'https://pypi.org/project/{name}/', 'python')
+        if name == 'pyinstaller':
+            notice.notes = 'Used to freeze the backend under the bootloader exception.'
         notice.allowed = license_allowed(notice.license)
         # Python interpreter itself is PSF; call it out when we record the runtime.
         report.notices.append(notice)
@@ -170,7 +142,7 @@ def collect_python(report: Report) -> None:
             report.disallowed.append(notice)
     py = Notice(
         'Python',
-        f'{sys.version_info.major}.{sys.version_info.minor}',
+        '3.11 (desktop build)',
         'PSF License (Python Software Foundation)',
         'https://www.python.org/',
         'python',
@@ -182,18 +154,11 @@ def collect_python(report: Report) -> None:
 
 
 def collect_three(report: Report) -> None:
-    license_path = VIEWER / 'vendor' / 'three' / 'LICENSE'
-    package = DESKTOP / 'node_modules' / 'three' / 'package.json'
-    version = '0.160.0'
-    if package.is_file():
-        version = json.loads(package.read_text(encoding='utf8')).get('version', version)
-    license_text = 'MIT'
-    if license_path.is_file() and 'MIT' in license_path.read_text(encoding='utf8'):
-        license_text = 'MIT'
+    three = next(entry for entry in report.notices if entry.kind == 'npm' and entry.name == 'three')
     notice = Notice(
         'three.js',
-        version,
-        license_text,
+        three.version,
+        three.license,
         'https://github.com/mrdoob/three.js',
         'three.js',
         notes='Vendored under simulator/viewer/vendor/three (Water.js, Sky.js and core).',
@@ -311,6 +276,12 @@ def collect_models(report: Report) -> None:
 def collect_all() -> Report:
     report = Report()
     collect_npm(report)
+    steam = Notice(
+        'steam_api64.dll', 'bundled with steamworks.js', 'Valve Steamworks SDK licence',
+        'https://partner.steamgames.com/doc/sdk/api', 'native runtime', allowed=False,
+    )
+    report.notices.append(steam)
+    report.disallowed.append(steam)
     collect_python(report)
     collect_three(report)
     collect_fonts(report)

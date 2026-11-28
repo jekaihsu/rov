@@ -1,3 +1,5 @@
+// Loads and crossfades looping deck and underwater recordings as the dive site changes.
+
 // Select the field recording from the deployed world. Unknown sites retain the engine's synthesized bed.
 function siteBed(world) {
   const biome = world?.scenario?.biome;
