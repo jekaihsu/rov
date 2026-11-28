@@ -37,7 +37,7 @@ import { DeployIntro } from './deploy_intro.js';
 import { SpoolStation } from './spool_station.js';
 import { placeSceneModel } from './scene_models.js';
 import { Cable } from './cable.js';
-import { Environment } from './environment.js';
+import { buildDiveEnvironment, createFallbackSeabed } from './environment.js';
 import {updatePenNet} from './aquaculture.js';
 import { buildStructures, structureDetail } from './structures.js';
 import { obstacleDistance } from './structure_sdf.js';
@@ -48,7 +48,7 @@ import { Fleet } from './fleet.js';
 import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
-import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
+import {updateRenderQuality, renderQualityInfo, canvasAntialias} from './render_quality.js';
 import {installFreeDive} from './free_dive.js';
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
@@ -88,6 +88,9 @@ import { createWorldLabels } from './hud/world_labels.js';
 import { elementSize } from './hud/canvas.js';
 import { cssVariable } from './hud/css_variables.js';
 import { createShaderWarmup } from './shader_warmup.js';
+import { createWorldBuildQueue } from './world_build_queue.js';
+import { installCableTubeGate } from './cable_quality.js';
+import { isIdleCover } from './idle_cover.js';
 import { installTrailerRecording } from './trailer/recording.js';
 
 const $ = (id) => document.getElementById(id);
@@ -126,15 +129,7 @@ const daylightRig = createDaylight(scene);   // sun, sky light, sky and sea abov
 // structures are dim blue shapes and the ROV's lights make the difference
 function daylight(depth) { return 0.1 + 0.9 * Math.exp(-Math.max(0, depth) / 10); }
 
-// seabed + grid
-const seabed = new THREE.Group(); scene.add(seabed);
-{
-  const g = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshStandardMaterial({ color: 0x4a4636, roughness: 1 }));
-  g.rotation.x = -Math.PI / 2; seabed.add(g); seabed.userData.plane = g;
-  const grid = new THREE.GridHelper(200, 100, 0x6a7a66, 0x39443a); grid.position.y = 0.02; seabed.add(grid);
-  const big = new THREE.GridHelper(800, 40, 0x7d8a70, 0x7d8a70); big.position.y = 0.03; seabed.add(big);
-}
-seabed.position.y = -30;
+const seabed = createFallbackSeabed(scene);
 // sea surface
 const surface = new THREE.Mesh(new THREE.PlaneGeometry(800, 800),
   new THREE.MeshBasicMaterial({ color: 0x6fc3d8, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }));
@@ -247,7 +242,8 @@ const objG = new THREE.Group(); scene.add(objG);
 let objMarkers = [];
 let structureSet = null;                // structures.js: detailed meshes drawn inside the collision shapes
 
-const spoolStation = new SpoolStation(scene, () => loadIntroAssets());
+const spoolStation = new SpoolStation(scene, () => loadIntroAssets(), renderer);
+const worldQueue = createWorldBuildQueue({budgetMs: 8});
 let env = null;
 function buildWorld() {
   surfacePaint.update(null);
@@ -256,10 +252,7 @@ function buildWorld() {
   worldG.clear(); obstacleMeshes.clear();
   if (env) env.dispose();
   const detail = structureDetail(renderer);
-  env = params.has('noenv') ? null : new Environment(scene, W, {detail});
-  seabed.userData.plane.visible = !env;                         // the environment brings its own sand
-  seabed.userData.plane.userData.paintable=true;
-  seabed.position.y = -W.seabed_depth;
+  env = buildDiveEnvironment(scene, W, detail, seabed, worldQueue, params.has('noenv'));
   structureSet?.dispose();
   structureSet = buildStructures(W, {detail});
   worldG.add(structureSet.group);
@@ -321,8 +314,9 @@ brokenLine.frustumCulled = false; brokenLine.visible = false; scene.add(brokenLi
 const tubeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .55, metalness: 0 });
 const GLAND_LOCAL = new THREE.Vector3(0, .06, -.38);   // tether.py GLAND_BODY (FRD -0.38, 0, -0.06) in model space
 let tetherTarget = [], tetherDisp = [], tetherInfo = null;
-const cable = new Cable(tubeMat, { radius: .0065, segments: 240, radial: 8, colors: true });
+const cable = new Cable(tubeMat);
 scene.add(cable.mesh);
+const cableTube = installCableTubeGate(cable, renderer);
 const contactMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff4757 }), 256);
 contactMesh.count = 0; contactMesh.frustumCulled = false; scene.add(contactMesh);
 const wrapG = new THREE.Group(); scene.add(wrapG);
@@ -1048,6 +1042,8 @@ function renderTether(dt) {
   for (let i = 0; i < n; i++) { lp[i * 3] = tetherDisp[i].x; lp[i * 3 + 1] = tetherDisp[i].y; lp[i * 3 + 2] = tetherDisp[i].z; }
   tetherLine.geometry.attributes.position.needsUpdate = true;
   if (t.broken) { cable.hide(); return; }
+  // Thick tube rebuild is the expensive part; the thin polyline above stays every frame for snag readability.
+  if (!cableTube.shouldRebuild(performance.now())) return;
   cable.update(tetherDisp, (s, out) => cableTensionColor(t, s, tetherDisp, out));
 }
 
@@ -1257,10 +1253,13 @@ const freeDive = installFreeDive({params, rc, camera, rovG, setCam, radio: proce
 const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio: procedurePanel.radio,
   onboard: () => camMode === 'onboard'});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
-const shaderWarmup = createShaderWarmup({renderer, scene, camera});
+const shaderWarmup = createShaderWarmup({renderer, scene, camera, getLamps: () => leds, getEnvironment: () => env});
+const _topMarkLift = new THREE.Vector3(0, .6, 0);
+const _curArrowLift = new THREE.Vector3(0, .55, 0);
 let last = performance.now(), fpsN = 0, fpsT = 0, fps = 0;
 function frame(now) {
   linkInbox.flush();
+  worldQueue.update(now);
   if (!CAPTURE && skipFrame(now)) {
     requestAnimationFrame(frame);
     return;
@@ -1293,7 +1292,7 @@ function frame(now) {
   const camDepth = clamp(-camera.position.y, 0, 60);
   installUnderwaterPipeline(renderer, { surface });
   applyUnderwaterLighting(scene, S, renderer);
-  shaderWarmup.update(now);
+  shaderWarmup.update(now, {idleCover: isIdleCover({coldOpen})});
   fleet.update(dt);
   _wc.copy(waterSurf).lerp(waterDeep, 1 - Math.exp(-camDepth / 13));
   siltFx.update({camera, state: S, world: W, waterColour: _wc, real: $('optFog').checked && camMode !== 'top',
@@ -1308,11 +1307,11 @@ function frame(now) {
   topMark.visible = camMode === 'top';
   if (topMark.visible) {
     _f.set(0, 0, 1).applyQuaternion(rovG.quaternion);
-    topMark.position.copy(rovG.position).add(new THREE.Vector3(0, .6, 0));
+    topMark.position.copy(rovG.position).add(_topMarkLift);
     topMark.rotation.set(-Math.PI / 2, 0, Math.atan2(-_f.x, -_f.z), 'XYZ');
     topMark.scale.setScalar(cameraRig.topH / 22);
   }
-  curArrow.position.copy(rovG.position).add(new THREE.Vector3(0, .55, 0));
+  curArrow.position.copy(rovG.position).add(_curArrowLift);
   // objectives + guide line
   const cur = updateObjectives(now / 1000);
   const gp = guide.geometry.attributes.position.array;

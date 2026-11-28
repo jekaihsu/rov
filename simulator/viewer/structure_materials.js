@@ -324,12 +324,13 @@ function foulingShader(params, textures) {
 /** Scanned colour and normal (roughness in alpha) maps; painted steel reads its colour through SCAN_COAT. */
 function addScanMaps(material, params, normals = true, detail = 'medium') {
   const repeat = params.repeat ?? 1 / SCAN_TILE[params.scan];
-  material.map = scanTexture(`${params.scan}_c`, {repeat, mask: !!params.alphaTest}, function assignMap(texture) {
+  const size = detail === 'high' ? 0 : 512;
+  const options = {repeat, size, mask: !!params.alphaTest};
+  material.map = scanTexture(`${params.scan}_c`, options, function assignMap(texture) {
     material.map = texture;
   });
   material.color.setHex(params.scanColor ?? 0xffffff);   // raw scan colour, tinted
   if (!normals) return;
-  const size = detail === 'high' ? 0 : 512;      // medium: half-resolution relief
   material.normalMap = scanTexture(`${params.scan}_n`, {repeat, size}, function assignNormal(texture) {
     material.normalMap = texture;
   });

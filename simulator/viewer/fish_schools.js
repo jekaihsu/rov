@@ -39,6 +39,8 @@ const PEN_BAND = [3.0, 2.2, 14];
 const SIZE_SPREAD = 0.15;
 const COLOUR_SPREAD = 0.1;
 const DRAW_DISTANCE = 55;
+// Far cards (beyond the distance LOD range) only need a swimming silhouette; 12 Hz is enough and cuts CPU on pens.
+const FAR_CARD_HZ = 12;
 // Free-swimming schools of 0.3 m fish: a loose band about 2 m across, 0.8 m deep and 2.4 m along the track, with
 // at least this much space between fish centres (about 1.5 body lengths, from net-pen and mackerel footage).
 // Larger species spread in proportion to their length.
@@ -157,9 +159,10 @@ function freeSchoolPlacer(school) {
 }
 
 function penSchoolPlacer(school) {
-  const turn = penTurn(school);
+  // Read turn from the live school each placement: caching penTurn() at build time would lock the initial
+  // placeholder velocity (0, 0, 0.3) and face some farms the wrong way once the server velocity arrives.
   return function placeFarmFish(item, t, position, euler) {
-    placePenFish(school, item, t, turn, position, euler);
+    placePenFish(school, item, t, penTurn(school), position, euler);
     euler.z = 0;
   };
 }
@@ -232,7 +235,11 @@ function writeSchool(school) {
     const level = LEVELS[stage.level[i]];
     const mesh = school.meshes[level];
     const slot = used[level]++;
-    mesh.instanceMatrix.array.set(stage.matrices.subarray(i * 16, i * 16 + 16), slot * 16);
+    const dst = mesh.instanceMatrix.array;
+    const src = stage.matrices;
+    const from = i * 16;
+    const to = slot * 16;
+    for (let k = 0; k < 16; k++) dst[to + k] = src[from + k];
     mesh.geometry.attributes.aSwim.setXYZ(slot, stage.swim[i * 3], stage.swim[i * 3 + 1], stage.swim[i * 3 + 2]);
     mesh.setColorAt(slot, school.fish[i].colour);
   }
@@ -292,7 +299,14 @@ export function createSharedSchools(group, world, detail, worldSeed) {
     mesh: school.mesh}));
   const entries = schools.flatMap((school) => school.fish.map((_, index) => ({school, index})));
   const visibleEntries = [];
+  const byId = new Map(schools.map((school) => [school.id, school]));
   const track = vehicleTracker();
+  // Placers are stable per school (heading is read through the school object); allocating them every frame
+  // was a measurable GC cost on the pen site.
+  for (const school of schools) {
+    school.place = school.farm ? penSchoolPlacer(school) : freeSchoolPlacer(school);
+    school.farAcc = 0;
+  }
   const ready = Promise.all([...new Set(schools.map((school) => school.species))].map(
     (species) => upgradeSpecies(schools, species))).then((results) => results.every(Boolean));
   return {
@@ -304,20 +318,39 @@ export function createSharedSchools(group, world, detail, worldSeed) {
       const live = state?.environment?.fish_schools || [];
       const vehicle = track(state, dt);
       this.vehicle = vehicle;
+      for (const item of live) {
+        const school = byId.get(item.id);
+        if (!school) continue;
+        school.target.copy(P(item.pos));
+        school.vel.copy(P(item.vel));
+      }
       for (const school of schools) {
-        const server = live.find((item) => item.id === school.id);
-        if (server) {
-          school.target.copy(P(server.pos));
-          school.vel.copy(P(server.vel));
-        }
+        school.dirty = false;
         school.pos.copy(school.target);
         school.visible = school.pos.distanceTo(camera.position) < DRAW_DISTANCE;
         school.mesh.visible = school.visible;
-        if (!school.visible) continue;
-        steerSchool(school, dt);
-        const place = school.farm ? penSchoolPlacer(school) : freeSchoolPlacer(school);
+        if (!school.visible) {
+          school.uploaded = false;
+          continue;
+        }
+        const near = school.pos.distanceTo(camera.position) < (lod.distanceRange + 4);
+        // Always stage once so the first visible frame has valid matrices; then far schools tick at FAR_CARD_HZ.
+        // Pass the accumulated interval so heading / swim phase advance at real time, not at 12 Hz × one frame.
+        let step = dt;
+        if (!near) {
+          school.farAcc += dt;
+          if (school.staged && school.farAcc < 1 / FAR_CARD_HZ) continue;
+          step = school.farAcc;
+          school.farAcc = 0;
+        } else {
+          school.farAcc = 0;
+        }
+        steerSchool(school, step);
         const base = Math.max(school.farm ? 0.3 : 0.15, school.vel.length());
-        updateSchoolMotion(school.motion, stageSink(school.stage, camera.position), dt, t, place, base, vehicle);
+        updateSchoolMotion(school.motion, stageSink(school.stage, camera.position), step, t, school.place, base,
+          vehicle);
+        school.staged = true;
+        school.dirty = true;
       }
       visibleEntries.length = 0;
       for (const entry of entries) {
@@ -325,7 +358,12 @@ export function createSharedSchools(group, world, detail, worldSeed) {
       }
       assignLevels(visibleEntries, lod);
       for (const school of schools) {
-        if (school.visible) writeSchool(school);
+        // Rewrite whenever motion ran, or the first time the school is visible (levels need a mesh upload).
+        if (school.visible && (school.dirty || !school.uploaded)) {
+          writeSchool(school);
+          school.dirty = false;
+          school.uploaded = true;
+        }
       }
     },
   };

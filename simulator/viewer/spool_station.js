@@ -14,13 +14,45 @@
 import * as THREE from 'three';
 import {Humanoid} from './humanoid.js';
 import {placeWorkBoat} from './deploy_intro.js';
+import {assetTextureTier} from './render_quality.js';
 import {surfacePlan} from './surface_set.js';
 import {hiddenByWater, localBoundingSphere} from './water_cull.js';
 
 const LABEL_LIFT = 1.2;
 
+// The dive boat is normally seen from below or at a distance. Keep its small texture set resident
+// across world rebuilds; the deployment close-ups continue to use the original shared asset.
+function stationMaterial(source, station) {
+  if (!source.map && !source.normalMap && !source.roughnessMap && !source.metalnessMap) return source;
+  if (station.materials.has(source)) return station.materials.get(source);
+  const material = source.clone();
+  for (const [slot, texture] of Object.entries(source)) {
+    if (!texture?.isTexture || !texture.image) continue;
+    let small = station.textures.get(texture);
+    if (!small) {
+      const image = texture.image;
+      const scale = Math.min(1, 128 / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      small = texture.clone();
+      small.source = new THREE.Source(canvas);
+      small.needsUpdate = true;
+      station.renderer.initTexture(small);
+      station.textures.set(texture, small);
+    }
+    material[slot] = small;
+  }
+  station.materials.set(source, material);
+  return material;
+}
+
 export class SpoolStation {
-  constructor(scene, loadAssets) {
+  constructor(scene, loadAssets, renderer = null) {
+    this.renderer = renderer;
+    this.materials = new WeakMap();
+    this.textures = new WeakMap();
     this.scene = scene;
     this.loadAssets = loadAssets;
     this.boat = null;
@@ -47,6 +79,14 @@ export class SpoolStation {
       this.crew.root.rotation.y = Math.PI * 0.85;
       this.crew.play('Idle', {at: 0.7});
       boat.add(this.crew.root);
+    }
+    if (assets.boat && this.renderer && assetTextureTier() === 'standard') {
+      boat.traverse(mesh => {
+        if (!mesh.isMesh) return;
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map(material => stationMaterial(material, this))
+          : stationMaterial(mesh.material, this);
+      });
     }
     this.boat = boat;
     this.sphere = localBoundingSphere(boat);

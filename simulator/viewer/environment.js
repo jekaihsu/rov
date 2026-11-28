@@ -88,6 +88,7 @@ export class Environment {
     this.t = 0;
     this.world = world;
     this.detail = options.detail || 'medium';
+    this._heavyDone = false;
     // Stable server identities, separate from draw buckets / instance ordering.
     // Read only at photo capture; no raycasts or observation work in update().
     this.observationTargets = [];
@@ -100,6 +101,16 @@ export class Environment {
     this.spool = P(world.spool || [0, 0, 0]).setY(0);
     this._footprints(world);
     this._terrain();
+    // deferHeavy: seabed + footprints first so the first dive frame can paint; habitat / surface / fish finish on
+    // later frames (work_queue in app.js), typically under a black screen or title card.
+    if (!options.deferHeavy) this.finishHeavy();
+  }
+
+  finishHeavy() {
+    if (this._heavyDone) return;
+    this._heavyDone = true;
+    const world = this.world;
+    const R = this.R;
     if (world.habitat) {
       this._habitat(world.habitat);
       this._sharedFish();
@@ -110,7 +121,7 @@ export class Environment {
       this._kelp(R);
       this._fish(R, world);
     }
-    this._structureLife(world, options.detail || 'medium');
+    this._structureLife(world, this.detail);
     this._surface(R);
   }
 
@@ -221,28 +232,34 @@ export class Environment {
         const a=n*ne+e,b=a+ne,c=a+1,d=b+1;
         indices.push(a,c,b,c,d,b);
       }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-      geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(indices); geo.computeVertexNormals();
-      const material = seabedMaterial(siteProfile(this.world), this.detail);
-      const terrain = new THREE.Mesh(geo,material);
-      terrain.userData.paintable=true;terrain.receiveShadow=true; this.group.add(terrain);
       // Extend clamped edge depths, matching the server's out-of-grid sampling.
       const edge = (points, outward) => {
-        const vertices=[], triangles=[], tex=[];
+        const offset = pos.length / 3;
         points.forEach(([n,e],i)=>{
           const base=new THREE.Vector3(-(t.origin[1]+e*t.spacing),-t.depths[n][e],t.origin[0]+n*t.spacing);
-          vertices.push(...base.toArray(),...base.clone().add(outward).toArray());tex.push(i,0,i,100);
-          if(i<points.length-1){const k=i*2;triangles.push(k,k+1,k+2,k+1,k+3,k+2);}
+          pos.push(...base.toArray(), ...base.clone().add(outward).toArray());
+          uv.push(i, 0, i, 100);
+          if (i < points.length - 1) {
+            const k = offset + i * 2;
+            indices.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
+          }
         });
-        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-        g.setAttribute('uv',new THREE.Float32BufferAttribute(tex,2));g.setIndex(triangles);g.computeVertexNormals();
-        const m=new THREE.Mesh(g,material);m.userData.paintable=true;m.material.side=THREE.DoubleSide;this.group.add(m);
       };
       edge(Array.from({length:ne},(_,e)=>[0,e]),new THREE.Vector3(0,0,-600));
       edge(Array.from({length:ne},(_,e)=>[nn-1,e]),new THREE.Vector3(0,0,600));
       edge(Array.from({length:nn},(_,n)=>[n,0]),new THREE.Vector3(600,0,0));
       edge(Array.from({length:nn},(_,n)=>[n,ne-1]),new THREE.Vector3(-600,0,0));
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      const material = seabedMaterial(siteProfile(this.world), this.detail);
+      material.side = THREE.DoubleSide;
+      const terrain = new THREE.Mesh(geo,material);
+      terrain.userData.paintable = true;
+      terrain.receiveShadow = true;
+      this.group.add(terrain);
       return;
     }
     // flat where the physics seabed is (the operating area), rising into dunes and banks beyond
@@ -432,27 +449,49 @@ export class Environment {
     if (flow) this.uniforms.uFlow.value.lerp(flow, 1 - Math.exp(-dt));
     updateKelpFlow(this.uniforms, flowField, this.uniforms.uFlow.value, -this.seabedY, performance.now());
     const under = camera.position.y < 0;
-    this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
-    for (const { rotor, w } of this.rotors) rotor.rotation.z -= dt * w;
-    for (const b of this.buoys) { b.b.position.y = Math.sin(t * 1.1 + b.ph) * 0.25; b.b.rotation.z = Math.sin(t * 0.9 + b.ph) * 0.08; b.lamp.visible = (t + b.ph) % 4 < 0.6; }
-    for (const v of this.vessels) {
+    if (this.surf) this.surf.visible = !under || camera.position.y > -6;          // horizon props only near the surface
+    for (const { rotor, w } of this.rotors || []) rotor.rotation.z -= dt * w;
+    for (const b of this.buoys || []) {
+      b.b.position.y = Math.sin(t * 1.1 + b.ph) * 0.25;
+      b.b.rotation.z = Math.sin(t * 0.9 + b.ph) * 0.08;
+      b.lamp.visible = (t + b.ph) % 4 < 0.6;
+    }
+    if (!this._vesselForward) this._vesselForward = new THREE.Vector3();
+    for (const v of this.vessels || []) {
       v.v.position.y = Math.sin(t * 0.6 + v.ph) * 0.3;
-      if (v.speed) { const f = new THREE.Vector3(0, 0, 1).applyQuaternion(v.v.quaternion); v.v.position.addScaledVector(f, v.speed * dt); }
+      if (v.speed) {
+        this._vesselForward.set(0, 0, 1).applyQuaternion(v.v.quaternion);
+        v.v.position.addScaledVector(this._vesselForward, v.speed * dt);
+      }
     }
     // fish: each circles its school centre with its own radius, height and speed; tails wag
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
+    if (!this._fishScratch) {
+      this._fishScratch = {
+        m4: new THREE.Matrix4(), q: new THREE.Quaternion(), s: new THREE.Vector3(),
+        p: new THREE.Vector3(), e: new THREE.Euler(),
+      };
+    }
+    const {m4, q, s, p, e} = this._fishScratch;
     this.fishSchools?.update(dt, t, camera, state);
     for (const sc of this.schools || []) {
       if (sc.c.distanceTo(camera.position) > 60) continue;         // out of sight: skip the work
-      sc.fish.forEach((f, i) => {
-        f.a += dt * f.w * sc.dir;
+      // Decorative schools beyond the near band update at 12 Hz (same idea as fish_schools far cards).
+      // Advance orbit angle by the accumulated interval so throttling only drops redraws, not swim speed.
+      sc._farAcc = (sc._farAcc || 0) + dt;
+      const near = sc.c.distanceTo(camera.position) < 18;
+      if (!near && sc._farAcc < 1 / 12) continue;
+      const step = near ? dt : sc._farAcc;
+      sc._farAcc = 0;
+      for (let i = 0; i < sc.fish.length; i++) {
+        const f = sc.fish[i];
+        f.a += step * f.w * sc.dir;
         const r = f.r + Math.sin(t * 0.3 + f.ph) * 1.2;
         p.set(sc.c.x + Math.cos(f.a) * r, sc.c.y + f.y + Math.sin(t * 0.5 + f.ph) * 0.6, sc.c.z + Math.sin(f.a) * r);
         const heading = -f.a - (sc.dir > 0 ? 0 : Math.PI);
         q.setFromEuler(e.set(0, heading, Math.sin(t * 9 + f.ph) * 0.12));
         s.setScalar(f.s);
         m4.compose(p, q, s); sc.mesh.setMatrixAt(i, m4);
-      });
+      }
       sc.mesh.instanceMatrix.needsUpdate = true;
     }
   }
@@ -464,4 +503,31 @@ export class Environment {
     for(const m of materials){for(const value of Object.values(m))if(value?.isTexture)textures.add(value);m.dispose();}
     for(const g of geometries)g.dispose();for(const t of textures)t.dispose();
   }
+}
+
+export function createFallbackSeabed(scene) {
+  const group = new THREE.Group();
+  const sand = new THREE.MeshStandardMaterial({color: 0x4a4636, roughness: 1});
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), sand);
+  plane.rotation.x = -Math.PI / 2;
+  plane.userData.paintable = true;
+  group.userData.plane = plane;
+  const grid = new THREE.GridHelper(200, 100, 0x6a7a66, 0x39443a);
+  grid.position.y = 0.02;
+  const big = new THREE.GridHelper(800, 40, 0x7d8a70, 0x7d8a70);
+  big.position.y = 0.03;
+  group.add(plane, grid, big);
+  group.position.y = -30;
+  scene.add(group);
+  return group;
+}
+
+export function buildDiveEnvironment(scene, world, detail, seabed, queue, noEnvironment) {
+  queue.beginBuild();
+  const env = noEnvironment ? null : new Environment(scene, world, {detail, deferHeavy: true});
+  seabed.visible = !env;
+  seabed.userData.plane.visible = !env;
+  seabed.position.y = -world.seabed_depth;
+  queue.scheduleFinishHeavy(env);
+  return env;
 }

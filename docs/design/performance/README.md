@@ -5,6 +5,8 @@ ASUSPRO P2540UB、Intel Core i5-8250U（4C/8T、15 W）、8 GB、Intel UHD 620�
 Chrome 不用）、1366×768 @60 Hz、伺服器同機執行。要求：auto 畫質在開放水域、港區樁群、魚網箱穩定 ≥30 fps
 （低檔最好 45–60），沒有數百毫秒的卡頓；主選單與下水動畫不得比潛航重。
 
+**S2 續作**（`task/S2-low-end-performance`）：基準與前後數字見 [`s2-baseline.md`](s2-baseline.md)；擁有者在自己筆電上的量測步驟見 [`s2-owner-check.md`](s2-owner-check.md)。
+
 **不動的東西**：物理、協定、SDK 語意、伺服器輸出（伺服器只做了逐位元相同的重構）。畫面只在「看不出來」的
 範圍內變，前後截圖在本目錄 `shots/`。
 

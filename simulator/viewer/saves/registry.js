@@ -276,6 +276,7 @@ export const qualityLearnedStore = createRecordStore({
       renderer: record.renderer.slice(0, 200),
       ratio: clamp(record.ratio, 0.3, 2),
       effectsSuppressed: !!record.effectsSuppressed,
+      ...(Number.isFinite(record.slowFps) && {slowFps: record.slowFps}),
     };
   },
 });

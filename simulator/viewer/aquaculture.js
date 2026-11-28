@@ -160,10 +160,16 @@ export function buildPenPart(set, ob) {
   set.addBatched(ob.kind, geometry, ob.kind, [ob.name], 'solid', [ob]);
 }
 
+// Net cloth motion is slow; 12 Hz is enough to read the current and keeps the pen site under the UHD 620 budget.
+const PEN_NET_HZ = 12;
+let penNetLast = 0;
+
 export function updatePenNet(set, flow, time) {
   if (!set || !flow?.ready) return;
+  const wall = performance.now();
+  if (wall - penNetLast < 1000 / PEN_NET_HZ) return;
+  penNetLast = wall;
   const velocity = [0, 0, 0];
-  const now = performance.now();
   for (const mesh of set.group.children) {
     if (mesh.material?.userData.structureKind !== 'pen_net') continue;
     const position = mesh.geometry.attributes.position;
@@ -172,7 +178,7 @@ export function updatePenNet(set, flow, time) {
       const x = rest[i * 3];
       const y = rest[i * 3 + 1];
       const z = rest[i * 3 + 2];
-      flow.sample(z, -x, -y, now, velocity);
+      flow.sample(z, -x, -y, wall, velocity);
       const amplitude = .035 * Math.sin(Math.PI * Math.max(0, Math.min(16, -y)) / 16);
       const wave = amplitude * Math.sin(time * .7 + z * .3 + x * .2);
       position.setXYZ(i, x - wave * Math.tanh(velocity[1]), y, z + wave * Math.tanh(velocity[0]));

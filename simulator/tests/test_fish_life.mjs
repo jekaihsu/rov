@@ -192,6 +192,64 @@ test('a dense pen school shares the scene level of detail, keeps sizes within 15
   if (counts.distance === lod.distance) assert.ok(reach.card >= reach.distance, 'cards only behind the others');
 });
 
+test('pen school placer reads turn from the live school velocity', async () => {
+  // buildSchool starts every school at Three.js (0, 0, 0.3); caching that turn at placer build left some farms
+  // facing the wrong way once the server NED velocity arrived (Codex P2).
+  const pen = await import('../viewer/pen_life.js');
+  const toThree = (p) => new THREE.Vector3(-p[1], -p[2], p[0]);
+  const school = {pos: toThree([31.1, 7.1, 9]), vel: new THREE.Vector3(0, 0, 0.3)};
+  const buildTurn = pen.penTurn(school);
+  school.vel.copy(toThree([-0.2, 0.2, 0]));
+  assert.notEqual(pen.penTurn(school), buildTurn, 'live server velocity can reverse the circling sense');
+
+  const world = {scenario: {key: 'aquaculture_pen'}, biome: 'aquaculture', world_seed: 3,
+    habitat: {fish_schools: [{id: 'pen-school-0', pos: [31.1, 7.1, 9], count: 16, variant: 0}]}};
+  const camera = {position: new THREE.Vector3(0, -6, 33)};
+  const matrix = new THREE.Matrix4();
+  const nose = new THREE.Vector3();
+  const radial = new THREE.Vector3();
+  const centre = new THREE.Vector3(0, 0, 24);
+  function meanSense(serverVel) {
+    // Fresh schools so heading smoothing does not carry the other velocity's sense.
+    const drawn = schools.createSharedSchools(new THREE.Group(), world, 'low', 3);
+    const state = {pos: [3, 0, 7],
+      environment: {fish_schools: [{id: 'pen-school-0', pos: [31.1, 7.1, 9], vel: serverVel}]}};
+    for (let i = 0; i < 90; i++) drawn.update(1 / 30, i / 30, camera, state);
+    let sense = 0;
+    let count = 0;
+    for (const mesh of schools.schoolMeshes(drawn.schools[0])) {
+      for (let i = 0; i < mesh.count; i++) {
+        mesh.getMatrixAt(i, matrix);
+        nose.setFromMatrixColumn(matrix, 2).setY(0).normalize();
+        radial.setFromMatrixPosition(matrix).sub(centre).setY(0).normalize();
+        sense += radial.x * nose.z - radial.z * nose.x;
+        count++;
+      }
+    }
+    return sense / count;
+  }
+  // Server +X maps to Three +Z and matches the build placeholder turn; the Codex sample velocity flips it.
+  const withBuildSense = meanSense([0.5, 0, 0]);
+  const withLiveSense = meanSense([-0.2, 0.2, 0]);
+  assert.ok(withBuildSense * withLiveSense < 0,
+    `drawn fish follow live turn (build ${withBuildSense.toFixed(2)} vs live ${withLiveSense.toFixed(2)})`);
+});
+
+test('far schools advance motion by the accumulated interval, not one frame', () => {
+  const world = {scenario: {key: 'open_water'}, biome: 'reef', world_seed: 9,
+    habitat: {fish_schools: [{id: 'school-0', pos: [40, -4, 40], count: 8, variant: 0}]}};
+  const drawn = schools.createSharedSchools(new THREE.Group(), world, 'low', 9);
+  const far = {position: new THREE.Vector3(0, -4, 0)};
+  const state = {pos: [0, -4, 0], environment: {fish_schools: [{id: 'school-0', pos: [40, -4, 40], vel: [0.4, 0, 0]}]}};
+  drawn.update(1 / 60, 0, far, state);
+  const fish = drawn.schools[0].motion.fish[0];
+  const startTail = fish.tail;
+  for (let i = 0; i < 12; i++) drawn.update(1 / 60, (i + 1) / 60, far, state);
+  const throttled = (fish.tail - startTail + Math.PI * 200) % (Math.PI * 200);
+  // Twelve frames at 60 Hz ≈ 0.2 s; with 12 Hz far cards that is about two motion steps totaling ~0.2 s.
+  assert.ok(throttled > 0.8, `tail advanced with accumulated dt (got ${throttled})`);
+});
+
 test('reef species carry their own colour patterns and are not mirrors', () => {
   function average(name) {
     const colour = life.fishGeometry(name, 'medium').attributes.color;

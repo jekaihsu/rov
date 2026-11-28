@@ -16,8 +16,21 @@ import {
   inputStore,
   onboardingStore,
   resultsStore,
+  qualityLearnedStore,
   allSaveEntries,
 } from '../viewer/saves/registry.js';
+
+test('learned quality keeps a finite slowFps and accepts older records without it', () => {
+  for (const fields of [{}, {slowFps: 28}, {slowFps: '28'}]) {
+    const record = {renderer: 'test', ratio: 0.75, effectsSuppressed: false, ...fields};
+    const storage = memoryStorage({[qualityLearnedStore.key]: JSON.stringify(record)});
+    const {value} = qualityLearnedStore.load(storage);
+    assert.equal(value.version, 1);
+    assert.equal(value.ratio, 0.75);
+    assert.equal(Object.hasOwn(value, 'slowFps'), fields.slowFps === 28);
+    if (fields.slowFps === 28) assert.equal(value.slowFps, 28);
+  }
+});
 
 test('inventory lists every save with a version', () => {
   const entries = allSaveEntries();
