@@ -9,6 +9,8 @@ import { isInternalEdition } from '../training/edition.js';
 import { buildCourseMap } from '../training/map.js';
 import { localize } from '../i18n/index.js';
 
+import {labels as editorLabels} from '../training/editor_strings.js';
+
 const STRINGS = localize('menu.training', {
   title: '訓練',
   tabs: {
@@ -89,7 +91,31 @@ export function buildTraining(ctx) {
       mount: function mountCourses(container) {
         container.append(element('p', 'menu-help', STRINGS.coursesHelp));
         const host = element('div', 'training-map-host');
-        container.append(host);
+        const editor = element('button', 'menu-link', editorLabels.editor);
+        editor.hidden = true;
+        editor.onclick = function openEditor() {
+          location.assign('mission-editor/' + location.search);
+        };
+        container.append(editor);
+        const custom = element('div', 'training-group');
+        container.append(custom, host);
+        async function loadLocal() {
+          try {
+            const response = await fetch('/api/missions');
+            if (!response.ok) return;
+            const lessons = await response.json();
+            editor.hidden = false;
+            custom.replaceChildren();
+            if (lessons.length) custom.append(element('h3', 'training-group-title', editorLabels.courses));
+            for (const lesson of lessons) {
+              const button = element('button', 'menu-link', lesson.title);
+              button.dataset.lesson = lesson.id;
+              button.onclick = () => ctx.chooseTrainingLesson(lesson);
+              custom.append(button);
+            }
+          } catch { /* Older hosts have no local course folder. */ }
+        }
+        loadLocal();
         function refresh() {
           host.replaceChildren(buildCourseMap({
             catalogue: ctx.data.training || {courses: [], incidents: []},

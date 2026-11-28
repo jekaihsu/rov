@@ -484,6 +484,7 @@ const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
   deck: {getIntro: () => intro, rov: rovG, getRotors: () => rotorOf}});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const trainingSession = installTrainingSession({
+  THREE, scene,
   getState: () => S,
   student: new URLSearchParams(location.search).get('name') || '',
 });

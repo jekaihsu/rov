@@ -1,0 +1,119 @@
+:root {
+    color-scheme: dark;
+    font: 15px system-ui;
+    color: #e7eeed;
+    background: #101b21;
+}
+body {
+    margin: 0;
+}
+main {
+    max-width: 1440px;
+    margin: auto;
+    padding: 1rem 2vw;
+}
+header,
+nav,
+.row,
+.views,
+.axes {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+header {
+    justify-content: space-between;
+}
+h1 {
+    font-size: 1.65rem;
+}
+h2 {
+    font-size: 1.1rem;
+    color: #aad4cd;
+}
+section {
+    background: #192930;
+    border: 1px solid #36484f;
+    padding: 1rem;
+    border-radius: 0.45rem;
+}
+.grid {
+    display: grid;
+    grid-template-columns: minmax(250px, 1fr) minmax(420px, 2fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+label {
+    display: grid;
+    gap: 0.35rem;
+    color: #becfcf;
+    font-size: 0.88rem;
+    margin: 0.35rem 0;
+    min-width: 0;
+}
+input,
+select,
+button,
+a {
+    font: inherit;
+    color: inherit;
+    background: #102127;
+    border: 1px solid #52656b;
+    border-radius: 0.25rem;
+    padding: 0.45rem 0.6rem;
+    min-width: 0;
+}
+button,
+a,
+select {
+    cursor: pointer;
+}
+button.primary {
+    background: #24645d;
+}
+input[type='number'] {
+    width: 6em;
+}
+.axes input {
+    width: 4em;
+}
+canvas {
+    display: block;
+    width: 100%;
+    background: #102027;
+    cursor: crosshair;
+}
+figure {
+    margin: 0;
+    flex: 1;
+    min-width: 180px;
+}
+figcaption {
+    font-size: 0.85rem;
+    color: #a8bdbe;
+    margin: 0.35rem 0;
+}
+:focus-visible {
+    outline: 2px solid #e1be78;
+}
+output {
+    color: #f5d799;
+    overflow-wrap: anywhere;
+}
+fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0.5rem 0;
+}
+legend {
+    color: #a9cfca;
+}
+summary {
+    cursor: pointer;
+}
+@media (max-width: 760px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

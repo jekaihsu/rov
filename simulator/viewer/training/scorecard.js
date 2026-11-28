@@ -53,7 +53,7 @@ export function evaluatePass(metrics, lesson = {}) {
   const leftReal = !!metrics?.fidelityLeftReal;
   let pass = finishedOrAbort && !broken && !severe && inOrder;
   // Assisted / non-real fidelity is recorded and blocks an automatic pass mark.
-  if (leftReal || metrics?.assistedUsed) pass = false;
+  if (lesson.instructorPassed === false || leftReal || metrics?.assistedUsed) pass = false;
   return {
     passProvisional: pass,
     passStatus: lesson.passStatus || lesson.pass_status

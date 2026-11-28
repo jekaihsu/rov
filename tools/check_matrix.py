@@ -38,6 +38,7 @@ DEFAULT_CHECKS = (
     'browser_paint_smoke',
     'browser_campaign_smoke',
     'browser_training_smoke',
+    'browser_mission_editor_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
     # S1 small-fix: Esc opens pause on the deck checklist; first-dive guide is not duplicated.
@@ -77,6 +78,7 @@ BROWSER_PATHS = {
     # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
     'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
                                 'browser_campaign_smoke'),
+    'simulator/viewer/mission-editor/': ('browser_mission_editor_smoke',),
     'simulator/viewer/training/': ('browser_training_smoke', 'browser_menu_smoke', 'browser_campaign_smoke'),
     'simulator/viewer/feedback/': ('browser_feedback_smoke', 'browser_menu_smoke', 'browser_hud_smoke',
                                    'browser_menu_gamepad_smoke'),

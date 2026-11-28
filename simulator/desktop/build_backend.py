@@ -34,7 +34,7 @@ distpath = options.distpath.resolve()
 packaged_viewer = PROJECT / '.runtime' / 'steam-viewer'
 if not options.licenses_only:
     shutil.rmtree(packaged_viewer, ignore_errors=True)
-    shutil.copytree(SIM / 'viewer', packaged_viewer, ignore=shutil.ignore_patterns('instructor'))
+    shutil.copytree(SIM / 'viewer', packaged_viewer, ignore=shutil.ignore_patterns('instructor', *(['mission-editor'] if edition == 'steam' else [])))
 
 args = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
         '--name', 'rov-sim', '--onedir', '--console',

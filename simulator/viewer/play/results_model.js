@@ -210,7 +210,9 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
   const tether = broken ? scoring.brokenPoints : Math.min(scoring.overloadCap, overloads * scoring.overloadPoints);
   const photoRun = result.photos_required > 0;
   const objectives = photoRun ? Math.round(100 * result.photos_accepted / result.photos_required) : 100;
-  const value = Math.max(0, objectives - contacts - tether);
+  const custom = campaign.instructor;
+  const success = custom?.passed ?? true;
+  const value = custom?.score ?? Math.max(0, objectives - contacts - tether);
   const rewards = (campaign.rewards || []).filter(function earned(id) {
     return !(start.rewards || []).includes(id);
   }).map(rewardLabel);
@@ -231,13 +233,16 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
     id: chapterId,
     recordKey: `chapter:${chapterId}`,
     title: chapter.title || chapterId,
-    success: true,
+    success,
     reason: '',
     score: value,
-    medal: medalFor(value, true),
+    medal: medalFor(value, success),
     elapsed: result.elapsed || 0,
     limit: null,
-    rows: [
+    rows: custom ? [
+      {id:'objectives', label:STRINGS.rows.objectives, detail:value + '%', points:value},
+      {id:'time', label:STRINGS.rows.time, detail:formatTime(result.elapsed), points:null},
+    ] : [
       { id: 'objectives', label: STRINGS.rows.objectives,
         detail: photoRun ? `${result.photos_accepted}/${result.photos_required}` : '✓', points: objectives },
       { id: 'time', label: STRINGS.rows.time, detail: formatTime(result.elapsed), points: null },
@@ -307,6 +312,7 @@ export function createOutcomeWatcher() {
   let primed = false;
   let scoreEnded = false;
   let campaignStatus = '';
+  let localResult = null;
   let seenContracts = new Set();
   let chapterStart = null;
   let overloads = 0;
@@ -344,6 +350,19 @@ export function createOutcomeWatcher() {
   }
   function observe(state, world) {
     if (!state) return null;
+    const campaign = state.campaign;
+    // A short instructor beat can finish while the selected site's assets are still loading.
+    // Its room-owned result persists, so the first completed snapshot can also open the scorecard.
+    if (campaign?.instructor && campaign.status === 'completed') {
+      const resultKey = [campaign.chapter, campaign.results?.length].join('/');
+      if (localResult !== resultKey) {
+        localResult = resultKey;
+        campaignStatus = 'completed';
+        return chapterOutcome({campaign, start:chapterStart || {}, overloads});
+      }
+    } else {
+      localResult = null;
+    }
     const key = `${world?.scenario?.key}:${world?.scenario?.seed}`;
     if (!primed || key !== scene) {
       // A new scene starts a new scorer; whatever it reports on its first frame is not a finished run.
