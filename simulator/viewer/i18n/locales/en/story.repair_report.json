@@ -1,0 +1,12 @@
+{
+  "title": "Cable repair log",
+  "shore_end": "Shore end",
+  "sea_end": "Seaward end",
+  "housing": "Unidentified object",
+  "gap": "Distance between ends",
+  "position": "North / east / depth (m)",
+  "empty": "No survey photos yet",
+  "relative": "Offset from rock ΔN/E/D (m)",
+  "scale": "Work-order scale: armoured outside diameter",
+  "fix": "Unreliable deck fix reported"
+}

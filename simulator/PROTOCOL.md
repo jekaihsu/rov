@@ -1019,3 +1019,19 @@ neutral sticks), `framedPhoto` (this beat has a usable shutter pose) and
 `accepted` (accepted plates this run). Result entries for plate surveys add
 optional `photos_accepted` and `photos_required` counts. The host rechecks
 the condition or deadline before advancing and retains the count across reconnects.
+
+### 海纜修復現場
+
+在 `cable_repair`，viewer state 的選填 `repair_report.observations` 按
+`shore_end`、`sea_end` 記錄最近一次合格照片。每筆包含相機檔名 `photo`、
+模擬秒數 `t`、場景局部北東下座標 `pos_ned_m`（公尺）。兩個斷面都有觀測後才提供
+`repair_report.end_separation_m`，為兩個觀測點的三維直線距離。重新部署會清空紀錄。
+
+`cable_perimeter` 的 `housing` 觀測僅附相對辨識岩面的 `from_rock_ned_m`，不送絕對目標位置。
+兩場景皆附 `depth_m`（拍攝時載具深度）。`cable_repair` 報告另含選填 `recovery_seen`
+（已確認回收繩工作點）。兩關的職涯結算在對應 `campaign.results[]` 保留選填 `repair_report` 快照。
+斷面觀測可附工單比例基準 `reference_od_m`，單位為公尺。外圍複查時
+`deck_fix_interval_s` 記錄甲板無線電回報失準的模擬時刻，區間開啟時只有起點，
+退出取證段後附終點。此為劇情日誌，與機載感測器各自記錄。
+在這兩場景，相機的 `mission_photo` 可帶選填的本機照片 UUID `photo_id`；
+合格觀測以 `collection_id` 保留它，供同一裝置讀取收藏中的原片。網路狀態只傳識別碼。

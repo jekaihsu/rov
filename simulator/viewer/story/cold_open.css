@@ -77,3 +77,13 @@ body.cold-open-cinematic #vp > .flight, body.cold-open-cinematic #xhair { visibi
 @media (prefers-reduced-motion: reduce) {
   .cold-open-bars i, .cold-open-super, .cold-open-radio, .cold-open-hint, .cold-open-stamp { transition: none; }
 }
+
+.cold-open-layer .cable-work-order {
+  position: absolute;
+  inset: 8vh 8vw 19vh;
+  width: auto;
+  height: auto;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 1.3rem 4rem #071418aa;
+}
+.cold-open-layer:has(.cable-work-order) .cold-open-super { visibility: hidden; }

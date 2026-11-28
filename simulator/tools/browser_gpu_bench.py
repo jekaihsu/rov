@@ -59,7 +59,7 @@ TOOLS = Path(__file__).resolve().parent
 SITES = (
     'jacket_inspection', 'monopile_current', 'tether_untangle', 'hull_inspection', 'wreck_survey',
     'korean_castle', 'harbor_inspection', 'tutorial_pool', 'coral_reef', 'seagrass_meadow', 'open_water',
-    'aquaculture_pen', 'cold_open_jacket',
+    'aquaculture_pen', 'cold_open_jacket', 'cable_repair', 'cable_perimeter',
 )
 TIERS = ('performance', 'medium', 'high', 'ultra')
 VIEWS = ('onboard', 'third')

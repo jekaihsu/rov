@@ -161,6 +161,11 @@ class Campaign:
                 index = self.directed.advance(self.node, msg, sim, condition_matches)
                 if index is None:
                     return dict(ok=False, message='stale_or_unmet_beat')
+                if self.chapter == "c4_frame":
+                    if self.node["id"] == "bay":
+                        sim.deck_fix_interval = [round(sim.t, 2)]
+                    elif self.node["id"] == "frame":
+                        sim.deck_fix_interval.append(round(sim.t, 2))
                 self.index = index
             elif self.node and self.node['type'] == 'dialogue':
                 self.index += 1
@@ -229,6 +234,12 @@ class Campaign:
                                          collisions=len(sim.world.events), tether_broken=bool(sim.tether.broken),
                                          peak_tension_n=round(self.peak_tension, 1),
                                          completion=1, resumed=self.resumed))
+                if sim.scenario.biome == "cable_repair":
+                    from ..cable_repair import survey_report
+                    report = survey_report(sim)
+                    self.results[-1].update(repair_report=deepcopy(report),
+                                            photos_accepted=len(report["observations"]),
+                                            photos_required=2 if self.chapter == "c4_sheets" else 1)
                 if self.directed and self.directed.plates:
                     self.results[-1]['photos_accepted'] = self.directed.accepted
                     self.results[-1]['photos_required'] = len(self.directed.plates)

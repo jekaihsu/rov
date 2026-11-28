@@ -1,9 +1,11 @@
 // Stage the training watch against the host's active beat and live vehicle telemetry.
+import {showCableHandover} from './cable_handover.js';
 import * as THREE from 'three';
 import {beatDecision, idleReminder} from './beat_director.js';
 import {createBeatStage, establishingShot, presentStage} from './beat_stage.js';
 import {createCinematicLook} from './cutscene_look.js';
-import {STRINGS} from './prologue_copy.js';
+import {STRINGS as POOL} from './prologue_copy.js';
+import {STRINGS as CABLE} from './cable_copy.js';
 import {actionCaps, axisCaps} from '../play/onboarding.js';
 import {deviceFamily} from '../input/glyphs.js';
 import {installVoice} from '../audio/voice.js';
@@ -43,6 +45,9 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   const look = createCinematicLook();
   const voice = installVoice();
   let stage;
+  let chapter;
+  let removeInsert;
+  let STRINGS = POOL;
   let beat;
   let entered;
   let reminded;
@@ -74,6 +79,13 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   }
 
   function enter(node, s) {
+    removeInsert?.();
+    removeInsert = s.repair_report && node.cinematic ? showCableHandover(stage, s) : null;
+    if (chapter === 'c4_frame' && node.id === 'night') {
+      document.dispatchEvent(new CustomEvent('rov-chapter-handover', {
+        detail: {chapter: 'c4_frame', report: s.repair_report},
+      }));
+    }
     beat = node;
     entered = s.campaign.beat_since;
     lastInput = s.t;
@@ -99,7 +111,11 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
     look.set(!!beat.cinematic);
     music.cue(beat.cue || null);
     nextLineAt = null;
-    if (s.campaign.missed && !beat.card) {
+    if (beat.id === 'receipt' && s.repair_report) {
+      const records = s.repair_report.observations;
+      const complete = chapter === 'c4_frame' ? records.housing : records.shore_end && records.sea_end;
+      say(complete ? beat.radio : 'partial', s.t);
+    } else if (s.campaign.missed && !beat.card) {
       say('miss', s.t);
       nextLineAt = s.t + 2.6;
     } else if (!beat.card) say(beat.radio, s.t, s.campaign.accepted);
@@ -117,6 +133,8 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
 
   function clear() {
     if (!stage) return;
+    removeInsert?.();
+    removeInsert = null;
     if (look.active) setCam('onboard');
     look.release();
     music.cue(null);
@@ -143,10 +161,16 @@ export function installPrologue({input, send, camera, scene, rovG, setCam, music
   function update(s) {
     const c = s.campaign;
     if (!c?.directed || c.status !== 'active') return clear();
+    if (chapter !== c.chapter) clear();
     if (!stage) {
-      stage = createBeatStage('prologue', [STRINGS.site, STRINGS.sub], '');
+      chapter = c.chapter;
+      const cable = chapter === 'c4_sheets' || chapter === 'c4_frame';
+      STRINGS = cable ? {...POOL, ...CABLE} : POOL;
+      const index = chapter === 'c4_sheets' ? '1' : '2';
+      const location = cable ? [CABLE['site' + index], CABLE['sub' + index]] : [POOL.site, POOL.sub];
+      stage = createBeatStage(cable ? chapter : 'prologue', location, '');
       plates = c.plates.map(({id, target}) => wallPlate(id, target));
-      scene.add(...plates);
+      if (plates.length) scene.add(...plates);
     }
     if (beat?.id !== c.node.id || s.t < entered) enter(c.node, s);
     const presented = performance.now() / 1000 - shotStart;

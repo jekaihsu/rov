@@ -19,6 +19,8 @@ export const STRINGS = localize('brand.chapters', {
     offshore: {number: '第二章 / 04', client: '離岸平台業主', sub: 'JACKET · MEMBER INSPECTION'},
     reef: {number: '第三章 / 05', client: '海洋研究單位', sub: 'REEF · PHOTO TRANSECT'},
     wreck: {number: '第四章 / 06', client: '水下文化資產調查', sub: 'WRECK · SITE SURVEY'},
+    c4_sheets: {number: '第四章 / 01', client: '電信方 · 甲板接件', sub: 'CABLE · DAMAGE SURVEY'},
+    c4_frame: {number: '第四章 / 02', client: '修纜船方 · 安全人員', sub: 'CABLE · PERIMETER SURVEY'},
     finale: {number: '終章 / 07', client: '港務單位 · 夜間', sub: 'NIGHT RECOVERY'},
     incident_jacket: {number: '事故訓練 / E1', client: 'YX · 事故演練', sub: 'DRILL · TRAPPED IN JACKET'},
     incident_wreck: {number: '事故訓練 / E2', client: 'YX · 事故演練', sub: 'DRILL · TETHER SNAG'},
@@ -50,6 +52,8 @@ const SYMBOLS = {
   offshore: 'offshore',
   reef: 'reef',
   wreck: 'wreck',
+  c4_sheets: 'cable',
+  c4_frame: 'night',
   finale: 'night',
 };
 const PREFIX_SYMBOLS = [['incident_', 'incident'], ['course_', 'course']];
@@ -64,6 +68,8 @@ const SCENES = {
   offshore: 'jacket_inspection',
   reef: 'coral_reef',
   wreck: 'wreck_survey',
+  c4_sheets: 'cable_repair',
+  c4_frame: 'cable_perimeter',
   finale: 'harbor_inspection',
   incident_jacket: 'incident_jacket',
   incident_wreck: 'incident_wreck',

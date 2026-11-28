@@ -1,0 +1,217 @@
+{
+  "id": "c4_frame",
+  "title": "第四章｜框外",
+  "scenario": "cable_perimeter",
+  "mode": "scenario_training",
+  "category": "story",
+  "order": 100,
+  "requires": "c4_sheets",
+  "nodes": [
+    {
+      "id": "bay",
+      "type": "dialogue",
+      "text_key": "bay",
+      "speaker_key": "yu"
+    },
+    {
+      "id": "frame",
+      "type": "dialogue",
+      "text_key": "frame",
+      "speaker_key": "tender"
+    },
+    {
+      "id": "frame_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "frame"
+    },
+    {
+      "id": "frame_pass",
+      "type": "branch",
+      "condition": {
+        "path": "repair_report.observations.housing.t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "retreat"
+    },
+    {
+      "id": "frame_until",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "lt",
+        "value": 85
+      },
+      "target": "frame_poll"
+    },
+    {
+      "id": "retreat",
+      "type": "dialogue",
+      "text_key": "retreat",
+      "speaker_key": "gu"
+    },
+    {
+      "id": "retreat_poll",
+      "type": "wait",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint_key": "retreat"
+    },
+    {
+      "id": "retreat_pass",
+      "type": "branch",
+      "condition": {
+        "path": "pos.0",
+        "op": "lt",
+        "value": -2.2
+      },
+      "target": "receipt_check"
+    },
+    {
+      "id": "retreat_until",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "lt",
+        "value": 113
+      },
+      "target": "retreat_poll"
+    },
+    {
+      "id": "receipt_check",
+      "type": "branch",
+      "condition": {
+        "path": "repair_report.observations.housing.t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "receipt"
+    },
+    {
+      "id": "partial",
+      "type": "dialogue",
+      "text_key": "partial",
+      "speaker_key": "lin"
+    },
+    {
+      "id": "after_partial",
+      "type": "branch",
+      "condition": {
+        "path": "t",
+        "op": "gt",
+        "value": -1
+      },
+      "target": "night"
+    },
+    {
+      "id": "receipt",
+      "type": "dialogue",
+      "text_key": "receipt",
+      "speaker_key": "lin"
+    },
+    {
+      "id": "night",
+      "type": "dialogue",
+      "text_key": "night",
+      "speaker_key": "gu"
+    }
+  ],
+  "beats": [
+    {
+      "id": "bay",
+      "radio": "line2",
+      "speaker": "yu",
+      "limit": 5,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "location": true,
+      "cinematic": true,
+      "next": "frame"
+    },
+    {
+      "id": "frame",
+      "radio": "frame",
+      "speaker": "tender",
+      "limit": 80,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "condition": {
+        "path": "repair_report.observations.housing.t",
+        "op": "gt",
+        "value": -1
+      },
+      "hint": "photo",
+      "idle": 14,
+      "reminder": "again",
+      "next": "retreat"
+    },
+    {
+      "id": "retreat",
+      "radio": "outside",
+      "speaker": "gu",
+      "limit": 28,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "surge",
+      "condition": {
+        "path": "pos.0",
+        "op": "lt",
+        "value": -2.2
+      },
+      "next": "receipt",
+      "idle": 14,
+      "reminder": "outside"
+    },
+    {
+      "id": "receipt",
+      "radio": "filed",
+      "speaker": "lin",
+      "limit": 6,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "next": "night"
+    },
+    {
+      "id": "night",
+      "radio": "delay",
+      "speaker": "gu",
+      "limit": 6,
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "cinematic": true,
+      "next": "done"
+    }
+  ],
+  "strings": {
+    "zh-TW": {
+      "bay": "前班照片的角落，有灰殼靠著岩面。從那塊岩面開始。",
+      "frame": "甲板定位在跳。我記時間，你把岩面和灰殼同框。保持距離。",
+      "retreat": "外圍有船靠近。結束作業，照原路退出。",
+      "receipt": "用途待查。把原片一起交。",
+      "night": "夜班又見到外面的船影。明早吊班順延。",
+      "lin": "林岑",
+      "tender": "周楷",
+      "gu": "谷弦",
+      "yu": "余禾",
+      "partial": "原片交存。未查區圈起來，補查班另署名。"
+    }
+  }
+}

@@ -143,6 +143,8 @@ export function structureTextures() {
 // scan: scanned texture set (medium and high); rustAt: coating propensity above which the paint has rusted through
 // (lower = older coat); repeat: texture repeats per UV unit (tubes have metre UVs, quay faces 5 x 3 m panels)
 const PRESETS = {
+  cableSheath: {color: 0x454941, roughness: .94, metalness: 0, coat: 0x393d39, cover: [.4, .25, .16],
+    splash: 0, map: 'rubber'},
   steel: {color: 0x8a8070, roughness: .8, metalness: .25, coat: 0xc9a227, cover: [.9, .65, .4], splash: .6,
     scan: 'coating', rustAt: .55},
   // monopile below the transition piece: dark grey epoxy coating (the yellow belongs to the transition piece)

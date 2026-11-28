@@ -902,6 +902,7 @@ function buildOne(set, ob, consumed) {
   if (ob.type === 'box') {
     if (ob.kind === 'ladder') ladder(set, ob);
     else if (ob.kind === 'tyre') tyre(set, ob);
+    else if (ob.kind === 'housing') plainBox(set, ob, 'monopileSteel');
     else if (ob.kind === 'rudder') rudder(set, ob);
     else if (ob.kind === 'wreck') plainBox(set, ob, 'wreck');
     else if (ob.kind === 'deck' || ob.kind === 'debris_block' || ob.kind === 'mudmat') plainBox(set, ob, 'concrete');
@@ -910,7 +911,13 @@ function buildOne(set, ob, consumed) {
   }
   if (ob.type !== 'cylinder') return;
   const kind = ob.kind;
-  if (kind === 'mooring_chain') {
+  if (['repair_cable', 'repair_core', 'repair_wire'].includes(kind)) {
+    const wire = kind === 'repair_wire';
+    const geometry = tube(P(ob.p0), P(ob.p1), ob.radius, wire ? 6 : 12, false);
+    const material = wire ? 'steelPlate' : kind === 'repair_core' ? 'bronze' : 'cableSheath';
+    if (kind === 'repair_cable' && set.detailName !== 'low') musselLumps(set, ob);
+    set.addBatched(material, geometry, material, [ob.name], 'solid', [ob]);
+  } else if (kind === 'mooring_chain') {
     chainSegment(set, ob);
   } else if (kind === 'hawser') {
     simpleTube(set, ob, 'rubber', 0);
