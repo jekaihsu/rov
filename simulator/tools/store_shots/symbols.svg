@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Two inks: the equipment in white and the operation in orange. -->
+  <g id="first_dive"><path d="M10 23q5 -4 10 0t10 0t10 0t10 0"/><path stroke="#ff7a2f" d="M32 29v18m-7 -7 7 7 7 -7"/></g>
+  <g id="harbor_clean"><path d="M13 20h38M18 22v22m11 -22v17m12 -17v9"/><path stroke="#ff7a2f" d="m32 42 5 5 13 -14"/></g>
+  <g id="murk_measure"><path d="M13 24q6 -5 12 0t12 0t12 0M15 36h34v9H15z"/><path stroke="#ff7a2f" d="M22 36v5m9 -5v3m9 -3v5"/></g>
+  <g id="tether_retrace"><path d="M13 46h17q17 0 17 -14t-15 -13q-9 0 -9 9"/><path stroke="#ff7a2f" d="M34 32H15m8 -8 -8 8 8 8"/></g>
+  <g id="chapter1_gold"><path d="M17 16h30v23l-15 12 -15 -12z"/><path stroke="#ff7a2f" d="M32 23v16m-5 0h10"/></g>
+  <g id="pool_gold"><path d="M15 18v27h34V18m-27 4v12m7 -12v12m-7 -8h7"/><path stroke="#ff7a2f" d="M16 38q4 -3 8 0t8 0t8 0t8 0"/></g>
+  <g id="open_water_clean"><path d="M12 36q5 -5 10 0t10 0t10 0t10 0M15 43q5 -5 10 0t10 0t10 0"/><path stroke="#ff7a2f" d="m24 22 6 6 12 -13"/></g>
+  <g id="hull_loto"><path d="M19 30h26v17H19zM24 29v-5a8 8 0 0 1 16 0v5"/><path stroke="#ff7a2f" d="M32 36v5"/></g>
+  <g id="sonar_find"><path d="m16 46 8 -31a32 32 0 0 1 27 22zM21 29q12 1 17 11"/><circle cx="35" cy="28" r="3" fill="#ff7a2f" stroke="none"/></g>
+  <g id="cp_survey"><path d="M12 41h40M17 46h30M19 20v13m-5 -8h10m17 -1h9"/><path stroke="#ff7a2f" d="m34 16 -8 13h9l-6 9"/></g>
+  <g id="ut_survey"><path d="M13 43h38m-38 5h38m-29 -32h20v9H22z"/><path stroke="#ff7a2f" d="m21 31 6 6 5 -9 5 9 6 -6"/></g>
+  <g id="grade2_exam"><path d="M19 16h26v33H19zM25 23h14"/><path stroke="#ff7a2f" d="M28 30v11m8 -11v11"/></g>
+  <g id="real_exam"><path d="M14 32q18 -23 36 0 -18 23 -36 0z"/><path stroke="#ff7a2f" d="m26 32 4 4 9 -10"/></g>
+  <g id="cable_discipline"><circle cx="30" cy="31" r="13"/><circle cx="30" cy="31" r="6"/><path stroke="#ff7a2f" d="M17 31q0 17 17 17h16"/></g>
+  <g id="zero_collision"><path d="M15 17v30m34 -30v30M20 25h5m14 14h5"/><path stroke="#ff7a2f" d="m24 34 6 6 11 -16"/></g>
+  <g id="prologue_done"><path d="M21 48V16q8 -5 14 0t11 0v18q-6 5 -12 0t-13 0"/><path stroke="#ff7a2f" d="m27 24 4 4 8 -9"/></g>
+  <g id="untangled"><path d="M13 44q9 0 14 -9m10 -8q4 -9 14 -9M12 18q9 0 16 11"/><path stroke="#ff7a2f" d="M33 34q10 13 18 10m-16 -25 3 -6m-17 35 3 -5"/></g>
+  <g id="inspection_coop"><circle cx="32" cy="19" r="5"/><circle cx="17" cy="39" r="5"/><circle cx="47" cy="39" r="5"/><path stroke="#ff7a2f" d="m24 28 -3 4m19 -4 3 4m-17 9h12"/></g>
+  <g id="recovery_work"><path d="m17 36 15 8 15 -8m-30 -7v10l15 9 15 -9V29"/><path stroke="#ff7a2f" d="M32 35V15m-7 7 7 -7 7 7"/></g>
+  <g id="deployment_work"><path d="M16 40v7h32v-7M23 31h18v10H23z"/><path stroke="#ff7a2f" d="M32 13v12m-6 -6 6 6 6 -6"/></g>
+  <g id="evidence_photo"><path d="M13 24h10l4 -6h12l4 6h8v22H13z"/><circle cx="32" cy="34" r="7" stroke="#ff7a2f"/></g>
+  <g id="pier_measure"><path d="M13 18h38m-32 0v26m26 -26v26"/><path stroke="#ff7a2f" d="M25 35h14m-11 -4 -4 4 4 4m8 -8 4 4 -4 4"/></g>
+</svg>

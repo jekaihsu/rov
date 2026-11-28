@@ -2,6 +2,10 @@
 
 本目錄為編輯／製作草案，不是已發布的商店頁。核對日期：2026-11-14；基準：`origin/main` 的 `afc33198adfec6b34114db0416bf810be98157ff`。只新增文件，不修改遊戲或成就 API。
 
+## X1 商店素材
+
+[全素材聯絡表](steam/assets/contact-sheet.jpg) · [四語商店文案與截圖說明](steam/listing/) · [擷取分鏡與重製指令](../../simulator/tools/store_shots/README.md) · [素材授權](steam/assets/CREDITS.md)
+
 ## 交付索引
 
 - [三語商店文案](copy.md)：五個名稱候選、商標檢索建議、賣點、短／完整描述、功能條列。
