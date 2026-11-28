@@ -104,3 +104,8 @@ docs/design/trailer/<shot-id>.jpg   # ≤ 300 KB，給擁有者審分鏡（提�
 - 字卡文字在分鏡的 `cards` 欄，給後製用；遊戲畫面不燒字。
 - 預潛／講評等 UI 鏡若要實拍介面，另開鏡頭補；本工具以潛航畫面為主。
 - `?trailer=0` 不會開啟錄影模式；必須 `trailer=1`（或 `true`／`on`）。
+
+## K2 劇情過場
+
+`python simulator/tools/trailer/cinematic.py` 使用遊戲的分鏡繪圖器與本工具的 ffmpeg 編碼器，
+直接錄製港區與航圖兩支示範。參數與分鏡欄位見[過場審查頁](../../../docs/design/cinematics-k2/README.md)。

@@ -1,5 +1,6 @@
 """Directed campaign timing, shutter evidence and compatibility with legacy clients."""
 import unittest
+from unittest.mock import patch
 
 from qysim.engine import Simulator
 from qysim.room import Room
@@ -12,6 +13,16 @@ class DirectedCampaignTest(unittest.TestCase):
         self.assertTrue(photo_matches((11, 0, 4), shot))
         for plate in ((14, 0, 4), (11, 0, 7), (0, 5, 4)):
             self.assertFalse(photo_matches(plate, shot))
+
+    def test_storyboard_can_end_on_skip(self):
+        room = Room(Simulator('tutorial_pool', 42))
+        host = room.join(now=0)
+        campaign = room.campaign
+        campaign.command(dict(action='campaign_start', chapter='prologue', beats=True), host)
+        with patch.dict(campaign.node, storyboard='harbor'):
+            for target, expected in [('opening', False), ('establish', True), ('establish', False)]:
+                result = campaign.command(dict(action='campaign_advance', beat='black', next=target), host)
+                self.assertEqual(result['ok'], expected)
 
     def test_timed_advance_is_authoritative_and_idempotent(self):
         room = Room(Simulator('tutorial_pool', 42))

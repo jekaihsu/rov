@@ -249,7 +249,7 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
     else if (action === 'tabNext') handlers.tab?.(1);
   }
   function foreignPanel() {
-    return !!document.getElementById('inputSettings')?.open;
+    return !!(document.getElementById('inputSettings')?.open || document.getElementById('cinematicPlayer'));
   }
   function onKey(event) {
     if (!active || event.defaultPrevented) return;

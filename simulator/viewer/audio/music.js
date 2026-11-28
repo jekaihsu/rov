@@ -204,6 +204,7 @@ export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BAS
   const players = new Map();
   const memory = {};
   let requested = null;
+  let cuePaused = false;
   let timer = 0;
 
   function player(track) {
@@ -245,7 +246,7 @@ export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BAS
       const entry = player(layer.track);
       const level = layer.gain * output.duck * layer.track.level;
       entry.gain.gain.setTargetAtTime(level, engine.ctx.currentTime, 0.05);
-      if (document.hidden) entry.element.pause();
+      if (document.hidden || cuePaused) entry.element.pause();
       else play(entry);
     }
   }
@@ -285,6 +286,10 @@ export function installMusic({engine, fidelity = getFidelity(), base = MUSIC_BAS
     cue(name) {
       cinematic = Object.hasOwn(CINEMATIC_TRACKS, name) ? name : null;
       if (cinematic) setRequested(cinematic);
+    },
+    pauseCue(value) {
+      cuePaused = !!value;
+      tick();
     },
     duck(seconds) {
       director.duckFor(performance.now() / 1000, seconds);

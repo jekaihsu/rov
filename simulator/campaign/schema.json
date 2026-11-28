@@ -346,6 +346,11 @@
           "black": {
             "type": "boolean"
           },
+          "storyboard": {
+            "description": "Presentation-only beat. Play this storyboard ID, then follow next on finish or skip.",
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
           "cinematic": {
             "type": "boolean"
           },

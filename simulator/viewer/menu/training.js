@@ -4,6 +4,7 @@ import { chapterStatus, chaptersByCategory, trainingScenarios } from './catalogu
 import { chapterCard, scenarioCard } from './cards.js';
 import { createSettingsPanel } from './settings.js';
 import { readout } from './screens.js';
+import {replayFilms} from '../story/cinematic/menu.js';
 import { replayCard } from '../story/cold_open_menu.js';
 import { isInternalEdition } from '../training/edition.js';
 import { buildCourseMap } from '../training/map.js';
@@ -109,6 +110,7 @@ export function buildTraining(ctx) {
       mount: list(STRINGS.storyHelp, function storyRows() {
         const rows = chapterCards(ctx, 'story', completedChapters());
         if (ctx.replayColdOpen) rows.push(replayCard(rows.length, ctx.replayColdOpen));
+        rows.push(...replayFilms());
         return rows;
       }),
     },

@@ -167,3 +167,8 @@ their lettering, border and scale bars on a canvas in `story/prologue.js`.
 ### 自由潛水的碧海號螺槳
 
 原創程序幾何，使用本專案既有的螺槳輪轂、槳葉繪製與碰撞形狀。自由潛水情境將脫落的螺槳放在船艉外側。
+
+### K2 過場動畫
+
+港景、分區窗燈、四型船影、ROV、纜線、浮標、虛構海峽圖與「潮窗」播報圖形皆由
+`story/cinematic/` 以程式繪製。環境聲由既有環境音軌合成，配樂沿用上列遊戲曲目。
