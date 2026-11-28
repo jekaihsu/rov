@@ -1,0 +1,80 @@
+{
+  "id": "wind_shadow",
+  "title": "第三章｜輪廓以內",
+  "scenario": "wind_shadow",
+  "mode": "inspection_coop",
+  "category": "story",
+  "order": 42,
+  "requires": "wind_set",
+  "beats": [
+    {
+      "id": "veil",
+      "limit": 8,
+      "next": "standby",
+      "hud": [],
+      "location": true,
+      "cinematic": true,
+      "radio": "veil",
+      "speaker": "ma"
+    },
+    {
+      "id": "standby",
+      "limit": 4,
+      "next": "edge",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "standby",
+      "speaker": "ma"
+    },
+    {
+      "id": "edge",
+      "limit": 120,
+      "next": "evidence",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "align",
+      "condition": {
+        "path": "mission.targets.0.completed",
+        "op": "eq",
+        "value": true
+      },
+      "timeout": "abort",
+      "radio": "edge",
+      "speaker": "tender",
+      "idle": 20,
+      "reminder": "again"
+    },
+    {
+      "id": "evidence",
+      "limit": 6,
+      "next": "done",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "evidence",
+      "speaker": "ma",
+      "outcome": "signed"
+    },
+    {
+      "id": "abort",
+      "limit": 6,
+      "next": "done",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "abort",
+      "speaker": "lin",
+      "outcome": "aborted"
+    }
+  ],
+  "nodes": [],
+  "strings": {
+    "zh-TW": {}
+  }
+}

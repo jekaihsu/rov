@@ -351,6 +351,18 @@
           },
           "location": {
             "type": "boolean"
+          },
+          "onBreak": {
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "aborted",
+              "signed"
+            ]
+          },
+          "reward": {
+            "type": "string"
           }
         },
         "additionalProperties": false

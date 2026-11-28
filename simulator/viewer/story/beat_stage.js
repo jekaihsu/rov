@@ -70,3 +70,17 @@ export function presentStage(stage, {black, letterbox, cinematic, location, reve
   stage.superCard.classList.toggle('visible', location);
   stage.body.dataset.coldReveal = reveal.join(' ');
 }
+
+// Hold the measured peak for three seconds so the operator can read short-lived loads.
+export function createTensionMeter(element, label, warning) {
+  const samples = [];
+  return function read(time, newtons) {
+    samples.push([time, newtons]);
+    while (time - samples[0][0] > 3) samples.shift();
+    const value = Math.round(samples.reduce((peak, sample) => Math.max(peak, sample[1]), 0));
+    const text = label + ' ' + value + ' N';
+    if (element.textContent !== text) element.textContent = text;
+    element.dataset.tone = value >= warning ? 'warn' : '';
+    return value;
+  };
+}

@@ -9,7 +9,8 @@ import test_campaign_chapters as chapter_cases
 
 
 STORY_CHAIN = [
-    'prologue', 'harbor', 'hull', 'harbor_signoff', 'offshore', 'reef', 'wreck', 'finale',
+    'prologue', 'harbor', 'hull', 'harbor_signoff', 'wind_set', 'wind_shadow', 'wind_return',
+    'offshore', 'reef', 'wreck', 'finale',
 ]
 
 

@@ -1,0 +1,165 @@
+{
+  "id": "wind_return",
+  "title": "第三章｜退路",
+  "scenario": "wind_return",
+  "mode": "inspection_coop",
+  "category": "story",
+  "order": 43,
+  "requires": "wind_shadow",
+  "beats": [
+    {
+      "id": "slack",
+      "limit": 8,
+      "next": "anode",
+      "hud": [],
+      "location": true,
+      "cinematic": true,
+      "radio": "slack",
+      "speaker": "lin"
+    },
+    {
+      "id": "anode",
+      "limit": 120,
+      "next": "north",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "align",
+      "condition": {
+        "path": "mission.targets.0.completed",
+        "op": "eq",
+        "value": true
+      },
+      "timeout": "abort",
+      "radio": "anode",
+      "speaker": "lin",
+      "idle": 20,
+      "reminder": "again",
+      "onBreak": "parted"
+    },
+    {
+      "id": "north",
+      "limit": 85,
+      "next": "catch",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "turnNorth",
+      "condition": {
+        "path": "tether.snags.0.held",
+        "op": "eq",
+        "value": true
+      },
+      "timeout": "abort",
+      "radio": "north",
+      "speaker": "lin",
+      "idle": 20,
+      "reminder": "again",
+      "onBreak": "parted"
+    },
+    {
+      "id": "catch",
+      "limit": 5,
+      "next": "reverse",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "neutral",
+      "onBreak": "parted",
+      "radio": "catch",
+      "speaker": "tender",
+      "idle": 20,
+      "reminder": "again"
+    },
+    {
+      "id": "reverse",
+      "limit": 100,
+      "next": "clear",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "hint": "retreat",
+      "condition": {
+        "path": "tether.snags",
+        "op": "eq",
+        "value": []
+      },
+      "onBreak": "parted",
+      "timeout": "abort",
+      "radio": "reverse",
+      "speaker": "lin",
+      "idle": 20,
+      "reminder": "again"
+    },
+    {
+      "id": "clear",
+      "limit": 6,
+      "next": "sign",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "clear",
+      "speaker": "tender"
+    },
+    {
+      "id": "sign",
+      "limit": 6,
+      "next": "licence",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "sign",
+      "speaker": "ma",
+      "outcome": "signed"
+    },
+    {
+      "id": "licence",
+      "limit": 8,
+      "next": "end",
+      "hud": [],
+      "card": "grade1",
+      "reward": "wind_grade1"
+    },
+    {
+      "id": "parted",
+      "limit": 7,
+      "next": "end",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "parted",
+      "speaker": "deck",
+      "outcome": "aborted"
+    },
+    {
+      "id": "abort",
+      "limit": 7,
+      "next": "end",
+      "hud": [
+        "depth",
+        "heading"
+      ],
+      "radio": "abort",
+      "speaker": "lin",
+      "outcome": "aborted"
+    },
+    {
+      "id": "end",
+      "limit": 6,
+      "next": "done",
+      "hud": [],
+      "card": "end"
+    }
+  ],
+  "nodes": [],
+  "strings": {
+    "zh-TW": {}
+  }
+}

@@ -38,7 +38,8 @@
     "reef_badge": "礁區作業徽章",
     "wreck_badge": "沉船調查徽章",
     "ending_open_question": "結局：留下未解的問題",
-    "ending_evidence_complete": "結局：證據齊全"
+    "ending_evidence_complete": "結局：證據齊全",
+    "wind_grade1": "YX 一級駕駛員執照"
   },
   "unlockSticker": "機身貼紙解鎖：{name}",
   "unlockVehicle": "作業載具解鎖：{name}",

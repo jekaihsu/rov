@@ -136,6 +136,21 @@
       "number": "上級コース / A04",
       "client": "YX · 訓練センター",
       "sub": "COURSE · FINAL ASSESSMENT"
+    },
+    "wind_set": {
+      "number": "03 / 01",
+      "client": "岬汀エナジー",
+      "sub": "ANNUAL JACKET SURVEY"
+    },
+    "wind_shadow": {
+      "number": "03 / 02",
+      "client": "岬汀エナジー",
+      "sub": "ANNUAL JACKET SURVEY"
+    },
+    "wind_return": {
+      "number": "03 / 03",
+      "client": "岬汀エナジー",
+      "sub": "ANNUAL JACKET SURVEY"
     }
   }
 }

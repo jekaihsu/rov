@@ -18,6 +18,11 @@ class BeatRun:
         self.beats = script
         self.indices = {beat['id']: i for i, beat in enumerate(script)}
         self.plates = [dict(id=b['id'], target=b['target']) for b in script if 'target' in b]
+        self.photo_checks = [b['condition'] for b in script
+                             if b.get('condition', {}).get('path', '').startswith('mission.targets.')
+                             and b['condition']['path'].endswith('.completed')]
+        self.outcome = None
+        self.rewards = set()
         self.accepted = 0
         self.missed = False
         self.enter(sim)
@@ -48,11 +53,16 @@ class BeatRun:
         evidence = self.evidence(sim, node)
         condition = node.get('condition')
         passed = condition and matches(condition, {**sim.viewer_state(), **evidence})
-        if not passed and sim.t - self.since < node['limit']:
+        broken = node.get('onBreak') if sim.tether.broken else None
+        if not broken and not passed and sim.t - self.since < node['limit']:
             return None
         target = node['next'] if passed else node.get('timeout', node['next'])
+        target = broken or target
         if msg.get('next') != target:
             return None
+        self.outcome = node.get('outcome', self.outcome)
+        if node.get('reward'):
+            self.rewards.add(node['reward'])
         self.missed = bool(condition and not passed)
         self.accepted += int(evidence['framedPhoto'])
         self.enter(sim)

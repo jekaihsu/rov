@@ -53,10 +53,6 @@
   "menu.settings",
   "menu.training",
   "pilot_guide",
-  "training.export",
-  "training.fidelity_guard",
-  "training.map",
-  "training.session",
   "play.connection_notice",
   "play.contracts",
   "play.flight_log",
@@ -81,5 +77,10 @@
   "story.feel_settings",
   "story.flight_feedback",
   "story.prologue_copy",
+  "story.wind_copy",
+  "training.export",
+  "training.fidelity_guard",
+  "training.map",
+  "training.session",
   "vision.overlay"
 ]

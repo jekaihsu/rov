@@ -34,6 +34,7 @@ const STRINGS = localize('play.results_model', {
   contract: '委託完成',
   medals: { gold: '金牌', silver: '銀牌', bronze: '銅牌', none: '無獎章' },
   rewards: {
+    wind_grade1: 'YX 一級駕駛員執照',
     first_dive: '首次下潛徽章',
     harbor_badge: '港灣巡檢徽章',
     hull_badge: '船殼巡檢徽章',
@@ -219,7 +220,9 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
   // (Space during failsafe unlock would otherwise start the next story chapter).
   const drill = chapter.category === 'incident';
   const course = chapter.category === 'course';
-  const nextId = (drill || course) ? null : campaign.next_story;
+  const seasonEnd = chapterId === 'wind_return';
+  const signed = result.outcome !== 'aborted';
+  const nextId = (drill || course || seasonEnd) ? null : campaign.next_story;
   const next = (campaign.chapters || []).find(function byId(entry) {
     return entry.id === nextId;
   }) || null;
@@ -231,10 +234,10 @@ export function chapterOutcome({ campaign, start = {}, overloads = 0 }) {
     id: chapterId,
     recordKey: `chapter:${chapterId}`,
     title: chapter.title || chapterId,
-    success: true,
-    reason: '',
+    success: signed,
+    reason: !signed && broken ? STRINGS.tetherBroken : '',
     score: value,
-    medal: medalFor(value, true),
+    medal: medalFor(value, signed),
     elapsed: result.elapsed || 0,
     limit: null,
     rows: [

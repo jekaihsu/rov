@@ -38,7 +38,7 @@ def validate(script):
     targets = {beat['id'] for beat in beats}
     if len(targets) != len(beats) or 'done' in targets:
         raise ValueError('invalid beat ids')
-    if any(beat.get(key, 'done') not in targets | {'done'} for beat in beats for key in ('next', 'timeout')):
+    if any(beat.get(key, 'done') not in targets | {'done'} for beat in beats for key in ('next', 'timeout', 'onBreak')):
         raise ValueError('invalid beat target')
     for node in script['nodes']:
         if node.get('type') not in TYPES:
@@ -144,7 +144,8 @@ class Campaign:
             if self.resumed:
                 self.index = checkpoint['index']
             self.directed = None
-            if script.get('beats') and msg.get('beats') and not self.resumed and not msg.get('course'):
+            play_beats = msg.get('beats') and not self.resumed and not msg.get('course')
+            if script.get('beats') and (play_beats or not script['nodes']):
                 self.directed = BeatRun(script['beats'], self.room.vehicles[player.vehicle_id])
             self.pilot = player.vehicle_id
             self.started = 0
@@ -229,6 +230,12 @@ class Campaign:
                                          collisions=len(sim.world.events), tether_broken=bool(sim.tether.broken),
                                          peak_tension_n=round(self.peak_tension, 1),
                                          completion=1, resumed=self.resumed))
+                if self.directed and self.directed.outcome:
+                    self.results[-1]['outcome'] = self.directed.outcome
+                    self.results[-1]['photos_required'] = len(self.directed.photo_checks)
+                    self.results[-1]['photos_accepted'] = sum(
+                        condition_matches(check, current_state()) for check in self.directed.photo_checks)
+                    self.rewards.extend(sorted(self.directed.rewards.difference(self.rewards)))
                 if self.directed and self.directed.plates:
                     self.results[-1]['photos_accepted'] = self.directed.accepted
                     self.results[-1]['photos_required'] = len(self.directed.plates)

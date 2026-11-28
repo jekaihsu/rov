@@ -305,3 +305,21 @@ C23-102,第二章,C2-3-破網逃魚,步限或窗口先到,林岑,窗口關了。
 C23-103,第二章,C2-3-破網逃魚,結算後片段,馬力,主駕那欄留給你。我簽備援。,艇上近講／簡訊依片段，平聲,The pilot box is yours. I’ll sign as backup.,主驾那栏留给你。我签备援。,主担当の欄は君のだ。俺は予備に署名する。
 C23-104,第二章,C2-3-破網逃魚,季末排班卡,字卡,八月二十八日 · 風場試單 · C 腿｜平潮還剩二十分鐘,無配音,28 August · Trial wind farm job · Leg C | Twenty minutes of slack water left,八月二十八日 · 海上风场试单 · C 腿｜平潮还剩二十分钟,八月二十八日・風力発電所 試行点検・C脚｜潮止まりは残り二十分
 C23-105,第二章,C2-3-破網逃魚,場方接過有註記的報告後,林岑,網台收到你的紀錄了。這趟你做得對。,照通話節奏，重音在觀察到的狀態,Pen has your log. You made the right call today.,网台收到你的记录了。这趟你做得对。,いけす局に記録が届いた。今日の判断はよかった。
+C3-001,第三章,C3-1,window,方晴,向潮甲板。浮標還在橫走，潮表那一欄先空著。,短句，聽見回報後再接話,Deck here. The buoy is still moving across us. Leave the tide box open.,向潮甲板。浮标还在横走，潮表那一栏先空着。,甲板より。浮標がまだ横に流れてる。潮の欄は空けて。
+C3-002,第三章,C3-1,station,林岑,R-1，岬汀能源要年度影像。守住 C 腿外側，拍下流向的參照。,短句，聽見回報後再接話,"R-1, Cape Shoal Energy needs its annual record. Hold outside C and photograph the reference.",R-1，岬汀能源要年度影像。守住 C 腿外侧，拍下流向的参照。,R-1、岬汀エナジーの年次記録だ。C脚の外で流れの基準を撮れ。
+C3-003,第三章,C3-1,logged,方晴,收到。現場這一欄，我填現在的時間。,短句，聽見回報後再接話,Copy. I’m entering this time in the observed conditions column.,收到。现场这一栏，我填现在的时间。,了解。現況の欄には今の時刻を書く。
+C3-004,第三章,C3-2,veil,馬力,R-2。B 腿的斜撐只剩剪影。我在備援位，你找邊。,短句，聽見回報後再接話,R-2. The brace at B is a silhouette. I’m on standby. Find its edge.,R-2。B 腿的斜撑只剩剪影。我在备援位，你找边。,R-2。B脚の筋交いが影しか見えない。予備は任せて、縁を探して。
+C3-005,第三章,C3-2,edge,周楷,線在外側。沿輪廓靠近，把 B 腿陽極兩端拍在一張裡。,短句，聽見回報後再接話,Line’s outside. Close along the outline. Get both ends of B’s anode in one frame.,线在外侧。沿轮廓靠近，把 B 腿阳极两端拍在一张里。,索は外側だ。輪郭に沿って寄って、B脚の陽極の両端を一枚に。
+C3-006,第三章,C3-2,evidence,馬力,兩端都看得見。這張留給明年比。,短句，聽見回報後再接話,Both ends are visible. Keep that frame for next year.,两端都看得见。这张留给明年比。,両端が見える。来年の比較用に残そう。
+C3-007,第三章,C3-3,slack,林岑,R-1，這裡是指揮。平潮還剩二十分鐘。,短句，聽見回報後再接話,"R-1, Control. Twenty minutes of slack left.",R-1，这里是指挥。平潮还剩二十分钟。,R-1、こちら指揮。憩流はあと二十分だ。
+C3-008,第三章,C3-3,anode,林岑,先拍 C 腿陽極，就在你正前方。,短句，聽見回報後再接話,Photograph the anode on C first. Straight ahead.,先拍 C 腿阳极，就在你正前方。,まずC脚の陽極を撮れ。正面だ。
+C3-009,第三章,C3-3,north,林岑,好。沿西面往北去 B 腿，保持深度。,短句，聽見回報後再接話,Good. North along the west face to B. Hold depth.,好。沿西面往北去 B 腿，保持深度。,よし。西面を北へ、B脚まで。深度維持。
+C3-010,第三章,C3-3,catch,周楷,張力 {n} 牛頓！線折在 C 腿。放開桿。,現場通話,{n} newtons! Line bent around C. Sticks neutral.,张力 {n} 牛顿！线折在 C 腿。松杆。,張力 {n} ニュートン！ C 脚で折れてる。スティックを戻せ。
+C3-011,第三章,C3-3,reverse,林岑,別拉。照原路退，往南，退過陽極。,短句，聽見回報後再接話,"Don’t pull. Retrace south, back past the anode.",别拉。照原路退，往南，退过阳极。,引くな。来た道を南へ、陽極を越えて下がれ。
+C3-012,第三章,C3-3,clear,周楷,線走了。簿子翻到五月那張，你畫的退路還在。,短句，聽見回報後再接話,Line’s running. Open the log to May. Your way out is still pencilled in.,线走了。簿子翻到五月那张，你画的退路还在。,索が動いた。五月のページに君の描いた退路が残ってる。
+C3-013,第三章,C3-3,parted,方晴,斷纜。記下最後位置。B 腿那格畫斜線，我報岸台。,短句，聽見回報後再接話,Tether parted. Log the last position. Strike out B. I’ll call shore.,断缆。记下最后位置。B 腿那格画斜线，我报岸台。,断線。最終位置を記録。B脚は未確認、陸に連絡する。
+C3-014,第三章,C3-全,abort,林岑,R-1，交班。圈出未查範圍，下一班靠這一頁下水。,短句，聽見回報後再接話,"R-1, hand over. Circle what’s uninspected. Next watch dives from this page.",R-1，交班。圈出未查范围，下一班靠这一页下水。,R-1、交代だ。未点検域を囲め。次の班はその記録で潜る。
+C3-015,第三章,C3-3,sign,馬力,季末那張表，你簽主駕。我在下一欄。,短句，聽見回報後再接話,Season log’s here. You sign as pilot. I’ll take the next box.,季末那张表，你签主驾。我在下一栏。,今季の帳簿だ。操縦者は君が署名して。僕は隣の欄だ。
+C3-016,第三章,C3-全,again,林岑,R-1，收到嗎？報一下你看見的那一側。,短句，聽見回報後再接話,"R-1, copy? Call the side you can see.",R-1，收到吗？报一下你看见的那一侧。,R-1、聞こえるか。見えている側を報告して。
+C3-017,第三章,C3-1,transitMark,周楷,甲板，我看見粒子橫過樁腿了。拿陽極當準線，水下也在往東走。,現場通話,"Deck, particles are crossing the leg. Against the anode I can see the eastward set down here too.",甲板，我看见颗粒横过桩腿了。拿阳极当准线，水下也在往东走。,甲板、粒が脚を横切ってる。陽極を目印に見ると、ここも東向きだ。
+C3-018,第三章,C3-2,standby,馬力,周楷，我看見立管的托架了。備援纜走管子哪一側？,現場通話,"Zhou, I have the riser bracket in sight. Which side do you want the standby line on?",周楷，我看见立管的托架了。备用缆走管子哪一侧？,周楷、立ち上がり管の支持金具が見えた。予備機の索は管のどちら側に取る？
