@@ -16,6 +16,8 @@ import {
   primaryButton,
   stat,
 } from '../menu/big_picture.js';
+import {STRINGS as DIVE} from '../debrief/dive_strings.js';
+import {isInternalEdition} from '../training/edition.js';
 import { createFlightLog } from './flight_log.js';
 import { awardLicenceFromSummary } from '../brand/licence_award.js';
 import { DELIVERABLES_TITLE, careerHeadline, deliverableLines, renderCareerPanel } from '../career/results_panel.js';
@@ -106,7 +108,7 @@ function buildMedal() {
 // career: optional career/dive.js runtime; it turns a story-chapter outcome of a work order into a career outcome
 // (decorate) and restarts a work order (retry). Career outcomes (kind 'career') also come straight from it.
 export function installResults({ send, getState, getWorld, getSession, onContracts, onVisible, readOnly = false,
-  career = null }) {
+  career = null, trainingSession = null }) {
   const watcher = createOutcomeWatcher();
   const log = createFlightLog({ getWorld });
   const root = element('section', 'results-screen');
@@ -148,6 +150,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   root.append(card, footer);
   document.body.append(root);
   let outcome = null;
+  let recording = null;
   let navigator = null;
 
   function host() {
@@ -187,9 +190,19 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     command('campaign_start', { beats: true, chapter: outcome.next.id });
     hide();
   }
+  function recordedDive(title) {
+    // Career settlement may arrive before the normal results update for the terminal state.
+    log.update(getState(), career?.snapshot?.()?.items);
+    const data = log.snapshot(title);
+    const card = trainingSession?.scorecard;
+    if (data && card) {
+      data.clips[0].trainee = {name: card.student, lesson: card.lessonTitle, date: card.startedAt};
+    }
+    return data;
+  }
   async function debrief() {
     try {
-      await log.openDebrief(outcome.title);
+      await log.openDebrief(outcome.title, recording);
     } catch (error) {
       note.textContent = error.message || STRINGS.noReplay;
     }
@@ -240,7 +253,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
     if (kind === 'drill') button('resultsMore', STRINGS.moreDrills, function more() {
       toList('drills');
     });
-    button('resultsDebrief', STRINGS.debrief, debrief, { disabled: log.frames < 2 });
+    if (isInternalEdition()) button('resultsDebrief', DIVE.title, debrief, { disabled: !recording });
     button('resultsMenu', STRINGS.menu, toMenu);
     if (kind !== 'contract') button('resultsClose', STRINGS.close, hide);
     // 明細 sits after the primary button and the first secondary action.
@@ -273,6 +286,11 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   }
   function show(next) {
     outcome = next;
+    recording = isInternalEdition() ? recordedDive(outcome.title) : null;
+    const clip = recording?.clips[0];
+    if (clip && outcome.career?.pay?.outcome === 'aborted') {
+      clip.dive.events.push({kind: 'abort', t: getState()?.t ?? clip.frames.at(-1).t, detail: ''});
+    }
     const record = recordResult(outcome);
     root.dataset.kind = outcome.kind;
     root.dataset.success = String(outcome.success);
@@ -328,7 +346,7 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   }
   function update(state) {
     if (readOnly) return;
-    log.update(state);
+    log.update(state, isInternalEdition() ? career?.snapshot?.()?.items : undefined);
     const ended = watcher.observe(state, getWorld());
     if (ended) show(career ? career.decorate(ended) : ended);
   }
@@ -350,6 +368,11 @@ export function installResults({ send, getState, getWorld, getSession, onContrac
   });
   const api = {
     update,
+    async reviewFlight(title) {
+      if (isInternalEdition() && log.frames >= 2) {
+        await log.openDebrief(title, recordedDive(title));
+      }
+    },
     show,
     hide,
     get open() {

@@ -3,7 +3,10 @@
 Uses the small fixture at viewer/debrief/fixtures/debrief_smoke.json so the check does not
 depend on regenerating demo_recording.json. Screenshots land in output/debrief-validation/.
 """
+import csv
+import io
 import json
+import re
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -66,6 +69,38 @@ def run():
         assert '煙霧測試：碰撞前討論纜線回彈' in html
         # Student-view export must not print the god-view banner.
         assert '講評視角，非學員畫面' not in html
+        # Whole-dive sheet shares the selected clip and seeks without the instructor marker pre-roll.
+        page.locator('.dive-open').click()
+        sheet = page.locator('dialog.dive-sheet')
+        assert sheet.locator('figure').count() == 6
+        assert sheet.locator('li').count() >= 3
+        page.screenshot(path=str(OUT / 'dive-sheet.png'))
+        with page.expect_download() as download_info:
+            sheet.get_by_role('button', name='匯出 CSV').click()
+        rows = list(csv.DictReader(io.StringIO(Path(download_info.value.path()).read_text())))
+        assert any(row['event'] == 'peak' for row in rows)
+        assert rows[0]['depth_m'] and rows[0]['paid_out_m']
+        with page.expect_download() as download_info:
+            sheet.get_by_role('button', name='匯出列印版').click()
+        exported = Path(download_info.value.path()).read_text()
+        report = context.new_page()
+        report.set_content(exported)
+        assert report.locator('svg').count() == 6
+        assert not report.locator('script, button').count()
+        assert len(re.findall(rb'/Type /Page\b', report.pdf(prefer_css_page_size=True))) == 1
+        report.close()
+        marker = sheet.locator('li button').last
+        expected = float(marker.inner_text().split()[0])
+        marker.click()
+        actual = page.evaluate('window.__replay().t')
+        assert abs(actual - expected) <= 0.051, (actual, expected)
+        assert not sheet.count()
+        steam = context.new_page()
+        steam.add_init_script("window.rovDesktop = {edition:'steam'}")
+        steam.goto(url, wait_until='domcontentloaded')
+        steam.wait_for_selector('#replayBar:not([hidden])')
+        assert not steam.locator('.debrief-panel,.dive-open').count()
+        steam.close()
         # Public demo replay keeps the plain bar (no debrief panel).
         demo = context.new_page()
         demo.on('pageerror', lambda error: (errors.append(str(error)), print('PAGE ERROR', error, flush=True)))

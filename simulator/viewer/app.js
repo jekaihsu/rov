@@ -484,6 +484,7 @@ const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
   deck: {getIntro: () => intro, rov: rovG, getRotors: () => rotorOf}});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
 const trainingSession = installTrainingSession({
+  openDiveReport: title => results.reviewFlight(title),
   getState: () => S,
   student: new URLSearchParams(location.search).get('name') || '',
 });
@@ -499,7 +500,7 @@ const careerDive = installCareerDive({send, getWorld: () => W, getCamMode: () =>
 const objectiveCard = installObjectiveCard({send, getSession: () => session, readOnly: !!REPLAY, career: careerDive});
 const results = installResults({send, getState: () => S, getWorld: () => W, getSession: () => session,
   readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open),
-  career: careerDive});
+  career: careerDive, trainingSession});
 const achievements = installAchievements({readOnly: !!REPLAY});
 const steamPresence = installSteamPresence({
   getState: () => S,

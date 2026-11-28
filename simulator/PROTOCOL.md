@@ -669,6 +669,15 @@ optional metadata. Clients that ignore the new fields keep today's behaviour.
   and instructor notes. Visible strings stay in the debrief `STRINGS` tables. Instructor codes are
   never written into reports or recordings.
 
+The internal viewer can store a local post-dive report in the optional `clip.dive` field.
+Its `samples` carry simulation time `t` (seconds), NED `pos` (m), depth (m), heading (degrees),
+speed (m/s), tension (N) and deployed length (m). Missing channels are omitted or null.
+`events` are ordered `{kind, t, detail}` observations on the same clock. Report rows seek to the event time.
+`metrics` contains the observed pile-approach peak speed, longest continuous snag overload in seconds,
+correct recoveries and collision count. `cable` contains the last observed tether nodes in NED metres.
+A completed S6 session may add `clip.trainee` with the local name, lesson and ISO start date.
+Replays without these fields derive available evidence from their frames.
+
 This draft does **not** yet implement lighting faults, course scheduling/aggregate grades,
 SDK measurement fault adapters or permanent report storage. It is not ready for formal
 training acceptance.

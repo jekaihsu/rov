@@ -12,6 +12,7 @@ import {listRecords} from './records.js';
 import {findLesson, normalizeCourse} from './catalogue.js';
 import {installTrainingFidelityGuard} from './fidelity_guard.js';
 import {isInternalEdition} from './edition.js';
+import {STRINGS as DIVE} from '../debrief/dive_strings.js';
 import {localize} from '../i18n/index.js';
 
 const STRINGS = localize('training.session', {
@@ -34,6 +35,7 @@ export function trainingLaunchParams(location = globalThis.location, host = glob
     return {enabled: false, lessonId: ''};
   }
   const query = new URLSearchParams(location.search);
+  if (query.has('replay')) return {enabled: false, lessonId: ''};
   const lessonId = query.get('trainingLesson') || '';
   const enabled = query.get('training') === '1' || !!lessonId
     || query.get('mission') === 'campaign' && String(query.get('chapter') || '').startsWith('course_');
@@ -72,6 +74,7 @@ export function installTrainingSession({
   catalogue = null,
   getState = () => null,
   student = '',
+  openDiveReport,
   location = globalThis.location,
   host = globalThis,
 } = {}) {
@@ -122,6 +125,12 @@ export function installTrainingSession({
           printScorecard(card);
         };
         banner.append(csv, pdf, print);
+        if (openDiveReport) {
+          const report = element('button', '', DIVE.title);
+          report.type = 'button';
+          report.onclick = () => openDiveReport(lesson.title || lesson.id);
+          banner.append(report);
+        }
       }
     },
   });

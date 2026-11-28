@@ -7,6 +7,9 @@ import {installTimeline} from './timeline.js';
 import {installViewpoint, VIEW_GOD, VIEW_STUDENT, studentDisplayTime} from './viewpoint.js';
 import {buildDebriefHtml, downloadDebriefHtml} from './report.js';
 import {installDebriefControls} from './controls.js';
+import {isInternalEdition} from '../training/edition.js';
+import {STRINGS as DIVE} from './dive_strings.js';
+import {openDiveReport} from './dive_report.js';
 import {getFidelity} from '../fidelity.js';
 
 function el(tag, className, parent, text) {
@@ -33,6 +36,7 @@ function nearestFrame(frames, time) {
 
 /** Public showcase demos stay on the plain replay chrome; training / instructor clips open debrief. */
 export function shouldInstallDebrief(url, data) {
+  if (!isInternalEdition()) return false;
   const source = String(url || '');
   if (/(^|[/?#&=])demo_recording\.json(\b|$)/i.test(source)) return false;
   if (source.endsWith('demo_recording.json')) return false;
@@ -74,6 +78,16 @@ export function installDebrief({
   notes.setAttribute('aria-label', STRINGS.notes);
   const exportBtn = el('button', 'debrief-export', panel, STRINGS.exportReport);
   exportBtn.type = 'button';
+
+  const review = el('button', 'dive-open', panel, DIVE.title);
+  review.type = 'button';
+  review.onclick = function reviewDive() {
+    setReplayTime(getReplay().t, {pause: true});
+    openDiveReport(clip(), function seekEvent(t) {
+      setReplayTime(t, {pause: true});
+      refreshFeed();
+    });
+  };
 
   const seekRow = replayBar.querySelector('.rp-row') || replayBar;
   const timelineHost = el('div', 'debrief-timeline', seekRow);
@@ -206,6 +220,9 @@ export function installDebrief({
     downloadDebriefHtml('debrief-report.html', html);
   });
 
+  if (new URLSearchParams(location.search).get('diveReport') === '1') {
+    queueMicrotask(() => review.click());
+  }
   timeline.renderEvents();
   timeline.paint();
   installDebriefControls({panel, viewpoint}).catch(function ignore() {});
