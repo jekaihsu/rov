@@ -1,4 +1,10 @@
 {
   "separator": " · ",
-  "pad": "Pad "
+  "pad": "Pad ",
+  "positions": [
+    "Bottom button",
+    "Right button",
+    "Left button",
+    "Top button"
+  ]
 }

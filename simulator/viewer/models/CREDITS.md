@@ -120,8 +120,8 @@ Credit is not required by any of these licences; it is given here for provenance
 `python simulator/tools/voice/synthesize.py --chapter prologue --language zh-TW`（需環境變數 `OPENAI_API_KEY`）。
 
 ### Input mapping data
-`../input/controller-db.json` is a compact conversion of the Linux records from
-[SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), retrieved 2026-11-14.
+`../input/controller-db.json` is a compact conversion of Linux records and selected Windows records from
+[SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB), revision `01af257a606ebec9b932f274129c383873bbda67`.
 Licensed under zlib; full notice in `../input/SDL-LICENSE.txt`. Rebuild with
 `python3 simulator/tools/build_input_db.py gamecontrollerdb.txt`.
 

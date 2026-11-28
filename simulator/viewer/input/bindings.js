@@ -365,6 +365,14 @@ export function menuPadBindings() {
   return result;
 }
 
+// Only adapt the untouched menu pair. An explicit rebind takes precedence on every family.
+export function familyMenuBindings(bindings, family) {
+  if (family === 'switch' && bindings.accept === 'b0' && bindings.back === 'b1') {
+    return {...bindings, accept: 'b1', back: 'b0'};
+  }
+  return bindings;
+}
+
 // Migrate the original flight-only map; the extended editor adds its other contexts below.
 export function migrateBindings(stored = {}, version = 1) {
   const result = defaultPadBindings();

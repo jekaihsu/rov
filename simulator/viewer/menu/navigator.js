@@ -4,7 +4,7 @@
 // stick turns the hangar turntable. Also renders the footer button prompts for the device in use.
 import { rowsFor } from "../input/keyboard_layout.js";
 import { inputPreferences } from '../input/preferences.js';
-import { createResolver, inputIds, keyLabel, keyRow, padLabel } from '../input/bindings.js';
+import { createResolver, familyMenuBindings, inputIds, keyLabel, keyRow, padLabel } from '../input/bindings.js';
 import { createDevices } from '../input/devices.js';
 import { deviceFamily, glyph, padNames } from '../input/glyphs.js';
 
@@ -94,7 +94,7 @@ function capFor(action, family) {
     const key = row.keys?.[0];
     return key ? { text: keyLabel(key) } : null;
   }
-  const [id] = inputIds(row.pad);
+  const [id] = inputIds(familyMenuBindings(menuPad, family)[action]);
   if (!id) return null;
   const index = Number(id.slice(1));
   if (id[0] === 'b' && index < 4) return { svg: glyph(index, family) };
@@ -286,13 +286,13 @@ export function createMenuNavigator({ database = {}, handlers, root = document.d
     handlers.frame?.(frame);
     if (editing || foreignPanel()) editorOwnsPress = true;
     else if (!frame.snapshot?.buttons.some(value => value > 0.5)) editorOwnsPress = false;
-    if (!active || !frame.pad || !frame.snapshot?.known || editorOwnsPress) {
+    if (!active || !frame.pad || handlers.blockPad?.() || editorOwnsPress) {
       if (frame.snapshot) resolver.block(frame.snapshot);
       previous = {};
       heldDirection = '';
       return;
     }
-    const values = resolver.resolve(menuPad, frame.snapshot, MENU, now);
+    const values = resolver.resolve(familyMenuBindings(menuPad, deviceFamily(frame.pad.id)), frame.snapshot, MENU, now);
     const signature = frame.snapshot.buttons.map(function pressed(value) {
       return value > 0.5 ? 1 : 0;
     }).join('') + frame.snapshot.axes.map(function moved(value) {

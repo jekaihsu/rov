@@ -30,6 +30,7 @@ import {
 } from '../feedback/index.js';
 
 const STRINGS = localize('menu.pause', {
+  disconnected: '手把已斷線。重新連接並將操控回中即可繼續。',
   title: '暫停',
   resume: '繼續',
   restart: '重新開始',
@@ -215,6 +216,7 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
   let tutorialPane = null;
   let view = 'list';
   let pausedByMenu = false;
+  let resumePending = false;
   let navigator = null;
   let restartArmed = false;
   function entry(id, label, handler) {
@@ -321,7 +323,9 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     if (replay) message = STRINGS.replay;
     else if (current && solo(current) && isHost(current) && !current.controller) {
       message = STRINGS.solo;
-      if (!current.paused) pausedByMenu = send({ type: 'pause', value: true });
+      // The preceding resume command may still be in transit when the controller disconnects.
+      if (!current.paused || resumePending) pausedByMenu = send({ type: 'pause', value: true });
+      resumePending = false;
     }
     [note.textContent, note.title] = message;
     renderObjective();
@@ -332,14 +336,31 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     navigator?.start();
     showList();
   }
+  let disconnectedPad = null;
+  input.observeController(function controllerChanged(previous, frame, selection) {
+    if (resumePending && state()?.paused === false) resumePending = false;
+    if (replay || selection === 'keyboard') return;
+    if (disconnectedPad !== null) {
+      if (frame.pad?.id === disconnectedPad && !document.hidden &&
+          frame.snapshot.axes.slice(0, 4).every(v => Math.abs(v) < 0.15) &&
+          frame.snapshot.buttons.every(v => v < 0.1)) hide();
+      return;
+    }
+    if (!previous || open || !state() || state().controller) return;
+    if (frame.devices.some(p => p.index === previous.index && p.id === previous.id)) return;
+    show();
+    disconnectedPad = previous.id;
+    note.textContent = STRINGS.disconnected;
+  });
   function hide() {
+    disconnectedPad = null;
     if (!open) return;
     open = false;
     root.hidden = true;
     document.body.classList.remove(OPEN_CLASS);
     navigator?.setActive(false);
     navigator?.stop();
-    if (pausedByMenu) send({ type: 'pause', value: false });
+    if (pausedByMenu) resumePending = send({ type: 'pause', value: false });
     pausedByMenu = false;
   }
   const { button: resume } = primaryButton('pauseResume', STRINGS.resume, { cap: false });
@@ -408,6 +429,7 @@ export function installPauseMenu({ input, send, state, replay = false, extraActi
     navigator = createMenuNavigator({
       database,
       handlers: {
+        blockPad: () => disconnectedPad !== null,
         scope() {
           return view === 'settings' ? main : side;
         },

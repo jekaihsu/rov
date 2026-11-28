@@ -39,6 +39,7 @@ import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('menu.main', {
   brand: 'ROV Solution',
+  standardLayout: '已使用標準配置，可在設定中改鍵。',
   loading: {
     data: '讀取海域與載具資料…',
     scene: '建立水下場景…',
@@ -125,7 +126,9 @@ prompts.id = 'menuPrompts';
 const status = element('p', 'menu-status');
 status.id = 'menuStatus';
 status.setAttribute('role', 'status');
-footer.append(prompts, status);
+const controllerHint = element('p', 'menu-status', STRINGS.standardLayout);
+controllerHint.hidden = true;
+footer.append(prompts, controllerHint, status);
 menu.append(shade, header, stack, footer);
 document.body.append(menu);
 
@@ -242,6 +245,7 @@ const navigator = createMenuNavigator({
     },
     family: renderPromptsFor,
     frame(frame) {
+      controllerHint.hidden = frame.snapshot?.known !== false;
       screens.settings?.frame?.(frame);
     },
   },

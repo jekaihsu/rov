@@ -1,0 +1,289 @@
+"controller_mappings"
+{
+  "version" "3"
+  "game" "ROV Solution"
+  "controller_type" "controller_xboxone"
+  "title" "#Title"
+  "localization"
+  {
+    "english"
+    {
+      "title" "Standard controller"
+    }
+    "tchinese"
+    {
+      "title" "標準手把"
+    }
+    "schinese"
+    {
+      "title" "标准手柄"
+    }
+    "japanese"
+    {
+      "title" "標準コントローラー"
+    }
+  }
+  "group"
+  {
+    "id" "0"
+    "mode" "four_buttons"
+    "inputs"
+    {
+      "button_a"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button A"
+            }
+          }
+        }
+      }
+      "button_b"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button B"
+            }
+          }
+        }
+      }
+      "button_x"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button X"
+            }
+          }
+        }
+      }
+      "button_y"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button Y"
+            }
+          }
+        }
+      }
+    }
+  }
+  "group"
+  {
+    "id" "1"
+    "mode" "switches"
+    "inputs"
+    {
+      "button_menu"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button SELECT"
+            }
+          }
+        }
+      }
+      "button_escape"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button START"
+            }
+          }
+        }
+      }
+      "left_bumper"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button SHOULDER_LEFT"
+            }
+          }
+        }
+      }
+      "right_bumper"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button SHOULDER_RIGHT"
+            }
+          }
+        }
+      }
+    }
+  }
+  "group"
+  {
+    "id" "2"
+    "mode" "joystick_move"
+    "inputs"
+    {
+      "click"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button JOYSTICK_LEFT"
+            }
+          }
+        }
+      }
+    }
+    "settings"
+    {
+      "output_joystick" "0"
+    }
+  }
+  "group"
+  {
+    "id" "3"
+    "mode" "joystick_move"
+    "inputs"
+    {
+      "click"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button JOYSTICK_RIGHT"
+            }
+          }
+        }
+      }
+    }
+    "settings"
+    {
+      "output_joystick" "1"
+    }
+  }
+  "group"
+  {
+    "id" "4"
+    "mode" "trigger"
+    "settings"
+    {
+      "output_trigger" "1"
+    }
+  }
+  "group"
+  {
+    "id" "5"
+    "mode" "trigger"
+    "settings"
+    {
+      "output_trigger" "2"
+    }
+  }
+  "group"
+  {
+    "id" "6"
+    "mode" "dpad"
+    "inputs"
+    {
+      "dpad_north"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button DPAD_UP"
+            }
+          }
+        }
+      }
+      "dpad_south"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button DPAD_DOWN"
+            }
+          }
+        }
+      }
+      "dpad_west"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button DPAD_LEFT"
+            }
+          }
+        }
+      }
+      "dpad_east"
+      {
+        "activators"
+        {
+          "Full_Press"
+          {
+            "bindings"
+            {
+              "binding" "xinput_button DPAD_RIGHT"
+            }
+          }
+        }
+      }
+    }
+  }
+  "preset"
+  {
+    "id" "0"
+    "name" "Default"
+    "group_source_bindings"
+    {
+      "0" "button_diamond active"
+      "1" "switch active"
+      "2" "joystick active"
+      "3" "right_joystick active"
+      "4" "left_trigger active"
+      "5" "right_trigger active"
+      "6" "dpad active"
+    }
+  }
+}

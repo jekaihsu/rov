@@ -12,6 +12,8 @@ import {
   CALIBRATION_STEPS, captureCalibrationStep, buildCustomMapping, isNeutral
 } from "./calibrate.js";
 import { localize } from "../i18n/core.js";
+import {deviceFamily} from "./glyphs.js";
+
 const STRINGS = localize("input.settings", {
   title: "手把設定",
   close: "返回",
@@ -31,7 +33,7 @@ const STRINGS = localize("input.settings", {
   skip: "略過此鍵",
   done: "映射已儲存",
   bind: "綁定（a0、-a1、b0、b7~；以逗號分隔正負來源）",
-  unknown: "未知裝置，請先完成對應精靈",
+  unknown: "已使用標準配置，可在設定中改鍵。",
   collision: "同一情境內有按鍵重複：",
   keyboard: "鍵盤按鍵",
   keyboardHelp: "目前配置：{layout}。點選按鍵後按下新的按鍵，Esc 取消。",
@@ -354,7 +356,8 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
     );
     ctx.fillStyle = "#5fd38a";
     ctx.fill();
-    if (!pad || !frame.snapshot.known) return;
+    if (!pad) return;
+    const swapFaces = deviceFamily(pad.id) === "switch";
     const b = frame.snapshot.buttons;
     const focused = document.activeElement;
     if (waitRelease) {
@@ -399,11 +402,11 @@ export function installSettings(settings, save, haptics, setMode, onKeys = null)
       const controls = [...root.querySelectorAll("button,select,input,summary")].filter((e) => e.checkVisibility());
       const index = controls.indexOf(document.activeElement);
       controls[(index + direction + controls.length) % controls.length]?.focus();
-    } else if (b[NAV.accept] > 0.5) {
+    } else if (b[swapFaces ? NAV.back : NAV.accept] > 0.5) {
       document.activeElement?.click();
       waitRelease = true;
     }
-    else if (b[NAV.back] > 0.5) closeSettings();
+    else if (b[swapFaces ? NAV.accept : NAV.back] > 0.5) closeSettings();
     else if (document.activeElement?.type === "range" && (b[NAV.left] > 0.5 || b[NAV.right] > 0.5)) {
       const input = document.activeElement;
       input.value = +input.value + (b[NAV.right] > 0.5 ? 1 : -1) * +input.step;

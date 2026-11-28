@@ -4,11 +4,14 @@ import { actionKey, bindingRow, hintItems, padLabel } from './bindings.js';
 import { faceLabels, padNames } from './glyphs.js';
 import { localize } from '../i18n/index.js';
 
-const STRINGS = localize('input.hints', { separator: ' · ', pad: '手把 ' });
+const STRINGS = localize('input.hints', {
+  separator: ' · ', pad: '手把 ', positions: ['下方按鍵', '右側按鍵', '左側按鍵', '上方按鍵'],
+});
 
 // Face captions for the pad side of a hint: the active family, or Xbox letters when only a keyboard is in use.
 function facesFor(family) {
-  if (family && family !== 'keyboard' && family !== 'generic') {
+  if (family === 'generic') return STRINGS.positions;
+  if (family && family !== 'keyboard') {
     return padNames(family) || faceLabels(family);
   }
   return faceLabels('xbox');
