@@ -160,6 +160,8 @@ function trainingParams(url, choice) {
 export function launchUrl(href, choice, pageProtocol = 'http:') {
   const url = new URL(href);
   for (const name of ['replay', 'menu', 'tab']) url.searchParams.delete(name);
+  url.searchParams.delete('freeDive');
+  if (choice.route === 'freeDive') url.searchParams.set('freeDive', '1');
   url.searchParams.set('play', '1');
   url.searchParams.set('model', choice.model);
   url.searchParams.set('ws', normaliseServer(choice.server, pageProtocol));

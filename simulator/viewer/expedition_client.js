@@ -3,7 +3,7 @@ const uniqueId=()=>globalThis.crypto?.randomUUID?.()||`photo-${Date.now()}-${Mat
 
 // Photos remain local. Only a small visibility report crosses the room socket.
 // onShutter: called once the picture is captured, for the shutter sound, flash and toast (hud/photo_feedback.js).
-export function installExpeditionClient({send,capture,getState,getWorld,getSession,notify,readOnly=false,onShutter=null}){
+export function installExpeditionClient({send,capture,getState,getWorld,getSession,notify,readOnly=false,onShutter=null,freeDive=null}){
   const pending=new Map(),recorded=new Set();
   let busy=false;
   function receive(message){
@@ -14,6 +14,9 @@ export function installExpeditionClient({send,capture,getState,getWorld,getSessi
   }
   async function takePhoto({download=false,recordCamera=true}={}){
     if(busy)return;busy=true;
+    const visit = freeDive?.();
+    if (visit?.blocked) { busy=false; return; }
+    const finish = visit?.beginPhoto();
     const state=getState(),world=getWorld(),photoId=uniqueId();
     try{
       const shot=await capture();
@@ -37,18 +40,24 @@ export function installExpeditionClient({send,capture,getState,getWorld,getSessi
           if(result?.accepted&&Object.hasOwn(COLLECTION_CATEGORIES,result.entry?.category))observation=result.entry;
           reason=result?.reason||response.message||'已保存照片。';
         }
-      }else if(!readOnly&&recordCamera){
+      }else if(!readOnly&&recordCamera&&!freeDive?.()){
         send({type:'operation',action:'mission_photo'});
       }
-      await savePhoto({id:photoId,blob:shot.blob,metadata,observation});
-      notify(observation?'觀測成功，已登錄圖鑑與照片。':reason);
+      function store(entry) {
+        observation = entry;
+        return savePhoto({id:photoId, blob:shot.blob, metadata, observation});
+      }
+      if (visit) await visit.save(shot.evidence, store);
+      else await store(observation);
+      const message = visit?.notice(observation) ?? (observation ? '觀測成功，已登錄圖鑑與照片。' : reason);
+      notify(message);
       if(download){
         downloadBlob(`ROV-${photoId}.png`,shot.blob);
         downloadBlob(`ROV-${photoId}-pose.json`,new Blob([JSON.stringify(metadata.pose,null,2)],{type:'application/json'}));
       }
       return {id:photoId,observation,reason};
     }catch(error){notify(error.message||'照片保存失敗，請下載原圖。');}
-    finally{busy=false;}
+    finally{busy=false;finish?.();}
   }
   function update(state){
     if(readOnly)return;

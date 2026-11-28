@@ -4,5 +4,18 @@
   "seagrass": "Seagrass",
   "kelp": "Kelp",
   "fish_school": "School of fish",
-  "harbor_tool": "Lost harbor tools"
+  "harbor_tool": "Lost harbor tools",
+  "bow": "Forecastle deck",
+  "chain": "Anchor chain",
+  "hatch": "Cargo hatch",
+  "bridge": "Bridge",
+  "screw": "Propeller",
+  "windlass": "Anchor windlass",
+  "rail": "Bent railing",
+  "silt": "Hold sediment",
+  "frames": "Transverse frames",
+  "poolwall": "Pool wall",
+  "pile": "Pier pile",
+  "leg": "Jacket leg",
+  "keel": "Bilge keel"
 }

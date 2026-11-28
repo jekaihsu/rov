@@ -146,3 +146,7 @@ R5 港區的藤壺剖面、貽貝殼、海藻葉、岸壁配件、岸吊、天�
 
 The training-pool A/B/C wall plates are original procedural artwork. The viewer draws
 their lettering, border and scale bars on a canvas in `story/prologue.js`.
+
+### 自由潛水的碧海號螺槳
+
+原創程序幾何，使用本專案既有的螺槳輪轂、槳葉繪製與碰撞形狀。自由潛水情境將脫落的螺槳放在船艉外側。

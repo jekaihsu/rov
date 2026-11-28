@@ -40,6 +40,10 @@
     "settings": [
       "Settings",
       "Realism, controls, audio, graphics and interface."
+    ],
+    "freeDive": [
+      "Free dive",
+      "Revisit unlocked sites and photograph underwater discoveries."
     ]
   },
   "quick": "Quick start",
