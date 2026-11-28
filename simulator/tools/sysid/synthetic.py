@@ -24,8 +24,8 @@ def generate(destination, seed=51):
     rng = np.random.default_rng(seed)
     baseline = Vehicle()
     meta = {'schema_version': 1, 'synthetic': True, 'seed': seed, 'dry_mass_kg': baseline.p.mass,
-            'motor_tau_s': baseline.p.motor_tau, 'bias_force_n': dict.fromkeys(AXES, 0),
-            'conditions': 'Still water, isolated axis, buoyancy compensated, no tether/contact; initial thrust zero.',
+            'motor_tau_s': baseline.p.motor_tau, 'implicit_drag': True, 'bias_force_n': dict.fromkeys(AXES, 0),
+            'conditions': 'Guided tow rig, calibrated external force actuator, still water, neutral trim.',
             'noise': {'velocity_sigma_m_s': .001, 'thrust_sigma_n': .01},
             'truth': {}}
     motion, anchors, annotations = [], [], []
@@ -42,6 +42,8 @@ def generate(destination, seed=51):
             for _ in range(3):
                 anchors.append({'axis': axis, 'command': u,
                                 'force_n': vehicle.authority[axis_index]*u+rng.normal(0, .01)})
+        tow_force = 0.0
+        idle = np.zeros(len(vehicle.thrusters))
         for step in range(len(levels)*400+1):
             time = step*.01
             u = levels[min(step//400, len(levels)-1)]
@@ -52,9 +54,12 @@ def generate(destination, seed=51):
                                     'scale_m': 1, 'command': u, 'position_px': float(vehicle.s.pos[axis_index]*100),
                                     'event': 'command_change' if step % 400 == 0 else ''})
             wrench = np.zeros(6)
-            wrench[axis_index] = u
-            # Isolated-axis rig: cancel buoyancy; tiny numerical cross-axis components removed.
-            vehicle.step(.01, vehicle.allocate(wrench), np.array([0, 0, vehicle.p.net_buoyancy, 0, 0, 0]))
+            # The single-axis identification experiment requires an independently
+            # calibrated force source. Installed propellers have inflow-dependent thrust.
+            tow_force += (u * vehicle.authority[axis_index] - tow_force) * .01 / vehicle.p.motor_tau
+            wrench[2] = vehicle.p.net_buoyancy
+            wrench[axis_index] += tow_force
+            vehicle.step(.01, idle, wrench)
             vehicle.s.omega[:] = 0
             vehicle.s.q[:] = [1, 0, 0, 0]
             for other in range(3):

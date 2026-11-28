@@ -347,6 +347,9 @@ class Simulator:
                                                hull_spheres=[(centre, self.vehicle.definition.hull_radius)
                                                              for centre in self.vehicle.definition.hull_centres])
         self.tether_ops.step(dt, self.tether, s.pos, self.yaw)     # observer only: radio, scoring
+        supply = self.power.voltage(self)
+        if supply is not None:
+            v.supply_voltage = supply
         v.step(dt, thr, w_tether + w_contact + self.tool_wrench + operation_wrench)
         if update_world:
             self.world.step(dt, vehicles=[self.world_source()])
