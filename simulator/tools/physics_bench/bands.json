@@ -1,0 +1,237 @@
+{
+  "basis": "ad62e04f994494c96bf782b709bcbcae04d73bcc, simulation regression only",
+  "curve_peak_fraction": 0.05,
+  "curve_abs_floor": 1e-08,
+  "rationale": {
+    "scalar": "5% of the commissioning result flags changes in manoeuvre response. Rise and settling allow at least one 100 Hz sample.",
+    "curve": "5% of each channel peak catches transient shape changes even with unchanged endpoints. Absolute numerical floor protects near-zero channels.",
+    "overshoot_pct": "Allow 0.5 percentage points for near-monotonic responses.",
+    "final_error": "Small numerical residuals allow 1 mm or 0.001 radians.",
+    "stability": "Unforced neutral surge can only lose kinetic energy. Allow roundoff of 1e-10 joule per tick and at most 1e-8 initial energy after 600 seconds.",
+    "timing": "Requested 2 ms budget applied to warmed mean thread CPU per full open_water step. Wall and CPU tails reported separately."
+  },
+  "cases": {
+    "surge": {
+      "steady": [
+        2.198940353,
+        2.430407759
+      ],
+      "rise63_s": [
+        0.323,
+        0.357
+      ]
+    },
+    "coast": {
+      "distance_m": [
+        2.170248638,
+        2.398695863
+      ],
+      "glide_s": [
+        1.700263211,
+        1.879238286
+      ],
+      "speed_1s": [
+        0.498678142,
+        0.551170578
+      ]
+    },
+    "sway": {
+      "steady": [
+        1.221457014,
+        1.350031436
+      ],
+      "rise63_s": [
+        0.247,
+        0.273
+      ]
+    },
+    "heave": {
+      "steady": [
+        0.730476597,
+        0.807368871
+      ],
+      "rise63_s": [
+        0.14,
+        0.16
+      ]
+    },
+    "yaw": {
+      "steady": [
+        1.49225651,
+        1.649336143
+      ],
+      "rise63_s": [
+        0.08,
+        0.1
+      ]
+    },
+    "turn": {
+      "pivot_rad_s": [
+        0.547795058,
+        0.605457695
+      ],
+      "underway_radius_m": [
+        2.275119513,
+        2.514605777
+      ]
+    },
+    "depth": {
+      "overshoot_pct": [
+        -0.5,
+        0.5
+      ],
+      "settling_s": [
+        3.5625,
+        3.9375
+      ],
+      "final_error": [
+        0.003375183,
+        0.005375183
+      ]
+    },
+    "heading": {
+      "overshoot_pct": [
+        -0.5,
+        0.5
+      ],
+      "settling_s": [
+        1.254,
+        1.386
+      ],
+      "final_error": [
+        -0.001,
+        0.001
+      ]
+    },
+    "station": {
+      "peak_m": [
+        0.065063879,
+        0.071912708
+      ],
+      "rms_m": [
+        0.03185583,
+        0.035209075
+      ],
+      "final_m": [
+        0.008383227,
+        0.009265672
+      ]
+    },
+    "bollard": {
+      "steady_N": [
+        278.549296808,
+        307.870275419
+      ]
+    },
+    "cable_6m_0.25ms": {
+      "peak_N": [
+        1.386195399,
+        1.532110705
+      ],
+      "mean_N": [
+        0.820492794,
+        0.906860457
+      ],
+      "drift_m": [
+        2.030992911,
+        2.244781638
+      ]
+    },
+    "cable_6m_0.5ms": {
+      "peak_N": [
+        18.199600936,
+        20.115348403
+      ],
+      "mean_N": [
+        4.697684631,
+        5.192177751
+      ],
+      "drift_m": [
+        4.345596125,
+        4.803027297
+      ]
+    },
+    "cable_10m_0.25ms": {
+      "peak_N": [
+        0.770187122,
+        0.85125945
+      ],
+      "mean_N": [
+        0.706767001,
+        0.781163527
+      ],
+      "drift_m": [
+        2.000281912,
+        2.210837902
+      ]
+    },
+    "cable_10m_0.5ms": {
+      "peak_N": [
+        2.765568085,
+        3.056680515
+      ],
+      "mean_N": [
+        1.676066666,
+        1.852494736
+      ],
+      "drift_m": [
+        4.328464736,
+        4.784092603
+      ]
+    },
+    "pile_0.6ms": {
+      "rebound_m_s": [
+        0.299541048,
+        0.331071685
+      ],
+      "loss_fraction": [
+        0.563559879,
+        0.622881972
+      ]
+    },
+    "pile_1.2ms": {
+      "rebound_m_s": [
+        0.597579158,
+        0.660482227
+      ],
+      "loss_fraction": [
+        0.580363622,
+        0.64145453
+      ]
+    },
+    "stability": {
+      "max_gain_J": [
+        0,
+        1e-10
+      ],
+      "residual_fraction": [
+        0,
+        1e-08
+      ],
+      "distance_m": [
+        1.950238953,
+        2.155527264
+      ]
+    },
+    "timing": {
+      "mean_cpu_ms": [
+        0,
+        2
+      ]
+    },
+    "coupled_stability": {
+      "peak_J": [
+        0.15524854,
+        0.17159049
+      ],
+      "max_excursion_m": [
+        0.53867203,
+        0.59537434
+      ],
+      "peak_N": [
+        5.19782045,
+        5.74495944
+      ]
+    }
+  }
+}
