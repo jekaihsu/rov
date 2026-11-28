@@ -378,6 +378,11 @@ class FieldMesh:
         self.snag_hold = snag_hold
         self.F, self.lo, self.h = _load_field(str(field_path))
         self.shape = np.array(self.F.shape)
+        _, ny, nz = self.F.shape
+        self._flat_field = self.F.ravel()
+        self._strides = np.array([ny * nz, nz, 1])
+        self._cell_offsets = np.array([x * ny * nz + y * nz + z
+                                       for z in (0, 1) for y in (0, 1) for x in (0, 1)])
         self.hi = self.lo + self.h * (self.shape - 1)
         self.origin = np.asarray(origin, float)
         self.heading_deg = float(heading_deg)
@@ -400,13 +405,16 @@ class FieldMesh:
         g = np.clip(g, 0.0, self.shape - 1.000001)
         i = np.floor(g).astype(int)
         f = g - i
-        F = self.F
-        x0, y0, z0 = i[:, 0], i[:, 1], i[:, 2]
-        fx, fy, fz = f[:, 0], f[:, 1], f[:, 2]
-        c00 = F[x0, y0, z0] * (1 - fx) + F[x0 + 1, y0, z0] * fx
-        c10 = F[x0, y0 + 1, z0] * (1 - fx) + F[x0 + 1, y0 + 1, z0] * fx
-        c01 = F[x0, y0, z0 + 1] * (1 - fx) + F[x0 + 1, y0, z0 + 1] * fx
-        c11 = F[x0, y0 + 1, z0 + 1] * (1 - fx) + F[x0 + 1, y0 + 1, z0 + 1] * fx
+        # Gather each corner once. Distances and all three derivatives then
+        # use the same samples, including when a thin plate crosses a cell.
+        base = i @ self._strides
+        corners = self._flat_field[base[:, None] + self._cell_offsets]
+        v000, v100, v010, v110, v001, v101, v011, v111 = corners.T
+        fx, fy, fz = f.T
+        c00 = v000 * (1 - fx) + v100 * fx
+        c10 = v010 * (1 - fx) + v110 * fx
+        c01 = v001 * (1 - fx) + v101 * fx
+        c11 = v011 * (1 - fx) + v111 * fx
         d = (c00 * (1 - fy) + c10 * fy) * (1 - fz) + (c01 * (1 - fy) + c11 * fy) * fz
         # outside the grid the field only bounds the distance from below: add the gap to the box
         outside = L - np.clip(L, self.lo, self.hi)
@@ -414,10 +422,10 @@ class FieldMesh:
         if not gradient:
             return d + gap
         # Differentiate the same trilinear interpolant used for distance.
-        dx0 = (F[x0+1, y0, z0] - F[x0, y0, z0]) * (1-fy) + (F[x0+1, y0+1, z0] - F[x0, y0+1, z0]) * fy
-        dx1 = (F[x0+1, y0, z0+1] - F[x0, y0, z0+1]) * (1-fy) + (F[x0+1, y0+1, z0+1] - F[x0, y0+1, z0+1]) * fy
-        grad = np.column_stack((dx0 * (1-fz) + dx1 * fz, (c10-c00) * (1-fz) + (c11-c01) * fz,
-                                (c01-c00) * (1-fy) + (c11-c10) * fy)) / self.h
+        dx0 = (v100 - v000) * (1 - fy) + (v110 - v010) * fy
+        dx1 = (v101 - v001) * (1 - fy) + (v111 - v011) * fy
+        grad = np.column_stack((dx0 * (1 - fz) + dx1 * fz, (c10 - c00) * (1 - fz) + (c11 - c01) * fz,
+                                (c01 - c00) * (1 - fy) + (c11 - c10) * fy)) / self.h
         grad[outside != 0] = 0.
         grad += outside / np.maximum(gap[:, None], 1e-12)
         return d + gap, grad

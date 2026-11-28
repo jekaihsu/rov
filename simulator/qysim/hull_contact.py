@@ -216,13 +216,20 @@ class HullContact:
             if pen.max() >= -SKIN:
                 return end, q1, start, q0, pen, normals, ids
             return None
+        rotation = q_matrix(q0)
+        offsets = self.points @ rotation.T
+        if angle > 1e-12:
+            axis = omega / np.linalg.norm(omega)
+            parallel = (self.points @ axis)[:, None] * (rotation @ axis)
+            radial = offsets - parallel
+            tangent = np.cross(axis, self.points) @ rotation.T
         for first in range(1, steps + 1, 32):
             fractions = np.arange(first, min(first + 32, steps + 1)) / steps
             positions = start + fractions[:, None] * delta
-            poses = [q_mul(q0, q_from_axis_angle(omega, angle * a)) for a in fractions]
-            if fractions[-1] == 1:
-                poses[-1] = q1
-            points = positions[:, None] + np.array([self.points @ q_matrix(q).T for q in poses])
+            if angle > 1e-12:
+                theta = angle * fractions[:, None, None]
+                offsets = parallel + np.cos(theta) * radial + np.sin(theta) * tangent
+            points = positions[:, None] + offsets
             dist, normals, ids = self.query(world, points.reshape(-1, 3), candidates)
             shape = points.shape[:2]
             pen = self.radii - dist.reshape(shape)
@@ -230,8 +237,10 @@ class HullContact:
             if len(hit):
                 i = hit[0]
                 prior = (first + i - 1) / steps
-                return (positions[i], poses[i], start + prior * delta, q_mul(q0, q_from_axis_angle(omega, angle*prior)),
-                        pen[i], normals.reshape(points.shape)[i], ids.reshape(shape)[i])
+                q = q1 if first + i == steps else q_mul(q0, q_from_axis_angle(omega, angle * fractions[i]))
+                prior_q = q_mul(q0, q_from_axis_angle(omega, angle * prior))
+                return (positions[i], q, start + prior * delta, prior_q, pen[i],
+                        normals.reshape(points.shape)[i], ids.reshape(shape)[i])
         return None
 
     @staticmethod
