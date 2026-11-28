@@ -1,0 +1,13 @@
+shot	zh-Hant	en	zh-Hans	ja
+01-jacket	ROV 游近離岸風場導管架，準備巡檢。	The ROV approaches the offshore jacket for inspection.	ROV 驶近海上风场的导管架，准备巡检。	ROVが洋上風力発電所のジャケットに近づき、点検に入ります。
+02-tether	纜線繞上樁柱，先看清來路再退回。	Trace the tether around the pile before backing out.	缆线绕上桩柱，先看清来路再后退。	杭に巻き付いたテザーの経路を確かめてから後退します。
+03-piles	沿著港樁之間的空隙尋找巡檢路線。	Find a route between the harbor piles.	沿港桩之间的空隙寻找巡检路线。	港の杭の間を見渡し、点検の進路を探します。
+04-wreck	從水下接近碧海號的船體。	Close in on the hull of the Bihai wreck.	从水下接近碧海号的船体。	沈没船「碧海号」の船体に水中から接近します。
+05-pen	靠近養殖網箱後，沿著網衣查看結構。	Follow the mesh along the side of the fish pen.	靠近养殖网箱后，沿着网衣查看结构。	養殖いけすに近づき、網に沿って構造を確かめます。
+06-deck	ROV 在作業船甲板上準備下水。	The ROV prepares for launch from the workboat deck.	ROV 在作业船甲板上准备下水。	作業船の甲板でROVの着水準備が進みます。
+07-menu	從主選單選擇下一趟潛航。	Choose your next dive from the main menu.	从主菜单选择下一次潜航。	メインメニューから次の潜航を選びます。
+08-guide	自由潛水時，打開圖鑑清單查看已拍攝的發現。	Open the field checklist to review a photographed find during a free dive.	自由潜水时，打开图鉴清单查看已拍摄的发现。	自由潜航中にリストを開き、撮影した発見物の解説を読みます。
+09-results	水池訓練結束後，檢視目標、耗時與纜線紀錄。	Review objectives, time and tether handling after pool training.	水池训练结束后，查看目标、用时与缆线记录。	プール訓練を終え、達成項目や所要時間、テザーの扱いを確認します。
+10-gamepad	在控制設定中調整手把的反應。	Adjust gamepad response in the control settings.	在控制设置中调整手柄的响应。	操作設定でゲームパッドの反応を調整します。
+11-reef	從機載鏡頭觀察珊瑚礁上的生物。	Look for reef life through the onboard camera.	通过机载镜头观察珊瑚礁上的生物。	機上カメラを通して、サンゴ礁にすむ生き物を観察します。
+12-stick	接手開場潛航時，畫面會顯示目前手把配置的操作提示。	As you take the controls, the opening dive shows prompts for your gamepad layout.	接手开场潜航时，画面会显示当前手柄配置的操作提示。	冒頭の潜航で操縦を引き継ぐと、ゲームパッドの割り当てに応じたヒントが表示されます。

@@ -1,0 +1,34 @@
+{
+  "seed": 42,
+  "quality": "ultra",
+  "width": 1920,
+  "height": 1080,
+  "shots": {
+    "09-results": "prologue",
+    "06-deck": "harbor_inspection",
+    "07-menu": "main",
+    "08-guide": "korean_castle",
+    "10-gamepad": "controls",
+    "04-wreck": "korean_castle",
+    "11-reef": "coral_reef",
+    "12-stick": "cold_open_jacket"
+  },
+  "deckTime": 2.2,
+  "onboard": {
+    "04-wreck": {
+      "subject": "wreck",
+      "eye": [
+        16,
+        0,
+        25
+      ],
+      "heading": 0,
+      "pitch": -6,
+      "lamp": 2
+    },
+    "11-reef": {
+      "subject": "coral",
+      "lamp": 0
+    }
+  }
+}

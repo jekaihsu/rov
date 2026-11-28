@@ -1,0 +1,8 @@
+{
+  "header": [460, 215, "01-jacket", 0.55, 0.7],
+  "small": [231, 87, "02-tether", 0.52, 0.74],
+  "main": [616, 353, "06-deck", 0.5, 0.52],
+  "vertical": [374, 448, "01-jacket", 0.55, 0.53],
+  "library-capsule": [600, 900, "01-jacket", 0.54, 0.53],
+  "page-background": [1438, 810, "03-piles", 0.5, 0.53]
+}

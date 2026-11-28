@@ -1,0 +1,139 @@
+{
+  "fps": 10,
+  "width": 1920,
+  "height": 1080,
+  "shots": [
+    {
+      "id": "01-jacket",
+      "scenario": "cold_open_jacket",
+      "seed": 42,
+      "duration": 1,
+      "hero_at": 0.4,
+      "hud": false,
+      "camera": {
+        "mode": "fixed",
+        "keyframes": [
+          {
+            "t": 0,
+            "position": [
+              10.9,
+              -11,
+              -14
+            ],
+            "lookAt": [
+              7,
+              -11,
+              -9
+            ],
+            "fov": 57
+          }
+        ]
+      },
+      "weather": {
+        "visibility_m": 18
+      },
+      "drive": [
+        {
+          "t": 0,
+          "led": 2,
+          "keep_depth": true
+        }
+      ]
+    },
+    {
+      "id": "02-tether",
+      "scenario": "tether_untangle",
+      "seed": 42,
+      "duration": 1,
+      "hero_at": 0.4,
+      "hud": false,
+      "camera": {
+        "mode": "fixed",
+        "keyframes": [
+          {
+            "t": 0,
+            "position": [
+              -5,
+              -8,
+              5
+            ],
+            "lookAt": [
+              0,
+              -10,
+              8
+            ],
+            "fov": 58
+          }
+        ]
+      },
+      "weather": {
+        "visibility_m": 18
+      },
+      "drive": [
+        {
+          "t": 0,
+          "led": 2,
+          "keep_depth": true
+        }
+      ]
+    },
+    {
+      "id": "03-piles",
+      "scenario": "harbor_inspection",
+      "seed": 42,
+      "duration": 1,
+      "hero_at": 0.4,
+      "hud": false,
+      "camera": {
+        "mode": "fixed",
+        "keyframes": [
+          {
+            "t": 0,
+            "position": [
+              13,
+              -5,
+              13
+            ],
+            "lookAt": [
+              8,
+              -8,
+              24
+            ],
+            "fov": 69
+          }
+        ]
+      },
+      "weather": {
+        "visibility_m": 18
+      },
+      "drive": [
+        {
+          "t": 0,
+          "led": 2,
+          "keep_depth": true
+        }
+      ]
+    },
+    {
+      "id": "05-pen",
+      "scenario": "aquaculture_pen",
+      "seed": 42,
+      "duration": 1,
+      "hero_at": 0.4,
+      "hud": false,
+      "camera": {
+        "mode": "onboard"
+      },
+      "weather": {
+        "visibility_m": 18
+      },
+      "drive": [
+        {
+          "t": 0,
+          "led": 2,
+          "keep_depth": true
+        }
+      ]
+    }
+  ]
+}

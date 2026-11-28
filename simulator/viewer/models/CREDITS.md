@@ -167,3 +167,7 @@ their lettering, border and scale bars on a canvas in `story/prologue.js`.
 ### 自由潛水的碧海號螺槳
 
 原創程序幾何，使用本專案既有的螺槳輪轂、槳葉繪製與碰撞形狀。自由潛水情境將脫落的螺槳放在船艉外側。
+
+## Steam 商店美術
+
+膠囊和聯絡表以系統安裝的 Noto Sans Bold（SIL OFL 1.1）出圖。字型來源、版本指紋與遊戲畫面授權對照見[商店素材清冊](../../../docs/store/steam/assets/CREDITS.md)。
