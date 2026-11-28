@@ -1,0 +1,33 @@
+{
+  "format": "rov-trailer-1",
+  "title": "S5 capture proof — 5 s harbor FPV",
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "shots": [
+    {
+      "id": "test-5s-harbor",
+      "title": "港灣 FPV 5 秒測試",
+      "duration": 5,
+      "scenario": "harbor_inspection",
+      "seed": 7,
+      "hud": ["depth", "heading"],
+      "hero_at": 2.5,
+      "weather": {
+        "current_kn": 0.9,
+        "surface_dir": 90,
+        "visibility_m": 8
+      },
+      "camera": {
+        "mode": "onboard"
+      },
+      "drive": [
+        {"t": 0.0, "surge": 0.45, "yaw": -0.25, "keep_depth": true, "led": 2, "locked": false},
+        {"t": 1.2, "surge": 0.55, "yaw": 0.35},
+        {"t": 2.4, "surge": 0.35, "yaw": -0.2, "sway": 0.15},
+        {"t": 3.6, "surge": 0.5, "yaw": 0.1, "sway": 0.0}
+      ],
+      "notes": "Proof shot for the capture pipeline; not part of the store cut."
+    }
+  ]
+}

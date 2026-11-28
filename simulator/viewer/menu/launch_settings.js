@@ -23,6 +23,7 @@ import {
   mountKeyHints,
   mountToggles,
 } from './settings.js';
+import { mountCredits, CREDITS_STRINGS } from './credits.js';
 
 import { localize } from '../i18n/index.js';
 
@@ -30,6 +31,7 @@ const STRINGS = localize('menu.launch_settings', {
   title: '設定',
   tabs: {
     fidelity: '擬真設定', controls: '控制', audio: '音訊', quality: '畫質', display: '顯示', interface: '介面',
+    about: '關於',
   },
   pad: '輸入裝置',
   padAuto: '自動偵測手把＋鍵盤',
@@ -195,6 +197,7 @@ export function buildLaunchSettings(ctx) {
       { id: 'quality', label: STRINGS.tabs.quality, mount: quality },
       { id: 'display', label: STRINGS.tabs.display, mount: mountDisplaySettings },
       { id: 'interface', label: STRINGS.tabs.interface, mount: interfaceTab },
+      { id: 'about', label: STRINGS.tabs.about || CREDITS_STRINGS.tab, mount: mountCredits },
     ],
   });
   root.append(panel.element);

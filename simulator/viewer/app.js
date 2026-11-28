@@ -49,9 +49,11 @@ import { installCockpit } from './cockpit.js';
 import { applyVehicleSticker } from './vehicle_stickers.js';
 import { installSurfacePaint } from './surface_paint.js';
 import {updateRenderQuality,renderQualityInfo,canvasAntialias} from './render_quality.js';
+import {installFreeDive} from './free_dive.js';
 import {installPrologue, prologueControlsBlocked} from './story/prologue.js';
 import {installCampaign} from './story/campaign.js';
 import {installColdOpen} from './story/cold_open.js';
+import {installTrainingSession} from './training/session.js';
 import {installChapterCards} from './brand/chapter_card.js';
 import {installMissionPanel} from './mission_panel.js';
 import {installCollectionPanel} from './collection_panel.js';
@@ -75,6 +77,7 @@ import { createLinkPresenter } from './video_link.js';
 import { installVideoLinkOverlay } from './video_link_overlay.js';
 import { installResults, resultsOpen } from './play/results.js';
 import { installAchievements } from './play/achievements.js';
+import { installSteamPresence } from './play/steam_presence.js';
 import { installConnectionNotice } from './play/connection_notice.js';
 import { missionTimeLimit, scoreSummary, scoreValue } from './play/mission_text.js';
 import { installObjectiveCard } from './play/objective_card.js';
@@ -85,6 +88,7 @@ import { createWorldLabels } from './hud/world_labels.js';
 import { elementSize } from './hud/canvas.js';
 import { cssVariable } from './hud/css_variables.js';
 import { createShaderWarmup } from './shader_warmup.js';
+import { installTrailerRecording } from './trailer/recording.js';
 
 const $ = (id) => document.getElementById(id);
 const DEG = Math.PI / 180, KNOT = 0.514444;
@@ -446,7 +450,7 @@ let launchControl=params.get('control')||storedControlLayout();
 let launchSticker=params.get('sticker');
 let launchMission=params.get('mission'),missionSignature='';
 const WS_URL = params.get('ws') || (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.hostname || '127.0.0.1'}:8765`);
-let ws = null, wsOpen = false, retry = 0, retryAt = 0, needResync = true, lastT = -1;
+let ws = null, wsOpen = false, retry = 0, retryAt = 0, retryTimer = null, needResync = true, lastT = -1;
 const renderState = createRenderState({P, Q, rovG, fleet, updateTether, params, fidelity: getFidelity(),
   link: createLinkPresenter()});
 const videoLinkOverlay = installVideoLinkOverlay(vp);
@@ -459,6 +463,7 @@ const collectionPanel=installCollectionPanel({onOpen(){collectionOpen=true;stopF
 const vision = installVision({send,canvas:renderer.domElement,getContext:()=>({renderer,scene,camera,environment:env,state:S || {},world:W || {},camMode,targets:visionTargets(S,fleet,cable)})});
 let photoFeedback=null;
 const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,getSession:()=>session,readOnly:!!REPLAY,
+  freeDive: () => freeDive,
   onShutter:()=>{photoFeedback?.shutter();careerDive.photo();},
   notify:text=>{cockpit.message({message:text});expeditionPanel.notify(text);},
   capture:()=>new Promise((resolve,reject)=>{
@@ -466,8 +471,8 @@ const photoClient=installExpeditionClient({send,getState:()=>S,getWorld:()=>W,ge
     if(!S||!W){reject(Error('連線後才能拍照。'));return;}
     const restoreCamera = cameraRig.physicalCapture(S);
     renderer.render(scene,camera);
-    const targets=engineeringPhotoTargets();
-    const evidence=inspectObservation({scene,camera,environment:env,state:S,world:W,camMode,targets});
+    const targets = freeDive?.targets(worldG, obstacleMeshes, env) ?? engineeringPhotoTargets();
+    const evidence=inspectObservation({scene, camera, environment:freeDive ? null : env, state:S, world:W, camMode, targets});
     const view=camMode;
     renderer.domElement.toBlob(blob=>resolve({blob,evidence,view}),'image/png');
     restoreCamera();
@@ -478,6 +483,10 @@ const rotorSpin = [];
 const procedurePanel = installProcedure({send, readOnly: !!REPLAY,
   deck: {getIntro: () => intro, rov: rovG, getRotors: () => rotorOf}});
 const campaignPanel = installCampaign({send, readOnly: !!REPLAY});
+const trainingSession = installTrainingSession({
+  getState: () => S,
+  student: new URLSearchParams(location.search).get('name') || '',
+});
 const chapterCards = installChapterCards({readOnly: !!REPLAY});
 const missionPanel=installMissionPanel({send,getState:()=>S,readOnly:!!REPLAY});
 const expeditionPanel=installExpeditionPanel({send,getSession:()=>session,takePhoto:()=>photoClient.takePhoto(),openCollection:()=>collectionPanel.open(),setOnboard:()=>setCam('onboard'),readOnly:!!REPLAY});
@@ -492,6 +501,10 @@ const results = installResults({send, getState: () => S, getWorld: () => W, getS
   readOnly: !!REPLAY, onContracts: () => objectiveCard.showContracts(), onVisible: open => music.showResults(open),
   career: careerDive});
 const achievements = installAchievements({readOnly: !!REPLAY});
+const steamPresence = installSteamPresence({
+  getState: () => S,
+  getCareerContract: () => careerDive?.contract || null,
+});
 $('offUrl').textContent = WS_URL;
 const connectionNotice = installConnectionNotice({element: $('offline')});
 
@@ -515,6 +528,12 @@ const linkInbox = createLinkInbox({
 });
 function connect() {
   if (REPLAY) { startReplay(REPLAY); return; }
+  if (retryTimer != null) { clearTimeout(retryTimer); retryTimer = null; }
+  // Drop any previous link before opening another (reconnect storms after a server restart).
+  if (ws) {
+    try { ws.onclose = null; ws.close(); } catch { }
+    ws = null;
+  }
   setConn('wait', '連線中…');
   try { ws = openRcLink(WS_URL); } catch (e) { scheduleRetry(); return; }
   ws.onopen = () => {
@@ -537,9 +556,10 @@ function connect() {
   ws.onerror = () => { };
 }
 function scheduleRetry() {
+  if (retryTimer != null) clearTimeout(retryTimer);
   const d = Math.min(5000, 800 * 2 ** retry++);
   retryAt = performance.now() + d;
-  setTimeout(connect, d);
+  retryTimer = setTimeout(connect, d);
 }
 setInterval(() => {
   const r = retryAt - performance.now();
@@ -581,6 +601,7 @@ function onState(m) {
   missionPanel.update(m);
   procedurePanel.update(m);
   campaignPanel.update(m);
+  trainingSession.update(m);
   coldOpen.update(m, W);
   if (!REPLAY) prologue.update(m);
   chapterCards.update(m);
@@ -592,6 +613,7 @@ function onState(m) {
   onboarding.update(m);
   results.update(m);
   achievements.update(m);
+  steamPresence.update();
   if(m.mission){const objectives=m.mission.mode==='expedition'?expeditionObjectives(m):m.mission.mode==='scenario_training'?(W?.objectives||[]):(m.mission.targets||[]).map(t=>({...t,kind:'inspect'}));const key=JSON.stringify([m.mission.mode,objectives.map(t=>[t.id,t.point,t.done])]);if(key!==missionSignature){missionSignature=key;buildObjectives(objectives);}}
   if(m.model_id&&m.model_id!==activeModelId){const def=W?.vehicle_catalogue?.find(d=>d.id===m.model_id);if(def)loadModel(def);}
   if (needResync && !m.remote_control && m.rc) {
@@ -628,8 +650,10 @@ function updateRoute(nav) {
   const v = new THREE.Vector3();
   for (let i = 0; i < n; i++) { P(r[i], v); a[i * 3] = v.x; a[i * 3 + 1] = v.y; a[i * 3 + 2] = v.z; }
   routeLine.geometry.setDrawRange(0, n); routeLine.geometry.attributes.position.needsUpdate = true;
-  routeLine.visible = n > 1;
-  navTarget.visible = !!nav?.target; if (nav?.target) P(nav.target, navTarget.position);
+  const trailerAidsOff = document.body.classList.contains('trailer');
+  routeLine.visible = n > 1 && !trailerAidsOff;
+  navTarget.visible = !!nav?.target && !trailerAidsOff;
+  if (nav?.target) P(nav.target, navTarget.position);
 }
 
 let lastEvT = null;
@@ -646,7 +670,7 @@ function checkEvents(evs) {
 
 /* ═════════════════════════ input → RC ═════════════════════════ */
 const CH = ['left_ud', 'left_lr', 'right_ud', 'right_lr', 'left_wave', 'right_wave'];
-const input = installInput({blocked: () => prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
+const input = installInput({blocked: () => freeDive?.blocked || prologueControlsBlocked(S) || collectionOpen || pauseMenuOpen()
     || resultsOpen() || feedbackOpen(),
   camera: () => cameraRig.cycle(), tick: () => inputTick(),
   preferred: () => preferredPad, gain: () => +$('kbGain').value,
@@ -655,8 +679,8 @@ const input = installInput({blocked: () => prologueControlsBlocked(S) || collect
 const {rc, hold, keys, touch, out, toggleLock, toggleDepth, cycleMode, cycleLed} = input;
 startPresentation = installStartPresentation({send, rc, readOnly: !!REPLAY});
 const onboarding = installOnboarding({input, readOnly: !!REPLAY});
-installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
-  extraActions: () => [...procedurePanel.pauseActions(), ...careerDive.pauseActions()]});
+const pauseMenu = installPauseMenu({input, send, state: () => S, replay: !!REPLAY, tutorial: onboarding,
+  extraActions: () => [...(freeDive?.pauseActions() ?? procedurePanel.pauseActions()), ...careerDive.pauseActions()]});
 installFeedbackReport({
   input,
   getState: () => S,
@@ -809,6 +833,9 @@ let camMode = cameraRig.mode;
 const cameraLook = installCameraLook({renderer, getMode: () => camMode, fidelity: getFidelity()});
 const cine = cameraRig.cine;
 const setCam = m => cameraRig.setMode(m);
+const trailer = installTrailerRecording({
+  params, camera, rovG, setCam, getFidelity, document,
+});
 const updateCamera = dt => cameraRig.update(dt);
 $('camBtn').onclick = () => cameraRig.cycle();
 const _f = new THREE.Vector3(), _v = new THREE.Vector3(), _q = new THREE.Quaternion();
@@ -1061,7 +1088,13 @@ async function startIntro(held = false) {
     heldIntro.release();
   };
 }
-installIntroSkip({input, button: $('skipIntro'), skip: () => intro?.skip(), active: introActive});
+installIntroSkip({
+  input, button: $('skipIntro'), skip: () => intro?.skip(),
+  onMenuBack: {
+    enabled: () => !!procedurePanel.canNavigate?.(),
+    run: () => pauseMenu.show(),
+  },
+});
 let introStarts = 0;
 window.__intro = () => intro && { t: intro.t, playing: intro.playing, starts: introStarts, held: !!intro.held };
 async function ensurePip() {
@@ -1211,6 +1244,7 @@ window.__movieDone = false;
 new ResizeObserver(resize).observe(vp);
 const _wc = new THREE.Color();
 const audio = installAudio({
+  deploying: introActive,
   getWorld: () => W, getCamera: () => camera, getMode: () => camMode, isPaused: () => !!rep && !rep.playing,
 });
 installAudioSettings(audio, document.querySelector('.rack.left'));
@@ -1219,6 +1253,7 @@ installVoice({engine: audio, music});
 const prologue = installPrologue({input, send, camera, scene, rovG, setCam, music});
 const coldOpen = installColdOpen({input, setCam, camera, rovG, hidden: [objG, guide, curArrow, wrapG, contactMesh],
   music, readOnly: !!REPLAY, plain: () => structureSet?.highlight(new Set())});
+const freeDive = installFreeDive({params, rc, camera, rovG, setCam, radio: procedurePanel.radio, readOnly: !!REPLAY});
 const flightFeedback = installFlightFeedback({canvas: renderer.domElement, radio: procedurePanel.radio,
   onboard: () => camMode === 'onboard'});
 photoFeedback = installPhotoFeedback({viewport: vp, audio, haptics: input.haptics});
@@ -1253,6 +1288,7 @@ function frame(now) {
     });
   }
   if (!inIntro) updateCamera(dt);
+  if (trailer.enabled) trailer.frame(dt);
   // water colour + fog from camera depth, visibility and silt
   const camDepth = clamp(-camera.position.y, 0, 60);
   installUnderwaterPipeline(renderer, { surface });
@@ -1264,7 +1300,8 @@ function frame(now) {
     displayFar: Math.max(90, cameraRig.topH * 4), lampLevel: [0, .55, 1][S?.rc?.right_switch || 0] || 0, rov: rovG});
   daylightRig.update({ camera, world: W, dt, view: camMode, surface, renderer });
   spoolStation.update(dt, !!intro?.onScene, camera);           // the intro brings its own boat while it plays
-  objG.visible = !inIntro; if (inIntro) { curArrow.visible = false; particles.visible = false; }
+  objG.visible = !inIntro && !(trailer.enabled && trailer.hideTargets());
+  if (inIntro) { curArrow.visible = false; particles.visible = false; }
   if (!inIntro) updateParticles(dt, rovG.position);
   updatePenNet(structureSet, flowField, now / 1000);
   if (env) env.update(dt, camera, S?.current_here ? P(S.current_here) : null, renderState.state || S, flowField);
@@ -1284,13 +1321,17 @@ function frame(now) {
     gp.set([a.x, a.y, a.z, b.x, b.y, b.z]); guide.geometry.attributes.position.needsUpdate = true; guide.computeLineDistances();
     guide.visible = camMode !== 'onboard';
   } else guide.visible = false;
+  if (trailer.enabled) {
+    trailer.suppressAids({objG, navTarget, guide, routeLine, labelsCheckbox: $('optLabels')});
+  }
   const displayed = renderState.display(S);
   audio.update(displayed);
   music.update(displayed);
-  if (displayed) flightFeedback.update(displayed, W,
+  if (displayed && !freeDive) flightFeedback.update(displayed, W,
     !!(rep || introActive() || pauseMenuOpen() || collectionOpen || resultsOpen()));
   coldOpen.frame(dt);
   prologue.frame();
+  freeDive?.frame(now, W, S, env);
   cameraLook.update();
   if (!window.__skipRender) renderer.render(scene, camera);      // the movie renderer fast-forwards without drawing
   videoLinkOverlay.update(renderState.linkEffect, camMode, renderer.domElement);
@@ -1316,7 +1357,14 @@ if (CAPTURE) {
   last = vnow;
   window.__advance = (dt) => { vnow += dt * 1000; frame(vnow); };
 } else requestAnimationFrame(frame);
-window.__viewer = { cameraLook, THREE, scene, camera, rovG, worldG, siltFx, get W() { return W; }, get S() { return S; }, rotors, get rotorOf() { return rotorOf; }, setCam, rc, touch, toggleLock, takePhoto:options=>photoClient.takePhoto(options) };
+window.__viewer = {
+  cameraLook, THREE, scene, camera, rovG, worldG, siltFx,
+  get W() { return W; }, get S() { return S; },
+  rotors, get rotorOf() { return rotorOf; },
+  setCam, rc, touch, toggleLock,
+  takePhoto: options => photoClient.takePhoto(options),
+  send, trailer,
+};
 Object.defineProperties(window.__viewer, { debrief: { get: () => debrief }, rep: { get: () => rep } });
 window.__viewer.performance=()=>({fps,...renderQualityInfo(renderer)});
 window.__viewer.renderer = renderer;

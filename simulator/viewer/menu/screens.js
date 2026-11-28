@@ -2,6 +2,7 @@
 // Each builder returns {element, enter()}; navigation, data and the 3D stage come from the shared context.
 // Big-picture layout (big_picture.js): the scene is the screen, one large title, a few numbers, one primary
 // button, choices as image tiles; longer text waits behind 明細.
+import {STRINGS as DIVE} from '../free_dive_copy.js';
 import { STICKERS } from '../vehicle_stickers.js';
 import { getFidelity } from '../fidelity.js';
 import { PROCEDURE_ITEM } from '../procedure/fidelity_item.js';
@@ -19,6 +20,7 @@ import {
   tile,
 } from './big_picture.js';
 
+import { isInternalEdition } from '../training/edition.js';
 import { localize } from '../i18n/index.js';
 
 const STRINGS = localize('menu.screens', {
@@ -32,8 +34,10 @@ const STRINGS = localize('menu.screens', {
   entries: {
     dive: ['開始潛航', '選擇玩法、載具與海域，從水面下潛。'],
     story: ['劇情與教學', '加入 YX 工作隊：從水池練習開始，接下港灣與船殼巡檢。'],
+    freeDive: ['自由潛水', '重訪已解鎖的海域，拍攝水下發現。'],
     contracts: ['YX 委託看板', 'YX 派發的工單：碼頭、船殼、港內搜尋；交出成果領報酬、累積時數、考執照。'],
     shop: ['YX 裝備部', '用報酬添購真實配件（雷射比例尺、聲納、探針…）與機身外觀；配件讓你接更多種工單。'],
+    teamTraining: ['訓練模式', '內部課程地圖、學員紀錄與事故演練；不進入 Steam 主線。'],
     training: ['訓練情境', '事故演練與依難度排列的場景訓練。'],
     multiplayer: ['多人', '建立或加入房間，最多三人共用同一片海域。'],
     collection: ['圖鑑與收藏', '照片、生物圖鑑與工程紀錄。'],
@@ -185,6 +189,7 @@ export function buildMain(ctx) {
     dive: function dive() {
       ctx.startRoute('dive');
     },
+    freeDive: ctx.openFreeDive,
     story: function story() {
       ctx.openTraining('story');
     },
@@ -193,6 +198,9 @@ export function buildMain(ctx) {
     },
     shop: function shop() {
       ctx.openShop();
+    },
+    teamTraining: function teamTraining() {
+      ctx.openTraining('courses');
     },
     training: function training() {
       ctx.openTraining('drills');
@@ -207,8 +215,10 @@ export function buildMain(ctx) {
       ctx.go('settings');
     },
   };
-  const ids = { collection: 'menuCollection' };
+  const ids = { collection: 'menuCollection', teamTraining: 'entry-team-training' };
+  const internal = isInternalEdition();
   Object.entries(STRINGS.entries).forEach(function addEntry([key, [label, help]], index) {
+    if (key === 'teamTraining' && !internal) return;
     const button = element('button', 'menu-entry');
     button.type = 'button';
     button.id = ids[key] || (['story', 'training', 'settings'].includes(key) ? 'internal-' : 'entry-') + key;
@@ -266,7 +276,8 @@ export function buildModes(ctx) {
     hero.setChips(chips);
   }
   const strip = createTileStrip(showMode);
-  const cards = MODES.map(function modeTile(mode) {
+  const modes = MODES.filter(mode => mode !== 'expedition' || isInternalEdition());
+  const cards = modes.map(function modeTile(mode) {
     const [title, line] = STRINGS.modes[mode];
     const card = tile({ name: title, image: `menu/previews/${MODE_PREVIEW[mode]}.jpg` });
     card.dataset.mode = mode;
@@ -413,8 +424,13 @@ export function buildHangar(ctx) {
   return { element: root, pose: 'hangar', enter: render, rotatable: true };
 }
 
+function siteTitle(scene, ctx) {
+  const key = scene.key === 'korean_castle' ? 'free_dive_wreck' : scene.key;
+  return ctx.choice.route === 'freeDive' ? DIVE[key] || scene.name : scene.name;
+}
+
 function siteTile(scene, ctx) {
-  const card = tile({ name: scene.name, image: `menu/previews/${scene.key}.jpg` });
+  const card = tile({ name: siteTitle(scene, ctx), image: `menu/previews/${scene.key}.jpg` });
   card.dataset.site = scene.key;
   card.addEventListener('click', function chooseSite() {
     ctx.chooseSite(scene.key);
@@ -426,8 +442,7 @@ export function buildSites(ctx) {
   const root = screen('sites', STRINGS.sitesTitle);
   root.classList.add('bp-screen');
   const hero = createHero();
-  const n = ctx.data.sites.length;
-  const count = (n === 1 ? STRINGS.sitesCountOne : STRINGS.sitesCountMany).replace('{n}', String(n));
+  let count;
   const { button: choose } = primaryButton('siteChoose', STRINGS.choose);
   hero.actions.append(choose);
   function showSite(card) {
@@ -435,14 +450,18 @@ export function buildSites(ctx) {
     if (!scene) return;
     const facts = siteFacts(scene);
     hero.kicker.textContent = [STRINGS.sitesTitle, count].join(NAME_SEPARATOR);
-    hero.setTitle(scene.name);
-    hero.setStats([
-      [STRINGS.depth, depthText(facts), lengthUnit()],
-      [STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()],
-      [STRINGS.current, fixed(facts.current, 1), STRINGS.units2.kn],
-    ]);
+    hero.setTitle(siteTitle(scene, ctx));
+    const stats = [[STRINGS.depth, depthText(facts), lengthUnit()]];
+    const freeDive = ctx.choice.route === 'freeDive';
+    // The independent Bihai visit has different tides and water clarity from its mission preview.
+    if (!freeDive || scene.key !== 'korean_castle') {
+      stats.push([STRINGS.visibility, fixed(metres(facts.visibility), 0), lengthUnit()]);
+      stats.push([STRINGS.current, fixed(facts.current, 1), STRINGS.units2.kn]);
+    }
+    hero.setStats(stats);
     const allowed = supportsMode(scene, ctx.choice.mission);
-    hero.setChips(allowed ? facts.activities.slice(0, MAX_CHIPS) : [[STRINGS.notForMode, 'warn']]);
+    const activities = freeDive ? [] : facts.activities.slice(0, MAX_CHIPS);
+    hero.setChips(allowed ? activities : [[STRINGS.notForMode, 'warn']]);
     choose.disabled = !allowed;
     ctx.previewScene(scene.key);
   }
@@ -454,7 +473,10 @@ export function buildSites(ctx) {
   root.append(strip.element, hero.element);
   function enter() {
     // Rebuilt on entry so the numbers follow the unit setting.
-    const cards = ctx.data.sites.map(function makeCard(scene) {
+    const sites = ctx.listedSites();
+    const n = sites.length;
+    count = (n === 1 ? STRINGS.sitesCountOne : STRINGS.sitesCountMany).replace('{n}', String(n));
+    const cards = sites.map(function makeCard(scene) {
       return siteTile(scene, ctx);
     });
     // Sites the chosen mode offers come first; the others stay visible but disabled.

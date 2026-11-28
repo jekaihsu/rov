@@ -6,6 +6,8 @@
 // The cold open is its own campaign entry (campaign/cold_open.json, category `prelude`); the URL that would have
 // launched the prologue rides along in `next`, so the prologue itself is untouched.
 
+import { coldOpenStore } from '../saves/registry.js';
+
 export const STORAGE_KEY = 'rov.coldOpen.v1';
 export const CHAPTER = 'cold_open';
 export const SCENARIO = 'cold_open_jacket';
@@ -25,20 +27,13 @@ function storage() {
 }
 
 export function loadColdOpen() {
-  try {
-    const value = JSON.parse(storage()?.getItem(STORAGE_KEY) || '{}');
-    return {seen: !!value?.seen, enabled: value?.enabled !== false};
-  } catch {
-    return {seen: false, enabled: true};
-  }
+  const { value } = coldOpenStore.load(storage());
+  // Public shape stays {seen, enabled}; version lives only in the stored record.
+  return { seen: !!value.seen, enabled: value.enabled !== false };
 }
 
 function save(record) {
-  try {
-    storage()?.setItem(STORAGE_KEY, JSON.stringify(record));
-  } catch {
-    // Private windows may refuse storage; the cold open then simply plays again next time.
-  }
+  coldOpenStore.save(record, storage());
 }
 
 export function markColdOpenSeen() {

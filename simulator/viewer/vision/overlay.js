@@ -6,8 +6,9 @@ import {inspectObservation} from '../observation_camera.js';
 import {registerFidelityItem, getFidelity} from '../fidelity.js';
 import {OracleDetector, OnnxDetector, RemoteDetector} from './detector.js';
 import {clipOutsideInstruments} from '../hud/safe_zones.js';
+import { localize } from '../i18n/index.js';
 
-const STRINGS = {
+const STRINGS = localize('vision.overlay', {
   toggle: 'AI 視覺',
   available: '畫面中有可登錄目標',
   mark: '標記偵測目標',
@@ -16,7 +17,9 @@ const STRINGS = {
   // Detector classes are internal keys; the picture shows the player's word for each.
   classes: {coral: '珊瑚', seastar: '海星', seagrass: '海草', kelp: '海藻', fish_school: '魚群',
     engineering: '作業目標', cable: '纜線', unknown: '未知目標'},
-};
+  aiOverlay: 'AI 疊圖',
+  aiOverlayHelp: '在機載畫面上標示辨識結果（預設為模擬真值，非實際模型）。',
+});
 
 export function classLabel(cls) {
   return STRINGS.classes[cls] || STRINGS.classes.unknown;
@@ -29,7 +32,7 @@ registerFidelityItem({
   urlValue: function fromUrl(params) {
     return params.has('vision') ? true : undefined;
   },
-}, {aiOverlay: 'AI 疊圖', aiOverlayHelp: '在機載畫面上標示辨識結果（預設為模擬真值，非實際模型）。'});
+}, STRINGS);
 
 export function drawDetections(ctx, detections, width, height) {
   ctx.strokeStyle = '#4fd1e0';

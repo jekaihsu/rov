@@ -4,10 +4,12 @@ import {
   clamp, motorPan, freshContacts, impactEnvelope, motorParameters, depthCutoff,
   detectEvents, resolveCue, reelParameters, topsideAmbience, takeContactHit
 } from './mapping.js';
+import {createAmbience} from './ambience.js';
 import {lineLoad} from '../tether/feel.js';
 import {getFidelity} from '../fidelity.js';
 import '../story/feel_settings.js';
 import {underwaterAudioEnabled} from './fidelity.js';
+import { audioStore } from '../saves/registry.js';
 
 const STRINGS = {
   title: '音效',
@@ -23,6 +25,7 @@ const STRINGS = {
 const DEFAULTS = {
   master: 0.65, vehicle: 0.7, environment: 0.5, ui: 0.55, warning: 0.65, music: 0.5, voice: 0.8, mute: false
 };
+
 const KEY = 'rov.audio';
 let sharedEngine;
 
@@ -35,13 +38,13 @@ export function installAudio(options = {}) {
 class AudioEngine {
   constructor(options) {
     this.options = options;
-    this.settings = {...DEFAULTS};
-    try {
-      const saved = JSON.parse(localStorage.getItem(KEY));
+    this.settings = { ...DEFAULTS };
+    const loaded = audioStore.load();
+    if (!loaded.recovered && loaded.reason !== 'empty') {
       for (const key of Object.keys(DEFAULTS)) {
-        if (typeof saved?.[key] === typeof DEFAULTS[key]) this.settings[key] = saved[key];
+        if (typeof loaded.value?.[key] === typeof DEFAULTS[key]) this.settings[key] = loaded.value[key];
       }
-    } catch {}
+    }
     this.forcedMute = new URLSearchParams(location.search).has('mute');
     this.controls = [];
     this.cueListeners = [];
@@ -67,9 +70,7 @@ class AudioEngine {
 
   set(key, value) {
     this.settings[key] = key === 'mute' ? !!value : clamp(value);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(this.settings));
-    } catch {}
+    audioStore.save(this.settings);
     for (const control of this.controls) {
       control.input.value = this.settings[control.key];
       control.input.checked = this.settings.mute;
@@ -118,6 +119,7 @@ class AudioEngine {
     this.flow = this.noiseLayer(0, 450);
     this.fan = this.noiseLayer(0.03, 900);
     this.deck = this.noiseLayer(0.04, 280);
+    this.ambience = createAmbience(this.ctx, this.buses.environment);
     this.reelMotor = this.motor(this.buses.vehicle);
     this.brake = this.noiseLayer(0, 520, this.buses.vehicle);
     this.fairlead = this.noiseLayer(0, 1400, this.buses.vehicle);
@@ -158,7 +160,7 @@ class AudioEngine {
   }
 
   isPaused() {
-    return !!(this.state?.paused || this.options.isPaused?.());
+    return !!((this.state?.paused && !this.options.deploying?.()) || this.options.isPaused?.());
   }
 
   underwaterOn() {
@@ -331,6 +333,8 @@ class AudioEngine {
     this.updateTopside(state);
     const onboard = this.options.getMode?.() === 'onboard';
     const underwater = this.underwaterOn();
+    const surface = this.options.deploying?.() ? this.options.getCamera()?.position.y >= 0 : state.pos?.[2] <= 0.1;
+    this.ambience(this.options.getWorld?.(), surface, underwater && this.enabled('waterSound'));
     this.updateUnderwater(state, underwater ? (onboard ? 1 : 0.6) : 0);
     if (underwater && this.enabled('motorSound')) this.spatial(state);
     else this.clearPeers();

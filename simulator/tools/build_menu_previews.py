@@ -69,7 +69,7 @@ def chapter_entries():
     chapters = []
     for script in campaign.ordered_scripts():
         if script['category'] == 'course':
-            continue                            # company courses start from the engineering drawer, not the menu
+            continue                            # company courses use viewer/training/courses.json (S6 map)
         entry = {field: script.get(field) for field in CHAPTER_FIELDS}
         entry['scenario'] = script['scenario']
         entry['mode'] = script['mode']

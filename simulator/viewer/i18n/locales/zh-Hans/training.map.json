@@ -1,0 +1,19 @@
+{
+  "title": "训练模式",
+  "help": "内部版课程地图。通过标准按研究报告与公司课表撰写，门槛暂定待基准航次校准。记录仅保存在本机。",
+  "groupIntro": "入门",
+  "groupOperator": "操作员",
+  "groupAdvanced": "进阶",
+  "groupIncident": "事故处置",
+  "minutes": "{n} 分",
+  "goal": "目标技能",
+  "criteria": "通过标准",
+  "start": "开始练习",
+  "records": "本地记录",
+  "exportCsv": "导出全部 CSV",
+  "exportLast": "导出最近成绩单",
+  "noRecords": "尚无本地记录",
+  "lastPass": "最近：暂定通过",
+  "lastFail": "最近：需补训",
+  "steamHidden": "Steam 版不提供训练模式"
+}

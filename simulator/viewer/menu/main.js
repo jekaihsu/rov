@@ -7,7 +7,7 @@ import '../career/boot.js';
 import { installCollectionPanel } from '../collection_panel.js';
 import { genericVehicle } from '../asset_config.js';
 import { vehicleDetail, vehicleName, vehicleTitle } from '../fleet_names.js';
-import { diveSites, supportsMode } from './catalogue.js';
+import { diveSites, supportsMode, unlockedDiveSites } from './catalogue.js';
 import { createMenuNavigator, loadControllerDatabase, renderPrompts } from './navigator.js';
 import {
   hasLastSession,
@@ -34,6 +34,7 @@ import { installMusic } from '../audio/music.js';
 import { installCareerMenu } from '../career/menu.js';
 import { installBrandMenu } from '../brand/menu_brand.js';
 import { launchNewGame, routeLaunch, startsNewGame } from '../story/cold_open_menu.js';
+import {isInternalEdition} from '../training/edition.js';
 import { completedChapters } from './training.js';
 
 import { localize } from '../i18n/index.js';
@@ -64,6 +65,7 @@ const ROUTES = {
   join: ['multiplayer', 'hangar', 'briefing'],
   story: ['training', 'hangar', 'briefing'],
   scenario: ['training', 'hangar', 'briefing'],
+  team: ['training', 'hangar', 'briefing'],
 };
 const PREVIEW_DELAY_MS = 280;
 // Screens that show the title backdrop (stage.js SHOWCASE) instead of the chosen dive site.
@@ -98,6 +100,14 @@ async function loadJson(path) {
   return response.json();
 }
 
+async function loadTrainingCatalogue() {
+  try {
+    return await loadJson('training/courses.json');
+  } catch {
+    return {courses: [], incidents: [], version: 1};
+  }
+}
+
 installDisplayPrefs();
 document.body.classList.add('menu-open');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -125,11 +135,13 @@ setLoading(0.08, STRINGS.loading.data);
 let scenes = [];
 let catalogue = { vehicles: [], chapters: [] };
 let database = {};
+let trainingCatalogue = { courses: [], incidents: [], version: 1 };
 try {
-  [scenes, catalogue, database] = await Promise.all([
+  [scenes, catalogue, database, trainingCatalogue] = await Promise.all([
     loadJson('scene_previews.json'),
     loadJson('menu_catalogue.json'),
     loadControllerDatabase(),
+    loadTrainingCatalogue(),
   ]);
 } catch (error) {
   setLoading(0, STRINGS.loading.failed);
@@ -156,6 +168,7 @@ const data = {
   sites: diveSites(scenes, catalogue.chapters),
   vehicles: catalogue.vehicles,
   chapters: catalogue.chapters,
+  training: trainingCatalogue,
 };
 if (!data.vehicles.some(function known(vehicle) {
   return vehicle.id === choice.model;
@@ -316,6 +329,7 @@ function firstSupported(mode) {
 function lastSummary() {
   if (!hasLastSession()) return '';
   const last = lastSession();
+  if (last.mission === 'expedition' && !isInternalEdition()) return '';
   const chapter = last.mission === 'campaign' ? chapterFor(last.chapter) : null;
   const site = sceneFor(last.scenario);
   const vehicle = data.vehicles.find(function byId(entry) {
@@ -373,11 +387,33 @@ const ctx = {
   },
   openTraining(tab) {
     screens.training.show(tab);
-    choice.route = tab === 'story' ? 'story' : 'scenario';
+    choice.route = tab === 'story' ? 'story' : tab === 'courses' ? 'team' : 'scenario';
     go('training');
+  },
+  openFreeDive() {
+    choice.route = 'freeDive';
+    choice.mission = 'free_explore';
+    choice.training = false;
+    choice.trainingLesson = '';
+    choice.chapter = '';
+    go('sites');
+  },
+  listedSites() {
+    if (choice.route !== 'freeDive') return data.sites;
+    return unlockedDiveSites(scenes, data.chapters, completedChapters());
   },
   openCollection() {
     collection.open();
+  },
+  chooseTrainingLesson(lesson) {
+    choice.mission = 'campaign';
+    choice.chapter = lesson.id;
+    choice.scenario = lesson.scenario;
+    choice.route = 'team';
+    choice.training = true;
+    choice.trainingLesson = lesson.id;
+    previewScene(lesson.scenario);
+    go('hangar');
   },
   // Expedition contracts as their own entry: the expedition sea, then vehicle and site as usual.
   openContracts() {
@@ -388,12 +424,16 @@ const ctx = {
     if (mode === 'scenario_training') {
       screens.training.show('scenarios');
       choice.route = 'scenario';
+      choice.training = false;
+      choice.trainingLesson = '';
       go('training');
       return;
     }
     choice.mission = mode;
     choice.chapter = '';
     choice.scenario = firstSupported(mode);
+    choice.training = false;
+    choice.trainingLesson = '';
     go('hangar');
   },
   chooseChapter(chapter) {
@@ -401,6 +441,8 @@ const ctx = {
     choice.chapter = chapter.id;
     choice.scenario = chapter.scenario;
     choice.route = 'story';
+    choice.training = false;
+    choice.trainingLesson = '';
     previewScene(chapter.scenario);
     go('hangar');
   },
@@ -409,6 +451,8 @@ const ctx = {
     choice.chapter = '';
     choice.scenario = key;
     choice.route = 'scenario';
+    choice.training = false;
+    choice.trainingLesson = '';
     previewScene(key);
     go('hangar');
   },
@@ -417,6 +461,13 @@ const ctx = {
   },
   chooseSite(key) {
     choice.scenario = key;
+    if (choice.route === 'freeDive') {
+      if (!ctx.listedSites().some(site => site.key === key)) return;
+      const scenario = key === 'korean_castle' ? 'free_dive_wreck' : key;
+      const dive = {...choice, scenario, room: 'dive-' + Date.now().toString(36), intro: false};
+      location.assign(launchUrl(location.href, dive, location.protocol));
+      return;
+    }
     go('briefing');
   },
   // Title 開始: a new game goes straight into the cold open and the prologue; anyone else gets the main menu.
@@ -433,6 +484,7 @@ const ctx = {
     launch({ replay: true });
   },
   quickStart() {
+    choice.route = 'dive';
     Object.assign(choice, lastSession());
     choice.intro = introForLaunch(choice);
     launch();
@@ -476,7 +528,7 @@ openRequestedScreen();
 navigator.setActive(true);
 navigator.start();
 
-// ?menu=training&tab=scenarios|drills|story opens a list directly (the results screen's 其他訓練 link);
+// ?menu=training&tab=courses|scenarios|drills|story opens a list directly;
 // ?menu=board opens the YX contract board (the results screen's 下一張委託).
 function openRequestedScreen() {
   const query = new URLSearchParams(location.search);
@@ -497,8 +549,8 @@ function openRequestedScreen() {
   }
   if (requested !== 'training') return;
   go('main');
-  if (steamEdition && (query.get('tab') || 'story') === 'story') go('story');
-  else ctx.openTraining(query.get('tab') || 'story');
+  if (steamEdition && query.get('tab') === 'story') go('story');
+  else ctx.openTraining(query.get('tab') || 'courses');
 }
 
 window.__menu = {

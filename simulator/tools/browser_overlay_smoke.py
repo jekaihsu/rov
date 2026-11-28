@@ -243,7 +243,7 @@ def scale_order(browser):
     page, _ = new_page(browser, SIZES[0])
     page.goto(f'{BASE_URL}/?ws={WS_URL}&quality=performance', wait_until='domcontentloaded')
     names = ['--z-scene-mark', '--z-hud', '--z-hud-alert', '--z-pip', '--z-subtitle', '--z-story', '--z-notice',
-             '--z-controls', '--z-banner', '--z-drawer', '--z-blocker', '--z-menu', '--z-toast']
+             '--z-controls', '--z-banner', '--z-drawer', '--z-drawer-toggle', '--z-blocker', '--z-menu', '--z-toast']
     values = [page.evaluate('t => window.__overlay.token(t)', name) for name in names]
     check(all(a < b for a, b in zip(values, values[1:])), f'stacking scale is not ascending: {values}')
     page.context.close()

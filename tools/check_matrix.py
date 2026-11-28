@@ -38,8 +38,11 @@ DEFAULT_CHECKS = (
     'browser_expedition_smoke',
     'browser_paint_smoke',
     'browser_campaign_smoke',
+    'browser_training_smoke',
     'browser_results_smoke',
     'browser_objective_card_smoke',
+    # S1 small-fix: Esc opens pause on the deck checklist; first-dive guide is not duplicated.
+    'browser_s1_smoke',
     # Fresh profile: launch cinematic and its pad skip, then the new-player hints over two dives.
     'browser_onboarding_smoke',
     # Fresh profile: the title's 開始 plays the new-game cold open, flown by keyboard and by pad, into the prologue.
@@ -57,6 +60,7 @@ DEFAULT_CHECKS = (
 SCRIPT_TIMEOUTS = {
     'browser_playstation_smoke': 3600,
     'browser_cold_open_smoke': 5400,
+    'browser_training_smoke': 3600,
     # Full career walk with per-beat JPEG captures; quick mode is far shorter.
     'playtest_audit': 2400,
 }
@@ -66,7 +70,7 @@ TIERS = {
         'units': ('test_encoding', 'test_protocol_doc', 'test_vendor_manifest', 'test_power', 'test_thermal'),
         'browser': ('browser_hud_smoke',),
     },
-    'full': {'units': None, 'browser': DEFAULT_CHECKS},
+    'full': {'units': None, 'browser': DEFAULT_CHECKS, 'reports': ('i18n_glossary_check',)},
 }
 # Narrow islands with known coverage. Other viewer changes conservatively run the tier's entire set.
 BROWSER_PATHS = {
@@ -74,6 +78,7 @@ BROWSER_PATHS = {
     # Identity marks decorate the launch menu; the chapter title card runs when a campaign chapter starts.
     'simulator/viewer/brand/': ('browser_brand_smoke', 'browser_menu_smoke', 'browser_menu_gamepad_smoke',
                                 'browser_campaign_smoke'),
+    'simulator/viewer/training/': ('browser_training_smoke', 'browser_menu_smoke', 'browser_campaign_smoke'),
     'simulator/viewer/feedback/': ('browser_feedback_smoke', 'browser_menu_smoke', 'browser_hud_smoke',
                                    'browser_menu_gamepad_smoke'),
 }

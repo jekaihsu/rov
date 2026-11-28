@@ -6,7 +6,8 @@
     "audio": "音频",
     "quality": "画质",
     "display": "显示",
-    "interface": "界面"
+    "interface": "界面",
+    "about": "关于"
   },
   "pad": "输入设备",
   "padAuto": "自动检测手柄＋键盘",

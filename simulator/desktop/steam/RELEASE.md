@@ -1,36 +1,45 @@
-# T10 release configuration and verification gaps
+# T10 / S4 release configuration and verification gaps
 
 steamworks.js 0.4.0 is MIT (license shipped in node_modules/steamworks.js/LICENSE).
 No viewer dependency or asset was added. Three.js remains MIT.
 Set STEAM_APP_ID externally for development (use Valve's shared test application).
 Alternatively place steam_appid.txt next to the executable; never distribute this
 file or commit real IDs. Release launches use Steam's environment. Missing Steam
-is caught and falls back to offline mode. No authentication credentials are needed.
+or a missing App ID uses the local mock backend (`userData/steam-mock/state.json`),
+visible in the engineering drawer's Steam developer panel. No authentication
+credentials are needed.
+
+`ROV_BUILD_EDITION=steam` selects Steam packaging settings (product name
+`ROV Solution`, baked `steam/build_edition.json` in the package copy via
+`packageAfterCopy`, instructor UI omitted from the
+frozen viewer). Internal training builds keep `edition !== 'steam'` so achievements
+and Rich Presence stay hidden. Windows packaging remains `workflow_dispatch` only.
+
 
 ## Backend configuration table
 
-`achievements.json` is the authoritative event/API/display-name mapping (15 rows).
-Create each achievement with the exact `api` name; set progress stat to
-`STAT_` plus upper-case `event`, type INT, default 0, client-set, increment-only.
-Artwork, localized descriptions and final observation category names need product review.
-The preload bridge accepts `steamEvent(event, integerValue)` and returns whether
-Steam stored it. `steamStatus()` returns player, language, cloudPath and availability.
-Events are not yet wired into gameplay: viewer changes are outside this PR's scope.
-No achievement unlock or screenshot has been verified against Steam.
+`achievements.json` is the authoritative event/API/display-name mapping (22 skill
+rows; see `docs/store/steam/achievements.md`). Create each achievement with the exact
+`api` name; set progress stat to `STAT_` plus upper-case `event`, type INT, default 0,
+client-set, increment-only. Artwork needs product review.
+The preload bridge accepts `steamEvent`, `steamPresence`, `steamMock`, and
+`steamStatus` (includes `edition`, `backend`, `cloud`, `mockPath`). Viewer trigger
+logic lives in `viewer/play/achievements.js`. No unlock has been verified against a
+real Steam App ID yet.
 
 ## Auto-Cloud
 
-Windows root: WinAppData, subdirectory `ROV Simulator`; verify the actual Electron
-userData path returned by steamStatus before enabling this rule in the partner site.
-Include preferences.json, window.json and collection/** recursively; exclude logs,
-numba-cache and local-backups/**. Configure user-specific root overrides before
-allowing different Steam accounts on the same machine. Photos dominate size: reserve
-1 GiB / 10,000 files per user initially (500 photos at 2 MiB plus metadata).
-No photo deletion, recompression or quota enforcement is implemented. Warn users
-and size real sessions before release. Auto-Cloud conflict decisions occur before
-launch; a launch snapshot preserves only data still present at that time. Steam's
-conflict dialog and a manual collection export remain necessary; this is not a
-complete conflict-recovery guarantee. Snapshots are local and currently unbounded.
+See `docs/store/steam/cloud.md` and `steam/cloud_paths.cjs`. Windows root: WinAppData;
+subdirectory matches the Electron product name (`ROV Simulator` internal,
+`ROV Solution` Steam). Verify `steamStatus().cloudPath` before enabling Partner
+rules. Include preferences.json, window.json, saves/** (versioned localStorage
+mirrors — career, campaign, fidelity, display, audio, input, …; see
+docs/design/saves.md), collection/** and steam-mock/**; exclude logs, numba-cache,
+saves/corrupt/**, local-backups/** and reports/**. Photos dominate size: reserve
+1 GiB / 10,000 files per user initially. No photo deletion, recompression or quota
+enforcement is implemented. Auto-Cloud conflict decisions occur before launch.
+Desktop write path for `saves/*.json`, `preferences.json` and `window.json` is
+atomic (temp file + fsync + rename) via `desktop/save_files.cjs`.
 
 ## Steam Input defaults and checks
 
@@ -72,14 +81,15 @@ denied; navigation stays on the allocated local origin. Response CSP denies obje
 frames, external scripts and base URLs; inline styles remain for existing viewer
 styles. Network connections allow ws/wss/https for remote rooms.
 
-CI currently produces INTERNAL TRAINING artifacts only. Steam edition is blocked:
-existing vehicle assets and viewer/controller text contain vendor references and
-qysim.server imports the USB module. Removing just documents or excluding the USB
-module would leave branding or break imports. A reviewed Steam content manifest
-and dependency boundary are required before enabling Steam uploads. No upload is
-performed. SDK files are not intentionally added by the current PyInstaller recipe.
-Real Windows launches with/without Steam, achievement unlocks, CSP rendering,
-backend crash/retry, display behavior and artifact contents are all unverified.
+CI currently produces INTERNAL TRAINING artifacts by default. Steam packaging
+settings can be selected with `ROV_BUILD_EDITION=steam` on the manual Windows
+workflow, but Steam edition content is still blocked for upload: existing vehicle
+assets and viewer/controller text contain vendor references and qysim.server
+imports the USB module. A reviewed Steam content manifest and dependency boundary
+are required before enabling Steam uploads. No upload is performed. SDK files are
+not intentionally added by the current PyInstaller recipe. Real Windows launches
+with/without Steam, achievement unlocks, CSP rendering, backend crash/retry,
+display behavior and artifact contents are all unverified.
 
 ## Review follow-up after merging main
 
@@ -93,10 +103,10 @@ velocity control, position hold or a DVL assumption. Research was re-read in
 `docs/reference/real-rov-research.md`; `docs/reference/own/` is absent in this checkout.
 No vehicle-specific behavior or measurement is inferred from another vehicle.
 
-Electron packaging now uses an explicit runtime file allowlist. Only
-steam/achievements.json is retained from the release directory. Production npm
-dependencies and their licenses/native libraries stay present, while Electron
-Packager prunes devDependencies. `packaging_audit.cjs BEFORE_ASAR AFTER_ASAR`
+Electron packaging now uses an explicit runtime file allowlist. Achievement catalog,
+edition bake file and cloud path helpers are retained from the steam directory.
+Production npm dependencies and their licenses/native libraries stay present, while
+Electron Packager prunes devDependencies. `packaging_audit.cjs BEFORE_ASAR AFTER_ASAR`
 checks the actual file lists, sizes and unchanged unpacked native-library bytes.
 Linux cross-packaging checks only the Windows Electron shell when no frozen
 backend is available; it does not validate a complete Windows simulation build.

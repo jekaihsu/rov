@@ -37,3 +37,27 @@ html:lang(en) .results-card, html:lang(ja) .results-card {
 html:lang(en) .results-actions, html:lang(ja) .results-actions {
   gap: 10px;
 }
+
+/* The location caption and the radio subtitle can be visible at the same time. */
+.cold-open-layer .cold-open-super {
+  top: calc(max(0px, (100vh - 100vw / 2.39) / 2) + 5vh);
+  bottom: auto;
+  max-width: 88vw;
+}
+
+html:is(:lang(en), :lang(ja)) #flightMission {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Work orders and instrument names can take three lines on 720p thumbnails. */
+.launch-menu:is([data-screen=board], [data-screen=shop]) .bp-tile-name {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* fitTitle still sizes each heading. Leave space for tall glyphs below the last baseline. */
+.launch-menu .bp-hero .bp-title {
+  display: block;
+  overflow: visible;
+}
